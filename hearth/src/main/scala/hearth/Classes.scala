@@ -4,6 +4,11 @@ trait Classes { this: MacroCommons =>
 
   type Definition[A]
 
+  val Definition: DefinitionModule
+  trait DefinitionModule { this: Definition.type =>
+
+  }
+
   implicit class DefinitionMethods[A](private val definition: Definition[A]) {
 
     def name: String = ???
@@ -30,6 +35,8 @@ trait Classes { this: MacroCommons =>
   implicit class ClassDataMethods[A](private val classData: ClassData[A]) {
 
     def simpleName: String = ???
+    def fcqn: String = ???
+    def prettyPrint: String = ???
 
     def primaryConstructor: Option[Function[A]] = ???
     def constructorsAvailableHere: List[Function[A]] = ???
