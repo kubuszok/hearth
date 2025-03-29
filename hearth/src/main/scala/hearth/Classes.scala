@@ -11,7 +11,7 @@ trait Classes { this: MacroCommons =>
 
   implicit class DefinitionMethods[A](private val definition: Definition[A]) {
 
-    def name: String = ???
+    def name: String = definition.toString
 
     def function: Function[A] = ???
 
@@ -34,7 +34,7 @@ trait Classes { this: MacroCommons =>
 
   implicit class ClassDataMethods[A](private val classData: ClassData[A]) {
 
-    def simpleName: String = ???
+    def simpleName: String = classData.toString
     def fcqn: String = ???
     def prettyPrint: String = ???
 
