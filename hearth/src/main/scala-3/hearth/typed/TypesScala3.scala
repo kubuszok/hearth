@@ -1,4 +1,7 @@
 package hearth
+package typed
+
+import scala.collection.immutable.ListMap
 
 trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
 
@@ -8,7 +11,21 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
 
   object Type extends TypeModule {
 
-    override def simpleName[A: Type]: String =
+    object platformSpecific {
+
+      abstract class LiteralImpl[U: Type](lift: U => Constant) extends Literal[U] {
+        final def apply[A <: U](value: A): Type[A] =
+          ConstantType(lift(value)).asType.asInstanceOf[Type[A]]
+        final def unapply[A](A: Type[A]): Option[Existential.UpperBounded[U, Id]] =
+          if A <:< Type[U] then quoted.Type
+            .valueOfConstant[U](using A.asInstanceOf[Type[U]])
+            .map(Existential.UpperBounded[U, Id, U](_))
+          else None
+      }
+    }
+    import platformSpecific.*
+
+    override def shortName[A: Type]: String =
       (TypeRepr.of[A].dealias.typeSymbol.name: String).replaceAll("\\$", "")
     override def prettyPrint[A: Type]: String = {
       // In Scala 3 typeRepr.dealias dealiases only the "main" type but not types applied as type parameters,
@@ -41,7 +58,27 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
         .getOrElse(repr.toString)
     }
 
+    override def annotations[A: Type]: List[Expr_??] = ??? // TODO
+
+    override def isAbstract[A: Type]: Boolean = ??? // TODO
+    override def isFinal[A: Type]: Boolean = ??? // TODO
+    override def isCaseClass[A: Type]: Boolean = ??? // TODO
+    override def isObject[A: Type]: Boolean = ??? // TODO
+    override def isJavaBean[A: Type]: Boolean = ??? // TODO
+    // TODO: sealed/enums/sum types
+
+    override def isPublic[A: Type]: Boolean = ??? // TODO
+    override def isAvailableHere[A: Type]: Boolean = ??? // TODO
+
     override def isSubtypeOf[A: Type, B: Type]: Boolean = TypeRepr.of[A] <:< TypeRepr.of[B]
     override def isSameAs[A: Type, B: Type]: Boolean = TypeRepr.of[A] =:= TypeRepr.of[B]
+
+    object BooleanLiteral extends LiteralImpl[Boolean](BooleanConstant(_)) with BooleanLiteralModule
+    object IntLiteral extends LiteralImpl[Int](IntConstant(_)) with IntLiteralModule
+    object LongLiteral extends LiteralImpl[Long](LongConstant(_)) with LongLiteralModule
+    object FloatLiteral extends LiteralImpl[Float](FloatConstant(_)) with FloatLiteralModule
+    object DoubleLiteral extends LiteralImpl[Double](DoubleConstant(_)) with DoubleLiteralModule
+    object CharLiteral extends LiteralImpl[Char](CharConstant(_)) with CharLiteralModule
+    object StringLiteral extends LiteralImpl[String](StringConstant(_)) with StringLiteralModule
   }
 }

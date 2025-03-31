@@ -1,4 +1,5 @@
 package hearth
+package typed
 
 trait Existentials { this: MacroCommons =>
 

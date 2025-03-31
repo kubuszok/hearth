@@ -1,11 +1,21 @@
 package hearth
 
+trait MacroUntypedCommonsScala3
+    extends MacroUntypedCommons
+    with untyped.TypesScala3
+    with untyped.ExprsScala3
+    with untyped.MethodsScala3 { this: MacroCommonsScala3 => }
+
+trait MacroTypedCommonsScala3
+    extends MacroTypedCommons
+    with typed.TypesScala3
+    with typed.ExprsScala3
+    with typed.MethodsScala3 { this: MacroCommonsScala3 => }
+
 abstract class MacroCommonsScala3(using val quotes: scala.quoted.Quotes)
     extends MacroCommons
-    with TypesScala3
-    with ExprsScala3
-    with FunctionsScala3
-    with ClassesScala3 {
+    with MacroUntypedCommonsScala3
+    with MacroTypedCommonsScala3 {
 
   import quotes.*, quotes.reflect.*
 
@@ -21,4 +31,9 @@ abstract class MacroCommonsScala3(using val quotes: scala.quoted.Quotes)
     override def reportWarn(msg: String): Unit = report.info(msg, Position.ofMacroExpansion)
     override def reportErrorAndAbort(msg: String): Nothing = report.errorAndAbort(msg, Position.ofMacroExpansion)
   }
+}
+object MacroCommonsScala3 {
+
+  def apply()(using scala.quoted.Quotes): MacroCommonsScala3 = ???
+  // new MacroCommonsScala3
 }
