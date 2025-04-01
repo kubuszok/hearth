@@ -9,12 +9,14 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
   object UntypedExpr extends UntypedExprModule {
 
-    def fromTyped[A](expr: Expr[A]): UntypedExpr = expr.asTerm
-    def toTyped[A: Type](untyped: UntypedExpr): Expr[A] = untyped.asExprOf[A]
-    def as_??(untyped: UntypedExpr): Expr_?? = {
+    override def fromTyped[A](expr: Expr[A]): UntypedExpr = expr.asTerm
+    override def toTyped[A: Type](untyped: UntypedExpr): Expr[A] = untyped.asExprOf[A]
+    override def as_??(untyped: UntypedExpr): Expr_?? = {
       val resultType = UntypedType.as_??(untyped.tpe)
       import resultType.Underlying as Result
       toTyped[Result](untyped).as_??
     }
+
+    override def defaultValue(instanceTpe: UntypedType)(param: UntypedParameter): Option[UntypedExpr] = ???
   }
 }

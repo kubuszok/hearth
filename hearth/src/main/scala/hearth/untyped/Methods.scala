@@ -11,23 +11,19 @@ trait Methods { this: MacroCommons =>
   trait UntypedParameterModule { this: UntypedParameter.type =>
 
     def fromTyped(param: Parameter): UntypedParameter
-    def toTyped(untyped: UntypedParameter): Parameter
+    def toTyped(instanceTpe: UntypedType)(untyped: UntypedParameter): Parameter
 
     def name(param: UntypedParameter): String
 
-    def tpe(param: UntypedParameter): UntypedType
-    def defaultValue(param: UntypedParameter): Option[UntypedExpr]
     def annotations(param: UntypedParameter): List[UntypedExpr]
   }
 
   implicit final class UntypedParameterMethods(private val param: UntypedParameter) {
 
     def paramName: String = UntypedParameter.name(param)
-    def paramType: UntypedType = UntypedParameter.tpe(param)
-    def defaultValue: Option[UntypedExpr] = UntypedParameter.defaultValue(param)
     def annotations: List[UntypedExpr] = UntypedParameter.annotations(param)
 
-    def asTyped: Parameter = UntypedParameter.toTyped(param)
+    def asTyped[Instance: Type]: Parameter = UntypedParameter.toTyped(UntypedType.fromTyped[Instance])(param)
   }
 
   type UntypedParameters = List[ListMap[String, UntypedParameter]]
@@ -36,8 +32,8 @@ trait Methods { this: MacroCommons =>
     def fromTyped(typed: Parameters): UntypedParameters = typed.map { inner =>
       ListMap.from(inner.view.mapValues(_.asUntyped))
     }
-    def toTyped(untyped: UntypedParameters): Parameters = untyped.map { inner =>
-      ListMap.from(inner.view.mapValues(_.asTyped))
+    def toTyped[Instance: Type](untyped: UntypedParameters): Parameters = untyped.map { inner =>
+      ListMap.from(inner.view.mapValues(_.asTyped[Instance]))
     }
   }
 

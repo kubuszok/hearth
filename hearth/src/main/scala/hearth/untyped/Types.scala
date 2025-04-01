@@ -19,7 +19,8 @@ trait Types { this: MacroCommons =>
 
     def directChildren(instanceTpe: UntypedType): Option[List[UntypedType]]
 
-    def parameterType(instanceTpe: UntypedType)(param: UntypedParameter): UntypedType
+    def parameterAt(instanceTpe: UntypedType)(param: UntypedParameter): UntypedType
+
     def parametersAt(instanceTpe: UntypedType)(method: UntypedMethod): UntypedParameters
     def unsafeApplyAt(instanceTpe: UntypedType)(method: UntypedMethod): UntypedArguments => UntypedExpr
     def returnTypeAt(instanceTpe: UntypedType)(method: UntypedMethod): UntypedType
@@ -34,6 +35,9 @@ trait Types { this: MacroCommons =>
     def constructors: List[UntypedMethod] = UntypedType.constructors(untyped)
 
     def directChildren: Option[List[UntypedType]] = UntypedType.directChildren(untyped)
+
+    def parameter(param: UntypedParameter): UntypedType = UntypedType.parameterAt(untyped)(param)
+    def defaultValue(param: UntypedParameter): Option[UntypedExpr] = UntypedExpr.defaultValue(untyped)(param)
 
     def parametersAt(method: UntypedMethod): UntypedParameters =
       UntypedType.parametersAt(untyped)(method)

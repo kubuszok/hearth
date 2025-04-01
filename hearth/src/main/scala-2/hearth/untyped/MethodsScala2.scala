@@ -5,17 +5,15 @@ import hearth.MacroCommonsScala2
 
 trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
 
-  final override type UntypedParameter = Any
+  final override type UntypedParameter = c.Symbol
 
   object UntypedParameter extends UntypedParameterModule {
 
     override def fromTyped(param: Parameter): UntypedParameter = ???
-    override def toTyped(untyped: UntypedParameter): Parameter = ???
+    override def toTyped(instanceTpe: UntypedType)(untyped: UntypedParameter): Parameter = ???
 
-    override def name(param: UntypedParameter): String = ???
+    override def name(param: UntypedParameter): String = param.name.decodedName.toString
 
-    override def tpe(param: UntypedParameter): UntypedType = ???
-    override def defaultValue(param: UntypedParameter): Option[UntypedExpr] = ???
     override def annotations(param: UntypedParameter): List[UntypedExpr] = ???
   }
 
@@ -23,7 +21,7 @@ trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
 
   object UntypedMethod extends UntypedMethodModule {
 
-    override def name(method: UntypedMethod): String = ???
+    override def name(method: UntypedMethod): String = method.name.decodedName.toString
 
     override def annotations(method: UntypedMethod): List[UntypedExpr] = ???
 

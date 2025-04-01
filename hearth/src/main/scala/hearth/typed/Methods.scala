@@ -7,16 +7,25 @@ trait Methods { this: MacroCommons =>
 
   type Parameter
 
-  // TODO: Parameter methods
+  val Parameter: ParameterModule
+  trait ParameterModule { this: Parameter.type =>
+
+    def name(param: Parameter): String
+
+    def paramType(param: Parameter): ??
+    def defaultValue(param: Parameter): Option[Expr_??]
+    def annotations(param: Parameter): List[Expr_??]
+  }
 
   implicit final class ParameterMethods(private val param: Parameter) {
 
-    def paramName: String = param.toString // TODO
-    def paramType: ?? = ???
-    def defaultValue: Option[Expr_??] = ???
-    def annotations: List[Expr_??] = ???
+    def paramName: String = Parameter.name(param)
 
-    def asUntyped: UntypedParameter = ???
+    def paramType: ?? = Parameter.paramType(param)
+    def defaultValue: Option[Expr_??] = Parameter.defaultValue(param)
+    def annotations: List[Expr_??] = Parameter.annotations(param)
+
+    def asUntyped: UntypedParameter = UntypedParameter.fromTyped(param)
   }
 
   type Parameters = List[ListMap[String, Parameter]]
@@ -41,6 +50,7 @@ trait Methods { this: MacroCommons =>
     def isAccessibleHere: Boolean = UntypedMethod.isAccessibleHere(untyped)
 
     def isAccessor: Boolean = isVal || isVar || isLazy || (isDef && parameters.forall(_.isEmpty))
+    // TODO: defer until generid way of handling types is available
     // TODO: implement using existing methods: (get* + non-Unit || is* + Boolean) + List(Nil) as parameter list
     def isJavaGetter: Boolean = ???
     // TODO: implement using existing methods: set* + :Unit + List(List(input)) as paremeter list

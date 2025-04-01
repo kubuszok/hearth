@@ -20,7 +20,7 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
     override def directChildren(instanceTpe: UntypedType): Option[List[UntypedType]] =
       ??? // TODO: port enum types
 
-    override def parameterType(instanceTpe: UntypedType)(param: UntypedParameter): UntypedType =
+    override def parameterAt(instanceTpe: UntypedType)(param: UntypedParameter): UntypedType =
       ??? // TODO: add this
     override def parametersAt(instanceTpe: UntypedType)(method: UntypedMethod): UntypedParameters =
       method

@@ -5,17 +5,15 @@ trait MethodsScala3 extends Methods { this: MacroCommonsScala3 =>
 
   import quotes.*, quotes.reflect.*
 
-  final override type UntypedParameter = Any
+  final override type UntypedParameter = Symbol
 
   object UntypedParameter extends UntypedParameterModule {
 
     override def fromTyped(param: Parameter): UntypedParameter = ???
-    override def toTyped(untyped: UntypedParameter): Parameter = ???
+    override def toTyped(instanceTpe: UntypedType)(untyped: UntypedParameter): Parameter = ???
 
     override def name(param: UntypedParameter): String = ???
 
-    override def tpe(param: UntypedParameter): UntypedType = ???
-    override def defaultValue(param: UntypedParameter): Option[UntypedExpr] = ???
     override def annotations(param: UntypedParameter): List[UntypedExpr] = ???
   }
 

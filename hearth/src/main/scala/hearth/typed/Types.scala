@@ -46,7 +46,7 @@ trait Types { this: MacroCommons =>
     def isSubtypeOf[A: Type, B: Type]: Boolean
     def isSameAs[A: Type, B: Type]: Boolean
 
-    // TODO: make it handle: Options/Lists/Tuples/etc
+    // TODO: make it handle: Options/Lists/Tuples/etc like ValueOf
     final def runtimeSingleton[SingletonType: Type]: Option[SingletonType] =
       BooleanLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
         IntLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse

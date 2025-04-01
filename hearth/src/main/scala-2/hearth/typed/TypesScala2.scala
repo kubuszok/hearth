@@ -20,7 +20,7 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
       // TODO: check when this crap has to be called :/
 
       // Workaround for <https://issues.scala-lang.org/browse/SI-7755>
-      // and <https://github.com/scalalandio/chimney/issues/562> and similar
+      // and <https://github.com/scalalandio/chimney/issues/562> and similar.
       def forceTypeSymbolInitialization[A: Type]: Unit = forceTypeSymbolInitialization(
         UntypedType.fromTyped[A].typeSymbol
       )

@@ -13,6 +13,8 @@ trait Exprs { this: MacroCommons =>
     def fromTyped[A](expr: Expr[A]): UntypedExpr
     def toTyped[A: Type](untyped: UntypedExpr): Expr[A]
     def as_??(untyped: UntypedExpr): Expr_??
+
+    def defaultValue(untyped: UntypedType)(param: UntypedParameter): Option[UntypedExpr]
   }
 
   implicit final class UntypedExprMethods(private val untyped: UntypedExpr) {
