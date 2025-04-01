@@ -7,6 +7,8 @@ trait Methods { this: MacroCommons =>
 
   type Parameter
 
+  // TODO: Parameter methods
+
   implicit final class ParameterMethods(private val param: Parameter) {
 
     def paramName: String = param.toString // TODO
@@ -38,9 +40,11 @@ trait Methods { this: MacroCommons =>
     def isPublic: Boolean = UntypedMethod.isPublic(untyped)
     def isAccessibleHere: Boolean = UntypedMethod.isAccessibleHere(untyped)
 
-    def isAccessor: Boolean = ??? // TODO: implement using existing methods
-    def isJavaGetter: Boolean = ??? // TODO: implement using existing methods
-    def isJavaSetter: Boolean = ??? // TODO: implement using existing methods
+    def isAccessor: Boolean = isVal || isVar || isLazy || (isDef && parameters.forall(_.isEmpty))
+    // TODO: implement using existing methods: (get* + non-Unit || is* + Boolean) + List(Nil) as parameter list
+    def isJavaGetter: Boolean = ???
+    // TODO: implement using existing methods: set* + :Unit + List(List(input)) as paremeter list
+    def isJavaSetter: Boolean = ???
 
     val parameters: Parameters = UntypedParameters.toTyped(untypedInstanceType.parametersAt(untyped))
     val applyUnsafe: Arguments => Expr[Out] = arguments =>
