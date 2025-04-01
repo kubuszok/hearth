@@ -52,7 +52,7 @@ trait Methods { this: MacroCommons =>
   type UntypedMethod
 
   val UntypedMethod: UntypedMethodModule
-  trait UntypedMethodModule { this: UntypedMethod =>
+  trait UntypedMethodModule { this: UntypedMethod.type =>
 
     final def fromTyped[Out](method: Method[Out]): UntypedMethod = method.untyped
     final def toTyped[In: Type, Out: Type](untyped: UntypedMethod): Method[Out] =
