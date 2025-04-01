@@ -48,12 +48,23 @@ trait Types { this: MacroCommons =>
 
     def annotations: List[Any] = ??? // TODO: new thing
 
+    // TODO: make it handle: Options/Lists/Tuples/etc
+    final def runtimeSingleton[SingletonType: Type]: Option[SingletonType] =
+      BooleanLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
+        IntLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
+        LongLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
+        FloatLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
+        DoubleLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
+        CharLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
+        StringLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
+        runtimeModule[SingletonType]
+
     final def runtimeModule[ModuleSingleton: Type]: Option[ModuleSingleton] = {
       // based on https://github.com/MateuszKubuszok/MacroTypeclass ideas
       object ModuleSingleton {
         def unapply(className: String): Option[ModuleSingleton] =
           try
-            scala.Option(Class.forName(className).getField("MODULE$").get(null).asInstanceOf[ModuleSingleton])
+            Option(Class.forName(className).getField("MODULE$").get(null).asInstanceOf[ModuleSingleton])
           catch {
             case _: Throwable => None
           }

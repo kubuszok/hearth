@@ -24,6 +24,25 @@ trait Methods { this: MacroCommons =>
       val returnType: Type[Out]
   ) {
 
+    def name: String = UntypedMethod.name(untyped)
+
+    def defaultValue: Option[UntypedExpr] = UntypedMethod.defaultValue(untyped)
+    def annotations: List[Any] = UntypedMethod.annotations(untyped)
+
+    def isVal: Boolean = UntypedMethod.isVal(untyped)
+    def isVar: Boolean = UntypedMethod.isVar(untyped)
+    def isLazy: Boolean = UntypedMethod.isLazy(untyped)
+    def isDef: Boolean = UntypedMethod.isDef(untyped)
+    def isInherited: Boolean = UntypedMethod.isInherited(untyped)
+    def isImplicit: Boolean = UntypedMethod.isImplicit(untyped)
+
+    def isPublic: Boolean = UntypedMethod.isPublic(untyped)
+    def isAccessibleHere: Boolean = UntypedMethod.isAccessibleHere(untyped)
+
+    def isAccessor: Boolean = ??? // TODO: implement using existing methods
+    def isJavaGetter: Boolean = ??? // TODO: implement using existing methods
+    def isJavaSetter: Boolean = ??? // TODO: implement using existing methods
+
     val parameters: Parameters = UntypedParameters.toTyped(untypedInstanceType.parametersAt(untyped))
     val applyUnsafe: Arguments => Expr[Out] = arguments =>
       untypedInstanceType.unsafeApplyAt(untyped)(UntypedArguments.fromTyped(arguments)).asTyped[Out]

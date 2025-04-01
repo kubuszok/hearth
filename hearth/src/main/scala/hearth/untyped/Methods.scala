@@ -65,8 +65,8 @@ trait Methods { this: MacroCommons =>
 
     def name(method: UntypedMethod): String
 
-    def defaultValue: Option[UntypedExpr]
-    def annotations: List[Any]
+    def defaultValue(method: UntypedMethod): Option[UntypedExpr]
+    def annotations(method: UntypedMethod): List[Any]
 
     def isVal(method: UntypedMethod): Boolean
     def isVar(method: UntypedMethod): Boolean
