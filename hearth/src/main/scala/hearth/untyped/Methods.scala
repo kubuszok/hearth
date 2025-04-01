@@ -65,8 +65,7 @@ trait Methods { this: MacroCommons =>
 
     def name(method: UntypedMethod): String
 
-    def defaultValue(method: UntypedMethod): Option[UntypedExpr]
-    def annotations(method: UntypedMethod): List[Any]
+    def annotations(method: UntypedMethod): List[UntypedExpr]
 
     def isVal(method: UntypedMethod): Boolean
     def isVar(method: UntypedMethod): Boolean
@@ -82,6 +81,8 @@ trait Methods { this: MacroCommons =>
   implicit final class UntypedMethodMethods(private val method: UntypedMethod) {
 
     def methodName: String = UntypedMethod.name(method)
+
+    def annotations: List[UntypedExpr] = UntypedMethod.annotations(method)
 
     def isVal: Boolean = UntypedMethod.isVal(method)
     def isVar: Boolean = UntypedMethod.isVar(method)

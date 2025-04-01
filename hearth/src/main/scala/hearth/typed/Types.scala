@@ -46,8 +46,6 @@ trait Types { this: MacroCommons =>
     def isSubtypeOf[A: Type, B: Type]: Boolean
     def isSameAs[A: Type, B: Type]: Boolean
 
-    def annotations: List[Any] = ??? // TODO: new thing
-
     // TODO: make it handle: Options/Lists/Tuples/etc
     final def runtimeSingleton[SingletonType: Type]: Option[SingletonType] =
       BooleanLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
@@ -186,6 +184,8 @@ trait Types { this: MacroCommons =>
 
     def directChildren: Option[List[??<:[A]]] = Type.directChildren(using tpe)
     def exhaustiveChildren: Option[List[??<:[A]]] = Type.exhaustiveChildren(using tpe)
+
+    def annotations: List[Expr_??] = Type.annotations(using tpe)
 
     def summonExpr: Option[Expr[A]] = Expr.summonImplicit(using tpe)
 

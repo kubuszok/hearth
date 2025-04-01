@@ -26,8 +26,7 @@ trait Methods { this: MacroCommons =>
 
     def name: String = UntypedMethod.name(untyped)
 
-    def defaultValue: Option[UntypedExpr] = UntypedMethod.defaultValue(untyped)
-    def annotations: List[Any] = UntypedMethod.annotations(untyped)
+    def annotations: List[Expr_??] = UntypedMethod.annotations(untyped).map(_.as_??)
 
     def isVal: Boolean = UntypedMethod.isVal(untyped)
     def isVar: Boolean = UntypedMethod.isVar(untyped)
