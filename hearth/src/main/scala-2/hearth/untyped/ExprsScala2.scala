@@ -14,13 +14,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     def fromTyped[A](expr: Expr[A]): UntypedExpr = expr.tree
     def toTyped[A: Type](untyped: UntypedExpr): Expr[A] = c.Expr[A](untyped)
     def as_??(untyped: UntypedExpr): Expr_?? = {
-      val resultType: ?? = UntypedType.as_??(
-        try
-          c.Expr(untyped).actualType.finalResultType
-        catch {
-          case _: Throwable => c.Expr(untyped).staticType.finalResultType
-        }
-      )
+      val resultType: ?? =
+        c.Expr(untyped).attemptPipe(_.actualType.finalResultType)(_.staticType.finalResultType).as_??
       import resultType.Underlying as Result
       toTyped[Result](untyped).as_??
     }

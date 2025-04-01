@@ -1,6 +1,8 @@
 package hearth
 package typed
 
+import scala.language.implicitConversions
+
 trait Types { this: MacroCommons =>
 
   /** Platform-specific type representation (`c.WeakTypeTag[A]` in 2, `scala.quoted.Type[A]` in 3) */
@@ -17,17 +19,26 @@ trait Types { this: MacroCommons =>
     final def plainPrint[A: Type]: String = removeAnsiColors(prettyPrint[A])
     def prettyPrint[A: Type]: String
 
-    final def directChildren[A: Type]: Option[List[??<:[A]]] = ??? // TODO: implement with existing utils
-    final def exhaustiveChildren[A: Type]: Option[List[??<:[A]]] = ??? // TODO: implement with existing utils
+    final def directChildren[A: Type]: Option[List[??<:[A]]] =
+      UntypedType.fromTyped[A].directChildren.map(_.map(_.asTyped[A].as_??<:[A]))
+    final def exhaustiveChildren[A: Type]: Option[List[??<:[A]]] =
+      directChildren[A].flatMap(_.foldRight[Option[List[??<:[A]]]](Some(List.empty)) {
+        case (_, None)                                 => None
+        case (child, _) if child.Underlying.isAbstract => None
+        case (child, Some(list)) if child.Underlying.isSealed =>
+          exhaustiveChildren[A](using child.asUntyped.asTyped[A]).map(_ ++ list)
+        case (child, Some(list)) => Some(child +: list)
+      })
 
     def annotations[A: Type]: List[Expr_??]
 
     def isAbstract[A: Type]: Boolean
     def isFinal[A: Type]: Boolean
+    def isSealed[A: Type]: Boolean
     def isCaseClass[A: Type]: Boolean
     def isObject[A: Type]: Boolean
     def isJavaBean[A: Type]: Boolean
-    // TODO: sealed/enums/sum types
+    // TODO: CaseVal, SumType
 
     def isPublic[A: Type]: Boolean
     def isAvailableHere[A: Type]: Boolean
@@ -169,10 +180,10 @@ trait Types { this: MacroCommons =>
 
     def isAbstract: Boolean = Type.isAbstract(using tpe)
     def isFinal: Boolean = Type.isFinal(using tpe)
+    def isSealed: Boolean = Type.isSealed(using tpe)
     def isCaseClass: Boolean = Type.isCaseClass(using tpe)
     def isObject: Boolean = Type.isObject(using tpe)
     def isJavaBean: Boolean = Type.isJavaBean(using tpe)
-    // TODO: sealed/enums/sum Type
 
     def isPublic: Boolean = Type.isPublic(using tpe)
     def isAvailableHere: Boolean = Type.isAvailableHere(using tpe)
@@ -195,6 +206,12 @@ trait Types { this: MacroCommons =>
   final type ??<:[U] = Existential.UpperBounded[U, Type]
   final type <:??<:[L, U >: L] = Existential.Bounded[L, U, Type]
 
+  implicit def ExistentialTypeMethods(tpe: ??): BoundedExistentialTypeMethods[Nothing, Any] =
+    new BoundedExistentialTypeMethods[Nothing, Any](tpe)
+  implicit def LowerBoundedExistentialTypeMethods[L](tpe: ??>:[L]): BoundedExistentialTypeMethods[L, Any] =
+    new BoundedExistentialTypeMethods[L, Any](tpe)
+  implicit def UpperBoundedExistentialTypeMethods[U](tpe: ??<:[U]): BoundedExistentialTypeMethods[Nothing, U] =
+    new BoundedExistentialTypeMethods[Nothing, U](tpe)
   implicit final class BoundedExistentialTypeMethods[L, U >: L](private val tpe: L <:??<: U) {
 
     def shortName: String = Type.shortName(using tpe.Underlying)

@@ -17,7 +17,7 @@ trait Types { this: MacroCommons =>
     def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod]
     def constructors(instanceTpe: UntypedType): List[UntypedMethod]
 
-    def directChildren: Option[List[UntypedType]]
+    def directChildren(instanceTpe: UntypedType): Option[List[UntypedType]]
 
     def parameterType(instanceTpe: UntypedType)(param: UntypedParameter): UntypedType
     def parametersAt(instanceTpe: UntypedType)(method: UntypedMethod): UntypedParameters
@@ -32,6 +32,8 @@ trait Types { this: MacroCommons =>
 
     def primaryConstructor: Option[UntypedMethod] = UntypedType.primaryConstructor(untyped)
     def constructors: List[UntypedMethod] = UntypedType.constructors(untyped)
+
+    def directChildren: Option[List[UntypedType]] = UntypedType.directChildren(untyped)
 
     def parametersAt(method: UntypedMethod): UntypedParameters =
       UntypedType.parametersAt(untyped)(method)

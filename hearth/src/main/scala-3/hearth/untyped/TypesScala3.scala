@@ -19,7 +19,7 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
     override def constructors(instanceTpe: UntypedType): List[UntypedMethod] =
       instanceTpe.typeSymbol.declarations.filterNot(_.isNoSymbol).filter(_.isClassConstructor)
 
-    override def directChildren: Option[List[UntypedType]] =
+    override def directChildren(instanceTpe: UntypedType): Option[List[UntypedType]] =
       ??? // TODO: port enum types
 
     override def parameterType(instanceTpe: UntypedType)(param: UntypedParameter): UntypedType =

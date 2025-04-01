@@ -62,10 +62,10 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
 
     override def isAbstract[A: Type]: Boolean = ??? // TODO
     override def isFinal[A: Type]: Boolean = ??? // TODO
+    override def isSealed[A: Type]: Boolean = ??? // TODO
     override def isCaseClass[A: Type]: Boolean = ??? // TODO
     override def isObject[A: Type]: Boolean = ??? // TODO
     override def isJavaBean[A: Type]: Boolean = ??? // TODO
-    // TODO: sealed/enums/sum types
 
     override def isPublic[A: Type]: Boolean = ??? // TODO
     override def isAvailableHere[A: Type]: Boolean = ??? // TODO

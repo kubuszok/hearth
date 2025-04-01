@@ -17,7 +17,7 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
     override def constructors(instanceTpe: UntypedType): List[UntypedMethod] =
       instanceTpe.decls.filter(_.isConstructor).toList
 
-    override def directChildren: Option[List[UntypedType]] =
+    override def directChildren(instanceTpe: UntypedType): Option[List[UntypedType]] =
       ??? // TODO: port enum types
 
     override def parameterType(instanceTpe: UntypedType)(param: UntypedParameter): UntypedType =
