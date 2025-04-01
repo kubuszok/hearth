@@ -1,6 +1,8 @@
 package hearth
 package typed
 
+import scala.language.implicitConversions
+
 trait Exprs { this: MacroCommons =>
 
   /** Platform-specific untyped type representation (`c.Expr[A]` in 2, `scala.quoted.Expr[A]` in 3) */
@@ -30,11 +32,19 @@ trait Exprs { this: MacroCommons =>
     def as_<:??<:[L <: A, U >: A](implicit A: Type[A]): Expr_<:??<:[L, U] = Existential.Bounded[L, U, Expr, A](expr)
   }
 
+  // Aliases to make the (very common) existential types shorter
+
   final type Expr_?? = Existential[Expr]
   final type Expr_??>:[L] = Existential.LowerBounded[L, Expr]
   final type Expr_??<:[U] = Existential.UpperBounded[U, Expr]
   final type Expr_<:??<:[L, U >: L] = Existential.Bounded[L, U, Expr]
 
+  implicit def ExistentialExprMethods(expr: Expr_??): BoundedExistentialExprMethods[Nothing, Any] =
+    new BoundedExistentialExprMethods[Nothing, Any](expr)
+  implicit def LowerBoundedExistentialExprMethods[L](expr: Expr_??>:[L]): BoundedExistentialExprMethods[L, Any] =
+    new BoundedExistentialExprMethods[L, Any](expr)
+  implicit def UpperBoundedExistentialExprMethods[U](expr: Expr_??<:[U]): BoundedExistentialExprMethods[Nothing, U] =
+    new BoundedExistentialExprMethods[Nothing, U](expr)
   implicit final class BoundedExistentialExprMethods[L, U >: L](private val expr: Expr_<:??<:[L, U]) {
 
     def plainPrint: String = Expr.plainPrint(expr.value)

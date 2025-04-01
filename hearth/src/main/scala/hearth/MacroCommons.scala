@@ -1,6 +1,8 @@
 package hearth
 
-trait MacroUntypedCommons extends untyped.Types with untyped.Exprs with untyped.Methods { this: MacroCommons => }
+trait MacroUntypedCommons extends untyped.Types with untyped.Exprs with untyped.Methods {
+  this: MacroCommons =>
+}
 
 trait MacroTypedCommons
     extends typed.Types
@@ -12,6 +14,8 @@ trait MacroTypedCommons
 }
 
 trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
+
+  // TODO: move the definitions below to some module
 
   val Environment: EnvironmentModule
   trait EnvironmentModule { this: Environment.type =>
