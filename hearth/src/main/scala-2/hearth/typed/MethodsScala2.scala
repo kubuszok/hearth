@@ -3,14 +3,18 @@ package typed
 
 trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
 
-  type Parameter
+  final class Parameter(val untyped: UntypedParameter, val instanceTpe: UntypedType)
 
   object Parameter extends ParameterModule {
 
-    override def name(param: Parameter): String = ???
+    override def name(param: Parameter): String = UntypedParameter.name(param.untyped)
 
-    override def paramType(param: Parameter): ?? = ???
-    override def defaultValue(param: Parameter): Option[Expr_??] = ???
-    override def annotations(param: Parameter): List[Expr_??] = ???
+    override def paramType(param: Parameter): ?? =
+      param.instanceTpe.parameter(param.untyped).as_??
+    override def defaultValue(param: Parameter): Option[Expr_??] =
+      UntypedExpr.defaultValue(param.instanceTpe)(param.untyped).map(_.as_??)
+
+    override def annotations(param: Parameter): List[Expr_??] =
+      UntypedParameter.annotations(param.untyped).map(_.as_??)
   }
 }
