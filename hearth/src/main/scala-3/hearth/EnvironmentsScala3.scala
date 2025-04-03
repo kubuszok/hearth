@@ -27,5 +27,7 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
     override def reportInfo(msg: String): Unit = report.info(msg, currentPosition)
     override def reportWarn(msg: String): Unit = report.info(msg, currentPosition)
     override def reportErrorAndAbort(msg: String): Nothing = report.errorAndAbort(msg, currentPosition)
+
+    override val crossQuotesImpl: Any = quotes
   }
 }

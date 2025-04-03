@@ -66,5 +66,7 @@ trait Environments {
     private val adjustLine = if (isScala3) 1 else 0 // Scala 3 i 0-indexed, or decremented for some reason?
     private val fileLineRegex = """^(.+):(\d+)$""".r
     private val fileLineColumnRegex = """^(.+):(\d+):(\d+)$""".r
+
+    val crossQuotesImpl: Any
   }
 }

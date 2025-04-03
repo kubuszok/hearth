@@ -34,6 +34,12 @@ trait Exprs { this: MacroCommons =>
     val DoubleExprCodec: ExprCodec[Double]
     val CharExprCodec: ExprCodec[Char]
     val StringExprCodec: ExprCodec[String]
+
+    @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")
+    final def quote[A](expr: A): Expr[A] = sys.error("Install cross-quotes-plugin to use this method")
+
+    @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")
+    final def splice[A](expr: Expr[A]): A = sys.error("Install cross-quotes-plugin to use this method")
   }
 
   implicit final class ExprMethods[A](private val expr: Expr[A]) {

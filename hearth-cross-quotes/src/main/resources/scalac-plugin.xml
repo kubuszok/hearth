@@ -1,0 +1,4 @@
+<plugin>
+    <name>cq</name>
+    <classname>hearth.cq.CrossQuotesPlugin</classname>
+</plugin>
