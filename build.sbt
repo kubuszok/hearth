@@ -390,6 +390,24 @@ lazy val hearth = projectMatrix
   .settings(dependencies *)
   .settings(mimaSettings *)
 
+lazy val hearthTests = projectMatrix
+  .in(file("hearth-tests"))
+  .someVariations(versions.scalas, versions.platforms)((addScala213plusDir +: only1VersionInIDE) *)
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .disablePlugins(WelcomePlugin)
+  .settings(
+    moduleName := "hearth-tests",
+    name := "hearth-tests",
+    description := "Tests for hearth utilities"
+  )
+  .settings(settings *)
+  .settings(versionSchemeSettings *)
+  .settings(publishSettings *)
+  .settings(noPublishSettings *)
+  .settings(dependencies *)
+  .settings(mimaSettings *)
+  .dependsOn(hearth)
+
 //when having memory/GC-related errors during build, uncommenting this may be useful:
 Global / concurrentRestrictions := Seq(
   Tags.limit(Tags.Compile, 2) // only 2 compilations at once

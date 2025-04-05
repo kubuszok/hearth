@@ -11,15 +11,29 @@ trait Exprs { this: MacroCommons =>
   val Expr: ExprModule
   trait ExprModule { this: Expr.type =>
 
+    def apply[A: ExprCodec](value: A): Expr[A] = ExprCodec[A].toExpr(value)
+
+    def unapply[A: ExprCodec](expr: Expr[A]): Option[A] = ExprCodec[A].fromExpr(expr)
+
     def plainPrint[A](expr: Expr[A]): String = removeAnsiColors(prettyPrint(expr))
     def prettyPrint[A](expr: Expr[A]): String
 
     def summonImplicit[A: Type]: Option[Expr[A]]
 
     def upcast[A: Type, B: Type](expr: Expr[A]): Expr[B]
+
+    val BooleanExprCodec: ExprCodec[Boolean]
+    val IntExprCodec: ExprCodec[Int]
+    val LongExprCodec: ExprCodec[Long]
+    val FloatExprCodec: ExprCodec[Float]
+    val DoubleExprCodec: ExprCodec[Double]
+    val CharExprCodec: ExprCodec[Char]
+    val StringExprCodec: ExprCodec[String]
   }
 
   implicit final class ExprMethods[A](private val expr: Expr[A]) {
+
+    def value(implicit codec: ExprCodec[A]): Option[A] = codec.fromExpr(expr)
 
     def plainPrint: String = Expr.plainPrint(expr)
     def prettyPrint: String = Expr.prettyPrint(expr)
@@ -51,5 +65,26 @@ trait Exprs { this: MacroCommons =>
     def prettyPrint: String = Expr.prettyPrint(expr.value)
 
     def asUntyped: UntypedExpr = UntypedExpr.fromTyped(expr.value)
+  }
+
+  // Helpers
+
+  trait ExprCodec[A] {
+
+    def toExpr(value: A): Expr[A]
+    def fromExpr(expr: Expr[A]): Option[A]
+  }
+  object ExprCodec {
+
+    def apply[A](implicit codec: ExprCodec[A]): ExprCodec[A] = codec
+
+    // TODO: Unit, Tuples, None, Nil, ... derivation?
+    implicit val BooleanExprCodec: ExprCodec[Boolean] = Expr.BooleanExprCodec
+    implicit val IntExprCodec: ExprCodec[Int] = Expr.IntExprCodec
+    implicit val LongExprCodec: ExprCodec[Long] = Expr.LongExprCodec
+    implicit val FloatExprCodec: ExprCodec[Float] = Expr.FloatExprCodec
+    implicit val DoubleExprCodec: ExprCodec[Double] = Expr.DoubleExprCodec
+    implicit val CharExprCodec: ExprCodec[Char] = Expr.CharExprCodec
+    implicit val StringExprCodec: ExprCodec[String] = Expr.StringExprCodec
   }
 }

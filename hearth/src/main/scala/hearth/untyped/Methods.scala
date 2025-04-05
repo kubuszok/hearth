@@ -63,6 +63,7 @@ trait Methods { this: MacroCommons =>
 
     def annotations(method: UntypedMethod): List[UntypedExpr]
 
+    // TODO: isConstructorArgument?
     def isVal(method: UntypedMethod): Boolean
     def isVar(method: UntypedMethod): Boolean
     def isLazy(method: UntypedMethod): Boolean
