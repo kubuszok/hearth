@@ -60,14 +60,40 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
 
     override def annotations[A: Type]: List[Expr_??] = ??? // TODO
 
-    override def isAbstract[A: Type]: Boolean = ??? // TODO
-    override def isFinal[A: Type]: Boolean = ??? // TODO
-    override def isSealed[A: Type]: Boolean = ??? // TODO
-    override def isCaseClass[A: Type]: Boolean = ??? // TODO
-    override def isObject[A: Type]: Boolean = ??? // TODO
-    override def isJavaBean[A: Type]: Boolean = ??? // TODO
+    override def isAbstract[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      !A.isNoSymbol && (A.flags.is(Flags.Abstract) || A.flags.is(Flags.Trait))
+    }
+    override def isFinal[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      !A.isNoSymbol && A.flags.is(Flags.Final)
+    }
 
-    override def isPublic[A: Type]: Boolean = ??? // TODO
+    override def isSealed[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      !A.isNoSymbol && A.flags.is(Flags.Sealed)
+    }
+    override def isJavaEnum[A: Type]: Boolean =
+      Type[A] <:< scala.quoted.Type.of[java.lang.Enum[?]] && isAbstract[A]
+    override def isJavaEnumValue[A: Type]: Boolean =
+      Type[A] <:< scala.quoted.Type.of[java.lang.Enum[?]] && !isAbstract[A]
+    override def isCase[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      !A.isNoSymbol && A.flags.is(Flags.Case)
+    }
+    override def isObject[A: Type]: Boolean = ??? // TODO
+    override def isVal[A: Type]: Boolean = ??? // TODO
+
+    override def isClass[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      !A.isNoSymbol && A.isClassDef
+    }
+
+    override def isPublic[A: Type]: Boolean = {
+      val A = TypeRepr.of[A].typeSymbol
+      !(A.flags.is(Flags.Private) || A.flags.is(Flags.PrivateLocal) || A.flags.is(Flags.Protected) ||
+        A.privateWithin.isDefined || A.protectedWithin.isDefined)
+    }
     override def isAvailableHere[A: Type]: Boolean = ??? // TODO
 
     override def isSubtypeOf[A: Type, B: Type]: Boolean = TypeRepr.of[A] <:< TypeRepr.of[B]

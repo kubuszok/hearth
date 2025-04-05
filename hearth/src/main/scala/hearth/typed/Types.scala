@@ -32,13 +32,27 @@ trait Types { this: MacroCommons =>
 
     def annotations[A: Type]: List[Expr_??]
 
+    // TODO: isPrimitive[A: Type]: Boolean
+    // TODO: isBuildIn[A: Type]: Boolean
+
     def isAbstract[A: Type]: Boolean
     def isFinal[A: Type]: Boolean
+
     def isSealed[A: Type]: Boolean
-    def isCaseClass[A: Type]: Boolean
+    def isJavaEnum[A: Type]: Boolean
+    def isJavaEnumValue[A: Type]: Boolean
+
+    def isCase[A: Type]: Boolean
     def isObject[A: Type]: Boolean
-    def isJavaBean[A: Type]: Boolean
-    // TODO: CaseVal, SumType
+    def isVal[A: Type]: Boolean
+
+    def isClass[A: Type]: Boolean
+    final def isPlainOldJavaObject[A: Type]: Boolean = ???
+    final def isJavaBean[A: Type]: Boolean = ???
+
+    final def isCaseClass[A: Type]: Boolean = isClass[A] && isCase[A]
+    final def isCaseObject[A: Type]: Boolean = isObject[A] && isCase[A]
+    final def isCaseVal[A: Type]: Boolean = isVal[A] && isCase[A]
 
     def isPublic[A: Type]: Boolean
     def isAvailableHere[A: Type]: Boolean

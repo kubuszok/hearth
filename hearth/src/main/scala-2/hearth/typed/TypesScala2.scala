@@ -68,14 +68,54 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
 
     override def annotations[A: Type]: List[Expr_??] = ??? // TODO
 
-    override def isAbstract[A: Type]: Boolean = ??? // TODO
-    override def isFinal[A: Type]: Boolean = ??? // TODO
-    override def isSealed[A: Type]: Boolean = ??? // TODO
-    override def isCaseClass[A: Type]: Boolean = ??? // TODO
-    override def isObject[A: Type]: Boolean = ??? // TODO
-    override def isJavaBean[A: Type]: Boolean = ??? // TODO
+    override def isAbstract[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      A != NoSymbol && A.isAbstract
+    }
+    override def isFinal[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      A != NoSymbol && A.isFinal
+    }
 
-    override def isPublic[A: Type]: Boolean = ??? // TODO
+    override def isSealed[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      A != NoSymbol && A.isClass && A.asClass.isSealed
+    }
+    override def isJavaEnum[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      A.isJavaEnum && javaEnumRegexpFormat.pattern
+        .matcher(UntypedType.fromTyped[A].toString)
+        .matches() // 2.12 doesn't have .matches
+    }
+    override def isJavaEnumValue[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      A.isJavaEnum && !javaEnumRegexpFormat.pattern
+        .matcher(UntypedType.fromTyped[A].toString)
+        .matches() // 2.12 doesn't have .matches
+    }
+
+    override def isCase[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      A != NoSymbol && A.isClass && A.asClass.isCaseClass
+    }
+    override def isObject[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      A != NoSymbol && A.isClass && A.asClass.isModuleClass
+    }
+    override def isVal[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      isObject[A] && A.isStatic && A.isFinal // ???
+    }
+
+    override def isClass[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      A != NoSymbol && A.isClass
+    }
+
+    override def isPublic[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      A != NoSymbol && A.isPublic
+    }
     override def isAvailableHere[A: Type]: Boolean = ??? // TODO
 
     override def isSubtypeOf[A: Type, B: Type]: Boolean = weakTypeOf[A] <:< weakTypeOf[B]

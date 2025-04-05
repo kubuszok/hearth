@@ -5,6 +5,8 @@ import hearth.MacroCommonsScala2
 
 trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
 
+  import c.universe.*
+
   final override type UntypedParameter = c.Symbol
 
   object UntypedParameter extends UntypedParameterModule {
@@ -26,7 +28,8 @@ trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
     override def annotations(method: UntypedMethod): List[UntypedExpr] = ???
 
     override def isVal(method: UntypedMethod): Boolean = ???
-    override def isVar(method: UntypedMethod): Boolean = ???
+    override def isVar(method: UntypedMethod): Boolean =
+      method.isTerm && method.asTerm.name.toString.endsWith("_$eq")
     override def isLazy(method: UntypedMethod): Boolean = ???
     override def isDef(method: UntypedMethod): Boolean = ???
     override def isInherited(method: UntypedMethod): Boolean = ???
@@ -36,5 +39,8 @@ trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
     override def isAccessibleHere(method: UntypedMethod): Boolean = ???
   }
 
-  implicit override val UntypedMethodOrdering: Ordering[UntypedMethod] = ???
+  implicit override val UntypedMethodOrdering: Ordering[UntypedMethod] =
+    Ordering
+      .fromLessThan[Position]((a, b) => a.line < b.line || (a.line == b.line && a.column < b.column))
+      .on[UntypedMethod](_.pos)
 }
