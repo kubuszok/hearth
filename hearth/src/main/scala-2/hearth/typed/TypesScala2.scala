@@ -1,6 +1,8 @@
 package hearth
 package typed
 
+import hearth.compat.*
+
 trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
 
   import c.universe.*
@@ -83,15 +85,11 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
     }
     override def isJavaEnum[A: Type]: Boolean = {
       val A = UntypedType.fromTyped[A].typeSymbol
-      A.isJavaEnum && javaEnumRegexpFormat.pattern
-        .matcher(UntypedType.fromTyped[A].toString)
-        .matches() // 2.12 doesn't have .matches
+      A.isJavaEnum && javaEnumRegexpFormat.matches(UntypedType.fromTyped[A].toString)
     }
     override def isJavaEnumValue[A: Type]: Boolean = {
       val A = UntypedType.fromTyped[A].typeSymbol
-      A.isJavaEnum && !javaEnumRegexpFormat.pattern
-        .matcher(UntypedType.fromTyped[A].toString)
-        .matches() // 2.12 doesn't have .matches
+      A.isJavaEnum && !javaEnumRegexpFormat.matches(UntypedType.fromTyped[A].toString)
     }
 
     override def isCase[A: Type]: Boolean = {

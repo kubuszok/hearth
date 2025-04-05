@@ -2,6 +2,7 @@ package hearth
 package untyped
 
 import scala.collection.immutable.ListMap
+import scala.collection.compat.*
 
 trait Methods { this: MacroCommons =>
 

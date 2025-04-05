@@ -208,6 +208,20 @@ val settings = Seq(
   }
 )
 
+val hearthCompatSettings = Seq(
+  scalacOptions ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((3, _)) => Seq.empty
+      case Some((2, 13)) =>
+        Seq(
+          "-Wconf:origin=hearth.compat.*:s" // type aliases without which 2.12 fail compilation but 2.13/3 doesn't need them
+        )
+      case Some((2, 12)) => Seq.empty
+      case _ => Seq.empty
+    }
+  }
+)
+
 val dependencies = Seq(
   libraryDependencies ++= Seq(
     "org.scala-lang.modules" %%% "scala-collection-compat" % versions.scalaCollectionCompat,
@@ -229,7 +243,7 @@ val versionSchemeSettings = Seq(versionScheme := Some("early-semver"))
 
 val publishSettings = Seq(
   organization := "com.kubuszok",
-  //homepage := Some(url("https://scalaland.io/chimney")),
+  // homepage := Some(url("https://scalaland.io/chimney")),
   organizationHomepage := Some(url("https://kubuszok.com")),
   licenses := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0")),
   scmInfo := Some(
@@ -374,6 +388,22 @@ lazy val root = project
     )
   )
 
+lazy val hearthCompat = projectMatrix
+  .in(file("hearth-compat"))
+  .someVariations(versions.scalas, versions.platforms)((addScala213plusDir +: only1VersionInIDE) *)
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .disablePlugins(WelcomePlugin)
+  .settings(
+    moduleName := "hearth-compat",
+    name := "hearth-compat",
+    description := "Utilities for writing 2.12/2.13 code"
+  )
+  .settings(settings *)
+  .settings(versionSchemeSettings *)
+  .settings(publishSettings *)
+  .settings(dependencies *)
+  .settings(mimaSettings *)
+
 lazy val hearth = projectMatrix
   .in(file("hearth"))
   .someVariations(versions.scalas, versions.platforms)((addScala213plusDir +: only1VersionInIDE) *)
@@ -385,10 +415,12 @@ lazy val hearth = projectMatrix
     description := "Utilities for writing cross-platform macro logic"
   )
   .settings(settings *)
+  .settings(hearthCompatSettings *)
   .settings(versionSchemeSettings *)
   .settings(publishSettings *)
   .settings(dependencies *)
   .settings(mimaSettings *)
+  .dependsOn(hearthCompat)
 
 lazy val hearthTests = projectMatrix
   .in(file("hearth-tests"))

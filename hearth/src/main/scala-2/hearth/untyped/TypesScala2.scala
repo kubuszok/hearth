@@ -1,6 +1,7 @@
 package hearth
 package untyped
 
+import scala.collection.compat.*
 import scala.collection.immutable.ListMap
 
 trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
