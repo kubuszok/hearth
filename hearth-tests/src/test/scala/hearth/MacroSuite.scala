@@ -50,10 +50,10 @@ trait MacroSuite extends munit.BaseFunSuite { self =>
         Predef.assert(
           0 <= lastChar,
           s"""Error message did not contain expected snippet
-            |Error message:
-            |${this.msg}
-            |Expected Snippet:
-            |$msg""".stripMargin
+             |Error message:
+             |${this.msg}
+             |Expected Snippet:
+             |$msg""".stripMargin
         )
       }
     }
@@ -64,10 +64,10 @@ trait MacroSuite extends munit.BaseFunSuite { self =>
         Predef.assert(
           !msgNoColors.contains(msg),
           s"""Error message contain snippet that was expected to be not there
-            |Error message:
-            |${this.msg}
-            |Not Expected Snippet:
-            |$msg""".stripMargin
+             |Error message:
+             |${this.msg}
+             |Not Expected Snippet:
+             |$msg""".stripMargin
         )
     }
 
