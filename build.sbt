@@ -217,7 +217,7 @@ val hearthCompatSettings = Seq(
           "-Wconf:origin=hearth.compat.*:s" // type aliases without which 2.12 fail compilation but 2.13/3 doesn't need them
         )
       case Some((2, 12)) => Seq.empty
-      case _ => Seq.empty
+      case _             => Seq.empty
     }
   }
 )
@@ -280,12 +280,21 @@ val publishSettings = Seq(
 val mimaSettings = Seq(
   mimaPreviousArtifacts := {
     val previousVersions = moduleName.value match {
-      case "hearth" => Set() // add after RC-1 publish
-      case _        => Set()
+      case "hearth" | "hearth-compat" => Set() // add after RC-1 publish
+      case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" =>
+        Set()
+      case _ => ??? // examplicitly add case
     }
     previousVersions.map(organization.value %% moduleName.value % _)
   },
-  mimaFailOnNoPrevious := false // true
+  mimaFailOnNoPrevious := {
+    moduleName.value match {
+      case "hearth" | "hearth-compat" => false // add after RC-1 publish
+      case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" =>
+        false
+      case _ => ??? // examplicitly add case
+    }
+  }
 )
 
 val noPublishSettings =
@@ -297,29 +306,28 @@ val ciCommand = (platform: String, scalaSuffix: String) => {
   val clean = Vector("clean")
 
   val projects = for {
-    name <- Vector("hearth")
+    name <- Vector("hearth-compat", "hearth", "hearth-tests",  "hearth-sandwich-tests")
+    if scalaSuffix != "2_12" || name != "hearth-sandwich-tests"
   } yield s"$name${if (isJVM) "" else platform}$scalaSuffix"
   def tasksOf(name: String): Vector[String] = projects.map(project => s"$project/$name")
 
-  val tasks = if (isJVM) {
-    clean ++ tasksOf("compile") ++ tasksOf("test") ++ tasksOf("mimaReportBinaryIssues")
-  } else {
-    clean ++ tasksOf("test")
-  }
+  val tasks = clean ++ tasksOf("compile") ++ tasksOf("test") ++ tasksOf("mimaReportBinaryIssues")
 
   tasks.mkString(" ; ")
 }
 
 val publishLocalForTests = {
   val jvm = for {
-    module <- Vector("hearth")
+    module <- Vector("hearth-compat", "hearth")
     moduleVersion <- Vector(module, module + "3")
   } yield moduleVersion + "/publishLocal"
+  /*
   val js = for {
-    module <- Vector("hearth").map(_ + "JS")
+    module <- Vector("hearth-compat", "hearth").map(_ + "JS")
     moduleVersion <- Vector(module)
   } yield moduleVersion + "/publishLocal"
-  jvm ++ js
+  */
+  jvm //++ js
 }.mkString(" ; ")
 
 val releaseCommand = (tag: Seq[String]) =>
@@ -333,7 +341,10 @@ lazy val root = project
   .settings(settings)
   .settings(publishSettings)
   .settings(noPublishSettings)
+  .aggregate(hearthCompat.projectRefs *)
   .aggregate(hearth.projectRefs *)
+  .aggregate(hearthTests.projectRefs *)
+  .aggregate(hearthSandwichTests.projectRefs *)
   .settings(
     moduleName := "hearth-build",
     name := "hearth-build",
@@ -352,6 +363,7 @@ lazy val root = project
          |When working with IntelliJ or Scala Metals, edit "val ideScala = ..." and "val idePlatform = ..." within "val versions" in build.sbt to control which Scala version you're currently working with.
          |
          |If you need to test library locally in a different project, use publish-local-for-tests or manually publishLocal:
+         | - hearth-compat (obligatory)
          | - hearth (obligatory)
          |for the right Scala version and platform (see projects task).
          |""".stripMargin,
@@ -422,6 +434,8 @@ lazy val hearth = projectMatrix
   .settings(mimaSettings *)
   .dependsOn(hearthCompat)
 
+// Test normal use cases
+
 lazy val hearthTests = projectMatrix
   .in(file("hearth-tests"))
   .someVariations(versions.scalas, versions.platforms)((addScala213plusDir +: only1VersionInIDE) *)
@@ -440,7 +454,46 @@ lazy val hearthTests = projectMatrix
   .settings(mimaSettings *)
   .dependsOn(hearth)
 
-//when having memory/GC-related errors during build, uncommenting this may be useful:
-Global / concurrentRestrictions := Seq(
-  Tags.limit(Tags.Compile, 2) // only 2 compilations at once
-)
+// Test cross compilation: 2.13x3
+
+lazy val hearthSandwichExamples213 = projectMatrix
+  .in(file("hearth-sandwich-examples-213"))
+  .someVariations(List(versions.scala213), List(VirtualAxis.jvm))()
+  .settings(settings *)
+  .settings(publishSettings *)
+  .settings(noPublishSettings *)
+  .settings(mimaSettings *)
+  .settings(
+    moduleName := "hearth-sandwich-examples-213",
+    name := "hearth-sandwich-examples-213",
+    description := "Tests cases compiled with Scala 2.13 to test macros in 2.13x3 cross-compilation"
+  )
+
+lazy val hearthSandwichExamples3 = projectMatrix
+  .in(file("hearth-sandwich-examples-3"))
+  .someVariations(List(versions.scala3), List(VirtualAxis.jvm))()
+  .settings(settings *)
+  .settings(publishSettings *)
+  .settings(noPublishSettings *)
+  .settings(mimaSettings *)
+  .settings(
+    moduleName := "hearth-sandwich-examples-3",
+    name := "hearth-sandwich-examples-3",
+    description := "Tests cases compiled with Scala 3 to test macros in 2.13x3 cross-compilation",
+  )
+
+lazy val hearthSandwichTests = projectMatrix
+  .in(file("hearth-sandwich-tests"))
+  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(only1VersionInIDE *)
+  .settings(settings *)
+  .settings(publishSettings *)
+  .settings(noPublishSettings *)
+  .settings(mimaSettings *)
+  .settings(
+    moduleName := "hearth-sandwich-tests",
+    name := "hearth-sandwich-tests",
+    description := "Tests macros in 2.13x3 cross-compilation"
+  )
+  .dependsOn(hearth % s"$Test->$Test;$Compile->$Compile")
+  .dependsOn(hearthSandwichExamples213 % s"$Test->$Test;$Compile->$Compile")
+  .dependsOn(hearthSandwichExamples3 % s"$Test->$Test;$Compile->$Compile")
