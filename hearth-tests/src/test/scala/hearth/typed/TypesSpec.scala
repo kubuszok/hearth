@@ -100,6 +100,24 @@ class TypesSpec extends MacroSuite {
              |Plain:  hearth.examples.classes.ExampleCaseClassWithTypeParam[scala.Int]
              |Pretty: hearth.examples.classes.ExampleCaseClassWithTypeParam[scala.Int]""".stripMargin
       }
+
+      test("for enumerations") {
+        TypesFixtures.testNamesPrinters[examples.enums.ExampleSealedTrait].stripANSI ==>
+          s"""Short:  ExampleSealedTrait
+             |FCQN:   hearth.examples.enums.ExampleSealedTrait
+             |Plain:  hearth.examples.enums.ExampleSealedTrait
+             |Pretty: hearth.examples.enums.ExampleSealedTrait""".stripMargin
+        TypesFixtures.testNamesPrinters[examples.enums.ExampleSealedTraitWithTypeParam[Int]].stripANSI ==>
+          s"""Short:  ExampleSealedTraitWithTypeParam
+             |FCQN:   hearth.examples.enums.ExampleSealedTraitWithTypeParam
+             |Plain:  hearth.examples.enums.ExampleSealedTraitWithTypeParam[scala.Int]
+             |Pretty: hearth.examples.enums.ExampleSealedTraitWithTypeParam[scala.Int]""".stripMargin
+        TypesFixtures.testNamesPrinters[examples.enums.ExampleSealedTraiGADT[Unit]].stripANSI ==>
+          s"""Short:  ExampleSealedTraiGADT
+             |FCQN:   hearth.examples.enums.ExampleSealedTraiGADT
+             |Plain:  hearth.examples.enums.ExampleSealedTraiGADT[scala.Unit]
+             |Pretty: hearth.examples.enums.ExampleSealedTraiGADT[scala.Unit]""".stripMargin
+      }
     }
   }
 }
