@@ -43,13 +43,18 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
         .Try {
           val symbolFullName = (repr.typeSymbol.fullName: String).replaceAll("\\$", "")
           val colorlessReprName = repr.show(using Printer.TypeReprCode)
+          val colorlessReprNameWithoutParams = colorlessReprName.takeWhile(_ != '[')
           val colorfulReprName = repr.show(using Printer.TypeReprAnsiCode)
 
           // Classes defined inside a "class" or "def" have package.name.ClassName removed from the type,
           // so we have to prepend it ourselves to keep behavior consistent with Scala 2.
-          if symbolFullName != colorlessReprName then {
-            val pkg_Len = symbolFullName.length - colorlessReprName.length
-            (0 to pkg_Len).takeWhile(i => symbolFullName.endsWith(("_" * i) + colorlessReprName)).lastOption match {
+          //
+          // TODO: We only add prefix to the outermost type, type parameters are not fixed this way.
+          if symbolFullName != colorlessReprNameWithoutParams then {
+            val pkg_Len = symbolFullName.length - colorlessReprNameWithoutParams.length
+            (0 to pkg_Len)
+              .takeWhile(i => symbolFullName.endsWith(("_" * i) + colorlessReprNameWithoutParams))
+              .lastOption match {
               case Some(_Len) => symbolFullName.substring(0, pkg_Len - _Len) + colorfulReprName
               case None       => colorfulReprName
             }

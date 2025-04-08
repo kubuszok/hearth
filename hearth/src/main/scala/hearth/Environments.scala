@@ -1,5 +1,7 @@
 package hearth
 
+import hearth.compat.*
+
 trait Environments {
 
   type Position

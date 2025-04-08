@@ -7,7 +7,8 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
   object Position extends PositionModule {
     override def current: Position = c.enclosingPosition
 
-    override def file(pos: Position): Option[java.nio.file.Path] = scala.util.Try(new java.io.File(pos.source.path).toPath).toOption
+    override def file(pos: Position): Option[java.nio.file.Path] =
+      scala.util.Try(new java.io.File(pos.source.path).toPath).toOption
     override def offset(pos: Position): Int = pos.start
     override def line(pos: Position): Int = pos.line
     override def column(pos: Position): Int = pos.column
