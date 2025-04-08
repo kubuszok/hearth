@@ -11,16 +11,49 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     object platformSpecific {
 
-      abstract class LiteralExprCodec[U: Type: TypeCodec: Liftable] extends ExprCodec[U] {
+      final class ExprCodecImpl[A](typeCodec: Option[TypeCodec[A]])(implicit
+          val to: Liftable[A],
+          val from: Unliftable[A]
+      ) extends ExprCodec[A] {
 
-      override def toExpr(value: U): Expr[U] = 
-        if (Environment.currentScalaVersion == ScalaVersion.Scala2_12) c.Expr[U](q"$value")
-        else {
-          val aType = Type[U](value).as_??
-          import aType.Underlying as A
-          c.Expr[A](q"$value").asInstanceOf[Expr[U]]
+        override def toExpr(value: A): Expr[A] = typeCodec match {
+          case Some(codec) if Environment.currentScalaVersion != ScalaVersion.Scala2_12 =>
+            val aType = codec.toType(value).as_??
+            import aType.Underlying as B
+            c.Expr[B](to.apply(value)).asInstanceOf[Expr[A]]
+          case _ => c.Expr[A](to.apply(value))
         }
-      override def fromExpr(expr: Expr[U]): Option[U] = ??? // TODO
+
+        override def fromExpr(expr: Expr[A]): Option[A] = from.unapply(expr.tree)
+      }
+
+      implicit class ExprCodecCompanionOps(private val self: ExprCodec.type) {
+
+        def make[A: Liftable: Unliftable]: ExprCodec[A] =
+          new ExprCodecImpl[A](None)
+
+        def withTypeCodec[A: Liftable: Unliftable: TypeCodec]: ExprCodec[A] =
+          new ExprCodecImpl[A](Some(TypeCodec[A]))
+      }
+
+      object implicits {
+
+        implicit def ExprCodecLiftable[A: ExprCodec]: Liftable[A] = ExprCodec[A] match {
+          case impl: ExprCodecImpl[A] => impl.to
+          case unknown =>
+            new Liftable[A] {
+              override def apply(value: A): Tree = unknown.toExpr(value).tree
+            }
+        }
+
+        implicit def ExprCodecUnliftable[A: ExprCodec]: Unliftable[A] = ExprCodec[A] match {
+          case impl: ExprCodecImpl[A] => impl.from
+          case unknown =>
+            new Unliftable[A] {
+              override def unapply(tree: Tree): Option[A] = unknown.fromExpr(c.Expr[A](tree))
+            }
+        }
+      }
     }
     import platformSpecific.*
 
@@ -51,12 +84,12 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       else c.Expr[B](q"($expr : ${Type[B]})") // check A <:< B AND add a syntax to force upcasting
     }
 
-    object BooleanExprCodec extends LiteralExprCodec[Boolean]
-    object IntExprCodec extends LiteralExprCodec[Int]
-    object LongExprCodec extends LiteralExprCodec[Long]
-    object FloatExprCodec extends LiteralExprCodec[Float]
-    object DoubleExprCodec extends LiteralExprCodec[Double]
-    object CharExprCodec extends LiteralExprCodec[Char]
-    object StringExprCodec extends LiteralExprCodec[String]
+    override val BooleanExprCodec: ExprCodec[Boolean] = ExprCodec.withTypeCodec[Boolean]
+    override val IntExprCodec: ExprCodec[Int] = ExprCodec.withTypeCodec[Int]
+    override val LongExprCodec: ExprCodec[Long] = ExprCodec.withTypeCodec[Long]
+    override val FloatExprCodec: ExprCodec[Float] = ExprCodec.withTypeCodec[Float]
+    override val DoubleExprCodec: ExprCodec[Double] = ExprCodec.withTypeCodec[Double]
+    override val CharExprCodec: ExprCodec[Char] = ExprCodec.withTypeCodec[Char]
+    override val StringExprCodec: ExprCodec[String] = ExprCodec.withTypeCodec[String]
   }
 }

@@ -79,12 +79,12 @@ trait Exprs { this: MacroCommons =>
     def apply[A](implicit codec: ExprCodec[A]): ExprCodec[A] = codec
 
     // TODO: Unit, Tuples, None, Nil, ... derivation?
-    implicit val BooleanExprCodec: ExprCodec[Boolean] = Expr.BooleanExprCodec
-    implicit val IntExprCodec: ExprCodec[Int] = Expr.IntExprCodec
-    implicit val LongExprCodec: ExprCodec[Long] = Expr.LongExprCodec
-    implicit val FloatExprCodec: ExprCodec[Float] = Expr.FloatExprCodec
-    implicit val DoubleExprCodec: ExprCodec[Double] = Expr.DoubleExprCodec
-    implicit val CharExprCodec: ExprCodec[Char] = Expr.CharExprCodec
-    implicit val StringExprCodec: ExprCodec[String] = Expr.StringExprCodec
+    implicit lazy val BooleanExprCodec: ExprCodec[Boolean] = Expr.BooleanExprCodec
+    implicit lazy val IntExprCodec: ExprCodec[Int] = Expr.IntExprCodec
+    implicit lazy val LongExprCodec: ExprCodec[Long] = Expr.LongExprCodec
+    implicit lazy val FloatExprCodec: ExprCodec[Float] = Expr.FloatExprCodec
+    implicit lazy val DoubleExprCodec: ExprCodec[Double] = Expr.DoubleExprCodec
+    implicit lazy val CharExprCodec: ExprCodec[Char] = Expr.CharExprCodec
+    implicit lazy val StringExprCodec: ExprCodec[String] = Expr.StringExprCodec
   }
 }

@@ -13,7 +13,7 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
 
     object platformSpecific {
 
-      abstract class LiteralCodec[U: Type](lift: U => Constant) extends TypeCodec[U] {
+      final class LiteralCodec[U: Type](lift: U => Constant) extends TypeCodec[U] {
         final def toType[A <: U](value: A): Type[A] =
           ConstantType(lift(value)).asType.asInstanceOf[Type[A]]
         final def fromType[A](A: Type[A]): Option[Existential.UpperBounded[U, Id]] =
@@ -104,12 +104,12 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
     override def isSubtypeOf[A: Type, B: Type]: Boolean = TypeRepr.of[A] <:< TypeRepr.of[B]
     override def isSameAs[A: Type, B: Type]: Boolean = TypeRepr.of[A] =:= TypeRepr.of[B]
 
-    object BooleanCodec extends LiteralCodec[Boolean](BooleanConstant(_))
-    object IntCodec extends LiteralCodec[Int](IntConstant(_))
-    object LongCodec extends LiteralCodec[Long](LongConstant(_))
-    object FloatCodec extends LiteralCodec[Float](FloatConstant(_))
-    object DoubleCodec extends LiteralCodec[Double](DoubleConstant(_))
-    object CharCodec extends LiteralCodec[Char](CharConstant(_))
-    object StringCodec extends LiteralCodec[String](StringConstant(_))
+    override val BooleanCodec: TypeCodec[Boolean] = LiteralCodec[Boolean](BooleanConstant(_))
+    override val IntCodec: TypeCodec[Int] = LiteralCodec[Int](IntConstant(_))
+    override val LongCodec: TypeCodec[Long] = LiteralCodec[Long](LongConstant(_))
+    override val FloatCodec: TypeCodec[Float] = LiteralCodec[Float](FloatConstant(_))
+    override val DoubleCodec: TypeCodec[Double] = LiteralCodec[Double](DoubleConstant(_))
+    override val CharCodec: TypeCodec[Char] = LiteralCodec[Char](CharConstant(_))
+    override val StringCodec: TypeCodec[String] = LiteralCodec[String](StringConstant(_))
   }
 }
