@@ -13,10 +13,10 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
 
     object platformSpecific {
 
-      abstract class LiteralImpl[U: Type](lift: U => Constant) extends Literal[U] {
-        final def apply[A <: U](value: A): Type[A] =
+      abstract class LiteralCodec[U: Type](lift: U => Constant) extends TypeCodec[U] {
+        final def toType[A <: U](value: A): Type[A] =
           ConstantType(lift(value)).asType.asInstanceOf[Type[A]]
-        final def unapply[A](A: Type[A]): Option[Existential.UpperBounded[U, Id]] =
+        final def fromType[A](A: Type[A]): Option[Existential.UpperBounded[U, Id]] =
           if A <:< Type[U] then quoted.Type
             .valueOfConstant[U](using A.asInstanceOf[Type[U]])
             .map(Existential.UpperBounded[U, Id, U](_))
@@ -104,12 +104,12 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
     override def isSubtypeOf[A: Type, B: Type]: Boolean = TypeRepr.of[A] <:< TypeRepr.of[B]
     override def isSameAs[A: Type, B: Type]: Boolean = TypeRepr.of[A] =:= TypeRepr.of[B]
 
-    object BooleanLiteral extends LiteralImpl[Boolean](BooleanConstant(_)) with BooleanLiteralModule
-    object IntLiteral extends LiteralImpl[Int](IntConstant(_)) with IntLiteralModule
-    object LongLiteral extends LiteralImpl[Long](LongConstant(_)) with LongLiteralModule
-    object FloatLiteral extends LiteralImpl[Float](FloatConstant(_)) with FloatLiteralModule
-    object DoubleLiteral extends LiteralImpl[Double](DoubleConstant(_)) with DoubleLiteralModule
-    object CharLiteral extends LiteralImpl[Char](CharConstant(_)) with CharLiteralModule
-    object StringLiteral extends LiteralImpl[String](StringConstant(_)) with StringLiteralModule
+    object BooleanCodec extends LiteralCodec[Boolean](BooleanConstant(_))
+    object IntCodec extends LiteralCodec[Int](IntConstant(_))
+    object LongCodec extends LiteralCodec[Long](LongConstant(_))
+    object FloatCodec extends LiteralCodec[Float](FloatConstant(_))
+    object DoubleCodec extends LiteralCodec[Double](DoubleConstant(_))
+    object CharCodec extends LiteralCodec[Char](CharConstant(_))
+    object StringCodec extends LiteralCodec[String](StringConstant(_))
   }
 }

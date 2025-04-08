@@ -14,6 +14,9 @@ trait Types { this: MacroCommons =>
     /** Summons `Type` instance */
     final def apply[A](implicit A: Type[A]): Type[A] = A
 
+    final def apply[A](value: A)(implicit codec: TypeCodec[A]): Type[A] = codec.toType(value)
+    final def unapply[A](tpe: Type[A])(implicit codec: TypeCodec[A]): Option[A] = codec.fromType(tpe).map(_.value)
+
     def shortName[A: Type]: String
     final def fcqn[A: Type]: String = plainPrint[A].takeWhile(_ != '[')
     final def plainPrint[A: Type]: String = removeAnsiColors(prettyPrint[A])
@@ -60,72 +63,46 @@ trait Types { this: MacroCommons =>
     def isSubtypeOf[A: Type, B: Type]: Boolean
     def isSameAs[A: Type, B: Type]: Boolean
 
-    // TODO: make it handle: Options/Lists/Tuples/etc like ValueOf
-    final def runtimeSingleton[SingletonType: Type]: Option[SingletonType] =
-      BooleanLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
-        IntLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
-        LongLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
-        FloatLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
-        DoubleLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
-        CharLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
-        StringLiteral.unapply(Type[SingletonType]).map(_.value.asInstanceOf[SingletonType]) orElse
-        runtimeModule[SingletonType]
+    // Literal types
 
-    final def runtimeModule[ModuleSingleton: Type]: Option[ModuleSingleton] = {
+    val BooleanCodec: TypeCodec[Boolean]
+    val IntCodec: TypeCodec[Int]
+    val LongCodec: TypeCodec[Long]
+    val FloatCodec: TypeCodec[Float]
+    val DoubleCodec: TypeCodec[Double]
+    val CharCodec: TypeCodec[Char]
+    val StringCodec: TypeCodec[String]
+
+    private object ModuleCodecImpl extends TypeCodec[Any] {
+      def toType[A <: Any](value: A): Type[A] =
+        ??? // TODO
+
+      def fromType[A](tpe: Type[A]): Option[Existential.UpperBounded[Any, Id]] = {
+        // assuming this is "foo.bar.baz"...
+        val name = plainPrint(using tpe)
+
+        scala.collection.Iterator
+          .iterate(name + '$')(_.reverse.replaceFirst("[.]", "\\$").reverse)
+          .take(name.count(_ == '.') + 1) // ...then this is: "foo.bar.baz$", "foo.bar$baz$", "foo$bar$baz$"...
+          .toArray
+          .reverse // ...and this is: "foo.bar.baz$", "foo.bar$baz$", "foo$bar$baz$"
+          .collectFirst { case ModuleSingleton(value) =>
+            Existential.UpperBounded[Any, Id, A](value.asInstanceOf[A])(using tpe)
+          } // attempts: top-level object, object in object, etc
+      }
+
       // based on https://github.com/MateuszKubuszok/MacroTypeclass ideas
-      object ModuleSingleton {
-        def unapply(className: String): Option[ModuleSingleton] =
+      private object ModuleSingleton {
+        def unapply(className: String): Option[Any] =
           try
-            Option(Class.forName(className).getField("MODULE$").get(null).asInstanceOf[ModuleSingleton])
+            Option(Class.forName(className).getField("MODULE$").get(null))
           catch {
             case _: Throwable => None
           }
       }
-
-      // assuming this is "foo.bar.baz"...
-      val name = plainPrint[ModuleSingleton]
-
-      scala.collection.Iterator
-        .iterate(name + '$')(_.reverse.replaceFirst("[.]", "\\$").reverse)
-        .take(name.count(_ == '.') + 1) // ...then this is: "foo.bar.baz$", "foo.bar$baz$", "foo$bar$baz$"...
-        .toArray
-        .reverse // ...and this is: "foo.bar.baz$", "foo.bar$baz$", "foo$bar$baz$"
-        .collectFirst { case ModuleSingleton(value) => value } // attempts: top-level object, object in object, etc
     }
-
-    // Literal types
-
-    trait Literal[U] {
-      def apply[A <: U](value: A): Type[A]
-      def unapply[A](A: Type[A]): Option[Existential.UpperBounded[U, Id]]
-      def unsafeGet[A](A: Type[A]): U =
-        unapply(A).getOrElse {
-          // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
-          throw new AssertionError(s"Invalid string literal type: ${A.plainPrint}")
-          // $COVERAGE-ON$
-        }.value
-    }
-
-    val BooleanLiteral: BooleanLiteralModule
-    trait BooleanLiteralModule extends Literal[Boolean] { this: BooleanLiteral.type => }
-
-    val IntLiteral: IntLiteralModule
-    trait IntLiteralModule extends Literal[Int] { this: IntLiteral.type => }
-
-    val LongLiteral: LongLiteralModule
-    trait LongLiteralModule extends Literal[Long] { this: LongLiteral.type => }
-
-    val FloatLiteral: FloatLiteralModule
-    trait FloatLiteralModule extends Literal[Float] { this: FloatLiteral.type => }
-
-    val DoubleLiteral: DoubleLiteralModule
-    trait DoubleLiteralModule extends Literal[Double] { this: DoubleLiteral.type => }
-
-    val CharLiteral: CharLiteralModule
-    trait CharLiteralModule extends Literal[Char] { this: CharLiteral.type => }
-
-    val StringLiteral: StringLiteralModule
-    trait StringLiteralModule extends Literal[String] { this: StringLiteral.type => }
+    def ModuleCodec[ModuleSingleton]: TypeCodec[ModuleSingleton] =
+      ModuleCodecImpl.asInstanceOf[TypeCodec[ModuleSingleton]]
 
     // Type constructors for some common types
 
@@ -245,5 +222,26 @@ trait Types { this: MacroCommons =>
     def prettyPrint: String = Type.prettyPrint(using tpe.Underlying)
 
     def asUntyped: UntypedType = UntypedType.fromTyped(using tpe.Underlying)
+  }
+
+  trait TypeCodec[U] {
+    def toType[A <: U](value: A): Type[A]
+    def fromType[A](tpe: Type[A]): Option[Existential.UpperBounded[U, Id]]
+  }
+  object TypeCodec {
+    def apply[A](implicit codec: TypeCodec[A]): TypeCodec[A] = codec
+
+    // TODO: more instances - for starters cover all types in covered by ToExpr i FromExpr in Quotes
+
+    implicit val BooleanCodec: TypeCodec[Boolean] = Type.BooleanCodec
+    implicit val IntCodec: TypeCodec[Int] = Type.IntCodec
+    implicit val LongCodec: TypeCodec[Long] = Type.LongCodec
+    implicit val FloatCodec: TypeCodec[Float] = Type.FloatCodec
+    implicit val DoubleCodec: TypeCodec[Double] = Type.DoubleCodec
+    implicit val CharCodec: TypeCodec[Char] = Type.CharCodec
+    implicit val StringCodec: TypeCodec[String] = Type.StringCodec
+
+    implicit def ModuleCodec[ModuleSingleton <: Product & Serializable & Singleton]: TypeCodec[ModuleSingleton] =
+      Type.ModuleCodec[ModuleSingleton]
   }
 }

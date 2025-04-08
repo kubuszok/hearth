@@ -28,10 +28,10 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
       )
       def forceTypeSymbolInitialization(s: Symbol): Unit = s.typeSignature
 
-      abstract class LiteralImpl[U: Type] extends Literal[U] {
-        def apply[A <: U](value: A): Type[A] =
+      abstract class LiteralCodec[U: Type] extends TypeCodec[U] {
+        def toType[A <: U](value: A): Type[A] =
           UntypedType.toTyped(c.universe.internal.constantType(Constant(value.asInstanceOf[AnyVal])))
-        def unapply[A](A: Type[A]): Option[Existential.UpperBounded[U, Id]] =
+        def fromType[A](A: Type[A]): Option[Existential.UpperBounded[U, Id]] =
           if (A <:< Type[U]) {
             scala.util
               .Try(
@@ -119,12 +119,12 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
     override def isSubtypeOf[A: Type, B: Type]: Boolean = weakTypeOf[A] <:< weakTypeOf[B]
     override def isSameAs[A: Type, B: Type]: Boolean = weakTypeOf[A] =:= weakTypeOf[B]
 
-    object BooleanLiteral extends LiteralImpl[Boolean] with BooleanLiteralModule
-    object IntLiteral extends LiteralImpl[Int] with IntLiteralModule
-    object LongLiteral extends LiteralImpl[Long] with LongLiteralModule
-    object FloatLiteral extends LiteralImpl[Float] with FloatLiteralModule
-    object DoubleLiteral extends LiteralImpl[Double] with DoubleLiteralModule
-    object CharLiteral extends LiteralImpl[Char] with CharLiteralModule
-    object StringLiteral extends LiteralImpl[String] with StringLiteralModule
+    object BooleanCodec extends LiteralCodec[Boolean]
+    object IntCodec extends LiteralCodec[Int]
+    object LongCodec extends LiteralCodec[Long]
+    object FloatCodec extends LiteralCodec[Float]
+    object DoubleCodec extends LiteralCodec[Double]
+    object CharCodec extends LiteralCodec[Char]
+    object StringCodec extends LiteralCodec[String]
   }
 }

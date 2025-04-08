@@ -1,6 +1,7 @@
 package hearth
 
 import hearth.compat.*
+import hearth.ScalaVersion.Scala3
 
 trait Environments {
 
@@ -37,5 +38,33 @@ trait Environments {
     def reportInfo(msg: String): Unit
     def reportWarn(msg: String): Unit
     def reportErrorAndAbort(msg: String): Nothing
+
+    /** Pass position like "File.scala:12" or "File.scala:12:34", and it will check if current expansion matches it.
+      *
+      * Useful for debugging macros, when we don't want to print details for every single test case but just one.
+      *
+      * @param compilationLogPosition
+      *   position as seen in the compilation log
+      */
+    def isExpandedAt(compilationLogPosition: String): Boolean = compilationLogPosition match {
+      case fileLineRegex(fileName, line) =>
+        val fileMatches = currentPosition.file.exists(_.toString.endsWith(fileName))
+        val actualLine = currentPosition.line + adjustLine
+        val lineMatches = scala.util.Try(line.toInt).toOption.contains(actualLine)
+        fileMatches && lineMatches
+      case fileLineColumnRegex(fileName, line, column) =>
+        val fileMatches = currentPosition.file.exists(_.toString.endsWith(fileName))
+        val actualLine = currentPosition.line + adjustLine
+        val lineMatches = scala.util.Try(line.toInt).toOption.contains(actualLine)
+        val columnMatches = scala.util.Try(column.toInt).toOption.contains(currentPosition.column)
+        fileMatches && lineMatches && columnMatches
+      case _ => false
+    }
+    private val adjustLine = currentScalaVersion match {
+      case Scala3 => 1 // 0-indexed, or decremented for some reason?
+      case _      => 0 // 1-indexed, or at least represents the actual line number
+    }
+    private val fileLineRegex = """^(.+):(\d+)$""".r
+    private val fileLineColumnRegex = """^(.+):(\d+):(\d+)$""".r
   }
 }

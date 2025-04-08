@@ -11,12 +11,17 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
     object platformSpecific {
 
+      abstract class LiteralExprCodec[U: scala.quoted.FromExpr: scala.quoted.ToExpr] extends ExprCodec[U] {
+        def toExpr(value: U): Expr[U] = scala.quoted.Expr(value)
+        def fromExpr(expr: Expr[U]): Option[U] = scala.quoted.Expr.unapply(expr)
+      }
+
       extension [A](expr: Expr[A]) {
         // Required by -Xcheck-macros to pass.
         def resetOwner(using Type[A]): Expr[A] = expr.asTerm.changeOwner(Symbol.spliceOwner).asExprOf[A]
       }
     }
-    import platformSpecific.resetOwner
+    import platformSpecific.*
 
     def prettyPrint[A](expr: Expr[A]): String =
       expr.asTerm
@@ -35,33 +40,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       expr.asInstanceOf[Expr[B]] // check that A <:< B without upcasting in code (Scala 3 should get away without it)
     }
 
-    object BooleanExprCodec extends ExprCodec[Boolean] {
-      def toExpr(value: Boolean): Expr[Boolean] = scala.quoted.Expr(value)
-      def fromExpr(expr: Expr[Boolean]): Option[Boolean] = ???
-    }
-    object IntExprCodec extends ExprCodec[Int] {
-      def toExpr(value: Int): Expr[Int] = scala.quoted.Expr(value)
-      def fromExpr(expr: Expr[Int]): Option[Int] = ???
-    }
-    object LongExprCodec extends ExprCodec[Long] {
-      def toExpr(value: Long): Expr[Long] = scala.quoted.Expr(value)
-      def fromExpr(expr: Expr[Long]): Option[Long] = ???
-    }
-    object FloatExprCodec extends ExprCodec[Float] {
-      def toExpr(value: Float): Expr[Float] = scala.quoted.Expr(value)
-      def fromExpr(expr: Expr[Float]): Option[Float] = ???
-    }
-    object DoubleExprCodec extends ExprCodec[Double] {
-      def toExpr(value: Double): Expr[Double] = scala.quoted.Expr(value)
-      def fromExpr(expr: Expr[Double]): Option[Double] = ???
-    }
-    object CharExprCodec extends ExprCodec[Char] {
-      def toExpr(value: Char): Expr[Char] = scala.quoted.Expr(value)
-      def fromExpr(expr: Expr[Char]): Option[Char] = ???
-    }
-    object StringExprCodec extends ExprCodec[String] {
-      def toExpr(value: String): Expr[String] = scala.quoted.Expr(value)
-      def fromExpr(expr: Expr[String]): Option[String] = ???
-    }
+    object BooleanExprCodec extends LiteralExprCodec[Boolean]
+    object IntExprCodec extends LiteralExprCodec[Int]
+    object LongExprCodec extends LiteralExprCodec[Long]
+    object FloatExprCodec extends LiteralExprCodec[Float]
+    object DoubleExprCodec extends LiteralExprCodec[Double]
+    object CharExprCodec extends LiteralExprCodec[Char]
+    object StringExprCodec extends LiteralExprCodec[String]
   }
 }

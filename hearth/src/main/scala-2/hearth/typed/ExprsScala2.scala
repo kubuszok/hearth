@@ -11,13 +11,16 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     object platformSpecific {
 
-      def refineToLiteral[U: Type](literal: Type.Literal[U], tree: Tree, value: U): Expr[U] =
-        if (Environment.currentScalaVersion == ScalaVersion.Scala2_12) c.Expr[U](tree)
+      abstract class LiteralExprCodec[U: Type: TypeCodec: Liftable] extends ExprCodec[U] {
+
+      override def toExpr(value: U): Expr[U] = 
+        if (Environment.currentScalaVersion == ScalaVersion.Scala2_12) c.Expr[U](q"$value")
         else {
-          val aType = literal(value).as_??
+          val aType = Type[U](value).as_??
           import aType.Underlying as A
-          c.Expr[A](tree).asInstanceOf[Expr[U]]
+          c.Expr[A](q"$value").asInstanceOf[Expr[U]]
         }
+      override def fromExpr(expr: Expr[U]): Option[U] = ??? // TODO
     }
     import platformSpecific.*
 
@@ -48,33 +51,12 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       else c.Expr[B](q"($expr : ${Type[B]})") // check A <:< B AND add a syntax to force upcasting
     }
 
-    object BooleanExprCodec extends ExprCodec[Boolean] {
-      override def toExpr(value: Boolean): Expr[Boolean] = refineToLiteral(Type.BooleanLiteral, q"$value", value)
-      override def fromExpr(expr: Expr[Boolean]): Option[Boolean] = ???
-    }
-    object IntExprCodec extends ExprCodec[Int] {
-      override def toExpr(value: Int): Expr[Int] = refineToLiteral(Type.IntLiteral, q"$value", value)
-      override def fromExpr(expr: Expr[Int]): Option[Int] = ???
-    }
-    object LongExprCodec extends ExprCodec[Long] {
-      override def toExpr(value: Long): Expr[Long] = refineToLiteral(Type.LongLiteral, q"$value", value)
-      override def fromExpr(expr: Expr[Long]): Option[Long] = ???
-    }
-    object FloatExprCodec extends ExprCodec[Float] {
-      override def toExpr(value: Float): Expr[Float] = refineToLiteral(Type.FloatLiteral, q"$value", value)
-      override def fromExpr(expr: Expr[Float]): Option[Float] = ???
-    }
-    object DoubleExprCodec extends ExprCodec[Double] {
-      override def toExpr(value: Double): Expr[Double] = refineToLiteral(Type.DoubleLiteral, q"$value", value)
-      override def fromExpr(expr: Expr[Double]): Option[Double] = ???
-    }
-    object CharExprCodec extends ExprCodec[Char] {
-      override def toExpr(value: Char): Expr[Char] = refineToLiteral(Type.CharLiteral, q"$value", value)
-      override def fromExpr(expr: Expr[Char]): Option[Char] = ???
-    }
-    object StringExprCodec extends ExprCodec[String] {
-      override def toExpr(value: String): Expr[String] = refineToLiteral(Type.StringLiteral, q"$value", value)
-      override def fromExpr(expr: Expr[String]): Option[String] = ???
-    }
+    object BooleanExprCodec extends LiteralExprCodec[Boolean]
+    object IntExprCodec extends LiteralExprCodec[Int]
+    object LongExprCodec extends LiteralExprCodec[Long]
+    object FloatExprCodec extends LiteralExprCodec[Float]
+    object DoubleExprCodec extends LiteralExprCodec[Double]
+    object CharExprCodec extends LiteralExprCodec[Char]
+    object StringExprCodec extends LiteralExprCodec[String]
   }
 }
