@@ -1,10 +1,10 @@
 package hearth
 
 import hearth.compat.*
-import hearth.ScalaVersion.Scala3
 
 trait Environments {
 
+  /** Platform-specific position representation (`c.universe.Position` in 2, `quotes.reflect.Position` in 3). */
   type Position
 
   val Position: PositionModule
@@ -33,6 +33,9 @@ trait Environments {
     val currentPosition: Position = Position.current
     val currentScalaVersion: ScalaVersion = ScalaVersion.current
 
+    val isScala2_12: Boolean = currentScalaVersion == ScalaVersion.Scala2_12
+    val isScala3: Boolean = currentScalaVersion == ScalaVersion.Scala3
+
     val XMacroSettings: List[String]
 
     def reportInfo(msg: String): Unit
@@ -60,10 +63,7 @@ trait Environments {
         fileMatches && lineMatches && columnMatches
       case _ => false
     }
-    private val adjustLine = currentScalaVersion match {
-      case Scala3 => 1 // 0-indexed, or decremented for some reason?
-      case _      => 0 // 1-indexed, or at least represents the actual line number
-    }
+    private val adjustLine = if (isScala3) 1 else 0 // Scala 3 i 0-indexed, or decremented for some reason?
     private val fileLineRegex = """^(.+):(\d+)$""".r
     private val fileLineColumnRegex = """^(.+):(\d+):(\d+)$""".r
   }

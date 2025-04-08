@@ -224,6 +224,7 @@ trait Types { this: MacroCommons =>
     def asUntyped: UntypedType = UntypedType.fromTyped(using tpe.Underlying)
   }
 
+  /** Generalizes over the idea of conversion between singleton/literal type values and their type representation. */
   trait TypeCodec[U] {
     def toType[A <: U](value: A): Type[A]
     def fromType[A](tpe: Type[A]): Option[Existential.UpperBounded[U, Id]]

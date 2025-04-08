@@ -8,6 +8,24 @@ trait Existentials { this: MacroCommons =>
     * Since Scala 3 removed a lot of cases for existential types we cannot just use `Type[?]` in shared code.
     * Additionally, we might need to have something to prove that our `Type[?]` is has the same `?` as some `Value[?]`.
     * For that, this utility would be useful.
+    *
+    * When we obtain value whose type is forgotten we can still access it, and give it a name the following way:
+    *
+    * {{{
+    * val existentialExpr: Existential[Expr] = ...
+    * import existentialExpr.{ Underlying as ExprType, expr }
+    * // now we have:
+    * // implicit ExprType: Type[ExprType]
+    * // expr: Expr[ExprType]
+    * }}}
+    *
+    * It works similarly with `Existential` values of other types.
+    *
+    * Both Types and Exprs have useful aliases provided:
+    *   - `??` indicate no type bounds
+    *   - `??>:[L]` indicate the lower bound (`Underlying >: L`)
+    *   - `??<:[U]` indicate the upper bound (`Underlying <: U`)
+    *   - `<:??<:[L, U]` indicate both upper and lower bounds (`Underlying >: L <: U`)
     */
   final type Existential[F[_]] = Existential.Bounded[Nothing, Any, F]
   object Existential {

@@ -119,12 +119,12 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
     override def isSubtypeOf[A: Type, B: Type]: Boolean = weakTypeOf[A] <:< weakTypeOf[B]
     override def isSameAs[A: Type, B: Type]: Boolean = weakTypeOf[A] =:= weakTypeOf[B]
 
-    override val BooleanCodec: TypeCodec[Boolean] = LiteralCodec[Boolean]
-    override val IntCodec: TypeCodec[Int] = LiteralCodec[Int]
-    override val LongCodec: TypeCodec[Long] = LiteralCodec[Long]
-    override val FloatCodec: TypeCodec[Float] = LiteralCodec[Float]
-    override val DoubleCodec: TypeCodec[Double] = LiteralCodec[Double]
-    override val CharCodec: TypeCodec[Char] = LiteralCodec[Char]
-    override val StringCodec: TypeCodec[String] = LiteralCodec[String]
+    override val BooleanCodec: TypeCodec[Boolean] = new LiteralCodec[Boolean]
+    override val IntCodec: TypeCodec[Int] = new LiteralCodec[Int]
+    override val LongCodec: TypeCodec[Long] = new LiteralCodec[Long]
+    override val FloatCodec: TypeCodec[Float] = new LiteralCodec[Float]
+    override val DoubleCodec: TypeCodec[Double] = new LiteralCodec[Double]
+    override val CharCodec: TypeCodec[Char] = new LiteralCodec[Char]
+    override val StringCodec: TypeCodec[String] = new LiteralCodec[String]
   }
 }
