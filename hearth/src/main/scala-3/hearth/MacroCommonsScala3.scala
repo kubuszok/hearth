@@ -26,24 +26,10 @@ object MacroTypedCommonsScala3 {
 
 class MacroCommonsScala3(using val quotes: scala.quoted.Quotes)
     extends MacroCommons
+    with EnvironmentsScala3
     with MacroUntypedCommonsScala3
-    with MacroTypedCommonsScala3 {
+    with MacroTypedCommonsScala3
 
-  import quotes.*, quotes.reflect.*
-
-  object Environment extends EnvironmentModule {
-
-    override val XMacroSettings: List[String] = {
-      // workaround to contain @experimental from polluting the whole codebase
-      val info = quotes.reflect.CompilationInfo
-      info.getClass.getMethod("XmacroSettings").invoke(info).asInstanceOf[List[String]]
-    }
-
-    override def reportInfo(msg: String): Unit = report.info(msg, Position.ofMacroExpansion)
-    override def reportWarn(msg: String): Unit = report.info(msg, Position.ofMacroExpansion)
-    override def reportErrorAndAbort(msg: String): Nothing = report.errorAndAbort(msg, Position.ofMacroExpansion)
-  }
-}
 object MacroCommonsScala3 {
 
   def apply()(using quotes: scala.quoted.Quotes): MacroCommonsScala3 =

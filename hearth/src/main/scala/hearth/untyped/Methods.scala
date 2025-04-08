@@ -61,7 +61,7 @@ trait Methods { this: MacroCommons =>
     }
 
     def name(method: UntypedMethod): String
-
+    def position(method: UntypedMethod): Position
     def annotations(method: UntypedMethod): List[UntypedExpr]
 
     // TODO: isConstructorArgument?
@@ -79,6 +79,7 @@ trait Methods { this: MacroCommons =>
   implicit final class UntypedMethodMethods(private val method: UntypedMethod) {
 
     def methodName: String = UntypedMethod.name(method)
+    def methodPosition: Position = UntypedMethod.position(method)
 
     def annotations: List[UntypedExpr] = UntypedMethod.annotations(method)
 
@@ -93,5 +94,7 @@ trait Methods { this: MacroCommons =>
     def isAccessibleHere: Boolean = UntypedMethod.isAccessibleHere(method)
   }
 
-  implicit val UntypedMethodOrdering: Ordering[UntypedMethod]
+  implicit lazy val UntypedMethodOrdering: Ordering[UntypedMethod] =
+    // Stabilize order in case of https://github.com/scala/scala3/issues/21672 (does not solve the warnings!)
+    Ordering[Position].on[UntypedMethod](_.methodPosition).orElseBy(_.methodName)
 }

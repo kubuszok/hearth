@@ -22,6 +22,12 @@ trait MethodsScala3 extends Methods { this: MacroCommonsScala3 =>
   object UntypedMethod extends UntypedMethodModule {
 
     override def name(method: UntypedMethod): String = method.name
+    override def position(method: UntypedMethod): Position =
+      method.pos
+        // Prevent crashed in case of https://github.com/scala/scala3/issues/21672
+        .filter(pos => scala.util.Try(pos.start).isSuccess)
+        // TODO?
+        .getOrElse(Position.current)
 
     override def annotations(method: UntypedMethod): List[UntypedExpr] = ???
 
@@ -36,13 +42,4 @@ trait MethodsScala3 extends Methods { this: MacroCommonsScala3 =>
     override def isPublic(method: UntypedMethod): Boolean = ???
     override def isAccessibleHere(method: UntypedMethod): Boolean = ???
   }
-
-  implicit override val UntypedMethodOrdering: Ordering[UntypedMethod] =
-    Ordering
-      .Option(Ordering.fromLessThan[Position] { (a, b) =>
-        a.startLine < b.startLine || (a.startLine == b.startLine && a.startColumn < b.startColumn)
-      })
-      .on[UntypedMethod](_.pos.filter(pos => scala.util.Try(pos.start).isSuccess))
-      // Stabilize order in case of https://github.com/scala/scala3/issues/21672 (does not solve the warnings!)
-      .orElseBy(_.name)
 }
