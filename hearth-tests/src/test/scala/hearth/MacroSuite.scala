@@ -25,15 +25,43 @@ trait MacroSuite extends munit.BaseFunSuite { self =>
     else super.test(options.withName(appendName(prefix, options.name)))(body)
 
   implicit class ArrowAssert(lhs: Any) {
-    def ==>[V](rhs: V): Unit =
+    def ==>[V](rhs: V)(implicit loc: Location): Unit =
       (lhs, rhs) match {
         // Hack to make Arrays compare sanely; at some point we may want some
         // custom, extensible, typesafe equality check but for now this will do
         case (lhs: Array[?], rhs: Array[?]) =>
-          Predef.assert(lhs.toSeq == rhs.toSeq, s"==> assertion failed: ${lhs.toSeq} != ${rhs.toSeq}")
+          Predef.assert(
+            lhs.toSeq == rhs.toSeq,
+            s"""${Console.RED}==> assertion failed${Console.RESET}:
+               |  ${lhs.toSeq} ${Console.RED}!=${Console.RESET} ${rhs.toSeq}
+               |${Console.RED}at $loc${Console.RESET}
+               |""".stripMargin
+          )
         case (lhs, rhs) =>
-          Predef.assert(lhs == rhs, s"==> assertion failed: $lhs != $rhs")
+          Predef.assert(
+            lhs == rhs,
+            s"""${Console.RED}==> assertion failed${Console.RESET}:
+               |  $lhs ${Console.RED}!=${Console.RESET} $rhs
+               |${Console.RED}at $loc${Console.RESET}
+               |""".stripMargin
+          )
       }
+  }
+
+  implicit class ExpectedMsgAssert(lhs: String) {
+    def <==>(rhs: String)(implicit loc: Location): Unit = {
+      val diff = lhs.split("\n").zipAll(rhs.split("\n"), "", "").flatMap { case (l, r) =>
+        if (l.stripANSI != r.stripANSI) List(l -> r)
+        else List.empty
+      }
+      Predef.assert(
+        diff.isEmpty,
+        s"""${Console.RED}==> assertion failed${Console.RESET}:
+           |${diff.map { case (l, r) => s"  $l ${Console.RED}!=${Console.RESET} $r" }.mkString("\n")}
+           |${Console.RED}at $loc${Console.RESET}
+           |""".stripMargin
+      )
+    }
   }
 
   implicit class StringOps(private val str: String) {

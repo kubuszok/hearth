@@ -35,11 +35,28 @@ trait Types { this: MacroCommons =>
 
     def annotations[A: Type]: List[Expr_??]
 
-    // TODO: isPrimitive[A: Type]: Boolean
-    // TODO: isBuildIn[A: Type]: Boolean
+    /** Types which might be compiled to both JVM primitives and javal.lang.Object: Boolean, Byte, Short, Char, Int,
+      * Long, Float, Double.
+      */
+    val primitiveTypes: List[??]
+    final def isPrimitive[A: Type]: Boolean = primitiveTypes.exists(tpe => Type[A] <:< tpe.Underlying)
+
+    // TODO: rename to buildInJvmTypes
+    // TODO: add: java.lang.Class, java.lang.Object, java.lang.Enum, java.lang.EnumValue?
+    // TODO: add: java.lang.reflect.*, java.lang.invoke.*
+    /** Types which are either primitives or specially treated by JVM: Unit, String. */
+    val buildInTypes: List[??]
+    final def isBuildIn[A: Type]: Boolean = buildInTypes.exists(tpe => Type[A] <:< tpe.Underlying)
 
     def isAbstract[A: Type]: Boolean
     def isFinal[A: Type]: Boolean
+
+    // TODO: rename class to something more unambiguous
+    def isClass[A: Type]: Boolean
+    final def notBuildInClass[A: Type]: Boolean = isClass[A] && !isBuildIn[A]
+    final def isPlainOldJavaObject[A: Type]: Boolean =
+      notBuildInClass[A] && !(isAbstract[A] || isSealed[A] || isJavaEnum[A] || isJavaEnumValue[A])
+    final def isJavaBean[A: Type]: Boolean = false // TODO
 
     def isSealed[A: Type]: Boolean
     def isJavaEnum[A: Type]: Boolean
@@ -48,10 +65,6 @@ trait Types { this: MacroCommons =>
     def isCase[A: Type]: Boolean
     def isObject[A: Type]: Boolean
     def isVal[A: Type]: Boolean
-
-    def isClass[A: Type]: Boolean
-    final def isPlainOldJavaObject[A: Type]: Boolean = ???
-    final def isJavaBean[A: Type]: Boolean = ???
 
     final def isCaseClass[A: Type]: Boolean = isClass[A] && isCase[A]
     final def isCaseObject[A: Type]: Boolean = isObject[A] && isCase[A]

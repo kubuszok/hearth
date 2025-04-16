@@ -40,18 +40,12 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
         implicit def ExprCodecLiftable[A: ExprCodec]: Liftable[A] = ExprCodec[A] match {
           case impl: ExprCodecImpl[A] => impl.to
-          case unknown =>
-            new Liftable[A] {
-              override def apply(value: A): Tree = unknown.toExpr(value).tree
-            }
+          case unknown                => value => unknown.toExpr(value).tree
         }
 
         implicit def ExprCodecUnliftable[A: ExprCodec]: Unliftable[A] = ExprCodec[A] match {
           case impl: ExprCodecImpl[A] => impl.from
-          case unknown =>
-            new Unliftable[A] {
-              override def unapply(tree: Tree): Option[A] = unknown.fromExpr(c.Expr[A](tree))
-            }
+          case unknown                => tree => unknown.fromExpr(c.Expr[A](tree))
         }
       }
     }

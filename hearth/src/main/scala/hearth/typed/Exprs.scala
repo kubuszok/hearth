@@ -76,9 +76,10 @@ trait Exprs { this: MacroCommons =>
     *   [[https://docs.scala-lang.org/overviews/quasiquotes/lifting.html]] for Scala 2 underlying concept
     * @see
     *   [[https://docs.scala-lang.org/scala3/guides/macros/macros.html#creating-expression-from-values]] for Scala 3
-    *   `ToExpr` * @see
-    *   [[https://docs.scala-lang.org/scala3/guides/macros/macros.html#extracting-values-from-expressions]] for Scala 3
     *   `ToExpr`
+    * @see
+    *   [[https://docs.scala-lang.org/scala3/guides/macros/macros.html#extracting-values-from-expressions]] for Scala 3
+    *   `FromExpr`
     */
   trait ExprCodec[A] {
 
@@ -89,8 +90,11 @@ trait Exprs { this: MacroCommons =>
 
     def apply[A](implicit codec: ExprCodec[A]): ExprCodec[A] = codec
 
-    // TODO: more instances - for starters cover all types in covered by ToExpr i FromExpr in Quotes
-    // TODO: Unit, Tuples, None, Nil, ... derivation?
+    // TODO: implement all these:
+    // TODO: - https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/StandardLiftables.scala
+    // TODO: - https://github.com/scala/scala3/blob/master/library/src/scala/quoted/ToExpr.scala
+    // TODO: https://github.com/scala/scala3/blob/master/library/src/scala/quoted/FromExpr.scala
+    // TODO: derivation?
 
     implicit lazy val BooleanExprCodec: ExprCodec[Boolean] = Expr.BooleanExprCodec
     implicit lazy val IntExprCodec: ExprCodec[Int] = Expr.IntExprCodec

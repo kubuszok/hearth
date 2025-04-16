@@ -37,8 +37,8 @@ object ExampleSealedTraitWithTypeParam {
   case object ExampleSealedTraitWithTypeParamObject extends ExampleSealedTraitWithTypeParam[Nothing]
 }
 
-sealed trait ExampleSealedTraiGADT[A]
-object ExampleSealedTraiGADT {
-  case class ExampleSealedTraitWithTypeParamClass(str: String) extends ExampleSealedTraiGADT[String]
-  case object ExampleSealedTraitWithTypeParamObject extends ExampleSealedTraiGADT[Unit]
+sealed trait ExampleSealedTraitGADT[A]
+object ExampleSealedTraitGADT {
+  case class ExampleSealedTraitWithTypeParamClass(str: String) extends ExampleSealedTraitGADT[String]
+  case object ExampleSealedTraitWithTypeParamObject extends ExampleSealedTraitGADT[Unit]
 }

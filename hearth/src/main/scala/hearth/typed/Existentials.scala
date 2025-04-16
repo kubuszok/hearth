@@ -44,7 +44,7 @@ trait Existentials { this: MacroCommons =>
     }
     object Bounded {
       def apply[L, U >: L, F[_ >: L <: U], A >: L <: U: Type](value: F[A]): Bounded[L, U, F] =
-        new Impl[L, U, F, A](Type[A], value)
+        new Impl[L, U, F, A](implicitly[Type[A]], value) // implicitly instead of Type[A] to avoid initialization issues
     }
 
     type LowerBounded[L, F[_ >: L]] = Existential.Bounded[L, Any, F]

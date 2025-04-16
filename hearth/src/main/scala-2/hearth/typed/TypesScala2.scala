@@ -70,13 +70,34 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
 
     override def annotations[A: Type]: List[Expr_??] = ??? // TODO
 
+    override val primitiveTypes: List[??] = List(
+      weakTypeOf[Boolean].as_??,
+      weakTypeOf[Byte].as_??,
+      weakTypeOf[Short].as_??,
+      weakTypeOf[Int].as_??,
+      weakTypeOf[Long].as_??,
+      weakTypeOf[Float].as_??,
+      weakTypeOf[Double].as_??,
+      weakTypeOf[Char].as_??
+    )
+    override val buildInTypes: List[??] = primitiveTypes ++ List(
+      weakTypeOf[String].as_??,
+      weakTypeOf[Unit].as_??
+    )
+
     override def isAbstract[A: Type]: Boolean = {
       val A = UntypedType.fromTyped[A].typeSymbol
-      A != NoSymbol && A.isAbstract
+      // We use =:= to check whether A is known to be exactly of the build-in type or is it some upper bound.
+      A != NoSymbol && A.isAbstract && !buildInTypes.exists(tpe => Type[A] =:= tpe.Underlying)
     }
     override def isFinal[A: Type]: Boolean = {
       val A = UntypedType.fromTyped[A].typeSymbol
       A != NoSymbol && A.isFinal
+    }
+
+    override def isClass[A: Type]: Boolean = {
+      val A = UntypedType.fromTyped[A].typeSymbol
+      A != NoSymbol && A.isClass
     }
 
     override def isSealed[A: Type]: Boolean = {
@@ -94,6 +115,7 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
 
     override def isCase[A: Type]: Boolean = {
       val A = UntypedType.fromTyped[A].typeSymbol
+      // TODO: make it pass true for Scala 3 case val
       A != NoSymbol && A.isClass && A.asClass.isCaseClass
     }
     override def isObject[A: Type]: Boolean = {
@@ -105,16 +127,20 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
       isObject[A] && A.isStatic && A.isFinal // ???
     }
 
-    override def isClass[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      A != NoSymbol && A.isClass
-    }
-
     override def isPublic[A: Type]: Boolean = {
       val A = UntypedType.fromTyped[A].typeSymbol
       A != NoSymbol && A.isPublic
     }
-    override def isAvailableHere[A: Type]: Boolean = ??? // TODO
+    override def isAvailableHere[A: Type]: Boolean =
+      try {
+        // Try to access the type in the current context.
+        // If it's not accessible, this will throw an exception.
+        // TODO: test this assumption
+        val _ = c.typecheck(q"null.asInstanceOf[${weakTypeOf[A]}]", silent = true)
+        true
+      } catch {
+        case _: Throwable => false
+      }
 
     override def isSubtypeOf[A: Type, B: Type]: Boolean = weakTypeOf[A] <:< weakTypeOf[B]
     override def isSameAs[A: Type, B: Type]: Boolean = weakTypeOf[A] =:= weakTypeOf[B]
