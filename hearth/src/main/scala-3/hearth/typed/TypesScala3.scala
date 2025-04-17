@@ -1,6 +1,7 @@
 package hearth
 package typed
 
+import hearth.fp.Id
 import scala.collection.immutable.ListMap
 
 trait TypesScala3 extends Types { this: MacroCommonsScala3 =>

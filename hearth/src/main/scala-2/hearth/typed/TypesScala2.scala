@@ -2,7 +2,7 @@ package hearth
 package typed
 
 import hearth.compat.*
-
+import hearth.fp.Id
 trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
 
   import c.universe.*

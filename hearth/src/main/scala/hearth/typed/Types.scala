@@ -1,6 +1,7 @@
 package hearth
 package typed
 
+import hearth.fp.Id
 import scala.language.implicitConversions
 
 trait Types { this: MacroCommons =>

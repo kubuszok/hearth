@@ -280,7 +280,7 @@ val publishSettings = Seq(
 val mimaSettings = Seq(
   mimaPreviousArtifacts := {
     val previousVersions = moduleName.value match {
-      case "hearth" | "hearth-compat" => Set() // add after RC-1 publish
+      case "hearth" | "hearth-compat" | "hearth-micro-fp" => Set() // add after RC-1 publish
       case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" =>
         Set()
       case _ => ??? // examplicitly add case
@@ -289,7 +289,7 @@ val mimaSettings = Seq(
   },
   mimaFailOnNoPrevious := {
     moduleName.value match {
-      case "hearth" | "hearth-compat" => false // add after RC-1 publish
+      case "hearth" | "hearth-compat" | "hearth-micro-fp" => false // add after RC-1 publish
       case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" =>
         false
       case _ => ??? // examplicitly add case
@@ -306,8 +306,8 @@ val ciCommand = (platform: String, scalaSuffix: String) => {
   val clean = Vector("clean")
 
   val projects = for {
-    name <- Vector("hearth-compat", "hearth", "hearth-tests",  "hearth-sandwich-tests")
-    if scalaSuffix != "2_12" || name != "hearth-sandwich-tests"
+    name <- Vector("hearthCompat", "hearthMicroFp", "hearth", "hearthTests",  "hearthSandwichTests")
+    if scalaSuffix != "2_12" || name != "hearthSandwichTests"
   } yield s"$name${if (isJVM) "" else platform}$scalaSuffix"
   def tasksOf(name: String): Vector[String] = projects.map(project => s"$project/$name")
 
@@ -318,7 +318,7 @@ val ciCommand = (platform: String, scalaSuffix: String) => {
 
 val publishLocalForTests = {
   val jvm = for {
-    module <- Vector("hearth-compat", "hearth")
+    module <- Vector("hearthCompat", "hearthMicroFp", "hearth")
     moduleVersion <- Vector(module, module + "3")
   } yield moduleVersion + "/publishLocal"
   /*
@@ -342,6 +342,7 @@ lazy val root = project
   .settings(publishSettings)
   .settings(noPublishSettings)
   .aggregate(hearthCompat.projectRefs *)
+  .aggregate(hearthMicroFp.projectRefs *)
   .aggregate(hearth.projectRefs *)
   .aggregate(hearthTests.projectRefs *)
   .aggregate(hearthSandwichTests.projectRefs *)
@@ -416,6 +417,22 @@ lazy val hearthCompat = projectMatrix
   .settings(dependencies *)
   .settings(mimaSettings *)
 
+lazy val hearthMicroFp = projectMatrix
+  .in(file("hearth-micro-fp"))
+  .someVariations(versions.scalas, versions.platforms)((addScala213plusDir +: only1VersionInIDE) *)
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .disablePlugins(WelcomePlugin)
+  .settings(
+    moduleName := "hearth-micro-fp",
+    name := "hearth-micro-fp",
+    description := "Micro FP library, for using a few useful extension without fetching a whole FP library"
+  )
+  .settings(settings *)
+  .settings(versionSchemeSettings *)
+  .settings(publishSettings *)
+  .settings(dependencies *)
+  .settings(mimaSettings *)
+
 lazy val hearth = projectMatrix
   .in(file("hearth"))
   .someVariations(versions.scalas, versions.platforms)((addScala213plusDir +: only1VersionInIDE) *)
@@ -433,6 +450,7 @@ lazy val hearth = projectMatrix
   .settings(dependencies *)
   .settings(mimaSettings *)
   .dependsOn(hearthCompat)
+  .dependsOn(hearthMicroFp)
 
 // Test normal use cases
 
@@ -466,7 +484,7 @@ lazy val hearthSandwichExamples213 = projectMatrix
   .settings(
     moduleName := "hearth-sandwich-examples-213",
     name := "hearth-sandwich-examples-213",
-    description := "Tests cases compiled with Scala 2.13 to test macros in 2.13x3 cross-compilation"
+    description := "Tests cases compiled with Scala 2.13 to test macros in 2.13x3 cross-compilation (non-publishable)"
   )
 
 lazy val hearthSandwichExamples3 = projectMatrix
@@ -479,7 +497,7 @@ lazy val hearthSandwichExamples3 = projectMatrix
   .settings(
     moduleName := "hearth-sandwich-examples-3",
     name := "hearth-sandwich-examples-3",
-    description := "Tests cases compiled with Scala 3 to test macros in 2.13x3 cross-compilation",
+    description := "Tests cases compiled with Scala 3 to test macros in 2.13x3 cross-compilation (non-publishable)",
   )
 
 lazy val hearthSandwichTests = projectMatrix
@@ -492,7 +510,7 @@ lazy val hearthSandwichTests = projectMatrix
   .settings(
     moduleName := "hearth-sandwich-tests",
     name := "hearth-sandwich-tests",
-    description := "Tests macros in 2.13x3 cross-compilation"
+    description := "Tests macros in 2.13x3 cross-compilation (non-publishable)"
   )
   .dependsOn(hearth % s"$Test->$Test;$Compile->$Compile")
   .dependsOn(hearthSandwichExamples213 % s"$Test->$Test;$Compile->$Compile")
