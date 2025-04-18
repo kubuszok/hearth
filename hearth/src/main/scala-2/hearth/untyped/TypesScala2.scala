@@ -1,10 +1,14 @@
 package hearth
 package untyped
 
+import hearth.compat.*
 import scala.collection.compat.*
 import scala.collection.immutable.ListMap
 
 trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
+
+  import c.universe.*
+  import Type.platformSpecific.*
 
   final override type UntypedType = c.Type
 
@@ -12,6 +16,68 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
 
     override def fromTyped[A: Type]: UntypedType = c.weakTypeOf[A]
     override def toTyped[A](untyped: UntypedType): Type[A] = c.WeakTypeTag(untyped)
+
+    override def isPrimitive(instanceTpe: UntypedType): Boolean =
+      Type.primitiveTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
+    override def isBuildIn(instanceTpe: UntypedType): Boolean =
+      Type.buildInTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
+
+    override def isAbstract(instanceTpe: UntypedType): Boolean = {
+      val A = instanceTpe.typeSymbol
+      // We use =:= to check whether A is known to be exactly of the build-in type or is it some upper bound.
+      A != NoSymbol && A.isAbstract && !Type.buildInTypes.exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))
+    }
+    override def isFinal(instanceTpe: UntypedType): Boolean = {
+      val A = instanceTpe.typeSymbol
+      A != NoSymbol && A.isFinal
+    }
+
+    override def isClass(instanceTpe: UntypedType): Boolean = {
+      val A = instanceTpe.typeSymbol
+      A != NoSymbol && A.isClass
+    }
+
+    override def isSealed(instanceTpe: UntypedType): Boolean = {
+      val A = instanceTpe.typeSymbol
+      A != NoSymbol && A.isClass && A.asClass.isSealed
+    }
+    override def isJavaEnum(instanceTpe: UntypedType): Boolean = {
+      val A = instanceTpe.typeSymbol
+      A.isJavaEnum && javaEnumRegexpFormat.matches(instanceTpe.toString)
+    }
+    override def isJavaEnumValue(instanceTpe: UntypedType): Boolean = {
+      val A = instanceTpe.typeSymbol
+      A.isJavaEnum && !javaEnumRegexpFormat.matches(instanceTpe.toString)
+    }
+
+    override def isCase(instanceTpe: UntypedType): Boolean = {
+      val A = instanceTpe.typeSymbol
+      // TODO: make it pass true for Scala 3 case val
+      A != NoSymbol && A.isClass && A.asClass.isCaseClass
+    }
+    override def isObject(instanceTpe: UntypedType): Boolean = {
+      val A = instanceTpe.typeSymbol
+      A != NoSymbol && A.isClass && A.asClass.isModuleClass
+    }
+    override def isVal(instanceTpe: UntypedType): Boolean = {
+      val A = instanceTpe.typeSymbol
+      isObject(instanceTpe) && A.isStatic && A.isFinal // ???
+    }
+
+    override def isPublic(instanceTpe: UntypedType): Boolean = {
+      val A = instanceTpe.typeSymbol
+      A != NoSymbol && A.isPublic
+    }
+    override def isAvailableHere(instanceTpe: UntypedType): Boolean =
+      try {
+        // Try to access the type in the current context.
+        // If it's not accessible, this will throw an exception.
+        // TODO: test this assumption
+        val _ = c.typecheck(q"null.asInstanceOf[$instanceTpe]", silent = true)
+        true
+      } catch {
+        case _: Throwable => false
+      }
 
     override def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod] =
       Option(instanceTpe.typeSymbol).filter(_.isClass).map(_.asClass.primaryConstructor).filter(_.isConstructor)

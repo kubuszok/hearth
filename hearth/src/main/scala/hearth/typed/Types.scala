@@ -40,39 +40,39 @@ trait Types { this: MacroCommons =>
       * Long, Float, Double.
       */
     val primitiveTypes: List[??]
-    final def isPrimitive[A: Type]: Boolean = primitiveTypes.exists(tpe => Type[A] <:< tpe.Underlying)
+    final def isPrimitive[A: Type]: Boolean = UntypedType.fromTyped[A].isPrimitive
 
     // TODO: rename to buildInJvmTypes
     // TODO: add: java.lang.Class, java.lang.Object, java.lang.Enum, java.lang.EnumValue?
     // TODO: add: java.lang.reflect.*, java.lang.invoke.*
     /** Types which are either primitives or specially treated by JVM: Unit, String. */
     val buildInTypes: List[??]
-    final def isBuildIn[A: Type]: Boolean = buildInTypes.exists(tpe => Type[A] <:< tpe.Underlying)
+    final def isBuildIn[A: Type]: Boolean = UntypedType.fromTyped[A].isBuildIn
 
-    def isAbstract[A: Type]: Boolean
-    def isFinal[A: Type]: Boolean
+    final def isAbstract[A: Type]: Boolean = UntypedType.fromTyped[A].isAbstract
+    final def isFinal[A: Type]: Boolean = UntypedType.fromTyped[A].isFinal
 
     // TODO: rename class to something more unambiguous
-    def isClass[A: Type]: Boolean
+    final def isClass[A: Type]: Boolean = UntypedType.fromTyped[A].isClass
     final def notBuildInClass[A: Type]: Boolean = isClass[A] && !isBuildIn[A]
     final def isPlainOldJavaObject[A: Type]: Boolean =
       notBuildInClass[A] && !(isAbstract[A] || isSealed[A] || isJavaEnum[A] || isJavaEnumValue[A])
     final def isJavaBean[A: Type]: Boolean = false // TODO
 
-    def isSealed[A: Type]: Boolean
-    def isJavaEnum[A: Type]: Boolean
-    def isJavaEnumValue[A: Type]: Boolean
+    final def isSealed[A: Type]: Boolean = UntypedType.fromTyped[A].isSealed
+    final def isJavaEnum[A: Type]: Boolean = UntypedType.fromTyped[A].isJavaEnum
+    final def isJavaEnumValue[A: Type]: Boolean = UntypedType.fromTyped[A].isJavaEnumValue
 
-    def isCase[A: Type]: Boolean
-    def isObject[A: Type]: Boolean
-    def isVal[A: Type]: Boolean
+    final def isCase[A: Type]: Boolean = UntypedType.fromTyped[A].isCase
+    final def isObject[A: Type]: Boolean = UntypedType.fromTyped[A].isObject
+    final def isVal[A: Type]: Boolean = UntypedType.fromTyped[A].isVal
 
-    final def isCaseClass[A: Type]: Boolean = isClass[A] && isCase[A]
-    final def isCaseObject[A: Type]: Boolean = isObject[A] && isCase[A]
-    final def isCaseVal[A: Type]: Boolean = isVal[A] && isCase[A]
+    final def isCaseClass[A: Type]: Boolean = UntypedType.fromTyped[A].isCaseClass
+    final def isCaseObject[A: Type]: Boolean = UntypedType.fromTyped[A].isCaseObject
+    final def isCaseVal[A: Type]: Boolean = UntypedType.fromTyped[A].isCaseVal
 
-    def isPublic[A: Type]: Boolean
-    def isAvailableHere[A: Type]: Boolean
+    final def isPublic[A: Type]: Boolean = UntypedType.fromTyped[A].isPublic
+    final def isAvailableHere[A: Type]: Boolean = UntypedType.fromTyped[A].isAvailableHere
 
     def isSubtypeOf[A: Type, B: Type]: Boolean
     def isSameAs[A: Type, B: Type]: Boolean
@@ -196,10 +196,21 @@ trait Types { this: MacroCommons =>
 
     def isAbstract: Boolean = Type.isAbstract(using tpe)
     def isFinal: Boolean = Type.isFinal(using tpe)
-    def isSealed: Boolean = Type.isSealed(using tpe)
-    def isCaseClass: Boolean = Type.isCaseClass(using tpe)
-    def isObject: Boolean = Type.isObject(using tpe)
+
+    def isClass: Boolean = Type.isClass(using tpe)
     def isJavaBean: Boolean = Type.isJavaBean(using tpe)
+
+    def isSealed: Boolean = Type.isSealed(using tpe)
+    def isJavaEnum: Boolean = Type.isJavaEnum(using tpe)
+    def isJavaEnumValue: Boolean = Type.isJavaEnumValue(using tpe)
+
+    def isCase: Boolean = Type.isCase(using tpe)
+    def isObject: Boolean = Type.isObject(using tpe)
+    def isVal: Boolean = Type.isVal(using tpe)
+
+    def isCaseClass: Boolean = Type.isCaseClass(using tpe)
+    def isCaseObject: Boolean = Type.isCaseObject(using tpe)
+    def isCaseVal: Boolean = Type.isCaseVal(using tpe)
 
     def isPublic: Boolean = Type.isPublic(using tpe)
     def isAvailableHere: Boolean = Type.isAvailableHere(using tpe)

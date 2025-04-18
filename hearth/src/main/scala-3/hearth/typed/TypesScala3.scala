@@ -81,61 +81,6 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
       scala.quoted.Type.of[String].as_??
     )
 
-    override def isAbstract[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      // We use =:= to check whether A is known to be exactly of the build-in type or is it some upper bound.
-      !A.isNoSymbol && (A.flags.is(Flags.Abstract) || A.flags.is(Flags.Trait)) &&
-      !buildInTypes.exists(tpe => Type[A] =:= tpe.Underlying)
-    }
-    override def isFinal[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      !A.isNoSymbol && A.flags.is(Flags.Final)
-    }
-
-    override def isClass[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      !A.isNoSymbol && A.isClassDef
-    }
-
-    override def isSealed[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      !A.isNoSymbol && A.flags.is(Flags.Sealed)
-    }
-    override def isJavaEnum[A: Type]: Boolean =
-      Type[A] <:< scala.quoted.Type.of[java.lang.Enum[?]] && isAbstract[A]
-    override def isJavaEnumValue[A: Type]: Boolean =
-      Type[A] <:< scala.quoted.Type.of[java.lang.Enum[?]] && !isAbstract[A]
-    override def isCase[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      !A.isNoSymbol && A.flags.is(Flags.Case)
-    }
-    override def isObject[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      !A.isNoSymbol && A.flags.is(Flags.Module)
-    }
-    override def isVal[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      def attempt(sym: Symbol): Boolean =
-        A.flags.is(Flags.Enum) && (A.flags.is(Flags.JavaStatic) || A.flags.is(Flags.StableRealizable))
-      !A.isNoSymbol && attempt(UntypedType.fromTyped[A].typeSymbol) || attempt(UntypedType.fromTyped[A].termSymbol)
-    }
-
-    override def isPublic[A: Type]: Boolean = {
-      val A = TypeRepr.of[A].typeSymbol
-      !(A.flags.is(Flags.Private) || A.flags.is(Flags.PrivateLocal) || A.flags.is(Flags.Protected) ||
-        A.privateWithin.isDefined || A.protectedWithin.isDefined)
-    }
-    override def isAvailableHere[A: Type]: Boolean =
-      try {
-        // Try to access the type in the current context.
-        // If it's not accessible, this will throw an exception.
-        // TODO: test this assumption
-        val _ = '{ null.asInstanceOf[A] }
-        true
-      } catch {
-        case _: Throwable => false
-      }
-
     override def isSubtypeOf[A: Type, B: Type]: Boolean = TypeRepr.of[A] <:< TypeRepr.of[B]
     override def isSameAs[A: Type, B: Type]: Boolean = TypeRepr.of[A] =:= TypeRepr.of[B]
 

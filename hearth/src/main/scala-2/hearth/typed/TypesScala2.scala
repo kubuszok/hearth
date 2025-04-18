@@ -1,8 +1,8 @@
 package hearth
 package typed
 
-import hearth.compat.*
 import hearth.fp.Id
+
 trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
 
   import c.universe.*
@@ -84,63 +84,6 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
       weakTypeOf[String].as_??,
       weakTypeOf[Unit].as_??
     )
-
-    override def isAbstract[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      // We use =:= to check whether A is known to be exactly of the build-in type or is it some upper bound.
-      A != NoSymbol && A.isAbstract && !buildInTypes.exists(tpe => Type[A] =:= tpe.Underlying)
-    }
-    override def isFinal[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      A != NoSymbol && A.isFinal
-    }
-
-    override def isClass[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      A != NoSymbol && A.isClass
-    }
-
-    override def isSealed[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      A != NoSymbol && A.isClass && A.asClass.isSealed
-    }
-    override def isJavaEnum[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      A.isJavaEnum && javaEnumRegexpFormat.matches(UntypedType.fromTyped[A].toString)
-    }
-    override def isJavaEnumValue[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      A.isJavaEnum && !javaEnumRegexpFormat.matches(UntypedType.fromTyped[A].toString)
-    }
-
-    override def isCase[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      // TODO: make it pass true for Scala 3 case val
-      A != NoSymbol && A.isClass && A.asClass.isCaseClass
-    }
-    override def isObject[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      A != NoSymbol && A.isClass && A.asClass.isModuleClass
-    }
-    override def isVal[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      isObject[A] && A.isStatic && A.isFinal // ???
-    }
-
-    override def isPublic[A: Type]: Boolean = {
-      val A = UntypedType.fromTyped[A].typeSymbol
-      A != NoSymbol && A.isPublic
-    }
-    override def isAvailableHere[A: Type]: Boolean =
-      try {
-        // Try to access the type in the current context.
-        // If it's not accessible, this will throw an exception.
-        // TODO: test this assumption
-        val _ = c.typecheck(q"null.asInstanceOf[${weakTypeOf[A]}]", silent = true)
-        true
-      } catch {
-        case _: Throwable => false
-      }
 
     override def isSubtypeOf[A: Type, B: Type]: Boolean = weakTypeOf[A] <:< weakTypeOf[B]
     override def isSameAs[A: Type, B: Type]: Boolean = weakTypeOf[A] =:= weakTypeOf[B]
