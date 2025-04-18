@@ -70,8 +70,8 @@ trait Types { this: MacroCommons =>
     final def isPublic[A: Type]: Boolean = UntypedType.fromTyped[A].isPublic
     final def isAvailableHere[A: Type]: Boolean = UntypedType.fromTyped[A].isAvailableHere
 
-    def isSubtypeOf[A: Type, B: Type]: Boolean
-    def isSameAs[A: Type, B: Type]: Boolean
+    final def isSubtypeOf[A: Type, B: Type]: Boolean = UntypedType.fromTyped[A] <:< UntypedType.fromTyped[B]
+    final def isSameAs[A: Type, B: Type]: Boolean = UntypedType.fromTyped[A] =:= UntypedType.fromTyped[B]
 
     // Literal types
 

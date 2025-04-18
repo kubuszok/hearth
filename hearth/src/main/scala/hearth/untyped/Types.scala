@@ -40,18 +40,22 @@ trait Types { this: MacroCommons =>
     def isPublic(instanceTpe: UntypedType): Boolean
     def isAvailableHere(instanceTpe: UntypedType): Boolean
 
+    def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean
+    def isSameAs(a: UntypedType, b: UntypedType): Boolean
+
     def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod]
     def constructors(instanceTpe: UntypedType): List[UntypedMethod]
 
     def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]]
     final def exhaustiveChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
       directChildren(instanceTpe)
-        .flatMap(_.foldRight[Option[Vector[(String, UntypedType)]]](Some(Vector.empty)) {
-          case (_, None)                                      => None
-          case ((_, subtype), Some(list)) if subtype.isSealed => exhaustiveChildren(subtype).map(list ++ _)
-          case ((_, subtype), _) if subtype.isAbstract        => None
-          case (nameSubtype, Some(list))                      => Some(list :+ nameSubtype)
+        .flatMap(_.foldLeft[Option[Vector[(String, UntypedType)]]](Some(Vector.empty)) {
+          case (None, _)                                      => None
+          case (Some(list), (_, subtype)) if subtype.isSealed => exhaustiveChildren(subtype).map(list ++ _)
+          case (_, (_, subtype)) if subtype.isAbstract        => None
+          case (Some(list), nameSubtype)                      => Some(list :+ nameSubtype)
         })
+        .map(_.filter(_._2 <:< instanceTpe)) // TODO: handle it somehow for GADT in abstract type context
         .map(ListMap.from(_))
 
     def parameterAt(instanceTpe: UntypedType)(param: UntypedParameter): UntypedType
@@ -88,6 +92,9 @@ trait Types { this: MacroCommons =>
 
     def isPublic: Boolean = UntypedType.isPublic(untyped)
     def isAvailableHere: Boolean = UntypedType.isAvailableHere(untyped)
+
+    def <:<(other: UntypedType): Boolean = UntypedType.isSubtypeOf(untyped, other)
+    def =:=(other: UntypedType): Boolean = UntypedType.isSameAs(untyped, other)
 
     def primaryConstructor: Option[UntypedMethod] = UntypedType.primaryConstructor(untyped)
     def constructors: List[UntypedMethod] = UntypedType.constructors(untyped)

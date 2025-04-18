@@ -95,6 +95,9 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
         case _: Throwable => false
       }
 
+    override def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean = subtype <:< supertype
+    override def isSameAs(a: UntypedType, b: UntypedType): Boolean = a =:= b
+
     override def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod] =
       Option(instanceTpe.typeSymbol).filter(_.isClass).map(_.asClass.primaryConstructor).filter(_.isConstructor)
     override def constructors(instanceTpe: UntypedType): List[UntypedMethod] =

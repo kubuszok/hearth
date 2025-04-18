@@ -81,9 +81,6 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
       scala.quoted.Type.of[String].as_??
     )
 
-    override def isSubtypeOf[A: Type, B: Type]: Boolean = TypeRepr.of[A] <:< TypeRepr.of[B]
-    override def isSameAs[A: Type, B: Type]: Boolean = TypeRepr.of[A] =:= TypeRepr.of[B]
-
     override val BooleanCodec: TypeCodec[Boolean] = LiteralCodec[Boolean](BooleanConstant(_))
     override val IntCodec: TypeCodec[Int] = LiteralCodec[Int](IntConstant(_))
     override val LongCodec: TypeCodec[Long] = LiteralCodec[Long](LongConstant(_))

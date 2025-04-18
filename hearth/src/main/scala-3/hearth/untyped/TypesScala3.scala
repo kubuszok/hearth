@@ -103,6 +103,9 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
         case _: Throwable => false
       }
 
+    override def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean = subtype <:< supertype
+    override def isSameAs(a: UntypedType, b: UntypedType): Boolean = a =:= b
+
     override def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod] =
       Option(instanceTpe.typeSymbol.primaryConstructor).filterNot(_.isNoSymbol)
     override def constructors(instanceTpe: UntypedType): List[UntypedMethod] =

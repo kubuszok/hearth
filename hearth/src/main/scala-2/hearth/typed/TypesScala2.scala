@@ -85,9 +85,6 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
       weakTypeOf[Unit].as_??
     )
 
-    override def isSubtypeOf[A: Type, B: Type]: Boolean = weakTypeOf[A] <:< weakTypeOf[B]
-    override def isSameAs[A: Type, B: Type]: Boolean = weakTypeOf[A] =:= weakTypeOf[B]
-
     override val BooleanCodec: TypeCodec[Boolean] = new LiteralCodec[Boolean]
     override val IntCodec: TypeCodec[Int] = new LiteralCodec[Int]
     override val LongCodec: TypeCodec[Long] = new LiteralCodec[Long]
