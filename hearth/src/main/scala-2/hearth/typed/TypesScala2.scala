@@ -19,8 +19,6 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
       // The only different in behavior is that one prints com.my.Enum and another com.my.Enum(MyValue).
       val javaEnumRegexpFormat = raw"^(.+)\((.+)\)$$".r
 
-      // TODO: check when this crap has to be called :/
-
       // Workaround for <https://issues.scala-lang.org/browse/SI-7755>
       // and <https://github.com/scalalandio/chimney/issues/562> and similar.
       def forceTypeSymbolInitialization[A: Type]: Unit = forceTypeSymbolInitialization(
@@ -86,11 +84,15 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
     )
 
     override val BooleanCodec: TypeCodec[Boolean] = new LiteralCodec[Boolean]
+    override val ByteCodec: TypeCodec[Byte] = new LiteralCodec[Byte]
+    override val ShortCodec: TypeCodec[Short] = new LiteralCodec[Short]
     override val IntCodec: TypeCodec[Int] = new LiteralCodec[Int]
     override val LongCodec: TypeCodec[Long] = new LiteralCodec[Long]
     override val FloatCodec: TypeCodec[Float] = new LiteralCodec[Float]
     override val DoubleCodec: TypeCodec[Double] = new LiteralCodec[Double]
     override val CharCodec: TypeCodec[Char] = new LiteralCodec[Char]
     override val StringCodec: TypeCodec[String] = new LiteralCodec[String]
+    override val UnitCodec: TypeCodec[Unit] = new LiteralCodec[Unit]
+    override val NullCodec: TypeCodec[Null] = new LiteralCodec[Null]
   }
 }

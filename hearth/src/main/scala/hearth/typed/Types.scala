@@ -76,12 +76,16 @@ trait Types { this: MacroCommons =>
     // Literal types
 
     val BooleanCodec: TypeCodec[Boolean]
+    val ByteCodec: TypeCodec[Byte]
+    val ShortCodec: TypeCodec[Short]
     val IntCodec: TypeCodec[Int]
     val LongCodec: TypeCodec[Long]
     val FloatCodec: TypeCodec[Float]
     val DoubleCodec: TypeCodec[Double]
     val CharCodec: TypeCodec[Char]
     val StringCodec: TypeCodec[String]
+    val UnitCodec: TypeCodec[Unit]
+    val NullCodec: TypeCodec[Null]
 
     private object ModuleCodecImpl extends TypeCodec[Any] {
       def toType[A <: Any](value: A): Type[A] =

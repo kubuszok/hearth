@@ -82,11 +82,16 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
     )
 
     override val BooleanCodec: TypeCodec[Boolean] = LiteralCodec[Boolean](BooleanConstant(_))
+    override val ByteCodec: TypeCodec[Byte] = LiteralCodec[Byte](ByteConstant(_))
+    override val ShortCodec: TypeCodec[Short] = LiteralCodec[Short](ShortConstant(_))
     override val IntCodec: TypeCodec[Int] = LiteralCodec[Int](IntConstant(_))
     override val LongCodec: TypeCodec[Long] = LiteralCodec[Long](LongConstant(_))
     override val FloatCodec: TypeCodec[Float] = LiteralCodec[Float](FloatConstant(_))
     override val DoubleCodec: TypeCodec[Double] = LiteralCodec[Double](DoubleConstant(_))
     override val CharCodec: TypeCodec[Char] = LiteralCodec[Char](CharConstant(_))
     override val StringCodec: TypeCodec[String] = LiteralCodec[String](StringConstant(_))
+
+    override val UnitCodec: TypeCodec[Unit] = LiteralCodec[Unit](_ => UnitConstant())
+    override val NullCodec: TypeCodec[Null] = LiteralCodec[Null](_ => NullConstant())
   }
 }
