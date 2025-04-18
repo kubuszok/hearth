@@ -1,6 +1,8 @@
 package hearth.untyped
 
 import hearth.MacroCommons
+import scala.collection.compat.*
+import scala.collection.immutable.ListMap
 
 trait Types { this: MacroCommons =>
 
@@ -41,7 +43,16 @@ trait Types { this: MacroCommons =>
     def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod]
     def constructors(instanceTpe: UntypedType): List[UntypedMethod]
 
-    def directChildren(instanceTpe: UntypedType): Option[List[UntypedType]]
+    def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]]
+    final def exhaustiveChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
+      directChildren(instanceTpe)
+        .flatMap(_.foldRight[Option[Vector[(String, UntypedType)]]](Some(Vector.empty)) {
+          case (_, None)                                      => None
+          case ((_, subtype), Some(list)) if subtype.isSealed => exhaustiveChildren(subtype).map(list ++ _)
+          case ((_, subtype), _) if subtype.isAbstract        => None
+          case (nameSubtype, Some(list))                      => Some(list :+ nameSubtype)
+        })
+        .map(ListMap.from(_))
 
     def parameterAt(instanceTpe: UntypedType)(param: UntypedParameter): UntypedType
 
@@ -81,8 +92,8 @@ trait Types { this: MacroCommons =>
     def primaryConstructor: Option[UntypedMethod] = UntypedType.primaryConstructor(untyped)
     def constructors: List[UntypedMethod] = UntypedType.constructors(untyped)
 
-    def directChildren: Option[List[UntypedType]] = UntypedType.directChildren(untyped)
-
+    def directChildren: Option[ListMap[String, UntypedType]] = UntypedType.directChildren(untyped)
+    def exhaustiveChildren: Option[ListMap[String, UntypedType]] = UntypedType.exhaustiveChildren(untyped)
     def parameter(param: UntypedParameter): UntypedType = UntypedType.parameterAt(untyped)(param)
     def defaultValue(param: UntypedParameter): Option[UntypedExpr] = UntypedExpr.defaultValue(untyped)(param)
 

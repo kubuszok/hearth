@@ -11,6 +11,33 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
 
   object UntypedType extends UntypedTypeModule {
 
+    object platformSpecific {
+
+      def subtypeName(subtype: Symbol): String = subtype.name
+
+      /** Applies type arguments from supertype to subtype if there are any */
+      def subtypeTypeOf(instanceTpe: UntypedType, subtype: Symbol): UntypedType =
+        subtype.primaryConstructor.paramSymss match {
+          // subtype takes type parameters
+          case typeParamSymbols :: _ if typeParamSymbols.exists(_.isType) =>
+            // we have to figure how subtypes type params map to parent type params
+            val appliedTypeByParam: Map[String, TypeRepr] =
+              subtype.typeRef
+                .baseType(instanceTpe.typeSymbol)
+                .typeArgs
+                .map(_.typeSymbol.name)
+                .zip(instanceTpe.typeArgs)
+                .toMap
+            // TODO: some better error message if child has an extra type param that doesn't come from the parent
+            val typeParamReprs: List[TypeRepr] = typeParamSymbols.map(_.name).map(appliedTypeByParam)
+            subtype.typeRef.appliedTo(typeParamReprs)
+          // subtype is monomorphic
+          case _ =>
+            subtype.typeRef
+        }
+    }
+    import platformSpecific.*
+
     override def fromTyped[A: Type]: UntypedType = TypeRepr.of[A]
     override def toTyped[A](untyped: UntypedType): Type[A] = untyped.asType.asInstanceOf[Type[A]]
 
@@ -81,8 +108,22 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
     override def constructors(instanceTpe: UntypedType): List[UntypedMethod] =
       instanceTpe.typeSymbol.declarations.filterNot(_.isNoSymbol).filter(_.isClassConstructor)
 
-    override def directChildren(instanceTpe: UntypedType): Option[List[UntypedType]] =
-      ??? // TODO: port enum types
+    override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
+      // no need for separate java.lang.Enum handling contrary to Scala 2
+      if isSealed(instanceTpe) then Some(
+        ListMap.from {
+          def extractRecursively(sym: Symbol): Vector[Symbol] =
+            if sym.flags.is(Flags.Sealed) then sym.children.toVector.flatMap(extractRecursively)
+            else if sym.flags.is(Flags.Enum) then Vector(sym.typeRef.typeSymbol)
+            else if sym.flags.is(Flags.Module) then Vector(sym.typeRef.typeSymbol.moduleClass)
+            else Vector(sym)
+
+          // calling .distinct here as `children` returns duplicates for multiply-inherited types
+          extractRecursively(instanceTpe.typeSymbol).distinct.sorted
+            .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
+        }
+      )
+      else None
 
     override def parameterAt(instanceTpe: UntypedType)(param: UntypedParameter): UntypedType =
       ??? // TODO: add this

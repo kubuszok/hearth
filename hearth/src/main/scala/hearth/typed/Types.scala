@@ -2,6 +2,8 @@ package hearth
 package typed
 
 import hearth.fp.Id
+import scala.collection.compat.*
+import scala.collection.immutable.ListMap
 import scala.language.implicitConversions
 
 trait Types { this: MacroCommons =>
@@ -23,16 +25,10 @@ trait Types { this: MacroCommons =>
     final def plainPrint[A: Type]: String = removeAnsiColors(prettyPrint[A])
     def prettyPrint[A: Type]: String
 
-    final def directChildren[A: Type]: Option[List[??<:[A]]] =
-      UntypedType.fromTyped[A].directChildren.map(_.map(_.asTyped[A].as_??<:[A]))
-    final def exhaustiveChildren[A: Type]: Option[List[??<:[A]]] =
-      directChildren[A].flatMap(_.foldRight[Option[List[??<:[A]]]](Some(List.empty)) {
-        case (_, None)                                 => None
-        case (child, _) if child.Underlying.isAbstract => None
-        case (child, Some(list)) if child.Underlying.isSealed =>
-          exhaustiveChildren[A](using child.asUntyped.asTyped[A]).map(_ ++ list)
-        case (child, Some(list)) => Some(child +: list)
-      })
+    final def directChildren[A: Type]: Option[ListMap[String, ??<:[A]]] =
+      UntypedType.fromTyped[A].directChildren.map(m => ListMap.from(m.view.mapValues(_.asTyped[A].as_??<:[A])))
+    final def exhaustiveChildren[A: Type]: Option[ListMap[String, ??<:[A]]] =
+      UntypedType.fromTyped[A].exhaustiveChildren.map(m => ListMap.from(m.view.mapValues(_.asTyped[A].as_??<:[A])))
 
     def annotations[A: Type]: List[Expr_??]
 
@@ -187,8 +183,8 @@ trait Types { this: MacroCommons =>
     def defaultConstructor: Option[Method[A]] = ???
     def constructors: List[Method[A]] = Method.constructorsOf(using tpe)
 
-    def directChildren: Option[List[??<:[A]]] = Type.directChildren(using tpe)
-    def exhaustiveChildren: Option[List[??<:[A]]] = Type.exhaustiveChildren(using tpe)
+    def directChildren: Option[ListMap[String, ??<:[A]]] = Type.directChildren(using tpe)
+    def exhaustiveChildren: Option[ListMap[String, ??<:[A]]] = Type.exhaustiveChildren(using tpe)
 
     def annotations: List[Expr_??] = Type.annotations(using tpe)
 

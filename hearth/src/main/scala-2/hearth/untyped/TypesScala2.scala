@@ -14,6 +14,22 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
 
   object UntypedType extends UntypedTypeModule {
 
+    object platformSpecific {
+
+      def subtypeName(typeSymbol: TypeSymbol): String = typeSymbol.name.toString
+
+      /** Applies type arguments from supertype to subtype if there are any */
+      def subtypeTypeOf(instanceTpe: UntypedType, subtypeSymbol: TypeSymbol): UntypedType = {
+        val sEta = subtypeSymbol.toType.etaExpand
+
+        sEta.finalResultType.substituteTypes(
+          sEta.baseType(instanceTpe.typeSymbol).typeArgs.map(_.typeSymbol),
+          instanceTpe.typeArgs
+        )
+      }
+    }
+    import platformSpecific.*
+
     override def fromTyped[A: Type]: UntypedType = c.weakTypeOf[A]
     override def toTyped[A](untyped: UntypedType): Type[A] = c.WeakTypeTag(untyped)
 
@@ -84,8 +100,34 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
     override def constructors(instanceTpe: UntypedType): List[UntypedMethod] =
       instanceTpe.decls.filter(_.isConstructor).toList
 
-    override def directChildren(instanceTpe: UntypedType): Option[List[UntypedType]] =
-      ??? // TODO: port enum types
+    override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] = {
+      val A = instanceTpe.typeSymbol
+
+      if (isJavaEnum(instanceTpe)) {
+        Some(
+          ListMap.from(
+            instanceTpe.companion.decls
+              .filter(_.isJavaEnum)
+              .map(termSymbol => termSymbol.name.toString -> termSymbol.asTerm.typeSignature)
+          )
+        )
+      } else if (isSealed(instanceTpe)) {
+        forceTypeSymbolInitialization(A)
+
+        def extractRecursively(t: TypeSymbol): Vector[TypeSymbol] =
+          if (t.asClass.isSealed) t.asClass.knownDirectSubclasses.toVector.map(_.asType).flatMap(extractRecursively)
+          else Vector(t)
+
+        Some(
+          ListMap.from(
+            // calling .distinct here as `knownDirectSubclasses` returns duplicates for multiply-inherited types
+            extractRecursively(A.asType).distinct
+              .sortBy(_.pos)
+              .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
+          )
+        )
+      } else None
+    }
 
     override def parameterAt(instanceTpe: UntypedType)(param: UntypedParameter): UntypedType =
       ??? // TODO: add this
