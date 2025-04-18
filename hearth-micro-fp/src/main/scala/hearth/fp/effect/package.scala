@@ -19,7 +19,7 @@ package object effect {
     val void: MResult[Unit] = Right(())
   }
   implicit class MResultOps[A](result: => MResult[A]) {
-    
+
     def suspend: MIO[A] = MIO.suspend(result)
   }
 }

@@ -1,7 +1,7 @@
 package hearth
 package fp
 
-import scala.util.control.NoStackTrace
+import scala.util.control.{ControlThrowable, NoStackTrace}
 
 trait DirectStyle[F[_]] {
   import DirectStyle.*
@@ -22,8 +22,8 @@ object DirectStyle {
 
   def apply[F[_]](implicit F: DirectStyle[F]): DirectStyle[F] = F
 
-  def directStyleForEither[Errors]: DirectStyle[Either[Errors, *]] = new DirectStyle[Either[Errors, *]] {
-    private case class PassErrors(error: Errors) extends NoStackTrace
+  implicit def DirectStyleForEither[Errors]: DirectStyle[Either[Errors, *]] = new DirectStyle[Either[Errors, *]] {
+    private case class PassErrors(error: Errors) extends ControlThrowable with NoStackTrace
 
     def asyncUnsafe[A](thunk: => A): Either[Errors, A] = try
       Right(thunk)

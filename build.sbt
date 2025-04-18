@@ -432,6 +432,7 @@ lazy val hearthMicroFp = projectMatrix
   .settings(publishSettings *)
   .settings(dependencies *)
   .settings(mimaSettings *)
+  .dependsOn(hearthCompat)
 
 lazy val hearth = projectMatrix
   .in(file("hearth"))
@@ -449,7 +450,6 @@ lazy val hearth = projectMatrix
   .settings(publishSettings *)
   .settings(dependencies *)
   .settings(mimaSettings *)
-  .dependsOn(hearthCompat)
   .dependsOn(hearthMicroFp)
 
 // Test normal use cases

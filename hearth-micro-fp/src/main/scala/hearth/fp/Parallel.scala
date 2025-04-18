@@ -3,7 +3,7 @@ package fp
 
 trait Parallel[F[_]] extends Applicative[F] {
 
-  def parMap2[A, B, C](fa: F[A], fb: F[B])(f: (A, B) => C): F[C]
+  def parMap2[A, B, C](fa: F[A], fb: => F[B])(f: (A, B) => C): F[C]
 }
 
 object Parallel {
@@ -12,6 +12,6 @@ object Parallel {
 
   final class Ops[F[_], A](private val fa: F[A]) extends AnyVal {
 
-    def parMap2[B, C](fb: F[B])(f: (A, B) => C)(implicit F: Parallel[F]): F[C] = F.parMap2(fa, fb)(f)
+    def parMap2[B, C](fb: => F[B])(f: (A, B) => C)(implicit F: Parallel[F]): F[C] = F.parMap2(fa, fb)(f)
   }
 }
