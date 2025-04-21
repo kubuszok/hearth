@@ -6,13 +6,13 @@ import scala.collection.compat.*
 import scala.collection.immutable.ListMap
 import scala.language.implicitConversions
 
-trait Types { this: MacroCommons =>
+trait Types extends TypeConstructors { this: MacroCommons =>
 
   /** Platform-specific type representation (`c.WeakTypeTag[A]` in 2, `scala.quoted.Type[A]` in 3) */
   type Type[A]
 
   val Type: TypeModule
-  trait TypeModule { this: Type.type =>
+  trait TypeModule extends Ctors { this: Type.type =>
 
     /** Summons `Type` instance */
     final def apply[A](implicit A: Type[A]): Type[A] = A
@@ -117,63 +117,6 @@ trait Types { this: MacroCommons =>
     }
     def ModuleCodec[ModuleSingleton]: TypeCodec[ModuleSingleton] =
       ModuleCodecImpl.asInstanceOf[TypeCodec[ModuleSingleton]]
-
-    // Type constructors for some common types
-
-    trait Ctor1[F[_]] extends Ctor1.Bounded[Nothing, Any, F]
-    object Ctor1 {
-
-      /** Allows applying and extracting some type `L <:< ? <:< U` */
-      trait Bounded[L, U >: L, F[_ >: L <: U]] {
-        def apply[A >: L <: U: Type]: Type[F[A]]
-        def unapply[A](A: Type[A]): Option[L <:??<: U]
-      }
-      trait UpperBounded[U, F[_ <: U]] extends Bounded[Nothing, U, F]
-    }
-
-    trait Ctor2[F[_, _]] extends Ctor2.Bounded[Nothing, Any, Nothing, Any, F]
-    object Ctor2 {
-
-      /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2` */
-      trait Bounded[L1, U1 >: L1, L2, U2 >: L2, F[_ >: L1 <: U1, _ >: L2 <: U2]] {
-        def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type]: Type[F[A, B]]
-        def unapply[A](A: Type[A]): Option[(L1 <:??<: U1, L2 <:??<: U2)]
-      }
-      trait UpperBounded[U1, U2, F[_ <: U1, _ <: U2]] extends Bounded[Nothing, U1, Nothing, U2, F]
-    }
-
-    trait Ctor3[F[_, _, _]] extends Ctor3.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, F]
-    object Ctor3 {
-
-      /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3` */
-      trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, F[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3]] {
-        def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type]: Type[F[A, B, C]]
-        def unapply[A](A: Type[A]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3)]
-      }
-      trait UpperBounded[U1, U2, U3, F[_ <: U1, _ <: U2, _ <: U3]]
-          extends Bounded[Nothing, U1, Nothing, U2, Nothing, U3, F]
-    }
-
-    trait Ctor4[F[_, _, _, _]] extends Ctor4.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, F]
-    object Ctor4 {
-
-      /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4`
-        */
-      trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, F[
-          _ >: L1 <: U1,
-          _ >: L2 <: U2,
-          _ >: L3 <: U3,
-          _ >: L4 <: U4
-      ]] {
-        def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type]
-            : Type[F[A, B, C, D]]
-        def unapply[A](A: Type[A]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4)]
-      }
-      trait UpperBounded[U1, U2, U3, U4, F[_ <: U1, _ <: U2, _ <: U3, _ <: U4]]
-          extends Bounded[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, F]
-    }
-
-    // ToDo, till 22 - maybe use some script to generate them?
   }
 
   implicit final class TypeMethods[A](private val tpe: Type[A]) {
