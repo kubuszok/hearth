@@ -3,20 +3,83 @@ package fp
 package effect
 
 import scala.util.control.*
+import hearth.fp.data.NonEmptyVector
 
-/** Macro IO - lazy result type for safe data composition in macros.
+/** Macro IO - lazy result type for safe data transformations in macros.
   *
   * Features:
-  *   - stack-safety, it will not explode on deep nested computations
-  *   - structural logging, you can build a log of results without the limitations of macros reporters (only first
-  *     message is logged, each following call is a no-op)
-  *   - storing errors as non-empty vector - you can store use "parallel" semantics and aggregate errors
-  *   - catches non-fatal errors, so you don't need to handle them in the code
-  *   - referential transparency, you can use your intuitions from Cats/Scalaz/etc
-  *   - but without dependency on Cats/Scalaz/etc - no risk of conflicting versions in macros vs runtime
+  *   - stack-safety - it will not explode on deep-nested computations
+  *   - structural logging - you can build a structured [[Log]] of results without the limitations of macros reporters
+  *     (where only the first message is logged, and each following call is a no-op)
+  *   - storing errors within a non-empty vector ([[MErrors]]) - you can use "parallel" semantics and aggregate errors
+  *   - catching non-fatal errors - you don't need to worry that accidental exception will make the bug hard to find
+  *   - referential transparency - MIO value not used, is computation not executed; when you see how values are
+  *     composed, you don't need to look inside to tell if `val` vs `def` makes a differece. You can reuse your
+  *     intuitions from Cats/Scalaz/etc, including IOLocal's counter-part ([[MLocal]])
+  *   - but without dependencies on Cats/Scalaz/etc - no risk of conflicting versions in macros vs runtime
   *
-  * It is synchronous, and does not support parallelism (Threads/Fibers) - parallel semantics is achieved by running
-  * computations sequentially and combining results of several steps together.
+  * It is synchronous, and does not support true parallelism (Threads/Fibers) - the "parallel" semantics (as Cats would
+  * call it) of methods starting with "par" is achieved by running computations independently, from the same initial
+  * state, and then combining their results.
+  *
+  * Example using [[MLocal]] and [[Log]]:
+  *
+  * {{{
+  * // Defines a mutable reference. We can create it, put into some "globally available" val and refer to it everywhere
+  * // in our program definition.
+  * // It's not shown in this example, but the difference to a gloval var is, that it allow us to handle mutating
+  * // it inside `parMap2`/`parTuple` as if they were different "fibers" with separate copies of this "var", where each
+  * // can modify it independently. After "joining" them, we can define how these 2 values should be reconciled.
+  * val counter = MLocal(initial = 0, fork = i => i + 1, join = (a, b) => a max b)
+  *
+  * // This is just a recipe for computation, it's not executed yet.
+  * // In this recepe we are reading the current value of the counter, and logging it to 3 different levels.
+  * val printSth = for {
+  *   i <- counter.get
+  *   _ <- Log.info("Print info: counter is now $i")
+  *   _ <- Log.warn("Print warning: counter is now $i")
+  *   _ <- Log.error("Print error: counter is now $i")
+  * } yield 1
+  *
+  * // We can use the recipe above, to build more complex computations.
+  * // Since MIO[Int] is _not_ a computed value, but a recipe for computation, we can reuse multiple times,
+  * // and each time the program would run as if we copy-pasted its content: counder will be modified again,
+  * // logs will be added again, etc.
+  * val printNested = for {
+  *   x <- Log.namedScope("Scope 1") {
+  *     for {
+  *       i <- counter.get
+  *       _ <- counter.set(i + 1)
+  *       _ <- printSth
+  *     } yield i
+  *   }
+  *   y <- Log.namedScope("Scope 2") {
+  *     for {
+  *       i <- counter.get
+  *       _ <- counter.set(i + 1)
+  *       _ <- printSth
+  *     } yield i
+  *   }
+  * } yield x + y
+  *
+  * // Here, we're finally running the computation. We're obtaining:
+  * // - state: MState - contains the final state of all the logs and locals
+  * // - result: Either[MErrors, Int] - contains the final result of the computation
+  * // Usually, we would do it only once, right before existing the macro, to return the final Expr and/or report
+  * // diagnostics and errors.
+  * val (state, result) = printNested.unsafe.runSync
+  *
+  * // We can render the logs, with various levels:
+  * println(state.logs.render.fromInfo("Info logs"))
+  * println(state.logs.render.fromWarn("Warn logs"))
+  * println(state.logs.render.fromError("Error logs"))
+  * // There values could be used to build the single String that we would pass to macro reporters (only the first
+  * // message of each level is shown in the result of the macro expansion, and the rest is discarded).
+  *
+  * // The result of our whole program. Usually we would be building some Expr[A], so this would be
+  * // Either[MErrors, Expr[A]]. Here we would usually return expr from the Right value or report errors from the Left.
+  * println(result)
+  * }}}
   */
 sealed trait MIO[+A] { fa =>
   import MIO.*
@@ -27,7 +90,7 @@ sealed trait MIO[+A] { fa =>
     (try
       result.fold(onFailure, onSuccess)
     catch {
-      case NonFatal(e) => fail(e)
+      case NonFatal(e) => fail(e).log.error(s"Caught exception ${e.getMessage}")
     }) match {
       case Pure(state2, fb)      => Pure(state ++ state2, fb)
       case Impure(state2, fb, q) => Impure(state ++ state2, fb, q)
@@ -41,6 +104,11 @@ sealed trait MIO[+A] { fa =>
   final def attempt: MIO[MResult[A]] = this :+ { (s, r) => Pure(s, Right(r)) }
   final def unattempt[B](implicit ev: A <:< MResult[B]): MIO[B] = flatMap { a =>
     ev(a).fold(fail(_), pure)
+  }
+
+  final def attemptFlatTap[B](f: MResult[A] => MIO[B]): MIO[A] = attempt.flatMap(r => f(r) >> MIO.lift(r))
+  final def attemptTap[B](f: MResult[A] => B): MIO[A] = attempt.flatMap { r =>
+    val _ = f(r); MIO.lift(r)
   }
 
   // ----------------------------------------------- Monadic operations -----------------------------------------------
@@ -78,30 +146,51 @@ sealed trait MIO[+A] { fa =>
     case e                     => fail(e)
   }
 
-  // ---------------------------------------------- Parallel operations -----------------------------------------------
-
-  final def parMap2[B, C](fb: => MIO[B])(f: (A, B) => C): MIO[C] = redeemWith { a =>
-    fb.map(b => f(a, b))
-  } { e =>
-    fb.redeemWith(_ => fail(e))(eb => fail(e ++ eb))
-  }
-  final def parTuple[B](fb: => MIO[B]): MIO[(A, B)] = parMap2(fb)((a, b) => (a, b))
-
   final def orElse[A1 >: A](fb: => MIO[A1]): MIO[A1] = redeemWith[A1](pure) { e1 =>
     fb.redeemWith(pure)(e2 => fail(e1 ++ e2))
   }
+
+  // ---------------------------------------------- Parallel operations -----------------------------------------------
+
+  final def parMap2[B, C](fb: => MIO[B])(f: (A, B) => C): MIO[C] =
+    fa.forked :+ { (stateA, resultA) =>
+      defer(fb.forked) :+ { (stateB, resultB) =>
+        val stateC = stateA join stateB // This join instead of ++ makes the difference in state management!
+        try {
+          val resultC = (resultA, resultB) match { // It is also important that we merge _after_ we computed results.
+            case (Right(a), Right(b)) => Right(f(a, b)) // <-- this can throw!
+            case (Left(e), Right(_))  => Left(e)
+            case (Right(_), Left(e))  => Left(e)
+            case (Left(e1), Left(e2)) => Left(e1 ++ e2)
+          }
+          Pure(stateC, resultC)
+        } catch {
+          case NonFatal(e) => Pure(stateC, Left(NonEmptyVector.one(e))).log.error(s"Caught exception ${e.getMessage}")
+        }
+      }
+    }
+
+  final def parTuple[B](fb: => MIO[B]): MIO[(A, B)] = parMap2(fb)((a, b) => (a, b))
 
   // --------------------------------------------------- Utilities ----------------------------------------------------
 
   object log {
 
-    final def info(message: => String): MIO[A] = flatTap(_ => Log.info(message))
-    final def warn(message: => String): MIO[A] = flatTap(_ => Log.warn(message))
-    final def error(message: => String): MIO[A] = flatTap(_ => Log.error(message))
+    final def info(message: => String): MIO[A] = valueAsInfo(_ => message)
+    final def warn(message: => String): MIO[A] = valueAsWarn(_ => message)
+    final def error(message: => String): MIO[A] = valueAsError(_ => message)
 
-    final def resultAsInfo(message: A => String): MIO[A] = flatTap(a => Log.info(message(a)))
-    final def resultAsWarn(message: A => String): MIO[A] = flatTap(a => Log.warn(message(a)))
-    final def resultAsError(message: A => String): MIO[A] = flatTap(a => Log.error(message(a)))
+    final def valueAsInfo(message: A => String): MIO[A] = flatTap(a => Log.info(message(a)))
+    final def valueAsWarn(message: A => String): MIO[A] = flatTap(a => Log.warn(message(a)))
+    final def valueAsError(message: A => String): MIO[A] = flatTap(a => Log.error(message(a)))
+
+    final def errorsAsInfo(message: MErrors => String): MIO[A] = handleErrorWith(e => Log.info(message(e)) >> fail(e))
+    final def errorsAsWarn(message: MErrors => String): MIO[A] = handleErrorWith(e => Log.warn(message(e)) >> fail(e))
+    final def errorsAsError(message: MErrors => String): MIO[A] = handleErrorWith(e => Log.error(message(e)) >> fail(e))
+
+    final def resultAsInfo(message: MResult[A] => String): MIO[A] = attemptFlatTap(r => Log.info(message(r)))
+    final def resultAsWarn(message: MResult[A] => String): MIO[A] = attemptFlatTap(r => Log.warn(message(r)))
+    final def resultAsError(message: MResult[A] => String): MIO[A] = attemptFlatTap(r => Log.error(message(r)))
   }
 
   object unsafe {
@@ -114,6 +203,8 @@ sealed trait MIO[+A] { fa =>
   /** Extracted because pattern matching to use ++ inlined did not type-check for some reason. */
   protected def :++[B](f: FnNec[A, B]): MIO[B]
   final protected def :+[B](f: (MState, MResult[A]) => MIO[B]): MIO[B] = this :++ FnNec(f)
+
+  final protected def forked: MIO[A] = fa :+ { (state, result) => Pure(state.fork, result) }
 }
 object MIO {
 
@@ -149,6 +240,15 @@ object MIO {
   final private[effect] case class Impure[A, B](state: MState, fa: MResult[A], qab: FnNec[A, B]) extends MIO[B] {
 
     override protected def :++[C](q: FnNec[B, C]): MIO[C] = MIO.Impure(state, fa, qab ++ q)
+  }
+
+  private[effect] def get[A](local: MLocal[A]): MIO[A] = void :+ {
+    case (s, Right(_)) => Pure(s, Right(s.get(local)))
+    case (s, Left(e))  => Pure(s, Left(e))
+  }
+  private[effect] def set[A](local: MLocal[A], a: A): MIO[Unit] = void :+ {
+    case (s, Right(_)) => Pure(s.set(local, a), Right(()))
+    case (s, Left(e))  => Pure(s, Left(e))
   }
 
   private[effect] def log(log: Log): MIO[Unit] = void :+ ((s, r) => Pure(s.log(log), r))
@@ -232,38 +332,19 @@ object MIO {
     }
   }
 
-  implicit final val MioParallelTraverse: fp.ParallelTraverse[MIO] = new fp.ParallelTraverse[MIO] {
+  implicit final val MioParalle: fp.Parallel[MIO] = new fp.Parallel[MIO] {
     // Members declared in hearth.fp.Applicative
     def pure[A](a: A): MIO[A] = MIO.pure(a)
     def map2[A, B, C](fa: MIO[A], fb: => MIO[B])(f: (A, B) => C): MIO[C] = fa.map2(fb)(f)
 
     // Members declared in hearth.fp.Parallel
     def parMap2[A, B, C](fa: MIO[A], fb: => MIO[B])(f: (A, B) => C): MIO[C] = fa.parMap2(fb)(f)
-
-    // It seems that we cannot run it in the "safe" way, because we have to run the effects.
-    // Perhaps we should remove the Traverse?
-
-    // Members declared in hearth.fp.Traverse
-    def traverse[G[_], A, B](fa: MIO[A])(f: A => G[B])(implicit G: fp.Applicative[G]): G[MIO[B]] = {
-      val (state, result) = run(fa)
-      result match {
-        case Right(a) => G.map(f(a))(b => Pure(state, Right(b)))
-        case Left(e)  => G.pure(Pure(state, Left(e)))
-      }
-    }
-    def parTraverse[G[_], A, B](fa: MIO[A])(f: A => G[B])(implicit G: fp.Parallel[G]): G[MIO[B]] = {
-      val (state, result) = run(fa)
-      result match {
-        case Right(a) => G.map(f(a))(b => Pure(state, Right(b)))
-        case Left(e)  => G.pure(Pure(state, Left(e)))
-      }
-    }
   }
 }
 
 // ---------------------------------------------- Implementation details ----------------------------------------------
 
-/** (Specialized) Fast Type-aligned Constant-time queue (FTC Queue), it's basically non-empty chain of functions. */
+/** (Specialized) Fast Type-aligned Constant-time queue (FTC Queue), it's basically a non-empty chain of functions. */
 sealed private[effect] trait FnNec[-A, +B] {
   final def :+[C](f: (MState, MResult[B]) => MIO[C]): FnNec[A, C] = FnNec.Node(this, FnNec(f))
   final def ++[C](fbc: FnNec[B, C]): FnNec[A, C] = FnNec.Node(this, fbc)
