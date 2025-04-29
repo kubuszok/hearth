@@ -2,7 +2,7 @@ package hearth
 package typed
 
 private[typed] trait TypeConstructors { this: MacroCommons =>
-  
+
   trait Ctors { this: Type.type =>
     // format: off
 
