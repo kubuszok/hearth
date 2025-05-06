@@ -1,5 +1,6 @@
 package hearth
 
+import hearth.fp.ignore
 import munit.{Location, TestOptions}
 
 import scala.util.matching.Regex
@@ -13,7 +14,7 @@ trait MacroSuite extends munit.BaseFunSuite { self =>
   def group(name: String)(body: => Any): Unit = {
     val oldPrefix = prefix
     prefix = appendName(prefix, name)
-    val _ = body
+    ignore(body)
     prefix = oldPrefix
   }
 

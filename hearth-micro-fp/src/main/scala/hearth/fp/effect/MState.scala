@@ -2,11 +2,16 @@ package hearth
 package fp
 package effect
 
-/** State of the [[MIO]] computation - currently stores [[Logs]] and [[MLocal]]s. */
+/** State of the [[MIO]] computation - currently stores [[Logs]] and [[MLocal]]s.
+  *
+  * Used by [[MIO]] to store inner state of the computation.
+  */
 final case class MState private[effect] (
     locals: Map[MLocal[?], Any],
     logs: Logs
 ) {
+
+  // --------------------------------------------- Implementation details ---------------------------------------------
 
   private[effect] def ++(state: MState): MState =
     MState(appendLocals(locals, state.locals), combineLogs(logs, state.logs))

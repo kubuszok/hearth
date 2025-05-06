@@ -16,6 +16,6 @@ package object hearth {
     catch {
       case NonFatal(_) => orElse(a)
     }
-    def tap[B](f: A => B): A = { val _ = f(a); a }
+    def tap[B](f: A => B): A = { fp.ignore(f(a)); a }
   }
 }

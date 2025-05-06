@@ -1,6 +1,7 @@
 package hearth
 package untyped
 
+import hearth.fp.ignore
 import scala.collection.immutable.ListMap
 
 trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
@@ -97,14 +98,16 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
         // TODO: test this assumption
         val A0 = instanceTpe.as_??
         import A0.Underlying as A
-        val _ = '{ null.asInstanceOf[A] }
+        ignore('{ null.asInstanceOf[A] })
         true
       } catch {
         case _: Throwable => false
       }
 
-    override def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean = subtype <:< supertype
-    override def isSameAs(a: UntypedType, b: UntypedType): Boolean = a =:= b
+    override def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean =
+      quotes.reflect.TypeReprMethods.<:<(subtype)(supertype)
+    override def isSameAs(a: UntypedType, b: UntypedType): Boolean =
+      quotes.reflect.TypeReprMethods.=:=(a)(b)
 
     override def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod] =
       Option(instanceTpe.typeSymbol.primaryConstructor).filterNot(_.isNoSymbol)

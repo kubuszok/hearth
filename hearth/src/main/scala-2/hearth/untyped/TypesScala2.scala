@@ -2,6 +2,7 @@ package hearth
 package untyped
 
 import hearth.compat.*
+import hearth.fp.ignore
 import scala.collection.compat.*
 import scala.collection.immutable.ListMap
 
@@ -89,7 +90,7 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
         // Try to access the type in the current context.
         // If it's not accessible, this will throw an exception.
         // TODO: test this assumption
-        val _ = c.typecheck(q"null.asInstanceOf[$instanceTpe]", silent = true)
+        ignore(c.typecheck(q"null.asInstanceOf[$instanceTpe]", silent = true))
         true
       } catch {
         case _: Throwable => false

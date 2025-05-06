@@ -11,7 +11,7 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
          |Type.prettyPrint: ${Type.prettyPrint[A]}""".stripMargin
     )
 
-  def testFlags[A: Type]: Expr[String] =
+  def testFlags[A: Type]: Expr[String] = try
     Expr(
       s"""Type.isPrimitive: ${Type.isPrimitive[A]}
          |Type.isBuildIn:   ${Type.isBuildIn[A]}
@@ -35,4 +35,9 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
          |Type.isPublic:        ${Type.isPublic[A]}
          |Type.isAvailableHere: ${Type.isAvailableHere[A]}""".stripMargin
     )
+  catch {
+    case e: Throwable =>
+      e.printStackTrace()
+      throw e
+  }
 }
