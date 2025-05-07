@@ -45,26 +45,26 @@ class TypesSpec extends MacroSuite {
 
       test("for top-level classes (non-sealed)") {
         List(
-          testNamesPrinters[examples.classes.ExampleTrait] -> ("ExampleTrait", ""),
-          testNamesPrinters[examples.classes.ExampleTraitWithTypeParam[Int]] -> (
+          testNamesPrinters[examples.classes.ExampleTrait] -> (("ExampleTrait", "")),
+          testNamesPrinters[examples.classes.ExampleTraitWithTypeParam[Int]] -> ((
             "ExampleTraitWithTypeParam",
             "[scala.Int]"
-          ),
-          testNamesPrinters[examples.classes.ExampleAbstractClass] -> ("ExampleAbstractClass", ""),
-          testNamesPrinters[examples.classes.ExampleAbstractClassWithTypeParam[Int]] -> (
+          )),
+          testNamesPrinters[examples.classes.ExampleAbstractClass] -> (("ExampleAbstractClass", "")),
+          testNamesPrinters[examples.classes.ExampleAbstractClassWithTypeParam[Int]] -> ((
             "ExampleAbstractClassWithTypeParam",
             "[scala.Int]"
-          ),
-          testNamesPrinters[examples.classes.ExampleClass] -> ("ExampleClass", ""),
-          testNamesPrinters[examples.classes.ExampleClassWithTypeParam[Int]] -> (
+          )),
+          testNamesPrinters[examples.classes.ExampleClass] -> (("ExampleClass", "")),
+          testNamesPrinters[examples.classes.ExampleClassWithTypeParam[Int]] -> ((
             "ExampleClassWithTypeParam",
             "[scala.Int]"
-          ),
-          testNamesPrinters[examples.classes.ExampleCaseClass] -> ("ExampleCaseClass", ""),
-          testNamesPrinters[examples.classes.ExampleCaseClassWithTypeParam[Int]] -> (
+          )),
+          testNamesPrinters[examples.classes.ExampleCaseClass] -> (("ExampleCaseClass", "")),
+          testNamesPrinters[examples.classes.ExampleCaseClassWithTypeParam[Int]] -> ((
             "ExampleCaseClassWithTypeParam",
             "[scala.Int]"
-          )
+          ))
         ).foreach { case (actual, (expected, params)) =>
           actual <==>
             s"""Type.shortName:   $expected
@@ -96,17 +96,17 @@ class TypesSpec extends MacroSuite {
         case class ExampleCaseClassWithTypeParam[A](a: A)
 
         List(
-          testNamesPrinters[ExampleTrait] -> ("ExampleTrait", ""),
-          testNamesPrinters[ExampleTraitWithTypeParam[Int]] -> ("ExampleTraitWithTypeParam", "[scala.Int]"),
-          testNamesPrinters[ExampleAbstractClass] -> ("ExampleAbstractClass", ""),
-          testNamesPrinters[ExampleAbstractClassWithTypeParam[Int]] -> (
+          testNamesPrinters[ExampleTrait] -> (("ExampleTrait", "")),
+          testNamesPrinters[ExampleTraitWithTypeParam[Int]] -> (("ExampleTraitWithTypeParam", "[scala.Int]")),
+          testNamesPrinters[ExampleAbstractClass] -> (("ExampleAbstractClass", "")),
+          testNamesPrinters[ExampleAbstractClassWithTypeParam[Int]] -> ((
             "ExampleAbstractClassWithTypeParam",
             "[scala.Int]"
-          ),
-          testNamesPrinters[ExampleClass] -> ("ExampleClass", ""),
-          testNamesPrinters[ExampleClassWithTypeParam[Int]] -> ("ExampleClassWithTypeParam", "[scala.Int]"),
-          testNamesPrinters[ExampleCaseClass] -> ("ExampleCaseClass", ""),
-          testNamesPrinters[ExampleCaseClassWithTypeParam[Int]] -> ("ExampleCaseClassWithTypeParam", "[scala.Int]")
+          )),
+          testNamesPrinters[ExampleClass] -> (("ExampleClass", "")),
+          testNamesPrinters[ExampleClassWithTypeParam[Int]] -> (("ExampleClassWithTypeParam", "[scala.Int]")),
+          testNamesPrinters[ExampleCaseClass] -> (("ExampleCaseClass", "")),
+          testNamesPrinters[ExampleCaseClassWithTypeParam[Int]] -> (("ExampleCaseClassWithTypeParam", "[scala.Int]"))
         ).foreach { case (actual, (expected, params)) =>
           actual <==>
             s"""Type.shortName:   $expected
@@ -119,15 +119,15 @@ class TypesSpec extends MacroSuite {
       test("for enumerations") {
         List(
           // TODO: fix WeekDay.Value on Scala 2
-          testNamesPrinters[examples.enums.WeekDay.type] -> ("WeekDay", ""),
+          testNamesPrinters[examples.enums.WeekDay.type] -> (("WeekDay", "")),
           // TODO: fix Planet.Value on Scala 2
-          testNamesPrinters[examples.enums.Planet.type] -> ("Planet", ""),
-          testNamesPrinters[examples.enums.ExampleSealedTrait] -> ("ExampleSealedTrait", ""),
-          testNamesPrinters[examples.enums.ExampleSealedTraitWithTypeParam[Int]] -> (
+          testNamesPrinters[examples.enums.Planet.type] -> (("Planet", "")),
+          testNamesPrinters[examples.enums.ExampleSealedTrait] -> (("ExampleSealedTrait", "")),
+          testNamesPrinters[examples.enums.ExampleSealedTraitWithTypeParam[Int]] -> ((
             "ExampleSealedTraitWithTypeParam",
             "[scala.Int]"
-          ),
-          testNamesPrinters[examples.enums.ExampleSealedTraitGADT[Unit]] -> ("ExampleSealedTraitGADT", "[scala.Unit]")
+          )),
+          testNamesPrinters[examples.enums.ExampleSealedTraitGADT[Unit]] -> (("ExampleSealedTraitGADT", "[scala.Unit]"))
         ).foreach { case (actual, (expected, params)) =>
           actual <==>
             s"""Type.shortName:   $expected
@@ -230,14 +230,14 @@ class TypesSpec extends MacroSuite {
 
       test("for top-level classes (non-sealed)") {
         List(
-          testFlags[examples.classes.ExampleTrait] -> (true, false, false),
-          testFlags[examples.classes.ExampleTraitWithTypeParam[Int]] -> (true, false, false),
-          testFlags[examples.classes.ExampleAbstractClass] -> (true, false, false),
-          testFlags[examples.classes.ExampleAbstractClassWithTypeParam[Int]] -> (true, false, false),
-          testFlags[examples.classes.ExampleClass] -> (false, true, false),
-          testFlags[examples.classes.ExampleClassWithTypeParam[Int]] -> (false, true, false),
-          testFlags[examples.classes.ExampleCaseClass] -> (false, false, true),
-          testFlags[examples.classes.ExampleCaseClassWithTypeParam[Int]] -> (false, false, true)
+          testFlags[examples.classes.ExampleTrait] -> ((true, false, false)),
+          testFlags[examples.classes.ExampleTraitWithTypeParam[Int]] -> ((true, false, false)),
+          testFlags[examples.classes.ExampleAbstractClass] -> ((true, false, false)),
+          testFlags[examples.classes.ExampleAbstractClassWithTypeParam[Int]] -> ((true, false, false)),
+          testFlags[examples.classes.ExampleClass] -> ((false, true, false)),
+          testFlags[examples.classes.ExampleClassWithTypeParam[Int]] -> ((false, true, false)),
+          testFlags[examples.classes.ExampleCaseClass] -> ((false, false, true)),
+          testFlags[examples.classes.ExampleCaseClassWithTypeParam[Int]] -> ((false, false, true))
         ).foreach { case (actual, (isAbstract, isFinal, isCase)) =>
           actual <==>
             s"""Type.isPrimitive: false
@@ -286,14 +286,14 @@ class TypesSpec extends MacroSuite {
         case class ExampleCaseClassWithTypeParam[A](a: A)
 
         List(
-          testFlags[ExampleTrait] -> (true, false, false),
-          testFlags[ExampleTraitWithTypeParam[Int]] -> (true, false, false),
-          testFlags[ExampleAbstractClass] -> (true, false, false),
-          testFlags[ExampleAbstractClassWithTypeParam[Int]] -> (true, false, false),
-          testFlags[ExampleClass] -> (false, true, false),
-          testFlags[ExampleClassWithTypeParam[Int]] -> (false, true, false),
-          testFlags[ExampleCaseClass] -> (false, false, true),
-          testFlags[ExampleCaseClassWithTypeParam[Int]] -> (false, false, true)
+          testFlags[ExampleTrait] -> ((true, false, false)),
+          testFlags[ExampleTraitWithTypeParam[Int]] -> ((true, false, false)),
+          testFlags[ExampleAbstractClass] -> ((true, false, false)),
+          testFlags[ExampleAbstractClassWithTypeParam[Int]] -> ((true, false, false)),
+          testFlags[ExampleClass] -> ((false, true, false)),
+          testFlags[ExampleClassWithTypeParam[Int]] -> ((false, true, false)),
+          testFlags[ExampleCaseClass] -> ((false, false, true)),
+          testFlags[ExampleCaseClassWithTypeParam[Int]] -> ((false, false, true))
         ).foreach { case (actual, (isAbstract, isFinal, isCase)) =>
           actual <==>
             s"""Type.isPrimitive: false
@@ -323,12 +323,12 @@ class TypesSpec extends MacroSuite {
       test("for enumerations".ignore.pending("We need to fix S2-S3 mismatch")) {
         List(
           // TODO: fix WeekDay.Value on Scala 2
-          testFlags[examples.enums.WeekDay.type] -> (false, false, true),
+          testFlags[examples.enums.WeekDay.type] -> ((false, false, true)),
           // TODO: fix Planet.Value on Scala 2
-          testFlags[examples.enums.Planet.type] -> (false, false, true),
-          testFlags[examples.enums.ExampleSealedTrait] -> (true, true, false),
-          testFlags[examples.enums.ExampleSealedTraitWithTypeParam[Int]] -> (true, true, false),
-          testFlags[examples.enums.ExampleSealedTraitGADT[Unit]] -> (true, true, false)
+          testFlags[examples.enums.Planet.type] -> ((false, false, true)),
+          testFlags[examples.enums.ExampleSealedTrait] -> ((true, true, false)),
+          testFlags[examples.enums.ExampleSealedTraitWithTypeParam[Int]] -> ((true, true, false)),
+          testFlags[examples.enums.ExampleSealedTraitGADT[Unit]] -> ((true, true, false))
         ).foreach { case (actual, (isAbstract, isSealed, isObject)) =>
           actual <==>
             s"""Type.isPrimitive: false
