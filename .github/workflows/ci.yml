@@ -1,0 +1,52 @@
+name: CI build
+
+on:
+  push:
+    branches: [ master ]
+    tags: [ '*' ]
+  pull_request:
+    branches: [ master ]
+    types: [ opened, reopened, labeled, synchronize ]
+
+jobs:
+  check-formatting:
+
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.action != 'labeled' # run for 'opened', 'reopened' and 'synchronize'
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: coursier/setup-action@v1.3.9
+        with:
+          apps: scalafmt
+      - name: Check code and docs formatting
+        run: scalafmt --check
+
+  build:
+
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.action != 'labeled' # run for 'opened', 'reopened' and 'synchronize'
+
+    strategy:
+      matrix:
+        scala: ["2_12", "2_13", "3"]
+        platform: ["jvm", "js", "native"]
+        jvm: ['temurin:1.8.0-392', 'temurin:1.21.0.1']
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: coursier/cache-action@v6
+      - uses: coursier/setup-action@v1.3.9
+        with:
+          jvm: ${{ matrix.jvm }}
+          apps: sbt
+      - name: Clean, compile, test, generate coverage report, check MiMa
+        run: sbt ci-${{ matrix.platform }}-${{ matrix.scala }}
+      - uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

@@ -306,8 +306,8 @@ val ciCommand = (platform: String, scalaSuffix: String) => {
   val clean = Vector("clean")
 
   val projects = for {
-    name <- Vector("hearthCompat", "hearthMicroFp", "hearth", "hearthTests",  "hearthSandwichTests")
-    if scalaSuffix != "2_12" || name != "hearthSandwichTests"
+    name <- Vector("hearthCompat", "hearthMicroFp", "hearth", "hearthTests", "hearthSandwichTests")
+    if name != "hearthSandwichTests" || (scalaSuffix != "2_12" && platform == "JVM")
   } yield s"$name${if (isJVM) "" else platform}$scalaSuffix"
   def tasksOf(name: String): Vector[String] = projects.map(project => s"$project/$name")
 
@@ -326,8 +326,8 @@ val publishLocalForTests = {
     module <- Vector("hearth-compat", "hearth").map(_ + "JS")
     moduleVersion <- Vector(module)
   } yield moduleVersion + "/publishLocal"
-  */
-  jvm //++ js
+   */
+  jvm // ++ js
 }.mkString(" ; ")
 
 val releaseCommand = (tag: Seq[String]) =>
@@ -497,7 +497,7 @@ lazy val hearthSandwichExamples3 = projectMatrix
   .settings(
     moduleName := "hearth-sandwich-examples-3",
     name := "hearth-sandwich-examples-3",
-    description := "Tests cases compiled with Scala 3 to test macros in 2.13x3 cross-compilation (non-publishable)",
+    description := "Tests cases compiled with Scala 3 to test macros in 2.13x3 cross-compilation (non-publishable)"
   )
 
 lazy val hearthSandwichTests = projectMatrix
