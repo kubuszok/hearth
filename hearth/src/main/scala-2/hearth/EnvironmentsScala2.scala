@@ -21,7 +21,10 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
     override def reportInfo(msg: String): Unit = c.echo(c.enclosingPosition, msg)
     override def reportWarn(msg: String): Unit = c.warning(c.enclosingPosition, msg)
     override def reportErrorAndAbort(msg: String): Nothing = c.abort(c.enclosingPosition, msg)
+  }
 
-    override val crossQuotesImpl: Any = c
+  object CrossQuotes extends  CrossQuotesModule {
+
+    override def ctx[Cast]: Cast = c.asInstanceOf[Cast]
   }
 }

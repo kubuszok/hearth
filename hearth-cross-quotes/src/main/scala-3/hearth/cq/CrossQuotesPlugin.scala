@@ -1,7 +1,7 @@
 package hearth
 package cq
 
-import dotty.tools.dotc.plugins.PluginPhase
+import dotty.tools.dotc.plugins.{PluginPhase, StandardPlugin}
 import dotty.tools.*
 import dotc.*
 import dotc.ast.tpd.*
@@ -25,9 +25,7 @@ import dotty.tools.dotc.ast.Trees
 import dotty.tools.dotc.ast.untpd.UntypedTreeTraverser
 import dotty.tools.dotc.ast.untpd.UntypedTreeMap
 
-// https://gist.github.com/WojciechMazur/029ec8fa915bcd099fa41d2dfcbf6cd6
-
-object CrossQuotesPlugin {
+class CrossQuotesPlugin extends StandardPlugin {
   val name = "cross-quotes"
   val description = "Rewrites Expr.quote/splice into native quotes"
 
@@ -40,28 +38,81 @@ final class CrossQuotesPhase extends PluginPhase {
   override def phaseName: String = "hearth:cross-quotes"
 
   override def changesMembers: Boolean = true
+
   override def run(using Context): Unit = {
+
+    val isOurPatient = ctx.compilationUnit.untpdTree.show.contains("Expr.quote")
+
+    if isOurPatient then {
+      println(s"Tree: ${ctx.compilationUnit.untpdTree}")
+    }
     ctx.compilationUnit.untpdTree = new UntypedTreeMap {
-      override def transform(tree: untpd.Tree)(using Context): untpd.Tree =
-        tree match {
-          /*
-          case td @ untpd.TypeDef(_, templ: Template)
-          if templ.parents.exists { case name: Ident => name.name == typeName("CUnion") } =>
-            val applyMethods = templ.constr.paramss.head.map: param =>
-              val paramC: ParamClause = param match {
-                case vd: ValDef => cpy.ValDef(vd)().withMods(untpd.Modifiers(flags = Flags.Param)) :: Nil
-              }
-              val params: List[ParamClause] = List(paramC)
-              untpd.DefDef(nme.apply, paramss = params, tpt = untpd.Ident(td.name), rhs = untpd.ref(defn.Predef_undefined))
-            cpy.TypeDef(td)(rhs =
-              cpy.Template(templ)(body =
-                templ.body ++ applyMethods.toList
+
+      private var injectingQuote: Boolean = false
+
+      private def ensureQuotes(thunk: => untpd.Tree): untpd.Tree =
+        if injectingQuote then thunk
+        else
+          try {
+            injectingQuote = true
+            
+            // Create the ValDef for quotes
+            val quotesName = termName("quotes")
+            val quotesType = untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Quotes"))
+            val quotesValue = untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("ctx"))
+            
+            val quotesDef = untpd.ValDef(
+              quotesName,
+              quotesType,
+              quotesValue
+            ).withFlags(Flags.Given)
+            
+            untpd.Block(
+              List(quotesDef),
+              thunk
+            )
+          } finally
+            injectingQuote = false
+
+      override def transform(tree: untpd.Tree)(using Context): untpd.Tree = tree match {
+        case Apply(Select(Ident(expr), quote), List(innerTree)) if expr.show == "Expr" && quote.show == "quote" =>
+          println(s"Found quote: $tree -> ${tree.show}")
+          ensureQuotes(
+            untpd.Apply(
+              untpd.TypeApply(
+                untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("castK")),
+                List(
+                  untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Expr")),
+                  untpd.Ident(typeName("Expr"))
+                )
+              ),
+              List(untpd.Quote(super.transform(innerTree), Nil))
+            )
+          )
+
+        case Apply(Select(Ident(expr), splice), List(innerTree)) if expr.show == "Expr" && splice.show == "splice" =>
+          println(s"Found splice: $tree -> ${tree.show}")
+          ensureQuotes(
+            untpd.Splice(
+              untpd.Apply(
+                untpd.TypeApply(
+                  untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("castK")),
+                  List(
+                    untpd.Ident(typeName("Expr")),
+                    untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Expr"))
+                  )
+                ),
+                List(super.transform(innerTree))
               )
             )
-           */
-          case t => super.transform(t)
-        }
+          )
+
+        case t => super.transform(t)
+      }
     }.transform(ctx.compilationUnit.untpdTree)
+    if isOurPatient then {
+      println(s"Tree: ${ctx.compilationUnit.untpdTree.show}")
+    }
     super.run
   }
 }

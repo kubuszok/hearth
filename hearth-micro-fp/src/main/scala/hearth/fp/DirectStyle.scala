@@ -54,13 +54,15 @@ object DirectStyle {
 
   def apply[F[_]](implicit F: DirectStyle[F]): DirectStyle[F] = F
 
-  implicit def DirectStyleForEither[Errors]: DirectStyle[Either[Errors, *]] = new DirectStyle[Either[Errors, *]] {
-    final private case class PassErrors(error: Errors) extends ControlThrowable with NoStackTrace
+  implicit def DirectStyleForEither[Errors]: DirectStyle[Either[Errors, *]] = new DirectStyle[Either[Errors, *]] {ds =>
+    private case class PassErrors(error: Errors) extends ControlThrowable with NoStackTrace {
+      val parent = ds
+    }
 
     override protected def asyncUnsafe[A](thunk: => A): Either[Errors, A] = try
       Right(thunk)
     catch {
-      case PassErrors(error) => Left(error)
+      case err: PassErrors @unchecked if err.parent == ds => Left(err.error)
     }
     override protected def awaitUnsafe[A](value: Either[Errors, A]): A = value match {
       case Left(error)  => throw PassErrors(error)

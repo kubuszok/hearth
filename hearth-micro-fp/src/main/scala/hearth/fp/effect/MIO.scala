@@ -291,9 +291,8 @@ object MIO {
     case Pure(state, resultA) => state -> resultA
   }
 
+  final private case class PassErrors(errors: MErrors, owner: Any) extends ControlThrowable with NoStackTrace
   implicit final val MioDirectStyle: fp.DirectStyle[MIO] = new fp.DirectStyle[MIO] {
-
-    final private case class PassErrors(errors: MErrors, owner: Any) extends ControlThrowable with NoStackTrace
 
     private val openedAwaits = ThreadLocal.withInitial { () =>
       scala.collection.mutable.Queue.empty[Any]

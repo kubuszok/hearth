@@ -24,7 +24,7 @@ ciRelease := {
 val versions = new {
   val scala212 = "2.12.20"
   val scala213 = "2.13.16"
-  val scala3 = "3.3.5"
+  val scala3 = "3.3.6"
 
   // Which versions should be cross-compiled for publishing
   val scalas = List(scala212, scala213, scala3)
@@ -51,7 +51,7 @@ val only1VersionInIDE =
       _.settings(
         ideSkipProject := (scalaVersion.value != versions.ideScala),
         bspEnabled := (scalaVersion.value == versions.ideScala),
-        scalafmtOnCompile := !isCI
+        scalafmtOnCompile := false//!isCI
       )
     ) +:
     versions.platforms.filter(_ != versions.idePlatform).map { platform =>
@@ -75,15 +75,11 @@ val useCrossQuotes = versions.scalas.map { scalaVersion =>
     .ForScala(v => v.value == scalaVersion)
     .Configure(
       _.settings(
-        Compile / scalacOptions ++= {
+        scalacOptions ++= {
           val jar = (hearthCrossQuotes.jvm(scalaVersion) / Compile / packageBin).value
-          Seq(s"-Xplugin:${jar.getAbsolutePath}", s"-Jdummy=${jar.lastModified}") // ensures recompile
-        },
-        Test / scalacOptions ++= {
-          val jar = (hearthCrossQuotes.jvm(scalaVersion) / Compile / packageBin).value
-          Seq(s"-Xplugin:${jar.getAbsolutePath}", s"-Jdummy=${jar.lastModified}") // ensures recompile
+          Seq(s"-Xplugin:${jar.getAbsolutePath}", s"-Jdummy=${jar.lastModified}") // ensures recompilation
         }
-      ).dependsOn(hearthCrossQuotes.jvm(scalaVersion) % Provided)
+      )
     )
 }
 
@@ -433,6 +429,7 @@ lazy val root = project
 
 lazy val hearthCrossQuotes = projectMatrix
   .in(file("hearth-cross-quotes"))
+  // TODO: cross-compile plugins for various Scala 2 versions
   .someVariations(versions.scalas, List(VirtualAxis.jvm))((only1VersionInIDE) *)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .disablePlugins(WelcomePlugin, MimaPlugin)
@@ -507,7 +504,7 @@ lazy val hearth = projectMatrix
 
 lazy val hearthTests = projectMatrix
   .in(file("hearth-tests"))
-  .someVariations(versions.scalas, versions.platforms)((addScala213plusDir +: only1VersionInIDE) *)
+  .someVariations(versions.scalas, versions.platforms)((addScala213plusDir +: (only1VersionInIDE ++ useCrossQuotes)) *)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .disablePlugins(WelcomePlugin)
   .settings(

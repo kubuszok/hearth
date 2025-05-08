@@ -19,7 +19,7 @@ class CrossQuotesPlugin(val global: Global) extends Plugin { plugin =>
 
     val runsAfter = List[String]("refchecks") // TODO: check if this is correct, should be typecheck
 
-    def newPhase(_prev: Phase) = new CrossQuotesPhase(_prev)
+    def newPhase(prev: Phase) = new CrossQuotesPhase(prev)
 
     final class CrossQuotesPhase(prev: Phase) extends StdPhase(prev) {
       override def name = phaseName

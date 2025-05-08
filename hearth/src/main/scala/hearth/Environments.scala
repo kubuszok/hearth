@@ -66,7 +66,22 @@ trait Environments {
     private val adjustLine = if (isScala3) 1 else 0 // Scala 3 i 0-indexed, or decremented for some reason?
     private val fileLineRegex = """^(.+):(\d+)$""".r
     private val fileLineColumnRegex = """^(.+):(\d+):(\d+)$""".r
+  }
 
-    val crossQuotesImpl: Any
+  val CrossQuotes: CrossQuotesModule
+  trait CrossQuotesModule { this: CrossQuotes.type =>
+
+    /** `scala.reflect.macros.blackbox.Context` on Scala 2, `scala.quoted.Quotes` on Scala 3. */
+    def ctx[Cast]: Cast
+
+    /** Let us infer inner `A` in `Expr[A]` at compilation phase where we only know outer types. */
+    final def castK[F[_], G[_]]: Cast[F, G] = CastImpl.asInstanceOf[Cast[F, G]]
+
+    sealed trait Cast[F[_], G[_]] {
+      def apply[A](fa: F[A]): G[A]
+    }
+    private object CastImpl extends Cast[fp.Id, fp.Id] {
+      def apply[A](fa: A): A = fa
+    }
   }
 }
