@@ -50,23 +50,28 @@ final class CrossQuotesPhase extends PluginPhase {
 
       private var injectingQuote: Boolean = false
 
+      // TODO: freshName for ctx
+
       private def ensureQuotes(thunk: => untpd.Tree): untpd.Tree =
         if injectingQuote then thunk
         else
           try {
             injectingQuote = true
-            
+
             // Create the ValDef for quotes
             val quotesName = termName("quotes")
-            val quotesType = untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Quotes"))
+            val quotesType =
+              untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Quotes"))
             val quotesValue = untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("ctx"))
-            
-            val quotesDef = untpd.ValDef(
-              quotesName,
-              quotesType,
-              quotesValue
-            ).withFlags(Flags.Given)
-            
+
+            val quotesDef = untpd
+              .ValDef(
+                quotesName,
+                quotesType,
+                quotesValue
+              )
+              .withFlags(Flags.Given)
+
             untpd.Block(
               List(quotesDef),
               thunk

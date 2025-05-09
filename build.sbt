@@ -51,7 +51,7 @@ val only1VersionInIDE =
       _.settings(
         ideSkipProject := (scalaVersion.value != versions.ideScala),
         bspEnabled := (scalaVersion.value == versions.ideScala),
-        scalafmtOnCompile := false//!isCI
+        scalafmtOnCompile := false // !isCI
       )
     ) +:
     versions.platforms.filter(_ != versions.idePlatform).map { platform =>
@@ -70,17 +70,50 @@ val addScala213plusDir =
       )
     )
 
-val useCrossQuotes = versions.scalas.map { scalaVersion =>
-  MatrixAction
-    .ForScala(v => v.value == scalaVersion)
-    .Configure(
-      _.settings(
-        scalacOptions ++= {
-          val jar = (hearthCrossQuotes.jvm(scalaVersion) / Compile / packageBin).value
-          Seq(s"-Xplugin:${jar.getAbsolutePath}", s"-Jdummy=${jar.lastModified}") // ensures recompilation
-        }
-      )
+val defineCrossQuotes = versions.scalas.flatMap { scalaVersion =>
+  if (scalaVersion == versions.scala3) {
+    List(
+      MatrixAction {
+        case (version, List(VirtualAxis.js))     => version.isScala3
+        case (version, List(VirtualAxis.native)) => version.isScala3
+        case _                                   => false
+      }.Skip
     )
+  } else {
+    List.empty
+  }
+}
+
+val useCrossQuotes = versions.scalas.flatMap { scalaVersion =>
+  if (scalaVersion == versions.scala3) {
+    List(
+      MatrixAction
+        .ForScala(v => v.value == scalaVersion)
+        .Configure(
+          _.settings(
+            scalacOptions ++= {
+              val jar = (hearthCrossQuotes.jvm(scalaVersion) / Compile / packageBin).value
+              Seq(s"-Xplugin:${jar.getAbsolutePath}", s"-Jdummy=${jar.lastModified}") // ensures recompilation
+            }
+          )
+        )
+    )
+  } else {
+    List(
+      MatrixAction {
+        case (version, List(VirtualAxis.jvm)) => version.value == scalaVersion
+        case _                                => false
+      }.Configure(_.dependsOn(hearthCrossQuotes.jvm(scalaVersion))),
+      MatrixAction {
+        case (version, List(VirtualAxis.js)) => version.value == scalaVersion
+        case _                               => false
+      }.Configure(_.dependsOn(hearthCrossQuotes.js(scalaVersion))),
+      MatrixAction {
+        case (version, List(VirtualAxis.native)) => version.value == scalaVersion
+        case _                                   => false
+      }.Configure(_.dependsOn(hearthCrossQuotes.native(scalaVersion)))
+    )
+  }
 }
 
 val settings = Seq(
@@ -430,7 +463,7 @@ lazy val root = project
 lazy val hearthCrossQuotes = projectMatrix
   .in(file("hearth-cross-quotes"))
   // TODO: cross-compile plugins for various Scala 2 versions
-  .someVariations(versions.scalas, List(VirtualAxis.jvm))((only1VersionInIDE) *)
+  .someVariations(versions.scalas, versions.platforms)((defineCrossQuotes ++ only1VersionInIDE) *)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .disablePlugins(WelcomePlugin, MimaPlugin)
   .settings(

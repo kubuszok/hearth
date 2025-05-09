@@ -54,7 +54,7 @@ object DirectStyle {
 
   def apply[F[_]](implicit F: DirectStyle[F]): DirectStyle[F] = F
 
-  implicit def DirectStyleForEither[Errors]: DirectStyle[Either[Errors, *]] = new DirectStyle[Either[Errors, *]] {ds =>
+  implicit def DirectStyleForEither[Errors]: DirectStyle[Either[Errors, *]] = new DirectStyle[Either[Errors, *]] { ds =>
     private case class PassErrors(error: Errors) extends ControlThrowable with NoStackTrace {
       val parent = ds
     }

@@ -31,6 +31,6 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
 
   object CrossQuotes extends CrossQuotesModule {
 
-    override def ctx[Cast]: Cast = quotes.asInstanceOf[Cast]
+    override def ctx[CastAs]: CastAs = quotes.asInstanceOf[CastAs]
   }
 }

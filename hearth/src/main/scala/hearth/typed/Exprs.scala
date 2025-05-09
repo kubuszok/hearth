@@ -6,13 +6,13 @@ import hearth.fp.syntax.*
 
 import scala.language.implicitConversions
 
-trait Exprs { this: MacroCommons =>
+trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
   /** Platform-specific untyped type representation (`c.Expr[A]` in 2, `scala.quoted.Expr[A]` in 3) */
   type Expr[A]
 
   val Expr: ExprModule
-  trait ExprModule { this: Expr.type =>
+  trait ExprModule extends ExprCrossQuotes { this: Expr.type =>
 
     def apply[A: ExprCodec](value: A): Expr[A] = ExprCodec[A].toExpr(value)
 
@@ -34,12 +34,6 @@ trait Exprs { this: MacroCommons =>
     val DoubleExprCodec: ExprCodec[Double]
     val CharExprCodec: ExprCodec[Char]
     val StringExprCodec: ExprCodec[String]
-
-    @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")
-    final def quote[A](expr: A): Expr[A] = sys.error("Install cross-quotes-plugin to use this method")
-
-    @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")
-    final def splice[A](expr: Expr[A]): A = sys.error("Install cross-quotes-plugin to use this method")
   }
 
   implicit final class ExprMethods[A](private val expr: Expr[A]) {

@@ -72,7 +72,7 @@ trait Environments {
   trait CrossQuotesModule { this: CrossQuotes.type =>
 
     /** `scala.reflect.macros.blackbox.Context` on Scala 2, `scala.quoted.Quotes` on Scala 3. */
-    def ctx[Cast]: Cast
+    def ctx[CastAs]: CastAs
 
     /** Let us infer inner `A` in `Expr[A]` at compilation phase where we only know outer types. */
     final def castK[F[_], G[_]]: Cast[F, G] = CastImpl.asInstanceOf[Cast[F, G]]

@@ -23,8 +23,8 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
     override def reportErrorAndAbort(msg: String): Nothing = c.abort(c.enclosingPosition, msg)
   }
 
-  object CrossQuotes extends  CrossQuotesModule {
+  object CrossQuotes extends CrossQuotesModule {
 
-    override def ctx[Cast]: Cast = c.asInstanceOf[Cast]
+    override def ctx[CastAs]: CastAs = c.asInstanceOf[CastAs]
   }
 }
