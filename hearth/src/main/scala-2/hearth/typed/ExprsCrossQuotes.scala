@@ -9,10 +9,10 @@ private[typed] trait ExprsCrossQuotes { this: Exprs =>
 
   trait ExprCrossQuotes { this: Expr.type =>
 
-    // @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")
+    @scala.annotation.compileTimeOnly("Should have been expanded by the hearth-cross-quotes macros")
     def quote[A](expr: A): Expr[A] = macro CrossQuotesMacros.quoteImpl[A]
 
-    @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")
+    @scala.annotation.compileTimeOnly("Should have been expanded by the hearth-cross-quotes macros")
     def splice[A](expr: Expr[A]): A = sys.error("Should be called only inside of Expr.quote { ... }")
   }
 }

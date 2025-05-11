@@ -6,13 +6,13 @@ import scala.collection.compat.*
 import scala.collection.immutable.ListMap
 import scala.language.implicitConversions
 
-trait Types extends TypeConstructors { this: MacroCommons =>
+trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons =>
 
   /** Platform-specific type representation (`c.WeakTypeTag[A]` in 2, `scala.quoted.Type[A]` in 3) */
   type Type[A]
 
   val Type: TypeModule
-  trait TypeModule extends Ctors { this: Type.type =>
+  trait TypeModule extends Ctors with TypeCrossQuotes { this: Type.type =>
 
     /** Summons `Type` instance */
     final def apply[A](implicit A: Type[A]): Type[A] = A
@@ -35,14 +35,26 @@ trait Types extends TypeConstructors { this: MacroCommons =>
     /** Types which might be compiled to both JVM primitives and javal.lang.Object: Boolean, Byte, Short, Char, Int,
       * Long, Float, Double.
       */
-    val primitiveTypes: List[??]
+    final val primitiveTypes: List[??] = List(
+      Type.of[Boolean].as_??,
+      Type.of[Byte].as_??,
+      Type.of[Short].as_??,
+      Type.of[Int].as_??,
+      Type.of[Long].as_??,
+      Type.of[Float].as_??,
+      Type.of[Double].as_??,
+      Type.of[Char].as_??
+    )
     final def isPrimitive[A: Type]: Boolean = UntypedType.fromTyped[A].isPrimitive
 
     // TODO: rename to buildInJvmTypes
     // TODO: add: java.lang.Class, java.lang.Object, java.lang.Enum, java.lang.EnumValue?
     // TODO: add: java.lang.reflect.*, java.lang.invoke.*
     /** Types which are either primitives or specially treated by JVM: Unit, String. */
-    val buildInTypes: List[??]
+    final val buildInTypes: List[??] = primitiveTypes ++ List(
+      Type.of[String].as_??,
+      Type.of[Unit].as_??
+    )
     final def isBuildIn[A: Type]: Boolean = UntypedType.fromTyped[A].isBuildIn
 
     final def isAbstract[A: Type]: Boolean = UntypedType.fromTyped[A].isAbstract

@@ -68,21 +68,6 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
 
     override def annotations[A: Type]: List[Expr_??] = ??? // TODO
 
-    override val primitiveTypes: List[??] = List(
-      weakTypeOf[Boolean].as_??,
-      weakTypeOf[Byte].as_??,
-      weakTypeOf[Short].as_??,
-      weakTypeOf[Int].as_??,
-      weakTypeOf[Long].as_??,
-      weakTypeOf[Float].as_??,
-      weakTypeOf[Double].as_??,
-      weakTypeOf[Char].as_??
-    )
-    override val buildInTypes: List[??] = primitiveTypes ++ List(
-      weakTypeOf[String].as_??,
-      weakTypeOf[Unit].as_??
-    )
-
     override val BooleanCodec: TypeCodec[Boolean] = new LiteralCodec[Boolean]
     override val ByteCodec: TypeCodec[Byte] = new LiteralCodec[Byte]
     override val ShortCodec: TypeCodec[Short] = new LiteralCodec[Short]

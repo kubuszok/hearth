@@ -51,7 +51,7 @@ val only1VersionInIDE =
       _.settings(
         ideSkipProject := (scalaVersion.value != versions.ideScala),
         bspEnabled := (scalaVersion.value == versions.ideScala),
-        scalafmtOnCompile := false // !isCI
+        scalafmtOnCompile := !isCI
       )
     ) +:
     versions.platforms.filter(_ != versions.idePlatform).map { platform =>
@@ -70,6 +70,7 @@ val addScala213plusDir =
       )
     )
 
+// hearth-cross-quotes on Scala 2 are macros (defined for all platforms) and on Scala 3 are plugins (defined only for JVM)
 val defineCrossQuotes = versions.scalas.flatMap { scalaVersion =>
   if (scalaVersion == versions.scala3) {
     List(
@@ -84,6 +85,7 @@ val defineCrossQuotes = versions.scalas.flatMap { scalaVersion =>
   }
 }
 
+// same reason as above
 val useCrossQuotes = versions.scalas.flatMap { scalaVersion =>
   if (scalaVersion == versions.scala3) {
     List(
@@ -93,7 +95,11 @@ val useCrossQuotes = versions.scalas.flatMap { scalaVersion =>
           _.settings(
             scalacOptions ++= {
               val jar = (hearthCrossQuotes.jvm(scalaVersion) / Compile / packageBin).value
-              Seq(s"-Xplugin:${jar.getAbsolutePath}", s"-Jdummy=${jar.lastModified}") // ensures recompilation
+              Seq(
+                s"-Xplugin:${jar.getAbsolutePath}",
+                s"-Jdummy=${jar.lastModified}", // ensures recompilation
+                s"-P:hearth.cross-quotes:logging=${!isCI}" // enable logging from cross-quotes
+              )
             }
           )
         )
@@ -103,15 +109,30 @@ val useCrossQuotes = versions.scalas.flatMap { scalaVersion =>
       MatrixAction {
         case (version, List(VirtualAxis.jvm)) => version.value == scalaVersion
         case _                                => false
-      }.Configure(_.dependsOn(hearthCrossQuotes.jvm(scalaVersion))),
+      }.Configure(
+        _.settings(
+          scalacOptions += s"-Xmacro-settings:hearth.cross-quotes.logging=${!isCI}" // enable logging from cross-quotes
+        )
+          .dependsOn(hearthCrossQuotes.jvm(scalaVersion))
+      ),
       MatrixAction {
         case (version, List(VirtualAxis.js)) => version.value == scalaVersion
         case _                               => false
-      }.Configure(_.dependsOn(hearthCrossQuotes.js(scalaVersion))),
+      }.Configure(
+        _.settings(
+          scalacOptions += s"-Xmacro-settings:hearth.cross-quotes.logging=${!isCI}" // enable logging from cross-quotes
+        )
+          .dependsOn(hearthCrossQuotes.js(scalaVersion))
+      ),
       MatrixAction {
         case (version, List(VirtualAxis.native)) => version.value == scalaVersion
         case _                                   => false
-      }.Configure(_.dependsOn(hearthCrossQuotes.native(scalaVersion)))
+      }.Configure(
+        _.settings(
+          scalacOptions += s"-Xmacro-settings:hearth.cross-quotes.logging=${!isCI}" // enable logging from cross-quotes
+        )
+          .dependsOn(hearthCrossQuotes.native(scalaVersion))
+      )
     )
   }
 }
@@ -306,7 +327,7 @@ val publishSettings = Seq(
   pomExtra := (
     <issueManagement>
       <system>GitHub issues</system>
-      <url>https://github.com/scalalandio/chimney-macro-commons/issues</url>
+      <url>https://github.com/MateuszKubuszok/hearth/issues</url>
     </issueManagement>
   ),
   publishTo := sonatypePublishToBundle.value,
@@ -351,7 +372,7 @@ val noPublishSettings =
 
 val al = new {
 
-  private val prodProjects = Vector("hearthCompat", "hearthMicroFp", "hearth")
+  private val prodProjects = Vector("hearthCrossQuotes", "hearthCompat", "hearthMicroFp", "hearth")
   private val testProjects = Vector("hearthTests", "hearthSandwichTests")
 
   private def isJVM(platform: String): Boolean = platform == "JVM"
@@ -359,11 +380,16 @@ val al = new {
   private def projects(platform: String, scalaSuffix: String): Vector[String] =
     for {
       name <- prodProjects ++ testProjects
-      if name != "hearthSandwichTests" || (scalaSuffix != "2_12" && isJVM(platform))
+      if (name != "hearthCrossQuotes" || isJVM(platform))
+      if (name != "hearthSandwichTests") || (scalaSuffix != "2_12" && isJVM(platform))
     } yield s"$name${if (isJVM(platform)) "" else platform}$scalaSuffix"
 
   def ci(platform: String, scalaSuffix: String): String = {
-    def tasksOf(name: String): Vector[String] = projects(platform, scalaSuffix).map(project => s"$project/$name")
+    def tasksOf(name: String): Vector[String] = projects(platform, scalaSuffix).flatMap {
+      case project if project.startsWith("hearthCrossQuotes") && Set("mimaReportBinaryIssues").contains(name) =>
+        Vector()
+      case project => Vector(s"$project/$name")
+    }
 
     val clean = Vector("clean")
     val compileAndTest = tasksOf("compile") ++ tasksOf("test")
@@ -421,6 +447,7 @@ lazy val root = project
          |When working with IntelliJ or Scala Metals, edit "val ideScala = ..." and "val idePlatform = ..." within "val versions" in build.sbt to control which Scala version you're currently working with.
          |
          |If you need to test library locally in a different project, use publish-local-for-tests or manually publishLocal:
+         | - hearth-cross-quotes (obligatory)
          | - hearth-compat (obligatory)
          | - hearth-micro-fp (obligatory)
          | - hearth (obligatory)
@@ -462,7 +489,6 @@ lazy val root = project
 
 lazy val hearthCrossQuotes = projectMatrix
   .in(file("hearth-cross-quotes"))
-  // TODO: cross-compile plugins for various Scala 2 versions
   .someVariations(versions.scalas, versions.platforms)((defineCrossQuotes ++ only1VersionInIDE) *)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .disablePlugins(WelcomePlugin, MimaPlugin)

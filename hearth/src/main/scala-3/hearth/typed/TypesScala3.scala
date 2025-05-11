@@ -66,21 +66,6 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
 
     override def annotations[A: Type]: List[Expr_??] = ??? // TODO
 
-    override val primitiveTypes: List[??] = List(
-      scala.quoted.Type.of[Boolean].as_??,
-      scala.quoted.Type.of[Byte].as_??,
-      scala.quoted.Type.of[Short].as_??,
-      scala.quoted.Type.of[Int].as_??,
-      scala.quoted.Type.of[Long].as_??,
-      scala.quoted.Type.of[Float].as_??,
-      scala.quoted.Type.of[Double].as_??,
-      scala.quoted.Type.of[Char].as_??,
-      scala.quoted.Type.of[Unit].as_??
-    )
-    override val buildInTypes: List[??] = primitiveTypes ++ List(
-      scala.quoted.Type.of[String].as_??
-    )
-
     override val BooleanCodec: TypeCodec[Boolean] = LiteralCodec[Boolean](BooleanConstant(_))
     override val ByteCodec: TypeCodec[Byte] = LiteralCodec[Byte](ByteConstant(_))
     override val ShortCodec: TypeCodec[Short] = LiteralCodec[Short](ShortConstant(_))
