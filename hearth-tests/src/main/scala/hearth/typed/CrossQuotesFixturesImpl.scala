@@ -21,7 +21,5 @@ trait CrossQuotesFixturesImpl { this: MacroTypedCommons =>
     Expr.splice(e).toString
   }
 
-  // TODO: nested exprs
-
   // TODO: sanitization tests
 }

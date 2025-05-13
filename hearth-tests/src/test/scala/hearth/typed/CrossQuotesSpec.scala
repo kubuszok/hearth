@@ -21,6 +21,10 @@ class CrossQuotesSpec extends MacroSuite {
       test("should work for simple expressions") {
         CrossQuotesFixtures.simpleExpr <==> "3"
       }
+
+      test("should work for generic expressions") {
+        CrossQuotesFixtures.genericExpr(4) <==> "4"
+      }
     }
   }
 }

@@ -32,9 +32,9 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = q"""
       val $ctx = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
       import $ctx.universe.{Type => _, internal => _, _}
-      @scala.annotation.nowarn
       implicit def $convertProvidedTypesForCrossQuotes[$typeB](implicit $termB: Type[$typeB]): $ctx.WeakTypeTag[$typeB] =
         $termB.asInstanceOf[$ctx.WeakTypeTag[$typeB]]
+      _root_.hearth.fp.ignore($convertProvidedTypesForCrossQuotes[Any](_: Type[Any]))
       weakTypeTag[${weakTypeOf[A]}].asInstanceOf[Type[${weakTypeOf[A]}]]
       """
 
@@ -62,9 +62,9 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = q"""
       val $ctx = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
       import $ctx.universe.Quasiquote
-      @scala.annotation.nowarn
       implicit def $convertProvidedTypesForCrossQuotes[$typeB](implicit $termB: Type[$typeB]): $ctx.WeakTypeTag[$typeB] =
         $termB.asInstanceOf[$ctx.WeakTypeTag[$typeB]]
+      _root_.hearth.fp.ignore($convertProvidedTypesForCrossQuotes[Any](_: Type[Any]))
       $ctx.Expr[${weakTypeOf[A]}](${convert(ctx)(expr.tree)}).asInstanceOf[Expr[${weakTypeOf[A]}]]
       """
 

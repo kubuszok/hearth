@@ -25,6 +25,7 @@ import dotty.tools.dotc.parsing.Parser
 import dotty.tools.dotc.printing.Printer
 import dotty.tools.dotc.typer.Typer
 import dotty.tools.dotc.reporting.Diagnostic
+import dotty.tools.dotc.ast.Trees.Tree
 
 class CrossQuotesPlugin extends StandardPlugin {
   val name = "hearth.cross-quotes"
@@ -106,6 +107,13 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
         // [manually cast every type param Type[A] to given scala.quoted.Type[A]]
         // CrossQuotes.castK[scala.quoted.Type, Type](scala.quoted.Type.of[A])
         case TypeApply(Select(Ident(tp), of), List(innerTree)) if tp.show == "Type" && of.show == "of" =>
+          if injectingQuote then {
+            // Nested exprs are PITA to implement, PoC might not support them
+            ctx.reporter.report(
+              new Diagnostic.Error("Nested Expr.quote inside Expr.splice is not supported", tree.sourcePos)
+            )
+          }
+
           val result = ensureQuotes(
             injectGivens(
               untpd.Apply(
@@ -142,11 +150,11 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
 
           result
 
-        // Replaces Type.of[A]
+        // Replaces Expr.quote[A](expr)
         // with
         // given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
         // [manually cast every type param Type[A] to given scala.quoted.Type[A]]
-        // CrossQuotes.castK[scala.quoted.Type, Type](scala.quoted.Type.of[A])
+        // CrossQuotes.castK[scala.quoted.Expr, Expr]('{ expr })
         case Apply(Select(Ident(expr), quote), List(innerTree)) if expr.show == "Expr" && quote.show == "quote" =>
           val result = ensureQuotes(
             injectGivens(
@@ -176,6 +184,11 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
 
           result
 
+        // Replaces Expr.splice[A](expr)
+        // with
+        // given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
+        // [manually cast every type param Type[A] to given scala.quoted.Type[A]]
+        // ${ CrossQuotes.castK[Expr, scala.quoted.Expr](expr) }
         case Apply(Select(Ident(expr), splice), List(innerTree)) if expr.show == "Expr" && splice.show == "splice" =>
           val result = ensureQuotes(
             untpd.Splice(
@@ -187,7 +200,7 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
                     untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Expr"))
                   )
                 ),
-                List(transform(innerTree))
+                List(innerTree)
               )
             )
           )
