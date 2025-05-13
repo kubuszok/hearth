@@ -101,26 +101,28 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
 
       override def transform(tree: untpd.Tree)(using Context): untpd.Tree = tree match {
         case TypeApply(Select(Ident(tp), of), List(innerTree)) if tp.show == "Type" && of.show == "of" =>
-          val result = ensureQuotes(injectGivens(
-            untpd.Apply(
-              untpd.TypeApply(
-                untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("castK")),
-                List(
-                  untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Type")),
-                  untpd.Ident(typeName("Type"))
-                )
-              ),
-              List(
+          val result = ensureQuotes(
+            injectGivens(
+              untpd.Apply(
                 untpd.TypeApply(
-                  untpd.Select(
-                    untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), termName("Type")),
-                    termName("of")
-                  ),
-                  List(super.transform(innerTree))
+                  untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("castK")),
+                  List(
+                    untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Type")),
+                    untpd.Ident(typeName("Type"))
+                  )
+                ),
+                List(
+                  untpd.TypeApply(
+                    untpd.Select(
+                      untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), termName("Type")),
+                      termName("of")
+                    ),
+                    List(super.transform(innerTree))
+                  )
                 )
               )
             )
-          ))
+          )
 
           if loggingEnabled then {
             ctx.reporter.report(
@@ -134,18 +136,20 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
           result
 
         case Apply(Select(Ident(expr), quote), List(innerTree)) if expr.show == "Expr" && quote.show == "quote" =>
-          val result = ensureQuotes(injectGivens(
-            untpd.Apply(
-              untpd.TypeApply(
-                untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("castK")),
-                List(
-                  untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Expr")),
-                  untpd.Ident(typeName("Expr"))
-                )
-              ),
-              List(untpd.Quote(super.transform(innerTree), Nil))
+          val result = ensureQuotes(
+            injectGivens(
+              untpd.Apply(
+                untpd.TypeApply(
+                  untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("castK")),
+                  List(
+                    untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Expr")),
+                    untpd.Ident(typeName("Expr"))
+                  )
+                ),
+                List(untpd.Quote(super.transform(innerTree), Nil))
+              )
             )
-          ))
+          )
 
           if loggingEnabled then {
             ctx.reporter.report(
