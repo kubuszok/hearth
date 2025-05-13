@@ -39,7 +39,12 @@ class CrossQuotesMacros(val c: blackbox.Context) {
       """
 
     if (loggingEnabled) {
-      c.echo(c.enclosingPosition, s"Type.of[${weakTypeOf[A]}] expanded to\n$result")
+      c.echo(
+        c.enclosingPosition,
+        s"""Cross-quotes Type.of expansion:
+           |From: Type.of[${weakTypeOf[A]}]
+           |To: $result""".stripMargin
+      )
     }
 
     result
@@ -64,7 +69,12 @@ class CrossQuotesMacros(val c: blackbox.Context) {
       """
 
     if (loggingEnabled) {
-      c.echo(c.enclosingPosition, s"Expr.quote[${weakTypeOf[A]}]($expr) expanded to\n$result")
+      c.echo(
+        c.enclosingPosition,
+        s"""Cross-quotes Expr.quote expansion:
+           |From: Expr.quote[${weakTypeOf[A]}]($expr)
+           |To: $result""".stripMargin
+      )
     }
 
     result
@@ -95,7 +105,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
             ),
             List(expr)
           ) =>
-        convert(ctx)(expr) match {
+        val result = convert(ctx)(expr) match {
           case Ident(_) =>
             toReplace += (expr.toString() -> s"\\$${{$expr}.asInstanceOf[$ctx.Expr[$tpe]]}")
             expr
@@ -104,8 +114,19 @@ class CrossQuotesMacros(val c: blackbox.Context) {
             toReplace += (stub.toString() -> s"\\$${{$expr}.asInstanceOf[$ctx.Expr[$tpe]]}")
             stub
         }
-      case tree =>
-        super.transform(tree)
+
+        if (loggingEnabled) {
+          c.echo(
+            c.enclosingPosition,
+            s"""Cross-quotes Expr.splice expansion:
+               |From: Expr.splice[$tpe]($expr)
+               |To: $result""".stripMargin
+          )
+        }
+
+        result
+
+      case tree => super.transform(tree)
     }
   }
 }

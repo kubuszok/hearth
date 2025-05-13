@@ -100,6 +100,11 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
       }
 
       override def transform(tree: untpd.Tree)(using Context): untpd.Tree = tree match {
+        // Replaces Type.of[A]
+        // with
+        // given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
+        // [manually cast every type param Type[A] to given scala.quoted.Type[A]]
+        // CrossQuotes.castK[scala.quoted.Type, Type](scala.quoted.Type.of[A])
         case TypeApply(Select(Ident(tp), of), List(innerTree)) if tp.show == "Type" && of.show == "of" =>
           val result = ensureQuotes(
             injectGivens(
@@ -127,7 +132,9 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
           if loggingEnabled then {
             ctx.reporter.report(
               new Diagnostic.Info(
-                s"Type.of[${innerTree.show}] expanded to\n${result.show}",
+                s"""Cross-quotes Type.of expansion:
+                   |From: ${tree.show}
+                   |To: ${result.show}""".stripMargin,
                 tree.sourcePos
               )
             )
@@ -135,6 +142,11 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
 
           result
 
+        // Replaces Type.of[A]
+        // with
+        // given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
+        // [manually cast every type param Type[A] to given scala.quoted.Type[A]]
+        // CrossQuotes.castK[scala.quoted.Type, Type](scala.quoted.Type.of[A])
         case Apply(Select(Ident(expr), quote), List(innerTree)) if expr.show == "Expr" && quote.show == "quote" =>
           val result = ensureQuotes(
             injectGivens(
@@ -154,7 +166,9 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
           if loggingEnabled then {
             ctx.reporter.report(
               new Diagnostic.Info(
-                s"Expr.quote(${innerTree.show}) expanded to\n${result.show}",
+                s"""Cross-quotes Expr.quote expansion:
+                   |From: ${tree.show}
+                   |To: ${result.show}""".stripMargin,
                 tree.sourcePos
               )
             )
@@ -163,7 +177,7 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
           result
 
         case Apply(Select(Ident(expr), splice), List(innerTree)) if expr.show == "Expr" && splice.show == "splice" =>
-          ensureQuotes(
+          val result = ensureQuotes(
             untpd.Splice(
               untpd.Apply(
                 untpd.TypeApply(
@@ -177,6 +191,19 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
               )
             )
           )
+
+          if loggingEnabled then {
+            ctx.reporter.report(
+              new Diagnostic.Info(
+                s"""Cross-quotes Expr.quote expansion:
+                   |From: ${tree.show}
+                   |To: ${result.show}""".stripMargin,
+                tree.sourcePos
+              )
+            )
+          }
+
+          result
 
         case dd @ DefDef(
               methodName,
