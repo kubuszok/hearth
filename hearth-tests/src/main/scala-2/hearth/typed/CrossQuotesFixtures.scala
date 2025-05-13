@@ -8,10 +8,16 @@ final class CrossQuotesFixtures(val c: blackbox.Context) extends MacroCommonsSca
 
   // TODO: create macro annotation which would allow to do the following
 
+  def simpleTypeImpl: c.Expr[String] = simpleType
+  def genericTypeImpl[A: c.WeakTypeTag]: c.Expr[String] = genericType[A]
+
   def simpleExprImpl: c.Expr[String] = simpleExpr
 }
 
 object CrossQuotesFixtures {
+
+  def simpleType: String = macro CrossQuotesFixtures.simpleTypeImpl
+  def genericType[A]: String = macro CrossQuotesFixtures.genericTypeImpl[A]
 
   def simpleExpr: String = macro CrossQuotesFixtures.simpleExprImpl
 }

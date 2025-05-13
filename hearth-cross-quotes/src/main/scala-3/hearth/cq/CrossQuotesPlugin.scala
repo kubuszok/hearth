@@ -65,21 +65,70 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
             // Create the ValDef for quotes
 
             counter += 1
-            quotesName = termName(s"quotes$$macro$$$counter")
-            val quotesType =
-              untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Quotes"))
-            val quotesValue = untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("ctx"))
 
-            val quotesDef = untpd
-              .ValDef(
-                quotesName,
-                quotesType,
-                quotesValue
+            val quotes = locally {
+              quotesName = termName(s"quotes$$macro$$$counter")
+              val tpe =
+                untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Quotes"))
+              val value = untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("ctx"))
+              untpd.ValDef(quotesName, tpe, value).withFlags(Flags.Given)
+            }
+
+            // given convertProvidedTypesForCrossQuotes[A](using A: Type[A]): scala.quoted.Type[A] =
+            //   A.asInstanceOf[scala.quoted.Type[A]]
+            val convertProvidedTypesForCrossQuotes = locally {
+              val typeB = typeName(s"B$$macro$$$counter")
+              val termB = termName(s"BB$$macro$$$counter")
+              val paramB = untpd
+                .ValDef(
+                  name = termB,
+                  tpt = untpd.AppliedTypeTree(
+                    // untpd.Select(
+                    //   untpd.Select(untpd.Ident(termName("scala")), termName("quoted")),
+                    //   typeName("Type")
+                    // ),
+                    untpd.Ident(typeName("Type")),
+                    List(untpd.Ident(typeB))
+                  ),
+                  rhs = untpd.EmptyTree
+                )
+
+              val name = termName(s"convertProvidedTypesForCrossQuotes$$macro$$$counter")
+              val tpe = untpd.AppliedTypeTree(
+                untpd.Select(
+                  untpd.Select(untpd.Ident(termName("scala")), termName("quoted")),
+                  typeName("Type")
+                ),
+                List(untpd.Ident(typeB))
               )
-              .withFlags(Flags.Given)
+              val body = untpd.TypeApply(
+                untpd.Select(untpd.Ident(termB), termName("asInstanceOf")),
+                List(
+                  untpd.AppliedTypeTree(
+                    untpd
+                      .Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Type")),
+                    List(untpd.Ident(typeB))
+                  )
+                )
+              )
+              
+              untpd
+                .DefDef(
+                  name = name,
+                  paramss = List(
+                    // Type parameter [B]
+                    untpd.TypeDef(typeB, untpd.TypeBoundsTree(untpd.EmptyTree, untpd.EmptyTree)).withFlags(Flags.Param) :: Nil,
+                    // Using parameter (using B: Type[B])
+                    List(paramB.withFlags(Flags.Param | Flags.Given))
+                  ),
+                  tpt = tpe,
+                  rhs = body
+                )
+                .withFlags(Flags.Given)
+            }
 
             untpd.Block(
-              List(quotesDef),
+              List(quotes, convertProvidedTypesForCrossQuotes),
               thunk
             )
           } finally {
@@ -162,7 +211,36 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
             )
           )
 
-        case t => super.transform(t)
+        case t =>
+          if t.show.contains("convertProvidedTypesForCrossQuotes") then {
+            println(s"convertProvidedTypesForCrossQuotes: ${t.show} -> $t")
+            t match {
+              case DefDef(
+                    a,
+                    List(
+                      List(bb @ TypeDef(b, TypeBoundsTree(EmptyTree, EmptyTree, EmptyTree))),
+                      List(cc @ ValDef(c, AppliedTypeTree(Ident(_), List(Ident(d))), EmptyTree))
+                    ),
+                    AppliedTypeTree(Select(Select(Ident(_), _), _), List(Ident(e))),
+                    TypeApply(
+                      Select(Ident(f), asInstanceOf),
+                      List(AppliedTypeTree(Select(Select(Ident(_), _), _), List(Ident(g))))
+                    )
+                  ) =>
+                    println(s"A: $a -> ${a.isTermName} ${a.isTypeName}")
+                println(s"B: $b -> ${b.isTermName} ${b.isTypeName}")
+                println(s"C: $c -> ${c.isTermName} ${c.isTypeName}")
+                println(s"D: $d -> ${d.isTermName} ${d.isTypeName}")
+                println(s"E: $e -> ${e.isTermName} ${e.isTypeName}")
+                println(s"F: $f -> ${f.isTermName} ${f.isTypeName}")
+                println(s"G: $g -> ${g.isTermName} ${g.isTypeName}")
+                println(s"BB: ${bb} ${bb.mods} ${bb.mods.flags.flagsString}")
+                println(s"CC: ${cc} ${cc.mods} ${cc.mods.flags.flagsString}")
+              case _ =>
+            }
+          }
+
+          super.transform(t)
       }
     }.transform(ctx.compilationUnit.untpdTree)
     super.run
