@@ -8,11 +8,11 @@ class CrossQuotesSpec extends MacroSuite {
     group("for Type.of") {
 
       test("should work for simple types") {
-        CrossQuotesFixtures.simpleType <==> "Int"
+        CrossQuotesFixtures.simpleType <==> "scala.Int"
       }
 
       test("should work for generic types") {
-        CrossQuotesFixtures.genericType[Int] <==> "List[Int]"
+        CrossQuotesFixtures.genericType[Int] <==> "scala.collection.immutable.List[scala.Int]"
       }
     }
 

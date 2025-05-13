@@ -21,7 +21,8 @@ class CrossQuotesMacros(val c: blackbox.Context) {
   private def freshName(prefix: String): TermName = c.universe.internal.reificationSupport.freshTermName(prefix)
 
   def typeOfImpl[A: c.WeakTypeTag]: c.Tree = {
-    val B = freshName("B")
+    val termB = freshName("B")
+    val typeB = TypeName(freshName("B").toString)
     val ctx = freshName("ctx")
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
 
@@ -29,8 +30,8 @@ class CrossQuotesMacros(val c: blackbox.Context) {
       val $ctx = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
       import $ctx.universe.{Type => _, internal => _, _}
       @scala.annotation.nowarn
-      implicit def $convertProvidedTypesForCrossQuotes[$B](implicit $B: Type[$B]): $ctx.WeakTypeTag[$B] =
-        $B.asInstanceOf[$ctx.WeakTypeTag[$B]]
+      implicit def $convertProvidedTypesForCrossQuotes[$typeB](implicit $termB: Type[$typeB]): $ctx.WeakTypeTag[$typeB] =
+        $termB.asInstanceOf[$ctx.WeakTypeTag[$typeB]]
       weakTypeTag[${weakTypeOf[A]}].asInstanceOf[Type[${weakTypeOf[A]}]]
       """
 
@@ -42,7 +43,8 @@ class CrossQuotesMacros(val c: blackbox.Context) {
   }
 
   def quoteImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Tree = {
-    val B = freshName("B")
+    val termB = freshName("B")
+    val typeB = TypeName(freshName("B").toString)
     val ctx = freshName("ctx")
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
 
@@ -50,8 +52,8 @@ class CrossQuotesMacros(val c: blackbox.Context) {
       val $ctx = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
       import $ctx.universe.Quasiquote
       @scala.annotation.nowarn
-      implicit def $convertProvidedTypesForCrossQuotes[$B](implicit $B: Type[$B]): $ctx.WeakTypeTag[$B] =
-        $B.asInstanceOf[$ctx.WeakTypeTag[$B]]
+      implicit def $convertProvidedTypesForCrossQuotes[$typeB](implicit $termB: Type[$typeB]): $ctx.WeakTypeTag[$typeB] =
+        $termB.asInstanceOf[$ctx.WeakTypeTag[$typeB]]
       $ctx.Expr[${weakTypeOf[A]}](${convert(ctx)(expr.tree)}).asInstanceOf[Expr[${weakTypeOf[A]}]]
       """
 
