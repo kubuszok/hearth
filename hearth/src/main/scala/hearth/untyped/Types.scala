@@ -16,8 +16,10 @@ trait Types { this: MacroCommons =>
     def toTyped[A](untyped: UntypedType): Type[A]
     final def as_??(untyped: UntypedType): ?? = toTyped[Any](untyped).as_??
 
-    def isPrimitive(instanceTpe: UntypedType): Boolean
-    def isBuildIn(instanceTpe: UntypedType): Boolean
+    final def isPrimitive(instanceTpe: UntypedType): Boolean =
+      Type.primitiveTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
+    final def isBuiltIn(instanceTpe: UntypedType): Boolean =
+      Type.builtInTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
 
     def isAbstract(instanceTpe: UntypedType): Boolean
     def isFinal(instanceTpe: UntypedType): Boolean
@@ -71,7 +73,7 @@ trait Types { this: MacroCommons =>
     def as_?? : ?? = UntypedType.as_??(untyped)
 
     def isPrimitive: Boolean = UntypedType.isPrimitive(untyped)
-    def isBuildIn: Boolean = UntypedType.isBuildIn(untyped)
+    def isBuiltIn: Boolean = UntypedType.isBuiltIn(untyped)
 
     def isAbstract: Boolean = UntypedType.isAbstract(untyped)
     def isFinal: Boolean = UntypedType.isFinal(untyped)

@@ -139,7 +139,7 @@ class TypesSpec extends MacroSuite {
     }
 
     group(
-      "methods: Type.{isPrimitive, isBuildIn, isAbstract, isFinal, isClass, notBuildInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isPublic, isAvailableHere}, expected behavior"
+      "methods: Type.{isPrimitive, isBuiltIn, isAbstract, isFinal, isClass, notBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isPublic, isAvailableHere}, expected behavior"
     ) {
       import TypesFixtures.testFlags
 
@@ -156,13 +156,13 @@ class TypesSpec extends MacroSuite {
         ).foreach {
           _ <==>
             """Type.isPrimitive: true
-              |Type.isBuildIn:   true
+              |Type.isBuiltIn:   true
               |
               |Type.isAbstract: false
               |Type.isFinal:    true
               |
               |Type.isClass:              true
-              |Type.notBuildInClass:      false
+              |Type.notBuiltInClass:      false
               |Type.isPlainOldJavaObject: false
               |Type.isJavaBean:           false
               |
@@ -183,13 +183,13 @@ class TypesSpec extends MacroSuite {
         testFlags[String] <==>
           // TODO: fix isClass, isFinal
           """Type.isPrimitive: false
-            |Type.isBuildIn:   true
+            |Type.isBuiltIn:   true
             |
             |Type.isAbstract: false
             |Type.isFinal:    false
             |
             |Type.isClass:              false
-            |Type.notBuildInClass:      false
+            |Type.notBuiltInClass:      false
             |Type.isPlainOldJavaObject: false
             |Type.isJavaBean:           false
             |
@@ -203,16 +203,16 @@ class TypesSpec extends MacroSuite {
             |
             |Type.isPublic:        true
             |Type.isAvailableHere: true""".stripMargin
-        // TODO: fix isBuildIn, isPlainOldJavaObject
+        // TODO: fix isBuiltIn, isPlainOldJavaObject
         testFlags[Array[Int]] <==>
           """Type.isPrimitive: false
-            |Type.isBuildIn:   false
+            |Type.isBuiltIn:   false
             |
             |Type.isAbstract: false
             |Type.isFinal:    true
             |
             |Type.isClass:              true
-            |Type.notBuildInClass:      true
+            |Type.notBuiltInClass:      true
             |Type.isPlainOldJavaObject: true
             |Type.isJavaBean:           false
             |
@@ -241,13 +241,13 @@ class TypesSpec extends MacroSuite {
         ).foreach { case (actual, (isAbstract, isFinal, isCase)) =>
           actual <==>
             s"""Type.isPrimitive: false
-               |Type.isBuildIn:   false
+               |Type.isBuiltIn:   false
                |
                |Type.isAbstract: $isAbstract
                |Type.isFinal:    $isFinal
                |
                |Type.isClass:              true
-               |Type.notBuildInClass:      true
+               |Type.notBuiltInClass:      true
                |Type.isPlainOldJavaObject: ${!isAbstract}
                |Type.isJavaBean:           false
                |
@@ -297,13 +297,13 @@ class TypesSpec extends MacroSuite {
         ).foreach { case (actual, (isAbstract, isFinal, isCase)) =>
           actual <==>
             s"""Type.isPrimitive: false
-               |Type.isBuildIn:   false
+               |Type.isBuiltIn:   false
                |
                |Type.isAbstract: $isAbstract
                |Type.isFinal:    $isFinal
                |
                |Type.isClass:              true
-               |Type.notBuildInClass:      true
+               |Type.notBuiltInClass:      true
                |Type.isPlainOldJavaObject: ${!isAbstract}
                |Type.isJavaBean:           false
                |
@@ -332,13 +332,13 @@ class TypesSpec extends MacroSuite {
         ).foreach { case (actual, (isAbstract, isSealed, isObject)) =>
           actual <==>
             s"""Type.isPrimitive: false
-               |Type.isBuildIn:   false
+               |Type.isBuiltIn:   false
                |
                |Type.isAbstract: $isAbstract
                |Type.isFinal:    false
                |
                |Type.isClass:              true
-               |Type.notBuildInClass:      true
+               |Type.notBuiltInClass:      true
                |Type.isPlainOldJavaObject: ${!isAbstract}
                |Type.isJavaBean:           false
                |

@@ -42,16 +42,11 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
     override def fromTyped[A: Type]: UntypedType = TypeRepr.of[A]
     override def toTyped[A](untyped: UntypedType): Type[A] = untyped.asType.asInstanceOf[Type[A]]
 
-    override def isPrimitive(instanceTpe: UntypedType): Boolean =
-      Type.primitiveTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
-    override def isBuildIn(instanceTpe: UntypedType): Boolean =
-      Type.buildInTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
-
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       // We use =:= to check whether A is known to be exactly of the build-in type or is it some upper bound.
       !A.isNoSymbol && (A.flags.is(Flags.Abstract) || A.flags.is(Flags.Trait)) &&
-      !Type.buildInTypes.exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))
+      !Type.builtInTypes.exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))
     }
     override def isFinal(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol

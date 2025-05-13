@@ -47,24 +47,24 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     )
     final def isPrimitive[A: Type]: Boolean = UntypedType.fromTyped[A].isPrimitive
 
-    // TODO: rename to buildInJvmTypes
+    // TODO: rename to builtInJvmTypes
     // TODO: add: java.lang.Class, java.lang.Object, java.lang.Enum, java.lang.EnumValue?
     // TODO: add: java.lang.reflect.*, java.lang.invoke.*
     /** Types which are either primitives or specially treated by JVM: Unit, String. */
-    final val buildInTypes: List[??] = primitiveTypes ++ List(
+    final val builtInTypes: List[??] = primitiveTypes ++ List(
       Type.of[String].as_??,
       Type.of[Unit].as_??
     )
-    final def isBuildIn[A: Type]: Boolean = UntypedType.fromTyped[A].isBuildIn
+    final def isBuiltIn[A: Type]: Boolean = UntypedType.fromTyped[A].isBuiltIn
 
     final def isAbstract[A: Type]: Boolean = UntypedType.fromTyped[A].isAbstract
     final def isFinal[A: Type]: Boolean = UntypedType.fromTyped[A].isFinal
 
     // TODO: rename class to something more unambiguous
     final def isClass[A: Type]: Boolean = UntypedType.fromTyped[A].isClass
-    final def notBuildInClass[A: Type]: Boolean = isClass[A] && !isBuildIn[A]
+    final def notBuiltInClass[A: Type]: Boolean = isClass[A] && !isBuiltIn[A]
     final def isPlainOldJavaObject[A: Type]: Boolean =
-      notBuildInClass[A] && !(isAbstract[A] || isSealed[A] || isJavaEnum[A] || isJavaEnumValue[A])
+      notBuiltInClass[A] && !(isAbstract[A] || isSealed[A] || isJavaEnum[A] || isJavaEnumValue[A])
     final def isJavaBean[A: Type]: Boolean = false // TODO
 
     final def isSealed[A: Type]: Boolean = UntypedType.fromTyped[A].isSealed

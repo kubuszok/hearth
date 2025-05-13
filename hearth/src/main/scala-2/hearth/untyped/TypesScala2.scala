@@ -34,15 +34,10 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
     override def fromTyped[A: Type]: UntypedType = c.weakTypeOf[A]
     override def toTyped[A](untyped: UntypedType): Type[A] = c.WeakTypeTag(untyped)
 
-    override def isPrimitive(instanceTpe: UntypedType): Boolean =
-      Type.primitiveTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
-    override def isBuildIn(instanceTpe: UntypedType): Boolean =
-      Type.buildInTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
-
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       // We use =:= to check whether A is known to be exactly of the build-in type or is it some upper bound.
-      A != NoSymbol && A.isAbstract && !Type.buildInTypes.exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))
+      A != NoSymbol && A.isAbstract && !Type.builtInTypes.exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))
     }
     override def isFinal(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol

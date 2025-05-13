@@ -152,6 +152,7 @@ val settings = Seq(
           "-unchecked",
           "-deprecation",
           "-explain",
+          "-explain-cyclic",
           "-explain-types",
           "-feature",
           "-no-indent",

@@ -14,13 +14,13 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
   def testFlags[A: Type]: Expr[String] = try
     Expr(
       s"""Type.isPrimitive: ${Type.isPrimitive[A]}
-         |Type.isBuildIn:   ${Type.isBuildIn[A]}
+         |Type.isBuiltIn:   ${Type.isBuiltIn[A]}
          |
          |Type.isAbstract: ${Type.isAbstract[A]}
          |Type.isFinal:    ${Type.isFinal[A]}
          |
          |Type.isClass:              ${Type.isClass[A]}
-         |Type.notBuildInClass:      ${Type.notBuildInClass[A]}
+         |Type.notBuiltInClass:      ${Type.notBuiltInClass[A]}
          |Type.isPlainOldJavaObject: ${Type.isPlainOldJavaObject[A]}
          |Type.isJavaBean:           ${Type.isJavaBean[A]}
          |
