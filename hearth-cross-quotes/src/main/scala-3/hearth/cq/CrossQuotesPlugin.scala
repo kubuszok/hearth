@@ -89,7 +89,10 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
 
       private def injectGivens(thunk: => untpd.Tree): untpd.Tree = {
         val oldGivensInjected = givensInjected
-        val newGivensInjected = givenCandidates.filterNot(givensInjected)
+        val newGivensInjected = givenCandidates.filterNot(givensInjected).flatMap { valdef =>
+          val suppression = untpd.ValDef(termName("_"), valdef.tpt, untpd.Ident(valdef.name))
+          List(valdef, suppression)
+        }
         if newGivensInjected.isEmpty then thunk
         else {
           try {
@@ -262,7 +265,6 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
                 )
                 .withFlags(Flags.Given)
           }
-          val _ = newGivenCandidates
 
           val oldGivenCandidates = givenCandidates
           try {

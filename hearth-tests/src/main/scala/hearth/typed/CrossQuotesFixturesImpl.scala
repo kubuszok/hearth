@@ -3,6 +3,8 @@ package typed
 
 trait CrossQuotesFixturesImpl { this: MacroTypedCommons =>
 
+  val _ = 10
+
   def simpleType: Expr[String] = Expr(Type.of[Int].prettyPrint)
 
   def genericType[A: Type]: Expr[String] = Expr(Type.of[scala.collection.immutable.List[A]].prettyPrint)

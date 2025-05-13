@@ -160,7 +160,7 @@ val settings = Seq(
           "-Wnonunit-statement",
           // "-Wunused:imports", // import x.Underlying as X is marked as unused even though it is! probably one of https://github.com/scala/scala3/issues/: #18564, #19252, #19657, #19912
           "-Wunused:privates",
-          //"-Wunused:locals", // TODO: for now, testing cross-quotes
+          "-Wunused:locals",
           "-Wunused:explicits",
           "-Wunused:implicits",
           "-Wunused:params",
