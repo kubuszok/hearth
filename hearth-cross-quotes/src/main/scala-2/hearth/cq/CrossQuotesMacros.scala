@@ -26,6 +26,9 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val ctx = freshName("ctx")
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
 
+    // Replaces Type.of[A]
+    // with...
+    // what we see in Quasiquote
     val result = q"""
       val $ctx = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
       import $ctx.universe.{Type => _, internal => _, _}
@@ -48,6 +51,9 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val ctx = freshName("ctx")
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
 
+    // Replaces Expr.quote[A](a)
+    // with...
+    // what we see in Quasiquote
     val result = q"""
       val $ctx = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
       import $ctx.universe.Quasiquote
@@ -79,22 +85,23 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val toReplace = scala.collection.mutable.Map.empty[String, String]
 
     override def transform(tree: Tree): Tree = tree match {
+      // Replaces Expr.splice[A](a)
+      // with
+      // e.asInstanceOf[ctx.Expr[A]]
       case Apply(
             TypeApply(
               Select(Select(This(_), TermName("Expr")), TermName("splice")),
-              List(TypeTree())
+              List(tpe)
             ),
             List(expr)
           ) =>
-        expr match {
+        convert(ctx)(expr) match {
           case Ident(_) =>
-            toReplace += (expr.toString() -> s"\\$${{$expr}.asInstanceOf[$ctx.Expr[scala.Any]]}")
+            toReplace += (expr.toString() -> s"\\$${{$expr}.asInstanceOf[$ctx.Expr[$tpe]]}")
             expr
           case _ =>
-            // Handle it recursively somehow?
-            // Check what we need to put as expr to make it work?
             val stub = Ident(freshName("stub"))
-            toReplace += (stub.toString() -> s"\\$${{$expr}.asInstanceOf[$ctx.Expr[scala.Any]]}")
+            toReplace += (stub.toString() -> s"\\$${{$expr}.asInstanceOf[$ctx.Expr[$tpe]]}")
             stub
         }
       case tree =>

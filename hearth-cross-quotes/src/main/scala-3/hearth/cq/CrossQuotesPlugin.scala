@@ -117,7 +117,7 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
                       untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), termName("Type")),
                       termName("of")
                     ),
-                    List(super.transform(innerTree))
+                    List(transform(innerTree))
                   )
                 )
               )
@@ -146,7 +146,7 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
                     untpd.Ident(typeName("Expr"))
                   )
                 ),
-                List(untpd.Quote(super.transform(innerTree), Nil))
+                List(untpd.Quote(transform(innerTree), Nil))
               )
             )
           )
@@ -173,7 +173,7 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
                     untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Expr"))
                   )
                 ),
-                List(super.transform(innerTree))
+                List(transform(innerTree))
               )
             )
           )
@@ -190,13 +190,6 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
                   name,
                   untpd.ContextBounds(_, List(AppliedTypeTree(Ident(tpe), List(Ident(name2)))))
                 ) if tpe.show == "Type" && name.show == name2.show =>
-              // TODO: filter out F[_] ?
-
-              if dd.show.contains("From") then {
-                println(dd.show)
-                println(s"param $name (${name.isTypeName})")
-                println(s"$tpe (${tpe.isTypeName}) -> $name2 (${name2.isTypeName})")
-              }
 
               untpd
                 .ValDef(
@@ -234,7 +227,7 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
           val oldGivenCandidates = givenCandidates
           try {
             givenCandidates = oldGivenCandidates ++ newGivenCandidates
-            untpd.DefDef(methodName, paramss, returnTpe, super.transform(body)).withMods(dd.mods)
+            untpd.DefDef(methodName, paramss, returnTpe, transform(body)).withMods(dd.mods)
           } finally
             givenCandidates = oldGivenCandidates
 

@@ -12,6 +12,7 @@ final class CrossQuotesFixtures(val c: blackbox.Context) extends MacroCommonsSca
   def genericTypeImpl[A: c.WeakTypeTag]: c.Expr[String] = genericType[A]
 
   def simpleExprImpl: c.Expr[String] = simpleExpr
+  def genericExprImpl[A: c.WeakTypeTag](e: Expr[A]): c.Expr[String] = genericExpr[A](e)
 }
 
 object CrossQuotesFixtures {
@@ -20,4 +21,5 @@ object CrossQuotesFixtures {
   def genericType[A]: String = macro CrossQuotesFixtures.genericTypeImpl[A]
 
   def simpleExpr: String = macro CrossQuotesFixtures.simpleExprImpl
+  def genericExpr[A](e: A): String = macro CrossQuotesFixtures.genericExprImpl[A]
 }

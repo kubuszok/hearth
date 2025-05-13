@@ -17,4 +17,7 @@ object CrossQuotesFixtures {
 
   inline def simpleExpr: String = ${ simpleExprImpl }
   def simpleExprImpl[A: Type](using q: Quotes): Expr[String] = new CrossQuotesFixtures(q).simpleExpr
+
+  inline def genericExpr[A](inline e: A): String = ${ genericExprImpl[A]('{ e }) }
+  def genericExprImpl[A: Type](e: Expr[A])(using q: Quotes): Expr[String] = new CrossQuotesFixtures(q).genericExpr[A](e)
 }

@@ -17,9 +17,11 @@ trait CrossQuotesFixturesImpl { this: MacroTypedCommons =>
     }
   }
 
-  // TODO: nested exprs
+  def genericExpr[A: Type](e: Expr[A]): Expr[String] = Expr.quote {
+    Expr.splice(e).toString
+  }
 
-  // TODO: type args
+  // TODO: nested exprs
 
   // TODO: sanitization tests
 }
