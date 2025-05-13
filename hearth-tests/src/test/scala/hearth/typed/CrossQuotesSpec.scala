@@ -14,6 +14,10 @@ class CrossQuotesSpec extends MacroSuite {
       test("should work for generic types") {
         CrossQuotesFixtures.genericType[Int] <==> "scala.collection.immutable.List[scala.Int]"
       }
+
+      test("should work for unsanitized types") {
+        CrossQuotesFixtures.unsanitizedType <==> "scala.collection.immutable.ListMap[scala.Int, java.lang.String]"
+      }
     }
 
     group("for Expr.quote+Expr.splice") {
@@ -24,6 +28,10 @@ class CrossQuotesSpec extends MacroSuite {
 
       test("should work for generic expressions") {
         CrossQuotesFixtures.genericExpr(4) <==> "4"
+      }
+
+      test("should work for unsanitized expressions") {
+        CrossQuotesFixtures.unsanitizedExpr <==> "ListMap(1 -> 2)"
       }
     }
   }
