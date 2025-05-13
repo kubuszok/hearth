@@ -74,61 +74,8 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
               untpd.ValDef(quotesName, tpe, value).withFlags(Flags.Given)
             }
 
-            // given convertProvidedTypesForCrossQuotes[A](using A: Type[A]): scala.quoted.Type[A] =
-            //   A.asInstanceOf[scala.quoted.Type[A]]
-            val convertProvidedTypesForCrossQuotes = locally {
-              val typeB = typeName(s"B$$macro$$$counter")
-              val termB = termName(s"BB$$macro$$$counter")
-              val paramB = untpd
-                .ValDef(
-                  name = termB,
-                  tpt = untpd.AppliedTypeTree(
-                    // untpd.Select(
-                    //   untpd.Select(untpd.Ident(termName("scala")), termName("quoted")),
-                    //   typeName("Type")
-                    // ),
-                    untpd.Ident(typeName("Type")),
-                    List(untpd.Ident(typeB))
-                  ),
-                  rhs = untpd.EmptyTree
-                )
-
-              val name = termName(s"convertProvidedTypesForCrossQuotes$$macro$$$counter")
-              val tpe = untpd.AppliedTypeTree(
-                untpd.Select(
-                  untpd.Select(untpd.Ident(termName("scala")), termName("quoted")),
-                  typeName("Type")
-                ),
-                List(untpd.Ident(typeB))
-              )
-              val body = untpd.TypeApply(
-                untpd.Select(untpd.Ident(termB), termName("asInstanceOf")),
-                List(
-                  untpd.AppliedTypeTree(
-                    untpd
-                      .Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Type")),
-                    List(untpd.Ident(typeB))
-                  )
-                )
-              )
-              
-              untpd
-                .DefDef(
-                  name = name,
-                  paramss = List(
-                    // Type parameter [B]
-                    untpd.TypeDef(typeB, untpd.TypeBoundsTree(untpd.EmptyTree, untpd.EmptyTree)).withFlags(Flags.Param) :: Nil,
-                    // Using parameter (using B: Type[B])
-                    List(paramB.withFlags(Flags.Param | Flags.Given))
-                  ),
-                  tpt = tpe,
-                  rhs = body
-                )
-                .withFlags(Flags.Given)
-            }
-
             untpd.Block(
-              List(quotes, convertProvidedTypesForCrossQuotes),
+              List(quotes),
               thunk
             )
           } finally {
@@ -136,9 +83,25 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
             quotesName = null
           }
 
+      private var givenCandidates = List.empty[untpd.ValDef]
+      private var givensInjected = Set.empty[untpd.ValDef]
+
+      private def injectGivens(thunk: => untpd.Tree): untpd.Tree = {
+        val oldGivensInjected = givensInjected
+        val newGivensInjected = givenCandidates.filterNot(givensInjected)
+        if newGivensInjected.isEmpty then thunk
+        else {
+          try {
+            givensInjected = givensInjected ++ newGivensInjected
+            untpd.Block(newGivensInjected, thunk)
+          } finally
+            givensInjected = oldGivensInjected
+        }
+      }
+
       override def transform(tree: untpd.Tree)(using Context): untpd.Tree = tree match {
         case TypeApply(Select(Ident(tp), of), List(innerTree)) if tp.show == "Type" && of.show == "of" =>
-          val result = ensureQuotes(
+          val result = ensureQuotes(injectGivens(
             untpd.Apply(
               untpd.TypeApply(
                 untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("castK")),
@@ -157,7 +120,7 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
                 )
               )
             )
-          )
+          ))
 
           if loggingEnabled then {
             ctx.reporter.report(
@@ -171,7 +134,7 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
           result
 
         case Apply(Select(Ident(expr), quote), List(innerTree)) if expr.show == "Expr" && quote.show == "quote" =>
-          val result = ensureQuotes(
+          val result = ensureQuotes(injectGivens(
             untpd.Apply(
               untpd.TypeApply(
                 untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("castK")),
@@ -182,7 +145,7 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
               ),
               List(untpd.Quote(super.transform(innerTree), Nil))
             )
-          )
+          ))
 
           if loggingEnabled then {
             ctx.reporter.report(
@@ -211,36 +174,67 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
             )
           )
 
-        case t =>
-          if t.show.contains("convertProvidedTypesForCrossQuotes") then {
-            println(s"convertProvidedTypesForCrossQuotes: ${t.show} -> $t")
-            t match {
-              case DefDef(
-                    a,
-                    List(
-                      List(bb @ TypeDef(b, TypeBoundsTree(EmptyTree, EmptyTree, EmptyTree))),
-                      List(cc @ ValDef(c, AppliedTypeTree(Ident(_), List(Ident(d))), EmptyTree))
-                    ),
-                    AppliedTypeTree(Select(Select(Ident(_), _), _), List(Ident(e))),
-                    TypeApply(
-                      Select(Ident(f), asInstanceOf),
-                      List(AppliedTypeTree(Select(Select(Ident(_), _), _), List(Ident(g))))
-                    )
-                  ) =>
-                    println(s"A: $a -> ${a.isTermName} ${a.isTypeName}")
-                println(s"B: $b -> ${b.isTermName} ${b.isTypeName}")
-                println(s"C: $c -> ${c.isTermName} ${c.isTypeName}")
-                println(s"D: $d -> ${d.isTermName} ${d.isTypeName}")
-                println(s"E: $e -> ${e.isTermName} ${e.isTypeName}")
-                println(s"F: $f -> ${f.isTermName} ${f.isTypeName}")
-                println(s"G: $g -> ${g.isTermName} ${g.isTypeName}")
-                println(s"BB: ${bb} ${bb.mods} ${bb.mods.flags.flagsString}")
-                println(s"CC: ${cc} ${cc.mods} ${cc.mods.flags.flagsString}")
-              case _ =>
-            }
-          }
+        case dd @ DefDef(
+              methodName,
+              paramss,
+              returnTpe,
+              body: untpd.Tree
+            ) =>
 
-          super.transform(t)
+          val newGivenCandidates = paramss.flatten[Any].collect {
+            case TypeDef(
+                  name,
+                  untpd.ContextBounds(_, List(AppliedTypeTree(Ident(tpe), List(Ident(name2)))))
+                ) if tpe.show == "Type" && name.show == name2.show =>
+              // TODO: filter out F[_] ?
+
+              if dd.show.contains("From") then {
+                println(dd.show)
+                println(s"param $name (${name.isTypeName})")
+                println(s"$tpe (${tpe.isTypeName}) -> $name2 (${name2.isTypeName})")
+              }
+
+              untpd
+                .ValDef(
+                  name = termName(s"casted${name.mangledString}"),
+                  tpt = untpd.AppliedTypeTree(
+                    untpd.Select(
+                      untpd.Select(untpd.Ident(termName("scala")), termName("quoted")),
+                      typeName("Type")
+                    ),
+                    List(untpd.Ident(name))
+                  ),
+                  rhs = untpd.TypeApply(
+                    untpd.Select(
+                      untpd.TypeApply(
+                        untpd.Ident(termName("Type")),
+                        List(untpd.Ident(name))
+                      ),
+                      termName("asInstanceOf")
+                    ),
+                    List(
+                      untpd.AppliedTypeTree(
+                        untpd.Select(
+                          untpd.Select(untpd.Ident(termName("scala")), termName("quoted")),
+                          typeName("Type")
+                        ),
+                        List(untpd.Ident(name))
+                      )
+                    )
+                  )
+                )
+                .withFlags(Flags.Given)
+          }
+          val _ = newGivenCandidates
+
+          val oldGivenCandidates = givenCandidates
+          try {
+            givenCandidates = oldGivenCandidates ++ newGivenCandidates
+            untpd.DefDef(methodName, paramss, returnTpe, super.transform(body)).withMods(dd.mods)
+          } finally
+            givenCandidates = oldGivenCandidates
+
+        case t => super.transform(t)
       }
     }.transform(ctx.compilationUnit.untpdTree)
     super.run
