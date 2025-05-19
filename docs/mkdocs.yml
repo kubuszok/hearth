@@ -1,0 +1,92 @@
+site_name: 'Hearth documentation'
+repo_url: https://github.com/MateuszKubuszok/hearth
+edit_uri: edit/master/docs/docs/
+docs_dir: 'docs'
+theme:
+  name: material
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: red
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+  features:
+    - content.action.edit
+    - content.code.copy
+    - content.code.select
+    - content.tooltips
+    - navigation.expand
+    - navigation.footer
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.path
+    - navigation.sections
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - search.highlight
+    - search.suggest
+    - toc.integrate
+  font:
+    code: Fira Code
+  icon:
+    repo: fontawesome/brands/github
+  logo: assets/images/logo.svg
+nav:
+  - 'Welcome': 'index.md'
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+      use_pygments: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+plugins:
+  - macros
+  - search
+copyright: |
+  <div style="color: var(--md-footer-fg-color--lighter)">
+  Copyright © 2025, <a href="https://kubuszok.com" target="_blank" rel="noopener">Kubuszok.com</a>.<br />
+  Hearth is FOSS licensed under Apache 2.0<br />
+  <br />
+  Documentation made with <a href="https://www.mkdocs.org" target="_blank" rel="noopener">MkDocs</a>, <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">Material for MkDocs</a> and <a href="https://mkdocs-macros-plugin.readthedocs.io/" target="_blank" rel="noopener">Mkdocs-Macros</a>, hosted on <a href="https://readthedocs.org/" target="_blank" rel="noopener">Read the Docs</a>
+  </div>
+extra:
+  generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/MateuszKubuszok/hearth
+    - icon: fontawesome/solid/book-bookmark
+      link: https://index.scala-lang.org/MateuszKubuszok/hearth
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/@MateuszKubuszok
+  scala:
+    2_12: "2.12.20"
+    2_13: "2.13.16"
+    3:    "3.3.6"
+  libraries:
+    pprint:           "0.9.0"
+  local:
+    tag: !ENV [CI_LATEST_TAG, 'latest'] # used as git.tag fallback in Docker container
