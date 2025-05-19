@@ -307,7 +307,7 @@ val versionSchemeSettings = Seq(versionScheme := Some("early-semver"))
 
 val publishSettings = Seq(
   organization := "com.kubuszok",
-  // homepage := Some(url("https://scalaland.io/chimney")),
+  homepage := Some(url("https://scala-hearth.readthedocs.io")),
   organizationHomepage := Some(url("https://kubuszok.com")),
   licenses := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0")),
   scmInfo := Some(
