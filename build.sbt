@@ -7,6 +7,7 @@ import commandmatrix.extra.*
 lazy val isCI = sys.env.get("CI").contains("true")
 ThisBuild / scalafmtOnCompile := !isCI
 
+val mavenCentralSnapshots = "Maven Central Snapshots" at "https://central.sonatype.com/repository/maven-snapshots"
 credentials += Credentials(
   "Maven Central Repository",
   "central.sonatype.com",
@@ -323,7 +324,10 @@ val publishSettings = Seq(
       <url>https://github.com/MateuszKubuszok/hearth/issues</url>
     </issueManagement>
   ),
-  publishTo := localStaging.value,
+  publishTo := {
+    if (isSnapshot.value) Some(mavenCentralSnapshots)
+    else localStaging.value
+  },
   publishMavenStyle := true,
   Test / publishArtifact := false,
   pomIncludeRepository := { _ =>
@@ -398,7 +402,7 @@ val al = new {
     projects(platform, scalaSuffix).map(project => s"$project/test").mkString(" ; ")
 
   def release(tag: Seq[String]): String =
-    if (tag.nonEmpty) "publishSigned ; sonatypeBundleRelease" else "publishSigned"
+    if (tag.nonEmpty) "publishSigned ; sonaRelease" else "publishSigned"
 
   def publishLocal(platform: String, scalaSuffix: String): Vector[String] =
     for {
@@ -452,7 +456,7 @@ lazy val root = project
         "test",
         "Compile and test all projects in all Scala versions and platforms (beware! it uses a lot of memory and might OOM!)"
       ).noAlias,
-      UsefulTask("publishSigned ; sonaRelease", "Publish everything to release or snapshot repository")
+      UsefulTask(al.release(git.gitCurrentTags.value), "Publish everything to release or snapshot repository")
         .alias("ci-release"),
       UsefulTask(al.ci("JVM", "3"), "CI pipeline for Scala 3+JVM").alias("ci-jvm-3"),
       UsefulTask(al.ci("JVM", ""), "CI pipeline for Scala 2.13+JVM").alias("ci-jvm-2_13"),
