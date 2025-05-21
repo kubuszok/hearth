@@ -468,7 +468,11 @@ lazy val root = project
          | - Scala 2.13 adds no suffix to a project name seen in build.sbt
          | - Scala 3 adds the suffix "3" to a project name seen in build.sbt
          |
+<<<<<<< HEAD
          |When working with IntelliJ or Scala Metals, edit dev.properties to control which Scala version you're currently working with.
+=======
+         |When working with IntelliJ or Scala Metals, edit ide.properties to control which Scala version you're currently working with.
+>>>>>>> f6c2e48 (Extract IDE config to separate .properties file)
          |
          |If you need to test library locally in a different project, use publish-local-for-tests or manually publishLocal:
          | - hearth-cross-quotes (obligatory)
