@@ -39,14 +39,10 @@ trait Types { this: MacroCommons =>
     final def isCaseObject(instanceTpe: UntypedType): Boolean = isObject(instanceTpe) && isCase(instanceTpe)
     final def isCaseVal(instanceTpe: UntypedType): Boolean = isVal(instanceTpe) && isCase(instanceTpe)
 
-    def isPublic(instanceTpe: UntypedType): Boolean
-    def isAvailableHere(instanceTpe: UntypedType): Boolean
+    def isAvailable(instanceTpe: UntypedType, scope: Accessible): Boolean
 
     def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean
     def isSameAs(a: UntypedType, b: UntypedType): Boolean
-
-    def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod]
-    def constructors(instanceTpe: UntypedType): List[UntypedMethod]
 
     def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]]
     final def exhaustiveChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
@@ -59,12 +55,6 @@ trait Types { this: MacroCommons =>
         })
         .map(_.filter(_._2 <:< instanceTpe)) // TODO: handle it somehow for GADT in abstract type context
         .map(ListMap.from(_))
-
-    def parameterAt(instanceTpe: UntypedType)(param: UntypedParameter): UntypedType
-
-    def parametersAt(instanceTpe: UntypedType)(method: UntypedMethod): UntypedParameters
-    def unsafeApplyAt(instanceTpe: UntypedType)(method: UntypedMethod): UntypedArguments => UntypedExpr
-    def returnTypeAt(instanceTpe: UntypedType)(method: UntypedMethod): UntypedType
   }
 
   implicit final class UntypedTypeMethods(private val untyped: UntypedType) {
@@ -92,25 +82,17 @@ trait Types { this: MacroCommons =>
     def isCaseObject: Boolean = UntypedType.isCaseObject(untyped)
     def isCaseVal: Boolean = UntypedType.isCaseVal(untyped)
 
-    def isPublic: Boolean = UntypedType.isPublic(untyped)
-    def isAvailableHere: Boolean = UntypedType.isAvailableHere(untyped)
+    def isAvailable(scope: Accessible): Boolean = UntypedType.isAvailable(untyped, scope)
 
     def <:<(other: UntypedType): Boolean = UntypedType.isSubtypeOf(untyped, other)
     def =:=(other: UntypedType): Boolean = UntypedType.isSameAs(untyped, other)
 
-    def primaryConstructor: Option[UntypedMethod] = UntypedType.primaryConstructor(untyped)
-    def constructors: List[UntypedMethod] = UntypedType.constructors(untyped)
+    def primaryConstructor: Option[UntypedMethod] = UntypedMethod.primaryConstructor(untyped)
+    def constructors: List[UntypedMethod] = UntypedMethod.constructors(untyped)
+    def methods: List[UntypedMethod] = UntypedMethod.methods(untyped)
 
     def directChildren: Option[ListMap[String, UntypedType]] = UntypedType.directChildren(untyped)
     def exhaustiveChildren: Option[ListMap[String, UntypedType]] = UntypedType.exhaustiveChildren(untyped)
-    def parameter(param: UntypedParameter): UntypedType = UntypedType.parameterAt(untyped)(param)
     def defaultValue(param: UntypedParameter): Option[UntypedExpr] = UntypedExpr.defaultValue(untyped)(param)
-
-    def parametersAt(method: UntypedMethod): UntypedParameters =
-      UntypedType.parametersAt(untyped)(method)
-    def unsafeApplyAt(method: UntypedMethod): UntypedArguments => UntypedExpr =
-      UntypedType.unsafeApplyAt(untyped)(method)
-    def returnTypeAt(method: UntypedMethod): UntypedType =
-      UntypedType.returnTypeAt(untyped)(method)
   }
 }

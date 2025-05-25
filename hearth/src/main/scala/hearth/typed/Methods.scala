@@ -5,78 +5,129 @@ import scala.collection.immutable.ListMap
 
 trait Methods { this: MacroCommons =>
 
-  type Parameter
+  final class Parameter(val asUntyped: UntypedParameter, private val instanceTpe: UntypedType) {
 
-  val Parameter: ParameterModule
-  trait ParameterModule { this: Parameter.type =>
+    def name: String = UntypedParameter.name(asUntyped)
 
-    def name(param: Parameter): String
+    // def paramType: ?? = instanceTpe.parameter(asUntyped).as_??
+    def defaultValue: Option[Expr_??] = UntypedExpr.defaultValue(instanceTpe)(asUntyped).map(_.as_??)
+    def annotations: List[Expr_??] = UntypedParameter.annotations(asUntyped).map(_.as_??)
 
-    def paramType(param: Parameter): ??
-    def defaultValue(param: Parameter): Option[Expr_??]
-    def annotations(param: Parameter): List[Expr_??]
-  }
-
-  implicit final class ParameterMethods(private val param: Parameter) {
-
-    def paramName: String = Parameter.name(param)
-
-    def paramType: ?? = Parameter.paramType(param)
-    def defaultValue: Option[Expr_??] = Parameter.defaultValue(param)
-    def annotations: List[Expr_??] = Parameter.annotations(param)
-
-    def asUntyped: UntypedParameter = UntypedParameter.fromTyped(param)
+    def isByName: Boolean = asUntyped.isByName
+    def isImplicit: Boolean = asUntyped.isImplicit
   }
 
   type Parameters = List[ListMap[String, Parameter]]
   type Arguments = Map[String, Expr_??]
 
-  final class Method[Out](val untyped: UntypedMethod, val untypedInstanceType: UntypedType)(implicit
-      val returnType: Type[Out]
-  ) {
+  sealed trait Method[Instance, Returned] {
+    val untyped: UntypedMethod
+    val untypedInstanceType: UntypedType
 
-    def name: String = UntypedMethod.name(untyped)
+    lazy val name: String = UntypedMethod.name(untyped)
 
-    def annotations: List[Expr_??] = UntypedMethod.annotations(untyped).map(_.as_??)
+    final def annotations: List[Expr_??] = UntypedMethod.annotations(untyped).map(_.as_??)
 
-    def isVal: Boolean = UntypedMethod.isVal(untyped)
-    def isVar: Boolean = UntypedMethod.isVar(untyped)
-    def isLazy: Boolean = UntypedMethod.isLazy(untyped)
-    def isDef: Boolean = UntypedMethod.isDef(untyped)
-    def isInherited: Boolean = UntypedMethod.isInherited(untyped)
-    def isImplicit: Boolean = UntypedMethod.isImplicit(untyped)
+    final def isVal: Boolean = UntypedMethod.isVal(untyped)
+    final def isVar: Boolean = UntypedMethod.isVar(untyped)
+    final def isLazy: Boolean = UntypedMethod.isLazy(untyped)
+    final def isDef: Boolean = UntypedMethod.isDef(untyped)
+    final def isInherited: Boolean = UntypedMethod.isInherited(untyped)
+    final def isImplicit: Boolean = UntypedMethod.isImplicit(untyped)
 
-    def isPublic: Boolean = UntypedMethod.isPublic(untyped)
-    def isAccessibleHere: Boolean = UntypedMethod.isAccessibleHere(untyped)
+    final def isAvailable(scope: Accessible): Boolean = UntypedMethod.isAvailable(untyped, scope)
 
-    def isAccessor: Boolean = isVal || isVar || isLazy || (isDef && parameters.forall(_.isEmpty))
-    // TODO: defer until generid way of handling types is available
-    // TODO: implement using existing methods: (get* + non-Unit || is* + Boolean) + List(Nil) as parameter list
-    def isJavaGetter: Boolean = ???
-    // TODO: implement using existing methods: set* + :Unit + List(List(input)) as paremeter list
-    def isJavaSetter: Boolean = ???
+    final def isNAry(n: Int): Boolean = parameters.flatten.size == n
+    lazy val isNullary: Boolean = isNAry(0)
+    lazy val isUnary: Boolean = isNAry(1)
 
-    val parameters: Parameters = UntypedParameters.toTyped(untypedInstanceType.parametersAt(untyped))
-    val applyUnsafe: Arguments => Expr[Out] = arguments =>
-      untypedInstanceType.unsafeApplyAt(untyped)(UntypedArguments.fromTyped(arguments)).asTyped[Out]
+    final def isAccessor: Boolean = isVal || isVar || isLazy || (isDef && isNullary)
+    def isJavaGetter: Boolean
+    def isJavaSetter: Boolean
+
+    def parameters: Parameters
   }
   object Method {
-    def primaryConstructorOf[A: Type]: Option[Method[A]] = {
-      val untyped = UntypedType.fromTyped[A]
-      untyped.primaryConstructor.map { method =>
-        new Method[A](method, untyped)
+
+    @scala.annotation.nowarn
+    def primaryConstructorOf[A: Type]: Option[Method.NoInstance[A]] =
+      UntypedType.fromTyped[A].primaryConstructor.map(UntypedMethod.toTyped[A](_)).flatMap { tpd =>
+        import tpd.Underlying as A0
+        if (A0 <:< Type.of[A]) tpd.value match {
+          case m: Method.NoInstance[A] => Some(m)
+          case _                       => None
+        }
+        else None
       }
-    }
-    def constructorsOf[A: Type]: List[Method[A]] = {
-      val untyped = UntypedType.fromTyped[A]
-      untyped.constructors.map { method =>
-        new Method[A](method, untyped)
+    @scala.annotation.nowarn
+    def constructorsOf[A: Type]: List[Method.NoInstance[A]] =
+      UntypedType.fromTyped[A].constructors.map(UntypedMethod.toTyped[A](_)).flatMap { tpd =>
+        import tpd.Underlying as A0
+        if (A0 <:< Type.of[A]) tpd.value match {
+          case m: Method.NoInstance[A] => List(m)
+          case _                       => Nil
+        }
+        else Nil
       }
+    def methodsOf[A: Type]: List[Existential[Method[A, *]]] =
+      UntypedType.fromTyped[A].methods.map(UntypedMethod.toTyped[A](_))
+
+    /** Static method/stable object method */
+    final case class NoInstance[Returned](
+        val untyped: UntypedMethod,
+        val untypedInstanceType: UntypedType
+    )(implicit val returnType: Type[Returned])
+        extends Method[Nothing, Returned] {
+
+      // TODO: call in companion object symbol or sth
+      val parameters: Parameters = UntypedParameters.toTyped[Returned](untyped.parametersAt(untypedInstanceType))
+      // val applyUnsafe: Arguments => Expr[Returned] = arguments =>
+      //   untypedInstanceType.unsafeApplyAt(untyped)(UntypedArguments.fromTyped(arguments)).asTyped[Returned]
+
+      def isJavaGetter: Boolean = false
+      def isJavaSetter: Boolean = false
     }
 
-    // TODO: factories
+    /** Instance method */
+    final case class OfInstance[Instance, Returned](
+        val untyped: UntypedMethod,
+        val untypedInstanceType: UntypedType
+    )(implicit val returnType: Type[Returned])
+        extends Method[Instance, Returned] {
 
-    def unapply[Out](method: Method[Out]): Some[(Parameters, Arguments => Expr[Out])] =
-      Some((method.parameters, method.applyUnsafe))
+      implicit val instanceType: Type[Instance] = UntypedType.toTyped[Instance](untypedInstanceType)
+
+      val parameters: Parameters = UntypedParameters.toTyped[Instance](untyped.parametersAt(untypedInstanceType))
+      // val applyUnsafe: (Expr[Instance], Arguments) => Expr[Returned] = (instance, arguments) =>
+      //   untypedInstanceType.unsafeApplyAt(untyped)(UntypedArguments.fromTyped(arguments)).asTyped[Returned]
+
+      lazy val isJavaGetter: Boolean = isAccessor && (
+        (name.startsWith("get") && name.length > 3 && !(instanceType <:< Type.of[Unit])) ||
+          (name.startsWith("is") && name.length > 2 && (instanceType <:< Type.of[Boolean]))
+      )
+      lazy val isJavaSetter: Boolean = isUnary &&
+        (name.startsWith("set") && name.length > 3 && instanceType <:< Type.of[Unit])
+    }
+
+    /** Everything that we cannot handle with the above (polymorphic methods) */
+    final case class Unsupported[Instance, Returned](
+        val untyped: UntypedMethod,
+        val untypedInstanceType: UntypedType,
+        val reasonForUnsupported: String
+    ) extends Method[Instance, Returned] {
+
+      val parameters: Parameters = List.empty
+
+      def isJavaGetter: Boolean = false
+      def isJavaSetter: Boolean = false
+    }
   }
+
+  sealed trait Accessible extends Product with Serializable
+
+  /** Class/Method is public */
+  case object Everywhere extends Accessible
+
+  /** Class/Method might package private/protected modifier but we are in the same package */
+  case object AtCallSite extends Accessible
 }

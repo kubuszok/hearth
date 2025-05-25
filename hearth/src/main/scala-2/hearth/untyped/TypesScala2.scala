@@ -76,28 +76,25 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
       isObject(instanceTpe) && A.isStatic && A.isFinal // ???
     }
 
-    override def isPublic(instanceTpe: UntypedType): Boolean = {
-      val A = instanceTpe.typeSymbol
-      A != NoSymbol && A.isPublic
-    }
-    override def isAvailableHere(instanceTpe: UntypedType): Boolean =
-      try {
-        // Try to access the type in the current context.
-        // If it's not accessible, this will throw an exception.
-        // TODO: test this assumption
-        ignore(c.typecheck(q"null.asInstanceOf[$instanceTpe]", silent = true))
-        true
-      } catch {
-        case _: Throwable => false
+    override def isAvailable(instanceTpe: UntypedType, scope: Accessible): Boolean =
+      scope match {
+        case Everywhere =>
+          val A = instanceTpe.typeSymbol
+          A != NoSymbol && A.isPublic
+        case AtCallSite =>
+          try {
+            // Try to access the type in the current context.
+            // If it's not accessible, this will throw an exception.
+            // TODO: test this assumption
+            ignore(c.typecheck(q"null.asInstanceOf[$instanceTpe]", silent = true))
+            true
+          } catch {
+            case _: Throwable => false
+          }
       }
 
     override def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean = subtype <:< supertype
     override def isSameAs(a: UntypedType, b: UntypedType): Boolean = a =:= b
-
-    override def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod] =
-      Option(instanceTpe.typeSymbol).filter(_.isClass).map(_.asClass.primaryConstructor).filter(_.isConstructor)
-    override def constructors(instanceTpe: UntypedType): List[UntypedMethod] =
-      instanceTpe.decls.filter(_.isConstructor).toList
 
     override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] = {
       val A = instanceTpe.typeSymbol
@@ -127,23 +124,5 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
         )
       } else None
     }
-
-    override def parameterAt(instanceTpe: UntypedType)(param: UntypedParameter): UntypedType =
-      ??? // TODO: add this
-    override def parametersAt(instanceTpe: UntypedType)(method: UntypedMethod): UntypedParameters =
-      method
-        .typeSignatureIn(instanceTpe)
-        .paramLists
-        .map(inner =>
-          ListMap.from(inner.map { param =>
-            param.name.decodedName.toString -> null.asInstanceOf[
-              UntypedParameter
-            ] // param.typeSignatureIn(instanceTpe).finalResultType - define UntypedParameter
-          })
-        )
-    override def unsafeApplyAt(instanceTpe: UntypedType)(method: UntypedMethod): UntypedArguments => UntypedExpr =
-      ??? // TODO: port ProductType constructor
-    override def returnTypeAt(instanceTpe: UntypedType)(method: UntypedMethod): UntypedType =
-      method.typeSignatureIn(instanceTpe).finalResultType
   }
 }

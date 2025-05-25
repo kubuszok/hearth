@@ -79,8 +79,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     final def isCaseObject[A: Type]: Boolean = UntypedType.fromTyped[A].isCaseObject
     final def isCaseVal[A: Type]: Boolean = UntypedType.fromTyped[A].isCaseVal
 
-    final def isPublic[A: Type]: Boolean = UntypedType.fromTyped[A].isPublic
-    final def isAvailableHere[A: Type]: Boolean = UntypedType.fromTyped[A].isAvailableHere
+    final def isAvailable[A: Type](scope: Accessible): Boolean = UntypedType.fromTyped[A].isAvailable(scope)
 
     final def isSubtypeOf[A: Type, B: Type]: Boolean = UntypedType.fromTyped[A] <:< UntypedType.fromTyped[B]
     final def isSameAs[A: Type, B: Type]: Boolean = UntypedType.fromTyped[A] =:= UntypedType.fromTyped[B]
@@ -138,9 +137,11 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     def plainPrint: String = Type.plainPrint(using tpe)
     def prettyPrint: String = Type.prettyPrint(using tpe)
 
-    def primaryConstructor: Option[Method[A]] = Method.primaryConstructorOf(using tpe)
-    def defaultConstructor: Option[Method[A]] = ???
-    def constructors: List[Method[A]] = Method.constructorsOf(using tpe)
+    def primaryConstructor: Option[Method.NoInstance[A]] = Method.primaryConstructorOf(using tpe)
+    def defaultConstructor: Option[Method.NoInstance[A]] = constructors.find(_.isNullary)
+    def constructors: List[Method.NoInstance[A]] = Method.constructorsOf(using tpe)
+
+    def methods: List[Existential[Method[A, *]]] = Method.methodsOf(using tpe)
 
     def directChildren: Option[ListMap[String, ??<:[A]]] = Type.directChildren(using tpe)
     def exhaustiveChildren: Option[ListMap[String, ??<:[A]]] = Type.exhaustiveChildren(using tpe)
@@ -167,8 +168,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     def isCaseObject: Boolean = Type.isCaseObject(using tpe)
     def isCaseVal: Boolean = Type.isCaseVal(using tpe)
 
-    def isPublic: Boolean = Type.isPublic(using tpe)
-    def isAvailableHere: Boolean = Type.isAvailableHere(using tpe)
+    def isAvailable(scope: Accessible): Boolean = Type.isAvailable[A](scope)(using tpe)
 
     def <:<[B](tpe2: Type[B]): Boolean = Type.isSubtypeOf(using tpe, tpe2)
     def =:=[B](tpe2: Type[B]): Boolean = Type.isSameAs(using tpe, tpe2)
