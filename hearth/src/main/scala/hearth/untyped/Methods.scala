@@ -12,12 +12,15 @@ trait Methods { this: MacroCommons =>
   val UntypedParameter: UntypedParameterModule
   trait UntypedParameterModule { this: UntypedParameter.type =>
 
-    def fromTyped(param: Parameter): UntypedParameter
+    def fromTyped(param: Parameter): UntypedParameter = param.asUntyped
     def toTyped(instanceTpe: UntypedType)(untyped: UntypedParameter): Parameter
 
     def name(param: UntypedParameter): String
 
     def annotations(param: UntypedParameter): List[UntypedExpr]
+
+    def isByName(param: UntypedParameter): Boolean
+    def isImplicit(param: UntypedParameter): Boolean
   }
 
   implicit final class UntypedParameterMethods(private val param: UntypedParameter) {
@@ -26,6 +29,9 @@ trait Methods { this: MacroCommons =>
     def annotations: List[UntypedExpr] = UntypedParameter.annotations(param)
 
     def asTyped[Instance: Type]: Parameter = UntypedParameter.toTyped(UntypedType.fromTyped[Instance])(param)
+
+    def isByName: Boolean = UntypedParameter.isByName(param)
+    def isImplicit: Boolean = UntypedParameter.isImplicit(param)
   }
 
   type UntypedParameters = List[ListMap[String, UntypedParameter]]
@@ -52,14 +58,14 @@ trait Methods { this: MacroCommons =>
   val UntypedMethod: UntypedMethodModule
   trait UntypedMethodModule { this: UntypedMethod.type =>
 
-    final def fromTyped[Out](method: Method[Out]): UntypedMethod = method.untyped
-    final def toTyped[In: Type, Out: Type](untyped: UntypedMethod): Method[Out] =
-      new Method[Out](untyped, UntypedType.fromTyped[In])
-    final def as_??[In: Type](untyped: UntypedMethod): Existential[Method] = {
-      val returned = UntypedType.fromTyped[In].returnTypeAt(untyped).as_??
-      import returned.Underlying as Returned
-      Existential[Method, Returned](toTyped[In, Returned](untyped))
-    }
+    final def fromTyped[Instance, Returned](method: Method[Instance, Returned]): UntypedMethod = method.untyped
+    final def toTyped[Instance: Type](untyped: UntypedMethod): Existential[Method[Instance, *]] = ???
+
+    def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod]
+    def constructors(instanceTpe: UntypedType): List[UntypedMethod]
+    def methods(instanceTpe: UntypedType): List[UntypedMethod]
+
+    def parametersAt(method: UntypedMethod)(instanceTpe: UntypedType): UntypedParameters
 
     def name(method: UntypedMethod): String
     def position(method: UntypedMethod): Position
@@ -73,14 +79,16 @@ trait Methods { this: MacroCommons =>
     def isInherited(method: UntypedMethod): Boolean
     def isImplicit(method: UntypedMethod): Boolean
 
-    def isPublic(method: UntypedMethod): Boolean
-    def isAccessibleHere(method: UntypedMethod): Boolean
+    def isAvailable(method: UntypedMethod, scope: Accessible): Boolean
   }
 
   implicit final class UntypedMethodMethods(private val method: UntypedMethod) {
 
     def methodName: String = UntypedMethod.name(method)
     def methodPosition: Position = UntypedMethod.position(method)
+
+    def parametersAt(untyped: UntypedType): UntypedParameters =
+      UntypedMethod.parametersAt(method)(untyped)
 
     def annotations: List[UntypedExpr] = UntypedMethod.annotations(method)
 
@@ -91,8 +99,7 @@ trait Methods { this: MacroCommons =>
     def isInherited: Boolean = UntypedMethod.isInherited(method)
     def isImplicitMethod: Boolean = UntypedMethod.isImplicit(method)
 
-    def isPublic: Boolean = UntypedMethod.isPublic(method)
-    def isAccessibleHere: Boolean = UntypedMethod.isAccessibleHere(method)
+    def isAvailable(scope: Accessible): Boolean = UntypedMethod.isAvailable(method, scope)
   }
 
   implicit lazy val UntypedMethodOrdering: Ordering[UntypedMethod] =
