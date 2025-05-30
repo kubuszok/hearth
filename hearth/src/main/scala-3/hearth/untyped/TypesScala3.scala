@@ -122,5 +122,8 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
         }
       )
       else None
+
+    override def annotations(untyped: UntypedType): List[UntypedExpr] =
+      untyped.typeSymbol.annotations
   }
 }

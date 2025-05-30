@@ -55,6 +55,8 @@ trait Types { this: MacroCommons =>
         })
         .map(_.filter(_._2 <:< instanceTpe)) // TODO: handle it somehow for GADT in abstract type context
         .map(ListMap.from(_))
+
+    def annotations(untyped: UntypedType): List[UntypedExpr]
   }
 
   implicit final class UntypedTypeMethods(private val untyped: UntypedType) {
@@ -94,5 +96,7 @@ trait Types { this: MacroCommons =>
     def directChildren: Option[ListMap[String, UntypedType]] = UntypedType.directChildren(untyped)
     def exhaustiveChildren: Option[ListMap[String, UntypedType]] = UntypedType.exhaustiveChildren(untyped)
     def defaultValue(param: UntypedParameter): Option[UntypedExpr] = UntypedExpr.defaultValue(untyped)(param)
+
+    def annotations: List[UntypedExpr] = UntypedType.annotations(untyped)
   }
 }
