@@ -62,7 +62,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
         given ExprCodecIsFromExpr[A: ExprCodec]: scala.quoted.FromExpr[A] = ExprCodec[A] match {
           case impl: ExprCodecImpl[A] => impl.from
-          case unknown =>
+          case unknown                =>
             new scala.quoted.FromExpr[A] {
               override def unapply(expr: Expr[A])(using scala.quoted.Quotes): Option[A] = unknown.fromExpr(expr)
             }
@@ -70,7 +70,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
         given ExprCodecIsToExpr[A: ExprCodec]: scala.quoted.ToExpr[A] = ExprCodec[A] match {
           case impl: ExprCodecImpl[A] => impl.to
-          case unknown =>
+          case unknown                =>
             new scala.quoted.ToExpr[A] {
               override def apply(value: A)(using scala.quoted.Quotes): Expr[A] = unknown.toExpr(value)
             }

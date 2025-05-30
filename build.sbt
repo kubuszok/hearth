@@ -300,7 +300,7 @@ val settings = Seq(
 val hearthCompatSettings = Seq(
   scalacOptions ++= {
     CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _)) => Seq.empty
+      case Some((3, _))  => Seq.empty
       case Some((2, 13)) =>
         Seq(
           "-Wconf:origin=hearth.compat.*:s" // type aliases without which 2.12 fail compilation but 2.13/3 doesn't need them

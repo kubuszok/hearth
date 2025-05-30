@@ -59,7 +59,7 @@ object Log {
       filteredLogs <- logs.traverse[MEval, Vector[Log]] {
         case entry: Entry if filter(entry.level) => MEval.pure(Vector(entry))
         case _: Entry                            => MEval.pure(Vector.empty[Log])
-        case Scope(name, entries) =>
+        case Scope(name, entries)                =>
           filterLevels(entries, filter).map {
             case filteredEntries if filteredEntries.nonEmpty => Vector(Scope(name, filteredEntries))
             case _                                           => Vector.empty[Log]

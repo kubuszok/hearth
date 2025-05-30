@@ -57,7 +57,7 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
       def helper(tpe: c.Type): String =
         tpe.toString match {
           case javaEnumRegexpFormat(enumName, valueName) if tpe.typeSymbol.isJavaEnum => s"$enumName.$valueName"
-          case _ =>
+          case _                                                                      =>
             val tpes = tpe.typeArgs.map(helper)
             val tpeArgs = if (tpes.isEmpty) "" else s"[${tpes.mkString(", ")}]"
             tpe.dealias.typeSymbol.fullName + tpeArgs
