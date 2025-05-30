@@ -18,7 +18,7 @@ trait MethodsScala3 extends Methods { this: MacroCommonsScala3 =>
     override def toTyped(instanceTpe: UntypedType)(untyped: UntypedParameter): Parameter = ???
 
     override def name(param: UntypedParameter): String = param.symbol.name
-    override def annotations(param: UntypedParameter): List[UntypedExpr] = ???
+    override def annotations(param: UntypedParameter): List[UntypedExpr] = param.symbol.annotations
 
     override def isByName(param: UntypedParameter): Boolean =
       param.symbol.typeRef.simplified match {
@@ -113,7 +113,8 @@ trait MethodsScala3 extends Methods { this: MacroCommonsScala3 =>
         // TODO?
         .getOrElse(Position.current)
 
-    override def annotations(method: UntypedMethod): List[UntypedExpr] = ???
+    override def annotations(method: UntypedMethod): List[UntypedExpr] =
+      method.symbol.annotations
 
     override def isVal(method: UntypedMethod): Boolean =
       method.symbol.isValDef && !method.symbol.flags.is(Flags.Mutable)

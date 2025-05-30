@@ -30,7 +30,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     final def exhaustiveChildren[A: Type]: Option[ListMap[String, ??<:[A]]] =
       UntypedType.fromTyped[A].exhaustiveChildren.map(m => ListMap.from(m.view.mapValues(_.asTyped[A].as_??<:[A])))
 
-    def annotations[A: Type]: List[Expr_??]
+    final def annotations[A: Type]: List[Expr_??] = UntypedType.fromTyped[A].annotations.map(UntypedExpr.as_??)
 
     /** Types which might be compiled to both JVM primitives and javal.lang.Object: Boolean, Byte, Short, Char, Int,
       * Long, Float, Double.
@@ -99,7 +99,8 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     val NullCodec: TypeCodec[Null]
 
     private object ModuleCodecImpl extends TypeCodec[Any] {
-      def toType[A <: Any](value: A): Type[A] =
+      def toType[A](value: A): Type[A] =
+
         ??? // TODO
 
       def fromType[A](tpe: Type[A]): Option[Existential.UpperBounded[Any, Id]] = {

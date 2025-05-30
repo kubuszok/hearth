@@ -19,7 +19,10 @@ trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
 
     override def name(param: UntypedParameter): String = param.symbol.name.decodedName.toString
 
-    override def annotations(param: UntypedParameter): List[UntypedExpr] = ???
+    override def annotations(param: UntypedParameter): List[UntypedExpr] =
+      param.symbol.annotations.map { ann =>
+        c.untypecheck(ann.tree)
+      }
 
     override def isByName(param: UntypedParameter): Boolean = param.symbol.isByNameParam
     override def isImplicit(param: UntypedParameter): Boolean = param.symbol.isImplicit
@@ -62,7 +65,10 @@ trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
     override def name(method: UntypedMethod): String = method.symbol.name.decodedName.toString
     override def position(method: UntypedMethod): Position = method.symbol.pos
 
-    override def annotations(method: UntypedMethod): List[UntypedExpr] = ???
+    override def annotations(method: UntypedMethod): List[UntypedExpr] =
+      method.symbol.annotations.map { ann =>
+        c.untypecheck(ann.tree)
+      }
 
     override def isVal(method: UntypedMethod): Boolean = method.symbol.isVal
     override def isVar(method: UntypedMethod): Boolean = method.symbol.isVar

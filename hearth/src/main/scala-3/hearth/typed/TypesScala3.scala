@@ -64,8 +64,6 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
         .getOrElse(repr.toString)
     }
 
-    override def annotations[A: Type]: List[Expr_??] = ??? // TODO
-
     override val BooleanCodec: TypeCodec[Boolean] = LiteralCodec[Boolean](BooleanConstant(_))
     override val ByteCodec: TypeCodec[Byte] = LiteralCodec[Byte](ByteConstant(_))
     override val ShortCodec: TypeCodec[Short] = LiteralCodec[Short](ShortConstant(_))

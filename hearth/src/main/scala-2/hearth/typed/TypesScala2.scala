@@ -66,8 +66,6 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
       Console.MAGENTA + helper(Type[A].tpe) + Console.RESET
     }
 
-    override def annotations[A: Type]: List[Expr_??] = ??? // TODO
-
     override val BooleanCodec: TypeCodec[Boolean] = new LiteralCodec[Boolean]
     override val ByteCodec: TypeCodec[Byte] = new LiteralCodec[Byte]
     override val ShortCodec: TypeCodec[Short] = new LiteralCodec[Short]
