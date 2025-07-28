@@ -14,4 +14,53 @@ trait MacroTypedCommons
   this: MacroCommons =>
 }
 
-trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons
+trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
+
+  implicit final class MioExprOps[A](private val io: fp.effect.MIO[Expr[A]]) {
+
+    /** Expand the final result of the MIO, or fail with a message.
+      *
+      * @param macroName
+      *   name of the macro that is being expanded, it will be used the the top scope of the logs tree
+      * @param renderInfoLogs
+      *   whether to render info logs
+      * @param renderWarnLogs
+      *   whether to render warn logs
+      * @param failOnErrorLog
+      *   whether to fail if there are error logs
+      * @param renderFailure
+      *   if macro expansion failed and there are both errors logs anf exceptions, this function will be called to
+      *   render the error message
+      */
+    def expandFinalResultOrFail(
+        macroName: String,
+        renderInfoLogs: Boolean = false,
+        renderWarnLogs: Boolean = true,
+        failOnErrorLog: Boolean = true
+    )(
+        renderFailure: (String, fp.data.NonEmptyVector[Throwable]) => String
+    ): Expr[A] = {
+      import fp.effect.LogsOps
+
+      val (state, result) = io.unsafe.runSync
+      result match {
+        case Right(expr) =>
+          lazy val info = state.logs.render.onlyInfo(macroName)
+          if (renderInfoLogs && info.nonEmpty) {
+            Environment.reportInfo(info)
+          }
+          lazy val warnings = state.logs.render.onlyWarn(macroName)
+          if (renderWarnLogs && warnings.nonEmpty) {
+            Environment.reportWarn(warnings)
+          }
+          lazy val errors = state.logs.render.onlyError(macroName)
+          if (failOnErrorLog && errors.nonEmpty) {
+            Environment.reportErrorAndAbort(errors)
+          }
+          expr
+        case Left(errors) =>
+          Environment.reportErrorAndAbort(renderFailure(state.logs.render.onlyError(macroName), errors))
+      }
+    }
+  }
+}

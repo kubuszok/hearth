@@ -22,6 +22,10 @@ import hearth.fp.data.NonEmptyVector
   * call it) of methods starting with "par" is achieved by running computations independently, from the same initial
   * state, and then combining their results.
   *
+  * It is named "MIO", because you can reuse your intuitions from Cats/Scalaz/ZIO/etc, but there is no reason to
+  * actually run any serious side-effects in macros, and no reason to use an actual async/parallel execution, though the
+  * model mighy be useful for designing how to combine results of a few independent ("parellel") computations.
+  *
   * Example using [[MLocal]] and [[Log]]:
   *
   * {{{

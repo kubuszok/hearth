@@ -26,12 +26,18 @@ trait Existentials { this: MacroCommons =>
     *   - `??>:[L]` indicate the lower bound (`Underlying >: L`)
     *   - `??<:[U]` indicate the upper bound (`Underlying <: U`)
     *   - `<:??<:[L, U]` indicate both upper and lower bounds (`Underlying >: L <: U`)
+    *
+    * @since 0.1.0
     */
   final type Existential[F[_]] = Existential.Bounded[Nothing, Any, F]
   object Existential {
 
     def apply[F[_], A: Type](value: F[A]): Existential[F] = Bounded[Nothing, Any, F, A](value)
 
+    /** Represents value with some existential type `t :> L <: U` both for `Type[t]` as well as `F[t]`.
+      *
+      * @since 0.1.0
+      */
     sealed trait Bounded[L, U >: L, F[_ >: L <: U]] {
 
       type Underlying >: L <: U
@@ -40,22 +46,30 @@ trait Existentials { this: MacroCommons =>
       val value: F[Underlying]
 
       def mapK[G[_]](f: Type[Underlying] => F[Underlying] => G[Underlying]): Bounded[L, U, G] =
-        Bounded[L, U, G, Underlying](f(Underlying)(value))(Underlying)
+        Bounded[L, U, G, Underlying](f(Underlying)(value))
     }
     object Bounded {
       def apply[L, U >: L, F[_ >: L <: U], A >: L <: U: Type](value: F[A]): Bounded[L, U, F] =
         new Impl[L, U, F, A](implicitly[Type[A]], value) // implicitly instead of Type[A] to avoid initialization issues
     }
 
+    /** Represents value with some existential type `t :> L` both for `Type[t]` as well as `F[t]`.
+      *
+      * @since 0.1.0
+      */
     type LowerBounded[L, F[_ >: L]] = Existential.Bounded[L, Any, F]
     object LowerBounded {
-      def apply[L, F[_ >: L], A >: L](value: F[A])(implicit A: Type[A]): LowerBounded[L, F] =
+      def apply[L, F[_ >: L], A >: L: Type](value: F[A]): LowerBounded[L, F] =
         Existential.Bounded[L, Any, F, A](value)
     }
 
+    /** Represents value with some existential type `t <: U` both for `Type[t]` as well as `F[t]`.
+      *
+      * @since 0.1.0
+      */
     type UpperBounded[U, F[_ <: U]] = Existential.Bounded[Nothing, U, F]
     object UpperBounded {
-      def apply[U, F[_ <: U], A <: U](value: F[A])(implicit A: Type[A]): UpperBounded[U, F] =
+      def apply[U, F[_ <: U], A <: U: Type](value: F[A]): UpperBounded[U, F] =
         Existential.Bounded[Nothing, U, F, A](value)
     }
 

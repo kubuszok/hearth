@@ -8,7 +8,24 @@ import scala.language.implicitConversions
 
 trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons =>
 
-  /** Platform-specific type representation (`c.WeakTypeTag[A]` in 2, `scala.quoted.Type[A]` in 3) */
+  /** Platform-specific type representation (`c.WeakTypeTag[A]` in 2, `scala.quoted.Type[A]` in 3).
+    *
+    * Typed [[Type]] and [[UntypedType]] exist because some macro operations do not require the full knowledge about the
+    * type (because they operate on Symbols, and we would have to convert from the typed representation to Symbols to
+    * use them), and some require the full knowledge about the type (because e.g. type parameters from the class has to
+    * be applied to its methods and their arguments/returned values).
+    *
+    * The implementation will use the right underlying representation to perform the operations, and where possible
+    * convert between typed and untyped representations, but the distinction would be useful in cases where some
+    * operations are only available to only one of them. Then user could covert between them in the context where the
+    * missing information is available.
+    *
+    * Note that existential type [[??]], is not an [[UntypedType]] - it's a typed representaiton, where the macro during
+    * **its excution** would know the exact type BUT it's inconvenient for us to use generics to represent that exact
+    * type during compilation of the macro itself (not it's expansion).
+    *
+    * @since 0.1.0
+    */
   type Type[A]
 
   val Type: TypeModule
@@ -32,7 +49,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
 
     final def annotations[A: Type]: List[Expr_??] = UntypedType.fromTyped[A].annotations.map(UntypedExpr.as_??)
 
-    /** Types which might be compiled to both JVM primitives and javal.lang.Object: Boolean, Byte, Short, Char, Int,
+    /** Types which might be compiled to both JVM primitives and java.lang.Object: Boolean, Byte, Short, Char, Int,
       * Long, Float, Double.
       */
     final val primitiveTypes: List[??] = List(
@@ -65,7 +82,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     final def notBuiltInClass[A: Type]: Boolean = isClass[A] && !isBuiltIn[A]
     final def isPlainOldJavaObject[A: Type]: Boolean =
       notBuiltInClass[A] && !(isAbstract[A] || isSealed[A] || isJavaEnum[A] || isJavaEnumValue[A])
-    final def isJavaBean[A: Type]: Boolean = false // TODO
+    final def isJavaBean[A: Type]: Boolean = false // TODO: priority 1
 
     final def isSealed[A: Type]: Boolean = UntypedType.fromTyped[A].isSealed
     final def isJavaEnum[A: Type]: Boolean = UntypedType.fromTyped[A].isJavaEnum
@@ -99,9 +116,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     val NullCodec: TypeCodec[Null]
 
     private object ModuleCodecImpl extends TypeCodec[Any] {
-      def toType[A](value: A): Type[A] =
-
-        ??? // TODO
+      def toType[A](value: A): Type[A] = UntypedType.fromClass(value.getClass).asTyped[A]
 
       def fromType[A](tpe: Type[A]): Option[Existential.UpperBounded[Any, Id]] = {
         // assuming this is "foo.bar.baz"...
@@ -205,7 +220,10 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     def asUntyped: UntypedType = UntypedType.fromTyped(using tpe.Underlying)
   }
 
-  /** Generalizes over the idea of conversion between singleton/literal type values and their type representation. */
+  /** Generalizes over the idea of conversion between singleton/literal type values and their type representation.
+    *
+    * @since 0.1.0
+    */
   trait TypeCodec[U] {
     def toType[A <: U](value: A): Type[A]
     def fromType[A](tpe: Type[A]): Option[Existential.UpperBounded[U, Id]]

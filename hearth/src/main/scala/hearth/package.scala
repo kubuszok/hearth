@@ -7,12 +7,13 @@ package object hearth {
   private[hearth] def removeAnsiColors(str: String): String = AnsiControlCode.replaceAllIn(str, "")
 
   // TODO: create our own compat-module
+  // TODO: if we'll get rid of 2.12 this will not be needed
 
-  implicit private[hearth] class Chaining[A](private val a: A) extends AnyVal {
+  implicit final private[hearth] class Chaining[A](private val a: A) extends AnyVal {
 
     def pipe[B](f: A => B): B = f(a)
-    def attemptPipe[B](attept: A => B)(orElse: A => B): B = try
-      attept(a)
+    def attemptPipe[B](attempt: A => B)(orElse: A => B): B = try
+      attempt(a)
     catch {
       case NonFatal(_) => orElse(a)
     }

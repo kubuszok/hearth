@@ -8,7 +8,24 @@ import scala.language.implicitConversions
 
 trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
-  /** Platform-specific untyped type representation (`c.Expr[A]` in 2, `scala.quoted.Expr[A]` in 3) */
+  /** Platform-specific untyped type representation (`c.Expr[A]` in 2, `scala.quoted.Expr[A]` in 3).
+    *
+    * Typed [[Expr]] and [[UntypedExpr]] exist because some macro operations do not require the full knowledge about the
+    * type (because they operate on Symbols, and we would have to convert from the typed representation to Symbols to
+    * use them), and some require the full knowledge about the type (because e.g. type parameters from the class has to
+    * be applied to its methods and their arguments/returned values).
+    *
+    * The implementation will use the right underlying representation to perform the operations, and where possible
+    * convert between typed and untyped representations, but the distinction would be useful in cases where some
+    * operations are only available to only one of them. Then user could covert between them in the context where the
+    * missing information is available.
+    *
+    * Note that existential type [[Expr_??]], is not an [[UntypedExpr]] - it's a typed representaiton, where the macro
+    * during **its excution** would know the exact type BUT it's inconvenient for us to use generics to represent that
+    * exact type during compilation of the macro itself (not it's expansion).
+    *
+    * @since 0.1.0
+    */
   type Expr[A]
 
   val Expr: ExprModule
@@ -85,6 +102,8 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     * @see
     *   [[https://docs.scala-lang.org/scala3/guides/macros/macros.html#extracting-values-from-expressions]] for Scala 3
     *   `FromExpr`
+    *
+    * @since 0.1.0
     */
   trait ExprCodec[A] {
 
@@ -133,12 +152,21 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
       matchOn(NonEmptyVector(head, tail*))
   }
 
-  /** To avoid name clashes, we need to generate them. This enum provides various strategies to generate fresh names. */
+  /** To avoid name clashes, we need to generate them. This enum provides various strategies to generate fresh names.
+    *
+    * @since 0.1.0
+    */
   sealed trait FreshName extends Product with Serializable
   object FreshName {
     case object FromType extends FreshName
     case object FromExpr extends FreshName
     final case class FromPrefix(prefix: String) extends FreshName
+
+    /** Allows passing String instead of `FreshName.FromPrefix(value)`.
+      *
+      * @since 0.1.0
+      */
+    implicit def stringToFreshName(prefix: String): FreshName = FromPrefix(prefix)
   }
 
   /** Stores one or more val/var/lazy val/def definitions, as well as the code that uses them.
@@ -146,9 +174,18 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     * Allow us to use the val/var/lazy val/def to construct some expression, and then safely close the scope, make sure
     * that the definition that's inaccessible outside of it, won't ve visible outside of it, while returning the value
     * of a whole block.
+    *
+    * @since 0.1.0
     */
   type Scoped[A]
 
+  /** Create definitions, like `val`, `var`, `lazy val`, `def`, that should be accessible only inside some scope.
+    *
+    * Will take care of opening and closing that scope, which makes it easier to e.g. not use the definition before it
+    * was defined.
+    *
+    * @since 0.1.0
+    */
   val Scoped: ScopedModule
   trait ScopedModule { this: Scoped.type =>
 
@@ -191,6 +228,8 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     *
     * If we are not building a lambda but normal expression we can use [[Scoped]] with Applicative/Parallel/Traverse
     * combinators.
+    *
+    * @since 0.1.0
     *
     * @param From
     *   lambda signature without return type (e.g. `A => *`, `(A, B) => *`, ...) - if we just used A, (A, B), (A, B, C),

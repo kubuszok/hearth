@@ -31,10 +31,12 @@ trait Environments {
   trait EnvironmentModule { this: Environment.type =>
 
     val currentPosition: Position = Position.current
-    val currentScalaVersion: ScalaVersion = ScalaVersion.current
 
-    val isScala2_12: Boolean = currentScalaVersion == ScalaVersion.Scala2_12
-    val isScala3: Boolean = currentScalaVersion == ScalaVersion.Scala3
+    val currentScalaVersion: ScalaVersion
+    val currentLanguageVersion: LanguageVersion = currentScalaVersion.toLanguageVersion
+    val isScala2_12: Boolean = currentLanguageVersion == LanguageVersion.Scala2_12
+    val isScala2_13: Boolean = currentLanguageVersion == LanguageVersion.Scala2_13
+    val isScala3: Boolean = currentLanguageVersion == LanguageVersion.Scala3
 
     val XMacroSettings: List[String]
 

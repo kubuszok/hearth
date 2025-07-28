@@ -20,7 +20,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       ) extends ExprCodec[A] {
 
         override def toExpr(value: A): Expr[A] = typeCodec match {
-          case Some(codec) if Environment.currentScalaVersion != ScalaVersion.Scala2_12 =>
+          case Some(codec) if !Environment.isScala2_12 =>
             val aType = codec.toType(value).as_??
             import aType.Underlying as B
             c.Expr[B](to.apply(value)).asInstanceOf[Expr[A]]
