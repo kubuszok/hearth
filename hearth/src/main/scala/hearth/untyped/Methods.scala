@@ -7,6 +7,9 @@ import scala.collection.compat.*
 
 trait Methods { this: MacroCommons =>
 
+  /** Platform-specific untyped parameter representation (`c.universe.TermSymbol` in 2, `quotes.reflect.Symbol` in 3)
+    * together with an [[UntypedMethod]] to which it belongs.
+    */
   type UntypedParameter
 
   val UntypedParameter: UntypedParameterModule
@@ -34,6 +37,7 @@ trait Methods { this: MacroCommons =>
     def isImplicit: Boolean = UntypedParameter.isImplicit(param)
   }
 
+  /** Ordered map of [[UntypedParameter]]s by their name. */
   type UntypedParameters = List[ListMap[String, UntypedParameter]]
   object UntypedParameters {
 
@@ -52,14 +56,14 @@ trait Methods { this: MacroCommons =>
     def toTyped(untyped: UntypedArguments): Arguments = untyped.view.mapValues(_.as_??).toMap
   }
 
-  /** Platform-specific method representation (`c.Symbol` in 2, `quotes.reflect.Symbol` in 3) */
+  /** Platform-specific method representation (`c.universe.MethodSymbol` in 2, `quotes.reflect.Symbol` in 3) */
   type UntypedMethod
 
   val UntypedMethod: UntypedMethodModule
   trait UntypedMethodModule { this: UntypedMethod.type =>
 
     final def fromTyped[Instance, Returned](method: Method[Instance, Returned]): UntypedMethod = method.untyped
-    final def toTyped[Instance: Type](untyped: UntypedMethod): Existential[Method[Instance, *]] = ???
+    def toTyped[Instance: Type](untyped: UntypedMethod): Existential[Method[Instance, *]]
 
     def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod]
     def constructors(instanceTpe: UntypedType): List[UntypedMethod]
@@ -104,5 +108,6 @@ trait Methods { this: MacroCommons =>
 
   implicit lazy val UntypedMethodOrdering: Ordering[UntypedMethod] =
     // Stabilize order in case of https://github.com/scala/scala3/issues/21672 (does not solve the warnings!)
+    // TODO: order Strings using lexicographic order
     Ordering[Position].on[UntypedMethod](_.methodPosition).orElseBy(_.methodName)
 }

@@ -3,19 +3,22 @@ project/project
 project/target
 target
 *.class
-dev.properties
+
 # Mdocs documentation
 docs/build
 docs/__pycache__
+
 # Scala Metals and BSP
 .bloop
 .bsp
 .metals
 project/metals.sbt
+
 # IDEs
 .cursor
 .idea
 .vscode
+
 # other
 .scala-build
 *.log

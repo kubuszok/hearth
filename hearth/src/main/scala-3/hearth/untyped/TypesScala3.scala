@@ -42,6 +42,8 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
     override def fromTyped[A: Type]: UntypedType = TypeRepr.of[A]
     override def toTyped[A](untyped: UntypedType): Type[A] = untyped.asType.asInstanceOf[Type[A]]
 
+    override def fromClass(clazz: Class[?]): UntypedType = TypeRepr.typeConstructorOf(clazz)
+
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       // We use =:= to check whether A is known to be exactly of the build-in type or is it some upper bound.

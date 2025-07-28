@@ -34,6 +34,8 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
     override def fromTyped[A: Type]: UntypedType = c.weakTypeOf[A]
     override def toTyped[A](untyped: UntypedType): Type[A] = c.WeakTypeTag(untyped)
 
+    override def fromClass(clazz: Class[?]): UntypedType = c.mirror.staticClass(clazz.getName).typeSignature
+
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       // We use =:= to check whether A is known to be exactly of the build-in type or is it some upper bound.

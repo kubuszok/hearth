@@ -20,7 +20,7 @@ trait Methods { this: MacroCommons =>
   type Parameters = List[ListMap[String, Parameter]]
   type Arguments = Map[String, Expr_??]
 
-  sealed trait Method[Instance, Returned] {
+  sealed trait Method[+Instance, Returned] {
     val untyped: UntypedMethod
     val untypedInstanceType: UntypedType
 
@@ -37,13 +37,24 @@ trait Methods { this: MacroCommons =>
 
     final def isAvailable(scope: Accessible): Boolean = UntypedMethod.isAvailable(untyped, scope)
 
-    final def isNAry(n: Int): Boolean = parameters.flatten.size == n
+    final lazy val arity: Int = parameters.flatten.size
+    final def isNAry(n: Int): Boolean = arity == n
     lazy val isNullary: Boolean = isNAry(0)
     lazy val isUnary: Boolean = isNAry(1)
+    lazy val isBinary: Boolean = isNAry(2)
 
-    final def isAccessor: Boolean = isVal || isVar || isLazy || (isDef && isNullary)
+    final def isCaseField: Boolean = ??? // TODO: priority 3
+
+    // TODO: let's check the definition of accessor
+    final def isScalaGetter: Boolean = ??? // TODO: priority 3
+    final def isScalaSetter: Boolean = ??? // TODO: priority 3
+    final def isScalaAccessor: Boolean = isScalaGetter || isScalaSetter
+
     def isJavaGetter: Boolean
     def isJavaSetter: Boolean
+    final def isJavaAccessor: Boolean = isJavaGetter || isJavaSetter
+
+    final def isAccessor: Boolean = isScalaAccessor || isJavaAccessor
 
     def parameters: Parameters
   }
@@ -86,6 +97,8 @@ trait Methods { this: MacroCommons =>
 
       def isJavaGetter: Boolean = false
       def isJavaSetter: Boolean = false
+
+      // TODO: override equals and hashCode
     }
 
     /** Instance method */
@@ -107,6 +120,8 @@ trait Methods { this: MacroCommons =>
       )
       lazy val isJavaSetter: Boolean = isUnary &&
         (name.startsWith("set") && name.length > 3 && instanceType <:< Type.of[Unit])
+
+      // TODO: override equals and hashCode
     }
 
     /** Everything that we cannot handle with the above (polymorphic methods) */

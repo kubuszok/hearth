@@ -36,6 +36,31 @@ trait MethodsScala3 extends Methods { this: MacroCommonsScala3 =>
       if symbol.isValDef || symbol.isDefDef then Right(new UntypedMethod(symbol, isInherited))
       else Left(s"Expected method Symbol, got $symbol")
 
+    override def toTyped[Instance: Type](untyped: UntypedMethod): Existential[Method[Instance, *]] = {
+      val Instance = UntypedType.fromTyped[Instance]
+      val sym = untyped.symbol
+      lazy val (typeParams, valueParams) = untyped.symbol.paramSymss.partition(_.exists(_.isType))
+      if sym.isClassConstructor then {
+        Existential[Method[Instance, *], Instance](
+          Method.NoInstance[Instance](untyped, Instance): Method[Instance, Instance]
+        )
+      } else if typeParams.isEmpty then {
+        val returnType = Instance.memberType(sym).widenByName match {
+          case lambda: LambdaType => lambda.resType.as_??
+          case out                => out.as_??
+        }
+        import returnType.Underlying as Returned
+        // TODO: check if the method is not having any other issues, e.g. path-dependent types (we cannot handle them like this)
+        Existential[Method[Instance, *], Returned](
+          Method.OfInstance[Instance, Returned](untyped, Instance): Method[Instance, Returned]
+        )
+      } else {
+        Existential[Method[Instance, *], Nothing](
+          Method.Unsupported(untyped, Instance, "Method defines type parameters")
+        )
+      }
+    }
+
     override def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod] =
       Option(instanceTpe.typeSymbol.primaryConstructor)
         .filterNot(_.isNoSymbol)
