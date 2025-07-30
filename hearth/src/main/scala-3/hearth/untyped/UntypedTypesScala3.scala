@@ -4,7 +4,7 @@ package untyped
 import hearth.fp.ignore
 import scala.collection.immutable.ListMap
 
-trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
+trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
   import quotes.*, quotes.reflect.*
 

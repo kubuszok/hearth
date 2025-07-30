@@ -4,7 +4,7 @@ import hearth.MacroCommons
 import scala.collection.compat.*
 import scala.collection.immutable.ListMap
 
-trait Types { this: MacroCommons =>
+trait UntypedTypes { this: MacroCommons =>
 
   /** Platform-specific untyped type representation (`c.Type` in 2, `quotes.TypeRepr` in 3).
     *

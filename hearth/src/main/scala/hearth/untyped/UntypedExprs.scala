@@ -2,7 +2,7 @@ package hearth.untyped
 
 import hearth.MacroCommons
 
-trait Exprs { this: MacroCommons =>
+trait UntypedExprs { this: MacroCommons =>
 
   /** Platform-specific untyped expr representation (`c.Tree` in 2, `quotes.reflect.Term` in 3).
     *

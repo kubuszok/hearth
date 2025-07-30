@@ -1,6 +1,6 @@
 package hearth
 
-trait MacroUntypedCommons extends untyped.Types with untyped.Exprs with untyped.Methods {
+trait MacroUntypedCommons extends untyped.UntypedTypes with untyped.UntypedExprs with untyped.UntypedMethods {
   this: MacroCommons =>
 }
 

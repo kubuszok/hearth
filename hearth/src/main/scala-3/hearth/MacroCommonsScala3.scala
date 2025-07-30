@@ -2,9 +2,9 @@ package hearth
 
 trait MacroUntypedCommonsScala3
     extends MacroUntypedCommons
-    with untyped.TypesScala3
-    with untyped.ExprsScala3
-    with untyped.MethodsScala3 { this: MacroCommonsScala3 => }
+    with untyped.UntypedTypesScala3
+    with untyped.UntypedExprsScala3
+    with untyped.UntypedMethodsScala3 { this: MacroCommonsScala3 => }
 
 object MacroUntypedCommonsScala3 {
 
