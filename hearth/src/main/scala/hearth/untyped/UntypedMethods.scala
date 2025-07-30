@@ -62,10 +62,9 @@ trait UntypedMethods { this: MacroCommons =>
 
     def adaptToParams(
         instanceTpe: UntypedType,
-        method: UntypedMethod,
-        paramss: UntypedParameters
+        method: UntypedMethod
     ): List[List[UntypedExpr]] =
-      paramss.map { params =>
+      method.parameters.map { params =>
         params.view.map { case (paramName, untyped) =>
           arguments.get(paramName).orElse(untyped.default(instanceTpe)).getOrElse {
             assertionFailed(
@@ -94,7 +93,7 @@ trait UntypedMethods { this: MacroCommons =>
     def constructors(instanceTpe: UntypedType): List[UntypedMethod]
     def methods(instanceTpe: UntypedType): List[UntypedMethod]
 
-    def parametersAt(method: UntypedMethod)(instanceTpe: UntypedType): UntypedParameters
+    def parameters(method: UntypedMethod): UntypedParameters
 
     def name(method: UntypedMethod): String
     def position(method: UntypedMethod): Position
@@ -116,8 +115,7 @@ trait UntypedMethods { this: MacroCommons =>
     def methodName: String = UntypedMethod.name(method)
     def methodPosition: Position = UntypedMethod.position(method)
 
-    def parametersAt(untyped: UntypedType): UntypedParameters =
-      UntypedMethod.parametersAt(method)(untyped)
+    def parameters: UntypedParameters = UntypedMethod.parameters(method)
 
     def annotations: List[UntypedExpr] = UntypedMethod.annotations(method)
 

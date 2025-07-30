@@ -55,7 +55,20 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     }
   }
 
-  final class UntypedMethod private (val symbol: MethodSymbol, private val isInherited: Boolean)
+  final class UntypedMethod private (val symbol: MethodSymbol, private val isInherited: Boolean) {
+
+    lazy val parameters: UntypedParameters = {
+      val paramss = symbol.paramLists
+      val indices = paramss.flatten.zipWithIndex.toMap
+      paramss
+        .map(inner =>
+          ListMap.from(inner.map { param =>
+            UntypedParameter.platformSpecific
+              .paramName(param.asTerm) -> UntypedParameter.parse(this, param.asTerm, indices(param)).toOption.get
+          })
+        )
+    }
+  }
 
   object UntypedMethod extends UntypedMethodModule {
 
@@ -88,8 +101,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         instanceTpe: UntypedType,
         method: UntypedMethod
     )(instance: Option[UntypedExpr], arguments: UntypedArguments, isConstructor: Boolean): UntypedExpr = {
-      lazy val paramSymss = parametersAt(method)(instanceTpe)
-      lazy val adaptedArguments = arguments.adaptToParams(instanceTpe, method, paramSymss)
+      lazy val adaptedArguments = arguments.adaptToParams(instanceTpe, method)
       instance match {
         case None if isConstructor =>
           // new A... or new A() or new A(b1, b2), ...
@@ -119,17 +131,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         .toList
     }
 
-    override def parametersAt(method: UntypedMethod)(instanceTpe: UntypedType): UntypedParameters = {
-      val paramss = method.symbol.typeSignatureIn(instanceTpe).paramLists
-      val indices = paramss.flatten.zipWithIndex.toMap
-      paramss
-        .map(inner =>
-          ListMap.from(inner.map { param =>
-            UntypedParameter.platformSpecific
-              .paramName(param.asTerm) -> UntypedParameter.parse(method, param.asTerm, indices(param)).toOption.get
-          })
-        )
-    }
+    override def parameters(method: UntypedMethod): UntypedParameters = method.parameters
 
     override def name(method: UntypedMethod): String = method.symbol.name.decodedName.toString
     override def position(method: UntypedMethod): Position = method.symbol.pos
