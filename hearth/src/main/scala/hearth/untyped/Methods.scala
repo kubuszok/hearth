@@ -16,7 +16,6 @@ trait Methods { this: MacroCommons =>
   trait UntypedParameterModule { this: UntypedParameter.type =>
 
     def fromTyped(param: Parameter): UntypedParameter = param.asUntyped
-    def toTyped(instanceTpe: UntypedType)(untyped: UntypedParameter): Parameter
 
     def name(param: UntypedParameter): String
 
@@ -24,6 +23,7 @@ trait Methods { this: MacroCommons =>
 
     def isByName(param: UntypedParameter): Boolean
     def isImplicit(param: UntypedParameter): Boolean
+    def hasDefault(param: UntypedParameter): Boolean
   }
 
   implicit final class UntypedParameterMethods(private val param: UntypedParameter) {
@@ -31,22 +31,24 @@ trait Methods { this: MacroCommons =>
     def paramName: String = UntypedParameter.name(param)
     def annotations: List[UntypedExpr] = UntypedParameter.annotations(param)
 
-    def asTyped[Instance: Type]: Parameter = UntypedParameter.toTyped(UntypedType.fromTyped[Instance])(param)
-
     def isByName: Boolean = UntypedParameter.isByName(param)
     def isImplicit: Boolean = UntypedParameter.isImplicit(param)
+    def hasDefault: Boolean = UntypedParameter.hasDefault(param)
+
+    def default(instanceTpe: UntypedType): Option[UntypedExpr] = UntypedExpr.defaultValue(instanceTpe)(param)
   }
 
   /** Ordered map of [[UntypedParameter]]s by their name. */
   type UntypedParameters = List[ListMap[String, UntypedParameter]]
-  object UntypedParameters {
 
-    def fromTyped(typed: Parameters): UntypedParameters = typed.map { inner =>
+  val UntypedParameters: UntypedParametersModule
+  trait UntypedParametersModule { this: UntypedParameters.type =>
+
+    final def fromTyped(typed: Parameters): UntypedParameters = typed.map { inner =>
       ListMap.from(inner.view.mapValues(_.asUntyped))
     }
-    def toTyped[Instance: Type](untyped: UntypedParameters): Parameters = untyped.map { inner =>
-      ListMap.from(inner.view.mapValues(_.asTyped[Instance]))
-    }
+
+    def toTyped[Instance: Type](untyped: UntypedParameters): Parameters
   }
 
   type UntypedArguments = Map[String, UntypedExpr]
@@ -54,6 +56,24 @@ trait Methods { this: MacroCommons =>
 
     def fromTyped(typed: Arguments): UntypedArguments = typed.view.mapValues(_.value.asUntyped).toMap // wtf?
     def toTyped(untyped: UntypedArguments): Arguments = untyped.view.mapValues(_.as_??).toMap
+  }
+
+  implicit final class UntypedArgumentsMethods(private val arguments: UntypedArguments) {
+
+    def adaptToParams(
+        instanceTpe: UntypedType,
+        method: UntypedMethod,
+        paramss: UntypedParameters
+    ): List[List[UntypedExpr]] =
+      paramss.map { params =>
+        params.view.map { case (paramName, untyped) =>
+          arguments.get(paramName).orElse(untyped.default(instanceTpe)).getOrElse {
+            assertionFailed(
+              s"Expected that ${Type.prettyPrint(using instanceTpe.asTyped[Any])}'s ${method.methodName} parameter `$paramName` would be provided or have default value"
+            )
+          }
+        }.toList
+      }
   }
 
   /** Platform-specific method representation (`c.universe.MethodSymbol` in 2, `quotes.reflect.Symbol` in 3) */
@@ -64,6 +84,11 @@ trait Methods { this: MacroCommons =>
 
     final def fromTyped[Instance, Returned](method: Method[Instance, Returned]): UntypedMethod = method.untyped
     def toTyped[Instance: Type](untyped: UntypedMethod): Existential[Method[Instance, *]]
+
+    def unsafeApply(
+        instanceTpe: UntypedType,
+        method: UntypedMethod
+    )(instance: Option[UntypedExpr], arguments: UntypedArguments, isConstructor: Boolean): UntypedExpr
 
     def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod]
     def constructors(instanceTpe: UntypedType): List[UntypedMethod]
@@ -104,6 +129,14 @@ trait Methods { this: MacroCommons =>
     def isImplicitMethod: Boolean = UntypedMethod.isImplicit(method)
 
     def isAvailable(scope: Accessible): Boolean = UntypedMethod.isAvailable(method, scope)
+
+    // Unsafe apply methods
+    def init(instanceTpe: UntypedType)(arguments: UntypedArguments): UntypedExpr =
+      UntypedMethod.unsafeApply(instanceTpe, method)(None, arguments, isConstructor = true)
+    def apply(instanceTpe: UntypedType)(arguments: UntypedArguments): UntypedExpr =
+      UntypedMethod.unsafeApply(instanceTpe, method)(None, arguments, isConstructor = false)
+    def apply(instanceTpe: UntypedType, on: UntypedExpr)(arguments: UntypedArguments): UntypedExpr =
+      UntypedMethod.unsafeApply(instanceTpe, method)(Some(on), arguments, isConstructor = false)
   }
 
   implicit lazy val UntypedMethodOrdering: Ordering[UntypedMethod] =

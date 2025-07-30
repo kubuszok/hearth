@@ -20,6 +20,48 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       toTyped[Result](untyped).as_??
     }
 
-    override def defaultValue(instanceTpe: UntypedType)(param: UntypedParameter): Option[UntypedExpr] = ???
+    override def defaultValue(instanceTpe: UntypedType)(param: UntypedParameter): Option[UntypedExpr] = if (
+      param.hasDefault
+    ) Some {
+      lazy val companion = companionSymbol(instanceTpe.asTyped[Any])
+      val scala2default = caseClassApplyDefaultScala2(param.index + 1)
+      val scala3default = caseClassApplyDefaultScala3(param.index + 1)
+      val newDefault = classNewDefaultScala2(param.index + 1)
+      val defaults = List(scala2default, scala3default, newDefault)
+      val default = companion.typeSignature.decls
+        .to(List)
+        .collectFirst {
+          case method if defaults.contains(method.name.decodedName.toString) => method
+        }
+        .getOrElse {
+          // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
+          assertionFailed(
+            s"Expected that ${Type.prettyPrint(using instanceTpe.asTyped[Any])}'s constructor parameter `${param.paramName}` would have default value: attempted `$scala2default`, `$scala3default` and `$newDefault`, found: ${companion.typeSignature.decls}"
+          )
+          // $COVERAGE-ON$
+        }
+      q"$companion.$default"
+    }
+    else None
+  }
+
+  // Borrowed from jsoniter-scala: https://github.com/plokhotnyuk/jsoniter-scala/blob/b14dbe51d3ae6752e5a9f90f1f3caf5bceb5e4b0/jsoniter-scala-macros/shared/src/main/scala/com/github/plokhotnyuk/jsoniter_scala/macros/JsonCodecMaker.scala#L462
+  private def companionSymbol[A: Type]: Symbol = {
+    val sym = Type[A].tpe.typeSymbol
+    val comp = sym.companion
+    if (comp.isModule) comp
+    else {
+      val ownerChainOf: Symbol => Iterator[Symbol] =
+        s => Iterator.iterate(s)(_.owner).takeWhile(x => x != null && x != NoSymbol).toVector.reverseIterator
+      val path = ownerChainOf(sym)
+        .zipAll(ownerChainOf(c.internal.enclosingOwner), NoSymbol, NoSymbol)
+        .dropWhile { case (x, y) => x == y }
+        .takeWhile(_._1 != NoSymbol)
+        .map(_._1.name.toTermName)
+      // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
+      if (path.isEmpty) assertionFailed(s"Cannot find a companion for ${Type.prettyPrint[A]}")
+      else c.typecheck(path.foldLeft[Tree](Ident(path.next()))(Select(_, _)), silent = true).symbol
+      // $COVERAGE-ON$
+    }
   }
 }

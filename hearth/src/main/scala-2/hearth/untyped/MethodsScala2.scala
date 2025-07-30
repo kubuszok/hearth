@@ -7,15 +7,13 @@ trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
 
   import c.universe.*
 
-  final class UntypedParameter private (val method: UntypedMethod, private val symbol: TermSymbol)
+  final class UntypedParameter private (val method: UntypedMethod, val symbol: TermSymbol, val index: Int)
 
   object UntypedParameter extends UntypedParameterModule {
 
-    def parse(method: UntypedMethod, symbol: Symbol): Either[String, UntypedParameter] =
-      if (symbol.isTerm) Right(new UntypedParameter(method, symbol.asTerm))
+    def parse(method: UntypedMethod, symbol: Symbol, index: Int): Either[String, UntypedParameter] =
+      if (symbol.isTerm) Right(new UntypedParameter(method, symbol.asTerm, index))
       else Left(s"Expected param Symbol, got $symbol")
-
-    override def toTyped(instanceTpe: UntypedType)(untyped: UntypedParameter): Parameter = ???
 
     override def name(param: UntypedParameter): String = param.symbol.name.decodedName.toString
 
@@ -26,6 +24,30 @@ trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
 
     override def isByName(param: UntypedParameter): Boolean = param.symbol.isByNameParam
     override def isImplicit(param: UntypedParameter): Boolean = param.symbol.isImplicit
+    override def hasDefault(param: UntypedParameter): Boolean = param.symbol.asTerm.isParamWithDefault
+  }
+
+  object UntypedParameters extends UntypedParametersModule {
+
+    override def toTyped[Instance: Type](untyped: UntypedParameters): Parameters = {
+      val instanceTpe = UntypedType.fromTyped[Instance]
+      lazy val method = untyped.head.head._2.method // If params are empty it would throw... unless we don't use it.
+
+      lazy val typesByParamName = method.symbol.asMethod
+        .typeSignatureIn(instanceTpe)
+        .paramLists
+        .flatten
+        .map(param => param.name.decodedName.toString -> param.typeSignatureIn(instanceTpe))
+        .toMap
+
+      untyped.map { params =>
+        params.map { case (paramName, untyped) =>
+          val param =
+            new Parameter(asUntyped = untyped, instanceTpe = instanceTpe, parameterTpe = typesByParamName(paramName))
+          paramName -> param
+        }
+      }
+    }
   }
 
   final class UntypedMethod private (val symbol: MethodSymbol, private val isInherited: Boolean)
@@ -39,9 +61,9 @@ trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
     override def toTyped[Instance: Type](untyped: UntypedMethod): Existential[Method[Instance, *]] = {
       val Instance = UntypedType.fromTyped[Instance]
       val sym = untyped.symbol
-      if (sym.isConstructor) {
+      if (sym.isConstructor) { // TODO: or is module
         Existential[Method[Instance, *], Instance](
-          Method.NoInstance[Instance](untyped, Instance): Method[Instance, Instance]
+          Method.NoInstance[Instance](untyped, Instance, isConstructor = true): Method[Instance, Instance]
         )
       } else if (untyped.symbol.typeParams.isEmpty) {
         val returnType = untyped.symbol.typeSignatureIn(Instance).resultType.as_??
@@ -52,8 +74,27 @@ trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
         )
       } else {
         Existential[Method[Instance, *], Nothing](
-          Method.Unsupported(untyped, Instance, "Method defines type parameters")
+          Method.Unsupported(untyped, Instance)("Method defines type parameters")
         )
+      }
+    }
+
+    override def unsafeApply(
+        instanceTpe: UntypedType,
+        method: UntypedMethod
+    )(instance: Option[UntypedExpr], arguments: UntypedArguments, isConstructor: Boolean): UntypedExpr = {
+      lazy val paramSymss = parametersAt(method)(instanceTpe)
+      lazy val adaptedArguments = arguments.adaptToParams(instanceTpe, method, paramSymss)
+      instance match {
+        case None if isConstructor =>
+          // new A... or new A() or new A(b1, b2), ...
+          q"new $instanceTpe(...$adaptedArguments)"
+        case None =>
+          def valueByType(@scala.annotation.unused tpe: UntypedType): UntypedExpr = ??? // TODO: call on object
+          q"${valueByType(instanceTpe)}.${method.symbol}(...$adaptedArguments)"
+        case Some(instance) =>
+          // instance.method, or instance.method(), or instance.method(b1, b2, ...)
+          q"$instance.${method.symbol}(...$adaptedArguments)"
       }
     }
 
@@ -73,15 +114,16 @@ trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
         .toList
     }
 
-    override def parametersAt(method: UntypedMethod)(instanceTpe: UntypedType): UntypedParameters =
-      method.symbol
-        .typeSignatureIn(instanceTpe)
-        .paramLists
+    override def parametersAt(method: UntypedMethod)(instanceTpe: UntypedType): UntypedParameters = {
+      val paramss = method.symbol.typeSignatureIn(instanceTpe).paramLists
+      val indices = paramss.flatten.zipWithIndex.toMap
+      paramss
         .map(inner =>
           ListMap.from(inner.map { param =>
-            param.name.decodedName.toString -> UntypedParameter.parse(method, param.asTerm).toOption.get
+            param.name.decodedName.toString -> UntypedParameter.parse(method, param.asTerm, indices(param)).toOption.get
           })
         )
+    }
 
     override def name(method: UntypedMethod): String = method.symbol.name.decodedName.toString
     override def position(method: UntypedMethod): Position = method.symbol.pos

@@ -16,9 +16,19 @@ trait MacroTypedCommons
 
 trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
 
+  /** Throws an [[AssertionError]] with the given message.
+    *
+    * Intended to signal that there is an invalid path in macro that hasn't been properly handled.
+    *
+    * @since 0.1.0
+    */
+  def assertionFailed(message: String): Nothing = throw new AssertionError(message)
+
   implicit final class MioExprOps[A](private val io: fp.effect.MIO[Expr[A]]) {
 
     /** Expand the final result of the MIO, or fail with a message.
+      *
+      * @since 0.1.0
       *
       * @param macroName
       *   name of the macro that is being expanded, it will be used the the top scope of the logs tree
@@ -31,6 +41,8 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
       * @param renderFailure
       *   if macro expansion failed and there are both errors logs anf exceptions, this function will be called to
       *   render the error message
+      * @return
+      *   the final expression OR fails the macro expansion with the error message
       */
     def expandFinalResultOrFail(
         macroName: String,
