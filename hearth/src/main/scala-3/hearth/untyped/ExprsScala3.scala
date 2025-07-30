@@ -17,6 +17,23 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       toTyped[Result](untyped).as_??
     }
 
-    override def defaultValue(instanceTpe: UntypedType)(param: UntypedParameter): Option[UntypedExpr] = ???
+    override def defaultValue(instanceTpe: UntypedType)(param: UntypedParameter): Option[UntypedExpr] =
+      if param.hasDefault
+      then Some {
+        val sym = instanceTpe.typeSymbol
+        val companion = sym.companionModule
+        val scala2default = caseClassApplyDefaultScala2(param.index + 1)
+        val scala3default = caseClassApplyDefaultScala3(param.index + 1)
+        val default = (companion.declaredMethod(scala2default) ++ companion
+          .declaredMethod(scala3default)).headOption.getOrElse {
+          // $COVERAGE-OFF$should never happen unless we messed up
+          assertionFailed(
+            s"Expected that ${Type.prettyPrint(using instanceTpe.asTyped[Any])}'s constructor parameter `${param.paramName}` would have default value: attempted `$scala2default` and `$scala3default`, found: ${companion.declaredMethods}"
+          )
+          // $COVERAGE-ON$
+        }
+        Ref(companion).select(default)
+      }
+      else None
   }
 }

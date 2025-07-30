@@ -5,11 +5,15 @@ import scala.collection.immutable.ListMap
 
 trait Methods { this: MacroCommons =>
 
-  final class Parameter(val asUntyped: UntypedParameter, private val instanceTpe: UntypedType) {
+  final class Parameter(
+      val asUntyped: UntypedParameter,
+      private val instanceTpe: UntypedType,
+      private val parameterTpe: UntypedType
+  ) {
 
     def name: String = UntypedParameter.name(asUntyped)
 
-    // def paramType: ?? = instanceTpe.parameter(asUntyped).as_??
+    def paramType: ?? = parameterTpe.as_??
     def defaultValue: Option[Expr_??] = UntypedExpr.defaultValue(instanceTpe)(asUntyped).map(_.as_??)
     def annotations: List[Expr_??] = UntypedParameter.annotations(asUntyped).map(_.as_??)
 
@@ -83,61 +87,144 @@ trait Methods { this: MacroCommons =>
     def methodsOf[A: Type]: List[Existential[Method[A, *]]] =
       UntypedType.fromTyped[A].methods.map(UntypedMethod.toTyped[A](_))
 
-    /** Static method/stable object method */
-    final case class NoInstance[Returned](
-        val untyped: UntypedMethod,
-        val untypedInstanceType: UntypedType
-    )(implicit val returnType: Type[Returned])
-        extends Method[Nothing, Returned] {
+    /** Constructor/static method/stable object method.
+      *
+      * You are able to use the returned type with:
+      *
+      * {{{
+      * val method: Method.NoInstance[...] = ...
+      * import method.Returned
+      * // both implicit and type becomes available
+      * }}}
+      *
+      * @since 0.1.0
+      *
+      * @tparam Returned0
+      *   the return type of the method
+      * @param untyped
+      *   the untyped method
+      * @param untypedInstanceType
+      *   the untyped instance type
+      * @param isConstructor
+      *   whether the method is a constructor (or a method on object/singleton type)
+      */
+    final case class NoInstance[Returned0](
+        untyped: UntypedMethod,
+        untypedInstanceType: UntypedType,
+        isConstructor: Boolean
+    )(implicit val Returned: Type[Returned0])
+        extends Method[Nothing, Returned0] {
 
-      // TODO: call in companion object symbol or sth
+      final type Returned = Returned0
+
       val parameters: Parameters = UntypedParameters.toTyped[Returned](untyped.parametersAt(untypedInstanceType))
-      // val applyUnsafe: Arguments => Expr[Returned] = arguments =>
-      //   untypedInstanceType.unsafeApplyAt(untyped)(UntypedArguments.fromTyped(arguments)).asTyped[Returned]
+
+      val applyUnsafe: Arguments => Expr[Returned] =
+        if (isConstructor)
+          arguments => untyped.init(untypedInstanceType)(UntypedArguments.fromTyped(arguments)).asTyped[Returned]
+        else arguments => untyped(untypedInstanceType)(UntypedArguments.fromTyped(arguments)).asTyped[Returned]
 
       def isJavaGetter: Boolean = false
       def isJavaSetter: Boolean = false
 
-      // TODO: override equals and hashCode
+      // We need to compare types with =:=, on Scala 3, == does not work
+      override def equals(that: Any): Boolean = that match {
+        case that: NoInstance[?] =>
+          untyped == that.untyped && untypedInstanceType =:= that.untypedInstanceType && Returned =:= that.Returned
+        case _ => false
+      }
+      override def hashCode: Int = untyped.hashCode
     }
 
-    /** Instance method */
-    final case class OfInstance[Instance, Returned](
-        val untyped: UntypedMethod,
-        val untypedInstanceType: UntypedType
-    )(implicit val returnType: Type[Returned])
-        extends Method[Instance, Returned] {
+    /** Instance method.
+      *
+      * You are able to use the instance type with:
+      *
+      * {{{
+      * val method: Method.OfInstance[..., ...] = ...
+      * import method.{ Instance, Returned }
+      * // both implicit and type becomes available
+      * }}}
+      *
+      * @since 0.1.0
+      *
+      * @tparam Instance0
+      *   the type of the instance (with all type parameters applied!)
+      * @tparam Returned0
+      *   the return type of the method
+      * @param untyped
+      *   the untyped method
+      * @param untypedInstanceType
+      *   the untyped instance type
+      */
+    final case class OfInstance[Instance0, Returned0](
+        untyped: UntypedMethod,
+        untypedInstanceType: UntypedType
+    )(implicit val Returned: Type[Returned0])
+        extends Method[Instance0, Returned0] {
 
-      implicit val instanceType: Type[Instance] = UntypedType.toTyped[Instance](untypedInstanceType)
+      final type Returned = Returned0
+
+      final type Instance = Instance0
+      implicit val Instance: Type[Instance] = UntypedType.toTyped[Instance](untypedInstanceType)
 
       val parameters: Parameters = UntypedParameters.toTyped[Instance](untyped.parametersAt(untypedInstanceType))
-      // val applyUnsafe: (Expr[Instance], Arguments) => Expr[Returned] = (instance, arguments) =>
-      //   untypedInstanceType.unsafeApplyAt(untyped)(UntypedArguments.fromTyped(arguments)).asTyped[Returned]
+
+      val applyUnsafe: (Expr[Instance], Arguments) => Expr[Returned] = (instance, arguments) =>
+        untyped(untypedInstanceType, instance.asUntyped)(UntypedArguments.fromTyped(arguments)).asTyped[Returned]
 
       lazy val isJavaGetter: Boolean = isAccessor && (
-        (name.startsWith("get") && name.length > 3 && !(instanceType <:< Type.of[Unit])) ||
-          (name.startsWith("is") && name.length > 2 && (instanceType <:< Type.of[Boolean]))
+        (name.startsWith("get") && name.length > 3 && !(Returned <:< Type.of[Unit])) ||
+          (name.startsWith("is") && name.length > 2 && (Returned <:< Type.of[Boolean]))
       )
       lazy val isJavaSetter: Boolean = isUnary &&
-        (name.startsWith("set") && name.length > 3 && instanceType <:< Type.of[Unit])
+        (name.startsWith("set") && name.length > 3 && Returned <:< Type.of[Unit])
 
-      // TODO: override equals and hashCode
+      // We need to compare types with =:=, on Scala 3, == does not work
+      override def equals(that: Any): Boolean = that match {
+        case that: OfInstance[?, ?] =>
+          untyped == that.untyped && untypedInstanceType =:= that.untypedInstanceType && Returned =:= that.Returned
+        case _ => false
+      }
+      override def hashCode: Int = untyped.hashCode
     }
 
-    /** Everything that we cannot handle with the above (polymorphic methods) */
+    /** Everything that we cannot handle with the above (e.g. polymorphic methods).
+      *
+      * @since 0.1.0
+      *
+      * @tparam Instance
+      *   the type of the instance (with all type parameters applied!) - phantom type
+      * @tparam Returned
+      *   the return type of the method - phantom type
+      * @param untyped
+      *   the untyped method
+      * @param untypedInstanceType
+      *   the untyped instance type
+      * @param reasonForUnsupported
+      *   the reason why this method is unsupported
+      */
     final case class Unsupported[Instance, Returned](
-        val untyped: UntypedMethod,
-        val untypedInstanceType: UntypedType,
-        val reasonForUnsupported: String
-    ) extends Method[Instance, Returned] {
+        untyped: UntypedMethod,
+        untypedInstanceType: UntypedType
+    )(val reasonForUnsupported: String)
+        extends Method[Instance, Returned] {
 
       val parameters: Parameters = List.empty
 
       def isJavaGetter: Boolean = false
       def isJavaSetter: Boolean = false
+
+      // We need to compare types with =:=, on Scala 3, == does not work
+      override def equals(that: Any): Boolean = that match {
+        case that: Unsupported[?, ?] => untyped == that.untyped && untypedInstanceType =:= that.untypedInstanceType
+        case _                       => false
+      }
+      override def hashCode: Int = untyped.hashCode
     }
   }
 
+  /** Where do we need to access the method? (The use case, not the visibility). */
   sealed trait Accessible extends Product with Serializable
 
   /** Class/Method is public */

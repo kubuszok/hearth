@@ -32,6 +32,11 @@ trait Exprs { this: MacroCommons =>
     def as_??(untyped: UntypedExpr): Expr_??
 
     def defaultValue(untyped: UntypedType)(param: UntypedParameter): Option[UntypedExpr]
+
+    // defaults methods are 1-indexed
+    final protected def classNewDefaultScala2(idx: Int): String = "<init>$default$" + idx
+    final protected def caseClassApplyDefaultScala2(idx: Int): String = "apply$default$" + idx
+    final protected def caseClassApplyDefaultScala3(idx: Int): String = "$lessinit$greater$default$" + idx
   }
 
   implicit final class UntypedExprMethods(private val untyped: UntypedExpr) {
