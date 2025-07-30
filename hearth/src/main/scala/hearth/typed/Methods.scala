@@ -117,7 +117,7 @@ trait Methods { this: MacroCommons =>
 
       final type Returned = Returned0
 
-      val parameters: Parameters = UntypedParameters.toTyped[Returned](untyped.parametersAt(untypedInstanceType))
+      val parameters: Parameters = UntypedParameters.toTyped[Returned](untyped.parameters)
 
       val applyUnsafe: Arguments => Expr[Returned] =
         if (isConstructor)
@@ -168,7 +168,7 @@ trait Methods { this: MacroCommons =>
       final type Instance = Instance0
       implicit val Instance: Type[Instance] = UntypedType.toTyped[Instance](untypedInstanceType)
 
-      val parameters: Parameters = UntypedParameters.toTyped[Instance](untyped.parametersAt(untypedInstanceType))
+      val parameters: Parameters = UntypedParameters.toTyped[Instance](untyped.parameters)
 
       val applyUnsafe: (Expr[Instance], Arguments) => Expr[Returned] = (instance, arguments) =>
         untyped(untypedInstanceType, instance.asUntyped)(UntypedArguments.fromTyped(arguments)).asTyped[Returned]
