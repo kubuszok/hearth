@@ -3,7 +3,7 @@ package untyped
 
 import scala.collection.immutable.ListMap
 
-trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
+trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
   import c.universe.*
 
@@ -11,11 +11,16 @@ trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
 
   object UntypedParameter extends UntypedParameterModule {
 
+    object platformSpecific {
+
+      def paramName(param: Symbol): String = param.name.decodedName.toString
+    }
+
     def parse(method: UntypedMethod, symbol: Symbol, index: Int): Either[String, UntypedParameter] =
       if (symbol.isTerm) Right(new UntypedParameter(method, symbol.asTerm, index))
       else Left(s"Expected param Symbol, got $symbol")
 
-    override def name(param: UntypedParameter): String = param.symbol.name.decodedName.toString
+    override def name(param: UntypedParameter): String = platformSpecific.paramName(param.symbol)
 
     override def annotations(param: UntypedParameter): List[UntypedExpr] =
       param.symbol.annotations.map { ann =>
@@ -37,7 +42,7 @@ trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
         .typeSignatureIn(instanceTpe)
         .paramLists
         .flatten
-        .map(param => param.name.decodedName.toString -> param.typeSignatureIn(instanceTpe))
+        .map(param => UntypedParameter.platformSpecific.paramName(param) -> param.typeSignatureIn(instanceTpe))
         .toMap
 
       untyped.map { params =>
@@ -120,7 +125,8 @@ trait MethodsScala2 extends Methods { this: MacroCommonsScala2 =>
       paramss
         .map(inner =>
           ListMap.from(inner.map { param =>
-            param.name.decodedName.toString -> UntypedParameter.parse(method, param.asTerm, indices(param)).toOption.get
+            UntypedParameter.platformSpecific
+              .paramName(param.asTerm) -> UntypedParameter.parse(method, param.asTerm, indices(param)).toOption.get
           })
         )
     }

@@ -3,7 +3,7 @@ package untyped
 
 import hearth.MacroCommonsScala2
 
-trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
+trait UntypedExprsScala2 extends UntypedExprs { this: MacroCommonsScala2 =>
 
   import c.universe.*
 

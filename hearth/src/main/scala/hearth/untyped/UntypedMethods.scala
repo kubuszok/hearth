@@ -5,7 +5,7 @@ import hearth.compat.*
 import scala.collection.immutable.ListMap
 import scala.collection.compat.*
 
-trait Methods { this: MacroCommons =>
+trait UntypedMethods { this: MacroCommons =>
 
   /** Platform-specific untyped parameter representation (`c.universe.TermSymbol` in 2, `quotes.reflect.Symbol` in 3)
     * together with an [[UntypedMethod]] to which it belongs.

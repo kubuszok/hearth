@@ -1,7 +1,7 @@
 package hearth
 package untyped
 
-trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
+trait UntypedExprsScala3 extends UntypedExprs { this: MacroCommonsScala3 =>
 
   import quotes.*, quotes.reflect.*
 

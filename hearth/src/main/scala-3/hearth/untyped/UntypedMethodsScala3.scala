@@ -3,11 +3,11 @@ package untyped
 
 import scala.collection.immutable.ListMap
 
-trait MethodsScala3 extends Methods { this: MacroCommonsScala3 =>
+trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
   import quotes.*, quotes.reflect.*
 
-  final class UntypedParameter private (val method: UntypedMethod, private val symbol: Symbol, val index: Int)
+  final class UntypedParameter private (val method: UntypedMethod, val symbol: Symbol, val index: Int)
 
   object UntypedParameter extends UntypedParameterModule {
 

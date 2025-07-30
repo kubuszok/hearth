@@ -6,7 +6,7 @@ import hearth.fp.ignore
 import scala.collection.compat.*
 import scala.collection.immutable.ListMap
 
-trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
+trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
   import c.universe.*
   import Type.platformSpecific.*
