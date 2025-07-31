@@ -117,5 +117,7 @@ trait UntypedTypes { this: MacroCommons =>
     def defaultValue(param: UntypedParameter): Option[UntypedExpr] = UntypedExpr.defaultValue(untyped)(param)
 
     def annotations: List[UntypedExpr] = UntypedType.annotations(untyped)
+
+    def prettyPrint: String = Type.prettyPrint(using untyped.asTyped[Any])
   }
 }
