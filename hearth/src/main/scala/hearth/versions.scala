@@ -24,7 +24,8 @@ object ScalaVersion {
       // when using e.g. scala.quotes.runtime.impl.QuotesImpl
       case s"scala3-compiler_3-$major.$minor.$patch.jar" => ScalaVersion(major.toInt, minor.toInt, patch.toInt)
       // when using e.g. blackbox.Context
-      case s"scala-reflect-$major.$minor.$patch.jar" => ScalaVersion(major.toInt, minor.toInt, patch.toInt)
+      case s"scala-compiler-$major.$minor.$patch.jar" => ScalaVersion(major.toInt, minor.toInt, patch.toInt)
+      case s"scala-reflect-$major.$minor.$patch.jar"  => ScalaVersion(major.toInt, minor.toInt, patch.toInt)
       case _ => throw new RuntimeException(s"Cannot resolve Scala version from library: $library")
     }
   }

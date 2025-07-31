@@ -18,9 +18,9 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
 
   object Environment extends EnvironmentModule {
 
-    override val currentScalaVersion: ScalaVersion = ScalaVersion.resolveByLibrary(quotes)
+    override lazy val currentScalaVersion: ScalaVersion = ScalaVersion.resolveByLibrary(quotes)
 
-    override val XMacroSettings: List[String] = {
+    override lazy val XMacroSettings: List[String] = {
       // workaround to contain @experimental from polluting the whole codebase
       val info = quotes.reflect.CompilationInfo
       info.getClass.getMethod("XmacroSettings").invoke(info).asInstanceOf[List[String]]

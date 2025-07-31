@@ -32,8 +32,7 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
          |Type.isObject: ${Type.isObject[A]}
          |Type.isVal:    ${Type.isVal[A]}
          |
-         |Type.isPublic:        ${Type.isPublic[A]}
-         |Type.isAvailableHere: ${Type.isAvailableHere[A]}""".stripMargin
+         |Type.isAvailable(Everywhere): ${Type.isAvailable[A](Everywhere)}""".stripMargin
     )
   catch {
     case e: Throwable =>

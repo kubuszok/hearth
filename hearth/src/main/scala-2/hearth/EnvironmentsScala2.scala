@@ -16,9 +16,9 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
 
   object Environment extends EnvironmentModule {
 
-    override val currentScalaVersion: ScalaVersion = ScalaVersion.resolveByLibrary(c)
+    override lazy val currentScalaVersion: ScalaVersion = ScalaVersion.resolveByLibrary(c)
 
-    override val XMacroSettings: List[String] = c.settings
+    override lazy val XMacroSettings: List[String] = c.settings
 
     override def reportInfo(msg: String): Unit = c.echo(c.enclosingPosition, msg)
     override def reportWarn(msg: String): Unit = c.warning(c.enclosingPosition, msg)
