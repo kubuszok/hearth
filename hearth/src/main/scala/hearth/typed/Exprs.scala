@@ -129,7 +129,16 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     implicit lazy val StringExprCodec: ExprCodec[String] = Expr.StringExprCodec
   }
 
-  /** Provides support for building pattern-matching expressions. */
+  /** Provides support for building pattern-matching expressions.
+    *
+    * {{{
+    * expr.matchOn(
+    *   MatchCase.typeMatch[A]("aName"), // TODO
+    * )
+    * }}}
+    *
+    * @since 0.1.0
+    */
   type MatchCase[A]
 
   val MatchCase: MatchCaseModule
@@ -184,6 +193,13 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     * Will take care of opening and closing that scope, which makes it easier to e.g. not use the definition before it
     * was defined.
     *
+    * {{{
+    * Scoped.createVal(Expr(1), "a").use { (a: Expr[A]) =>
+    *   createExprB(a): Expr[B] // use a
+    * } // : Expr[B]
+    * // a is not accessible here
+    * }}}
+    *
     * @since 0.1.0
     */
   val Scoped: ScopedModule
@@ -224,9 +240,27 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     * as such case makes it impossible to use: `(Expr[A], Expr[B], ...) => { ... }` approach (unknown return type) with
     * direct style (it has no error aggregation).
     *
+    * {{{
+    * // Simple case (where builder is not actually needed)
+    * LambdaBuilder.of1[A]("a").buildWith { (a: Expr[A]) =>
+    *   // use a
+    *   createExprB(a): Expr[B]
+    * } // : Expr[A => B]
+    *
+    * // More complex case (where builder is needed to aggregate errors)
+    * LambdaBuilder.of1[A]("a").traverse[MIO, B] { (a: Expr[A]) =>
+    *   // use a
+    *   createExprBOrError(a): MIO[Expr[B]]
+    * }.map(_.build) // : MIO[Expr[A => B]]
+    * }}}
+    *
     * If we don't need to aggregate errors, we can use direct-style to combine partial results inside the lambda body.
     *
-    * If we are not building a lambda but normal expression we can use [[Scoped]] with Applicative/Parallel/Traverse
+    * {{{
+    * Expr.quote { (a: A) => Expr.unquote(createExprB(Expr.quote(a))) } // : Expr[A => B]
+    * }}}
+    *
+    * If we are not building a lambda, but a normal expression we can use [[Scoped]] with Applicative/Parallel/Traverse
     * combinators.
     *
     * @since 0.1.0

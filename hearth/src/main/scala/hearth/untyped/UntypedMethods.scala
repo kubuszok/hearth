@@ -7,7 +7,17 @@ import scala.collection.compat.*
 
 trait UntypedMethods { this: MacroCommons =>
 
-  /** Defines how we should call the method. */
+  /** Defines how we should call the method.
+    *
+    * As an user you shouldn't be concerned with this, but it is important when generating [[Expr]] of a method call,
+    * since AST is different for constructors and normal methods calls, and we don't want to require passing an instance
+    * if something is a static method or package object method.
+    *
+    * Internal utilities like [[UntypedMethod.unsafeApply]] can use this to generate the right AST, but it is
+    * recommended to use safe `apply` on pattern-matched typed [[Method]] instead.
+    *
+    * @since 0.1.0
+    */
   sealed trait Invocation extends Product with Serializable
   object Invocation {
     sealed trait WithoutInstance extends Invocation
@@ -18,7 +28,13 @@ trait UntypedMethods { this: MacroCommons =>
   }
 
   /** Platform-specific untyped parameter representation (`c.universe.TermSymbol` in 2, `quotes.reflect.Symbol` in 3)
-    * together with an [[UntypedMethod]] to which it belongs.
+    * together with some helper data, an [[UntypedMethod]] to which it belongs, or its index in the method's parameters
+    * (useful if the parameter has a default value).
+    *
+    * Does not resolve the type of the parameter, yet, because it might depend on the instance's type parameters,
+    * method's type parameters, etc.
+    *
+    * @since 0.1.0
     */
   type UntypedParameter <: UntypedParameterMethods
 
@@ -31,6 +47,8 @@ trait UntypedMethods { this: MacroCommons =>
   trait UntypedParameterMethods { this: UntypedParameter =>
 
     def name: String
+    def index: Int
+    def position: Option[Position]
     def annotations: List[UntypedExpr]
 
     def isByName: Boolean
@@ -40,7 +58,12 @@ trait UntypedMethods { this: MacroCommons =>
     def default(instanceTpe: UntypedType): Option[UntypedExpr] = UntypedExpr.defaultValue(instanceTpe)(this)
   }
 
-  /** Ordered map of [[UntypedParameter]]s by their name. */
+  /** Ordered map of [[UntypedParameter]]s by their name.
+    *
+    * Parameters are grouped just like the parameters list they represent.
+    *
+    * @since 0.1.0
+    */
   type UntypedParameters = List[ListMap[String, UntypedParameter]]
 
   val UntypedParameters: UntypedParametersModule
@@ -53,6 +76,16 @@ trait UntypedMethods { this: MacroCommons =>
     def toTyped[Instance: Type](untyped: UntypedParameters): Parameters
   }
 
+  /** Map of argument values by their names.
+    *
+    * This map is flat because arguments would be matched by their name, so the order in which we have them here is
+    * irrelevent, the important part is that all non-optional arguments should be present and have the right type.
+    *
+    * While it does not not verify if all arguments are present and if they have the expected type, it is expected in
+    * [[UntypedMethod.unsafeApply]] that [[UntypedExpr]]s represent the values of the correct type.
+    *
+    * @since 0.1.0
+    */
   type UntypedArguments = Map[String, UntypedExpr]
   object UntypedArguments {
 
@@ -62,10 +95,7 @@ trait UntypedMethods { this: MacroCommons =>
 
   implicit final class UntypedArgumentsMethods(private val arguments: UntypedArguments) {
 
-    def adaptToParams(
-        instanceTpe: UntypedType,
-        method: UntypedMethod
-    ): List[List[UntypedExpr]] =
+    def adaptToParams(instanceTpe: UntypedType, method: UntypedMethod): List[List[UntypedExpr]] =
       method.parameters.map { params =>
         params.view.map { case (paramName, untyped) =>
           arguments.get(paramName).orElse(untyped.default(instanceTpe)).getOrElse {
@@ -77,14 +107,17 @@ trait UntypedMethods { this: MacroCommons =>
       }
   }
 
-  /** Platform-specific method representation (`c.universe.MethodSymbol` in 2, `quotes.reflect.Symbol` in 3) */
+  /** Platform-specific method representation (`c.universe.MethodSymbol` in 2, `quotes.reflect.Symbol` in 3).
+    *
+    * @since 0.1.0
+    */
   type UntypedMethod <: UntypedMethodMethods
 
   val UntypedMethod: UntypedMethodModule
   trait UntypedMethodModule { this: UntypedMethod.type =>
 
     final def fromTyped[Instance, Returned](method: Method[Instance, Returned]): UntypedMethod = method.untyped
-    def toTyped[Instance: Type](untyped: UntypedMethod): Existential[Method[Instance, *]]
+    def toTyped[Instance: Type](untyped: UntypedMethod): Method.Of[Instance]
 
     def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod]
     def constructors(instanceTpe: UntypedType): List[UntypedMethod]
@@ -95,6 +128,8 @@ trait UntypedMethods { this: MacroCommons =>
 
     def invocation: Invocation
 
+    def parameters: UntypedParameters
+
     def unsafeApply(instanceTpe: UntypedType)(instance: Option[UntypedExpr], arguments: UntypedArguments): UntypedExpr
     final def unsafeApplyNoInstance(instanceTpe: UntypedType)(arguments: UntypedArguments): UntypedExpr =
       unsafeApply(instanceTpe)(None, arguments)
@@ -104,14 +139,12 @@ trait UntypedMethods { this: MacroCommons =>
       unsafeApply(instanceTpe)(Some(instance), arguments)
 
     def name: String
-    def position: Position
-
-    def parameters: UntypedParameters
+    def position: Option[Position]
 
     def annotations: List[UntypedExpr]
 
-    def isConstructorArgument: Boolean = false // TODO: priority 3
-    def isCaseField: Boolean = false // TODO: priority 3
+    def isConstructorArgument: Boolean = false // TODO: next priority?
+    def isCaseField: Boolean = false // TODO: next priority?
 
     def isVal: Boolean
     def isVar: Boolean
@@ -126,5 +159,5 @@ trait UntypedMethods { this: MacroCommons =>
   implicit lazy val UntypedMethodOrdering: Ordering[UntypedMethod] =
     // Stabilize order in case of https://github.com/scala/scala3/issues/21672 (does not solve the warnings!)
     // TODO: order Strings using lexicographic order
-    Ordering[Position].on[UntypedMethod](_.position).orElseBy(_.name)
+    Ordering[Option[Position]].on[UntypedMethod](_.position).orElseBy(_.name)
 }

@@ -5,63 +5,135 @@ import scala.collection.immutable.ListMap
 
 trait Methods { this: MacroCommons =>
 
+  /** Represents a method parameter with resolved type.
+    *
+    * Allows easier access to:
+    *   - name
+    *   - default value
+    *   - annotations
+    *   - resolved type
+    *   - checking if parameter is by-name
+    *   - checking if parameter is implicit
+    *
+    * @since 0.1.0
+    */
   final class Parameter(
       val asUntyped: UntypedParameter,
       val untypedInstanceType: UntypedType,
       val tpe: ??
   ) {
 
-    def name: String = asUntyped.name
+    lazy val name: String = asUntyped.name
+    lazy val index: Int = asUntyped.index
+    lazy val position: Option[Position] = asUntyped.position
 
-    def defaultValue: Option[Expr_??] = asUntyped.default(untypedInstanceType).map(_.as_??)
-    def annotations: List[Expr_??] = asUntyped.annotations.map(_.as_??)
+    lazy val defaultValue: Option[Expr_??] = asUntyped.default(untypedInstanceType).map(_.as_??)
+    lazy val annotations: List[Expr_??] = asUntyped.annotations.map(_.as_??)
 
-    def isByName: Boolean = asUntyped.isByName
-    def isImplicit: Boolean = asUntyped.isImplicit
+    lazy val isByName: Boolean = asUntyped.isByName
+    lazy val isImplicit: Boolean = asUntyped.isImplicit
   }
 
+  /** Ordered map of [[Parameter]]s by their name.
+    *
+    * Parameters are grouped just like the parameters list they represent.
+    *
+    * It is assumed that all type-parameters were already applied and all [[Parameter]]s have their types resolved.
+    *
+    * @since 0.1.0
+    */
   type Parameters = List[ListMap[String, Parameter]]
+
+  /** Map of argument values by their names.
+    *
+    * This map is flat because arguments would be matched by their name, so the order in which we have them here is
+    * irrelevent, the important part is that all non-optional arguments should be present and have the right type.
+    *
+    * Whether it is true is verified by [[Method.NoInstance.apply]] and [[Method.OfInstance.apply]]. It is not verified
+    * when using the [[UntypedMethod]] directly.
+    *
+    * {{{
+    * method match {
+    *   case m: Method.NoInstance[?] =>
+    *     import m.Returned
+    *     method(arguments) // Either[String, Expr[Returned]]
+    *   case m: Method.OfInstance[?, ?] =>
+    *     import m.{ Instance, Returned }
+    *     method(instance /* Expr[Instance] */, arguments) // Either[String, Expr[Returned]]
+    *   case Method.Unsupported(_, _) =>
+    *     Left(method.reasonForUnsupported)
+    * }
+    * }}}
+    *
+    * @since 0.1.0
+    */
   type Arguments = Map[String, Expr_??]
 
+  /** Represents a method, that can be called.
+    *
+    * Since not all methods are supported, and those that are can come in multiple flavors, we need to represent method
+    * as an enumeration, where you have to pattern-match on it, to know how to call it.
+    *
+    * @since 0.1.0
+    */
   sealed trait Method[+Instance, Returned] {
     val untyped: UntypedMethod
     val untypedInstanceType: UntypedType
 
-    lazy val name: String = untyped.name
+    def parameters: Parameters
 
-    final def annotations: List[Expr_??] = untyped.annotations.map(_.as_??)
+    final lazy val name: String = untyped.name
+    final lazy val position: Option[Position] = untyped.position
 
-    final def isVal: Boolean = untyped.isVal
-    final def isVar: Boolean = untyped.isVar
-    final def isLazy: Boolean = untyped.isLazy
-    final def isDef: Boolean = untyped.isDef
-    final def isInherited: Boolean = untyped.isInherited
-    final def isImplicit: Boolean = untyped.isImplicit
+    final lazy val annotations: List[Expr_??] = untyped.annotations.map(_.as_??)
+
+    final lazy val isVal: Boolean = untyped.isVal
+    final lazy val isVar: Boolean = untyped.isVar
+    final lazy val isLazy: Boolean = untyped.isLazy
+    final lazy val isDef: Boolean = untyped.isDef
+    final lazy val isInherited: Boolean = untyped.isInherited
+    final lazy val isImplicit: Boolean = untyped.isImplicit
 
     final def isAvailable(scope: Accessible): Boolean = untyped.isAvailable(scope)
 
     final lazy val arity: Int = parameters.flatten.size
     final def isNAry(n: Int): Boolean = arity == n
-    lazy val isNullary: Boolean = isNAry(0)
-    lazy val isUnary: Boolean = isNAry(1)
-    lazy val isBinary: Boolean = isNAry(2)
+    final lazy val isNullary: Boolean = isNAry(0)
+    final lazy val isUnary: Boolean = isNAry(1)
+    final lazy val isBinary: Boolean = isNAry(2)
 
-    final def isConstructorArgument: Boolean = untyped.isConstructorArgument
-    final def isCaseField: Boolean = untyped.isCaseField
+    final lazy val isConstructorArgument: Boolean = untyped.isConstructorArgument
+    final lazy val isCaseField: Boolean = untyped.isCaseField
 
-    final def isScalaGetter: Boolean = isVal || isVar || isLazy
-    final def isScalaSetter: Boolean = isVar
-    final def isScalaAccessor: Boolean = isScalaGetter || isScalaSetter
+    final lazy val isScalaGetter: Boolean = isVal || isVar || isLazy
+    final lazy val isScalaSetter: Boolean = isVar
+    final lazy val isScalaAccessor: Boolean = isScalaGetter || isScalaSetter
 
-    def isJavaGetter: Boolean
-    def isJavaSetter: Boolean
-    final def isJavaAccessor: Boolean = isJavaGetter || isJavaSetter
+    final lazy val isJavaGetter: Boolean = this match {
+      case m: Method.OfInstance[?, ?] =>
+        import m.Returned
+        isNullary &&
+        (name.startsWith("get") && name.length > 3 && !(Returned <:< Type.of[Unit])) ||
+        (name.startsWith("is") && name.length > 2 && (Returned <:< Type.of[Boolean]))
+      case _ => false
+    }
+    final lazy val isJavaSetter: Boolean = this match {
+      case m: Method.OfInstance[?, ?] =>
+        import m.Returned
+        isUnary && (name.startsWith("set") && name.length > 3 && Returned <:< Type.of[Unit])
+      case _ => false
+    }
+    final lazy val isJavaAccessor: Boolean = isJavaGetter || isJavaSetter
 
-    final def isAccessor: Boolean = isScalaAccessor || isJavaAccessor
-
-    def parameters: Parameters
+    final lazy val isAccessor: Boolean = isScalaAccessor || isJavaAccessor
   }
   object Method {
+
+    /** Nice type alias [[Method]] taking some type `A` that can be of any type.
+      *
+      * @since 0.1.0
+      */
+    type Of[A] = Existential[Method[A, *]]
 
     @scala.annotation.nowarn
     def primaryConstructorOf[A: Type]: Option[Method.NoInstance[A]] =
@@ -83,7 +155,7 @@ trait Methods { this: MacroCommons =>
         }
         else Nil
       }
-    def methodsOf[A: Type]: List[Existential[Method[A, *]]] =
+    def methodsOf[A: Type]: List[Method.Of[A]] =
       UntypedType.fromTyped[A].methods.map(UntypedMethod.toTyped[A](_))
 
     /** Constructor/static method/stable object method.
@@ -113,7 +185,7 @@ trait Methods { this: MacroCommons =>
 
       final type Returned = Returned0
 
-      val parameters: Parameters = UntypedParameters.toTyped[Returned](untyped.parameters)
+      lazy val parameters: Parameters = UntypedParameters.toTyped[Returned](untyped.parameters)
 
       def apply(arguments: Arguments): Either[String, Expr[Returned]] = {
         val issues = parameters.flatten.flatMap { case (name, parameter) =>
@@ -130,9 +202,6 @@ trait Methods { this: MacroCommons =>
           )
         else Left(issues.mkString("\n"))
       }
-
-      def isJavaGetter: Boolean = false
-      def isJavaSetter: Boolean = false
 
       // We need to compare types with =:=, on Scala 3, == does not work
       override def equals(that: Any): Boolean = that match {
@@ -175,7 +244,7 @@ trait Methods { this: MacroCommons =>
       final type Instance = Instance0
       implicit val Instance: Type[Instance] = UntypedType.toTyped[Instance](untypedInstanceType)
 
-      val parameters: Parameters = UntypedParameters.toTyped[Instance](untyped.parameters)
+      lazy val parameters: Parameters = UntypedParameters.toTyped[Instance](untyped.parameters)
 
       def apply(instance: Expr[Instance], arguments: Arguments): Either[String, Expr[Returned]] = {
         val issues = parameters.flatten.flatMap { case (name, parameter) =>
@@ -194,13 +263,6 @@ trait Methods { this: MacroCommons =>
           )
         else Left(issues.mkString("\n"))
       }
-
-      lazy val isJavaGetter: Boolean = isAccessor && (
-        (name.startsWith("get") && name.length > 3 && !(Returned <:< Type.of[Unit])) ||
-          (name.startsWith("is") && name.length > 2 && (Returned <:< Type.of[Boolean]))
-      )
-      lazy val isJavaSetter: Boolean = isUnary &&
-        (name.startsWith("set") && name.length > 3 && Returned <:< Type.of[Unit])
 
       // We need to compare types with =:=, on Scala 3, == does not work
       override def equals(that: Any): Boolean = that match {
@@ -233,9 +295,6 @@ trait Methods { this: MacroCommons =>
         extends Method[Instance, Returned] {
 
       val parameters: Parameters = List.empty
-
-      def isJavaGetter: Boolean = false
-      def isJavaSetter: Boolean = false
 
       // We need to compare types with =:=, on Scala 3, == does not work
       override def equals(that: Any): Boolean = that match {
