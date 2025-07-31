@@ -131,7 +131,9 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       def symbolName(symbol: Symbol): String = symbol.name.decodedName.toString
     }
 
-    def parse(isInherited: Boolean, module: Option[UntypedExpr])(symbol: Symbol): Either[String, UntypedMethod] =
+    private def parse(isInherited: Boolean, module: Option[UntypedExpr])(
+        symbol: Symbol
+    ): Either[String, UntypedMethod] =
       if (symbol.isMethod)
         Right(
           new UntypedMethod(
@@ -143,7 +145,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
           )
         )
       else Left(s"Expected method Symbol, got $symbol")
-    def parseOption(isInherited: Boolean, module: Option[UntypedExpr])(symbol: Symbol): Option[UntypedMethod] =
+    private def parseOption(isInherited: Boolean, module: Option[UntypedExpr])(symbol: Symbol): Option[UntypedMethod] =
       parse(isInherited, module)(symbol).toOption
 
     override def toTyped[Instance: Type](untyped: UntypedMethod): Method.Of[Instance] = {

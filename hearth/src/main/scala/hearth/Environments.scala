@@ -30,15 +30,15 @@ trait Environments {
   val Environment: EnvironmentModule
   trait EnvironmentModule { this: Environment.type =>
 
-    val currentPosition: Position = Position.current
+    lazy val currentPosition: Position = Position.current
 
-    val currentScalaVersion: ScalaVersion
-    val currentLanguageVersion: LanguageVersion = currentScalaVersion.toLanguageVersion
-    val isScala2_12: Boolean = currentLanguageVersion == LanguageVersion.Scala2_12
-    val isScala2_13: Boolean = currentLanguageVersion == LanguageVersion.Scala2_13
-    val isScala3: Boolean = currentLanguageVersion == LanguageVersion.Scala3
+    def currentScalaVersion: ScalaVersion
+    lazy val currentLanguageVersion: LanguageVersion = currentScalaVersion.toLanguageVersion
+    lazy val isScala2_12: Boolean = currentLanguageVersion == LanguageVersion.Scala2_12
+    lazy val isScala2_13: Boolean = currentLanguageVersion == LanguageVersion.Scala2_13
+    lazy val isScala3: Boolean = currentLanguageVersion == LanguageVersion.Scala3
 
-    val XMacroSettings: List[String]
+    def XMacroSettings: List[String]
 
     def reportInfo(msg: String): Unit
     def reportWarn(msg: String): Unit

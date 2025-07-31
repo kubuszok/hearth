@@ -174,8 +174,7 @@ class TypesSpec extends MacroSuite {
               |Type.isObject: false
               |Type.isVal:    false
               |
-              |Type.isPublic:        true
-              |Type.isAvailableHere: true""".stripMargin
+              |Type.isAvailable(Everywhere): true""".stripMargin
         }
       }
 
@@ -201,8 +200,7 @@ class TypesSpec extends MacroSuite {
             |Type.isObject: false
             |Type.isVal:    false
             |
-            |Type.isPublic:        true
-            |Type.isAvailableHere: true""".stripMargin
+            |Type.isAvailable(Everywhere): true""".stripMargin
         // TODO: fix isBuiltIn, isPlainOldJavaObject
         testFlags[Array[Int]] <==>
           """Type.isPrimitive: false
@@ -224,8 +222,7 @@ class TypesSpec extends MacroSuite {
             |Type.isObject: false
             |Type.isVal:    false
             |
-            |Type.isPublic:        true
-            |Type.isAvailableHere: true""".stripMargin
+            |Type.isAvailable(Everywhere): true""".stripMargin
       }
 
       test("for top-level classes (non-sealed)") {
@@ -259,8 +256,7 @@ class TypesSpec extends MacroSuite {
                |Type.isObject: false
                |Type.isVal:    false
                |
-               |Type.isPublic:        true
-               |Type.isAvailableHere: true""".stripMargin
+               |Type.isAvailable(Everywhere): true""".stripMargin
         }
       }
 
@@ -315,8 +311,7 @@ class TypesSpec extends MacroSuite {
                |Type.isObject: false
                |Type.isVal:    false
                |
-               |Type.isPublic:        true
-               |Type.isAvailableHere: true""".stripMargin
+               |Type.isAvailable(Everywhere): true""".stripMargin
         }
       }
 
@@ -350,8 +345,7 @@ class TypesSpec extends MacroSuite {
                |Type.isObject: $isObject
                |Type.isVal:    false
                |
-               |Type.isPublic:        true
-               |Type.isAvailableHere: true""".stripMargin
+               |Type.isAvailable(Everywhere): true""".stripMargin
         }
       }
     }
