@@ -23,6 +23,7 @@ trait UntypedExprsScala2 extends UntypedExprs { this: MacroCommonsScala2 =>
     override def defaultValue(instanceTpe: UntypedType)(param: UntypedParameter): Option[UntypedExpr] = if (
       param.hasDefault
     ) Some {
+      // TODO: check if constructor, otherwise we should use `name$default$idx` on instance rather than companion!!!
       lazy val companion = companionSymbol(instanceTpe.asTyped[Any])
       val scala2default = caseClassApplyDefaultScala2(param.index + 1)
       val scala3default = caseClassApplyDefaultScala3(param.index + 1)
@@ -36,7 +37,7 @@ trait UntypedExprsScala2 extends UntypedExprs { this: MacroCommonsScala2 =>
         .getOrElse {
           // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
           assertionFailed(
-            s"Expected that ${Type.prettyPrint(using instanceTpe.asTyped[Any])}'s constructor parameter `${param.paramName}` would have default value: attempted `$scala2default`, `$scala3default` and `$newDefault`, found: ${companion.typeSignature.decls}"
+            s"Expected that ${instanceTpe.prettyPrint}'s constructor parameter `${param.name}` would have default value: attempted `$scala2default`, `$scala3default` and `$newDefault`, found: ${companion.typeSignature.decls}"
           )
           // $COVERAGE-ON$
         }

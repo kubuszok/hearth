@@ -7,15 +7,14 @@ trait Methods { this: MacroCommons =>
 
   final class Parameter(
       val asUntyped: UntypedParameter,
-      private val instanceTpe: UntypedType,
-      private val parameterTpe: UntypedType
+      val untypedInstanceType: UntypedType,
+      val tpe: ??
   ) {
 
-    def name: String = UntypedParameter.name(asUntyped)
+    def name: String = asUntyped.name
 
-    def paramType: ?? = parameterTpe.as_??
-    def defaultValue: Option[Expr_??] = UntypedExpr.defaultValue(instanceTpe)(asUntyped).map(_.as_??)
-    def annotations: List[Expr_??] = UntypedParameter.annotations(asUntyped).map(_.as_??)
+    def defaultValue: Option[Expr_??] = asUntyped.default(untypedInstanceType).map(_.as_??)
+    def annotations: List[Expr_??] = asUntyped.annotations.map(_.as_??)
 
     def isByName: Boolean = asUntyped.isByName
     def isImplicit: Boolean = asUntyped.isImplicit
@@ -28,18 +27,18 @@ trait Methods { this: MacroCommons =>
     val untyped: UntypedMethod
     val untypedInstanceType: UntypedType
 
-    lazy val name: String = UntypedMethod.name(untyped)
+    lazy val name: String = untyped.name
 
-    final def annotations: List[Expr_??] = UntypedMethod.annotations(untyped).map(_.as_??)
+    final def annotations: List[Expr_??] = untyped.annotations.map(_.as_??)
 
-    final def isVal: Boolean = UntypedMethod.isVal(untyped)
-    final def isVar: Boolean = UntypedMethod.isVar(untyped)
-    final def isLazy: Boolean = UntypedMethod.isLazy(untyped)
-    final def isDef: Boolean = UntypedMethod.isDef(untyped)
-    final def isInherited: Boolean = UntypedMethod.isInherited(untyped)
-    final def isImplicit: Boolean = UntypedMethod.isImplicit(untyped)
+    final def isVal: Boolean = untyped.isVal
+    final def isVar: Boolean = untyped.isVar
+    final def isLazy: Boolean = untyped.isLazy
+    final def isDef: Boolean = untyped.isDef
+    final def isInherited: Boolean = untyped.isInherited
+    final def isImplicit: Boolean = untyped.isImplicit
 
-    final def isAvailable(scope: Accessible): Boolean = UntypedMethod.isAvailable(untyped, scope)
+    final def isAvailable(scope: Accessible): Boolean = untyped.isAvailable(scope)
 
     final lazy val arity: Int = parameters.flatten.size
     final def isNAry(n: Int): Boolean = arity == n
@@ -47,11 +46,11 @@ trait Methods { this: MacroCommons =>
     lazy val isUnary: Boolean = isNAry(1)
     lazy val isBinary: Boolean = isNAry(2)
 
-    final def isCaseField: Boolean = ??? // TODO: priority 3
+    final def isConstructorArgument: Boolean = untyped.isConstructorArgument
+    final def isCaseField: Boolean = untyped.isCaseField
 
-    // TODO: let's check the definition of accessor
-    final def isScalaGetter: Boolean = ??? // TODO: priority 3
-    final def isScalaSetter: Boolean = ??? // TODO: priority 3
+    final def isScalaGetter: Boolean = isVal || isVar || isLazy
+    final def isScalaSetter: Boolean = isVar
     final def isScalaAccessor: Boolean = isScalaGetter || isScalaSetter
 
     def isJavaGetter: Boolean
@@ -105,13 +104,10 @@ trait Methods { this: MacroCommons =>
       *   the untyped method
       * @param untypedInstanceType
       *   the untyped instance type
-      * @param isConstructor
-      *   whether the method is a constructor (or a method on object/singleton type)
       */
     final case class NoInstance[Returned0](
         untyped: UntypedMethod,
-        untypedInstanceType: UntypedType,
-        isConstructor: Boolean
+        untypedInstanceType: UntypedType
     )(implicit val Returned: Type[Returned0])
         extends Method[Nothing, Returned0] {
 
@@ -119,10 +115,21 @@ trait Methods { this: MacroCommons =>
 
       val parameters: Parameters = UntypedParameters.toTyped[Returned](untyped.parameters)
 
-      val applyUnsafe: Arguments => Expr[Returned] =
-        if (isConstructor)
-          arguments => untyped.init(untypedInstanceType)(UntypedArguments.fromTyped(arguments)).asTyped[Returned]
-        else arguments => untyped(untypedInstanceType)(UntypedArguments.fromTyped(arguments)).asTyped[Returned]
+      def apply(arguments: Arguments): Either[String, Expr[Returned]] = {
+        val issues = parameters.flatten.flatMap { case (name, parameter) =>
+          arguments.get(name) match {
+            case None        => Some(s"Missing $name parameter")
+            case Some(value) =>
+              if (value.Underlying <:< parameter.tpe.Underlying) None
+              else Some(s"Invalid $name parameter type: !(${value.Underlying} <:< ${parameter.tpe.Underlying})")
+          }
+        }
+        if (issues.isEmpty)
+          Right(
+            untyped.unsafeApplyNoInstance(untypedInstanceType)(UntypedArguments.fromTyped(arguments)).asTyped[Returned]
+          )
+        else Left(issues.mkString("\n"))
+      }
 
       def isJavaGetter: Boolean = false
       def isJavaSetter: Boolean = false
@@ -170,8 +177,23 @@ trait Methods { this: MacroCommons =>
 
       val parameters: Parameters = UntypedParameters.toTyped[Instance](untyped.parameters)
 
-      val applyUnsafe: (Expr[Instance], Arguments) => Expr[Returned] = (instance, arguments) =>
-        untyped(untypedInstanceType, instance.asUntyped)(UntypedArguments.fromTyped(arguments)).asTyped[Returned]
+      def apply(instance: Expr[Instance], arguments: Arguments): Either[String, Expr[Returned]] = {
+        val issues = parameters.flatten.flatMap { case (name, parameter) =>
+          arguments.get(name) match {
+            case None        => Some(s"Missing $name parameter")
+            case Some(value) =>
+              if (value.Underlying <:< parameter.tpe.Underlying) None
+              else Some(s"Invalid $name parameter type: !(${value.Underlying} <:< ${parameter.tpe.Underlying})")
+          }
+        }
+        if (issues.isEmpty)
+          Right(
+            untyped
+              .unsafeApplyInstance(untypedInstanceType)(instance.asUntyped, UntypedArguments.fromTyped(arguments))
+              .asTyped[Returned]
+          )
+        else Left(issues.mkString("\n"))
+      }
 
       lazy val isJavaGetter: Boolean = isAccessor && (
         (name.startsWith("get") && name.length > 3 && !(Returned <:< Type.of[Unit])) ||
