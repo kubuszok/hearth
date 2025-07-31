@@ -11,6 +11,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       extends UntypedParameterMethods {
 
     override def name: String = symbol.name
+    override def position: Option[Position] = symbol.pos
+
     override def annotations: List[UntypedExpr] = symbol.annotations
 
     override def isByName: Boolean = symbol.typeRef.simplified match {
@@ -132,12 +134,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     }
 
     lazy val name: String = symbol.name
-    override def position: Position =
-      symbol.pos
-        // Prevent crashed in case of https://github.com/scala/scala3/issues/21672
-        .filter(pos => scala.util.Try(pos.start).isSuccess)
-        // TODO?
-        .getOrElse(Position.current)
+    override def position: Option[Position] = symbol.pos
 
     override def annotations: List[UntypedExpr] = symbol.annotations
 
@@ -171,7 +168,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     def parseOption(isInherited: Boolean, module: Option[UntypedExpr])(symbol: Symbol): Option[UntypedMethod] =
       parse(isInherited, module)(symbol).toOption
 
-    override def toTyped[Instance: Type](untyped: UntypedMethod): Existential[Method[Instance, *]] = {
+    override def toTyped[Instance: Type](untyped: UntypedMethod): Method.Of[Instance] = {
       val Instance = UntypedType.fromTyped[Instance]
       lazy val (typeParams, valueParams) = untyped.symbol.paramSymss.partition(_.exists(_.isType))
       untyped.invocation match {

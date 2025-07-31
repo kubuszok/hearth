@@ -42,7 +42,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def fromTyped[A: Type]: UntypedType = TypeRepr.of[A]
     override def toTyped[A](untyped: UntypedType): Type[A] = untyped.asType.asInstanceOf[Type[A]]
 
-    override def fromClass(clazz: Class[?]): UntypedType = TypeRepr.typeConstructorOf(clazz)
+    override def position(untyped: UntypedType): Option[Position] = untyped.typeSymbol.pos
+
+    override def fromClass(clazz: java.lang.Class[?]): UntypedType = TypeRepr.typeConstructorOf(clazz)
 
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol

@@ -7,12 +7,13 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
   import c.universe.*
 
-  import UntypedMethod.platformSpecific.symbolName
+  import UntypedMethod.platformSpecific.{positionOf, symbolName}
 
   final class UntypedParameter private (val method: UntypedMethod, val symbol: TermSymbol, val index: Int)
       extends UntypedParameterMethods {
 
     override def name: String = symbolName(symbol)
+    override def position: Option[Position] = positionOf(symbol)
 
     override def annotations: List[UntypedExpr] =
       symbol.annotations.map { ann =>
@@ -98,7 +99,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     }
 
     lazy val name: String = symbolName(symbol)
-    override def position: Position = symbol.pos
+    override def position: Option[Position] = positionOf(symbol)
 
     override def annotations: List[UntypedExpr] =
       symbol.annotations.map { ann =>
@@ -121,6 +122,12 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
     object platformSpecific {
 
+      def positionOf(symbol: Symbol): Option[Position] =
+        Option(symbol.pos)
+          .filter(_ != NoPosition)
+          // Prevent crashed in case of https://github.com/scala/scala3/issues/21672
+          .filter(pos => scala.util.Try(pos.start).isSuccess)
+
       def symbolName(symbol: Symbol): String = symbol.name.decodedName.toString
     }
 
@@ -139,7 +146,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     def parseOption(isInherited: Boolean, module: Option[UntypedExpr])(symbol: Symbol): Option[UntypedMethod] =
       parse(isInherited, module)(symbol).toOption
 
-    override def toTyped[Instance: Type](untyped: UntypedMethod): Existential[Method[Instance, *]] = {
+    override def toTyped[Instance: Type](untyped: UntypedMethod): Method.Of[Instance] = {
       val Instance = UntypedType.fromTyped[Instance]
       untyped.invocation match {
         case Invocation.Constructor | Invocation.OnModule(_) =>

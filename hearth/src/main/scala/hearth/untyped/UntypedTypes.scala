@@ -33,7 +33,9 @@ trait UntypedTypes { this: MacroCommons =>
     def toTyped[A](untyped: UntypedType): Type[A]
     final def as_??(untyped: UntypedType): ?? = toTyped[Any](untyped).as_??
 
-    def fromClass(clazz: Class[?]): UntypedType
+    def position(untyped: UntypedType): Option[Position]
+
+    def fromClass(clazz: java.lang.Class[?]): UntypedType
 
     final def isPrimitive(instanceTpe: UntypedType): Boolean =
       Type.primitiveTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
@@ -82,6 +84,8 @@ trait UntypedTypes { this: MacroCommons =>
 
     def asTyped[A]: Type[A] = UntypedType.toTyped(untyped)
     def as_?? : ?? = UntypedType.as_??(untyped)
+
+    def position: Option[Position] = UntypedType.position(untyped)
 
     def isPrimitive: Boolean = UntypedType.isPrimitive(untyped)
     def isBuiltIn: Boolean = UntypedType.isBuiltIn(untyped)

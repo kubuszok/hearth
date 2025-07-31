@@ -34,7 +34,10 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     override def fromTyped[A: Type]: UntypedType = c.weakTypeOf[A]
     override def toTyped[A](untyped: UntypedType): Type[A] = c.WeakTypeTag(untyped)
 
-    override def fromClass(clazz: Class[?]): UntypedType = c.mirror.staticClass(clazz.getName).typeSignature
+    override def position(untyped: UntypedType): Option[Position] =
+      UntypedMethod.platformSpecific.positionOf(untyped.typeSymbol)
+
+    override def fromClass(clazz: java.lang.Class[?]): UntypedType = c.mirror.staticClass(clazz.getName).typeSignature
 
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol

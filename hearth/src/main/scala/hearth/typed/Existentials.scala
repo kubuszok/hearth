@@ -13,7 +13,7 @@ trait Existentials { this: MacroCommons =>
     *
     * {{{
     * val existentialExpr: Existential[Expr] = ...
-    * import existentialExpr.{ Underlying as ExprType, expr }
+    * import existentialExpr.{ Underlying as ExprType, value as expr }
     * // now we have:
     * // implicit ExprType: Type[ExprType]
     * // expr: Expr[ExprType]

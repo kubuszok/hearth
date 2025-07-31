@@ -42,6 +42,8 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     final def plainPrint[A: Type]: String = removeAnsiColors(prettyPrint[A])
     def prettyPrint[A: Type]: String
 
+    final def position[A: Type]: Option[Position] = UntypedType.fromTyped[A].position
+
     final def directChildren[A: Type]: Option[ListMap[String, ??<:[A]]] =
       UntypedType.fromTyped[A].directChildren.map(m => ListMap.from(m.view.mapValues(_.asTyped[A].as_??<:[A])))
     final def exhaustiveChildren[A: Type]: Option[ListMap[String, ??<:[A]]] =
@@ -116,6 +118,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     val NullCodec: TypeCodec[Null]
 
     private object ModuleCodecImpl extends TypeCodec[Any] {
+
       def toType[A](value: A): Type[A] = UntypedType.fromClass(value.getClass).asTyped[A]
 
       def fromType[A](tpe: Type[A]): Option[Existential.UpperBounded[Any, Id]] = {
@@ -136,7 +139,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
       private object ModuleSingleton {
         def unapply(className: String): Option[Any] =
           try
-            Option(Class.forName(className).getField("MODULE$").get(null))
+            Option(java.lang.Class.forName(className).getField("MODULE$").get(null))
           catch {
             case _: Throwable => None
           }
@@ -153,11 +156,13 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     def plainPrint: String = Type.plainPrint(using tpe)
     def prettyPrint: String = Type.prettyPrint(using tpe)
 
+    def position: Option[Position] = Type.position(using tpe)
+
     def primaryConstructor: Option[Method.NoInstance[A]] = Method.primaryConstructorOf(using tpe)
     def defaultConstructor: Option[Method.NoInstance[A]] = constructors.find(_.isNullary)
     def constructors: List[Method.NoInstance[A]] = Method.constructorsOf(using tpe)
 
-    def methods: List[Existential[Method[A, *]]] = Method.methodsOf(using tpe)
+    def methods: List[Method.Of[A]] = Method.methodsOf(using tpe)
 
     def directChildren: Option[ListMap[String, ??<:[A]]] = Type.directChildren(using tpe)
     def exhaustiveChildren: Option[ListMap[String, ??<:[A]]] = Type.exhaustiveChildren(using tpe)
@@ -225,10 +230,12 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     * @since 0.1.0
     */
   trait TypeCodec[U] {
+
     def toType[A <: U](value: A): Type[A]
     def fromType[A](tpe: Type[A]): Option[Existential.UpperBounded[U, Id]]
   }
   object TypeCodec {
+
     def apply[A](implicit codec: TypeCodec[A]): TypeCodec[A] = codec
 
     // TODO: more instances - for starters cover all types in covered by ToExpr i FromExpr in Quotes
