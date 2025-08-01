@@ -1,8 +1,6 @@
 package hearth
 package untyped
 
-import hearth.MacroCommonsScala2
-
 trait UntypedExprsScala2 extends UntypedExprs { this: MacroCommonsScala2 =>
 
   import c.universe.*

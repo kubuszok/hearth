@@ -1,9 +1,7 @@
 package hearth
 package untyped
 
-import hearth.compat.*
 import hearth.fp.ignore
-import scala.collection.compat.*
 import scala.collection.immutable.ListMap
 
 trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>

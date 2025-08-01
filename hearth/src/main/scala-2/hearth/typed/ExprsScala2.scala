@@ -20,7 +20,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       ) extends ExprCodec[A] {
 
         override def toExpr(value: A): Expr[A] = typeCodec match {
-          case Some(codec) if !Environment.isScala2_12 =>
+          case Some(codec) =>
             val aType = codec.toType(value).as_??
             import aType.Underlying as B
             c.Expr[B](to.apply(value)).asInstanceOf[Expr[A]]
@@ -94,10 +94,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       else c.Expr[B](q"($expr : ${Type[B]})") // check A <:< B AND add a syntax to force upcasting
     }
 
-    override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] =
-      // In Scala 2.12 suppressing two variables at once resulted in "_ is already defined as value _" error
-      if (Environment.isScala2_12) c.Expr[Unit](q"_root_.scala.Predef.locally { val _ = $expr }")
-      else c.Expr[Unit](q"val _ = $expr")
+    override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = c.Expr[Unit](q"val _ = $expr")
 
     override val BooleanExprCodec: ExprCodec[Boolean] = ExprCodec.withTypeCodec[Boolean]
     override val IntExprCodec: ExprCodec[Int] = ExprCodec.withTypeCodec[Int]

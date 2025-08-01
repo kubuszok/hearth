@@ -1,7 +1,5 @@
 package hearth
 
-import hearth.compat.*
-
 trait Environments {
 
   /** Platform-specific position representation (`c.universe.Position` in 2, `quotes.reflect.Position` in 3). */
@@ -34,7 +32,6 @@ trait Environments {
 
     def currentScalaVersion: ScalaVersion
     lazy val currentLanguageVersion: LanguageVersion = currentScalaVersion.toLanguageVersion
-    lazy val isScala2_12: Boolean = currentLanguageVersion == LanguageVersion.Scala2_12
     lazy val isScala2_13: Boolean = currentLanguageVersion == LanguageVersion.Scala2_13
     lazy val isScala3: Boolean = currentLanguageVersion == LanguageVersion.Scala3
 

@@ -22,12 +22,12 @@ object instances {
 
     def traverse[G[_]: Applicative, A, B](fa: List[A])(f: A => G[B]): G[List[B]] =
       fa.foldLeft(new ListBuffer[B].pure[G]) { (bufferG, a) =>
-        bufferG.map2(f(a)) { (buf: ListBuffer[B], b: B) => buf.append(b); buf } // can't use append 'cause 2.12
+        bufferG.map2(f(a))(_.append(_))
       }.map(_.toList)
 
     def parTraverse[G[_]: Parallel, A, B](fa: List[A])(f: A => G[B]): G[List[B]] =
       fa.foldLeft(new ListBuffer[B].pure[G]) { (bufferG, a) =>
-        bufferG.parMap2(f(a)) { (buf: ListBuffer[B], b: B) => buf.append(b); buf } // can't use append 'cause 2.12
+        bufferG.parMap2(f(a))(_.append(_))
       }.map(_.toList)
   }
 
@@ -39,12 +39,12 @@ object instances {
 
     def traverse[G[_]: Applicative, A, B](fa: Vector[A])(f: A => G[B]): G[Vector[B]] =
       fa.foldLeft(new ListBuffer[B].pure[G]) { (bufferG, a) =>
-        bufferG.map2(f(a)) { (buf: ListBuffer[B], b: B) => buf.append(b); buf } // can't use append 'cause 2.12
+        bufferG.map2(f(a))(_.append(_))
       }.map(_.toVector)
 
     def parTraverse[G[_]: Parallel, A, B](fa: Vector[A])(f: A => G[B]): G[Vector[B]] =
       fa.foldLeft(new ListBuffer[B].pure[G]) { (bufferG, a) =>
-        bufferG.parMap2(f(a)) { (buf: ListBuffer[B], b: B) => buf.append(b); buf } // can't use append 'cause 2.12
+        bufferG.parMap2(f(a))(_.append(_))
       }.map(_.toVector)
   }
 }
