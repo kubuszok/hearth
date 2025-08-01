@@ -83,10 +83,9 @@ extra:
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/@MateuszKubuszok
   scala:
-    2_12: "2.12.20"
     2_13: "2.13.16"
     3:    "3.3.6"
   libraries:
-    pprint:           "0.9.0"
+    pprint:           "0.9.3"
   local:
     tag: !ENV [CI_LATEST_TAG, 'latest'] # used as git.tag fallback in Docker container
