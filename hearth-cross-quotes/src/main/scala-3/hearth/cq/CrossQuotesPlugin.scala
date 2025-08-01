@@ -89,15 +89,39 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
 
       private def injectGivens(thunk: => untpd.Tree): untpd.Tree = {
         val oldGivensInjected = givensInjected
-        val newGivensInjected = givenCandidates.filterNot(givensInjected).flatMap { valdef =>
-          val suppression = untpd.ValDef(termName("_"), valdef.tpt, untpd.Ident(valdef.name))
+        val newGivensInjected = givenCandidates.filterNot(givensInjected)
+        val newGivensInjectedWithSuppression = newGivensInjected.flatMap { valdef =>
+          // errors with:
+          //    Unused symbol error
+          // List(valdef)
+
+          // val _ = new_given
+          // errors with:
+          //    _ is already defined as value _
+          // when there is more than 1 type parameter in the given
+          // val suppression = untpd.ValDef(termName("_"), valdef.tpt, untpd.Ident(valdef.name))
+          // List(valdef, suppression)
+
+          // { val _ = new_given }
+          // errors with:
+          //    unhandled exception while running posttyper on ...
+          //    java.lang.AssertionError: NoDenotation.owner
+          // val suppression = untpd.Block(List.empty, untpd.ValDef(termName("_"), valdef.tpt, untpd.Ident(valdef.name)))
+          // List(valdef, suppression)
+
+          // hearth.fp.ignore(new_given)
+          val suppression =
+            untpd.Apply(
+              untpd.Select(untpd.Select(untpd.Ident(termName("hearth")), termName("fp")), termName("ignore")),
+              untpd.Ident(valdef.name)
+            )
           List(valdef, suppression)
         }
         if newGivensInjected.isEmpty then thunk
         else {
           try {
             givensInjected = givensInjected ++ newGivensInjected
-            untpd.Block(newGivensInjected, thunk)
+            untpd.Block(newGivensInjectedWithSuppression, thunk)
           } finally
             givensInjected = oldGivensInjected
         }

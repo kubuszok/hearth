@@ -66,16 +66,16 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
       Console.MAGENTA + helper(Type[A].tpe) + Console.RESET
     }
 
-    override val BooleanCodec: TypeCodec[Boolean] = new LiteralCodec[Boolean]
-    override val ByteCodec: TypeCodec[Byte] = new LiteralCodec[Byte]
-    override val ShortCodec: TypeCodec[Short] = new LiteralCodec[Short]
-    override val IntCodec: TypeCodec[Int] = new LiteralCodec[Int]
-    override val LongCodec: TypeCodec[Long] = new LiteralCodec[Long]
-    override val FloatCodec: TypeCodec[Float] = new LiteralCodec[Float]
-    override val DoubleCodec: TypeCodec[Double] = new LiteralCodec[Double]
-    override val CharCodec: TypeCodec[Char] = new LiteralCodec[Char]
-    override val StringCodec: TypeCodec[String] = new LiteralCodec[String]
-    override val UnitCodec: TypeCodec[Unit] = new LiteralCodec[Unit]
-    override val NullCodec: TypeCodec[Null] = new LiteralCodec[Null]
+    override lazy val NullCodec: TypeCodec[Null] = new LiteralCodec[Null]
+    override lazy val UnitCodec: TypeCodec[Unit] = new LiteralCodec[Unit]
+    override lazy val BooleanCodec: TypeCodec[Boolean] = new LiteralCodec[Boolean]
+    override lazy val ByteCodec: TypeCodec[Byte] = new LiteralCodec[Byte]
+    override lazy val ShortCodec: TypeCodec[Short] = new LiteralCodec[Short]
+    override lazy val IntCodec: TypeCodec[Int] = new LiteralCodec[Int]
+    override lazy val LongCodec: TypeCodec[Long] = new LiteralCodec[Long]
+    override lazy val FloatCodec: TypeCodec[Float] = new LiteralCodec[Float]
+    override lazy val DoubleCodec: TypeCodec[Double] = new LiteralCodec[Double]
+    override lazy val CharCodec: TypeCodec[Char] = new LiteralCodec[Char]
+    override lazy val StringCodec: TypeCodec[String] = new LiteralCodec[String]
   }
 }

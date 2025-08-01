@@ -139,7 +139,7 @@ trait Methods { this: MacroCommons =>
     def primaryConstructorOf[A: Type]: Option[Method.NoInstance[A]] =
       UntypedType.fromTyped[A].primaryConstructor.map(UntypedMethod.toTyped[A](_)).flatMap { tpd =>
         import tpd.Underlying as A0
-        if (A0 <:< Type.of[A]) tpd.value match {
+        if (A0 <:< Type[A]) tpd.value match {
           case m: Method.NoInstance[A] => Some(m)
           case _                       => None
         }
@@ -149,7 +149,7 @@ trait Methods { this: MacroCommons =>
     def constructorsOf[A: Type]: List[Method.NoInstance[A]] =
       UntypedType.fromTyped[A].constructors.map(UntypedMethod.toTyped[A](_)).flatMap { tpd =>
         import tpd.Underlying as A0
-        if (A0 <:< Type.of[A]) tpd.value match {
+        if (A0 <:< Type[A]) tpd.value match {
           case m: Method.NoInstance[A] => List(m)
           case _                       => Nil
         }

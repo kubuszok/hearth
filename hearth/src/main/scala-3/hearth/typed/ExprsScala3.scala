@@ -7,6 +7,7 @@ import hearth.fp.syntax.*
 trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
   import quotes.*, quotes.reflect.*
+  import scala.quoted.{Exprs, FromExpr, ToExpr, Varargs}
 
   final override type Expr[A] = scala.quoted.Expr[A]
 
@@ -14,16 +15,14 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
     object platformSpecific {
 
-      final class ExprCodecImpl[A](using val from: scala.quoted.FromExpr[A], val to: scala.quoted.ToExpr[A])
-          extends ExprCodec[A] {
+      final class ExprCodecImpl[A](using val from: FromExpr[A], val to: ToExpr[A]) extends ExprCodec[A] {
         def toExpr(value: A): Expr[A] = to(value)
         def fromExpr(expr: Expr[A]): Option[A] = from.unapply(expr)
       }
 
       extension (self: ExprCodec.type) {
 
-        def make[A: scala.quoted.FromExpr: scala.quoted.ToExpr]: ExprCodec[A] =
-          new ExprCodecImpl[A]
+        def make[A: FromExpr: ToExpr]: ExprCodec[A] = new ExprCodecImpl[A]
       }
 
       extension [A](expr: Expr[A]) {
@@ -60,7 +59,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
       object implicits {
 
-        given ExprCodecIsFromExpr[A: ExprCodec]: scala.quoted.FromExpr[A] = ExprCodec[A] match {
+        given ExprCodecIsFromExpr[A: ExprCodec]: FromExpr[A] = ExprCodec[A] match {
           case impl: ExprCodecImpl[A] => impl.from
           case unknown                =>
             new scala.quoted.FromExpr[A] {
@@ -68,10 +67,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             }
         }
 
-        given ExprCodecIsToExpr[A: ExprCodec]: scala.quoted.ToExpr[A] = ExprCodec[A] match {
+        given ExprCodecIsToExpr[A: ExprCodec]: ToExpr[A] = ExprCodec[A] match {
           case impl: ExprCodecImpl[A] => impl.to
           case unknown                =>
-            new scala.quoted.ToExpr[A] {
+            new ToExpr[A] {
               override def apply(value: A)(using scala.quoted.Quotes): Expr[A] = unknown.toExpr(value)
             }
         }
@@ -98,13 +97,174 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
     override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = '{ val _ = ${ expr } }
 
-    override val BooleanExprCodec: ExprCodec[Boolean] = ExprCodec.make[Boolean]
-    override val IntExprCodec: ExprCodec[Int] = ExprCodec.make[Int]
-    override val LongExprCodec: ExprCodec[Long] = ExprCodec.make[Long]
-    override val FloatExprCodec: ExprCodec[Float] = ExprCodec.make[Float]
-    override val DoubleExprCodec: ExprCodec[Double] = ExprCodec.make[Double]
-    override val CharExprCodec: ExprCodec[Char] = ExprCodec.make[Char]
-    override val StringExprCodec: ExprCodec[String] = ExprCodec.make[String]
+    override lazy val NullExprCodec: ExprCodec[Null] = {
+      given ToExpr[Null] = new {
+        override def apply(value: Null)(using scala.quoted.Quotes): Expr[Null] = '{ null }
+      }
+      ExprCodec.make[Null]
+    }
+    override lazy val UnitExprCodec: ExprCodec[Unit] = {
+      given FromExpr[Unit] = new {
+        override def unapply(expr: Expr[Unit])(using scala.quoted.Quotes): Option[Unit] = expr match {
+          case '{ () } => Some(())
+          case _       => None
+        }
+      }
+      given ToExpr[Unit] = new {
+        override def apply(value: Unit)(using scala.quoted.Quotes): Expr[Unit] = '{ () }
+      }
+      ExprCodec.make[Unit]
+    }
+    override lazy val BooleanExprCodec: ExprCodec[Boolean] = ExprCodec.make[Boolean]
+    override lazy val ByteExprCodec: ExprCodec[Byte] = ExprCodec.make[Byte]
+    override lazy val ShortExprCodec: ExprCodec[Short] = {
+      given FromExpr[Short] = new {
+        override def unapply(expr: Expr[Short])(using scala.quoted.Quotes): Option[Short] = expr match {
+          case '{ (${ inner }: Int).toShort } => scala.quoted.Expr.unapply(inner).map(_.toShort)
+          case _                              => None
+        }
+      }
+      ExprCodec.make[Short]
+    }
+    override lazy val IntExprCodec: ExprCodec[Int] = ExprCodec.make[Int]
+    override lazy val LongExprCodec: ExprCodec[Long] = ExprCodec.make[Long]
+    override lazy val FloatExprCodec: ExprCodec[Float] = ExprCodec.make[Float]
+    override lazy val DoubleExprCodec: ExprCodec[Double] = ExprCodec.make[Double]
+    override lazy val CharExprCodec: ExprCodec[Char] = ExprCodec.make[Char]
+    override lazy val StringExprCodec: ExprCodec[String] = ExprCodec.make[String]
+
+    // For now, assume that all ExprCodecs below are of PoC quality. It was needed to unblock some other work.
+    // But each should have unit tests which would make sure that Scala 2 and Scala 3 are in sync (which would
+    // require adding missing implementations to both sides, and then expanding the build-in FromExpr and ToExpr
+    // with more cases).
+
+    def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = {
+      import platformSpecific.implicits.given
+      given FromExpr[java.lang.Class[A]] = new {
+        override def unapply(expr: Expr[java.lang.Class[A]])(using scala.quoted.Quotes): Option[java.lang.Class[A]] =
+          expr.asTerm match {
+            case Applied(ref: Ref, List(typeTree: TypeTree))
+                if ref.symbol == defn.Predef_classOf && typeTree.tpe =:= TypeRepr.of[A] =>
+              Type.classOfType[A]
+            case _ => None
+          }
+      }
+      ExprCodec.make[java.lang.Class[A]]
+    }
+    def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]] = {
+      import platformSpecific.implicits.given
+      given FromExpr[scala.reflect.ClassTag[A]] = new {
+        override def unapply(
+            expr: Expr[scala.reflect.ClassTag[A]]
+        )(using scala.quoted.Quotes): Option[scala.reflect.ClassTag[A]] = expr match {
+          case '{ scala.reflect.ClassTag[a](${ _ }) } if TypeRepr.of[a] =:= TypeRepr.of[A] =>
+            Type.classOfType[A].map(scala.reflect.ClassTag(_))
+          case _ => None
+        }
+      }
+      ExprCodec.make[scala.reflect.ClassTag[A]]
+    }
+
+    def ArrayExprCodec[A: ExprCodec: Type]: ExprCodec[Array[A]] = {
+      import platformSpecific.implicits.given
+      given ExprCodec[scala.reflect.ClassTag[A]] = ClassTagExprCodec[A]
+      given FromExpr[Array[A]] = new {
+        override def unapply(expr: Expr[Array[A]])(using scala.quoted.Quotes): Option[Array[A]] = expr match {
+          // TODO: just one possible case, but we need more
+          case '{ Array[A]((${ Varargs(Exprs(inner)) })*)(using (${ Expr(ct) }: scala.reflect.ClassTag[A])) } =>
+            Some(inner.toArray(using ct))
+          case _ => None
+        }
+      }
+      given ToExpr[Array[A]] =
+        if Type[A] =:= Type[Boolean] then ToExpr.ArrayOfBooleanToExpr.asInstanceOf[ToExpr[Array[A]]]
+        else if Type[A] =:= Type[Byte] then ToExpr.ArrayOfByteToExpr.asInstanceOf[ToExpr[Array[A]]]
+        else if Type[A] =:= Type[Short] then ToExpr.ArrayOfShortToExpr.asInstanceOf[ToExpr[Array[A]]]
+        else if Type[A] =:= Type[Int] then ToExpr.ArrayOfIntToExpr.asInstanceOf[ToExpr[Array[A]]]
+        else if Type[A] =:= Type[Long] then ToExpr.ArrayOfLongToExpr.asInstanceOf[ToExpr[Array[A]]]
+        else if Type[A] =:= Type[Float] then ToExpr.ArrayOfFloatToExpr.asInstanceOf[ToExpr[Array[A]]]
+        else if Type[A] =:= Type[Double] then ToExpr.ArrayOfDoubleToExpr.asInstanceOf[ToExpr[Array[A]]]
+        else if Type[A] =:= Type[Char] then ToExpr.ArrayOfCharToExpr.asInstanceOf[ToExpr[Array[A]]]
+        else
+          new ToExpr[Array[A]] {
+            override def apply(value: Array[A])(using scala.quoted.Quotes): Expr[Array[A]] =
+              Type
+                .classOfType[A]
+                .map { clazz =>
+                  given scala.reflect.ClassTag[A] = scala.reflect.ClassTag(clazz)
+                  ToExpr.ArrayToExpr[A]
+                }
+                .getOrElse {
+                  assertionFailed(
+                    s"Could not figure out ClassTag[${Type.prettyPrint[A]}] - support for such cases is still experimental"
+                  )
+                  // given scala.reflect.ClassTag[A] = scala.reflect.ClassTag(classOf[Any]).asInstanceOf[scala.reflect.ClassTag[A]]
+                  // ToExpr.ArrayToExpr[A]
+                }
+                .apply(value)
+          }
+      ExprCodec.make[Array[A]]
+    }
+    def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = {
+      import platformSpecific.implicits.given
+      ExprCodec.make[Seq[A]]
+    }
+    def ListExprCodec[A: ExprCodec: Type]: ExprCodec[List[A]] = {
+      import platformSpecific.implicits.given
+      ExprCodec.make[List[A]]
+    }
+    lazy val NilExprCodec: ExprCodec[Nil.type] = {
+      import platformSpecific.implicits.given
+      ExprCodec.make[Nil.type]
+    }
+    def VectorExprCodec[A: ExprCodec: Type]: ExprCodec[Vector[A]] = {
+      import platformSpecific.implicits.given
+      given FromExpr[Vector[A]] = new {
+        override def unapply(expr: Expr[Vector[A]])(using scala.quoted.Quotes): Option[Vector[A]] = expr match {
+          // TODO: just one possible case, but we need more
+          case '{ Vector((${ Varargs(Exprs(inner)) }: Seq[A])*) } => Some(inner.toVector)
+          case _                                                  => None
+        }
+      }
+      given ToExpr[Vector[A]] = new {
+        override def apply(value: Vector[A])(using scala.quoted.Quotes): Expr[Vector[A]] = '{
+          Vector[A]((${ Varargs(value.map(Expr(_)).toSeq) })*)
+        }
+      }
+      ExprCodec.make[Vector[A]]
+    }
+    def MapExprCodec[K: ExprCodec: Type, V: ExprCodec: Type]: ExprCodec[Map[K, V]] = {
+      import platformSpecific.implicits.given
+      ExprCodec.make[Map[K, V]]
+    }
+    def SetExprCodec[A: ExprCodec: Type]: ExprCodec[Set[A]] = {
+      import platformSpecific.implicits.given
+      ExprCodec.make[Set[A]]
+    }
+    def OptionExprCodec[A: ExprCodec: Type]: ExprCodec[Option[A]] = {
+      import platformSpecific.implicits.given
+      ExprCodec.make[Option[A]]
+    }
+    def SomeExprCodec[A: ExprCodec: Type]: ExprCodec[Some[A]] = {
+      import platformSpecific.implicits.given
+      ExprCodec.make[Some[A]]
+    }
+    lazy val NoneExprCodec: ExprCodec[None.type] = {
+      import platformSpecific.implicits.given
+      ExprCodec.make[None.type]
+    }
+    def EitherExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Either[L, R]] = {
+      import platformSpecific.implicits.given
+      ExprCodec.make[Either[L, R]]
+    }
+    def LeftExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Left[L, R]] = {
+      import platformSpecific.implicits.given
+      ExprCodec.make[Left[L, R]]
+    }
+    def RightExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Right[L, R]] = {
+      import platformSpecific.implicits.given
+      ExprCodec.make[Right[L, R]]
+    }
   }
   import Expr.platformSpecific.*
 

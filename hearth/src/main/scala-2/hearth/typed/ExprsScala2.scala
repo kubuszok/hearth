@@ -96,13 +96,95 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = c.Expr[Unit](q"val _ = $expr")
 
-    override val BooleanExprCodec: ExprCodec[Boolean] = ExprCodec.withTypeCodec[Boolean]
-    override val IntExprCodec: ExprCodec[Int] = ExprCodec.withTypeCodec[Int]
-    override val LongExprCodec: ExprCodec[Long] = ExprCodec.withTypeCodec[Long]
-    override val FloatExprCodec: ExprCodec[Float] = ExprCodec.withTypeCodec[Float]
-    override val DoubleExprCodec: ExprCodec[Double] = ExprCodec.withTypeCodec[Double]
-    override val CharExprCodec: ExprCodec[Char] = ExprCodec.withTypeCodec[Char]
-    override val StringExprCodec: ExprCodec[String] = ExprCodec.withTypeCodec[String]
+    override lazy val NullExprCodec: ExprCodec[Null] = {
+      implicit val liftable: Liftable[Null] = Liftable[Null](_ => q"null")
+      implicit val unliftable: Unliftable[Null] = Unliftable[Null] { case _ => null }
+      ExprCodec.withTypeCodec[Null]
+    }
+    override lazy val UnitExprCodec: ExprCodec[Unit] = ExprCodec.withTypeCodec[Unit]
+    override lazy val BooleanExprCodec: ExprCodec[Boolean] = ExprCodec.withTypeCodec[Boolean]
+    override lazy val ByteExprCodec: ExprCodec[Byte] = ExprCodec.withTypeCodec[Byte]
+    override lazy val ShortExprCodec: ExprCodec[Short] = ExprCodec.withTypeCodec[Short]
+    override lazy val IntExprCodec: ExprCodec[Int] = ExprCodec.withTypeCodec[Int]
+    override lazy val LongExprCodec: ExprCodec[Long] = ExprCodec.withTypeCodec[Long]
+    override lazy val FloatExprCodec: ExprCodec[Float] = ExprCodec.withTypeCodec[Float]
+    override lazy val DoubleExprCodec: ExprCodec[Double] = ExprCodec.withTypeCodec[Double]
+    override lazy val CharExprCodec: ExprCodec[Char] = ExprCodec.withTypeCodec[Char]
+    override lazy val StringExprCodec: ExprCodec[String] = ExprCodec.withTypeCodec[String]
+
+    // For now, assume that all ExprCodecs below are of PoC quality. It was needed to unblock some other work.
+    // But each should have unit tests which would make sure that Scala 2 and Scala 3 are in sync (which would
+    // require adding missing implementations to both sides, and then expanding the build-in Liftable and Unliftable
+    // with more cases).
+
+    // TODO: def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = ???
+    // TODO: def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]] = ??
+
+    def ArrayExprCodec[A: ExprCodec: Type]: ExprCodec[Array[A]] = {
+      import platformSpecific.implicits.*
+      implicit val unliftable: Unliftable[Array[A]] = Unliftable[Array[A]](PartialFunction.empty) // TODO
+      ExprCodec.make[Array[A]]
+    }
+    def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = {
+      implicit val liftable: Liftable[Seq[A]] = Liftable[Seq[A]] { seq =>
+        q"scala.collection.immutable.Seq(..${seq.map(ExprCodec[A].toExpr)})"
+      }
+      implicit val unliftable: Unliftable[Seq[A]] = Unliftable[Seq[A]](PartialFunction.empty) // TODO
+      ExprCodec.make[Seq[A]]
+    }
+    def ListExprCodec[A: ExprCodec: Type]: ExprCodec[List[A]] = {
+      import platformSpecific.implicits.*
+      implicit val unliftable: Unliftable[List[A]] = Unliftable[List[A]](PartialFunction.empty) // TODO
+      ExprCodec.make[List[A]]
+    }
+    lazy val NilExprCodec: ExprCodec[Nil.type] = {
+      implicit val unliftable: Unliftable[Nil.type] = Unliftable[Nil.type](PartialFunction.empty) // TODO
+      ExprCodec.make[Nil.type]
+    }
+    def VectorExprCodec[A: ExprCodec: Type]: ExprCodec[Vector[A]] = {
+      import platformSpecific.implicits.*
+      implicit val unliftable: Unliftable[Vector[A]] = Unliftable[Vector[A]](PartialFunction.empty) // TODO
+      ExprCodec.make[Vector[A]]
+    }
+    def MapExprCodec[K: ExprCodec: Type, V: ExprCodec: Type]: ExprCodec[Map[K, V]] = {
+      import platformSpecific.implicits.*
+      implicit val unliftable: Unliftable[Map[K, V]] = Unliftable[Map[K, V]](PartialFunction.empty) // TODO
+      ExprCodec.make[Map[K, V]]
+    }
+    def SetExprCodec[A: ExprCodec: Type]: ExprCodec[Set[A]] = {
+      import platformSpecific.implicits.*
+      implicit val unliftable: Unliftable[Set[A]] = Unliftable[Set[A]](PartialFunction.empty) // TODO
+      ExprCodec.make[Set[A]]
+    }
+    def OptionExprCodec[A: ExprCodec: Type]: ExprCodec[Option[A]] = {
+      import platformSpecific.implicits.*
+      implicit val unliftable: Unliftable[Option[A]] = Unliftable[Option[A]](PartialFunction.empty) // TODO
+      ExprCodec.make[Option[A]]
+    }
+    def SomeExprCodec[A: ExprCodec: Type]: ExprCodec[Some[A]] = {
+      import platformSpecific.implicits.*
+      implicit val unliftable: Unliftable[Some[A]] = Unliftable[Some[A]](PartialFunction.empty) // TODO
+      ExprCodec.make[Some[A]]
+    }
+    lazy val NoneExprCodec: ExprCodec[None.type] = {
+      implicit val unliftable: Unliftable[None.type] = Unliftable[None.type](PartialFunction.empty) // TODO
+      ExprCodec.make[None.type]
+    }
+    def EitherExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Either[L, R]] = {
+      import platformSpecific.implicits.*
+      implicit val unliftable: Unliftable[Either[L, R]] = Unliftable[Either[L, R]](PartialFunction.empty) // TODO
+      ExprCodec.make[Either[L, R]]
+    }
+    def LeftExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Left[L, R]] = {
+      import platformSpecific.implicits.*
+      implicit val unliftable: Unliftable[Left[L, R]] = Unliftable[Left[L, R]](PartialFunction.empty) // TODO
+      ExprCodec.make[Left[L, R]]
+    }
+    def RightExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Right[L, R]] = {
+      import platformSpecific.implicits.*
+      implicit val unliftable: Unliftable[Right[L, R]] = Unliftable[Right[L, R]](PartialFunction.empty) // TODO
+      ExprCodec.make[Right[L, R]]
+    }
   }
   import Expr.platformSpecific.*
 
