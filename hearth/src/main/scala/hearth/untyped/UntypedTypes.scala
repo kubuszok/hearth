@@ -1,7 +1,6 @@
 package hearth.untyped
 
 import hearth.MacroCommons
-import scala.collection.compat.*
 import scala.collection.immutable.ListMap
 
 trait UntypedTypes { this: MacroCommons =>

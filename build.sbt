@@ -18,12 +18,11 @@ credentials += Credentials(
 // Versions:
 
 val versions = new {
-  val scala212 = "2.12.20"
   val scala213 = "2.13.16"
   val scala3 = "3.3.6"
 
   // Which versions should be cross-compiled for publishing
-  val scalas = List(scala212, scala213, scala3)
+  val scalas = List(scala213, scala3)
   val platforms = List(VirtualAxis.jvm, VirtualAxis.js, VirtualAxis.native)
 
   // Dependencies
@@ -46,7 +45,6 @@ val dev = new {
 
   // Which version should be used in IntelliJ
   val ideScala = props.getProperty("ide.scala") match {
-    case "2.12" => versions.scala212
     case "2.13" => versions.scala213
     case "3"    => versions.scala3
   }
@@ -82,16 +80,6 @@ val only1VersionInIDE =
         .ForPlatform(platform)
         .Configure(_.settings(ideSkipProject := true, bspEnabled := false, scalafmtOnCompile := false))
     }
-
-val addScala213plusDir =
-  MatrixAction
-    .ForScala(v => (v.value == versions.scala213) || v.isScala3)
-    .Configure(
-      _.settings(
-        Compile / unmanagedSourceDirectories += sourceDirectory.value.toPath.resolve("main/scala-2.13+").toFile,
-        Test / unmanagedSourceDirectories += sourceDirectory.value.toPath.resolve("test/scala-2.13+").toFile
-      )
-    )
 
 // hearth-cross-quotes on Scala 2 are macros (defined for all platforms) and on Scala 3 are plugins (defined only for JVM)
 val defineCrossQuotes = versions.scalas.flatMap { scalaVersion =>
@@ -204,7 +192,6 @@ val settings = Seq(
           "-explaintypes",
           "-feature",
           "-language:higherKinds",
-          "-Wconf:origin=scala.collection.compat.*:s", // type aliases without which 2.12 fail compilation but 2.13/3 doesn't need them
           "-Wconf:cat=scala3-migration:s", // silence mainly issues with -Xsource:3 and private case class constructors
           "-Wconf:cat=deprecation&origin=hearth.*:s", // we want to be able to deprecate APIs and test them while they're deprecated
           "-Wconf:msg=The outer reference in this type test cannot be checked at run time:s", // suppress fake(?) errors in internal.compiletime (adding origin breaks this suppression)
@@ -233,51 +220,6 @@ val settings = Seq(
           "-Ywarn-macros:after",
           "-Ytasty-reader"
         )
-      case Some((2, 12)) =>
-        Seq(
-          // format: off
-          "-encoding", "UTF-8",
-          "-target:jvm-1.8",
-          // format: on
-          "-unchecked",
-          "-deprecation",
-          "-explaintypes",
-          "-feature",
-          "-language:higherKinds",
-          "-Wconf:msg=The outer reference in this type test cannot be checked at run time:s", // suppress fake(?) errors in internal.compiletime (adding origin breaks this suppression)
-          "-Wconf:msg=discarding unmoored doc comment:s", // silence errors when scaladoc cannot comprehend nested vals
-          "-Wconf:msg=Could not find any member to link for:s", // since errors when scaladoc cannot link to stdlib types or nested types
-          "-Wconf:msg=Variable .+ undefined in comment for:s", // silence errors when there we're showing a buggy Expr in scaladoc comment
-          "-Xexperimental",
-          "-Xfatal-warnings",
-          "-Xfuture",
-          "-Xlint:adapted-args",
-          "-Xlint:by-name-right-associative",
-          "-Xlint:delayedinit-select",
-          "-Xlint:doc-detached",
-          "-Xlint:inaccessible",
-          "-Xlint:infer-any",
-          "-Xlint:nullary-override",
-          "-Xlint:nullary-unit",
-          "-Xlint:option-implicit",
-          "-Xlint:package-object-classes",
-          "-Xlint:poly-implicit-overload",
-          "-Xlint:private-shadow",
-          "-Xlint:stars-align",
-          "-Xlint:type-parameter-shadow",
-          "-Xlint:unsound-match",
-          "-Xsource:3",
-          "-Yno-adapted-args",
-          "-Ywarn-dead-code",
-          "-Ywarn-inaccessible",
-          "-Ywarn-infer-any",
-          "-Ywarn-numeric-widen",
-          "-Ywarn-unused:locals",
-          "-Ywarn-unused:imports",
-          "-Ywarn-macros:after",
-          "-Ywarn-nullary-override",
-          "-Ywarn-nullary-unit"
-        )
       case _ => Seq.empty
     }
   },
@@ -288,32 +230,11 @@ val settings = Seq(
       case _ => Seq.empty
     }
   },
-  Compile / console / scalacOptions --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings"),
-  Test / compile / scalacOptions --= {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, 12)) => Seq("-Ywarn-unused:locals") // Scala 2.12 ignores @unused warns
-      case _             => Seq.empty
-    }
-  }
-)
-
-val hearthCompatSettings = Seq(
-  scalacOptions ++= {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _))  => Seq.empty
-      case Some((2, 13)) =>
-        Seq(
-          "-Wconf:origin=hearth.compat.*:s" // type aliases without which 2.12 fail compilation but 2.13/3 doesn't need them
-        )
-      case Some((2, 12)) => Seq.empty
-      case _             => Seq.empty
-    }
-  }
+  Compile / console / scalacOptions --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
 )
 
 val dependencies = Seq(
   libraryDependencies ++= Seq(
-    "org.scala-lang.modules" %%% "scala-collection-compat" % versions.scalaCollectionCompat,
     "org.scalameta" %%% "munit" % versions.munit % Test
   ),
   libraryDependencies ++= {
@@ -372,7 +293,7 @@ val publishSettings = Seq(
 val mimaSettings = Seq(
   mimaPreviousArtifacts := {
     val previousVersions = moduleName.value match {
-      case "hearth-cross-quotes" | "hearth-compat" | "hearth-micro-fp" | "hearth" => Set() // add after RC-1 publish
+      case "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" => Set() // add after RC-1 publish
       case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" =>
         Set()
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
@@ -381,7 +302,7 @@ val mimaSettings = Seq(
   },
   mimaFailOnNoPrevious := {
     moduleName.value match {
-      case "hearth-cross-quotes" | "hearth-compat" | "hearth-micro-fp" | "hearth" => false // add after RC-1 publish
+      case "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" => false // add after RC-1 publish
       case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" =>
         false
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
@@ -396,7 +317,7 @@ val noPublishSettings =
 
 val al = new {
 
-  private val prodProjects = Vector("hearthCrossQuotes", "hearthCompat", "hearthMicroFp", "hearth")
+  private val prodProjects = Vector("hearthCrossQuotes", "hearthMicroFp", "hearth")
   private val testProjects = Vector("hearthTests", "hearthSandwichTests")
 
   private def isJVM(platform: String): Boolean = platform == "JVM"
@@ -448,7 +369,6 @@ lazy val root = project
   .settings(publishSettings)
   .settings(noPublishSettings)
   .aggregate(hearthCrossQuotes.projectRefs *)
-  .aggregate(hearthCompat.projectRefs *)
   .aggregate(hearthMicroFp.projectRefs *)
   .aggregate(hearth.projectRefs *)
   .aggregate(hearthTests.projectRefs *)
@@ -458,13 +378,12 @@ lazy val root = project
     name := "hearth-build",
     description := "Build setup for Hearth modules",
     logo :=
-      s"""Hearth ${(version).value} build for (${versions.scala212}, ${versions.scala213}, ${versions.scala3}) x (Scala JVM, Scala.js $scalaJSVersion, Scala Native $nativeVersion)
+      s"""Hearth ${(version).value} build for (${versions.scala213}, ${versions.scala3}) x (Scala JVM, Scala.js $scalaJSVersion, Scala Native $nativeVersion)
          |
          |This build uses sbt-projectmatrix with sbt-commandmatrix helper:
          | - Scala JVM adds no suffix to a project name seen in build.sbt
          | - Scala.js adds the "JS" suffix to a project name seen in build.sbt
          | - Scala Native adds the "Native" suffix to a project name seen in build.sbt
-         | - Scala 2.12 adds the suffix "2_12" to a project name seen in build.sbt
          | - Scala 2.13 adds no suffix to a project name seen in build.sbt
          | - Scala 3 adds the suffix "3" to a project name seen in build.sbt
          |
@@ -472,7 +391,6 @@ lazy val root = project
          |
          |If you need to test library locally in a different project, use publish-local-for-tests or manually publishLocal:
          | - hearth-cross-quotes (obligatory)
-         | - hearth-compat (obligatory)
          | - hearth-micro-fp (obligatory)
          | - hearth (obligatory)
          |for the right Scala version and platform (see projects task).
@@ -487,22 +405,16 @@ lazy val root = project
         .alias("ci-release"),
       UsefulTask(al.ci("JVM", "3"), "CI pipeline for Scala 3+JVM").alias("ci-jvm-3"),
       UsefulTask(al.ci("JVM", ""), "CI pipeline for Scala 2.13+JVM").alias("ci-jvm-2_13"),
-      UsefulTask(al.ci("JVM", "2_12"), "CI pipeline for Scala 2.12+JVM").alias("ci-jvm-2_12"),
       UsefulTask(al.ci("JS", "3"), "CI pipeline for Scala 3+Scala JS").alias("ci-js-3"),
       UsefulTask(al.ci("JS", ""), "CI pipeline for Scala 2.13+Scala JS").alias("ci-js-2_13"),
-      UsefulTask(al.ci("JS", "2_12"), "CI pipeline for Scala 2.12+Scala JS").alias("ci-js-2_12"),
       UsefulTask(al.ci("Native", "3"), "CI pipeline for Scala 3+Scala Native").alias("ci-native-3"),
       UsefulTask(al.ci("Native", ""), "CI pipeline for Scala 2.13+Scala Native").alias("ci-native-2_13"),
-      UsefulTask(al.ci("Native", "2_12"), "CI pipeline for Scala 2.12+Scala Native").alias("ci-native-2_12"),
       UsefulTask(al.test("JVM", "3"), "Test all projects in Scala 3+JVM").alias("test-jvm-3"),
       UsefulTask(al.test("JVM", ""), "Test all projects in Scala 2.13+JVM").alias("test-jvm-2_13"),
-      UsefulTask(al.test("JVM", "2_12"), "Test all projects in Scala 2.12+JVM").alias("test-jvm-2_12"),
       UsefulTask(al.test("JS", "3"), "Test all projects in Scala 3+Scala JS").alias("test-js-3"),
       UsefulTask(al.test("JS", ""), "Test all projects in Scala 2.13+Scala JS").alias("test-js-2_13"),
-      UsefulTask(al.test("JS", "2_12"), "Test all projects in Scala 2.12+Scala JS").alias("test-js-2_12"),
       UsefulTask(al.test("Native", "3"), "Test all projects in Scala 3+Scala Native").alias("test-native-3"),
       UsefulTask(al.test("Native", ""), "Test all projects in Scala 2.13+Scala Native").alias("test-native-2_13"),
-      UsefulTask(al.test("Native", "2_12"), "Test all projects in Scala 2.12+Scala Native").alias("test-native-2_12"),
       UsefulTask(
         al.publishLocalForTests,
         "Publishes all Scala 2.13 and Scala 3 JVM artifacts to test snippets in documentation"
@@ -532,25 +444,9 @@ lazy val hearthCrossQuotes = projectMatrix
   .settings(versionSchemeSettings *)
   .settings(publishSettings *)
 
-lazy val hearthCompat = projectMatrix
-  .in(file("hearth-compat"))
-  .someVariations(versions.scalas, versions.platforms)((addScala213plusDir +: only1VersionInIDE) *)
-  .enablePlugins(GitVersioning, GitBranchPrompt)
-  .disablePlugins(WelcomePlugin)
-  .settings(
-    moduleName := "hearth-compat",
-    name := "hearth-compat",
-    description := "Utilities for writing 2.12/2.13 code"
-  )
-  .settings(settings *)
-  .settings(versionSchemeSettings *)
-  .settings(publishSettings *)
-  .settings(dependencies *)
-  .settings(mimaSettings *)
-
 lazy val hearthMicroFp = projectMatrix
   .in(file("hearth-micro-fp"))
-  .someVariations(versions.scalas, versions.platforms)((addScala213plusDir +: only1VersionInIDE) *)
+  .someVariations(versions.scalas, versions.platforms)(only1VersionInIDE *)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .disablePlugins(WelcomePlugin)
   .settings(
@@ -563,11 +459,10 @@ lazy val hearthMicroFp = projectMatrix
   .settings(publishSettings *)
   .settings(dependencies *)
   .settings(mimaSettings *)
-  .dependsOn(hearthCompat)
 
 lazy val hearth = projectMatrix
   .in(file("hearth"))
-  .someVariations(versions.scalas, versions.platforms)((addScala213plusDir +: (only1VersionInIDE ++ useCrossQuotes)) *)
+  .someVariations(versions.scalas, versions.platforms)(((only1VersionInIDE ++ useCrossQuotes)) *)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .disablePlugins(WelcomePlugin)
   .settings(
@@ -576,7 +471,6 @@ lazy val hearth = projectMatrix
     description := "Utilities for writing cross-platform macro logic"
   )
   .settings(settings *)
-  .settings(hearthCompatSettings *)
   .settings(versionSchemeSettings *)
   .settings(publishSettings *)
   .settings(dependencies *)
@@ -587,7 +481,7 @@ lazy val hearth = projectMatrix
 
 lazy val hearthTests = projectMatrix
   .in(file("hearth-tests"))
-  .someVariations(versions.scalas, versions.platforms)((addScala213plusDir +: (only1VersionInIDE ++ useCrossQuotes)) *)
+  .someVariations(versions.scalas, versions.platforms)((only1VersionInIDE ++ useCrossQuotes) *)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .disablePlugins(WelcomePlugin)
   .settings(
@@ -649,7 +543,7 @@ lazy val hearthSandwichTests = projectMatrix
   .settings(dependencies *)
   .dependsOn(hearth)
 
-//when having memory/GC-related errors during build, uncommenting this may be useful:
+// when having memory/GC-related errors during build, uncommenting this may be useful:
 Global / concurrentRestrictions := Seq(
   Tags.limit(Tags.Compile, 2) // only 2 compilations at once
 )

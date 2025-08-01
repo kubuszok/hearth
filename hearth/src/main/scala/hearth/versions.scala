@@ -7,7 +7,6 @@ package hearth
 final case class ScalaVersion(major: Int, minor: Int, patch: Int) {
 
   def toLanguageVersion: LanguageVersion = this match {
-    case ScalaVersion(2, 12, _) => LanguageVersion.Scala2_12
     case ScalaVersion(2, 13, _) => LanguageVersion.Scala2_13
     case ScalaVersion(3, _, _)  => LanguageVersion.Scala3
     case _                      => throw new RuntimeException(s"Unsupported Scala version: $major.$minor.$patch")
@@ -33,27 +32,24 @@ object ScalaVersion {
   implicit val ordering: Ordering[ScalaVersion] = Ordering.by((v: ScalaVersion) => (v.major, v.minor, v.patch))
 }
 
-/** Language version, e.g. Scala 2.12, Scala 2.13, Scala 3.
+/** Language version, e.g. Scala 2.13, Scala 3.
   *
   * @since 0.1.0
   */
 sealed trait LanguageVersion extends Product with Serializable {
 
   override def toString: String = this match {
-    case LanguageVersion.Scala2_12 => "Scala 2.12"
     case LanguageVersion.Scala2_13 => "Scala 2.13"
     case LanguageVersion.Scala3    => "Scala 3"
   }
 }
 object LanguageVersion {
 
-  case object Scala2_12 extends LanguageVersion
   case object Scala2_13 extends LanguageVersion
   case object Scala3 extends LanguageVersion
 
   implicit val ordering: Ordering[LanguageVersion] = Ordering.by {
-    case Scala2_12 => 0
-    case Scala2_13 => 1
-    case Scala3    => 2
+    case Scala2_13 => 0
+    case Scala3    => 1
   }
 }

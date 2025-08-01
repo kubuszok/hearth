@@ -2,7 +2,6 @@ package hearth
 package typed
 
 import hearth.fp.Id
-import scala.collection.compat.*
 import scala.collection.immutable.ListMap
 import scala.language.implicitConversions
 
