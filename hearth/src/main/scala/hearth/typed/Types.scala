@@ -41,6 +41,12 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     final def plainPrint[A: Type]: String = removeAnsiColors(prettyPrint[A])
     def prettyPrint[A: Type]: String
 
+    // This can only work if the type is available in the classpath, so it's not a good idea to use it for
+    // e.g. types from the current project.
+    final def classOfType[A: Type]: Option[java.lang.Class[A]] =
+      // TODO: improve, we should probably reuse ModuleSingleton resolution logic
+      scala.util.Try(java.lang.Class.forName(Type.fcqn[A]).asInstanceOf[java.lang.Class[A]]).toOption
+
     final def position[A: Type]: Option[Position] = UntypedType.fromTyped[A].position
 
     final def directChildren[A: Type]: Option[ListMap[String, ??<:[A]]] =
@@ -102,19 +108,80 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     final def isSubtypeOf[A: Type, B: Type]: Boolean = UntypedType.fromTyped[A] <:< UntypedType.fromTyped[B]
     final def isSameAs[A: Type, B: Type]: Boolean = UntypedType.fromTyped[A] =:= UntypedType.fromTyped[B]
 
+    // TODO: more instances - for starters cover all types in covered by ToExpr i FromExpr in Quotes
+
     // Literal types
 
-    val BooleanCodec: TypeCodec[Boolean]
-    val ByteCodec: TypeCodec[Byte]
-    val ShortCodec: TypeCodec[Short]
-    val IntCodec: TypeCodec[Int]
-    val LongCodec: TypeCodec[Long]
-    val FloatCodec: TypeCodec[Float]
-    val DoubleCodec: TypeCodec[Double]
-    val CharCodec: TypeCodec[Char]
-    val StringCodec: TypeCodec[String]
-    val UnitCodec: TypeCodec[Unit]
-    val NullCodec: TypeCodec[Null]
+    def NullCodec: TypeCodec[Null]
+    def UnitCodec: TypeCodec[Unit]
+    def BooleanCodec: TypeCodec[Boolean]
+    def ByteCodec: TypeCodec[Byte]
+    def ShortCodec: TypeCodec[Short]
+    def IntCodec: TypeCodec[Int]
+    def LongCodec: TypeCodec[Long]
+    def FloatCodec: TypeCodec[Float]
+    def DoubleCodec: TypeCodec[Double]
+    def CharCodec: TypeCodec[Char]
+    def StringCodec: TypeCodec[String]
+
+    // TODO: BigInt, BigDecimal, StringContext, Class, ClassTag
+
+    // TODO: specialize for primitive types
+    final def ArrayCodec[A: Type]: TypeCodec[Array[A]] = new TypeCodec[Array[A]] {
+      override def toType[B <: Array[A]](value: B): Type[B] = Type.of[Array[A]].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Array[A], Id]] = None // TODO
+    }
+    // TODO: specialize for: List, Vector, Nil, at least the types that are available in the standard library, etc
+    final def SeqCodec[A: Type]: TypeCodec[Seq[A]] = new TypeCodec[Seq[A]] {
+      override def toType[B <: Seq[A]](value: B): Type[B] = Type.of[Seq[A]].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Seq[A], Id]] = None // TODO
+    }
+    final def ListCodec[A: Type]: TypeCodec[List[A]] = new TypeCodec[List[A]] {
+      override def toType[B <: List[A]](value: B): Type[B] = Type.of[List[A]].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[List[A], Id]] = None // TODO
+    }
+    final lazy val NilCodec: TypeCodec[Nil.type] = new TypeCodec[Nil.type] {
+      override def toType[B <: Nil.type](value: B): Type[B] = Type.of[Nil.type].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Nil.type, Id]] = None // TODO
+    }
+    final def VectorCodec[A: Type]: TypeCodec[Vector[A]] = new TypeCodec[Vector[A]] {
+      override def toType[B <: Vector[A]](value: B): Type[B] = Type.of[Vector[A]].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Vector[A], Id]] = None // TODO
+    }
+    final def MapCodec[K: Type, V: Type]: TypeCodec[Map[K, V]] = new TypeCodec[Map[K, V]] {
+      override def toType[B <: Map[K, V]](value: B): Type[B] = Type.of[Map[K, V]].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Map[K, V], Id]] = None // TODO
+    }
+    final def SetCodec[A: Type]: TypeCodec[Set[A]] = new TypeCodec[Set[A]] {
+      override def toType[B <: Set[A]](value: B): Type[B] = Type.of[Set[A]].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Set[A], Id]] = None // TODO
+    }
+    final def OptionCodec[A: Type]: TypeCodec[Option[A]] = new TypeCodec[Option[A]] {
+      override def toType[B <: Option[A]](value: B): Type[B] = Type.of[Option[A]].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Option[A], Id]] = None // TODO
+    }
+    final def SomeCodec[A: Type]: TypeCodec[Some[A]] = new TypeCodec[Some[A]] {
+      override def toType[B <: Some[A]](value: B): Type[B] = Type.of[Some[A]].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Some[A], Id]] = None // TODO
+    }
+    final lazy val NoneCodec: TypeCodec[None.type] = new TypeCodec[None.type] {
+      override def toType[B <: None.type](value: B): Type[B] = Type.of[None.type].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[None.type, Id]] = None // TODO
+    }
+    final def EitherCodec[L: Type, R: Type]: TypeCodec[Either[L, R]] = new TypeCodec[Either[L, R]] {
+      override def toType[B <: Either[L, R]](value: B): Type[B] = Type.of[Either[L, R]].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Either[L, R], Id]] = None // TODO
+    }
+    final def LeftCodec[L: Type, R: Type]: TypeCodec[Left[L, R]] = new TypeCodec[Left[L, R]] {
+      override def toType[B <: Left[L, R]](value: B): Type[B] = Type.of[Left[L, R]].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Left[L, R], Id]] = None // TODO
+    }
+    final def RightCodec[L: Type, R: Type]: TypeCodec[Right[L, R]] = new TypeCodec[Right[L, R]] {
+      override def toType[B <: Right[L, R]](value: B): Type[B] = Type.of[Right[L, R]].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Right[L, R], Id]] = None // TODO
+    }
+
+    // TODO: Tuples
 
     private object ModuleCodecImpl extends TypeCodec[Any] {
 
@@ -237,15 +304,31 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
 
     def apply[A](implicit codec: TypeCodec[A]): TypeCodec[A] = codec
 
-    // TODO: more instances - for starters cover all types in covered by ToExpr i FromExpr in Quotes
+    implicit lazy val NullCodec: TypeCodec[Null] = Type.NullCodec
+    implicit lazy val UnitCodec: TypeCodec[Unit] = Type.UnitCodec
+    implicit lazy val BooleanCodec: TypeCodec[Boolean] = Type.BooleanCodec
+    implicit lazy val ByteCodec: TypeCodec[Byte] = Type.ByteCodec
+    implicit lazy val ShortCodec: TypeCodec[Short] = Type.ShortCodec
+    implicit lazy val IntCodec: TypeCodec[Int] = Type.IntCodec
+    implicit lazy val LongCodec: TypeCodec[Long] = Type.LongCodec
+    implicit lazy val FloatCodec: TypeCodec[Float] = Type.FloatCodec
+    implicit lazy val DoubleCodec: TypeCodec[Double] = Type.DoubleCodec
+    implicit lazy val CharCodec: TypeCodec[Char] = Type.CharCodec
+    implicit lazy val StringCodec: TypeCodec[String] = Type.StringCodec
 
-    implicit val BooleanCodec: TypeCodec[Boolean] = Type.BooleanCodec
-    implicit val IntCodec: TypeCodec[Int] = Type.IntCodec
-    implicit val LongCodec: TypeCodec[Long] = Type.LongCodec
-    implicit val FloatCodec: TypeCodec[Float] = Type.FloatCodec
-    implicit val DoubleCodec: TypeCodec[Double] = Type.DoubleCodec
-    implicit val CharCodec: TypeCodec[Char] = Type.CharCodec
-    implicit val StringCodec: TypeCodec[String] = Type.StringCodec
+    implicit def ArrayCodec[A: Type]: TypeCodec[Array[A]] = Type.ArrayCodec[A]
+    implicit def SeqCodec[A: Type]: TypeCodec[Seq[A]] = Type.SeqCodec[A]
+    implicit def ListCodec[A: Type]: TypeCodec[List[A]] = Type.ListCodec[A]
+    implicit lazy val NilCodec: TypeCodec[Nil.type] = Type.NilCodec
+    implicit def VectorCodec[A: Type]: TypeCodec[Vector[A]] = Type.VectorCodec[A]
+    implicit def MapCodec[K: Type, V: Type]: TypeCodec[Map[K, V]] = Type.MapCodec[K, V]
+    implicit def SetCodec[A: Type]: TypeCodec[Set[A]] = Type.SetCodec[A]
+    implicit def OptionCodec[A: Type]: TypeCodec[Option[A]] = Type.OptionCodec[A]
+    implicit def SomeCodec[A: Type]: TypeCodec[Some[A]] = Type.SomeCodec[A]
+    implicit lazy val NoneCodec: TypeCodec[None.type] = Type.NoneCodec
+    implicit def EitherCodec[L: Type, R: Type]: TypeCodec[Either[L, R]] = Type.EitherCodec[L, R]
+    implicit def LeftCodec[L: Type, R: Type]: TypeCodec[Left[L, R]] = Type.LeftCodec[L, R]
+    implicit def RightCodec[L: Type, R: Type]: TypeCodec[Right[L, R]] = Type.RightCodec[L, R]
 
     implicit def ModuleCodec[ModuleSingleton <: Product & Serializable & Singleton]: TypeCodec[ModuleSingleton] =
       Type.ModuleCodec[ModuleSingleton]
