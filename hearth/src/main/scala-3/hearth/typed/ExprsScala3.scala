@@ -166,8 +166,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     }
 
     def ArrayExprCodec[A: ExprCodec: Type]: ExprCodec[Array[A]] = {
-      import platformSpecific.implicits.given
       given ExprCodec[scala.reflect.ClassTag[A]] = ClassTagExprCodec[A]
+      given FromExpr[A] = platformSpecific.implicits.ExprCodecIsFromExpr[A]
       given FromExpr[Array[A]] = new {
         override def unapply(expr: Expr[Array[A]])(using scala.quoted.Quotes): Option[Array[A]] = expr match {
           // TODO: just one possible case, but we need more
@@ -176,6 +176,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           case _ => None
         }
       }
+      given ToExpr[A] = platformSpecific.implicits.ExprCodecIsToExpr[A]
       given ToExpr[Array[A]] =
         if Type[A] =:= Type[Boolean] then ToExpr.ArrayOfBooleanToExpr.asInstanceOf[ToExpr[Array[A]]]
         else if Type[A] =:= Type[Byte] then ToExpr.ArrayOfByteToExpr.asInstanceOf[ToExpr[Array[A]]]
@@ -206,19 +207,19 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       ExprCodec.make[Array[A]]
     }
     def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = {
-      import platformSpecific.implicits.given
+      given FromExpr[A] = platformSpecific.implicits.ExprCodecIsFromExpr[A]
+      given ToExpr[A] = platformSpecific.implicits.ExprCodecIsToExpr[A]
       ExprCodec.make[Seq[A]]
     }
     def ListExprCodec[A: ExprCodec: Type]: ExprCodec[List[A]] = {
-      import platformSpecific.implicits.given
+      given FromExpr[A] = platformSpecific.implicits.ExprCodecIsFromExpr[A]
+      given ToExpr[A] = platformSpecific.implicits.ExprCodecIsToExpr[A]
       ExprCodec.make[List[A]]
     }
-    lazy val NilExprCodec: ExprCodec[Nil.type] = {
-      import platformSpecific.implicits.given
+    lazy val NilExprCodec: ExprCodec[Nil.type] =
       ExprCodec.make[Nil.type]
-    }
     def VectorExprCodec[A: ExprCodec: Type]: ExprCodec[Vector[A]] = {
-      import platformSpecific.implicits.given
+      given FromExpr[A] = platformSpecific.implicits.ExprCodecIsFromExpr[A]
       given FromExpr[Vector[A]] = new {
         override def unapply(expr: Expr[Vector[A]])(using scala.quoted.Quotes): Option[Vector[A]] = expr match {
           // TODO: just one possible case, but we need more
@@ -234,35 +235,44 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       ExprCodec.make[Vector[A]]
     }
     def MapExprCodec[K: ExprCodec: Type, V: ExprCodec: Type]: ExprCodec[Map[K, V]] = {
-      import platformSpecific.implicits.given
+      given FromExpr[K] = platformSpecific.implicits.ExprCodecIsFromExpr[K]
+      given FromExpr[V] = platformSpecific.implicits.ExprCodecIsFromExpr[V]
+      given ToExpr[K] = platformSpecific.implicits.ExprCodecIsToExpr[K]
+      given ToExpr[V] = platformSpecific.implicits.ExprCodecIsToExpr[V]
       ExprCodec.make[Map[K, V]]
     }
     def SetExprCodec[A: ExprCodec: Type]: ExprCodec[Set[A]] = {
-      import platformSpecific.implicits.given
+      given FromExpr[A] = platformSpecific.implicits.ExprCodecIsFromExpr[A]
+      given ToExpr[A] = platformSpecific.implicits.ExprCodecIsToExpr[A]
       ExprCodec.make[Set[A]]
     }
     def OptionExprCodec[A: ExprCodec: Type]: ExprCodec[Option[A]] = {
-      import platformSpecific.implicits.given
+      given FromExpr[A] = platformSpecific.implicits.ExprCodecIsFromExpr[A]
+      given ToExpr[A] = platformSpecific.implicits.ExprCodecIsToExpr[A]
       ExprCodec.make[Option[A]]
     }
     def SomeExprCodec[A: ExprCodec: Type]: ExprCodec[Some[A]] = {
-      import platformSpecific.implicits.given
+      given FromExpr[A] = platformSpecific.implicits.ExprCodecIsFromExpr[A]
+      given ToExpr[A] = platformSpecific.implicits.ExprCodecIsToExpr[A]
       ExprCodec.make[Some[A]]
     }
-    lazy val NoneExprCodec: ExprCodec[None.type] = {
-      import platformSpecific.implicits.given
+    lazy val NoneExprCodec: ExprCodec[None.type] =
       ExprCodec.make[None.type]
-    }
     def EitherExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Either[L, R]] = {
-      import platformSpecific.implicits.given
+      given FromExpr[L] = platformSpecific.implicits.ExprCodecIsFromExpr[L]
+      given FromExpr[R] = platformSpecific.implicits.ExprCodecIsFromExpr[R]
+      given ToExpr[L] = platformSpecific.implicits.ExprCodecIsToExpr[L]
+      given ToExpr[R] = platformSpecific.implicits.ExprCodecIsToExpr[R]
       ExprCodec.make[Either[L, R]]
     }
     def LeftExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Left[L, R]] = {
-      import platformSpecific.implicits.given
+      given FromExpr[L] = platformSpecific.implicits.ExprCodecIsFromExpr[L]
+      given ToExpr[L] = platformSpecific.implicits.ExprCodecIsToExpr[L]
       ExprCodec.make[Left[L, R]]
     }
     def RightExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Right[L, R]] = {
-      import platformSpecific.implicits.given
+      given FromExpr[R] = platformSpecific.implicits.ExprCodecIsFromExpr[R]
+      given ToExpr[R] = platformSpecific.implicits.ExprCodecIsToExpr[R]
       ExprCodec.make[Right[L, R]]
     }
   }

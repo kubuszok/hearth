@@ -15,9 +15,6 @@ object Data {
   def apply(value: List[Data]): Data = value.asInstanceOf[Data]
   def apply(value: Map[String, Data]): Data = value.asInstanceOf[Data]
 
-  private object DataNull {
-    def unapply(data: Data): Boolean = data == null.asInstanceOf[Data]
-  }
   private object DataList {
     def unapply(data: Data): Option[List[Data]] = data match {
       case value: List[?] => Some(value.asInstanceOf[List[Data]])
@@ -44,15 +41,15 @@ object Data {
         onList: List[Data] => A,
         onMap: Map[String, Data] => A
     ): A = data match {
-      case x if x == null  => onNull
-      case value: Int      => onInt(value)
-      case value: Long     => onLong(value)
-      case value: Float    => onFloat(value)
-      case value: Double   => onDouble(value)
-      case value: Boolean  => onBoolean(value)
-      case value: String   => onString(value)
-      case DataList(value) => onList(value)
-      case DataMap(value)  => onMap(value)
+      case x if x == null.asInstanceOf[Data] => onNull
+      case value: Int                        => onInt(value)
+      case value: Long                       => onLong(value)
+      case value: Float                      => onFloat(value)
+      case value: Double                     => onDouble(value)
+      case value: Boolean                    => onBoolean(value)
+      case value: String                     => onString(value)
+      case DataList(value)                   => onList(value)
+      case DataMap(value)                    => onMap(value)
     }
 
       // format: off
