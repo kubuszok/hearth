@@ -8,5 +8,12 @@ final class DataFixtures(q: Quotes) extends MacroCommonsScala3(using q) with Dat
 object DataFixtures {
 
   inline def example: Data = ${ exampleImpl }
-  def exampleImpl(using q: Quotes): Expr[Data] = new DataFixtures(q).exampleImpl
+  def exampleImpl(using q: Quotes): Expr[Data] =
+    try
+      new DataFixtures(q).example
+    catch {
+      case e: Throwable =>
+        import q.reflect.*
+        report.errorAndAbort(e.getMessage + "\n" + e.getStackTrace.mkString("\n"))
+    }
 }
