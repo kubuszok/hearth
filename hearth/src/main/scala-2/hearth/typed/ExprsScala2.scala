@@ -121,7 +121,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     // TODO: def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]] = ??
 
     def ArrayExprCodec[A: ExprCodec: Type]: ExprCodec[Array[A]] = {
-      import platformSpecific.implicits.*
+      implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
       implicit val unliftable: Unliftable[Array[A]] = Unliftable[Array[A]](PartialFunction.empty) // TODO
       ExprCodec.make[Array[A]]
     }
@@ -133,7 +133,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       ExprCodec.make[Seq[A]]
     }
     def ListExprCodec[A: ExprCodec: Type]: ExprCodec[List[A]] = {
-      import platformSpecific.implicits.*
+      implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
       implicit val unliftable: Unliftable[List[A]] = Unliftable[List[A]](PartialFunction.empty) // TODO
       ExprCodec.make[List[A]]
     }
@@ -142,27 +142,28 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       ExprCodec.make[Nil.type]
     }
     def VectorExprCodec[A: ExprCodec: Type]: ExprCodec[Vector[A]] = {
-      import platformSpecific.implicits.*
+      implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
       implicit val unliftable: Unliftable[Vector[A]] = Unliftable[Vector[A]](PartialFunction.empty) // TODO
       ExprCodec.make[Vector[A]]
     }
     def MapExprCodec[K: ExprCodec: Type, V: ExprCodec: Type]: ExprCodec[Map[K, V]] = {
-      import platformSpecific.implicits.*
+      implicit val liftableK: Liftable[K] = platformSpecific.implicits.ExprCodecLiftable[K]
+      implicit val liftableV: Liftable[V] = platformSpecific.implicits.ExprCodecLiftable[V]
       implicit val unliftable: Unliftable[Map[K, V]] = Unliftable[Map[K, V]](PartialFunction.empty) // TODO
       ExprCodec.make[Map[K, V]]
     }
     def SetExprCodec[A: ExprCodec: Type]: ExprCodec[Set[A]] = {
-      import platformSpecific.implicits.*
+      implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
       implicit val unliftable: Unliftable[Set[A]] = Unliftable[Set[A]](PartialFunction.empty) // TODO
       ExprCodec.make[Set[A]]
     }
     def OptionExprCodec[A: ExprCodec: Type]: ExprCodec[Option[A]] = {
-      import platformSpecific.implicits.*
+      implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
       implicit val unliftable: Unliftable[Option[A]] = Unliftable[Option[A]](PartialFunction.empty) // TODO
       ExprCodec.make[Option[A]]
     }
     def SomeExprCodec[A: ExprCodec: Type]: ExprCodec[Some[A]] = {
-      import platformSpecific.implicits.*
+      implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
       implicit val unliftable: Unliftable[Some[A]] = Unliftable[Some[A]](PartialFunction.empty) // TODO
       ExprCodec.make[Some[A]]
     }
@@ -171,17 +172,18 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       ExprCodec.make[None.type]
     }
     def EitherExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Either[L, R]] = {
-      import platformSpecific.implicits.*
+      implicit val liftableL: Liftable[L] = platformSpecific.implicits.ExprCodecLiftable[L]
+      implicit val liftableR: Liftable[R] = platformSpecific.implicits.ExprCodecLiftable[R]
       implicit val unliftable: Unliftable[Either[L, R]] = Unliftable[Either[L, R]](PartialFunction.empty) // TODO
       ExprCodec.make[Either[L, R]]
     }
     def LeftExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Left[L, R]] = {
-      import platformSpecific.implicits.*
+      implicit val liftableL: Liftable[L] = platformSpecific.implicits.ExprCodecLiftable[L]
       implicit val unliftable: Unliftable[Left[L, R]] = Unliftable[Left[L, R]](PartialFunction.empty) // TODO
       ExprCodec.make[Left[L, R]]
     }
     def RightExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Right[L, R]] = {
-      import platformSpecific.implicits.*
+      implicit val liftableR: Liftable[R] = platformSpecific.implicits.ExprCodecLiftable[R]
       implicit val unliftable: Unliftable[Right[L, R]] = Unliftable[Right[L, R]](PartialFunction.empty) // TODO
       ExprCodec.make[Right[L, R]]
     }

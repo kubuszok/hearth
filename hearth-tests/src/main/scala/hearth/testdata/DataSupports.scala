@@ -1,11 +1,11 @@
 package hearth
-package data
+package testdata
 
-trait DataFixture { this: MacroCommons =>
-
-  implicit lazy val DataType: Type[Data] = Type.of[Data]
+trait DataSupports { this: MacroCommons =>
 
   implicit lazy val DataCodec: ExprCodec[Data] = new ExprCodec[Data] {
+
+    val DataType: Type[Data] = Type.of[Data]
 
     val StringType: Type[String] = Type.of[String]
 
@@ -36,11 +36,13 @@ trait DataFixture { this: MacroCommons =>
         Expr.quote(Data(Expr.splice(inner)))
       },
       onList = l => {
+        implicit val dt: Type[Data] = DataType
         val inner: Expr[List[Data]] = Expr(l)
         Expr.quote(Data((Expr.splice(inner))))
       },
       onMap = m => {
         implicit val st: Type[String] = StringType
+        implicit val dt: Type[Data] = DataType
         val inner: Expr[Map[String, Data]] = Expr(m)
         Expr.quote(Data(Expr.splice(inner)))
       }

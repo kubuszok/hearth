@@ -1,6 +1,7 @@
 package hearth
 
 import hearth.fp.ignore
+import hearth.testdata.Data
 import munit.{Location, TestOptions}
 
 import scala.util.matching.Regex
@@ -47,6 +48,13 @@ trait MacroSuite extends munit.BaseFunSuite { self =>
                |""".stripMargin
           )
       }
+  }
+
+  implicit class DataAssert(lhs: Data) {
+    def <==>(rhs: Data)(implicit loc: Location): Unit = {
+      val diff = lhs.diff(rhs)
+      Predef.assert(diff.isEmpty, s"${diff.render}\n${Console.RED}at $loc${Console.RESET}")
+    }
   }
 
   implicit class ExpectedMsgAssert(lhs: String) {
