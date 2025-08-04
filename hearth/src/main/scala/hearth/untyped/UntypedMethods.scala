@@ -126,6 +126,7 @@ trait UntypedMethods { this: MacroCommons =>
 
     def invocation: Invocation
 
+    def hasTypeParameters: Boolean
     def parameters: UntypedParameters
 
     def unsafeApply(instanceTpe: UntypedType)(instance: Option[UntypedExpr], arguments: UntypedArguments): UntypedExpr

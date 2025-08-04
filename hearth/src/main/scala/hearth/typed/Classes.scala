@@ -30,7 +30,12 @@ trait Classes { this: MacroCommons =>
   }
   object Class {
 
-    def apply[A: Type]: Class[A] = new Class(Type[A])
+    def apply[A: Type]: Class[A] = Type[A] match {
+      case CaseClass(cc) => cc
+      case Enum(e)       => e
+      case JavaBean(jb)  => jb
+      case _             => new Class(Type[A])
+    }
   }
 
   /** Represents a case class.
