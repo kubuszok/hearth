@@ -1,6 +1,7 @@
 package hearth
 package typed
 
+import hearth.testdata.Data
 class TypedJvmSpec extends MacroSuite {
 
   group("typed.Types") {
@@ -13,11 +14,14 @@ class TypedJvmSpec extends MacroSuite {
           testNamesPrinters[examples.classes.ExampleJavaInterface] -> "ExampleJavaInterface",
           testNamesPrinters[examples.classes.ExampleJavaClass] -> "ExampleJavaClass"
         ).foreach { case (actual, expected) =>
-          actual <==>
-            s"""Type.shortName:   $expected
-               |Type.fcqn:        hearth.examples.classes.$expected
-               |Type.plainPrint:  hearth.examples.classes.$expected
-               |Type.prettyPrint: hearth.examples.classes.$expected""".stripMargin
+          actual <==> Data(
+            Map(
+              "Type.shortName" -> Data(expected),
+              "Type.fcqn" -> Data(s"hearth.examples.classes.$expected"),
+              "Type.plainPrint" -> Data(s"hearth.examples.classes.$expected"),
+              "Type.prettyPrint" -> Data(s"hearth.examples.classes.$expected")
+            )
+          )
         }
       }
 
@@ -26,11 +30,14 @@ class TypedJvmSpec extends MacroSuite {
           testNamesPrinters[examples.enums.ExampleJavaEnum] -> "ExampleJavaEnum",
           testNamesPrinters[examples.enums.ExampleJavaEnumWithMethods] -> "ExampleJavaEnumWithMethods"
         ).foreach { case (actual, expected) =>
-          actual <==>
-            s"""Type.shortName:   $expected
-               |Type.fcqn:        hearth.examples.enums.$expected
-               |Type.plainPrint:  hearth.examples.enums.$expected
-               |Type.prettyPrint: hearth.examples.enums.$expected""".stripMargin
+          actual <==> Data(
+            Map(
+              "Type.shortName" -> Data(expected),
+              "Type.fcqn" -> Data(s"hearth.examples.enums.$expected"),
+              "Type.plainPrint" -> Data(s"hearth.examples.enums.$expected"),
+              "Type.prettyPrint" -> Data(s"hearth.examples.enums.$expected")
+            )
+          )
         }
       }
     }

@@ -9,6 +9,7 @@ package object testdata {
     */
   type Data = Data.Impl
 
+  /** Diff of two [[Data]] values */
   type Diff = List[DiffEntry]
   implicit final class DiffOps(private val diff: Diff) extends AnyVal {
     def render: String = diff.map(_.render).mkString("\n")
