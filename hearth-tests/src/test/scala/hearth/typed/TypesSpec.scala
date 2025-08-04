@@ -1,6 +1,8 @@
 package hearth
 package typed
 
+import hearth.testdata.Data
+
 import scala.annotation.unused
 
 class TypesSpec extends MacroSuite {
@@ -22,25 +24,34 @@ class TypesSpec extends MacroSuite {
           testNamesPrinters[Char] -> "Char",
           testNamesPrinters[Unit] -> "Unit"
         ).foreach { case (actual, expected) =>
-          actual <==>
-            s"""Type.shortName:   $expected
-               |Type.fcqn:        scala.$expected
-               |Type.plainPrint:  scala.$expected
-               |Type.prettyPrint: scala.$expected""".stripMargin
+          actual <==> Data(
+            Map(
+              "Type.shortName" -> Data(expected),
+              "Type.fcqn" -> Data(s"scala.$expected"),
+              "Type.plainPrint" -> Data(s"scala.$expected"),
+              "Type.prettyPrint" -> Data(s"scala.$expected")
+            )
+          )
         }
       }
 
       test("for build-in types") {
-        testNamesPrinters[String] <==>
-          """Type.shortName:   String
-            |Type.fcqn:        java.lang.String
-            |Type.plainPrint:  java.lang.String
-            |Type.prettyPrint: java.lang.String""".stripMargin
-        testNamesPrinters[Array[Int]] <==>
-          """Type.shortName:   Array
-            |Type.fcqn:        scala.Array
-            |Type.plainPrint:  scala.Array[scala.Int]
-            |Type.prettyPrint: scala.Array[scala.Int]""".stripMargin
+        testNamesPrinters[String] <==> Data(
+          Map(
+            "Type.shortName" -> Data("String"),
+            "Type.fcqn" -> Data("java.lang.String"),
+            "Type.plainPrint" -> Data("java.lang.String"),
+            "Type.prettyPrint" -> Data("java.lang.String")
+          )
+        )
+        testNamesPrinters[Array[Int]] <==> Data(
+          Map(
+            "Type.shortName" -> Data("Array"),
+            "Type.fcqn" -> Data("scala.Array"),
+            "Type.plainPrint" -> Data("scala.Array[scala.Int]"),
+            "Type.prettyPrint" -> Data("scala.Array[scala.Int]")
+          )
+        )
       }
 
       test("for top-level classes (non-sealed)") {
@@ -66,11 +77,14 @@ class TypesSpec extends MacroSuite {
             "[scala.Int]"
           ))
         ).foreach { case (actual, (expected, params)) =>
-          actual <==>
-            s"""Type.shortName:   $expected
-               |Type.fcqn:        hearth.examples.classes.$expected
-               |Type.plainPrint:  hearth.examples.classes.$expected$params
-               |Type.prettyPrint: hearth.examples.classes.$expected$params""".stripMargin
+          actual <==> Data(
+            Map(
+              "Type.shortName" -> Data(expected),
+              "Type.fcqn" -> Data(s"hearth.examples.classes.$expected"),
+              "Type.plainPrint" -> Data(s"hearth.examples.classes.$expected$params"),
+              "Type.prettyPrint" -> Data(s"hearth.examples.classes.$expected$params")
+            )
+          )
         }
       }
 
@@ -108,11 +122,14 @@ class TypesSpec extends MacroSuite {
           testNamesPrinters[ExampleCaseClass] -> (("ExampleCaseClass", "")),
           testNamesPrinters[ExampleCaseClassWithTypeParam[Int]] -> (("ExampleCaseClassWithTypeParam", "[scala.Int]"))
         ).foreach { case (actual, (expected, params)) =>
-          actual <==>
-            s"""Type.shortName:   $expected
-               |Type.fcqn:        hearth.typed.TypesSpec.$expected
-               |Type.plainPrint:  hearth.typed.TypesSpec.$expected$params
-               |Type.prettyPrint: hearth.typed.TypesSpec.$expected$params""".stripMargin
+          actual <==> Data(
+            Map(
+              "Type.shortName" -> Data(expected),
+              "Type.fcqn" -> Data(s"hearth.typed.TypesSpec.$expected"),
+              "Type.plainPrint" -> Data(s"hearth.typed.TypesSpec.$expected$params"),
+              "Type.prettyPrint" -> Data(s"hearth.typed.TypesSpec.$expected$params")
+            )
+          )
         }
       }
 
@@ -129,11 +146,14 @@ class TypesSpec extends MacroSuite {
           )),
           testNamesPrinters[examples.enums.ExampleSealedTraitGADT[Unit]] -> (("ExampleSealedTraitGADT", "[scala.Unit]"))
         ).foreach { case (actual, (expected, params)) =>
-          actual <==>
-            s"""Type.shortName:   $expected
-               |Type.fcqn:        hearth.examples.enums.$expected
-               |Type.plainPrint:  hearth.examples.enums.$expected$params
-               |Type.prettyPrint: hearth.examples.enums.$expected$params""".stripMargin
+          actual <==> Data(
+            Map(
+              "Type.shortName" -> Data(expected),
+              "Type.fcqn" -> Data(s"hearth.examples.enums.$expected"),
+              "Type.plainPrint" -> Data(s"hearth.examples.enums.$expected$params"),
+              "Type.prettyPrint" -> Data(s"hearth.examples.enums.$expected$params")
+            )
+          )
         }
       }
     }
@@ -154,75 +174,69 @@ class TypesSpec extends MacroSuite {
           testFlags[Double],
           testFlags[Char]
         ).foreach {
-          _ <==>
-            """Type.isPrimitive: true
-              |Type.isBuiltIn:   true
-              |
-              |Type.isAbstract: false
-              |Type.isFinal:    true
-              |
-              |Type.isClass:              true
-              |Type.notBuiltInClass:      false
-              |Type.isPlainOldJavaObject: false
-              |Type.isJavaBean:           false
-              |
-              |Type.isSealed:        false
-              |Type.isJavaEnum:      false
-              |Type.isJavaEnumValue: false
-              |
-              |Type.isCase:   false
-              |Type.isObject: false
-              |Type.isVal:    false
-              |
-              |Type.isAvailable(Everywhere): true""".stripMargin
+          _ <==> Data(
+            Map(
+              "Type.isPrimitive" -> Data(true),
+              "Type.isBuiltIn" -> Data(true),
+              "Type.isAbstract" -> Data(false),
+              "Type.isFinal" -> Data(true),
+              "Type.isClass" -> Data(true),
+              "Type.notBuiltInClass" -> Data(false),
+              "Type.isPlainOldJavaObject" -> Data(false),
+              "Type.isJavaBean" -> Data(false),
+              "Type.isSealed" -> Data(false),
+              "Type.isJavaEnum" -> Data(false),
+              "Type.isJavaEnumValue" -> Data(false),
+              "Type.isCase" -> Data(false),
+              "Type.isObject" -> Data(false),
+              "Type.isVal" -> Data(false),
+              "Type.isAvailable(Everywhere)" -> Data(true)
+            )
+          )
         }
       }
 
       test("for build-in types".ignore.pending("We need to fix arrays and S2-S3 mismatch")) {
-        testFlags[String] <==>
-          // TODO: fix isClass, isFinal
-          """Type.isPrimitive: false
-            |Type.isBuiltIn:   true
-            |
-            |Type.isAbstract: false
-            |Type.isFinal:    false
-            |
-            |Type.isClass:              false
-            |Type.notBuiltInClass:      false
-            |Type.isPlainOldJavaObject: false
-            |Type.isJavaBean:           false
-            |
-            |Type.isSealed:        false
-            |Type.isJavaEnum:      false
-            |Type.isJavaEnumValue: false
-            |
-            |Type.isCase:   false
-            |Type.isObject: false
-            |Type.isVal:    false
-            |
-            |Type.isAvailable(Everywhere): true""".stripMargin
+        // TODO: fix isClass, isFinal
+        testFlags[String] <==> Data(
+          Map(
+            "Type.isPrimitive" -> Data(false),
+            "Type.isBuiltIn" -> Data(true),
+            "Type.isAbstract" -> Data(false),
+            "Type.isFinal" -> Data(false),
+            "Type.isClass" -> Data(false),
+            "Type.notBuiltInClass" -> Data(false),
+            "Type.isPlainOldJavaObject" -> Data(false),
+            "Type.isJavaBean" -> Data(false),
+            "Type.isSealed" -> Data(false),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isCase" -> Data(false),
+            "Type.isObject" -> Data(false),
+            "Type.isVal" -> Data(false),
+            "Type.isAvailable(Everywhere)" -> Data(true)
+          )
+        )
         // TODO: fix isBuiltIn, isPlainOldJavaObject
-        testFlags[Array[Int]] <==>
-          """Type.isPrimitive: false
-            |Type.isBuiltIn:   false
-            |
-            |Type.isAbstract: false
-            |Type.isFinal:    true
-            |
-            |Type.isClass:              true
-            |Type.notBuiltInClass:      true
-            |Type.isPlainOldJavaObject: true
-            |Type.isJavaBean:           false
-            |
-            |Type.isSealed:        false
-            |Type.isJavaEnum:      false
-            |Type.isJavaEnumValue: false
-            |
-            |Type.isCase:   false
-            |Type.isObject: false
-            |Type.isVal:    false
-            |
-            |Type.isAvailable(Everywhere): true""".stripMargin
+        testFlags[Array[Int]] <==> Data(
+          Map(
+            "Type.isPrimitive" -> Data(false),
+            "Type.isBuiltIn" -> Data(false),
+            "Type.isAbstract" -> Data(false),
+            "Type.isFinal" -> Data(true),
+            "Type.isClass" -> Data(false),
+            "Type.notBuiltInClass" -> Data(false),
+            "Type.isPlainOldJavaObject" -> Data(false),
+            "Type.isJavaBean" -> Data(false),
+            "Type.isSealed" -> Data(false),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isCase" -> Data(false),
+            "Type.isObject" -> Data(false),
+            "Type.isVal" -> Data(false),
+            "Type.isAvailable(Everywhere)" -> Data(true)
+          )
+        )
       }
 
       test("for top-level classes (non-sealed)") {
@@ -236,27 +250,25 @@ class TypesSpec extends MacroSuite {
           testFlags[examples.classes.ExampleCaseClass] -> ((false, false, true)),
           testFlags[examples.classes.ExampleCaseClassWithTypeParam[Int]] -> ((false, false, true))
         ).foreach { case (actual, (isAbstract, isFinal, isCase)) =>
-          actual <==>
-            s"""Type.isPrimitive: false
-               |Type.isBuiltIn:   false
-               |
-               |Type.isAbstract: $isAbstract
-               |Type.isFinal:    $isFinal
-               |
-               |Type.isClass:              true
-               |Type.notBuiltInClass:      true
-               |Type.isPlainOldJavaObject: ${!isAbstract}
-               |Type.isJavaBean:           false
-               |
-               |Type.isSealed:        false
-               |Type.isJavaEnum:      false
-               |Type.isJavaEnumValue: false
-               |
-               |Type.isCase:   $isCase
-               |Type.isObject: false
-               |Type.isVal:    false
-               |
-               |Type.isAvailable(Everywhere): true""".stripMargin
+          actual <==> Data(
+            Map(
+              "Type.isPrimitive" -> Data(false),
+              "Type.isBuiltIn" -> Data(false),
+              "Type.isAbstract" -> Data(isAbstract),
+              "Type.isFinal" -> Data(isFinal),
+              "Type.isClass" -> Data(true),
+              "Type.notBuiltInClass" -> Data(true),
+              "Type.isPlainOldJavaObject" -> Data(!isAbstract),
+              "Type.isJavaBean" -> Data(false),
+              "Type.isSealed" -> Data(false),
+              "Type.isJavaEnum" -> Data(false),
+              "Type.isJavaEnumValue" -> Data(false),
+              "Type.isCase" -> Data(isCase),
+              "Type.isObject" -> Data(false),
+              "Type.isVal" -> Data(false),
+              "Type.isAvailable(Everywhere)" -> Data(true)
+            )
+          )
         }
       }
 
@@ -291,27 +303,25 @@ class TypesSpec extends MacroSuite {
           testFlags[ExampleCaseClass] -> ((false, false, true)),
           testFlags[ExampleCaseClassWithTypeParam[Int]] -> ((false, false, true))
         ).foreach { case (actual, (isAbstract, isFinal, isCase)) =>
-          actual <==>
-            s"""Type.isPrimitive: false
-               |Type.isBuiltIn:   false
-               |
-               |Type.isAbstract: $isAbstract
-               |Type.isFinal:    $isFinal
-               |
-               |Type.isClass:              true
-               |Type.notBuiltInClass:      true
-               |Type.isPlainOldJavaObject: ${!isAbstract}
-               |Type.isJavaBean:           false
-               |
-               |Type.isSealed:        false
-               |Type.isJavaEnum:      false
-               |Type.isJavaEnumValue: false
-               |
-               |Type.isCase:   $isCase
-               |Type.isObject: false
-               |Type.isVal:    false
-               |
-               |Type.isAvailable(Everywhere): true""".stripMargin
+          actual <==> Data(
+            Map(
+              "Type.isPrimitive" -> Data(false),
+              "Type.isBuiltIn" -> Data(false),
+              "Type.isAbstract" -> Data(isAbstract),
+              "Type.isFinal" -> Data(isFinal),
+              "Type.isClass" -> Data(true),
+              "Type.notBuiltInClass" -> Data(true),
+              "Type.isPlainOldJavaObject" -> Data(!isAbstract),
+              "Type.isJavaBean" -> Data(false),
+              "Type.isSealed" -> Data(false),
+              "Type.isJavaEnum" -> Data(false),
+              "Type.isJavaEnumValue" -> Data(false),
+              "Type.isCase" -> Data(isCase),
+              "Type.isObject" -> Data(false),
+              "Type.isVal" -> Data(false),
+              "Type.isAvailable(Everywhere)" -> Data(true)
+            )
+          )
         }
       }
 
@@ -325,27 +335,25 @@ class TypesSpec extends MacroSuite {
           testFlags[examples.enums.ExampleSealedTraitWithTypeParam[Int]] -> ((true, true, false)),
           testFlags[examples.enums.ExampleSealedTraitGADT[Unit]] -> ((true, true, false))
         ).foreach { case (actual, (isAbstract, isSealed, isObject)) =>
-          actual <==>
-            s"""Type.isPrimitive: false
-               |Type.isBuiltIn:   false
-               |
-               |Type.isAbstract: $isAbstract
-               |Type.isFinal:    false
-               |
-               |Type.isClass:              true
-               |Type.notBuiltInClass:      true
-               |Type.isPlainOldJavaObject: ${!isAbstract}
-               |Type.isJavaBean:           false
-               |
-               |Type.isSealed:        $isSealed
-               |Type.isJavaEnum:      false
-               |Type.isJavaEnumValue: false
-               |
-               |Type.isCase:   false
-               |Type.isObject: $isObject
-               |Type.isVal:    false
-               |
-               |Type.isAvailable(Everywhere): true""".stripMargin
+          actual <==> Data(
+            Map(
+              "Type.isPrimitive" -> Data(false),
+              "Type.isBuiltIn" -> Data(false),
+              "Type.isAbstract" -> Data(isAbstract),
+              "Type.isFinal" -> Data(false),
+              "Type.isClass" -> Data(true),
+              "Type.notBuiltInClass" -> Data(true),
+              "Type.isPlainOldJavaObject" -> Data(!isAbstract),
+              "Type.isJavaBean" -> Data(false),
+              "Type.isSealed" -> Data(isSealed),
+              "Type.isJavaEnum" -> Data(false),
+              "Type.isJavaEnumValue" -> Data(false),
+              "Type.isCase" -> Data(false),
+              "Type.isObject" -> Data(isObject),
+              "Type.isVal" -> Data(false),
+              "Type.isAvailable(Everywhere)" -> Data(true)
+            )
+          )
         }
       }
     }

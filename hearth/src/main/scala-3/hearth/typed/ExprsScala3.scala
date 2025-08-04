@@ -165,6 +165,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       ExprCodec.make[scala.reflect.ClassTag[A]]
     }
 
+    // In the code below we cannot just `import platformSpecific.implicits.given`, because Expr.make[Coll[A]] would use
+    // implicit ExprCodec[Coll[A]] from the companion object, which would create a circular dependency. Instead, we
+    // want to extract the implicit ToExpr[A] and FromExpr[A] from the ExprCodec[A], and then use it in the code below.
+
     def ArrayExprCodec[A: ExprCodec: Type]: ExprCodec[Array[A]] = {
       given ExprCodec[scala.reflect.ClassTag[A]] = ClassTagExprCodec[A]
       given FromExpr[A] = platformSpecific.implicits.ExprCodecIsFromExpr[A]
