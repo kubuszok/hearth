@@ -122,6 +122,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       }
     }
 
+    lazy val hasTypeParameters: Boolean = symbol.paramSymss.exists(_.exists(_.isType))
+
     lazy val parameters: UntypedParameters = {
       val paramss = symbol.paramSymss.filterNot(_.exists(_.isType))
       val indices = paramss.flatten.zipWithIndex.toMap
@@ -174,12 +176,28 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       val Instance = UntypedType.fromTyped[Instance]
       lazy val (typeParams, valueParams) = untyped.symbol.paramSymss.partition(_.exists(_.isType))
       untyped.invocation match {
-        case Invocation.Constructor | Invocation.OnModule(_) =>
+        case Invocation.Constructor =>
           Existential[Method[Instance, *], Instance](
             Method.NoInstance[Instance](untyped, Instance): Method[Instance, Instance]
           )
+        case Invocation.OnModule(_) =>
+          if !untyped.hasTypeParameters then {
+            val returnType = Instance.memberType(untyped.symbol).widenByName match {
+              case lambda: LambdaType => lambda.resType.as_??
+              case out                => out.as_??
+            }
+            // TODO: check if the method is not having any other issues, e.g. path-dependent types (we cannot handle them like this)
+            import returnType.Underlying as Returned
+            Existential[Method[Instance, *], Returned](
+              Method.NoInstance[Returned](untyped, Instance): Method[Instance, Returned]
+            )
+          } else {
+            Existential[Method[Instance, *], Nothing](
+              Method.Unsupported(untyped, Instance)("Method defines type parameters")
+            )
+          }
         case Invocation.OnInstance =>
-          if typeParams.isEmpty then {
+          if !untyped.hasTypeParameters then {
             val returnType = Instance.memberType(untyped.symbol).widenByName match {
               case lambda: LambdaType => lambda.resType.as_??
               case out                => out.as_??
@@ -212,7 +230,19 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       instanceTpe.typeSymbol.methodMembers
         .filterNot(_.isNoSymbol)
         .filterNot(_.isClassConstructor)
+        .filterNot(excludedMethods)
         .flatMap(s => UntypedMethod.parseOption(isInherited = !declared(s), module = None)(s))
     }
+
+    // These methods are only available on Scala 3, and we want to align behavior with Scala 2.
+    // For now we just exclude them, but in the future we might want to implement them in Scala 2.
+    private val excludedMethods = TypeRepr
+      .of[java.lang.Object]
+      .typeSymbol
+      .methodMembers
+      .filter { symbol =>
+        symbol.name == "$asInstanceOf$" || symbol.name == "$isInstanceOf$"
+      }
+      .toSet
   }
 }

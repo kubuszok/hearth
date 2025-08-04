@@ -87,6 +87,8 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       }
     }
 
+    lazy val hasTypeParameters: Boolean = symbol.typeParams.nonEmpty
+
     lazy val parameters: UntypedParameters = {
       val paramss = symbol.paramLists
       val indices = paramss.flatten.zipWithIndex.toMap
@@ -151,12 +153,26 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     override def toTyped[Instance: Type](untyped: UntypedMethod): Method.Of[Instance] = {
       val Instance = UntypedType.fromTyped[Instance]
       untyped.invocation match {
-        case Invocation.Constructor | Invocation.OnModule(_) =>
+        case Invocation.Constructor =>
           Existential[Method[Instance, *], Instance](
+            // TODO: check if the method is not parametric if it's a module
             Method.NoInstance[Instance](untyped, Instance): Method[Instance, Instance]
           )
+        case Invocation.OnModule(_) =>
+          if (!untyped.hasTypeParameters) {
+            val returnType = untyped.symbol.typeSignatureIn(Instance).resultType.as_??
+            // TODO: check if the method is not having any other issues, e.g. path-dependent types (we cannot handle them like this)
+            import returnType.Underlying as Returned
+            Existential[Method[Instance, *], Returned](
+              Method.NoInstance[Returned](untyped, Instance): Method[Instance, Returned]
+            )
+          } else {
+            Existential[Method[Instance, *], Nothing](
+              Method.Unsupported(untyped, Instance)("Method defines type parameters")
+            )
+          }
         case Invocation.OnInstance =>
-          if (untyped.symbol.typeParams.isEmpty) {
+          if (!untyped.hasTypeParameters) {
             val returnType = untyped.symbol.typeSignatureIn(Instance).resultType.as_??
             // TODO: check if the method is not having any other issues, e.g. path-dependent types (we cannot handle them like this)
             import returnType.Underlying as Returned
