@@ -16,6 +16,7 @@ trait Environments {
     def column(pos: Position): Int
   }
   implicit class PositionMethods(private val position: Position) {
+
     def file: Option[java.nio.file.Path] = Position.file(position)
     def offset: Int = Position.offset(position)
     def line: Int = Position.line(position)

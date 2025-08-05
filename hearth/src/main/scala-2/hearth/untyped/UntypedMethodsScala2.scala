@@ -210,5 +210,15 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         .flatMap(s => UntypedMethod.parseOption(isInherited = !declared(s), module = None)(s))
         .toList
     }
+
+    override def enclosing: Option[UntypedMethod] = {
+      @scala.annotation.tailrec
+      def enclosingOf(symbol: Symbol): Option[UntypedMethod] =
+        if (symbol == NoSymbol) None
+        else if (symbol.isMethod) parseOption(isInherited = false, module = None)(symbol)
+        else if (symbol.isClass) parseOption(isInherited = false, module = None)(symbol.asClass.primaryConstructor)
+        else enclosingOf(symbol.owner)
+      enclosingOf(c.internal.enclosingOwner)
+    }
   }
 }

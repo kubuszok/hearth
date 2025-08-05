@@ -1,7 +1,7 @@
 package hearth
 package debug
 
-trait DebugMacros { this: MacroCommons =>
+private[debug] trait DebugMacros { this: MacroCommons =>
 
   def withFinalCodeInIDE[A](expr: Expr[A]): Expr[A] = {
     val preview = expr.prettyPrint

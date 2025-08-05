@@ -237,6 +237,16 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         .flatMap(s => UntypedMethod.parseOption(isInherited = !declared(s), module = None)(s))
     }
 
+    override def enclosing: Option[UntypedMethod] = {
+      // TODO: figure out somehow if it's inherited and if it's a module
+      @scala.annotation.tailrec
+      def enclosingOf(symbol: Symbol): Option[UntypedMethod] =
+        if symbol.isNoSymbol then None
+        else if symbol.isDefDef then parseOption(isInherited = false, module = None)(symbol)
+        else enclosingOf(symbol.owner)
+      enclosingOf(Symbol.spliceOwner)
+    }
+
     // ------------------------------------------------- Special cases handling -------------------------------------------------
     // When behavior between Scala 2 and 3 is different, and it makes sense to align them, we have to decide which behavior is
     // "saner" and which one needs adjustment. Below are methods used to adjust behavior on Scala 3 side.
