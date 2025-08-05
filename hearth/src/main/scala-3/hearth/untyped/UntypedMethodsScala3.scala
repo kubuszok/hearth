@@ -226,12 +226,14 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         .flatMap(UntypedMethod.parseOption(isInherited = false, module = None))
     override def methods(instanceTpe: UntypedType): List[UntypedMethod] = {
       val symbol = instanceTpe.typeSymbol
-      val declared = symbol.declaredMethods.toSet ++ declaredByJvmOrScala(symbol)
+      val declared = symbol.declaredMethods.toSet ++ symbol.declaredFields.toSet ++ declaredByJvmOrScala(symbol)
       // TODO: companion methods
-      symbol.methodMembers
+      (symbol.methodMembers ++ symbol.fieldMembers)
         .filterNot(_.isNoSymbol)
-        .filterNot(_.isClassConstructor)
+        .filterNot(_.isClassConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
+        .filterNot(_.name.contains("$default$")) // Default parameters are methods, but we don't want them
         .filterNot(excludedMethods)
+        .sortBy(_.pos) // TODO: check if this works
         .flatMap(s => UntypedMethod.parseOption(isInherited = !declared(s), module = None)(s))
     }
 

@@ -26,46 +26,52 @@ trait MacroSuite extends munit.BaseFunSuite { self =>
     if (options.name.startsWith(prefix)) super.test(options)(body)
     else super.test(options.withName(appendName(prefix, options.name)))(body)
 
-  implicit class ArrowAssert(lhs: Any) {
-    def ==>[V](rhs: V)(implicit loc: Location): Unit =
-      (lhs, rhs) match {
+  implicit class ArrowAssert(actual: Any) {
+    def ==>[V](expected: V)(implicit loc: Location): Unit =
+      (actual, expected) match {
         // Hack to make Arrays compare sanely; at some point we may want some
         // custom, extensible, typesafe equality check but for now this will do
-        case (lhs: Array[?], rhs: Array[?]) =>
+        case (actual: Array[?], expected: Array[?]) =>
           Predef.assert(
-            lhs.toSeq == rhs.toSeq,
+            actual.toSeq == expected.toSeq,
             s"""${Console.RED}==> assertion failed${Console.RESET}:
-               |  ${lhs.toSeq} ${Console.RED}!=${Console.RESET} ${rhs.toSeq}
+               |  ${actual.toSeq} ${Console.RED}!=${Console.RESET} ${expected.toSeq}
                |${Console.RED}at $loc${Console.RESET}
                |""".stripMargin
           )
-        case (lhs, rhs) =>
+        case (actual, expected) =>
           Predef.assert(
-            lhs == rhs,
+            actual == expected,
             s"""${Console.RED}==> assertion failed${Console.RESET}:
-               |  $lhs ${Console.RED}!=${Console.RESET} $rhs
+               |  $actual ${Console.RED}!=${Console.RESET} $expected
                |${Console.RED}at $loc${Console.RESET}
                |""".stripMargin
           )
       }
   }
 
-  implicit class DataAssert(lhs: Data) {
-    def <==>(rhs: Data)(implicit loc: Location): Unit = {
-      val diff = lhs.diff(rhs)
-      Predef.assert(diff.isEmpty, s"${diff.render}\n${Console.RED}at $loc${Console.RESET}")
+  implicit class DataAssert(actual: Data) {
+    def <==>(expected: Data)(implicit loc: Location): Unit = {
+      val diff = actual.diff(expected)
+      Predef.assert(
+        diff.isEmpty,
+        s"""${Console.RED}<==> assertion failed (diff from expected)${Console.RESET}:
+           |${diff.sorted.render}
+           |${Console.RED}at $loc${Console.RESET}
+           |""".stripMargin
+      )
     }
   }
 
-  implicit class ExpectedMsgAssert(lhs: String) {
-    def <==>(rhs: String)(implicit loc: Location): Unit = {
-      val diff = lhs.split("\n").zipAll(rhs.split("\n"), "", "").flatMap { case (l, r) =>
+  implicit class ExpectedMsgAssert(actual: String) {
+    def <==>(expected: String)(implicit loc: Location): Unit = {
+      val diff = actual.split("\n").zipAll(expected.split("\n"), "", "").flatMap { case (l, r) =>
         if (l.stripANSI != r.stripANSI) List(l -> r)
         else List.empty
       }
       Predef.assert(
         diff.isEmpty,
-        s"""${Console.RED}==> assertion failed${Console.RESET}:
+        s"""${Console.RED}<==> assertion failed${Console.RESET}:
            |${diff.map { case (l, r) => s"  $l ${Console.RED}!=${Console.RESET} $r" }.mkString("\n")}
            |${Console.RED}at $loc${Console.RESET}
            |""".stripMargin

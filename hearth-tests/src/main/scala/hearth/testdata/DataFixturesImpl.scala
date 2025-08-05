@@ -16,8 +16,8 @@ object DataFixturesImpl {
       "double" -> Data(1.0),
       "boolean" -> Data(true),
       "string" -> Data("string"),
-      "list" -> Data(List(Data(1), Data(2), Data(3))),
-      "map" -> Data(Map("a" -> Data(1), "b" -> Data(2), "c" -> Data(3)))
+      "list" -> Data.list(Data(1), Data(2), Data(3)),
+      "map" -> Data.map("a" -> Data(1), "b" -> Data(2), "c" -> Data(3))
     )
   )
 }
