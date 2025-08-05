@@ -225,24 +225,38 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         .filter(_.isClassConstructor)
         .flatMap(UntypedMethod.parseOption(isInherited = false, module = None))
     override def methods(instanceTpe: UntypedType): List[UntypedMethod] = {
-      val declared = instanceTpe.typeSymbol.declaredMethods.toSet
+      val symbol = instanceTpe.typeSymbol
+      val declared = symbol.declaredMethods.toSet ++ declaredByJvmOrScala(symbol)
       // TODO: companion methods
-      instanceTpe.typeSymbol.methodMembers
+      symbol.methodMembers
         .filterNot(_.isNoSymbol)
         .filterNot(_.isClassConstructor)
         .filterNot(excludedMethods)
         .flatMap(s => UntypedMethod.parseOption(isInherited = !declared(s), module = None)(s))
     }
 
+    // ------------------------------------------------- Special cases handling -------------------------------------------------
+    // When behavior between Scala 2 and 3 is different, and it makes sense to align them, we have to decide which behavior is
+    // "saner" and which one needs adjustment. Below are methods used to adjust behavior on Scala 3 side.
+
     // These methods are only available on Scala 3, and we want to align behavior with Scala 2.
     // For now we just exclude them, but in the future we might want to implement them in Scala 2.
-    private val excludedMethods = TypeRepr
+    private lazy val excludedMethods = TypeRepr
       .of[java.lang.Object]
       .typeSymbol
       .methodMembers
       .filter { symbol =>
+        // Both "asInstanceOf" and "isInstanceOf" exist on both Scala 2 and 3, so I am not sure why we ALSO have these on Scala 3.
         symbol.name == "$asInstanceOf$" || symbol.name == "$isInstanceOf$"
       }
       .toSet
+
+    // We check if something is inherited by comparing declared methods with all methods of the type. But some methods are
+    // ensured to exist, even when they do not appear in the source code, and they should not be considered "inherited".
+    private lazy val declaredByJvmOrScala = Map {
+      val objectSymbol = TypeRepr.of[java.lang.Object].typeSymbol
+      val objectExceptionNames = Set("##", "==", "!=", "toString", "equals", "hashCode")
+      objectSymbol -> objectSymbol.methodMembers.filter(symbol => objectExceptionNames(symbol.name)).toSet
+    }.withDefaultValue(Set.empty)
   }
 }

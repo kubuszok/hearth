@@ -5,10 +5,48 @@ import hearth.testdata.{Data, DataSupports}
 
 trait MethodsFixturesImpl { this: MacroCommons & DataSupports =>
 
-  def testMethodsExtraction[A: Type]: Expr[Data] = Expr(
+  def testMethodsExtraction[A: Type](excluding: Seq[String]): Expr[Data] = {
+    val methods = Method.methodsOf[A]
+    val filtered = methods.filterNot(m => excluding.contains(m.value.name))
+    Expr(renderMethods(filtered))
+  }
+  // Scala 2 varargs pass Seq[Expr[String]]
+  def testMethodsExtractionS2Adapter[A: Type](excluding: Seq[Expr[String]]): Expr[Data] =
+    testMethodsExtraction[A](
+      excluding.map {
+        case Expr(excluding) => excluding
+        case unmatched       =>
+          Environment.reportErrorAndAbort(
+            s"Excluded methods names must be a sequence of strings literals, got ${unmatched.prettyPrint}"
+          )
+      }
+    )
+  // Scala 3 varargs pass Expr[Seq[String]]
+  def testMethodsExtractionS3Adapter[A: Type](excluding: Expr[Seq[String]]): Expr[Data] = {
+    implicit val StringType: Type[String] = mkStringType // Make visible for ExprCodec[Seq[String]]
+    excluding match {
+      case Expr(excluding) =>
+        testMethodsExtraction[A](excluding)
+      case _ =>
+        Environment.reportErrorAndAbort(
+          s"Excluded methods names must be a sequence of strings literals, got ${excluding.prettyPrint}"
+        )
+    }
+  }
+
+  def testMethodProperties[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
+    case Expr(methodName) =>
+      val method = Method.methodsOf[A].filter(_.value.name == methodName)
+      Expr(renderMethods(method))
+    case _ =>
+      Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+  }
+
+  private def mkStringType: Type[String] = Type.of[String]
+
+  private def renderMethods[A](methods: List[Method.Of[A]]): Data =
     Data(
-      Method
-        .methodsOf[A]
+      methods
         .groupMapReduce(_.value.name) { m =>
           import m.value as method
           val signature = method.parameters
@@ -54,5 +92,4 @@ trait MethodsFixturesImpl { this: MacroCommons & DataSupports =>
         }
         .toMap
     )
-  )
 }

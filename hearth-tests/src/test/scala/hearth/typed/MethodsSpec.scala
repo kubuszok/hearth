@@ -11,7 +11,7 @@ class MethodsSpec extends MacroSuite {
       import MethodsFixtures.testMethodsExtraction
 
       test("for java.lang.Object") {
-        testMethodsExtraction[java.lang.Object] <==> Data(
+        testMethodsExtraction[java.lang.Object]("getClass", "equals") <==> Data(
           Map(
             // actual methods of java.lang.Object
             "clone()" -> Data(
@@ -39,6 +39,8 @@ class MethodsSpec extends MacroSuite {
                 "isAccessor" -> Data(false)
               )
             ),
+            // Excluded because on Scala 2 it's "equals(Object)", on Scala 3 it's "equals(Any)"
+            /*
             "equals(Object)" -> Data(
               Map(
                 "invocation" -> Data("OnInstance"),
@@ -64,6 +66,7 @@ class MethodsSpec extends MacroSuite {
                 "isAccessor" -> Data(false)
               )
             ),
+             */
             "finalize()" -> Data(
               Map(
                 "invocation" -> Data("OnInstance"),
@@ -89,6 +92,8 @@ class MethodsSpec extends MacroSuite {
                 "isAccessor" -> Data(false)
               )
             ),
+            // Excluded because on Scala 2 it's "getClass", on Scala 3 it's "getClass()"
+            /*
             "getClass()" -> Data(
               Map(
                 "invocation" -> Data("OnInstance"),
@@ -114,6 +119,7 @@ class MethodsSpec extends MacroSuite {
                 "isAccessor" -> Data(false)
               )
             ),
+             */
             "hashCode()" -> Data(
               Map(
                 "invocation" -> Data("OnInstance"),
@@ -123,7 +129,7 @@ class MethodsSpec extends MacroSuite {
                 "isVar" -> Data(false),
                 "isLazy" -> Data(false),
                 "isDef" -> Data(true),
-                "isInherited" -> Data(true),
+                "isInherited" -> Data(false),
                 "isImplicit" -> Data(false),
                 "isAvailable(Everywhere)" -> Data(true),
                 "arity" -> Data(0),
@@ -198,7 +204,7 @@ class MethodsSpec extends MacroSuite {
                 "isVar" -> Data(false),
                 "isLazy" -> Data(false),
                 "isDef" -> Data(true),
-                "isInherited" -> Data(true),
+                "isInherited" -> Data(false),
                 "isImplicit" -> Data(false),
                 "isAvailable(Everywhere)" -> Data(true),
                 "arity" -> Data(0),
@@ -378,7 +384,7 @@ class MethodsSpec extends MacroSuite {
                 "isVar" -> Data(false),
                 "isLazy" -> Data(false),
                 "isDef" -> Data(true),
-                "isInherited" -> Data(true),
+                "isInherited" -> Data(false),
                 "isImplicit" -> Data(false),
                 "isAvailable(Everywhere)" -> Data(true),
                 "arity" -> Data(1),
@@ -403,7 +409,7 @@ class MethodsSpec extends MacroSuite {
                 "isVar" -> Data(false),
                 "isLazy" -> Data(false),
                 "isDef" -> Data(true),
-                "isInherited" -> Data(true),
+                "isInherited" -> Data(false),
                 "isImplicit" -> Data(false),
                 "isAvailable(Everywhere)" -> Data(true),
                 "arity" -> Data(1),
@@ -479,7 +485,7 @@ class MethodsSpec extends MacroSuite {
                 "isVar" -> Data(false),
                 "isLazy" -> Data(false),
                 "isDef" -> Data(true),
-                "isInherited" -> Data(true),
+                "isInherited" -> Data(false),
                 "isImplicit" -> Data(false),
                 "isAvailable(Everywhere)" -> Data(true),
                 "arity" -> Data(0),
