@@ -67,16 +67,23 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     import platformSpecific.*
 
-    override def prettyPrint[A](expr: Expr[A]): String =
-      expr.tree
-        .toString()
-        // removes $macro$n from freshterms to make it easier to test and read
-        .replaceAll("\\$macro", "")
-        .replaceAll("\\$\\d+", "")
-        // color expression for better UX (not as good as Scala 3 coloring but better than none)
-        .split('\n')
-        .map(line => Console.MAGENTA + line + Console.RESET)
-        .mkString("\n")
+    override def prettyPrint[A](expr: Expr[A]): String = expr.tree
+      .toString()
+      // removes $macro$n from freshterms to make it easier to test and read
+      .replaceAll("\\$macro", "")
+      .replaceAll("\\$\\d+", "")
+      // color expression for better UX (not as good as Scala 3 coloring but better than none)
+      .split('\n')
+      .view
+      .map(line => Console.MAGENTA + line + Console.RESET)
+      .mkString("\n")
+
+    override def prettyAST[A](expr: Expr[A]): String = showRaw(expr.tree)
+      // color expression for better UX
+      .split('\n')
+      .view
+      .map(line => Console.MAGENTA + line + Console.RESET)
+      .mkString("\n")
 
     override def summonImplicit[A: Type]: Option[Expr[A]] =
       scala.util

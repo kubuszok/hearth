@@ -3,7 +3,7 @@ package typed
 
 import scala.quoted.*
 
-final class CrossQuotesFixtures(q: Quotes) extends MacroCommonsScala3(using q) with CrossQuotesFixturesImpl
+final private class CrossQuotesFixtures(q: Quotes) extends MacroCommonsScala3(using q), CrossQuotesFixturesImpl
 
 object CrossQuotesFixtures {
 

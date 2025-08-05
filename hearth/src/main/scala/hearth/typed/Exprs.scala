@@ -37,6 +37,8 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     def plainPrint[A](expr: Expr[A]): String = removeAnsiColors(prettyPrint(expr))
     def prettyPrint[A](expr: Expr[A]): String
+    def plainAST[A](expr: Expr[A]): String = removeAnsiColors(prettyAST(expr))
+    def prettyAST[A](expr: Expr[A]): String
 
     def summonImplicit[A: Type]: Option[Expr[A]]
 
@@ -80,6 +82,8 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     def plainPrint: String = Expr.plainPrint(expr)
     def prettyPrint: String = Expr.prettyPrint(expr)
+    def plainAST: String = Expr.plainAST(expr)
+    def prettyAST: String = Expr.prettyAST(expr)
 
     def asUntyped: UntypedExpr = UntypedExpr.fromTyped(expr)
 
@@ -106,6 +110,8 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     def plainPrint: String = Expr.plainPrint(expr.value)
     def prettyPrint: String = Expr.prettyPrint(expr.value)
+    def plainAST: String = Expr.plainAST(expr.value)
+    def prettyAST: String = Expr.prettyAST(expr.value)
 
     def asUntyped: UntypedExpr = UntypedExpr.fromTyped(expr.value)
   }
