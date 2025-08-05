@@ -15,9 +15,8 @@ private[source] trait SourceMacros { this: MacroCommons =>
   }
 
   def file: Expr[File] = {
-    val pathString = Expr(currentFile.toString())
-    val path = Expr.quote(java.nio.file.Paths.get(Expr.splice(pathString)))
-    Expr.quote(File.wrap(Expr.splice(path)))
+    val pathString = Expr(currentFile.toString().replace("\\", "/"))
+    Expr.quote(File.wrap(Expr.splice(pathString)))
   }
 
   def fileName: Expr[FileName] = {

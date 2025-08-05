@@ -28,7 +28,7 @@ final class SourceSpec extends MacroSuite {
     test("should resolve the file") {
       val file = {
         // We only want to check if it's the whole path, but whatever is before "hearth-tests" is depending on user's environment.
-        val value = File.derived.toString
+        val value = File.derived
         value.drop(value.indexOf("hearth-tests"))
       }
       file ==> "hearth-tests/src/test/scala/hearth/source/SourceSpec.scala"

@@ -12,8 +12,8 @@ object Line extends LineCompanion {
 }
 
 object File extends FileCompanion {
-  type File <: java.nio.file.Path
-  def wrap(file: java.nio.file.Path): File = file.asInstanceOf[File]
+  type File <: String
+  def wrap(file: String): File = file.asInstanceOf[File]
 }
 
 object FileName extends FileNameCompanion {
@@ -27,7 +27,7 @@ object FileName extends FileNameCompanion {
   */
 final case class Location(file: File, line: Line) {
 
-  def fileName: FileName = FileName.wrap(file.getFileName.toString)
+  def fileName: FileName = FileName.wrap(file.split("/").last)
 
   override def toString: String = s"$file:$line"
 }
