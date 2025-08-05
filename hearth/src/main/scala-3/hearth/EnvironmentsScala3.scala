@@ -12,7 +12,7 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
 
     override def file(pos: Position): Option[java.nio.file.Path] = pos.sourceFile.getJPath
     override def offset(pos: Position): Int = pos.start
-    override def line(pos: Position): Int = pos.startLine
+    override def line(pos: Position): Int = pos.startLine + 1 // for some reason, the line number is 0-based in Scala 3
     override def column(pos: Position): Int = pos.startColumn
   }
 

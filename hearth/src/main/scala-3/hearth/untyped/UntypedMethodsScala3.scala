@@ -243,6 +243,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       def enclosingOf(symbol: Symbol): Option[UntypedMethod] =
         if symbol.isNoSymbol then None
         else if symbol.isDefDef then parseOption(isInherited = false, module = None)(symbol)
+        else if symbol.isClassDef then parseOption(isInherited = false, module = None)(symbol.primaryConstructor)
         else enclosingOf(symbol.owner)
       enclosingOf(Symbol.spliceOwner)
     }
