@@ -120,6 +120,8 @@ trait UntypedMethods { this: MacroCommons =>
     def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod]
     def constructors(instanceTpe: UntypedType): List[UntypedMethod]
     def methods(instanceTpe: UntypedType): List[UntypedMethod]
+
+    def enclosing: Option[UntypedMethod]
   }
 
   trait UntypedMethodMethods { this: UntypedMethod =>
