@@ -13,10 +13,11 @@ final class MethodsFixtures(val c: blackbox.Context)
 
   // TODO: create macro annotation which would allow to do the following
 
-  def testMethodsExtractionImpl[A: c.WeakTypeTag]: c.Expr[Data] = testMethodsExtraction[A]
+  def testMethodsExtractionImpl[A: c.WeakTypeTag](excluding: c.Expr[String]*): c.Expr[Data] =
+    testMethodsExtractionS2Adapter[A](excluding)
 }
 
 object MethodsFixtures {
 
-  def testMethodsExtraction[A]: Data = macro MethodsFixtures.testMethodsExtractionImpl[A]
+  def testMethodsExtraction[A](excluding: String*): Data = macro MethodsFixtures.testMethodsExtractionImpl[A]
 }
