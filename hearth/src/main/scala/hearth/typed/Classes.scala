@@ -16,6 +16,7 @@ trait Classes { this: MacroCommons =>
 
     lazy val constructors: List[Method.NoInstance[A]] = tpe.constructors
     lazy val methods: List[Method.Of[A]] = tpe.methods
+    def method(name: String): List[Method.Of[A]] = methods.filter(_.value.name == name)
 
     def asCaseClass: Option[CaseClass[A]] = CaseClass.unapply(tpe)
     def asEnum: Option[Enum[A]] = Enum.unapply(tpe)

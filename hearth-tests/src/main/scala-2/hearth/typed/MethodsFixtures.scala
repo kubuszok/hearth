@@ -6,7 +6,7 @@ import hearth.testdata.{Data, DataSupports}
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
 
-final class MethodsFixtures(val c: blackbox.Context)
+final private class MethodsFixtures(val c: blackbox.Context)
     extends MacroCommonsScala2
     with DataSupports
     with MethodsFixturesImpl {
