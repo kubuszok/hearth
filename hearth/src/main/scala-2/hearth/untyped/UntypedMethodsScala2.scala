@@ -203,7 +203,10 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       // TODO: companion methods
       instanceTpe.members
         .filter(_.isMethod)
-        .filterNot(_.isConstructor)
+        .filterNot(_.isConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
+        .filterNot(
+          _.name.decodedName.toString.contains("$default$")
+        ) // Default parameters are methods, but we don't want them
         .flatMap(s => UntypedMethod.parseOption(isInherited = !declared(s), module = None)(s))
         .toList
     }

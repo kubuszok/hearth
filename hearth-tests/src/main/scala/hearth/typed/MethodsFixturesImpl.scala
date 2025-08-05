@@ -54,33 +54,38 @@ trait MethodsFixturesImpl { this: MacroCommons & DataSupports =>
               params.map { case (_, p) => s"${p.tpe.shortName}" }.mkString("(", ", ", ")")
             }
             .mkString(" ")
-          val props = Data(
-            Map(
-              "invocation" -> Data(method.untyped.invocation.toString),
-              "hasTypeParameters" -> Data(method.untyped.hasTypeParameters),
-              "position" -> Data(method.position.toString),
-              // annotations // TODO
-              "isVal" -> Data(method.isVal),
-              "isVar" -> Data(method.isVar),
-              "isLazy" -> Data(method.isLazy),
-              "isDef" -> Data(method.isDef),
-              "isInherited" -> Data(method.isInherited),
-              "isImplicit" -> Data(method.isImplicit),
-              "isAvailable(Everywhere)" -> Data(method.isAvailable(Everywhere)),
-              "arity" -> Data(method.arity),
-              "isNullary" -> Data(method.isNullary),
-              "isUnary" -> Data(method.isUnary),
-              "isBinary" -> Data(method.isBinary),
-              // "isConstructorArgument" -> Data(method.isConstructorArgument), // TODO
-              // "isCaseField" -> Data(method.isCaseField), // TODO
-              "isScalaGetter" -> Data(method.isScalaGetter),
-              "isScalaSetter" -> Data(method.isScalaSetter),
-              "isScalaAccessor" -> Data(method.isScalaAccessor),
-              "isJavaGetter" -> Data(method.isJavaGetter),
-              "isJavaSetter" -> Data(method.isJavaSetter),
-              "isJavaAccessor" -> Data(method.isJavaAccessor),
-              "isAccessor" -> Data(method.isAccessor)
-            )
+          // TODO: for now we're only printing file, since we didn't standardize how to print the position yet
+          val position =
+            method.position
+              .flatMap(_.file)
+              .map(_.toString)
+              .map(value => value.drop(value.indexOf("hearth-tests")))
+              .toString
+          val props = Data.map(
+            "invocation" -> Data(method.untyped.invocation.toString),
+            "hasTypeParameters" -> Data(method.untyped.hasTypeParameters),
+            "position" -> Data(position),
+            // annotations // TODO
+            "isVal" -> Data(method.isVal),
+            "isVar" -> Data(method.isVar),
+            "isLazy" -> Data(method.isLazy),
+            "isDef" -> Data(method.isDef),
+            "isInherited" -> Data(method.isInherited),
+            "isImplicit" -> Data(method.isImplicit),
+            "isAvailable(Everywhere)" -> Data(method.isAvailable(Everywhere)),
+            "arity" -> Data(method.arity),
+            "isNullary" -> Data(method.isNullary),
+            "isUnary" -> Data(method.isUnary),
+            "isBinary" -> Data(method.isBinary),
+            // "isConstructorArgument" -> Data(method.isConstructorArgument), // TODO
+            // "isCaseField" -> Data(method.isCaseField), // TODO
+            "isScalaGetter" -> Data(method.isScalaGetter),
+            "isScalaSetter" -> Data(method.isScalaSetter),
+            "isScalaAccessor" -> Data(method.isScalaAccessor),
+            "isJavaGetter" -> Data(method.isJavaGetter),
+            "isJavaSetter" -> Data(method.isJavaSetter),
+            "isJavaAccessor" -> Data(method.isJavaAccessor),
+            "isAccessor" -> Data(method.isAccessor)
           )
           Vector(signature -> props)
         }(_ ++ _)
