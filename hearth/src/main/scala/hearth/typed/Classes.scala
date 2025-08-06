@@ -1,6 +1,11 @@
 package hearth
 package typed
 
+import hearth.fp.{DirectStyle, Parallel}
+import hearth.fp.data.NonEmptyList
+import hearth.fp.instances.*
+import hearth.fp.syntax.*
+
 import scala.collection.immutable.ListMap
 
 trait Classes { this: MacroCommons =>
@@ -12,7 +17,7 @@ trait Classes { this: MacroCommons =>
     *
     * @since 0.1.0
     */
-  class Class[A](val tpe: Type[A]) {
+  class Class[A]()(implicit val tpe: Type[A]) {
 
     lazy val constructors: List[Method.NoInstance[A]] = tpe.constructors
     lazy val methods: List[Method.Of[A]] = tpe.methods
@@ -35,7 +40,7 @@ trait Classes { this: MacroCommons =>
       case CaseClass(cc) => cc
       case Enum(e)       => e
       case JavaBean(jb)  => jb
-      case _             => new Class(Type[A])
+      case _             => new Class()(Type[A])
     }
   }
 
@@ -48,10 +53,47 @@ trait Classes { this: MacroCommons =>
   final class CaseClass[A] private (
       tpe0: Type[A],
       val primaryConstructor: Method.NoInstance[A]
-  ) extends Class[A](tpe0) {
+  ) extends Class[A]()(using tpe0) {
 
     lazy val nonPrimaryConstructors: List[Method.NoInstance[A]] = constructors.filter(_ != primaryConstructor)
     lazy val caseFields: List[Method.Of[A]] = methods.filter(_.value.isCaseField)
+
+    trait ConstructField[F[_]] {
+      def apply(field: Parameter): F[Expr[field.tpe.Underlying]]
+    }
+
+    def construct[F[_]: DirectStyle: Parallel](makeArgument: ConstructField[F]): F[Option[Expr[A]]] =
+      if (!primaryConstructor.isAvailable(Everywhere)) Option.empty[Expr[A]].pure[F]
+      else {
+        val fieldResults = primaryConstructor.parameters.flatten.toList.parTraverse { case (name, parameter) =>
+          DirectStyle[F].async { await =>
+            import parameter.tpe.Underlying
+            name -> await(makeArgument(parameter)).as_??
+          }
+        }
+        DirectStyle[F].async { await =>
+          primaryConstructor(await(fieldResults).toMap) match {
+            case Right(value) => Some(value)
+            case Left(error)  =>
+              throw new AssertionError(s"Failed to call the primary constructor of ${tpe.prettyPrint}: $error")
+          }
+        }
+      }
+
+    def caseFieldValuesAt(instance: Expr[A]): ListMap[String, Expr_??] = ListMap.from(caseFields.map { field =>
+      (field.value match {
+        case method: Method.OfInstance[A, ?] if method.isNullary =>
+          import method.Returned
+          method(instance = instance, arguments = Map.empty) match {
+            case Right(value) => method.name -> value.as_??
+            case Left(error)  =>
+              throw new AssertionError(
+                s"Failed to get the value of the field ${field.value.name} of ${tpe.prettyPrint}: $error"
+              )
+          }
+        case method => throw new AssertionError(s"Field ${method.name} is not nullary")
+      }): @scala.annotation.nowarn
+    })
 
     override def toString: String = s"CaseClass(${tpe.plainPrint})"
 
@@ -77,11 +119,29 @@ trait Classes { this: MacroCommons =>
   final class Enum[A] private (
       tpe0: Type[A],
       val directChildren: ListMap[String, ??<:[A]]
-  ) extends Class[A](tpe0) {
+  ) extends Class[A]()(using tpe0) {
 
     lazy val exhaustiveChildren: Option[ListMap[String, ??<:[A]]] = tpe.exhaustiveChildren
 
-    override def toString: String = s"Enum(${tpe.plainPrint})"
+    def matchOn[F[_]: DirectStyle: Parallel, B: Type](
+        value: Expr[A]
+    )(handle: Expr_??<:[A] => F[Expr[B]]): F[Option[Expr[B]]] =
+      directChildren.toList
+        .parTraverse { case (name, child) =>
+          DirectStyle[F].async { await =>
+            import child.Underlying as A0
+            MatchCase.typeMatch[A0](name).map { matched =>
+              await(handle(matched.as_??<:[A]))
+            }
+          }
+        }
+        .map { list =>
+          NonEmptyList.fromList(list).map { cases =>
+            MatchCase.matchOn(value)(cases.toNonEmptyVector)
+          }
+        }
+
+    override def toString: String = s"Enum(${Type.prettyPrint[A]})"
 
     override def equals(other: Any): Boolean = other match {
       case that: Enum[?] => tpe =:= that.tpe
@@ -106,7 +166,7 @@ trait Classes { this: MacroCommons =>
   final class JavaBean[A] private (
       tpe0: Type[A],
       val defaultConstructor: Method.NoInstance[A]
-  ) extends Class[A](tpe0) {
+  ) extends Class[A]()(using tpe0) {
 
     override def toString: String = s"JavaBean(${tpe.plainPrint})"
 

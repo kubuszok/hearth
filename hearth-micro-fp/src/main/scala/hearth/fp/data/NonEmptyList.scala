@@ -13,6 +13,8 @@ final case class NonEmptyList[+A](head: A, tail: List[A]) {
   def ++[B >: A](nel: NonEmptyList[B]): NonEmptyList[B] = NonEmptyList(head, tail ++ nel.toList)
 
   def toList: List[A] = head +: tail
+  def toVector: Vector[A] = head +: tail.toVector
+  def toNonEmptyVector: NonEmptyVector[A] = NonEmptyVector(head, tail.toVector)
 }
 object NonEmptyList {
 

@@ -235,6 +235,8 @@ object MIO {
 
   def firstOf[A](head: MIO[A], tail: MIO[A]*): MIO[A] = tail.foldLeft(head)(_.orElse(_))
 
+  def async[A](await: DirectStyle.Await[MIO] => A): MIO[A] = MioDirectStyle.async(await)
+
   // --------------------------------------------- Implementation details ---------------------------------------------
 
   private def lift[A](result: MResult[A]): MIO[A] = defer(Pure(MState.empty, result))
