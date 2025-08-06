@@ -14,6 +14,19 @@ object instances {
     def map2[A, B, C](fa: A, fb: => B)(f: (A, B) => C): C = f(fa, fb)
   }
 
+  implicit val OptionApplicativeTraverse: ApplicativeTraverse[Option] = new ApplicativeTraverse[Option] {
+
+    def pure[A](a: A): Option[A] = Some(a)
+
+    def map2[A, B, C](fa: Option[A], fb: => Option[B])(f: (A, B) => C): Option[C] = fa.zip(fb).map(f.tupled)
+
+    def traverse[G[_]: Applicative, A, B](fa: Option[A])(f: A => G[B]): G[Option[B]] =
+      fa.fold(Option.empty[B].pure[G])(f(_).map(Some(_)))
+
+    def parTraverse[G[_]: Parallel, A, B](fa: Option[A])(f: A => G[B]): G[Option[B]] =
+      fa.fold(Option.empty[B].pure[G])(f(_).map(Some(_)))
+  }
+
   implicit val ListApplicativeTraverse: ApplicativeTraverse[List] = new ApplicativeTraverse[List] {
 
     def pure[A](a: A): List[A] = List(a)

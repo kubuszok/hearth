@@ -1,7 +1,7 @@
 package hearth
 package typed
 
-import hearth.fp.data.NonEmptyVector
+import hearth.fp.data.{NonEmptyList, NonEmptyVector}
 import hearth.fp.syntax.*
 
 import scala.language.implicitConversions
@@ -222,6 +222,9 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     def matchOn[B: Type](cases: NonEmptyVector[MatchCase[Expr[B]]]): Expr[B] =
       MatchCase.matchOn(toMatch)(cases)
+
+    def matchOn[B: Type](cases: NonEmptyList[MatchCase[Expr[B]]]): Expr[B] =
+      matchOn(cases.toNonEmptyVector)
 
     def matchOn[B: Type](head: MatchCase[Expr[B]], tail: MatchCase[Expr[B]]*): Expr[B] =
       matchOn(NonEmptyVector(head, tail*))
