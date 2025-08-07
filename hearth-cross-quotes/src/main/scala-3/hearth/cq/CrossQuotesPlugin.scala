@@ -3,47 +3,44 @@ package cq
 
 import dotty.tools.dotc.plugins.{PluginPhase, StandardPlugin}
 import dotty.tools.*
-import dotc.*
-import dotc.ast.tpd.*
-import core.Contexts.*
-import core.Definitions
-import core.Names.*
-import core.Symbols.*
-import core.Types.*
-import core.StdNames.*
-import core.Constants.Constant
-import core.Flags.*
+import dotty.tools.dotc.*
 import dotty.tools.dotc.ast.tpd
+import dotty.tools.dotc.ast.tpd.*
 import dotty.tools.dotc.ast.Trees
+import dotty.tools.dotc.ast.Trees.Tree
 import dotty.tools.dotc.ast.untpd
 import dotty.tools.dotc.ast.untpd.UntypedTreeTraverser
 import dotty.tools.dotc.ast.untpd.UntypedTreeMap
+import dotty.tools.dotc.core.Contexts.*
+import dotty.tools.dotc.core.Constants.Constant
+import dotty.tools.dotc.core.Definitions
 import dotty.tools.dotc.core.Flags
+import dotty.tools.dotc.core.Flags.*
+import dotty.tools.dotc.core.Names.*
+import dotty.tools.dotc.core.Types.*
+import dotty.tools.dotc.core.StdNames.*
 import dotty.tools.dotc.core.Symbols
+import dotty.tools.dotc.core.Symbols.*
 import dotty.tools.dotc.core.Types
 import dotty.tools.dotc.parsing.Parser
 import dotty.tools.dotc.printing.Printer
-import dotty.tools.dotc.typer.Typer
 import dotty.tools.dotc.reporting.Diagnostic
-import dotty.tools.dotc.ast.Trees.Tree
+import dotty.tools.dotc.util.SourcePosition
+import dotty.tools.dotc.typer.Typer
+import java.io.File as JFile
+import scala.jdk.OptionConverters.*
 
 class CrossQuotesPlugin extends StandardPlugin {
-  val name = "hearth.cross-quotes"
+  val name = CrossQuotesSettings.crossQuotesName
   val description = "Rewrites Expr.quote/splice into native quotes"
 
   def init(options: List[String]): List[PluginPhase] = {
-    val loggingSetting = "logging"
-    val loggingEnabled = options
-      .collectFirst {
-        case setting if setting.startsWith(loggingSetting) =>
-          setting.stripPrefix(loggingSetting + "=").trim == "true"
-      }
-      .getOrElse(false)
-    List(new CrossQuotesPhase(loggingEnabled))
+    val loggingEnabledFor = CrossQuotesSettings.parseLoggingSettingsForScala3(options)
+    List(new CrossQuotesPhase(loggingEnabledFor))
   }
 }
 
-final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
+final class CrossQuotesPhase(loggingEnabledFor: Option[JFile] => Boolean) extends PluginPhase {
   override def runsAfter: Set[String] = Set(Parser.name)
   override def runsBefore: Set[String] = Set("typer")
   override def phaseName: String = "hearth:cross-quotes"
@@ -51,6 +48,13 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
   override def changesMembers: Boolean = true
 
   override def run(using Context): Unit = {
+    val loggingEnabled = loggingEnabledFor(ctx.compilationUnit.source.jfile.toScala)
+
+    inline def log(inline message: String, inline src: SourcePosition): Unit = if loggingEnabled then {
+      // println(s"Logging: $message at ${src.source.path}:${src.line}")
+      ctx.reporter.report(new Diagnostic.Info(message, src))
+    }
+
     ctx.compilationUnit.untpdTree = new UntypedTreeMap {
 
       private var counter: Int = 0
@@ -91,25 +95,35 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
         val oldGivensInjected = givensInjected
         val newGivensInjected = givenCandidates.filterNot(givensInjected)
         val newGivensInjectedWithSuppression = newGivensInjected.flatMap { valdef =>
-          // errors with:
-          //    Unused symbol error
+          /* Returns code:
+           *   new_given
+           * errors with:
+           *    Unused symbol error
+           */
           // List(valdef)
 
-          // val _ = new_given
-          // errors with:
-          //    _ is already defined as value _
-          // when there is more than 1 type parameter in the given
+          /* Returns code:
+           *   val _ = new_given
+           * errors with:
+           *    _ is already defined as value _
+           * when there is more than 1 type parameter in the given
+           */
           // val suppression = untpd.ValDef(termName("_"), valdef.tpt, untpd.Ident(valdef.name))
           // List(valdef, suppression)
 
-          // { val _ = new_given }
-          // errors with:
-          //    unhandled exception while running posttyper on ...
-          //    java.lang.AssertionError: NoDenotation.owner
+          /* Returns code:
+           *   { val _ = new_given }
+           * errors with:
+           *    unhandled exception while running posttyper on ...
+           *    java.lang.AssertionError: NoDenotation.owner
+           */
           // val suppression = untpd.Block(List.empty, untpd.ValDef(termName("_"), valdef.tpt, untpd.Ident(valdef.name)))
           // List(valdef, suppression)
 
-          // hearth.fp.ignore(new_given)
+          /* Returns code:
+           *   hearth.fp.ignore(new_given)
+           * no errors
+           */
           val suppression =
             untpd.Apply(
               untpd.Select(untpd.Select(untpd.Ident(termName("hearth")), termName("fp")), termName("ignore")),
@@ -128,29 +142,18 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
       }
 
       override def transform(tree: untpd.Tree)(using Context): untpd.Tree = tree match {
-        // Replaces Type.of[A]
-        // with
-        // given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
-        // [manually cast every type param Type[A] to given scala.quoted.Type[A]]
-        // CrossQuotes.castK[scala.quoted.Type, Type](scala.quoted.Type.of[A])
+        /* Replaces:
+         *   Type.of[A]
+         * with:
+         *   given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
+         *   [manually cast every type param Type[A] to given scala.quoted.Type[A]]
+         *   CrossQuotes.typeQuotesToCross(scala.quoted.Type.of[A])
+         */
         case TypeApply(Select(Ident(tp), of), List(innerTree)) if tp.show == "Type" && of.show == "of" =>
-          if injectingQuote then {
-            // Nested exprs are PITA to implement, PoC might not support them
-            ctx.reporter.report(
-              new Diagnostic.Error("Nested Expr.quote inside Expr.splice is not supported", tree.sourcePos)
-            )
-          }
-
           val result = ensureQuotes(
             injectGivens(
               untpd.Apply(
-                untpd.TypeApply(
-                  untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("castK")),
-                  List(
-                    untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Type")),
-                    untpd.Ident(typeName("Type"))
-                  )
-                ),
+                untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("typeQuotesToCross")),
                 List(
                   untpd.TypeApply(
                     untpd.Select(
@@ -164,87 +167,82 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
             )
           )
 
-          if loggingEnabled then {
-            ctx.reporter.report(
-              new Diagnostic.Info(
-                s"""Cross-quotes Type.of expansion:
-                   |From: ${tree.show}
-                   |To: ${result.show}""".stripMargin,
-                tree.sourcePos
-              )
-            )
-          }
+          log(
+            s"""Cross-quotes Type.of expansion:
+               |From: ${tree.show}
+               |To: ${result.show}""".stripMargin,
+            tree.sourcePos
+          )
 
           result
 
-        // Replaces Expr.quote[A](expr)
-        // with
-        // given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
-        // [manually cast every type param Type[A] to given scala.quoted.Type[A]]
-        // CrossQuotes.castK[scala.quoted.Expr, Expr]('{ expr })
+        /* Replaces:
+         *   Expr.quote[A](expr)
+         * with:
+         *   given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
+         *   [manually cast every type param Type[A] to given scala.quoted.Type[A]]
+         *   CrossQuotes.exprQuotesToCross('{ expr })
+         */
         case Apply(Select(Ident(expr), quote), List(innerTree)) if expr.show == "Expr" && quote.show == "quote" =>
           val result = ensureQuotes(
             injectGivens(
               untpd.Apply(
-                untpd.TypeApply(
-                  untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("castK")),
-                  List(
-                    untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Expr")),
-                    untpd.Ident(typeName("Expr"))
-                  )
-                ),
+                untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("exprQuotesToCross")),
                 List(untpd.Quote(transform(innerTree), Nil))
               )
             )
           )
 
-          if loggingEnabled then {
-            ctx.reporter.report(
-              new Diagnostic.Info(
-                s"""Cross-quotes Expr.quote expansion:
-                   |From: ${tree.show}
-                   |To: ${result.show}""".stripMargin,
-                tree.sourcePos
-              )
-            )
-          }
+          log(
+            s"""Cross-quotes Expr.quote expansion:
+               |From: ${tree.show}
+               |To: ${result.show}""".stripMargin,
+            tree.sourcePos
+          )
 
           result
 
-        // Replaces Expr.splice[A](expr)
-        // with
-        // given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
-        // [manually cast every type param Type[A] to given scala.quoted.Type[A]]
-        // ${ CrossQuotes.castK[Expr, scala.quoted.Expr](expr) }
+        /* Replaces:
+         *   Expr.splice[A](expr)
+         * with:
+         *   given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
+         *   [manually cast every type param Type[A] to given scala.quoted.Type[A]]
+         *   ${
+         *     CrossQuotes.nestedCtx { // <- necessary to handle q.Nested cases
+         *       CrossQuotes.exprCrossToQuotes(expr)
+         *     }
+         *   }
+         */
         case Apply(Select(Ident(expr), splice), List(innerTree)) if expr.show == "Expr" && splice.show == "splice" =>
           val result = ensureQuotes(
             untpd.Splice(
               untpd.Apply(
-                untpd.TypeApply(
-                  untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("castK")),
-                  List(
-                    untpd.Ident(typeName("Expr")),
-                    untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), typeName("Expr"))
+                untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("nestedCtx")),
+                List(
+                  untpd.Apply(
+                    untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("exprCrossToQuotes")),
+                    List(transform(innerTree))
                   )
-                ),
-                List(innerTree)
+                )
               )
             )
           )
 
-          if loggingEnabled then {
-            ctx.reporter.report(
-              new Diagnostic.Info(
-                s"""Cross-quotes Expr.quote expansion:
-                   |From: ${tree.show}
-                   |To: ${result.show}""".stripMargin,
-                tree.sourcePos
-              )
-            )
-          }
+          log(
+            s"""Cross-quotes Expr.splice expansion:
+               |From: ${tree.show}
+               |To: ${result.show}""".stripMargin,
+            tree.sourcePos
+          )
 
           result
 
+        /* The cross-quotes code would have type bounds like:
+         *  [A: Type, B: Type]
+         * while Scala 3 quotes would expect:
+         *  [A: scala.quoted.Type, B: scala.quoted.Type]
+         * so we have to cast each type parameter to scala.quoted.Type
+         */
         case dd @ DefDef(
               methodName,
               paramss,
@@ -253,6 +251,12 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
             ) =>
 
           val newGivenCandidates = paramss.flatten[Any].collect {
+            /* If parameters is
+             *   [A: Type]
+             * then the name of the parameter is A and the type inside Type[_] type is also A, which we can use to distinguish such bound.
+             * Then we can injects a given for A:
+             *   given castedA: scala.quoted.Type[A] = Type[A].asInstanceOf[scala.quoted.Type[A]]
+             */
             case TypeDef(
                   name,
                   untpd.ContextBounds(_, List(AppliedTypeTree(Ident(tpe), List(Ident(name2)))))
@@ -297,7 +301,9 @@ final class CrossQuotesPhase(loggingEnabled: Boolean) extends PluginPhase {
           } finally
             givenCandidates = oldGivenCandidates
 
-        case t => super.transform(t)
+        case t =>
+
+          super.transform(t)
       }
     }.transform(ctx.compilationUnit.untpdTree)
     super.run

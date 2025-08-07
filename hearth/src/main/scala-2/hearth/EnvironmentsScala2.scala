@@ -25,6 +25,11 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
     override def reportErrorAndAbort(msg: String): Nothing = c.abort(c.enclosingPosition, msg)
   }
 
+  /** No not use this module, it exists only to be used by Scala 2 Cross-Quotes macros and Scala 3 Cross-Quotes compiler
+    * plugin.
+    *
+    * Here live dragons.
+    */
   object CrossQuotes extends CrossQuotesModule {
 
     override def ctx[CastAs]: CastAs = c.asInstanceOf[CastAs]

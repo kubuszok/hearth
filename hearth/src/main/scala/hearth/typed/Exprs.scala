@@ -85,6 +85,9 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     def plainAST: String = Expr.plainAST(expr)
     def prettyAST: String = Expr.prettyAST(expr)
 
+    def upcast[B](implicit A: Type[A], B: Type[B]): Expr[B] = Expr.upcast(expr)
+    def suppressUnused(implicit A: Type[A]): Expr[Unit] = Expr.suppressUnused(expr)
+
     def asUntyped: UntypedExpr = UntypedExpr.fromTyped(expr)
 
     def as_??(implicit A: Type[A]): Expr_?? = Existential[Expr, A](expr)
