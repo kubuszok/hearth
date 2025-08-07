@@ -16,3 +16,5 @@ but one that could serve not only [Chimney](https://chimney.readthedocs.io/) but
 
 While some utilities could be easily migrated, some requres a lot of new effort to make them more generic.
 What you see here should be treated as an early alpha.
+
+If you want to help get this library out of the door then, first, thank you!, and second, please see [`CONTRIBUTING.md`](CONTRIBUTING.md).
