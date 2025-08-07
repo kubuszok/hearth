@@ -50,20 +50,19 @@ trait Environments {
       *   position as seen in the compilation log
       */
     def isExpandedAt(compilationLogPosition: String): Boolean = compilationLogPosition match {
-      case fileLineRegex(fileName, line) =>
-        val fileMatches = currentPosition.file.exists(_.toString.endsWith(fileName))
-        val actualLine = currentPosition.line + adjustLine
-        val lineMatches = scala.util.Try(line.toInt).toOption.contains(actualLine)
-        fileMatches && lineMatches
       case fileLineColumnRegex(fileName, line, column) =>
         val fileMatches = currentPosition.file.exists(_.toString.endsWith(fileName))
-        val actualLine = currentPosition.line + adjustLine
+        val actualLine = currentPosition.line
         val lineMatches = scala.util.Try(line.toInt).toOption.contains(actualLine)
         val columnMatches = scala.util.Try(column.toInt).toOption.contains(currentPosition.column)
         fileMatches && lineMatches && columnMatches
-      case _ => false
+      case fileLineRegex(fileName, line) =>
+        val fileMatches = currentPosition.file.exists(_.toString.endsWith(fileName))
+        val actualLine = currentPosition.line
+        val lineMatches = scala.util.Try(line.toInt).toOption.contains(actualLine)
+        fileMatches && lineMatches
+      case _ => reportErrorAndAbort(s"Invalid position: $compilationLogPosition")
     }
-    private val adjustLine = if (isScala3) 1 else 0 // Scala 3 i 0-indexed, or decremented for some reason?
     private val fileLineRegex = """^(.+):(\d+)$""".r
     private val fileLineColumnRegex = """^(.+):(\d+):(\d+)$""".r
   }
