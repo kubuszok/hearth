@@ -33,6 +33,10 @@ class CrossQuotesSpec extends MacroSuite {
       test("should work for unsanitized expressions") {
         CrossQuotesFixtures.unsanitizedExpr <==> "ListMap(1 -> 2)"
       }
+
+      test("should work for nested expressions") {
+        CrossQuotesFixtures.nestedExpr <==> "42"
+      }
     }
   }
 }

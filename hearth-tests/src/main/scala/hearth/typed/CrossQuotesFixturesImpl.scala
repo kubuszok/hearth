@@ -32,4 +32,15 @@ trait CrossQuotesFixturesImpl { this: MacroTypedCommons =>
   def genericExpr[A: Type](e: Expr[A]): Expr[String] = Expr.quote {
     Expr.splice(e).toString
   }
+
+  def nestedExpr: Expr[String] = {
+    def intToString(i: Expr[Int]): Expr[String] = Expr.quote {
+      Expr.splice(i).toString
+    }
+
+    Expr.quote {
+      def localMethod(i: Int): String = Expr.splice(intToString(Expr.quote(i)))
+      localMethod(42)
+    }
+  }
 }

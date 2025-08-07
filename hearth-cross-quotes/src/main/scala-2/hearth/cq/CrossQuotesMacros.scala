@@ -7,15 +7,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
   import c.universe.{Expr as _, *}
 
-  private val loggingSetting = "hearth.cross-quotes.logging"
-
-  private val loggingEnabled = c.settings
-    .collect {
-      case setting if setting.startsWith(loggingSetting) =>
-        setting.stripPrefix(loggingSetting + "=").trim == "true"
-    }
-    .headOption
-    .getOrElse(false)
+  private val loggingEnabled = CrossQuotesSettings.parseLoggingSettingsForScala2(c.settings)
 
   // Scala 3 generate prefix$macro$[n] while Scala 2 prefix[n] and we want to align the behavior
   private def freshName(prefix: String): TermName = c.universe.internal.reificationSupport.freshTermName(prefix)

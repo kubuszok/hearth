@@ -27,4 +27,7 @@ object CrossQuotesFixtures {
 
   inline def unsanitizedExpr: String = ${ unsanitizedExprImpl }
   private def unsanitizedExprImpl(using q: Quotes): Expr[String] = new CrossQuotesFixtures(q).unsanitizedExpr
+
+  inline def nestedExpr: String = ${ nestedExprImpl }
+  private def nestedExprImpl(using q: Quotes): Expr[String] = new CrossQuotesFixtures(q).nestedExpr
 }

@@ -55,9 +55,10 @@ val dev = new {
   }
 
   val logCrossQuotes = props.getProperty("log.cross-quotes") match {
-    case "true"  => true
-    case "false" => false
-    case _       => !isCI
+    case "true"                          => true
+    case "false"                         => false
+    case otherwise if otherwise.nonEmpty => otherwise
+    case _                               => !isCI
   }
 }
 
