@@ -13,15 +13,13 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
 
   // TODO: Scala 2 cross-quotes do not handle this yet
   /** Derives a `Show[A]` type class instance for a given type `A`. */
-  @scala.annotation.nowarn
-  def deriveTypeClass[A: Type]: Expr[Show[A]] = Expr.quote(???)
-  // def deriveTypeClass[A: Type]: Expr[Show[A]] = Expr.quote {
-  //   new Show[A] {
-  //     def show(value: A): String = Expr.splice {
-  //       deriveOrFail[A](Expr.quote(value), s"Show[${Type.prettyPrint[A]}] type class")
-  //     }
-  //   }
-  // }
+  def deriveTypeClass[A: Type]: Expr[Show[A]] = Expr.quote {
+    new Show[A] {
+      def show(value: A): String = Expr.splice {
+        deriveOrFail[A](Expr.quote(value), s"Show[${Type.prettyPrint[A]}] type class")
+      }
+    }
+  }
 
   /** Derives a `String` representation of a given value of type `A` (inlined `Show[A].show`). */
   def deriveShowString[A: Type](value: Expr[A]): Expr[String] =

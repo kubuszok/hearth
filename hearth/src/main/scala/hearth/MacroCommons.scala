@@ -58,15 +58,15 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
       result match {
         case Right(expr) =>
           lazy val info = state.logs.render.onlyInfo(macroName)
-          if (renderInfoLogs && info.nonEmpty) {
+          if (renderInfoLogs && info.length - 2 > macroName.length) {
             Environment.reportInfo(info)
           }
           lazy val warnings = state.logs.render.onlyWarn(macroName)
-          if (renderWarnLogs && warnings.nonEmpty) {
+          if (renderWarnLogs && warnings.length - 2 > macroName.length) {
             Environment.reportWarn(warnings)
           }
           lazy val errors = state.logs.render.onlyError(macroName)
-          if (failOnErrorLog && errors.nonEmpty) {
+          if (failOnErrorLog && errors.length - 2 > macroName.length) {
             Environment.reportErrorAndAbort(errors)
           }
           expr
