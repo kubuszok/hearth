@@ -7,20 +7,31 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
   import c.universe.{Expr as _, *}
 
-  private val loggingEnabled = CrossQuotesSettings.parseLoggingSettingsForScala2(c.settings)
+  private val loggingEnabled =
+    CrossQuotesSettings.parseLoggingSettingsForScala2(c.settings)(
+      scala.util.Try(c.enclosingPosition.source.file.file).toOption
+    )
+
+  private def log(message: => String): Unit =
+    if (loggingEnabled) {
+      // println(s"Logging: $message at ${c.enclosingPosition.source.path}:${c.enclosingPosition.line}")
+      c.echo(c.enclosingPosition, message)
+    }
 
   // Scala 3 generate prefix$macro$[n] while Scala 2 prefix[n] and we want to align the behavior
   private def freshName(prefix: String): TermName = c.universe.internal.reificationSupport.freshTermName(prefix)
 
+  /* Replaces:
+   *   Type.of[A]
+   * with:
+   *   what we see in Quasiquote
+   */
   def typeOfImpl[A: c.WeakTypeTag]: c.Tree = {
     val termB = freshName("B")
     val typeB = TypeName(freshName("B").toString)
     val ctx = freshName("ctx")
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
 
-    // Replaces Type.of[A]
-    // with...
-    // what we see in Quasiquote
     val result = q"""
       val $ctx = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
       import $ctx.universe.{Type => _, internal => _, _}
@@ -30,27 +41,26 @@ class CrossQuotesMacros(val c: blackbox.Context) {
       weakTypeTag[${weakTypeOf[A]}].asInstanceOf[Type[${weakTypeOf[A]}]]
       """
 
-    if (loggingEnabled) {
-      c.echo(
-        c.enclosingPosition,
-        s"""Cross-quotes Type.of expansion:
-           |From: Type.of[${weakTypeOf[A]}]
-           |To: $result""".stripMargin
-      )
-    }
+    log(
+      s"""Cross-quotes Type.of expansion:
+         |From: Type.of[${weakTypeOf[A]}]
+         |To: $result""".stripMargin
+    )
 
     result
   }
 
+  /* Replaces:
+   *   Expr.quote[A](a)
+   * with:
+   *   what we see in Quasiquote
+   */
   def quoteImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Tree = {
     val termB = freshName("B")
     val typeB = TypeName(freshName("B").toString)
     val ctx = freshName("ctx")
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
 
-    // Replaces Expr.quote[A](a)
-    // with...
-    // what we see in Quasiquote
     val result = q"""
       val $ctx = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
       import $ctx.universe.Quasiquote
@@ -60,14 +70,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
       $ctx.Expr[${weakTypeOf[A]}](${convert(ctx)(expr.tree)}).asInstanceOf[Expr[${weakTypeOf[A]}]]
       """
 
-    if (loggingEnabled) {
-      c.echo(
-        c.enclosingPosition,
-        s"""Cross-quotes Expr.quote expansion:
-           |From: Expr.quote[${weakTypeOf[A]}]($expr)
-           |To: $result""".stripMargin
-      )
-    }
+    log(
+      s"""Cross-quotes Expr.quote expansion:
+         |From: Expr.quote[${weakTypeOf[A]}]($expr)
+         |To: $result""".stripMargin
+    )
 
     result
   }
@@ -76,10 +83,26 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val unquoter = new Unquoter(ctx)
     val extractedExprs = unquoter.transform(tree)
     val replaced = unquoter.toReplace.foldLeft(extractedExprs.toString) { case (result, (toReplace, replacement)) =>
-      result.replaceAll(toReplace, replacement)
+      import java.util.regex.{Matcher, Pattern}
+      result.replaceAll(Pattern.quote(toReplace), Matcher.quoteReplacement(replacement))
     }
     val quoted = "q\"\"\"" + replaced + "\"\"\""
-    c.parse(quoted)
+    log(s"Quasiquote: $quoted")
+    try
+      c.parse(quoted)
+    catch {
+      case _: Exception =>
+        // It is still somewhat fishy, that if we always escape the dollar, it crashes,
+        // when we never do it, it crashes, but if we recover on crash... then it works.
+        // It seems it's still is fragile, but it's good enough for demo.
+        val escaped = replaced.view
+          .map {
+            case '$' => "$$"
+            case c   => c
+          }
+          .mkString("q\"\"\"", "", "\"\"\"")
+        c.parse(escaped)
+    }
   }
 
   private class Unquoter(ctx: TermName) extends Transformer {
@@ -87,9 +110,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val toReplace = scala.collection.mutable.Map.empty[String, String]
 
     override def transform(tree: Tree): Tree = tree match {
-      // Replaces Expr.splice[A](a)
-      // with
-      // e.asInstanceOf[ctx.Expr[A]]
+      /* Replaces:
+       *   Expr.splice[A](a)
+       * with:
+       *   ${{e}.asInstanceOf[ctx.Expr[A]]}
+       */
       case Apply(
             TypeApply(
               Select(Select(This(_), TermName("Expr")), TermName("splice")),
@@ -99,22 +124,19 @@ class CrossQuotesMacros(val c: blackbox.Context) {
           ) =>
         val result = convert(ctx)(expr) match {
           case Ident(_) =>
-            toReplace += (expr.toString() -> s"\\$${{$expr}.asInstanceOf[$ctx.Expr[$tpe]]}")
+            toReplace += (expr.toString() -> s"$${{$expr}.asInstanceOf[$ctx.Expr[$tpe]]}")
             expr
           case _ =>
             val stub = Ident(freshName("stub"))
-            toReplace += (stub.toString() -> s"\\$${{$expr}.asInstanceOf[$ctx.Expr[$tpe]]}")
+            toReplace += (stub.toString() -> s"$${{$expr}.asInstanceOf[$ctx.Expr[$tpe]]}")
             stub
         }
 
-        if (loggingEnabled) {
-          c.echo(
-            c.enclosingPosition,
-            s"""Cross-quotes Expr.splice expansion:
-               |From: Expr.splice[$tpe]($expr)
-               |To: $result""".stripMargin
-          )
-        }
+        log(
+          s"""Cross-quotes Expr.splice expansion:
+             |From: Expr.splice[$tpe]($expr)
+             |To: $result""".stripMargin
+        )
 
         result
 

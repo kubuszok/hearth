@@ -4,7 +4,7 @@ import java.io.File as JFile
 
 object CrossQuotesSettings {
 
-  /** Name of the compiler plugin, and also prefix of its settings.*/
+  /** Name of the compiler plugin, and also prefix of its settings. */
   val crossQuotesName = "hearth.cross-quotes"
 
   /** Name of the logging setting. */
@@ -12,7 +12,7 @@ object CrossQuotesSettings {
 
   /** Scala 2 settings are not trimmed, so we need to do it manually. */
   def parseLoggingSettingsForScala2(settings: List[String]): Option[JFile] => Boolean = parse(settings.collect {
-    case setting if setting.startsWith(loggingSettingName) => setting.stripPrefix(loggingSettingName + "=").trim
+    case setting if setting.startsWith(crossQuotesName) => setting.stripPrefix(crossQuotesName + ".").trim
   })
 
   /** Cross-quotes name should have been checked by the compiler, it's already trimmed. */
