@@ -17,7 +17,7 @@ class ShowSpec extends MacroSuite {
     }
 
     group("should be able to inline showing for") {
-      
+
       test("values with built-in support") {
 
         Show.show(1) <==> "1"

@@ -40,6 +40,112 @@ class CrossQuotesPlugin extends StandardPlugin {
   }
 }
 
+/** This plugin is responsible for rewriting Type.of/Expr.quote/Expr.splice into native quotes
+  * ([[scala.quoted.Expr]]/[[scala.quoted.Type]]) in Scala 3.
+  *
+  *   1. The first thing that it does is to replace:
+  *
+  * {{{
+  * Type.of[A]
+  * }}}
+  *
+  * with:
+  *
+  * {{{
+  * scala.quoted.Type.of[A]
+  * }}}
+  *
+  * and:
+  *
+  * {{{
+  * Expr.quote[A](expr)
+  * }}}
+  *
+  * with:
+  *
+  * {{{
+  * '{ expr }
+  * }}}
+  *
+  * and:
+  *
+  * {{{
+  * Expr.splice { expr }
+  * }}}
+  *
+  * with:
+  *
+  * {{{
+  * ${ expr }
+  * }}}
+  *
+  * But since, both of these operations are need to use [[scala.quoted.Quotes]] we need to inject a given for it:
+  *
+  * {{{
+  * // given is prepeded before the first ourermost Expr.quote/Expr.splice
+  * given scala.quoted.Quotes = CrossQuotes.ctx
+  * // the rest of the code
+  * }}}
+  *
+  *   2. However, if there are type bounds like:
+  *
+  * {{{
+  * [A: Type, B: Type]
+  * }}}
+  *
+  * then we have to cast each type parameter to [[scala.quoted.Type]]:
+  *
+  * {{{
+  * given castedA: scala.quoted.Type[A] = Type[A].asInstanceOf[scala.quoted.Type[A]]
+  * given castedB: scala.quoted.Type[B] = Type[B].asInstanceOf[scala.quoted.Type[B]]
+  * ...
+  * }}}
+  *
+  *   3. Finally, if the whole expression building is decomposed into several steps, e.g.:
+  *
+  * {{{
+  * def intToString(expr: Expr[Int]): Expr[String] = Expr.quote {
+  *   Expr.splice { expr }.toString
+  * }
+  * Expr.quote {
+  *   val a = 1
+  *   Expr.splice { intToString(Expr.quote { a }) }
+  * }
+  * }}}
+  *
+  * then normally, we would have to use [[scala.quoted.Quotes.Nested]] and givens to handle that case:
+  *
+  * {{{
+  * def intToString(expr: Expr[Int](using Quotes)): Expr[String] = '{
+  *   ${ expr }.toString
+  * }
+  * '{
+  *   val a = 1
+  *   ${ intToString('{ a }) } // inside ${} we are creating a new Quotes context (q.Nested)
+  * }
+  * }}}
+  *
+  * so we need to keep trace of the current level of nested quotes and inject a given for [[scala.quoted.Quotes]] only
+  * at the top level.
+  *
+  * {{{
+  * def intToString(expr: Expr[Int]): Expr[String] =
+  *   given scala.quoted.Quotes = CrossQuotes.ctx // uses current Quotes/q.Nested context
+  *   '{
+  *     ${ expr }.toString
+  *   }
+  *
+  * '{
+  *   val a = 1
+  *   ${
+  *     // inside ${} we are creating a new Quotes context (q.Nested)
+  *     CrossQuotes.nestedCtx { // updates CrossQuotes.ctx
+  *       intToString('{ a })
+  *     } // resotres previous CrossQuotes.ctx value
+  *   }
+  * }
+  * }}}
+  */
 final class CrossQuotesPhase(loggingEnabledFor: Option[JFile] => Boolean) extends PluginPhase {
   override def runsAfter: Set[String] = Set(Parser.name)
   override def runsBefore: Set[String] = Set("typer")
