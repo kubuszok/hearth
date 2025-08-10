@@ -62,7 +62,9 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
   final class UntypedMethod private (
       val symbol: MethodSymbol,
       val invocation: Invocation,
-      val isInherited: Boolean
+      val isDeclared: Boolean,
+      val isConstructorArgument: Boolean,
+      val isCaseField: Boolean
   ) extends UntypedMethodMethods {
 
     override def unsafeApply(
@@ -113,6 +115,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     override def isLazy: Boolean = symbol.isLazy
     override def isDef: Boolean = !symbol.isVal && !symbol.isVar && !symbol.isLazy
     override def isImplicit: Boolean = symbol.isImplicit
+    override def isSynthetic: Boolean = symbol.isSynthetic
 
     override def isAvailable(scope: Accessible): Boolean = scope match {
       case Everywhere => symbol.isPublic
@@ -133,7 +136,12 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       def symbolName(symbol: Symbol): String = symbol.name.decodedName.toString
     }
 
-    private def parse(isInherited: Boolean, module: Option[UntypedExpr])(
+    private def parse(
+        isDeclared: Boolean,
+        isConstructorArgument: Boolean,
+        isCaseField: Boolean,
+        module: Option[UntypedExpr]
+    )(
         symbol: Symbol
     ): Either[String, UntypedMethod] =
       if (symbol.isMethod)
@@ -143,12 +151,22 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
             invocation =
               if (symbol.isConstructor) Invocation.Constructor
               else module.map(Invocation.OnModule).getOrElse(Invocation.OnInstance),
-            isInherited = isInherited
+            isDeclared = isDeclared,
+            isConstructorArgument = isConstructorArgument,
+            isCaseField = isCaseField
           )
         )
       else Left(s"Expected method Symbol, got $symbol")
-    private def parseOption(isInherited: Boolean, module: Option[UntypedExpr])(symbol: Symbol): Option[UntypedMethod] =
-      parse(isInherited, module)(symbol).toOption
+    private def parseOption(
+        isDeclared: Boolean,
+        isConstructorArgument: Boolean,
+        isCaseField: Boolean,
+        module: Option[UntypedExpr]
+    )(symbol: Symbol): Option[UntypedMethod] =
+      parse(isDeclared, isConstructorArgument, isCaseField, module)(symbol).toOption
+
+    private val parseCtorOption =
+      parseOption(isDeclared = true, isConstructorArgument = false, isCaseField = false, module = None)
 
     override def toTyped[Instance: Type](untyped: UntypedMethod): Method.Of[Instance] = {
       val Instance = UntypedType.fromTyped[Instance]
@@ -192,31 +210,49 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         .filter(_.isClass)
         .map(_.asClass.primaryConstructor)
         .filter(_.isConstructor)
-        .flatMap(UntypedMethod.parseOption(isInherited = false, module = None))
+        .flatMap(parseCtorOption)
     override def constructors(instanceTpe: UntypedType): List[UntypedMethod] =
-      instanceTpe.decls
-        .filter(_.isConstructor)
-        .flatMap(UntypedMethod.parseOption(isInherited = false, module = None))
-        .toList
+      instanceTpe.decls.filter(_.isConstructor).flatMap(parseCtorOption).toList
     override def methods(instanceTpe: UntypedType): List[UntypedMethod] = {
+      // Defined in the type or its parent, or synthetic
+      val members = instanceTpe.members
+      // Defined exatcly in the type
       val declared = instanceTpe.decls.toSet
+      val constructorArguments = (for {
+        symbol <- List(instanceTpe.typeSymbol)
+        if symbol.isClass
+        primaryConstructor = symbol.asClass.primaryConstructor
+        if primaryConstructor.isConstructor
+        argument <- primaryConstructor.asMethod.paramLists.flatten
+      } yield symbolName(argument)).toSet
       // TODO: companion methods
-      instanceTpe.members
-        .filter(_.isMethod)
-        .filterNot(_.isConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
-        .filterNot(
-          _.name.decodedName.toString.contains("$default$")
-        ) // Default parameters are methods, but we don't want them
-        .flatMap(s => UntypedMethod.parseOption(isInherited = !declared(s), module = None)(s))
-        .toList
+      sortMethods(
+        members
+          .filter(_.isMethod)
+          .filterNot(_.isConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
+          .filterNot(
+            _.name.decodedName.toString.contains("$default$")
+          ) // Default parameters are methods, but we don't want them
+          .flatMap { s =>
+            val fieldNames = Set(symbolName(s), symbolName(s) + "_=")
+            UntypedMethod.parseOption(
+              isDeclared = declared(s),
+              isConstructorArgument = (constructorArguments & fieldNames).nonEmpty,
+              isCaseField = s.asMethod.isCaseAccessor,
+              module = None
+            )(s)
+          }
+          .toList
+      )
     }
 
     override def enclosing: Option[UntypedMethod] = {
       @scala.annotation.tailrec
       def enclosingOf(symbol: Symbol): Option[UntypedMethod] =
         if (symbol == NoSymbol) None
-        else if (symbol.isMethod) parseOption(isInherited = false, module = None)(symbol)
-        else if (symbol.isClass) parseOption(isInherited = false, module = None)(symbol.asClass.primaryConstructor)
+        else if (symbol.isMethod)
+          parseCtorOption(symbol) // not ctor, but we don't want to call it, so it doesn't matter
+        else if (symbol.isClass) parseCtorOption(symbol.asClass.primaryConstructor)
         else enclosingOf(symbol.owner)
       enclosingOf(c.internal.enclosingOwner)
     }

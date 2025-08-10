@@ -36,7 +36,7 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
           case DerivationError.UnsupportedMethod(typeName, method) =>
             s"Derivation of $typeName.$method is not supported"
           case DerivationError.AssertionFailed(message) => s"Assertion failed: $message"
-          case e                                        => s"Unexpected error: ${e.getMessage}"
+          case e => s"Unexpected error: ${e.getMessage}:\n${e.getStackTrace.mkString("\n")}"
         }
         .mkString("\n")
 
@@ -120,6 +120,7 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
   private def attempAsCaseClass[A: Type](value: Expr[A]): Attempt[String] =
     Log.info(s"Attempting to use case class support to show value of type ${Type.prettyPrint[A]}") >>
       CaseClass.parse[A].traverse { caseClass =>
+        println(s"Case class: ${caseClass.caseFields.map(_.value.name).mkString(", ")}")
         caseClass
           .caseFieldValuesAt(value)
           .toList

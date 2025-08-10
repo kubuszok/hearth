@@ -307,20 +307,32 @@ object MIO {
       scala.collection.mutable.Map.empty[Any, MState]
     }
     private def openAwait: Any = {
-      val owner = new AnyRef
+      val owner: AnyRef = java.util.UUID.randomUUID()
       openedAwaits.get() += owner
       ignore(ongoingStates.get().put(owner, MState.empty))
       owner
     }
-    private def closeAwait(owner: Any): Unit =
-      ignore(openedAwaits.get().dequeue(), ongoingStates.get().remove(owner))
+    private def closeAwait(owner: Any): Unit = {
+      val ownerId = openedAwaits.get().indexOf(owner)
+      ignore(openedAwaits.get().remove(ownerId), ongoingStates.get().remove(owner))
+    }
 
     private def getCurrentOwner: Any =
       openedAwaits.get().headOption.getOrElse(throw new IllegalStateException("No open await!"))
     private def getCurrentState(owner: Any): MState =
-      ongoingStates.get()(owner)
+      ongoingStates
+        .get()
+        .getOrElse(
+          owner,
+          throw new IllegalStateException(s"No state for $owner! (States for ${openedAwaits.get().mkString(", ")})")
+        )
     private def appendCurrentState(owner: Any, state: MState): Unit = {
-      val currentState = ongoingStates.get()(owner)
+      val currentState = ongoingStates
+        .get()
+        .getOrElse(
+          owner,
+          throw new IllegalStateException(s"No state for $owner! (States for ${openedAwaits.get().mkString(", ")})")
+        )
       val newState = currentState ++ state
       ignore(ongoingStates.get().put(owner, newState))
     }

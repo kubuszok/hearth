@@ -14,6 +14,10 @@ trait Environments extends EnvironmentCrossQuotesSupport {
     def offset(pos: Position): Int
     def line(pos: Position): Int
     def column(pos: Position): Int
+
+    final def fileName(pos: Position): Option[String] = pos.file.map(_.getFileName().toString)
+    final def prettyPrint(pos: Position): String =
+      fileName(pos).map(f => s"$f:${pos.line}:${pos.column}").getOrElse(s"<unknown>:${pos.line}:${pos.column}")
   }
   implicit class PositionMethods(private val position: Position) {
 
@@ -21,6 +25,9 @@ trait Environments extends EnvironmentCrossQuotesSupport {
     def offset: Int = Position.offset(position)
     def line: Int = Position.line(position)
     def column: Int = Position.column(position)
+
+    def fileName: Option[String] = Position.fileName(position)
+    def prettyPrint: String = Position.prettyPrint(position)
   }
 
   implicit lazy val PositionOrdering: Ordering[Position] =

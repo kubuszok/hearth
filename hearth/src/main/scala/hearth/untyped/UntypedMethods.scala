@@ -122,6 +122,29 @@ trait UntypedMethods { this: MacroCommons =>
     def methods(instanceTpe: UntypedType): List[UntypedMethod]
 
     def enclosing: Option[UntypedMethod]
+
+    /** We want to keep sorting consistent between Scala 2 and 3, and make it reasonable for both.
+      *
+      * The chanllenges are:
+      *   - we want to keep methods defined in the type before all inherited or synthetic methods
+      *   - we want to keep declared methods in their source order... but [[Position]] can be empty
+      *   - inherited methods can come from multiple parental classes, sorting them primarily by position doesn't make
+      *     sense (especially if some of these parents might give us empty [[Position]]s)
+      *   - so for non-declared methods we sort by name, but for declared methods we sort by position
+      *   - TODO: decide how we should order inherited methods with overloaded names
+      */
+    protected def sortMethods(methods: List[UntypedMethod]): List[UntypedMethod] = {
+      val (declared, others) = methods.partitionMap { method =>
+        method.position match {
+          case Some(position) if method.isDeclared => Left(position -> method)
+          case _                                   => Right(method.name -> method)
+        }
+      }
+      // TODO: Use smarter name sorting  (e.g. one that would keep _1, _2, ..., _10, _11, ...)
+      // TODO: Check if declared is empty :/, if it is, and we have a Scala class.
+      //       Probably we should filter by declared and keep the original order?
+      declared.sortBy(_._1).map(_._2) ++ others.sortBy(_._1).map(_._2)
+    }
   }
 
   trait UntypedMethodMethods { this: UntypedMethod =>
@@ -144,15 +167,18 @@ trait UntypedMethods { this: MacroCommons =>
 
     def annotations: List[UntypedExpr]
 
-    def isConstructorArgument: Boolean = false // TODO: next priority?
-    def isCaseField: Boolean = false // TODO: next priority?
+    def isConstructorArgument: Boolean
+    def isCaseField: Boolean
 
     def isVal: Boolean
     def isVar: Boolean
     def isLazy: Boolean
     def isDef: Boolean
-    def isInherited: Boolean
+    def isDeclared: Boolean
     def isImplicit: Boolean
+    def isSynthetic: Boolean
+
+    final def isInherited: Boolean = !isDeclared && !isSynthetic
 
     def isAvailable(scope: Accessible): Boolean
   }
