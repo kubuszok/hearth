@@ -1,6 +1,7 @@
 package hearth
 package source
 
+/** Macro implementation is in [[SourceMacros]] */
 final class SourceSpec extends MacroSuite {
 
   group("source.MethodName") {
@@ -19,7 +20,7 @@ final class SourceSpec extends MacroSuite {
   group("source.Line") {
 
     test("should resolve the line number") {
-      Line.derived ==> Line.wrap(22)
+      Line.derived ==> Line.wrap(23)
     }
   }
 
@@ -47,7 +48,7 @@ final class SourceSpec extends MacroSuite {
     test("should resolve the location") {
       val location = Location.derived
 
-      location.line ==> Line.wrap(48)
+      location.line ==> Line.wrap(49)
 
       val file = {
         val value = location.file.toString
@@ -61,7 +62,7 @@ final class SourceSpec extends MacroSuite {
         val value = location.toString
         value.drop(value.indexOf("hearth-tests"))
       }
-      locationString ==> "hearth-tests/src/test/scala/hearth/source/SourceSpec.scala:48"
+      locationString ==> "hearth-tests/src/test/scala/hearth/source/SourceSpec.scala:49"
     }
   }
 }

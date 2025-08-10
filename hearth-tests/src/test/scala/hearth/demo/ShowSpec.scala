@@ -2,6 +2,7 @@ package hearth.demo
 
 import hearth.MacroSuite
 
+/** Macro implementation is in [[ShowMacrosImpl]] */
 class ShowSpec extends MacroSuite {
 
   group("Show") {

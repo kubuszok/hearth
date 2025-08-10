@@ -2,6 +2,8 @@ package hearth
 package typed
 
 import hearth.testdata.Data
+
+/** Macro implementation is in [[TypesFixturesImpl]] */
 class TypedJvmSpec extends MacroSuite {
 
   group("typed.Types") {
