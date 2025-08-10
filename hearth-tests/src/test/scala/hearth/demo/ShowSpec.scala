@@ -37,6 +37,23 @@ class ShowSpec extends MacroSuite {
         Show.show('a') <==> "'a'"
         Show.show("hello") <==> "\"hello\""
       }
+
+      test("values with case class support") {
+
+        case class Person(name: String, age: Int)
+        Show.derived[Person].show(Person("John", 30)) <==> "Person(name = \"John\", age = 30)"
+      }
+
+      // test("values with enum support") {
+
+      //   sealed trait Color
+      //   case object Red extends Color
+      //   case object Green extends Color
+      //   case object Blue extends Color
+
+      //   Show.derived[Color].show(Red) <==> "Red"
+      //   Show.derived[Color].show(Green) <==> "Green"
+      // }
     }
   }
 }

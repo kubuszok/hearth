@@ -236,9 +236,9 @@ class CrossQuotesMacros(val c: blackbox.Context) {
         case c   => c
       }.mkString
       parse(escaped)
-    case e: scala.reflect.macros.ParseException =>
-      println(s"Error: $e, at:\n$quoteContent")
-      throw e
+    // case e: scala.reflect.macros.ParseException =>
+    //   println(s"Error: $e, at:\n$quoteContent")
+    //   throw e
   }
 
   private class AbstractTypeReplacer(ctx: TermName) extends Transformer {
@@ -259,9 +259,6 @@ class CrossQuotesMacros(val c: blackbox.Context) {
       name,
       try {
         val parsed = c.typecheck(c.parse(s"Type[$name]"))
-        println(s"Parsed $name -> $parsed: ${parsed.tpe}")
-        println(showRaw(parsed.tpe))
-        println()
         val stub = c.universe.internal.reificationSupport.freshTypeName("TypeParameterStub")
         @scala.annotation.nowarn
         val symbol = {
@@ -277,13 +274,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
           )
         }
         val ttag = c.parse(s"$parsed.asInstanceOf[$ctx.WeakTypeTag[$name]]")
-        println(s"Resolved $name -> $stub -> $ttag")
-        println()
         Some(Cache(stub, symbol, ttag))
       } catch {
-        case e: scala.tools.reflect.ToolBoxError =>
-          println(s"Error: $e")
-          None
+        // case e: scala.tools.reflect.ToolBoxError =>
+        //   println(s"Error: $e")
+        //   None
         case _: Exception => None
       }
     )
