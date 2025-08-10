@@ -1,6 +1,7 @@
 package hearth
 package testdata
 
+/** Macro implementation is in [[DataFixturesImpl]] */
 class DataSpec extends MacroSuite {
 
   group("Data") {

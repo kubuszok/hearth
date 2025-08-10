@@ -11,7 +11,6 @@ import hearth.fp.syntax.*
 
 private[demo] trait ShowMacrosImpl { this: MacroCommons =>
 
-  // TODO: Scala 2 cross-quotes do not handle this yet
   /** Derives a `Show[A]` type class instance for a given type `A`. */
   def deriveTypeClass[A: Type]: Expr[Show[A]] = Expr.quote {
     new Show[A] {

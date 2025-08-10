@@ -3,6 +3,7 @@ package typed
 
 import hearth.testdata.Data
 
+/** Macro implementation is in [[MethodsFixturesImpl]] */
 class MethodsSpec extends MacroSuite {
 
   group("trait typed.Methods") {
