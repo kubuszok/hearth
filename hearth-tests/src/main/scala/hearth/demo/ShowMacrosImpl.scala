@@ -102,10 +102,16 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
         Expr.splice(value).toString + "L"
       })
       else if (Type[A] <:< Type.of[Float]) Some(Expr.quote {
-        Expr.splice(value).toString + "f"
+        val result = Expr.splice(value).toString
+        // Workaround for https://www.scala-js.org/doc/semantics.html#tostring-of-float-double-and-unit
+        val workaround = if (result.contains(".")) result else (result + ".0")
+        workaround + "f"
       })
       else if (Type[A] <:< Type.of[Double]) Some(Expr.quote {
-        Expr.splice(value).toString
+        val result = Expr.splice(value).toString
+        // Workaround for https://www.scala-js.org/doc/semantics.html#tostring-of-float-double-and-unit
+        val workaround = if (result.contains(".")) result else (result + ".0")
+        workaround
       })
       else if (Type[A] <:< Type.of[Char]) Some(Expr.quote {
         "'" + Expr.splice(value).toString + "'"
