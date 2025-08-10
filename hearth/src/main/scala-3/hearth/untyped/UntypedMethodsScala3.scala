@@ -271,7 +271,6 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           .filterNot(_.isClassConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
           .filterNot(_.name.contains("$default$")) // Default parameters are methods, but we don't want them
           .filterNot(excludedMethods)
-          // .sortBy(_.pos) // TODO: check if this works
           .flatMap { s =>
             val fieldName = s.name.pipe { name =>
               if name.endsWith("_=") then name.dropRight(2) else name

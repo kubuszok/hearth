@@ -230,9 +230,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         members
           .filter(_.isMethod)
           .filterNot(_.isConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
-          .filterNot(
-            _.name.decodedName.toString.contains("$default$")
-          ) // Default parameters are methods, but we don't want them
+          .filterNot(s => symbolName(s).contains("$default$")) // Default parameters are methods, but we don't want them
           .flatMap { s =>
             val fieldNames = Set(symbolName(s), symbolName(s) + "_=")
             UntypedMethod.parseOption(
