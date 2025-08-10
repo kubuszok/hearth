@@ -21,6 +21,25 @@ class ShowSpec extends MacroSuite {
         Show.derived[Char].show('a') <==> "'a'"
         Show.derived[String].show("hello") <==> "\"hello\""
       }
+
+      test("values with case class support") {
+
+        case class Person(name: String, age: Int)
+        Show.show(Person("John", 30)) <==> "Person(name = \"John\", age = 30)"
+      }
+
+      test("values with enum support") {
+
+        sealed trait Color
+        case object Red extends Color
+        case object Green extends Color
+        case object Blue extends Color
+
+        def impl(color: Color): String = Show.show(color)
+        impl(Red) <==> "Red"
+        impl(Green) <==> "Green"
+        impl(Blue) <==> "Blue"
+      }
     }
 
     group("should be able to inline showing for") {
@@ -44,16 +63,17 @@ class ShowSpec extends MacroSuite {
         Show.derived[Person].show(Person("John", 30)) <==> "Person(name = \"John\", age = 30)"
       }
 
-      // test("values with enum support") {
+      test("values with enum support") {
 
-      //   sealed trait Color
-      //   case object Red extends Color
-      //   case object Green extends Color
-      //   case object Blue extends Color
+        sealed trait Color
+        case object Red extends Color
+        case object Green extends Color
+        case object Blue extends Color
 
-      //   Show.derived[Color].show(Red) <==> "Red"
-      //   Show.derived[Color].show(Green) <==> "Green"
-      // }
+        Show.derived[Color].show(Red) <==> "Red"
+        Show.derived[Color].show(Green) <==> "Green"
+        Show.derived[Color].show(Blue) <==> "Blue"
+      }
     }
   }
 }

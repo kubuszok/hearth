@@ -284,20 +284,6 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
             )(s)
           }
       )
-        .tap { methods =>
-          if symbol.name == "Person" then {
-            methods.foreach { method =>
-              println(s"""${method.name}
-                         |  isDeclared:            ${method.isDeclared}
-                         |  isSynthetic:           ${method.isSynthetic}
-                         |  isConstructorArgument: ${method.isConstructorArgument}
-                         |  isCaseField:           ${method.isCaseField}
-                         |  pos:                   ${method.position.map(
-                          Position.prettyPrint
-                        )} (${method.position})""".stripMargin)
-            }
-          }
-        }
     }
 
     override def enclosing: Option[UntypedMethod] = {

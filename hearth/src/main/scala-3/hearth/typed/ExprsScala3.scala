@@ -308,15 +308,24 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         .map { case TypeMatch(name, expr, result) =>
           import expr.{Underlying as Matched, value as toSuppress}
 
-          val body = '{ val _ = $toSuppress; $result }
+          // val body = '{ val _ = $toSuppress; $result }
+          // We're constructing:
+          // '{ val fromName = bindName; val _ = fromName; ${ usage } }
+          val body = Block(
+            List(
+              // ValDef(fromName, Some(Ref(bindName))), // not a Term, so we cannot use Expr.block
+              Expr.suppressUnused(toSuppress).asTerm
+            ),
+            result.asTerm
+          )
 
           val sym = TypeRepr.of[Matched].typeSymbol
           if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(Flags.StableRealizable)) then
           // Scala 3's enums' parameterless cases are vals with type erased, so we have to match them by value
           // case arg @ Enum.Value => ...
-          CaseDef(Bind(name, Ident(sym.termRef)), None, body.asTerm)
+          CaseDef(Bind(name, Ident(sym.termRef)), None, body)
           // case arg : Enum.Value => ...
-          else CaseDef(Bind(name, Typed(Wildcard(), TypeTree.of[Matched])), None, body.asTerm)
+          else CaseDef(Bind(name, Typed(Wildcard(), TypeTree.of[Matched])), None, body)
         }
         .toVector
         .toList

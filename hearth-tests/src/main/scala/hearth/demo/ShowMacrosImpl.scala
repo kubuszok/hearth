@@ -120,33 +120,38 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
   private def attempAsCaseClass[A: Type](value: Expr[A]): Attempt[String] =
     Log.info(s"Attempting to use case class support to show value of type ${Type.prettyPrint[A]}") >>
       CaseClass.parse[A].traverse { caseClass =>
-        println(s"Case class: ${caseClass.caseFields.map(_.value.name).mkString(", ")}")
-        caseClass
-          .caseFieldValuesAt(value)
-          .toList
-          .parTraverse { case (name, fieldValue) =>
-            import fieldValue.{Underlying as FieldType, value as fieldExpr}
-            Log.namedScope(s"Attempting field ${Type.prettyPrint[FieldType]} of ${Type.prettyPrint[A]}") {
-              attemptAllRules[FieldType](fieldExpr).map { result =>
-                Expr.quote {
-                  Expr.splice(Expr(name)) + " = " + Expr.splice(result)
+        val nameExpr = Expr(Type.shortName[A])
+
+        if (Type[A].isCaseObject || Type[A].isCaseVal) {
+          MIO.pure(nameExpr)
+        } else {
+          caseClass
+            .caseFieldValuesAt(value)
+            .toList
+            .parTraverse { case (name, fieldValue) =>
+              import fieldValue.{Underlying as FieldType, value as fieldExpr}
+              Log.namedScope(s"Attempting field ${Type.prettyPrint[FieldType]} of ${Type.prettyPrint[A]}") {
+                attemptAllRules[FieldType](fieldExpr).map { result =>
+                  Expr.quote {
+                    Expr.splice(Expr(name)) + " = " + Expr.splice(result)
+                  }
                 }
               }
             }
-          }
-          .map { fieldResults =>
-            val name = Type.shortName[A]
-            val inner = fieldResults
-              .reduceOption { (a, b) =>
-                Expr.quote {
-                  Expr.splice(a) + ", " + Expr.splice(b)
+            .map { fieldResults =>
+              val name = Type.shortName[A]
+              val inner = fieldResults
+                .reduceOption { (a, b) =>
+                  Expr.quote {
+                    Expr.splice(a) + ", " + Expr.splice(b)
+                  }
                 }
+                .getOrElse(Expr(""))
+              Expr.quote {
+                Expr.splice(Expr(name)) + "(" + Expr.splice(inner) + ")"
               }
-              .getOrElse(Expr(""))
-            Expr.quote {
-              Expr.splice(Expr(name)) + "(" + Expr.splice(inner) + ")"
             }
-          }
+        }
       }
 
   /** Attempts to show `A` value using an enum support. */
