@@ -1,6 +1,9 @@
 package hearth
 package typed
 
+import hearth.cq.CrossQuotesMacros
+import scala.language.experimental.macros
+
 private[typed] trait TypeConstructors { this: MacroCommons =>
 
   trait Ctors { this: Type.type =>
@@ -18,8 +21,10 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
       def mk(f: Int => String): String = nTimes.map(f).mkString(", ") 
       def repeat(str: String): String = mk(_ => str)
         
-      s"""    trait Ctor$n[HKT[${repeat("_")}]] extends Ctor$n.Bounded[${repeat("Nothing, Any")}, HKT]
+      s"""    final type Ctor$n[HKT[${repeat("_")}]] = Ctor$n.Bounded[${repeat("Nothing, Any")}, HKT]
          |    object Ctor$n {
+         |
+         |      def of[HKT[${mk(i => s"_")}]]: Ctor$n[HKT] = macro CrossQuotesMacros.typeCtor$nfImpl[${mk(i => s"Nothing, Any")}, HKT]
          |
          |      /** Allow applying and extracting some types `${mk(i => s"L$i <:< ? <:< U$i")}` */
          |      trait Bounded[${mk(i => s"L$i, U$i >: L$i")}, HKT[${mk(i => s"_ >: L$i <: U$i")}]] {
@@ -27,7 +32,16 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
          |        def apply[${mk(i => s"${itoa(i)} >: L$i <: U$i: Type")}]: Type[HKT[${mk(itoa)}]]
          |        def unapply[A](A: Type[A]): Option[(${mk(i => s"L$i <:??<: U$i")})]
          |      }
-         |      trait UpperBounded[${mk(i => s"U$i")}, HKT[${mk(i => s"_ <: U$i")}]] extends Bounded[${mk(i => s"Nothing, U$i")}, HKT]
+         |      object Bounded {
+         |
+         |        def of[${mk(i => s"L$i, U$i >: L$i")}, HKT[${mk(i => s"_ >: L$i <: U$i")}]]: Bounded[${mk(i => s"L$i, U$i")}, HKT] = macro CrossQuotesMacros.typeCtor$nfImpl[${mk(i => s"L$i, U$i")}, HKT]
+         |      }
+         |
+         |      final type UpperBounded[${mk(i => s"U$i")}, HKT[${mk(i => s"_ <: U$i")}]] = Bounded[${mk(i => s"Nothing, U$i")}, HKT]
+         |      object UpperBounded {
+         |
+         |        def of[${mk(i => s"U$i")}, HKT[${mk(i => s"_ <: U$i")}]]: UpperBounded[${mk(i => s"U$i")}, HKT] = macro CrossQuotesMacros.typeCtor$nfImpl[${mk(i => s"Nothing, U$i")}, HKT]
+         |      }
          |    }
          |""".stripMargin
     }
@@ -36,8 +50,10 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     }}}
     */
 
-    trait Ctor1[HKT[_]] extends Ctor1.Bounded[Nothing, Any, HKT]
+    final type Ctor1[HKT[_]] = Ctor1.Bounded[Nothing, Any, HKT]
     object Ctor1 {
+
+      def of[HKT[_]]: Ctor1[HKT] = macro CrossQuotesMacros.typeCtor1Impl[Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1` */
       trait Bounded[L1, U1 >: L1, HKT[_ >: L1 <: U1]] {
@@ -45,7 +61,7 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
         def apply[A >: L1 <: U1: Type]: Type[HKT[A]]
         def unapply[A](A: Type[A]): Option[(L1 <:??<: U1)]
       }
-      trait UpperBounded[U1, HKT[_ <: U1]] extends Bounded[Nothing, U1, HKT]
+      final type UpperBounded[U1, HKT[_ <: U1]] = Bounded[Nothing, U1, HKT]
     }
 
     trait Ctor2[HKT[_, _]] extends Ctor2.Bounded[Nothing, Any, Nothing, Any, HKT]
