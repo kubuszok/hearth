@@ -358,5 +358,37 @@ class TypesSpec extends MacroSuite {
         }
       }
     }
+
+    group("methods: Type.ctorOf, expected behavior") {
+      import TypesFixtures.testTypeCtor
+
+      test("for options") {
+        testTypeCtor[String] <==> Data("Not an option")
+        testTypeCtor[Option[Int]] <==> Data(
+          Map(
+            "unapplied" -> Data("scala.Int"),
+            "reapplied" -> Data("scala.Option[java.lang.String]")
+          )
+        )
+        testTypeCtor[Option[String]] <==> Data(
+          Map(
+            "unapplied" -> Data("java.lang.String"),
+            "reapplied" -> Data("scala.Option[java.lang.String]")
+          )
+        )
+        testTypeCtor[Option[Option[String]]] <==> Data(
+          Map(
+            "unapplied" -> Data("scala.Option[java.lang.String]"),
+            "reapplied" -> Data("scala.Option[java.lang.String]")
+          )
+        )
+        testTypeCtor[Option[Option[Option[String]]]] <==> Data(
+          Map(
+            "unapplied" -> Data("scala.Option[scala.Option[java.lang.String]]"),
+            "reapplied" -> Data("scala.Option[java.lang.String]")
+          )
+        )
+      }
+    }
   }
 }

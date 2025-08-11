@@ -16,6 +16,8 @@ final private class TypesFixtures(val c: blackbox.Context)
   def testNamesPrintersImpl[A: c.WeakTypeTag]: c.Expr[Data] = testNamesPrinters[A]
 
   def testFlagsImpl[A: c.WeakTypeTag]: c.Expr[Data] = testFlags[A]
+
+  def testTypeCtorImpl[A: c.WeakTypeTag]: c.Expr[Data] = testTypeCtor[A]
 }
 
 object TypesFixtures {
@@ -23,4 +25,6 @@ object TypesFixtures {
   def testNamesPrinters[A]: Data = macro TypesFixtures.testNamesPrintersImpl[A]
 
   def testFlags[A]: Data = macro TypesFixtures.testFlagsImpl[A]
+
+  def testTypeCtor[A]: Data = macro TypesFixtures.testTypeCtorImpl[A]
 }
