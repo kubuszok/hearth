@@ -1,7 +1,7 @@
-// Here we do not use:
+// We've put things into a separate package and do not use:
 //   package hearth
 //   package demo
-// because we want to show all the imports normal users would have to do.
+// here, because we want to show all the imports normal users would have to do.
 package hearth.demo
 
 trait Show[A] extends Show.AutoDerived[A] {

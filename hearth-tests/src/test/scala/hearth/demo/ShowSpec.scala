@@ -22,6 +22,10 @@ class ShowSpec extends MacroSuite {
         Show.derived[String].show("hello") <==> "\"hello\""
       }
 
+      test("for values with iterable support") {
+        Show.derived[Iterable[Int]].show(List(1, 2, 3)) <==> "List(1, 2, 3)"
+      }
+
       test("values with case class support") {
 
         case class Person(name: String, age: Int)
@@ -55,6 +59,10 @@ class ShowSpec extends MacroSuite {
         Show.show(1.0) <==> "1.0"
         Show.show('a') <==> "'a'"
         Show.show("hello") <==> "\"hello\""
+      }
+
+      test("for values with iterable support") {
+        Show.show(List(1, 2, 3)) <==> "List(1, 2, 3)"
       }
 
       test("values with case class support") {
