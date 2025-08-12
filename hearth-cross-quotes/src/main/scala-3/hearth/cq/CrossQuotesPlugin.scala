@@ -246,7 +246,11 @@ final class CrossQuotesPhase(loggingEnabledFor: Option[JFile] => Boolean) extend
         else {
           try {
             givensInjected = givensInjected ++ newGivensInjected
-            untpd.Block(newGivensInjectedWithSuppression, thunk)
+            val block = untpd.Block(newGivensInjectedWithSuppression, thunk)
+            if block.show.contains("Underlying") then {
+              println(s"Block: ${block.show}")
+            }
+            block
           } finally
             givensInjected = oldGivensInjected
         }
@@ -464,6 +468,68 @@ final class CrossQuotesPhase(loggingEnabledFor: Option[JFile] => Boolean) extend
           )
 
           result
+
+        /* Looking for blocks with imports that contain Underlying.
+         * For each such import we inject:
+         *   given castedUnderlying: scala.quoted.Type[Underlying] =
+         *     Type[Underlying].asInstanceOf[scala.quoted.Type[Underlying]]
+         */
+        case Block(stats, expr) if stats.collectFirst {
+              case Import(_, selectors) if selectors.exists(_.imported.show == "Underlying") => ()
+            }.isDefined =>
+
+          val newGivenCandidates = stats.collect {
+            case Import(expr, selectors) if selectors.exists(_.imported.show == "Underlying") =>
+              selectors.collect {
+                case untpd.ImportSelector(Ident(underlying), rename, _) if underlying.show.contains("Underlying") =>
+                  val name = rename.match {
+                    case Ident(name) => name
+                    case _           => underlying
+                  }.show
+                  val tpe = rename match {
+                    case Ident(name) => untpd.Ident(typeName(name.show))
+                    case _           => untpd.Select(expr, typeName(underlying.show))
+                  }
+
+                  untpd
+                    .ValDef(
+                      name = termName(s"casted$name"),
+                      tpt = untpd.AppliedTypeTree(
+                        untpd.Select(
+                          untpd.Select(untpd.Ident(termName("scala")), termName("quoted")),
+                          typeName("Type")
+                        ),
+                        List(tpe)
+                      ),
+                      rhs = untpd.TypeApply(
+                        untpd.Select(
+                          untpd.TypeApply(
+                            untpd.Ident(termName("Type")),
+                            List(tpe)
+                          ),
+                          termName("asInstanceOf")
+                        ),
+                        List(
+                          untpd.AppliedTypeTree(
+                            untpd.Select(
+                              untpd.Select(untpd.Ident(termName("scala")), termName("quoted")),
+                              typeName("Type")
+                            ),
+                            List(tpe)
+                          )
+                        )
+                      )
+                    )
+                    .withFlags(Flags.Given)
+              }
+          }.flatten
+
+          val oldGivenCandidates = givenCandidates
+          try {
+            givenCandidates = oldGivenCandidates ++ newGivenCandidates
+            untpd.Block(stats.map(transform), transform(expr))
+          } finally
+            givenCandidates = oldGivenCandidates
 
         /* The cross-quotes code would have type bounds like:
          *  [A: Type, B: Type]

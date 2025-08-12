@@ -64,7 +64,9 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
     } orElse await {
       attemptAsBuiltIn[A](value)
     } orElse await {
-      attempAsCaseClass[A](value)
+      attemptAsIterable[A](value)
+    } orElse await {
+      attemptAsCaseClass[A](value)
     } orElse await {
       attemptAsEnum[A](value)
     } getOrElse await {
@@ -122,8 +124,29 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
       else None
     }
 
+  private val iterableType = Type.Ctor1.of[Iterable]
+  private def attemptAsIterable[A: Type](value: Expr[A]): Attempt[String] =
+    Log.info(s"Attempting to use iterable support to show value of type ${Type.prettyPrint[A]}") >>
+      iterableType.unapply(Type[A]).traverse { innerType =>
+        import innerType.Underlying as B
+        implicit val iterableB: Type[Iterable[B]] = iterableType[B]
+
+        MIO.async { await =>
+          Expr.quote {
+            Expr
+              .splice(value.upcast[Iterable[B]])
+              .map { (item: B) =>
+                Expr.splice {
+                  deriveOrFail[B](Expr.quote(item), s"Show[${Type.prettyPrint[B]}] type class")
+                }
+              }
+              .toString
+          }
+        }
+      }
+
   /** Attempts to show `A` value using a case class support. */
-  private def attempAsCaseClass[A: Type](value: Expr[A]): Attempt[String] =
+  private def attemptAsCaseClass[A: Type](value: Expr[A]): Attempt[String] =
     Log.info(s"Attempting to use case class support to show value of type ${Type.prettyPrint[A]}") >>
       CaseClass.parse[A].traverse { caseClass =>
         val nameExpr = Expr(Type.shortName[A])
