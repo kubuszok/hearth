@@ -1,3 +1,7 @@
+// We've put things into a separate package and do not use:
+//   package hearth
+//   package demo
+// here, because we want to show all the imports normal users would have to do.
 package hearth.demo
 
 import scala.language.experimental.macros

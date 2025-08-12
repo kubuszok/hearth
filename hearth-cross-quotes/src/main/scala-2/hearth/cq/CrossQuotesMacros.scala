@@ -155,6 +155,9 @@ class CrossQuotesMacros(val c: blackbox.Context) {
   private def applyToCtor(ctor: Type, args: TypeName*) =
     AppliedTypeTree(c.internal.gen.mkAttributedRef(ctor.typeSymbol.asType), args.map(Ident(_)).toList)
 
+  private def paint(color: String)(text: String): String =
+    text.split("\n").map(line => s"$color$line${Console.RESET}").mkString("\n")
+
   /* Replaces:
    *   Type.of[A]
    * with:
@@ -176,9 +179,9 @@ class CrossQuotesMacros(val c: blackbox.Context) {
       """
 
     log(
-      s"""Cross-quotes Type.of expansion:
-         |From: Type.of[${weakTypeOf[A]}]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(s"Type.of[${weakTypeOf[A]}]")}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -234,9 +237,12 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor1.of expansion:
-         |From: Type.Ctor1.of[${L1.tpe}, ${U1.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor1.of${Console.RESET} expansion:
+         |From: ${Console.BLUE}Type.Ctor1.of[${L1.tpe}, ${U1.tpe}, $HKT]${Console.RESET}
+         |To: ${result.toString
+          .split("\n")
+          .map(line => s"${Console.BLUE}$line${Console.RESET}")
+          .mkString("\n")}""".stripMargin
     )
 
     result
@@ -299,9 +305,9 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor2.of expansion:
-         |From: Type.Ctor2.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor2.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(s"Type.Ctor2.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, $HKT]")}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -367,9 +373,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor3.of expansion:
-         |From: Type.Ctor3.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor3.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor3.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -438,9 +446,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor4.of expansion:
-         |From: Type.Ctor4.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor4.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor4.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -512,9 +522,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor5.of expansion:
-         |From: Type.Ctor5.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor5.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor5.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -589,9 +601,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor6.of expansion:
-         |From: Type.Ctor6.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor6.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor6.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -669,9 +683,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor7.of expansion:
-         |From: Type.Ctor7.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor7.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor7.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -752,9 +768,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor8.of expansion:
-         |From: Type.Ctor8.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor8.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor8.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -838,9 +856,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor9.of expansion:
-         |From: Type.Ctor9.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor9.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor9.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -927,9 +947,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor10.of expansion:
-         |From: Type.Ctor10.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor10.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor10.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -1019,9 +1041,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor11.of expansion:
-         |From: Type.Ctor11.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor11.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor11.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -1114,9 +1138,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor12.of expansion:
-         |From: Type.Ctor12.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor12.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor12.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -1212,9 +1238,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor13.of expansion:
-         |From: Type.Ctor13.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor13.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor13.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -1310,9 +1338,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor14.of expansion:
-         |From: Type.Ctor14.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor14.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor14.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -1410,9 +1440,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor15.of expansion:
-         |From: Type.Ctor15.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor15.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor15.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -1513,9 +1545,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor16.of expansion:
-         |From: Type.Ctor16.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor16.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor16.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -1619,9 +1653,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor17.of expansion:
-         |From: Type.Ctor17.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor17.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor17.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -1728,9 +1764,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor18.of expansion:
-         |From: Type.Ctor18.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor18.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor18.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -1840,9 +1878,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor19.of expansion:
-         |From: Type.Ctor19.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, ${L19.tpe}, ${U19.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor19.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor19.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, ${L19.tpe}, ${U19.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -1955,9 +1995,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor20.of expansion:
-         |From: Type.Ctor20.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, ${L19.tpe}, ${U19.tpe}, ${L20.tpe}, ${U20.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor20.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor20.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, ${L19.tpe}, ${U19.tpe}, ${L20.tpe}, ${U20.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -2073,9 +2115,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor21.of expansion:
-         |From: Type.Ctor21.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, ${L19.tpe}, ${U19.tpe}, ${L20.tpe}, ${U20.tpe}, ${L21.tpe}, ${U21.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor21.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor21.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, ${L19.tpe}, ${U19.tpe}, ${L20.tpe}, ${U20.tpe}, ${L21.tpe}, ${U21.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -2194,9 +2238,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val result = c.typecheck(unchecked)
 
     log(
-      s"""Cross-quotes Type.Ctor22.of expansion:
-         |From: Type.Ctor22.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, ${L19.tpe}, ${U19.tpe}, ${L20.tpe}, ${U20.tpe}, ${L21.tpe}, ${U21.tpe}, ${L22.tpe}, ${U22.tpe}, $HKT]
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Type.Ctor22.of${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(
+          s"Type.Ctor22.of[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, ${L19.tpe}, ${U19.tpe}, ${L20.tpe}, ${U20.tpe}, ${L21.tpe}, ${U21.tpe}, ${L22.tpe}, ${U22.tpe}, $HKT]"
+        )}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
@@ -2223,31 +2269,43 @@ class CrossQuotesMacros(val c: blackbox.Context) {
       """
 
     log(
-      s"""Cross-quotes Expr.quote expansion:
-         |From: Expr.quote[${weakTypeOf[A]}]($expr)
-         |To: $result""".stripMargin
+      s"""Cross-quotes ${Console.BLUE}Expr.quote${Console.RESET} expansion:
+         |From: ${paint(Console.BLUE)(s"Expr.quote[${weakTypeOf[A]}]($expr)")}
+         |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
     )
 
     result
   } catch { case e: Throwable => reportIssue(e.getMessage) }
 
   private def convert(ctx: TermName)(tree: c.Tree): c.Tree = {
-    val abstractTypeReplacer = new AbstractTypeReplacer(ctx)
-    val unquoter = new Unquoter(ctx)
+    // 1. Replace certain trees with stubs,
+    // 2. then print the tree,
+    // 3. replace stubs with their actual replacements
+    // 3. and parse it back into Tree
+    // It is _so much easier_ than properly modifying the tree.
+    val abstractTypeReferenceReplacer = new AbstractTypeReferenceReplacer(ctx)
+    val spliceReplacer = new SpliceReplacer(ctx)
     tree
       // replace some Exprs and Types with stubs
-      .pipe(unquoter.transform)
-      .pipe(abstractTypeReplacer.transform)
+      .pipe(spliceReplacer.transform)
+      .pipe(abstractTypeReferenceReplacer.transform)
       // Convert to String
       .pipe(_.toString)
+      .tap { source =>
+        if (loggingEnabled) {
+          println(s"""Stubbed source:
+                     |${paint(Console.BLUE)(source)}
+                     |""".stripMargin)
+        }
+      }
       // Replace stubs with their values
-      .pipe(abstractTypeReplacer.replaceStubsInSource)
-      .pipe(unquoter.replaceStubsInSource)
+      .pipe(abstractTypeReferenceReplacer.replaceStubsInSource)
+      .pipe(spliceReplacer.replaceStubsInSource)
       // Remove parts of anonymous classes that breaks the parser
       .pipe(sourceWithFixedAnonymousClasses)
       // Validate that there are no stubs left
-      .pipe(abstractTypeReplacer.validateNoStubsLeft)
-      .pipe(unquoter.validateNoStubsLeft)
+      .pipe(abstractTypeReferenceReplacer.validateNoStubsLeft)
+      .pipe(spliceReplacer.validateNoStubsLeft)
       // Parse back to Tree
       .pipe(parse)
   }
@@ -2258,7 +2316,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
   private def parse(quoteContent: String): c.Tree = try {
     val quoted = "q\"\"\"" + quoteContent + "\"\"\""
     val expr = c.parse(quoted)
-    log(s"Quasiquote: $quoted")
+    // log(s"Quasiquote: $quoted")
     expr
   } catch {
     // If quasiquotes contains anonymous variable e.g. x$1, it might look like a string interpolation,
@@ -2274,9 +2332,23 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     //   throw e
   }
 
-  private class AbstractTypeReplacer(ctx: TermName) extends Transformer {
+  /** Handles type parameters inside Expr.quote: Expr.quote { def foo[A] = ... // use A }, as we as type parameters
+    * inside Expr.splice: that require Type[A] from the outside.
+    */
+  private class AbstractTypeReferenceReplacer(ctx: TermName) extends Transformer {
 
     private var insideTypeParametricCrap = false
+
+    // In theory: we should always be able to check if there is Type[A], when it is
+    // convert it to c.WeakTypeTag[A] and use it in quasiquotes.
+    // But in practice, some code fails to compile, I don't know why.
+    // So for the time being we are enabling/disabling it using trial-and-error, currently:
+    //  - it is enabled inside def/class with type parameters (defined inside Expr.quote)
+    //  - it is enabled for single-letter types
+    //  - it is disabled for everything else
+    // we should fix this, but for now it's OK.
+    private def shouldTryUsingImplicitType(tree: Tree): Boolean =
+      insideTypeParametricCrap || tree.toString.length == 1
 
     private case class Cache(stub: TypeName, symbol: Symbol, weakTypeTag: Tree)
 
@@ -2317,6 +2389,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     override def transform(tree: Tree): Tree = tree match {
+      // find classes that have type parameters
       case cd @ ClassDef(_, _, _, Template(parents, _, _))
           if !insideTypeParametricCrap && parents.exists(_.tpe.typeSymbol.asType.typeParams.nonEmpty) =>
         val oldTypeParametricCrap = insideTypeParametricCrap
@@ -2325,10 +2398,20 @@ class CrossQuotesMacros(val c: blackbox.Context) {
           super.transform(cd)
         } finally
           insideTypeParametricCrap = oldTypeParametricCrap
-      case AppliedTypeTree(tpt, args) if insideTypeParametricCrap =>
+      // find methods that have type parameters
+      case dd: DefDef if !insideTypeParametricCrap && dd.tparams.nonEmpty =>
+        val oldTypeParametricCrap = insideTypeParametricCrap
+        try {
+          insideTypeParametricCrap = true
+          super.transform(dd)
+        } finally
+          insideTypeParametricCrap = oldTypeParametricCrap
+      // if we're in either of the above, we need to transform the type parameters
+      case AppliedTypeTree(tpt, args) if shouldTryUsingImplicitType(tree) =>
         AppliedTypeTree(transform(tpt), args.map(transform))
-      case Ident(name) if insideTypeParametricCrap  => Ident(attemptToFindAbstractType(name))
-      case tt: TypeTree if insideTypeParametricCrap =>
+      case Ident(name) if shouldTryUsingImplicitType(tree) =>
+        Ident(attemptToFindAbstractType(name))
+      case tt: TypeTree if shouldTryUsingImplicitType(tree) =>
         if (tt.original != null) {
           val updated = transform(tt.original)
           if (updated == tt.original) tt.original
@@ -2336,7 +2419,18 @@ class CrossQuotesMacros(val c: blackbox.Context) {
         } else {
           TypeTree(transformType(tt.tpe))
         }
-      case tree => super.transform(tree)
+      case tree =>
+        val transformed = super.transform(tree)
+        if (loggingEnabled) {
+          println(s"""Transforming tree:
+                     |In:  ${paint(Console.BLUE)(tree.toString)}
+                     |     ${paint(Console.BLUE)(showRaw(tree))}
+                     |Out: ${paint(Console.BLUE)(transformed.toString)}
+                     |     ${paint(Console.BLUE)(showRaw(transformed))}
+                     |crap: $insideTypeParametricCrap
+                     |""".stripMargin)
+        }
+        transformed
     }
 
     private def transformType(tpe: Type): Type = tpe match {
@@ -2359,7 +2453,9 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
   }
 
-  private class Unquoter(ctx: TermName) extends Transformer {
+  /** Handles type parameters inside Expr.splice: Expr.splice[A](a)
+    */
+  private class SpliceReplacer(ctx: TermName) extends Transformer {
 
     private val toReplace = scala.collection.mutable.Map.empty[String, String]
 
@@ -2387,9 +2483,9 @@ class CrossQuotesMacros(val c: blackbox.Context) {
         }
 
         log(
-          s"""Cross-quotes Expr.splice expansion:
-             |From: Expr.splice[$tpe]($expr)
-             |To: $result""".stripMargin
+          s"""Cross-quotes ${Console.BLUE}Expr.splice${Console.RESET} expansion:
+             |From: ${paint(Console.BLUE)(s"Expr.splice[$tpe]($expr)")}
+             |To: ${paint(Console.BLUE)(result.toString)}""".stripMargin
         )
 
         result

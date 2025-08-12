@@ -1,7 +1,7 @@
-// Here we do not use:
+// We've put things into a separate package and do not use:
 //   package hearth
 //   package demo
-// because we want to show all the imports normal users would have to do.
+// here, because we want to show all the imports normal users would have to do.
 package hearth.demo
 
 import hearth.*
@@ -124,23 +124,38 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
       else None
     }
 
-  private val iterableType = Type.Ctor1.of[Iterable]
+  /** Attempts to show `A` value using a iterable support. */
   private def attemptAsIterable[A: Type](value: Expr[A]): Attempt[String] =
     Log.info(s"Attempting to use iterable support to show value of type ${Type.prettyPrint[A]}") >>
       iterableType.unapply(Type[A]).traverse { innerType =>
-        import innerType.Underlying as B
-        implicit val iterableB: Type[Iterable[B]] = iterableType[B]
-
-        MIO.async { await =>
+        // It is currently required to have a separate method with `B: Type` for Scala 2 to find the implicit `Type[B]`.
+        // (Scala 2 doesn't find implicit `Type[B]` if provided in another way, and we are PoC-quality now).
+        def showIterable[B: Type](
+            iterableExpr: Expr[Iterable[B]]
+        )(f: Expr[B] => Expr[String]): Expr[String] =
           Expr.quote {
             Expr
-              .splice(value.upcast[Iterable[B]])
-              .map { (item: B) =>
+              .splice {
+                iterableExpr
+              }
+              .map { item =>
                 Expr.splice {
-                  deriveOrFail[B](Expr.quote(item), s"Show[${Type.prettyPrint[B]}] type class")
+                  f(Expr.quote(item))
                 }
               }
               .toString
+          }
+
+        MIO.async { await =>
+          import innerType.Underlying as B
+          implicit val iterableB: Type[Iterable[B]] = iterableType[B] // for .upcast[Iterable[B]]
+
+          showIterable[B](value.upcast[Iterable[B]]) { item =>
+            await {
+              Log.namedScope(s"Iterables inner type: ${Type.prettyPrint[B]}") {
+                attemptAllRules[B](item)
+              }
+            }
           }
         }
       }
@@ -201,6 +216,7 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
 
   private def stringType: Type[String] = Type.of[String]
   private def showType[A: Type]: Type[Show[A]] = Type.of[Show[A]]
+  private lazy val iterableType = Type.Ctor1.of[Iterable]
 }
 
 sealed private[demo] trait DerivationError extends scala.util.control.NoStackTrace with Product with Serializable
