@@ -2,7 +2,7 @@ package hearth.demo
 
 import hearth.MacroSuite
 
-/** Macro implementation is in [[ShowMacrosImpl]] */
+/** Macro implementation of [[Show]] is in [[ShowMacrosImpl]]. */
 final class ShowSpec extends MacroSuite {
 
   group("Show") {
@@ -10,6 +10,7 @@ final class ShowSpec extends MacroSuite {
     group("should be able to derive type class") {
 
       test("for values with built-in support") {
+        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
 
         Show.derived[Boolean].show(true) <==> "true"
         Show.derived[Byte].show(1.toByte) <==> "1.toByte"
@@ -27,12 +28,14 @@ final class ShowSpec extends MacroSuite {
       }
 
       test("values with case class support") {
+        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
 
         case class Person(name: String, age: Int)
         Show.show(Person("John", 30)) <==> "Person(name = \"John\", age = 30)"
       }
 
       test("values with enum support") {
+        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
 
         sealed trait Color
         case object Red extends Color
@@ -49,6 +52,7 @@ final class ShowSpec extends MacroSuite {
     group("should be able to inline showing for") {
 
       test("values with built-in support") {
+        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
 
         Show.show(true) <==> "true"
         Show.show(1.toByte) <==> "1.toByte"
@@ -62,16 +66,20 @@ final class ShowSpec extends MacroSuite {
       }
 
       test("for values with iterable support") {
+        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
+
         Show.show(List(1, 2, 3)) <==> "List(1, 2, 3)"
       }
 
       test("values with case class support") {
+        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
 
         case class Person(name: String, age: Int)
         Show.derived[Person].show(Person("John", 30)) <==> "Person(name = \"John\", age = 30)"
       }
 
       test("values with enum support") {
+        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
 
         sealed trait Color
         case object Red extends Color
