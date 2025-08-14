@@ -1,7 +1,7 @@
 package hearth
 package typed
 
-import hearth.testdata.Data
+import hearth.data.Data
 
 /** Macro implementation is in [[MethodsFixturesImpl]] */
 final class MethodsSpec extends MacroSuite {

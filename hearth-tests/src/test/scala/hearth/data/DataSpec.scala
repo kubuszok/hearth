@@ -1,5 +1,5 @@
 package hearth
-package testdata
+package data
 
 /** Macro implementation is in [[DataFixturesImpl]] */
 final class DataSpec extends MacroSuite {

@@ -1,4 +1,5 @@
-package hearth.testdata
+package hearth
+package data
 
 /** Diff of two [[Data]] values */
 type Diff = List[DiffEntry]

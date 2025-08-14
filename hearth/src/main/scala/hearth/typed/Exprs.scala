@@ -74,6 +74,53 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     def EitherExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Either[L, R]]
     def LeftExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Left[L, R]]
     def RightExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Right[L, R]]
+
+    def DataExprCodec: ExprCodec[data.Data] = new ExprCodec[data.Data] {
+
+      val DataType: Type[data.Data] = Type.of[data.Data]
+
+      val StringType: Type[String] = Type.of[String]
+
+      def toExpr(value: data.Data): Expr[data.Data] = value.fold(
+        onNull = Expr.quote(data.Data()),
+        onInt = i => {
+          val inner: Expr[Int] = Expr(i)
+          Expr.quote(data.Data(Expr.splice(inner)))
+        },
+        onLong = l => {
+          val inner: Expr[Long] = Expr(l)
+          Expr.quote(data.Data(Expr.splice(inner)))
+        },
+        onFloat = f => {
+          val inner: Expr[Float] = Expr(f)
+          Expr.quote(data.Data(Expr.splice(inner)))
+        },
+        onDouble = d => {
+          val inner: Expr[Double] = Expr(d)
+          Expr.quote(data.Data(Expr.splice(inner)))
+        },
+        onBoolean = b => {
+          val inner: Expr[Boolean] = Expr(b)
+          Expr.quote(data.Data(Expr.splice(inner)))
+        },
+        onString = s => {
+          val inner: Expr[String] = Expr(s)
+          Expr.quote(data.Data(Expr.splice(inner)))
+        },
+        onList = l => {
+          implicit val dt: Type[data.Data] = DataType
+          val inner: Expr[List[data.Data]] = Expr(l)
+          Expr.quote(data.Data((Expr.splice(inner))))
+        },
+        onMap = m => {
+          implicit val st: Type[String] = StringType
+          implicit val dt: Type[data.Data] = DataType
+          val inner: Expr[Map[String, data.Data]] = Expr(m)
+          Expr.quote(data.Data(Expr.splice(inner)))
+        }
+      )
+      def fromExpr(expr: Expr[data.Data]): Option[data.Data] = None // TODO
+    }
   }
 
   implicit final class ExprMethods[A](private val expr: Expr[A]) {
@@ -180,6 +227,8 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     implicit def LeftExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Left[L, R]] = Expr.LeftExprCodec[L, R]
     implicit def RightExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Right[L, R]] =
       Expr.RightExprCodec[L, R]
+
+    implicit lazy val DataCodec: ExprCodec[data.Data] = Expr.DataExprCodec
   }
 
   /** Provides support for building pattern-matching expressions.

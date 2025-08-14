@@ -53,6 +53,8 @@ trait Environments extends EnvironmentCrossQuotesSupport {
 
     def XMacroSettings: List[String]
 
+    def typedSettings: Either[String, data.Data] = data.Data.parseList(XMacroSettings)
+
     def reportInfo(msg: String): Unit
     def reportWarn(msg: String): Unit
     def reportErrorAndAbort(msg: String): Nothing

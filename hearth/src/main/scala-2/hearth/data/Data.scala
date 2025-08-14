@@ -1,25 +1,19 @@
 package hearth
-package testdata
+package data
 
-/** JSON-like data for usage in tests.
-  *
-  * Since macro can have only 1 result we can generate multiple things at once and return it as something easily
-  * diffable.
-  */
-type Data = Data.Impl
 object Data extends DataCommons { self =>
 
-  opaque type Impl = Null | Int | Long | Float | Double | Boolean | String | List[?] | Map[?, ?]
+  type Impl // null | Int | Long | Float | Double | Boolean | String | List[Data] | Map[String, Data]
 
-  override def apply(): Data = null
-  override def apply(value: Int): Data = value
-  override def apply(value: Long): Data = value
-  override def apply(value: Float): Data = value
-  override def apply(value: Double): Data = value
-  override def apply(value: Boolean): Data = value
-  override def apply(value: String): Data = value
-  override def apply(value: List[Data]): Data = value
-  override def apply(value: Map[String, Data]): Data = value
+  override def apply(): Data = null.asInstanceOf[Data]
+  override def apply(value: Int): Data = value.asInstanceOf[Data]
+  override def apply(value: Long): Data = value.asInstanceOf[Data]
+  override def apply(value: Float): Data = value.asInstanceOf[Data]
+  override def apply(value: Double): Data = value.asInstanceOf[Data]
+  override def apply(value: Boolean): Data = value.asInstanceOf[Data]
+  override def apply(value: String): Data = value.asInstanceOf[Data]
+  override def apply(value: List[Data]): Data = value.asInstanceOf[Data]
+  override def apply(value: Map[String, Data]): Data = value.asInstanceOf[Data]
 
   implicit final class DataOps(private val data: Data) extends AnyVal {
 

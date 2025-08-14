@@ -1,6 +1,6 @@
 package hearth
 
-package object testdata {
+package object data {
 
   /** JSON-like data for usage in tests.
     *

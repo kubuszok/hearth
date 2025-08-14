@@ -1,7 +1,7 @@
 package hearth
 
+import hearth.data.*
 import hearth.fp.ignore
-import hearth.testdata.*
 import munit.{Location, TestOptions}
 
 import scala.util.matching.Regex

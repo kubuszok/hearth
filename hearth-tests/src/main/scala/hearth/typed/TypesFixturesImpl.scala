@@ -1,10 +1,10 @@
 package hearth
 package typed
 
-import hearth.testdata.{Data, DataSupports}
+import hearth.data.Data
 
 /** Fixtured for testing [[TypesSpec]] and [[TypedJvmSpec]]. */
-trait TypesFixturesImpl { this: MacroTypedCommons & DataSupports =>
+trait TypesFixturesImpl { this: MacroTypedCommons =>
 
   def testNamesPrinters[A: Type]: Expr[Data] = Expr(
     Data.map(
