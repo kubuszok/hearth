@@ -5,6 +5,10 @@ package data
 import fp.instances.*
 import fp.syntax.*
 
+/** Non-empty vector.
+  *
+  * @since 0.1.0
+  */
 final case class NonEmptyVector[+A](head: A, tail: Vector[A]) {
 
   def +:[B >: A](a: B): NonEmptyVector[B] = NonEmptyVector(a, head +: tail)
@@ -15,6 +19,9 @@ final case class NonEmptyVector[+A](head: A, tail: Vector[A]) {
   def toVector: Vector[A] = head +: tail
   def toList: List[A] = head :: tail.toList
   def toNonEmptyList: NonEmptyList[A] = NonEmptyList(head, tail.toList)
+
+  def mkString(sep: String): String = toVector.mkString(sep)
+  def mkString(start: String, sep: String, end: String): String = toVector.mkString(start, sep, end)
 }
 object NonEmptyVector {
 

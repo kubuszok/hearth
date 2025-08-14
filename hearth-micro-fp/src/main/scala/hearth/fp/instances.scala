@@ -4,7 +4,10 @@ package fp
 import scala.collection.mutable.ListBuffer
 import hearth.fp.syntax.*
 
-/** Instances for basic types (which couldn't be placed in type class modules, because they are hierarchical). */
+/** Instances for basic types (which couldn't be placed in type class modules, because they are hierarchical).
+  *
+  * @since 0.1.0
+  */
 object instances {
 
   implicit val IdentityApplicative: Applicative[Id] = new Applicative[Id] {
