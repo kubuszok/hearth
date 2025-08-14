@@ -3,6 +3,7 @@ package typed
 
 import hearth.testdata.{Data, DataSupports}
 
+/** Fixtured for testing [[TypesSpec]] and [[TypedJvmSpec]]. */
 trait TypesFixturesImpl { this: MacroTypedCommons & DataSupports =>
 
   def testNamesPrinters[A: Type]: Expr[Data] = Expr(
@@ -41,25 +42,6 @@ trait TypesFixturesImpl { this: MacroTypedCommons & DataSupports =>
   }
 
   private val optionTest = Type.Ctor1.of[Option]
-  // object optionTest extends Type.Ctor1[Option] {
-
-  //   private val ctx = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
-  //   import ctx.universe.{Type as _, *}
-
-  //   private val Fany = ctx.weakTypeTag[Option[Any]].tpe.typeSymbol
-
-  //   def apply[A >: Nothing <: Any: Type]: Type[Option[A]] = {
-  //     implicit val A0: ctx.WeakTypeTag[A] = Type[A].asInstanceOf[ctx.WeakTypeTag[A]]
-  //     ctx.weakTypeTag[Option[A]].asInstanceOf[Type[Option[A]]]
-  //   }
-
-  //   def unapply[A](tpe: Type[A]): Option[??] =
-  //     tpe.asInstanceOf[ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(Fany) match {
-  //       case TypeRef(_, _, List(tp1)) =>
-  //         Some(ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[Any]].as_<:??<:[Nothing, Any])
-  //       case _ => None
-  //     }
-  // }
 
   def testTypeCtor[A: Type]: Expr[Data] =
     Type[A] match {

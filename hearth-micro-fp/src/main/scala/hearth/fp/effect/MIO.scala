@@ -84,6 +84,8 @@ import hearth.fp.data.NonEmptyVector
   * // Either[MErrors, Expr[A]]. Here we would usually return expr from the Right value or report errors from the Left.
   * println(result)
   * }}}
+  *
+  * @since 0.1.0
   */
 sealed trait MIO[+A] { fa =>
   import MIO.*

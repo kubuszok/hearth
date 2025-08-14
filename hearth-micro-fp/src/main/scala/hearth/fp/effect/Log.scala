@@ -8,23 +8,40 @@ import fp.syntax.*
 /** Structured log stored as data. Can be turned into messages for macro reporters before exiting the macro.
   *
   * Can be used together with [[MIO.log]] to build a log of messages without `println`s, or single-time macro reporters.
+  *
+  * @since 0.1.0
   */
 sealed trait Log extends Product with Serializable
 object Log {
 
-  /** Logs an info message. */
+  /** Logs an info message.
+    *
+    * @since 0.1.0
+    */
   def info(message: => String): MIO[Unit] = MIO.log(Entry(Level.Info, () => message))
 
-  /** Logs a warning message. */
+  /** Logs a warning message.
+    *
+    * @since 0.1.0
+    */
   def warn(message: => String): MIO[Unit] = MIO.log(Entry(Level.Warn, () => message))
 
-  /** Logs an error message. */
+  /** Logs an error message.
+    *
+    * @since 0.1.0
+    */
   def error(message: => String): MIO[Unit] = MIO.log(Entry(Level.Error, () => message))
 
-  /** Creates a new scope with a given name. All logs created inside the scope nested under it. */
+  /** Creates a new scope with a given name. All logs created inside the scope nested under it.
+    *
+    * @since 0.1.0
+    */
   def namedScope[A](name: String)(io: MIO[A]): MIO[A] = MIO.nameLogsScope(name, io)
 
-  /** Logging levels - corresponds with reporting levels available in macro reporters. */
+  /** Logging levels - corresponds with reporting levels available in macro reporters.
+    *
+    * @since 0.1.0
+    */
   sealed abstract class Level(private val value: Int) extends Product with Serializable {
 
     final def prefix: String = this match {
@@ -41,10 +58,16 @@ object Log {
     implicit val ordering: Ordering[Level] = Ordering.by(_.value)
   }
 
-  /** Single log entry, with lazily computed message (messages can be expensive, and usually we don't display logs). */
+  /** Single log entry, with lazily computed message (messages can be expensive, and usually we don't display logs).
+    *
+    * @since 0.1.0
+    */
   final case class Entry(level: Level, message: () => String) extends Log
 
-  /** A group of logs with named scope (will be displayed with nesting) */
+  /** A group of logs with named scope (will be displayed with nesting).
+    *
+    * @since 0.1.0
+    */
   final case class Scope(name: String, entries: Logs) extends Log
 
   // --------------------------------------------- Implementation details ---------------------------------------------

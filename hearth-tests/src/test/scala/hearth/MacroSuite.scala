@@ -6,6 +6,19 @@ import munit.{Location, TestOptions}
 
 import scala.util.matching.Regex
 
+/** Base trait for all macro tests.
+  *
+  * Provides some utilities like:
+  *   - `group(name) { ... }` - grouping tests under a common name
+  *   - `actual ==> expected` - asserting that `actual` is equal to `expected`, simply failing test if they don't
+  *   - `actual <==> expected` - comparing `actual` and `expected` (when they are both [[String]] or both [[Data]]), and
+  *     showing an error with a [[Diff]] if they aren't equal
+  *   - `compileErrors("code").check(expectedLinesInExpectedOrder*)` - asserting that the error message contains all of
+  *     the `expected` strings in order (lines do not have to be consequtive, some lines can be skipped from comparison)
+  *   - `compileErrors("code").checkNot(absentLines*)` - asserting that the error message does not contain any of the
+  *     `absent` strings
+  *   - `compileErrors("code").arePresent()` - asserting that the error message is not empty
+  */
 trait MacroSuite extends munit.BaseFunSuite { self =>
 
   private var prefix = ""

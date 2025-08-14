@@ -2,7 +2,10 @@ package hearth
 
 trait Environments extends EnvironmentCrossQuotesSupport {
 
-  /** Platform-specific position representation (`c.universe.Position` in 2, `quotes.reflect.Position` in 3). */
+  /** Platform-specific position representation (`c.universe.Position` in 2, `quotes.reflect.Position` in 3).
+    *
+    * @since 0.1.0
+    */
   type Position
 
   val Position: PositionModule
@@ -33,6 +36,11 @@ trait Environments extends EnvironmentCrossQuotesSupport {
   implicit lazy val PositionOrdering: Ordering[Position] =
     Ordering[String].on[Position](_.file.toString).orElseBy(_.offset)
 
+  /** Provides some reporting and information about the current expansion: where is happens, what is the current Scala
+    * version, macro settings, etc.
+    *
+    * @since 0.1.0
+    */
   val Environment: EnvironmentModule
   trait EnvironmentModule { this: Environment.type =>
 
@@ -74,6 +82,71 @@ trait Environments extends EnvironmentCrossQuotesSupport {
     private val fileLineColumnRegex = """^(.+):(\d+):(\d+)$""".r
   }
 
+  /** Module used under the hood by Cross Quotes macros on Scala 2 and Cross Quotes compiler plugin on Scala 3.
+    *
+    * Cross Quotes push the limits of what could be shared between Scala 2 and Scala 3 macros.
+    *
+    * It allows rewriting:
+    *
+    *   1. [[Type.of]], [[Type.Ctor1.of]], etc Scala 2/Scala 3-specific implementations, e.g.
+    *
+    * {{{
+    * Type.of[SomeType]
+    * }}}
+    *
+    * becomes on Scala 2:
+    *
+    * {{{
+    * val ctx: blackbox.Context = CrossQuotes.ctx
+    * ctx.weakTypeOf[SomeType]
+    * }}}
+    *
+    * and on Scala 3:
+    *
+    * {{{
+    * given quotes: Quotes = CrossQuotes.ctx
+    * scala.quoted.Type.of[SomeType]
+    * }}}
+    *
+    *   2. similarly [[Expr.quote]] and [[Expr.splice]]:
+    *
+    * {{{
+    * Expr.quote {
+    *   new SomeType {
+    *     def method(a: A): B = Expr.splice { methodImpl(Expr.quote { a }) }
+    *   }
+    * }
+    * }}}
+    *
+    * becomes on Scala 2:
+    *
+    * {{{
+    * val ctx: blackbox.Context = CrossQuotes.ctx
+    * import ctx.universe._
+    * ctx.Expr(
+    *   q"""
+    *   new SomeType {
+    *     def method(a: A): B = methodImpl(${ methodImpl(ctx.Expr(q"""a""")) })
+    *   }
+    *   """
+    * )
+    * }}}
+    *
+    * and on Scala 3:
+    *
+    * {{{
+    * given quotes: Quotes = CrossQuotes.ctx
+    * '{
+    *   new SomeType {
+    *     def method(a: A): B = ${ methodImpl('{ a }) }
+    *   }
+    * }
+    * }}}
+    *
+    * In practice, a bit more work needs to be done to make it work, but that is the basic idea.
+    *
+    * @since 0.1.0
+    */
   val CrossQuotes: CrossQuotesModule
   trait CrossQuotesModule extends CrossQuotesSupport { this: CrossQuotes.type =>
 

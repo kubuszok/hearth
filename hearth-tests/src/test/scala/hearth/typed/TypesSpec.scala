@@ -6,7 +6,7 @@ import hearth.testdata.Data
 import scala.annotation.unused
 
 /** Macro implementation is in [[TypesFixturesImpl]] */
-class TypesSpec extends MacroSuite {
+final class TypesSpec extends MacroSuite {
 
   group("trait typed.Types") {
 

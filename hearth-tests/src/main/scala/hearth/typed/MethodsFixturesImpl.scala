@@ -3,6 +3,7 @@ package typed
 
 import hearth.testdata.{Data, DataSupports}
 
+/** Fixtured for testing [[MethodsSpec]]. */
 trait MethodsFixturesImpl { this: MacroCommons & DataSupports =>
 
   def testMethodsExtraction[A: Type](excluding: Seq[String]): Expr[Data] = {

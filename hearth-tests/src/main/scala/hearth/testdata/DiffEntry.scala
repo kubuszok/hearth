@@ -1,6 +1,7 @@
 package hearth
 package testdata
 
+/** Single entry in a [[Diff]]. */
 final case class DiffEntry(expected: Data, actual: Data, path: List[DiffEntry.Path] = Nil) {
 
   def prependIndex(idx: Int): DiffEntry = copy(path = DiffEntry.Index(idx) :: path)
