@@ -1,5 +1,5 @@
 package hearth
-package testdata
+package data
 
 /** Single entry in a [[Diff]]. */
 final case class DiffEntry(expected: Data, actual: Data, path: List[DiffEntry.Path] = Nil) {

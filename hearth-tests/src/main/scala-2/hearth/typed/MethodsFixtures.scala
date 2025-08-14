@@ -1,15 +1,12 @@
 package hearth
 package typed
 
-import hearth.testdata.{Data, DataSupports}
+import hearth.data.Data
 
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
 
-final private class MethodsFixtures(val c: blackbox.Context)
-    extends MacroCommonsScala2
-    with DataSupports
-    with MethodsFixturesImpl {
+final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommonsScala2 with MethodsFixturesImpl {
 
   // TODO: create macro annotation which would allow to do the following
 

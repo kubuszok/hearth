@@ -1,10 +1,10 @@
 package hearth
 package typed
 
-import hearth.testdata.{Data, DataSupports}
+import hearth.data.Data
 
 /** Fixtured for testing [[MethodsSpec]]. */
-trait MethodsFixturesImpl { this: MacroCommons & DataSupports =>
+trait MethodsFixturesImpl { this: MacroCommons =>
 
   def testMethodsExtraction[A: Type](excluding: Seq[String]): Expr[Data] = {
     val methods = Method.methodsOf[A]

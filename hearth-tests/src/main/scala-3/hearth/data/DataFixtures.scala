@@ -1,9 +1,9 @@
 package hearth
-package testdata
+package data
 
 import scala.quoted.*
 
-final private class DataFixtures(q: Quotes) extends MacroCommonsScala3(using q), DataSupports, DataFixturesImpl
+final private class DataFixtures(q: Quotes) extends MacroCommonsScala3(using q), DataFixturesImpl
 
 object DataFixtures {
 

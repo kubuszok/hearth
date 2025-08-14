@@ -1,11 +1,11 @@
 package hearth
 package typed
 
-import hearth.testdata.{Data, DataSupports}
+import hearth.data.Data
 
 import scala.quoted.*
 
-final private class TypesFixtures(q: Quotes) extends MacroCommonsScala3(using q), DataSupports, TypesFixturesImpl
+final private class TypesFixtures(q: Quotes) extends MacroCommonsScala3(using q), TypesFixturesImpl
 
 object TypesFixtures {
 
