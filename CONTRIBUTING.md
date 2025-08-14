@@ -419,6 +419,9 @@ Even on my computer it usually OOMs the build tool when Scala.js/Scala Naive sta
 But (currently) all (in future, majority) of tests live in `hearthTests` module.
 So `hearthTests/test ; hearthTests3/test` (or `quick-test`) should be enough.
 
+> If working on macros, sometimes even though you modified the code macro is not recompiled.
+> Use `quick-clean` to clean tests and force recompilation.
+
 ### Writing tests
 
 Since testing macros is a pain - you have to create a dedicated macro "endpoint" every time you need to test something - we created

@@ -62,13 +62,19 @@ object Log {
     *
     * @since 0.1.0
     */
-  final case class Entry(level: Level, message: () => String) extends Log
+  final case class Entry(level: Level, message: () => String) extends Log {
+
+    override def toString: String = s"${level.prefix}${message()}"
+  }
 
   /** A group of logs with named scope (will be displayed with nesting).
     *
     * @since 0.1.0
     */
-  final case class Scope(name: String, entries: Logs) extends Log
+  final case class Scope(name: String, entries: Logs) extends Log {
+
+    override def toString: String = render(name, entries)(_ => true)
+  }
 
   // --------------------------------------------- Implementation details ---------------------------------------------
 

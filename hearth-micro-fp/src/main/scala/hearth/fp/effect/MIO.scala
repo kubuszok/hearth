@@ -292,9 +292,13 @@ object MIO {
   private def run[A](io: MIO[A]): (MState, MResult[A]) = io match {
     case Impure(state, resultC, fnNecCToA) =>
       checkTermination(state, resultC, fnNecCToA)
-      run(fnNecCToA.view match {
+      run((fnNecCToA.view match {
         case FnNec.View.One(fnCToA)             => fnCToA(state, resultC)
         case FnNec.View.Cons(fnCToB, fnNecBToA) => fnCToB(state, resultC) :++ fnNecBToA
+      }) match {
+        // Previous methods could have created new Pure or Impure without merging states, so we have to do it here.
+        case Pure(state2, result)        => Pure(state ++ state2, result)
+        case Impure(state2, result, qab) => Impure(state ++ state2, result, qab)
       })
     case Pure(state, resultA) => state -> resultA
   }
@@ -302,41 +306,33 @@ object MIO {
   final private case class PassErrors(errors: MErrors, owner: Any) extends ControlThrowable with NoStackTrace
   implicit final val MioDirectStyle: fp.DirectStyle[MIO] = new fp.DirectStyle[MIO] {
 
-    private val openedAwaits = ThreadLocal.withInitial { () =>
-      scala.collection.mutable.Queue.empty[Any]
-    }
-    private val ongoingStates = ThreadLocal.withInitial { () =>
-      scala.collection.mutable.Map.empty[Any, MState]
-    }
+    private val openedAwaits = scala.collection.mutable.Queue.empty[Any]
+    private val ongoingStates = scala.collection.mutable.Map.empty[Any, MState]
     private def openAwait: Any = {
       val owner: AnyRef = java.util.UUID.randomUUID()
-      openedAwaits.get() += owner
-      ignore(ongoingStates.get().put(owner, MState.empty))
+      openedAwaits += owner
       owner
     }
     private def closeAwait(owner: Any): Unit = {
-      val ownerId = openedAwaits.get().indexOf(owner)
-      ignore(openedAwaits.get().remove(ownerId), ongoingStates.get().remove(owner))
+      val ownerId = openedAwaits.indexOf(owner)
+      ignore(openedAwaits.remove(ownerId), ongoingStates.remove(owner))
     }
 
     private def getCurrentOwner: Any =
-      openedAwaits.get().headOption.getOrElse(throw new IllegalStateException("No open await!"))
-    private def getCurrentState(owner: Any): MState =
-      ongoingStates
-        .get()
-        .getOrElse(
-          owner,
-          throw new IllegalStateException(s"No state for $owner! (States for ${openedAwaits.get().mkString(", ")})")
-        )
+      openedAwaits.headOption.getOrElse(throw new IllegalStateException("No open await!"))
+    private def getCurrentStateOrThrow(owner: Any): MState =
+      ongoingStates.getOrElse(
+        owner,
+        throw new IllegalStateException(s"No state for $owner! (States for ${openedAwaits.mkString(", ")})")
+      )
+    private def getCurrentStateOrEmpty(owner: Any): MState =
+      ongoingStates.getOrElse(owner, MState.empty)
     private def appendCurrentState(owner: Any, state: MState): Unit = {
-      val currentState = ongoingStates
-        .get()
-        .getOrElse(
-          owner,
-          throw new IllegalStateException(s"No state for $owner! (States for ${openedAwaits.get().mkString(", ")})")
-        )
-      val newState = currentState ++ state
-      ignore(ongoingStates.get().put(owner, newState))
+      val newState = ongoingStates.get(owner) match {
+        case Some(previousState) => previousState ++ state
+        case None                => state
+      }
+      ignore(ongoingStates.put(owner, newState))
     }
 
     override protected def asyncUnsafe[A](thunk: => A): MIO[A] = {
@@ -345,10 +341,10 @@ object MIO {
       val owner = openAwait
       try {
         val a = thunk // We have to trigger side-effect before we'll extract current state
-        Pure(getCurrentState(owner), MResult.pure(a))
+        Pure(getCurrentStateOrEmpty(owner), MResult.pure(a)) // There might have been no call to `await` in the thunk.
       } catch {
         case PassErrors(errors, `owner`) =>
-          Pure(getCurrentState(owner), MResult.fail(errors))
+          Pure(getCurrentStateOrThrow(owner), MResult.fail(errors)) // There should be some state, otherwise it's a bug.
       } finally
         closeAwait(owner)
     }

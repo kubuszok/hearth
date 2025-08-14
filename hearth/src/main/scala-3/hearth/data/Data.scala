@@ -47,6 +47,12 @@ object Data extends DataCommons { self =>
     def asMap: Option[Map[String, Data]] = fold(None, onInt = _ => None, onLong = _ => None, onFloat = _ => None, onDouble = _ => None, onBoolean = _ => None, onString = _ => None, onList = _ => None, onMap = Some(_))
     // format: on
 
+    def get(key: String): Option[Data] = asMap.flatMap(_.get(key))
+    def getOrElse(key: String, default: Data): Data = get(key).getOrElse(default)
+
+    def get(index: Int): Option[Data] = asList.flatMap(_.lift(index))
+    def getOrElse(index: Int, default: Data): Data = get(index).getOrElse(default)
+
     def diff(expected: Data): Diff = self.diff(expected = expected, actual = data)
 
     def render: String = self.render(data)

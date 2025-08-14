@@ -29,4 +29,15 @@ object Show extends ShowCompanionCompat {
 
     def show(value: A): String
   }
+
+  /** Special type - is its implicit is in scope then macros will log the derivation process.
+    *
+    * @see
+    *   [[hearth.demo.debug.logDerivation]] for details
+    */
+  sealed trait LogDerivation
+  object LogDerivation {
+    private object Instance extends LogDerivation
+    def apply(): LogDerivation = Instance
+  }
 }

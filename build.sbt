@@ -411,6 +411,10 @@ lazy val root = project
       UsefulTask(al.ci("Native", "3"), "CI pipeline for Scala 3+Scala Native").alias("ci-native-3"),
       UsefulTask(al.ci("Native", ""), "CI pipeline for Scala 2.13+Scala Native").alias("ci-native-2_13"),
       UsefulTask("hearthTests/test ; hearthTests3/test", "Quickly run JVM on all platforms").alias("quick-test"),
+      UsefulTask(
+        "hearthTests/clean ; hearthTests3/clean",
+        "Quickly clean JVM tests on all platforms (useful to force-recompile macros)"
+      ).alias("quick-clean"),
       UsefulTask(al.test("JVM", "3"), "Test all projects in Scala 3+JVM").alias("test-jvm-3"),
       UsefulTask(al.test("JVM", ""), "Test all projects in Scala 2.13+JVM").alias("test-jvm-2_13"),
       UsefulTask(al.test("JS", "3"), "Test all projects in Scala 3+Scala JS").alias("test-js-3"),
