@@ -33,6 +33,8 @@ import scala.util.control.{ControlThrowable, NoStackTrace}
   *   }
   * } // all potential errors and logs are preserved
   * }}}
+  *
+  * @since 0.1.0
   */
 trait DirectStyle[F[_]] {
   import DirectStyle.*

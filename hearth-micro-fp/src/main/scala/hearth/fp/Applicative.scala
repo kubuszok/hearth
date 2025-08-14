@@ -1,6 +1,12 @@
 package hearth
 package fp
 
+/** Things that can be combined with a function.
+  *
+  * Implements `map2` rather than `ap`, because we are using Scala, not Haskell.
+  *
+  * @since 0.1.0
+  */
 trait Applicative[F[_]] extends Functor[F] {
 
   def pure[A](a: A): F[A]

@@ -5,6 +5,10 @@ import scala.math.Ordered.orderingToOrdered
 
 package object effect {
 
+  /** Series of [[Log]]s.
+    *
+    * @since 0.1.0
+    */
   type Logs = Vector[Log]
   implicit final class LogsOps(logs: Logs) {
 

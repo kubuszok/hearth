@@ -1,6 +1,11 @@
 package hearth
 package fp
 
+/** We do something for each element of a thing with a result-type, and get the result-type of the whole transformed
+  * thing.
+  *
+  * @since 0.1.0
+  */
 trait Traverse[F[_]] extends Functor[F] {
 
   def traverse[G[_]: Applicative, A, B](fa: F[A])(f: A => G[B]): G[F[B]]
