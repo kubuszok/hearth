@@ -8,7 +8,10 @@ package object effect {
   type Logs = Vector[Log]
   implicit final class LogsOps(logs: Logs) {
 
-    /** Various ways of rendering [[Logs]] as a String. */
+    /** Various ways of rendering [[Logs]] as a String.
+      *
+      * @since 0.1.0
+      */
     object render {
 
       def apply(rootScopeName: String)(filter: Log.Level => Boolean): String = Log.render(rootScopeName, logs)(filter)
@@ -23,10 +26,16 @@ package object effect {
     }
   }
 
-  /** Macro errors */
+  /** Macro errors.
+    *
+    * @since 0.1.0
+    */
   type MErrors = data.NonEmptyVector[Throwable]
 
-  /** Eager results of a macro expansion */
+  /** Eager results of a macro expansion.
+    *
+    * @since 0.1.0
+    */
   type MResult[+A] = Either[MErrors, A]
   object MResult {
 

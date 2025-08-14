@@ -5,6 +5,8 @@ package effect
 /** State of the [[MIO]] computation - currently stores [[Logs]] and [[MLocal]]s.
   *
   * Used by [[MIO]] to store inner state of the computation.
+  *
+  * @since 0.1.0
   */
 final case class MState private[effect] (
     locals: Map[MLocal[?], Any],

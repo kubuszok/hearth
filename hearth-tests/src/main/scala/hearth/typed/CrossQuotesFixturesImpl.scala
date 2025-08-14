@@ -1,6 +1,7 @@
 package hearth
 package typed
 
+/** Fixtured for testing [[CrossQuotesSpec]]. */
 trait CrossQuotesFixturesImpl { this: MacroTypedCommons =>
 
   def simpleType: Expr[String] = Expr(Type.of[Int].prettyPrint)

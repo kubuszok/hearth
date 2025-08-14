@@ -1,6 +1,7 @@
 package hearth
 package testdata
 
+/** Mixin allowing passing [[Data]] from inside of the macro to the outside of the macro. */
 trait DataSupports { this: MacroCommons =>
 
   implicit lazy val DataCodec: ExprCodec[Data] = new ExprCodec[Data] {

@@ -3,7 +3,7 @@ package typed
 
 /** Macro implementation is in [[hearth.cq.CrossQuotesMacros]] (Scala 2) and [[hearth.cq.CrossQuotesPlugin]] (Scala 3)
   */
-class CrossQuotesSpec extends MacroSuite {
+final class CrossQuotesSpec extends MacroSuite {
 
   group("CrossQuotes macro/plugin") {
 

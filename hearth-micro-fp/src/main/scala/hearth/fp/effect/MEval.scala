@@ -5,6 +5,8 @@ package effect
 /** Stack-safe evaluation for recursive and nested computations.
   *
   * Does NOT handle: errors, exceptions, side effects, logging,etc. For that use [[MIO]].
+  *
+  * @since 0.1.0
   */
 sealed trait MEval[A] { fa =>
   import MEval.*

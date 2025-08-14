@@ -11,6 +11,8 @@ package effect
   *     carry it around
   *   - when using thr "parallel" semantics ([[MIO.parMap2]], [[MIO.parTuple]]), we are able to modify value for each
   *     "fiber", and provide a reasonable way of combining values from 2 different "fibers" back into a single value
+  *
+  * @since 0.1.0
   */
 final class MLocal[A] private (
     private[effect] val initial: A,
@@ -35,6 +37,8 @@ object MLocal {
     * @param join
     *   the function that is run after "fibers" are done (after [[MIO.parMap2]] or [[MIO.parTuple]]) to combine values
     *   from 2 different "fibers" back into a single value
+    *
+    * @since 0.1.0
     */
   def apply[A](initial: A)(fork: A => A)(join: (A, A) => A): MLocal[A] =
     new MLocal(initial, fork, join)

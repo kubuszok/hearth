@@ -3,6 +3,7 @@ package testdata
 
 import scala.collection.immutable.ListMap
 
+/** Implementation for [[Data]] companion object. */
 private[testdata] trait DataCommons {
 
   def apply(): Data

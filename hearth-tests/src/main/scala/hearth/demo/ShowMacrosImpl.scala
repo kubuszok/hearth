@@ -219,6 +219,9 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
   private lazy val iterableType = Type.Ctor1.of[Iterable]
 }
 
+/** We can define our own ADT for errors, they are better than bunch of strings when we want to build a single, nice
+  * error message.
+  */
 sealed private[demo] trait DerivationError extends scala.util.control.NoStackTrace with Product with Serializable
 private[demo] object DerivationError {
   final case class UnsupportedType(typeName: String) extends DerivationError
