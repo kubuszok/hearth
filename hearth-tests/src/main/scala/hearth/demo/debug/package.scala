@@ -8,7 +8,7 @@ package object debug {
 
   /** Import [[Show.LogDerivation]] in the scope to preview how the derivation is done.
     *
-    * Put outside of [[Show]] companion to prevent the implicit from being summoned automatically.
+    * Put outside of [[Show]] companion to prevent the implicit from being summoned automatically!
     */
   implicit val logDerivation: Show.LogDerivation = Show.LogDerivation()
 }
