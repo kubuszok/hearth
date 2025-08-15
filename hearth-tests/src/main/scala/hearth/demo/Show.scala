@@ -25,7 +25,7 @@ object Show extends ShowCompanionCompat {
   }
 
   // TODO: Replace summon with summonIgnoring when 2.13.17 is released, and we will be able to remove this.
-  trait AutoDerived[A] {
+  sealed trait AutoDerived[A] {
 
     def show(value: A): String
   }
