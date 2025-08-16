@@ -10,5 +10,5 @@ package object debug {
     *
     * Put outside of [[Show]] companion to prevent the implicit from being summoned automatically!
     */
-  implicit val logDerivation: Show.LogDerivation = Show.LogDerivation()
+  implicit val logDerivation: Show.LogDerivation = Show.LogDerivation
 }

@@ -36,8 +36,5 @@ object Show extends ShowCompanionCompat {
     *   [[hearth.demo.debug.logDerivation]] for details
     */
   sealed trait LogDerivation
-  object LogDerivation {
-    private object Instance extends LogDerivation
-    def apply(): LogDerivation = Instance
-  }
+  object LogDerivation extends LogDerivation
 }
