@@ -266,7 +266,13 @@ object MIO {
 
   private[effect] def log(log: Log): MIO[Unit] = void :+ ((s, r) => Pure(s.log(log), r))
   private[effect] def nameLogsScope[A](name: String, io: MIO[A]): MIO[A] =
-    io :+ ((s, r) => Pure(s.nameLogsScope(name), r))
+    (void :+ { (s0, _) =>
+      Pure(s0, Right(s0))
+    }).flatMap { s0 =>
+      io :+ { (s, r) =>
+        Pure(s.nameLogsScope(name, s0), r)
+      }
+    }
 
   /** Stack-safety execution of MIO program.
     *
@@ -303,59 +309,34 @@ object MIO {
     case Pure(state, resultA) => state -> resultA
   }
 
-  final private case class PassErrors(errors: MErrors, owner: Any) extends ControlThrowable with NoStackTrace
+  final private case class PassErrors(owner: Any, errors: MErrors) extends ControlThrowable with NoStackTrace
   implicit final val MioDirectStyle: fp.DirectStyle[MIO] = new fp.DirectStyle[MIO] {
 
-    private val openedAwaits = scala.collection.mutable.Queue.empty[Any]
     private val ongoingStates = scala.collection.mutable.Map.empty[Any, MState]
-    private def openAwait: Any = {
-      val owner: AnyRef = java.util.UUID.randomUUID()
-      openedAwaits += owner
-      owner
-    }
-    private def closeAwait(owner: Any): Unit = {
-      val ownerId = openedAwaits.indexOf(owner)
-      ignore(openedAwaits.remove(ownerId), ongoingStates.remove(owner))
-    }
 
-    private def getCurrentOwner: Any =
-      openedAwaits.headOption.getOrElse(throw new IllegalStateException("No open await!"))
-    private def getCurrentStateOrThrow(owner: Any): MState =
-      ongoingStates.getOrElse(
-        owner,
-        throw new IllegalStateException(s"No state for $owner! (States for ${openedAwaits.mkString(", ")})")
-      )
-    private def getCurrentStateOrEmpty(owner: Any): MState =
-      ongoingStates.getOrElse(owner, MState.empty)
-    private def appendCurrentState(owner: Any, state: MState): Unit = {
-      val newState = ongoingStates.get(owner) match {
-        case Some(previousState) => previousState ++ state
-        case None                => state
-      }
-      ignore(ongoingStates.put(owner, newState))
-    }
-
-    override protected def asyncUnsafe[A](thunk: => A): MIO[A] = {
+    override protected def asyncUnsafe[A](owner: DirectStyle.Await[MIO])(thunk: => A): MIO[A] =
       // We're keeping the track of ownership because, there can be nested awaits.
       // And we have to consolidate state because there might be multiple awaits in the thunk.
-      val owner = openAwait
       try {
+        ignore(ongoingStates.put(owner, MState.empty))
         val a = thunk // We have to trigger side-effect before we'll extract current state
-        Pure(getCurrentStateOrEmpty(owner), MResult.pure(a)) // There might have been no call to `await` in the thunk.
+        Pure(ongoingStates(owner), MResult.pure(a)) // There might have been no call to `await` in the thunk.
       } catch {
-        case PassErrors(errors, `owner`) =>
-          Pure(getCurrentStateOrThrow(owner), MResult.fail(errors)) // There should be some state, otherwise it's a bug.
+        case PassErrors(`owner`, errors) =>
+          Pure(ongoingStates(owner), MResult.fail(errors)) // There should be some state, otherwise it's a bug.
       } finally
-        closeAwait(owner)
-    }
+        ignore(ongoingStates.remove(owner))
 
-    override protected def awaitUnsafe[A](mio: MIO[A]): A = {
-      val owner = getCurrentOwner
-      val (status, result) = run(mio)
-      appendCurrentState(owner, status) // Whether it's a success or failure, we have to append state.
+    override protected def awaitUnsafe[A](owner: DirectStyle.Await[MIO])(mio: MIO[A]): A = {
+      val (state, result) = run(mio)
+
+      val previousState = ongoingStates(owner)
+      val newState = previousState ++ state
+      ignore(ongoingStates.put(owner, newState))
+
       result match {
         case Right(a) => a
-        case Left(e)  => throw PassErrors(e, owner)
+        case Left(e)  => throw PassErrors(owner, e)
       }
     }
   }
