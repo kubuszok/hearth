@@ -39,14 +39,17 @@ import scala.util.control.{ControlThrowable, NoStackTrace}
 trait DirectStyle[F[_]] {
   import DirectStyle.*
 
-  protected def asyncUnsafe[A](thunk: => A): F[A]
-  protected def awaitUnsafe[A](value: F[A]): A
+  protected def asyncUnsafe[A](owner: Await[F])(thunk: => A): F[A]
+  protected def awaitUnsafe[A](owner: Await[F])(value: F[A]): A
 
-  private object AwaitImpl extends Await[F] {
-    def apply[A](value: F[A]): A = awaitUnsafe(value)
+  final private class AwaitImpl extends Await[F] {
+    def apply[A](value: F[A]): A = awaitUnsafe(this)(value)
   }
 
-  def async[A](await: Await[F] => A): F[A] = asyncUnsafe(await(AwaitImpl))
+  def async[A](await: Await[F] => A): F[A] = {
+    val owner = new AwaitImpl
+    asyncUnsafe(owner)(await(owner))
+  }
 }
 object DirectStyle {
 
@@ -57,17 +60,16 @@ object DirectStyle {
   def apply[F[_]](implicit F: DirectStyle[F]): DirectStyle[F] = F
 
   implicit def DirectStyleForEither[Errors]: DirectStyle[Either[Errors, *]] = new DirectStyle[Either[Errors, *]] { ds =>
-    private case class PassErrors(error: Errors) extends ControlThrowable with NoStackTrace {
-      val parent = ds
-    }
+    private case class PassErrors(owner: Any, error: Errors) extends ControlThrowable with NoStackTrace
 
-    override protected def asyncUnsafe[A](thunk: => A): Either[Errors, A] = try
+    @scala.annotation.nowarn
+    override protected def asyncUnsafe[A](owner: Await[Either[Errors, *]])(thunk: => A): Either[Errors, A] = try
       Right(thunk)
     catch {
-      case err: PassErrors @unchecked if err.parent == ds => Left(err.error)
+      case PassErrors(`owner`, error) => Left(error.asInstanceOf[Errors])
     }
-    override protected def awaitUnsafe[A](value: Either[Errors, A]): A = value match {
-      case Left(error)  => throw PassErrors(error)
+    override protected def awaitUnsafe[A](owner: Await[Either[Errors, *]])(value: Either[Errors, A]): A = value match {
+      case Left(error)  => throw PassErrors(owner, error)
       case Right(value) => value
     }
   }

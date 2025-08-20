@@ -67,11 +67,15 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
           }
           lazy val errors = state.logs.render.onlyError(macroName)
           if (failOnErrorLog && errors.length - 2 > macroName.length) {
-            Environment.reportErrorAndAbort(errors)
+            Environment.reportErrorAndAbort(state.logs.render.fromInfo(macroName))
           }
           expr
         case Left(errors) =>
-          Environment.reportErrorAndAbort(renderFailure(state.logs.render.onlyError(macroName), errors))
+          val renderedErrors =
+            if (renderInfoLogs) renderFailure(state.logs.render.fromInfo(macroName), errors)
+            else if (renderWarnLogs) renderFailure(state.logs.render.fromWarn(macroName), errors)
+            else renderFailure(state.logs.render.onlyError(macroName), errors)
+          Environment.reportErrorAndAbort(if (renderedErrors.trim.count(_ == '\n') > 0) renderedErrors else "")
       }
     }
   }

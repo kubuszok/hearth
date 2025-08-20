@@ -41,11 +41,17 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
         }
         .mkString("\n")
 
-      s"""Failed to derive $name:
-         |$errorsStr
-         |Error logs:
-         |$errorLogs
-         |""".stripMargin
+      if (errorLogs.nonEmpty) {
+        s"""Failed to derive $name:
+           |$errorsStr
+           |Error logs:
+           |$errorLogs
+           |""".stripMargin
+      } else {
+        s"""Failed to derive $name:
+           |$errorsStr
+           |""".stripMargin
+      }
     }
 
   /** Enables logging if we either:
@@ -104,7 +110,7 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
         }
       }
     }.flatTap {
-      case Some(expr) => Log.info(s"Successfully summoned ${Types.Show[A].prettyPrint}: ${expr.prettyPrint}")
+      case Some(expr) => Log.info(s"Successfully summoned ${Types.Show[A].prettyPrint}:\n${expr.prettyPrint}")
       case None       => Log.info(s"Failed to summon ${Types.Show[A].prettyPrint}")
     }
 
@@ -148,7 +154,7 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
     }.flatTap {
       case Some(expr) =>
         Log.info(
-          s"Successfully used built-in support to show value of type ${Type.prettyPrint[A]}: ${expr.prettyPrint}"
+          s"Successfully used built-in support to show value of type ${Type.prettyPrint[A]}:\n${expr.prettyPrint}"
         )
       case None => Log.info(s"Failed to use built-in support to show value of type ${Type.prettyPrint[A]}")
     }
@@ -193,7 +199,7 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
         .flatTap {
           case Some(expr) =>
             Log.info(
-              s"Successfully used iterable support to show value of type ${Type.prettyPrint[A]}: ${expr.prettyPrint}"
+              s"Successfully used iterable support to show value of type ${Type.prettyPrint[A]}:\n${expr.prettyPrint}"
             )
           case None => Log.info(s"Failed to use iterable support to show value of type ${Type.prettyPrint[A]}")
         }
@@ -214,7 +220,7 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
               .toList
               .parTraverse { case (name, fieldValue) =>
                 import fieldValue.{Underlying as FieldType, value as fieldExpr}
-                Log.namedScope(s"Attempting field ${Type.prettyPrint[FieldType]} of ${Type.prettyPrint[A]}") {
+                Log.namedScope(s"Attempting field `$name`: ${Type.prettyPrint[FieldType]} of ${Type.prettyPrint[A]}") {
                   attemptAllRules[FieldType](fieldExpr).map { result =>
                     Expr.quote {
                       Expr.splice(Expr(name)) + " = " + Expr.splice(result)
@@ -240,7 +246,7 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
         .flatTap {
           case Some(expr) =>
             Log.info(
-              s"Successfully used case class support to show value of type ${Type.prettyPrint[A]}: ${expr.prettyPrint}"
+              s"Successfully used case class support to show value of type ${Type.prettyPrint[A]}:\n${expr.prettyPrint}"
             )
           case None => Log.info(s"Failed to use case class support to show value of type ${Type.prettyPrint[A]}")
         }
@@ -263,7 +269,7 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
         .flatTap {
           case Some(expr) =>
             Log.info(
-              s"Successfully used enum support to show value of type ${Type.prettyPrint[A]}: ${expr.prettyPrint}"
+              s"Successfully used enum support to show value of type ${Type.prettyPrint[A]}:\n${expr.prettyPrint}"
             )
           case None => Log.info(s"Failed to use enum support to show value of type ${Type.prettyPrint[A]}")
         }
