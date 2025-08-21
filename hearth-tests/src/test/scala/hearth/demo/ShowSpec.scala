@@ -24,6 +24,8 @@ final class ShowSpec extends MacroSuite {
       }
 
       test("for values with iterable support") {
+        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
+
         Show.derived[Iterable[Int]].show(List(1, 2, 3)) <==> "List(1, 2, 3)"
       }
 
