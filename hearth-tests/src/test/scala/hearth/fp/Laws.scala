@@ -8,7 +8,9 @@ import org.scalacheck.Prop.*
 trait Laws { this: ScalaCheckSuite =>
 
   def functorLaws[F[_]: Functor, A: Arbitrary: ArbitraryF[F, *]](implicit
-      loc: munit.Location
+      loc: munit.Location,
+      assertEqA: AssertEq[F[A]],
+      assertEqString: AssertEq[F[String]]
   ): Unit = {
 
     property("Identity law") {
@@ -27,7 +29,9 @@ trait Laws { this: ScalaCheckSuite =>
   }
 
   def applicativeLaws[F[_]: Applicative, A: ArbitraryF[F, *], B: ArbitraryF[F, *], C: ArbitraryF[F, *]](implicit
-      loc: munit.Location
+      loc: munit.Location,
+      assertEqFA: AssertEq[F[A]],
+      assertEqFAB: AssertEq[F[(A, B, C)]]
   ): Unit = {
 
     property("Associativity law") {
@@ -50,7 +54,10 @@ trait Laws { this: ScalaCheckSuite =>
     }
   }
 
-  def parallelLaws[F[_]: Parallel, A: Arbitrary, B: Arbitrary](implicit loc: munit.Location): Unit =
+  def parallelLaws[F[_]: Parallel, A: Arbitrary, B: Arbitrary](implicit
+      loc: munit.Location,
+      assertEqFAB: AssertEq[F[(A, B)]]
+  ): Unit =
 
     property("For pure values .map2 and .parMap2 are equivalent") {
       forAll { (a: A, b: B) =>
@@ -59,7 +66,9 @@ trait Laws { this: ScalaCheckSuite =>
     }
 
   def traverseLaws[F[_]: Traverse, G[_]: Parallel, A: Arbitrary: ArbitraryF[F, *]](implicit
-      loc: munit.Location
+      loc: munit.Location,
+      assertEqFA: AssertEq[F[A]],
+      assertEqFGString: AssertEq[G[F[String]]]
   ): Unit = {
 
     property("Identity law") {
@@ -79,7 +88,9 @@ trait Laws { this: ScalaCheckSuite =>
   }
 
   def directStyleLaws[F[_]: Applicative: DirectStyle, A: Arbitrary: ArbitraryF[F, *]](implicit
-      loc: munit.Location
+      loc: munit.Location,
+      assertEqFA: AssertEq[F[A]],
+      assertEqFAB: AssertEq[F[(A, A)]]
   ): Unit = {
 
     property("No runSafe can be used to replace .pure") {

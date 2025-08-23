@@ -1,8 +1,6 @@
 package hearth
 
-import org.scalacheck.Arbitrary
-import org.scalacheck.Prop
-import org.scalacheck.Test as ScalaCheckTest
+import org.scalacheck.{Arbitrary, Gen, Prop, Test as ScalaCheckTest}
 import org.scalacheck.util.Pretty
 import org.scalacheck.rng.Seed
 import munit.{FailException, FailExceptionLike, Location, TestOptions}
@@ -117,20 +115,20 @@ trait ScalaCheckSuite extends Suite {
   }
   object AssertEq extends LowPriorityAssertEq {
 
-    implicit def AssertEqForData: AssertEq[hearth.data.Data] = new AssertEq[hearth.data.Data] {
+    implicit val AssertEqForData: AssertEq[hearth.data.Data] = new AssertEq[hearth.data.Data] {
 
       def assertEq(a: hearth.data.Data, b: hearth.data.Data)(implicit loc: munit.Location): Unit = a <==> b
+    }
+
+    implicit val AssertEqForString: AssertEq[String] = new AssertEq[String] {
+
+      def assertEq(a: String, b: String)(implicit loc: munit.Location): Unit = a <==> b
     }
 
     implicit def AssertEqForMIO[A]: AssertEq[hearth.fp.effect.MIO[A]] = new AssertEq[hearth.fp.effect.MIO[A]] {
 
       def assertEq(a: hearth.fp.effect.MIO[A], b: hearth.fp.effect.MIO[A])(implicit loc: munit.Location): Unit =
         a.unsafe.runSync._2 ==> b.unsafe.runSync._2
-    }
-
-    implicit def AssertEqForString: AssertEq[String] = new AssertEq[String] {
-
-      def assertEq(a: String, b: String)(implicit loc: munit.Location): Unit = a <==> b
     }
   }
   private[ScalaCheckSuite] trait LowPriorityAssertEq {
@@ -145,4 +143,20 @@ trait ScalaCheckSuite extends Suite {
 
     def ===(b: A)(implicit assertEq: AssertEq[A], loc: munit.Location): Unit = assertEq.assertEq(a, b)
   }
+
+  // Special instances for Hearth types
+
+  implicit def ArbitraryForNonEmptyList[A: Arbitrary]: Arbitrary[hearth.fp.data.NonEmptyList[A]] = Arbitrary(
+    Gen.nonEmptyListOf(Arbitrary.arbitrary[A]).map(hearth.fp.data.NonEmptyList.fromList(_).get)
+  )
+  implicit def ArbitraryForNonEmptyVector[A: Arbitrary]: Arbitrary[hearth.fp.data.NonEmptyVector[A]] = Arbitrary(
+    Gen.nonEmptyListOf(Arbitrary.arbitrary[A]).map(_.toVector).map(hearth.fp.data.NonEmptyVector.fromVector(_).get)
+  )
+  implicit def ArbitraryForMIO[A: Arbitrary]: Arbitrary[hearth.fp.effect.MIO[A]] = Arbitrary(
+    Gen.oneOf(
+      Gen.const(hearth.fp.effect.MIO.pure(Arbitrary.arbitrary[A].sample.get)),
+      Gen.const(hearth.fp.effect.MIO.fail(ExampleError(Arbitrary.arbitrary[String].sample.get)))
+    )
+  )
+  private case class ExampleError(message: String) extends Throwable(message)
 }
