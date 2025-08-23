@@ -66,13 +66,13 @@ trait Classes { this: MacroCommons =>
       if (!primaryConstructor.isAvailable(Everywhere)) Option.empty[Expr[A]].pure[F]
       else {
         val fieldResults = primaryConstructor.parameters.flatten.toList.parTraverse { case (name, parameter) =>
-          DirectStyle[F].async { await =>
+          DirectStyle[F].scoped { runSafe =>
             import parameter.tpe.Underlying
-            name -> await(makeArgument(parameter)).as_??
+            name -> runSafe(makeArgument(parameter)).as_??
           }
         }
-        DirectStyle[F].async { await =>
-          primaryConstructor(await(fieldResults).toMap) match {
+        DirectStyle[F].scoped { runSafe =>
+          primaryConstructor(runSafe(fieldResults).toMap) match {
             case Right(value) => Some(value)
             case Left(error)  =>
               throw new AssertionError(s"Failed to call the primary constructor of ${tpe.prettyPrint}: $error")
@@ -128,10 +128,10 @@ trait Classes { this: MacroCommons =>
     )(handle: Expr_??<:[A] => F[Expr[B]]): F[Option[Expr[B]]] =
       directChildren.toList
         .parTraverse { case (name, child) =>
-          DirectStyle[F].async { await =>
+          DirectStyle[F].scoped { runSafe =>
             import child.Underlying as A0
             MatchCase.typeMatch[A0](name).map { matched =>
-              await(handle(matched.as_??<:[A]))
+              runSafe(handle(matched.as_??<:[A]))
             }
           }
         }

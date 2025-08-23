@@ -84,18 +84,18 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
   private type Attempt[A] = MIO[Option[Expr[A]]]
 
   /** Attempts one derivation rule after another, if none of them apply, we fail the derivation. */
-  private def attemptAllRules[A: Type](value: Expr[A]): MIO[Expr[String]] = MIO.async { await =>
-    await {
+  private def attemptAllRules[A: Type](value: Expr[A]): MIO[Expr[String]] = MIO.scoped { runSafe =>
+    runSafe {
       attemptUsingImplicit[A](value)
-    } orElse await {
+    } orElse runSafe {
       attemptAsBuiltIn[A](value)
-    } orElse await {
+    } orElse runSafe {
       attemptAsIterable[A](value)
-    } orElse await {
+    } orElse runSafe {
       attemptAsCaseClass[A](value)
-    } orElse await {
+    } orElse runSafe {
       attemptAsEnum[A](value)
-    } getOrElse await {
+    } getOrElse runSafe {
       MIO.fail(DerivationError.UnsupportedType(Type.prettyPrint[A]))
     }
   }
@@ -183,12 +183,12 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
                 .toString
             }
 
-          MIO.async { await =>
+          MIO.scoped { runSafe =>
             import innerType.Underlying as B
             implicit val IterableB: Type[Iterable[B]] = Types.Iterable[B] // for .upcast[Iterable[B]]
 
             showIterable[B](value.upcast[Iterable[B]]) { item =>
-              await {
+              runSafe {
                 Log.namedScope(s"Iterables inner type: ${Type.prettyPrint[B]}") {
                   attemptAllRules[B](item)
                 }

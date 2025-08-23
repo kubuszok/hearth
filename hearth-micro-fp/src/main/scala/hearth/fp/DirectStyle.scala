@@ -1,6 +1,7 @@
 package hearth
 package fp
 
+import scala.util.{Failure, Success, Try}
 import scala.util.control.{ControlThrowable, NoStackTrace}
 
 /** Direct-style operations.
@@ -8,9 +9,9 @@ import scala.util.control.{ControlThrowable, NoStackTrace}
   * The idea is that we could use some effect (sequentially) by doing something like:
   *
   * {{{
-  * DirectStyle[F].async { await =>
-  *   val a: A = await(fa: F[A])
-  *   val b: B = await(fb: F[B])
+  * DirectStyle[F].scoped { runSafe =>
+  *   val a: A = runSafe(fa: F[A])
+  *   val b: B = runSafe(fb: F[B])
   *   ...
   *   c: C
   * } // : F[C]
@@ -18,18 +19,18 @@ import scala.util.control.{ControlThrowable, NoStackTrace}
   *
   * and it would handle: errors, missing values, etc. as if we used something like for-comprehension/traverse, etc.
   *
-  * It is not as seamless as Scala 3 direct-style relying on context functions and passing `await` as `given`, but
+  * It is not as seamless as Scala 3 direct-style relying on context functions and passing `runSafe` as `given`, but
   * still, occasionally it can make the code easier to read, especially if we're working with some structure that does
   * not support `Applicative`/`Traverse`/etc., e.g.:
   *
   * {{{
   * def computeExprB[A](a: Expr[A]): MIO[Expr[B]] = ... // fallible computation with logs
   *
-  * val mio: MIO[TypeClass[A]] = DirectStyle[MIO].async { await =>
+  * val mio: MIO[TypeClass[A]] = DirectStyle[MIO].scoped { runSafe =>
   *   '{
   *     new TypeClass[A] {
-  *       def method(a: A): B = ${ await(computeExprB('{ a })) } // <-- extracts Expr[B] out of MIO[Expr[B]],
-  *     }                                                        //     kinda impossible with normal combinators
+  *       def method(a: A): B = ${ runSafe(computeExprB('{ a })) } // <-- extracts Expr[B] out of MIO[Expr[B]],
+  *     }                                                          //     kinda impossible with normal combinators
   *   }
   * } // all potential errors and logs are preserved
   * }}}
@@ -39,38 +40,92 @@ import scala.util.control.{ControlThrowable, NoStackTrace}
 trait DirectStyle[F[_]] {
   import DirectStyle.*
 
-  protected def asyncUnsafe[A](owner: Await[F])(thunk: => A): F[A]
-  protected def awaitUnsafe[A](owner: Await[F])(value: F[A]): A
-
-  final private class AwaitImpl extends Await[F] {
-    def apply[A](value: F[A]): A = awaitUnsafe(this)(value)
+  def scoped[A](thunk: RunSafe[F] => A): F[A] = {
+    val runSafe = new RunSafe(this)
+    scopedUnsafe(runSafe.asOwner)(thunk(runSafe))
   }
 
-  def async[A](await: Await[F] => A): F[A] = {
-    val owner = new AwaitImpl
-    asyncUnsafe(owner)(await(owner))
-  }
+  protected def scopedUnsafe[A](owner: ScopeOwner[F])(thunk: => A): F[A]
+  protected def runUnsafe[A](owner: ScopeOwner[F])(value: F[A]): A
 }
 object DirectStyle {
 
-  sealed trait Await[F[_]] {
-    def apply[A](value: F[A]): A
-  }
-
   def apply[F[_]](implicit F: DirectStyle[F]): DirectStyle[F] = F
 
-  implicit def DirectStyleForEither[Errors]: DirectStyle[Either[Errors, *]] = new DirectStyle[Either[Errors, *]] { ds =>
-    private case class PassErrors(owner: Any, error: Errors) extends ControlThrowable with NoStackTrace
+  final class RunSafe[F[_]](directStyle: DirectStyle[F]) {
+    def apply[A](value: F[A]): A = directStyle.runUnsafe(this.asOwner)(value)
+    private[DirectStyle] def asOwner: ScopeOwner[F] = this.asInstanceOf[ScopeOwner[F]]
+  }
+
+  /** When we use nested direct style operations, we need a way to distinct who is the managing which `runSafe`. Scope
+    * owner is such an opaque value that we can use in the implementation to distinct scopes.
+    */
+  type ScopeOwner[F[_]] <: Any
+
+  /** Instance useful if we want to use [[DirectStyle]] without any effect.
+    *
+    * @since 0.1.0
+    */
+  implicit def DirectStyleForId: DirectStyle[Id] = new DirectStyle[Id] {
+    override protected def scopedUnsafe[A](owner: ScopeOwner[Id])(thunk: => A): Id[A] = thunk
+    override protected def runUnsafe[A](owner: ScopeOwner[Id])(value: Id[A]): A = value
+  }
+
+  /** Allows using [[DirectStyle]] with [[scala.Either]].
+    *
+    * @since 0.1.0
+    */
+  implicit def DirectStyleForEither[Errors]: DirectStyle[Either[Errors, *]] = new DirectStyle[Either[Errors, *]] {
+    final private case class PassErrors(owner: Any, error: Errors) extends ControlThrowable with NoStackTrace
 
     @scala.annotation.nowarn
-    override protected def asyncUnsafe[A](owner: Await[Either[Errors, *]])(thunk: => A): Either[Errors, A] = try
+    override protected def scopedUnsafe[A](owner: ScopeOwner[Either[Errors, *]])(thunk: => A): Either[Errors, A] = try
       Right(thunk)
     catch {
       case PassErrors(`owner`, error) => Left(error.asInstanceOf[Errors])
     }
-    override protected def awaitUnsafe[A](owner: Await[Either[Errors, *]])(value: Either[Errors, A]): A = value match {
-      case Left(error)  => throw PassErrors(owner, error)
-      case Right(value) => value
+    override protected def runUnsafe[A](owner: ScopeOwner[Either[Errors, *]])(value: Either[Errors, A]): A =
+      value match {
+        case Left(error)  => throw PassErrors(owner, error)
+        case Right(value) => value
+      }
+  }
+
+  /** Allows using [[DirectStyle]] with [[scala.Option]].
+    *
+    * @since 0.1.0
+    */
+  implicit lazy val DirectStyleForOption: DirectStyle[Option] = new DirectStyle[Option] {
+    final private case class PassErrors(owner: Any) extends ControlThrowable with NoStackTrace
+
+    @scala.annotation.nowarn
+    override protected def scopedUnsafe[A](owner: ScopeOwner[Option])(thunk: => A): Option[A] = try
+      Some(thunk)
+    catch {
+      case PassErrors(`owner`) => None
+    }
+    override protected def runUnsafe[A](owner: ScopeOwner[Option])(value: Option[A]): A = value match {
+      case None        => throw PassErrors(owner)
+      case Some(value) => value
+    }
+  }
+
+  /** Allows using [[DirectStyle]] with [[scala.util.Try]].
+    *
+    * @since 0.1.0
+    */
+  implicit lazy val DirectStyleForTry: DirectStyle[Try] = new DirectStyle[Try] {
+    final private case class PassErrors(owner: Any, error: Throwable) extends ControlThrowable with NoStackTrace
+
+    @scala.annotation.nowarn
+    override protected def scopedUnsafe[A](owner: ScopeOwner[Try])(thunk: => A): Try[A] = try
+      Success(thunk)
+    catch {
+      case PassErrors(`owner`, error) => Failure(error.asInstanceOf[Throwable])
+    }
+    override protected def runUnsafe[A](owner: ScopeOwner[Try])(value: Try[A]): A = value match {
+      case Failure(error) => throw PassErrors(owner, error)
+      case Success(value) => value
     }
   }
 }

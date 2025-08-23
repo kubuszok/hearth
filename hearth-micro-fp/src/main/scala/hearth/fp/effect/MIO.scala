@@ -237,7 +237,7 @@ object MIO {
 
   def firstOf[A](head: MIO[A], tail: MIO[A]*): MIO[A] = tail.foldLeft(head)(_.orElse(_))
 
-  def async[A](await: DirectStyle.Await[MIO] => A): MIO[A] = MioDirectStyle.async(await)
+  def scoped[A](runSafe: DirectStyle.RunSafe[MIO] => A): MIO[A] = DirectStyleForMio.scoped(runSafe)
 
   // --------------------------------------------- Implementation details ---------------------------------------------
 
@@ -309,12 +309,13 @@ object MIO {
     case Pure(state, resultA) => state -> resultA
   }
 
-  final private case class PassErrors(owner: Any, errors: MErrors) extends ControlThrowable with NoStackTrace
-  implicit final val MioDirectStyle: fp.DirectStyle[MIO] = new fp.DirectStyle[MIO] {
+  implicit final val DirectStyleForMio: fp.DirectStyle[MIO] = new fp.DirectStyle[MIO] {
+    final private case class PassErrors(owner: Any, errors: MErrors) extends ControlThrowable with NoStackTrace
 
     private val ongoingStates = scala.collection.mutable.Map.empty[Any, MState]
 
-    override protected def asyncUnsafe[A](owner: DirectStyle.Await[MIO])(thunk: => A): MIO[A] =
+    @scala.annotation.nowarn
+    override protected def scopedUnsafe[A](owner: DirectStyle.ScopeOwner[MIO])(thunk: => A): MIO[A] =
       // We're keeping the track of ownership because, there can be nested awaits.
       // And we have to consolidate state because there might be multiple awaits in the thunk.
       try {
@@ -327,7 +328,7 @@ object MIO {
       } finally
         ignore(ongoingStates.remove(owner))
 
-    override protected def awaitUnsafe[A](owner: DirectStyle.Await[MIO])(mio: MIO[A]): A = {
+    override protected def runUnsafe[A](owner: DirectStyle.ScopeOwner[MIO])(mio: MIO[A]): A = {
       val (state, result) = run(mio)
 
       val previousState = ongoingStates(owner)
@@ -341,7 +342,7 @@ object MIO {
     }
   }
 
-  implicit final val MioParalle: fp.Parallel[MIO] = new fp.Parallel[MIO] {
+  implicit final val ParallelForMio: fp.Parallel[MIO] = new fp.Parallel[MIO] {
     // Members declared in hearth.fp.Applicative
     def pure[A](a: A): MIO[A] = MIO.pure(a)
     def map2[A, B, C](fa: MIO[A], fb: => MIO[B])(f: (A, B) => C): MIO[C] = fa.map2(fb)(f)

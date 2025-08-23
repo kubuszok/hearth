@@ -101,7 +101,6 @@ final case class MState private[effect] (
     lazy val newCurrent = current.drop(common.length)
     if (foundInPrevous) common ++ newPrevious
     else if (common.isEmpty) newPrevious ++ Vector(Log.Scope(name, newCurrent))
-    // else if (newPrevious.isEmpty) Vector(Log.Scope(name, newCurrent))
     else common ++ recursiveNestedLogsMerge(newPrevious, newCurrent, name)
   }
 }
