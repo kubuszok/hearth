@@ -9,7 +9,7 @@ package effect
   *     initialize it, then modify its own copy of the value)
   *   - when combining [[MIO]] programs sequentially, the value would be passed under the hood without us having to
   *     carry it around
-  *   - when using thr "parallel" semantics ([[MIO.parMap2]], [[MIO.parTuple]]), we are able to modify value for each
+  *   - when using the "parallel" semantics ([[MIO.parMap2]], [[MIO.parTuple]]), we are able to modify value for each
   *     "fiber", and provide a reasonable way of combining values from 2 different "fibers" back into a single value
   *
   * @since 0.1.0

@@ -9,9 +9,10 @@ package effect
   * @since 0.1.0
   */
 final case class MState private[effect] (
-    locals: Map[MLocal[?], Any],
+    locals: Map[MLocal[?], MState.Value],
     logs: Logs
 ) {
+  import MState.Value
 
   // --------------------------------------------- Implementation details ---------------------------------------------
 
@@ -19,38 +20,62 @@ final case class MState private[effect] (
     MState(appendLocals(locals, state.locals), combineLogs(logs, state.logs))
 
   private[effect] def fork: MState =
-    MState(forkLocals(locals), logs)
+    MState(forkLocals(locals, MState.empty), logs)
+  private[effect] def fork(explicitlyIgnore: MState): MState =
+    MState(forkLocals(locals, explicitlyIgnore), logs)
   private[effect] def join(state: MState): MState =
     MState(joinLocals(locals, state.locals), combineLogs(logs, state.logs))
 
   private[effect] def get[A](local: MLocal[A]): A = locals.get(local) match {
-    case Some(a) => a.asInstanceOf[A]
+    case Some(a) => a.as[A]
     case None    => local.initial
   }
-  private[effect] def set[A](local: MLocal[A], a: A): MState = MState(locals + (local -> a), logs)
+  private[effect] def set[A](local: MLocal[A], a: A): MState = MState(locals + (local -> Value(a)), logs)
 
   private[effect] def log(log: Log): MState = MState(locals, logs :+ log)
 
   private[effect] def nameLogsScope(name: String, previous: MState): MState =
     MState(locals, recursiveNestedLogsMerge(previous.logs, logs, name))
 
-  private def appendLocals(locals1: Map[MLocal[?], Any], locals2: Map[MLocal[?], Any]): Map[MLocal[?], Any] =
-    locals1 ++ locals2
+  private def appendLocals(locals1: Map[MLocal[?], Value], locals2: Map[MLocal[?], Value]): Map[MLocal[?], Value] =
+    if (locals1 eq locals2) locals1
+    else {
+      (locals1.keySet ++ locals2.keySet)
+        .asInstanceOf[Set[MLocal[Any]]]
+        .flatMap { local =>
+          (locals1.get(local), locals2.get(local)) match {
+            case (Some(a), Some(b)) => Iterator(local -> Ordering[Value].max(a, b))
+            case (Some(a), None)    => Iterator(local -> a)
+            case (None, Some(b))    => Iterator(local -> b)
+            case (None, None)       => Iterator(local -> local.initial)
+          }
+        }
+        .toMap
+        .asInstanceOf[Map[MLocal[?], Value]]
+    }
 
-  private def forkLocals(locals: Map[MLocal[?], Any]): Map[MLocal[?], Any] =
-    locals.map { case (local, a) => (local, local.asInstanceOf[MLocal[Any]].fork(a)) }.toMap
+  private def forkLocals(locals: Map[MLocal[?], Value], explicitlyIgnore: MState): Map[MLocal[?], Value] =
+    (locals.keySet ++ explicitlyIgnore.locals.keySet) // We do this so that None won't fall back on value from another computation.
+      .asInstanceOf[Set[MLocal[Any]]]
+      .map { local =>
+        locals.get(local) match {
+          case Some(a) => local -> Value(local.asInstanceOf[MLocal[Any]].fork(a.value))
+          case None    => local -> Value(local.initial)
+        }
+      }
+      .toMap
 
-  private def joinLocals(locals1: Map[MLocal[?], Any], locals2: Map[MLocal[?], Any]): Map[MLocal[?], Any] =
+  private def joinLocals(locals1: Map[MLocal[?], Value], locals2: Map[MLocal[?], Value]): Map[MLocal[?], Value] =
     if (locals1 eq locals2) locals1
     else {
       (locals1.keySet ++ locals2.keySet)
         .asInstanceOf[Set[MLocal[Any]]]
         .map { local =>
           (locals1.get(local), locals2.get(local)) match {
-            case (Some(a), Some(b)) => (local, local.join(a, b))
-            case (Some(a), None)    => (local, a)
-            case (None, Some(b))    => (local, b)
-            case (None, None)       => (local, local.initial)
+            case (Some(a), Some(b)) => local -> Value(local.join(a.value, b.value))
+            case (Some(a), None)    => local -> a
+            case (None, Some(b))    => local -> b
+            case (None, None)       => local -> Value(local.initial)
           }
         }
         .toMap
@@ -71,10 +96,11 @@ final case class MState private[effect] (
 
       val result = appendLastScopeToNew getOrElse justMerge
 
-      // It was to PITA properly fix this, so we just make sure here, that we don't repeat nested logs.
+      // It was PITA trying to fix this properly, so instead we just make sure _here_, that we don't repeat nested logs.
+      // We need to compate by reference to avoid removing _reused_ logs (e.g. same MIO put into multiple named scopes).
       result.reverse.collectFirst {
-        case Log.Scope(name, nestedLogs) if nestedLogs.exists(result.contains) =>
-          result.filterNot(nestedLogs.contains)
+        case Log.Scope(name, nestedLogs) if nestedLogs.exists(l => result.exists(_ eq l)) =>
+          result.filterNot(l => nestedLogs.exists(_ eq l))
       } getOrElse result
     }
 
@@ -107,4 +133,14 @@ final case class MState private[effect] (
 object MState {
 
   val empty: MState = MState(Map.empty, logs = Vector.empty)
+
+  final case class Value(value: Any, timestamp: Long = System.nanoTime()) {
+
+    def as[A]: A = value.asInstanceOf[A]
+  }
+
+  object Value {
+
+    implicit val ordering: Ordering[Value] = Ordering.by(_.timestamp)
+  }
 }

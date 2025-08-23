@@ -125,6 +125,12 @@ trait ScalaCheckSuite extends Suite {
       def assertEq(a: String, b: String)(implicit loc: munit.Location): Unit = a <==> b
     }
 
+    implicit def AssertEqForMEval[A]: AssertEq[hearth.fp.effect.MEval[A]] = new AssertEq[hearth.fp.effect.MEval[A]] {
+
+      def assertEq(a: hearth.fp.effect.MEval[A], b: hearth.fp.effect.MEval[A])(implicit loc: munit.Location): Unit =
+        a.run ==> b.run
+    }
+
     implicit def AssertEqForMIO[A]: AssertEq[hearth.fp.effect.MIO[A]] = new AssertEq[hearth.fp.effect.MIO[A]] {
 
       def assertEq(a: hearth.fp.effect.MIO[A], b: hearth.fp.effect.MIO[A])(implicit loc: munit.Location): Unit =
@@ -152,11 +158,14 @@ trait ScalaCheckSuite extends Suite {
   implicit def ArbitraryForNonEmptyVector[A: Arbitrary]: Arbitrary[hearth.fp.data.NonEmptyVector[A]] = Arbitrary(
     Gen.nonEmptyListOf(Arbitrary.arbitrary[A]).map(_.toVector).map(hearth.fp.data.NonEmptyVector.fromVector(_).get)
   )
+  implicit def ArbitraryForMEval[A: Arbitrary]: Arbitrary[hearth.fp.effect.MEval[A]] = Arbitrary(
+    Gen.const(hearth.fp.effect.MEval.pure(Arbitrary.arbitrary[A].sample.get))
+  )
   implicit def ArbitraryForMIO[A: Arbitrary]: Arbitrary[hearth.fp.effect.MIO[A]] = Arbitrary(
     Gen.oneOf(
       Gen.const(hearth.fp.effect.MIO.pure(Arbitrary.arbitrary[A].sample.get)),
       Gen.const(hearth.fp.effect.MIO.fail(ExampleError(Arbitrary.arbitrary[String].sample.get)))
     )
   )
-  private case class ExampleError(message: String) extends Throwable(message)
+  case class ExampleError(message: String) extends Throwable(message)
 }

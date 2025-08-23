@@ -35,6 +35,9 @@ import scala.util.control.{ControlThrowable, NoStackTrace}
   * } // all potential errors and logs are preserved
   * }}}
   *
+  * Warning: [[DirectStyle]] is not guarantted to be stack-safe. As a matter of the fact if might cause stack overflow
+  * if you use it with some effect that would be stack-safe with normal combinators, e.g. [[MEval]] or [[MIO]].
+  *
   * @since 0.1.0
   */
 trait DirectStyle[F[_]] {
