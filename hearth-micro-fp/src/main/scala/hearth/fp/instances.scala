@@ -20,15 +20,15 @@ private[fp] trait instances0 extends instances1 { this: instances.type =>
     */
   implicit lazy val ParallelTraverseForId: ParallelTraverse[Id] = new ParallelTraverse[Id] {
 
-    def pure[A](a: A): A = a
+    override def pure[A](a: A): A = a
 
-    def map2[A, B, C](fa: A, fb: => B)(f: (A, B) => C): C = f(fa, fb)
+    override def map2[A, B, C](fa: A, fb: => B)(f: (A, B) => C): C = f(fa, fb)
 
-    def parMap2[A, B, C](fa: A, fb: => B)(f: (A, B) => C): C = f(fa, fb)
+    override def parMap2[A, B, C](fa: A, fb: => B)(f: (A, B) => C): C = f(fa, fb)
 
-    def traverse[G[_]: Applicative, A, B](fa: A)(f: A => G[B]): G[B] = f(fa)
+    override def traverse[G[_]: Applicative, A, B](fa: A)(f: A => G[B]): G[B] = f(fa)
 
-    def parTraverse[G[_]: Parallel, A, B](fa: A)(f: A => G[B]): G[B] = f(fa)
+    override def parTraverse[G[_]: Parallel, A, B](fa: A)(f: A => G[B]): G[B] = f(fa)
   }
 
   /** While it sounds weird that [[Option]] is a [[Parallel]], it's actually quite useful, because we have only an
@@ -61,13 +61,13 @@ private[fp] trait instances0 extends instances1 { this: instances.type =>
   implicit def ParallelTraverseForEitherList[Errors]: ParallelTraverse[Either[List[Errors], *]] =
     new ParallelTraverse[Either[List[Errors], *]] {
 
-      def pure[A](a: A): Either[List[Errors], A] = Right(a)
+      override def pure[A](a: A): Either[List[Errors], A] = Right(a)
 
-      def map2[A, B, C](fa: Either[List[Errors], A], fb: => Either[List[Errors], B])(
+      override def map2[A, B, C](fa: Either[List[Errors], A], fb: => Either[List[Errors], B])(
           f: (A, B) => C
       ): Either[List[Errors], C] = fa.flatMap(a => fb.map(b => f(a, b)))
 
-      def parMap2[A, B, C](fa: Either[List[Errors], A], fb: => Either[List[Errors], B])(
+      override def parMap2[A, B, C](fa: Either[List[Errors], A], fb: => Either[List[Errors], B])(
           f: (A, B) => C
       ): Either[List[Errors], C] = (fa, fb) match {
         case (Left(e1), Left(e2)) => Left(e1 ++ e2)
@@ -76,13 +76,17 @@ private[fp] trait instances0 extends instances1 { this: instances.type =>
         case (Right(a), Right(b)) => Right(f(a, b))
       }
 
-      def traverse[G[_]: Applicative, A, B](fa: Either[List[Errors], A])(f: A => G[B]): G[Either[List[Errors], B]] =
+      override def traverse[G[_]: Applicative, A, B](
+          fa: Either[List[Errors], A]
+      )(f: A => G[B]): G[Either[List[Errors], B]] =
         fa match {
           case Left(e)  => (Left(e): Either[List[Errors], B]).pure[G]
           case Right(a) => f(a).map(Right(_))
         }
 
-      def parTraverse[G[_]: Parallel, A, B](fa: Either[List[Errors], A])(f: A => G[B]): G[Either[List[Errors], B]] =
+      override def parTraverse[G[_]: Parallel, A, B](
+          fa: Either[List[Errors], A]
+      )(f: A => G[B]): G[Either[List[Errors], B]] =
         fa match {
           case Left(e)  => (Left(e): Either[List[Errors], B]).pure[G]
           case Right(a) => f(a).map(Right(_))
@@ -97,13 +101,13 @@ private[fp] trait instances0 extends instances1 { this: instances.type =>
   implicit def ParallelTraverseForEitherVector[Errors]: ParallelTraverse[Either[Vector[Errors], *]] =
     new ParallelTraverse[Either[Vector[Errors], *]] {
 
-      def pure[A](a: A): Either[Vector[Errors], A] = Right(a)
+      override def pure[A](a: A): Either[Vector[Errors], A] = Right(a)
 
-      def map2[A, B, C](fa: Either[Vector[Errors], A], fb: => Either[Vector[Errors], B])(
+      override def map2[A, B, C](fa: Either[Vector[Errors], A], fb: => Either[Vector[Errors], B])(
           f: (A, B) => C
       ): Either[Vector[Errors], C] = fa.flatMap(a => fb.map(b => f(a, b)))
 
-      def parMap2[A, B, C](fa: Either[Vector[Errors], A], fb: => Either[Vector[Errors], B])(
+      override def parMap2[A, B, C](fa: Either[Vector[Errors], A], fb: => Either[Vector[Errors], B])(
           f: (A, B) => C
       ): Either[Vector[Errors], C] = (fa, fb) match {
         case (Left(e1), Left(e2)) => Left(e1 ++ e2)
@@ -112,13 +116,17 @@ private[fp] trait instances0 extends instances1 { this: instances.type =>
         case (Right(a), Right(b)) => Right(f(a, b))
       }
 
-      def traverse[G[_]: Applicative, A, B](fa: Either[Vector[Errors], A])(f: A => G[B]): G[Either[Vector[Errors], B]] =
+      override def traverse[G[_]: Applicative, A, B](
+          fa: Either[Vector[Errors], A]
+      )(f: A => G[B]): G[Either[Vector[Errors], B]] =
         fa match {
           case Left(e)  => (Left(e): Either[Vector[Errors], B]).pure[G]
           case Right(a) => f(a).map(Right(_))
         }
 
-      def parTraverse[G[_]: Parallel, A, B](fa: Either[Vector[Errors], A])(f: A => G[B]): G[Either[Vector[Errors], B]] =
+      override def parTraverse[G[_]: Parallel, A, B](
+          fa: Either[Vector[Errors], A]
+      )(f: A => G[B]): G[Either[Vector[Errors], B]] =
         fa match {
           case Left(e)  => (Left(e): Either[Vector[Errors], B]).pure[G]
           case Right(a) => f(a).map(Right(_))

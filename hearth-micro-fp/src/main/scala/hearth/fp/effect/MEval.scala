@@ -4,7 +4,7 @@ package effect
 
 /** Stack-safe evaluation for recursive and nested computations.
   *
-  * Does NOT handle: errors, exceptions, side effects, logging,etc. For that use [[MIO]].
+  * Does NOT handle: errors, exceptions, side effects, logging, etc. For that use [[MIO]].
   *
   * @since 0.1.0
   */
@@ -49,15 +49,22 @@ object MEval {
   final private case class Pure[A](value: A) extends MEval[A]
   final private case class Impure[B, A](eval: MEval[B], f: B => MEval[A]) extends MEval[A]
 
+  @scala.annotation.tailrec
   private def run[A](eval: MEval[A]): A = eval match {
     case Pure(value)                 => value
     case Impure(Pure(value), f)      => run(f(value))
     case Impure(Impure(eval, f), f2) => run(Impure(eval, f andThen (_.flatMap(f2))))
   }
 
-  implicit val MEvalApplicative: Applicative[MEval] = new Applicative[MEval] {
+  implicit val ApplicativeForMEval: Applicative[MEval] = new Applicative[MEval] {
 
-    def pure[A](value: A): MEval[A] = MEval.pure(value)
-    def map2[A, B, C](fa: MEval[A], fb: => MEval[B])(f: (A, B) => C): MEval[C] = fa.map2(fb)(f)
+    override def pure[A](value: A): MEval[A] = MEval.pure(value)
+    override def map2[A, B, C](fa: MEval[A], fb: => MEval[B])(f: (A, B) => C): MEval[C] = fa.map2(fb)(f)
+  }
+
+  implicit val DirectStyleForMEval: fp.DirectStyle[MEval] = new DirectStyle[MEval] {
+
+    override protected def runUnsafe[A](owner: DirectStyle.ScopeOwner[MEval])(value: MEval[A]): A = run(value)
+    override protected def scopedUnsafe[A](owner: DirectStyle.ScopeOwner[MEval])(thunk: => A): MEval[A] = apply(thunk)
   }
 }

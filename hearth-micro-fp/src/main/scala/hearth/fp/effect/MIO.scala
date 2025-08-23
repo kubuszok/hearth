@@ -158,19 +158,24 @@ sealed trait MIO[+A] { fa =>
   // ---------------------------------------------- Parallel operations -----------------------------------------------
 
   final def parMap2[B, C](fb: => MIO[B])(f: (A, B) => C): MIO[C] =
-    fa.forked :+ { (stateA, resultA) =>
-      defer(fb.forked) :+ { (stateB, resultB) =>
-        val stateC = stateA join stateB // This join instead of ++ makes the difference in state management!
-        try {
-          val resultC = (resultA, resultB) match { // It is also important that we merge _after_ we computed results.
-            case (Right(a), Right(b)) => Right(f(a, b)) // <-- this can throw!
-            case (Left(e), Right(_))  => Left(e)
-            case (Right(_), Left(e))  => Left(e)
-            case (Left(e1), Left(e2)) => Left(e1 ++ e2)
+    MIO.void :+ { (previousState, _) =>
+      def faForked = Pure(previousState.fork, Right(())) >> fa
+      def fbForked(explicitlyIgnore: MState) = Pure(previousState.fork(explicitlyIgnore), Right(())) >> fb
+
+      faForked :+ { (stateA, resultA) =>
+        defer(fbForked(stateA)) :+ { (stateB, resultB) =>
+          val stateC = stateA join stateB // This join instead of ++ makes the difference in state management!
+          try {
+            val resultC = (resultA, resultB) match { // It is also important that we merge _after_ we computed results.
+              case (Right(a), Right(b)) => Right(f(a, b)) // <-- this can throw!
+              case (Left(e), Right(_))  => Left(e)
+              case (Right(_), Left(e))  => Left(e)
+              case (Left(e1), Left(e2)) => Left(e1 ++ e2)
+            }
+            Pure(stateC, resultC)
+          } catch {
+            case NonFatal(e) => Pure(stateC, Left(NonEmptyVector.one(e))).log.error(s"Caught exception ${e.getMessage}")
           }
-          Pure(stateC, resultC)
-        } catch {
-          case NonFatal(e) => Pure(stateC, Left(NonEmptyVector.one(e))).log.error(s"Caught exception ${e.getMessage}")
         }
       }
     }
@@ -211,8 +216,6 @@ sealed trait MIO[+A] { fa =>
   /** Extracted because pattern matching to use ++ inlined did not type-check for some reason. */
   protected def :++[B](f: FnNec[A, B]): MIO[B]
   final protected def :+[B](f: (MState, MResult[A]) => MIO[B]): MIO[B] = this :++ FnNec(f)
-
-  final protected def forked: MIO[A] = fa :+ { (state, result) => Pure(state.fork, result) }
 }
 object MIO {
 
@@ -264,7 +267,7 @@ object MIO {
     case (s, Left(e))  => Pure(s, Left(e))
   }
 
-  private[effect] def log(log: Log): MIO[Unit] = void :+ ((s, r) => Pure(s.log(log), r))
+  private[effect] def log(log: => Log): MIO[Unit] = void :+ ((s, r) => Pure(s.log(log), r))
   private[effect] def nameLogsScope[A](name: String, io: MIO[A]): MIO[A] =
     (void :+ { (s0, _) =>
       Pure(s0, Right(s0))
@@ -327,7 +330,6 @@ object MIO {
           Pure(ongoingStates(owner), MResult.fail(errors)) // There should be some state, otherwise it's a bug.
       } finally
         ignore(ongoingStates.remove(owner))
-
     override protected def runUnsafe[A](owner: DirectStyle.ScopeOwner[MIO])(mio: MIO[A]): A = {
       val (state, result) = run(mio)
 
@@ -344,11 +346,11 @@ object MIO {
 
   implicit final val ParallelForMio: fp.Parallel[MIO] = new fp.Parallel[MIO] {
     // Members declared in hearth.fp.Applicative
-    def pure[A](a: A): MIO[A] = MIO.pure(a)
-    def map2[A, B, C](fa: MIO[A], fb: => MIO[B])(f: (A, B) => C): MIO[C] = fa.map2(fb)(f)
+    override def pure[A](a: A): MIO[A] = MIO.pure(a)
+    override def map2[A, B, C](fa: MIO[A], fb: => MIO[B])(f: (A, B) => C): MIO[C] = fa.map2(fb)(f)
 
     // Members declared in hearth.fp.Parallel
-    def parMap2[A, B, C](fa: MIO[A], fb: => MIO[B])(f: (A, B) => C): MIO[C] = fa.parMap2(fb)(f)
+    override def parMap2[A, B, C](fa: MIO[A], fb: => MIO[B])(f: (A, B) => C): MIO[C] = fa.parMap2(fb)(f)
   }
 
   private val terminated = {

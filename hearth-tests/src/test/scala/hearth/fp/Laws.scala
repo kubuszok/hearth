@@ -41,7 +41,7 @@ trait Laws { this: ScalaCheckSuite =>
       }
     }
 
-    property("Left Identity aw") {
+    property("Left Identity law") {
       forAll { (fa: F[A]) =>
         ().pure[F].map2(fa)((_, a) => a) === fa
       }
