@@ -13,7 +13,7 @@ trait Traverse[F[_]] extends Functor[F] {
   def parTraverse[G[_]: Parallel, A, B](fa: F[A])(f: A => G[B]): G[F[B]]
 
   override def map[A, B](fa: F[A])(f: A => B): F[B] =
-    traverse[Id, A, B](fa)(f)(instances.IdentityApplicative)
+    traverse[Id, A, B](fa)(f)(instances.ParallelTraverseForId)
 }
 object Traverse {
 

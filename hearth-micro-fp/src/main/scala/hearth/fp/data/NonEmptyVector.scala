@@ -32,10 +32,47 @@ object NonEmptyVector {
   }
   def one[A](a: A): NonEmptyVector[A] = NonEmptyVector(a, Vector.empty)
 
-  implicit final val NonEmptyVectorTraverse: Traverse[NonEmptyVector] = new Traverse[NonEmptyVector] {
+  implicit final val TraverseForNonEmptyVector: Traverse[NonEmptyVector] = new Traverse[NonEmptyVector] {
     def traverse[G[_]: Applicative, A, B](fa: NonEmptyVector[A])(f: A => G[B]): G[NonEmptyVector[B]] =
       f(fa.head).map2(fa.tail.traverse(f))(NonEmptyVector(_, _))
     def parTraverse[G[_]: Parallel, A, B](fa: NonEmptyVector[A])(f: A => G[B]): G[NonEmptyVector[B]] =
       f(fa.head).parMap2(fa.tail.parTraverse(f))(NonEmptyVector(_, _))
   }
+
+  implicit def ParallelTraverseForEitherNonEmptyVector[Errors]: ParallelTraverse[Either[NonEmptyVector[Errors], *]] =
+    new ParallelTraverse[Either[NonEmptyVector[Errors], *]] {
+
+      def pure[A](a: A): Either[NonEmptyVector[Errors], A] = Right(a)
+
+      def map2[A, B, C](fa: Either[NonEmptyVector[Errors], A], fb: => Either[NonEmptyVector[Errors], B])(
+          f: (A, B) => C
+      ): Either[NonEmptyVector[Errors], C] = (fa, fb) match {
+        case (Left(e), _)         => Left(e)
+        case (_, Left(e))         => Left(e)
+        case (Right(a), Right(b)) => Right(f(a, b))
+      }
+
+      def parMap2[A, B, C](fa: Either[NonEmptyVector[Errors], A], fb: => Either[NonEmptyVector[Errors], B])(
+          f: (A, B) => C
+      ): Either[NonEmptyVector[Errors], C] = (fa, fb) match {
+        case (Left(e1), Left(e2)) => Left(e1 ++ e2)
+        case (Left(e), Right(_))  => Left(e)
+        case (Right(_), Left(e))  => Left(e)
+        case (Right(a), Right(b)) => Right(f(a, b))
+      }
+
+      def traverse[G[_]: Applicative, A, B](
+          fa: Either[NonEmptyVector[Errors], A]
+      )(f: A => G[B]): G[Either[NonEmptyVector[Errors], B]] = fa match {
+        case Left(e)  => (Left(e): Either[NonEmptyVector[Errors], B]).pure[G]
+        case Right(a) => f(a).map(Right(_))
+      }
+
+      def parTraverse[G[_]: Parallel, A, B](
+          fa: Either[NonEmptyVector[Errors], A]
+      )(f: A => G[B]): G[Either[NonEmptyVector[Errors], B]] = fa match {
+        case Left(e)  => (Left(e): Either[NonEmptyVector[Errors], B]).pure[G]
+        case Right(a) => f(a).map(Right(_))
+      }
+    }
 }

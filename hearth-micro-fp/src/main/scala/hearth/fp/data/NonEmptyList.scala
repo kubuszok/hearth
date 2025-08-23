@@ -32,10 +32,47 @@ object NonEmptyList {
   }
   def one[A](a: A): NonEmptyList[A] = NonEmptyList(a, List.empty)
 
-  implicit final val NonEmptyListTraverse: Traverse[NonEmptyList] = new Traverse[NonEmptyList] {
-    def traverse[G[_]: Applicative, A, B](fa: NonEmptyList[A])(f: A => G[B]): G[NonEmptyList[B]] =
+  implicit final val TraverseForNonEmptyList: Traverse[NonEmptyList] = new Traverse[NonEmptyList] {
+    override def traverse[G[_]: Applicative, A, B](fa: NonEmptyList[A])(f: A => G[B]): G[NonEmptyList[B]] =
       f(fa.head).map2(fa.tail.traverse(f))(NonEmptyList(_, _))
-    def parTraverse[G[_]: Parallel, A, B](fa: NonEmptyList[A])(f: A => G[B]): G[NonEmptyList[B]] =
+    override def parTraverse[G[_]: Parallel, A, B](fa: NonEmptyList[A])(f: A => G[B]): G[NonEmptyList[B]] =
       f(fa.head).parMap2(fa.tail.parTraverse(f))(NonEmptyList(_, _))
   }
+
+  implicit def ParallelTraverseForEitherNonEmptyList[Errors]: ParallelTraverse[Either[NonEmptyList[Errors], *]] =
+    new ParallelTraverse[Either[NonEmptyList[Errors], *]] {
+
+      override def pure[A](a: A): Either[NonEmptyList[Errors], A] = Right(a)
+
+      override def map2[A, B, C](fa: Either[NonEmptyList[Errors], A], fb: => Either[NonEmptyList[Errors], B])(
+          f: (A, B) => C
+      ): Either[NonEmptyList[Errors], C] = (fa, fb) match {
+        case (Left(e), _)         => Left(e)
+        case (_, Left(e))         => Left(e)
+        case (Right(a), Right(b)) => Right(f(a, b))
+      }
+
+      override def parMap2[A, B, C](fa: Either[NonEmptyList[Errors], A], fb: => Either[NonEmptyList[Errors], B])(
+          f: (A, B) => C
+      ): Either[NonEmptyList[Errors], C] = (fa, fb) match {
+        case (Left(e1), Left(e2)) => Left(e1 ++ e2)
+        case (Left(e), Right(_))  => Left(e)
+        case (Right(_), Left(e))  => Left(e)
+        case (Right(a), Right(b)) => Right(f(a, b))
+      }
+
+      override def traverse[G[_]: Applicative, A, B](
+          fa: Either[NonEmptyList[Errors], A]
+      )(f: A => G[B]): G[Either[NonEmptyList[Errors], B]] = fa match {
+        case Left(e)  => (Left(e): Either[NonEmptyList[Errors], B]).pure[G]
+        case Right(a) => f(a).map(Right(_))
+      }
+
+      override def parTraverse[G[_]: Parallel, A, B](
+          fa: Either[NonEmptyList[Errors], A]
+      )(f: A => G[B]): G[Either[NonEmptyList[Errors], B]] = fa match {
+        case Left(e)  => (Left(e): Either[NonEmptyList[Errors], B]).pure[G]
+        case Right(a) => f(a).map(Right(_))
+      }
+    }
 }
