@@ -16,70 +16,93 @@ final case class MState private[effect] (
 
   // --------------------------------------------- Implementation details ---------------------------------------------
 
+  // The whole complexity of this class is due to 2 reasons:
+  //
+  // 1. MIO always stores `MState` next to `MResult` - it **significantly** simplifies the MIO.run implementation,
+  //    but it also means that each MIO (including `MIO.Pure`) would introduce some state, whether user actually
+  //    modified it or not. That forces us to detect whether the state was actually modified, and merging changes.
+  // 2. the parallel semantics is only simulated - we need to store state before computation, process 1 "fiber", and
+  //    then rewind the state before processing the next "fiber".
+  //
+  // In the sequential code, to resolve variables we can just pick the newest MLocal. Logs are a bit more complex:
+  // `Log.namedScope` should remove some logs, and re-add them wrapped in a new scope - but when merging we could see the
+  // same logs twice - once in Scope and once present as top level Entries, so we have to deduplicate them.
+  //
+  // In the parallel code, we have to rewind the state. BUT parallelism is still only simulated, we would still sequentially
+  // merge states, and override old values with new ones. If there is a `MLocal` not used before forking, and used in
+  // the first fork, it would always override the empty value of pre-fork state. So we have to force-initialize it with
+  // the newer timestamp.
+
+  // ----------------------------------------------- API called by MIO  -----------------------------------------------
+
   private[effect] def ++(state: MState): MState =
     MState(appendLocals(locals, state.locals), combineLogs(logs, state.logs))
 
-  private[effect] def fork: MState =
-    MState(forkLocals(locals, MState.empty), logs)
-  private[effect] def fork(explicitlyIgnore: MState): MState =
-    MState(forkLocals(locals, explicitlyIgnore), logs)
+  private[effect] def fork(explicitlyRewind: MState): MState =
+    MState(forkLocals(locals, explicitlyRewind), logs)
   private[effect] def join(state: MState): MState =
     MState(joinLocals(locals, state.locals), combineLogs(logs, state.logs))
 
-  private[effect] def get[A](local: MLocal[A]): A = locals.get(local) match {
-    case Some(a) => a.as[A]
-    case None    => local.initial
-  }
+  private[effect] def get[A](local: MLocal[A]): A = locals.get(local).fold(local.initial)(_.as[A])
   private[effect] def set[A](local: MLocal[A], a: A): MState = MState(locals + (local -> Value(a)), logs)
 
   private[effect] def log(log: Log): MState = MState(locals, logs :+ log)
-
   private[effect] def nameLogsScope(name: String, previous: MState): MState =
     MState(locals, recursiveNestedLogsMerge(previous.logs, logs, name))
 
+  // ----------------------------------------------- MLocal operations ------------------------------------------------
+
   private def appendLocals(locals1: Map[MLocal[?], Value], locals2: Map[MLocal[?], Value]): Map[MLocal[?], Value] =
     if (locals1 eq locals2) locals1
-    else {
-      (locals1.keySet ++ locals2.keySet)
-        .asInstanceOf[Set[MLocal[Any]]]
-        .flatMap { local =>
+    else
+      handleLocalsCasting(locals1.keySet, locals2.keySet) {
+        _.flatMap { local =>
           (locals1.get(local), locals2.get(local)) match {
             case (Some(a), Some(b)) => Iterator(local -> Ordering[Value].max(a, b))
             case (Some(a), None)    => Iterator(local -> a)
             case (None, Some(b))    => Iterator(local -> b)
             case (None, None)       => Iterator(local -> local.initial)
           }
-        }
-        .toMap
-        .asInstanceOf[Map[MLocal[?], Value]]
-    }
-
-  private def forkLocals(locals: Map[MLocal[?], Value], explicitlyIgnore: MState): Map[MLocal[?], Value] =
-    (locals.keySet ++ explicitlyIgnore.locals.keySet) // We do this so that None won't fall back on value from another computation.
-      .asInstanceOf[Set[MLocal[Any]]]
-      .map { local =>
-        locals.get(local) match {
-          case Some(a) => local -> Value(local.asInstanceOf[MLocal[Any]].fork(a.value))
-          case None    => local -> Value(local.initial)
-        }
+        }.toMap
       }
-      .toMap
+
+  private def forkLocals(locals: Map[MLocal[?], Value], explicitlyRewind: MState): Map[MLocal[?], Value] =
+    if (explicitlyRewind eq MState.empty) locals
+    else
+      handleLocalsCasting(locals.keySet, explicitlyRewind.locals.keySet) {
+        _.map { local =>
+          locals.get(local) match {
+            case Some(a) => local -> Value(local.asInstanceOf[MLocal[Any]].fork(a.value))
+            case None    =>
+              local -> Value(
+                local.initial
+              ) // We do this so that None won't fall back on value from another computation.
+          }
+        }.toMap
+      }
 
   private def joinLocals(locals1: Map[MLocal[?], Value], locals2: Map[MLocal[?], Value]): Map[MLocal[?], Value] =
     if (locals1 eq locals2) locals1
-    else {
-      (locals1.keySet ++ locals2.keySet)
-        .asInstanceOf[Set[MLocal[Any]]]
-        .map { local =>
+    else
+      handleLocalsCasting(locals1.keySet, locals2.keySet) {
+        _.map { local =>
           (locals1.get(local), locals2.get(local)) match {
             case (Some(a), Some(b)) => local -> Value(local.join(a.value, b.value))
             case (Some(a), None)    => local -> a
             case (None, Some(b))    => local -> b
             case (None, None)       => local -> Value(local.initial)
           }
-        }
-        .toMap
-    }
+        }.toMap
+      }
+
+  private def handleLocalsCasting(keys1: Set[MLocal[?]], keys2: Set[MLocal[?]])(
+      f: Set[MLocal[Any]] => Map[MLocal[Any], Any]
+  ): Map[MLocal[?], Value] = {
+    val keys = (keys1 ++ keys2).asInstanceOf[Set[MLocal[Any]]]
+    f(keys).asInstanceOf[Map[MLocal[?], Value]]
+  }
+
+  // ------------------------------------------------ Logs operations -------------------------------------------------
 
   private def combineLogs(logs1: Logs, logs2: Logs): Logs =
     if ((logs1 eq logs2) || (logs2.isEmpty)) logs1
@@ -131,6 +154,8 @@ final case class MState private[effect] (
   }
 }
 object MState {
+
+  // --------------------------------------------- Implementation details ---------------------------------------------
 
   val empty: MState = MState(Map.empty, logs = Vector.empty)
 
