@@ -17,13 +17,20 @@ final case class NonEmptyList[+A](head: A, tail: List[A]) {
   def ++[B >: A](nel: NonEmptyList[B]): NonEmptyList[B] = NonEmptyList(head, tail ++ nel.toList)
 
   def map[B](f: A => B): NonEmptyList[B] = NonEmptyList(f(head), tail.map(f))
+  def flatMap[B](f: A => NonEmptyList[B]): NonEmptyList[B] = {
+    val NonEmptyList(head2, tail2) = f(head)
+    NonEmptyList(head2, (tail2.iterator ++ tail.iterator.flatMap(a => f(a).iterator)).toList)
+  }
 
+  def iterator: Iterator[A] = Iterator(head) ++ tail.iterator
   def toList: List[A] = head +: tail
   def toVector: Vector[A] = head +: tail.toVector
   def toNonEmptyVector: NonEmptyVector[A] = NonEmptyVector(head, tail.toVector)
 
   def mkString(sep: String): String = toList.mkString(sep)
   def mkString(start: String, sep: String, end: String): String = toList.mkString(start, sep, end)
+
+  override def toString: String = mkString("NonEmptyList(", ", ", ")")
 }
 object NonEmptyList {
 
