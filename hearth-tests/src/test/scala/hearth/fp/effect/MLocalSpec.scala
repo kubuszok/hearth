@@ -12,7 +12,7 @@ final class MLocalSpec extends ScalaCheckSuite {
 
       val inc = counter.get.flatMap(a => counter.set(a + 1))
 
-      def add(n: Int): MIO[Unit] = 
+      def add(n: Int): MIO[Unit] =
         if (n > 0) inc >> add(n - 1)
         else MIO.void
 
@@ -25,7 +25,7 @@ final class MLocalSpec extends ScalaCheckSuite {
 
       val inc = counter.get.flatMap(a => counter.set(a + 1))
 
-      def add(n: Int): MIO[Unit] = 
+      def add(n: Int): MIO[Unit] =
         if (n > 0) inc >> add(n - 1)
         else MIO.void
 

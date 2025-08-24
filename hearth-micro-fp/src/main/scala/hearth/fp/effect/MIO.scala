@@ -159,8 +159,8 @@ sealed trait MIO[+A] { fa =>
 
   final def parMap2[B, C](fb: => MIO[B])(f: (A, B) => C): MIO[C] =
     MIO.void :+ { (previousState, _) =>
-      def faForked = Pure(previousState.fork, Right(())) >> fa
-      def fbForked(explicitlyIgnore: MState) = Pure(previousState.fork(explicitlyIgnore), Right(())) >> fb
+      def faForked = Pure(previousState.fork(explicitlyRewind = MState.empty), Right(())) >> fa
+      def fbForked(faState: MState) = Pure(previousState.fork(explicitlyRewind = faState), Right(())) >> fb
 
       faForked :+ { (stateA, resultA) =>
         defer(fbForked(stateA)) :+ { (stateB, resultB) =>
@@ -258,6 +258,8 @@ object MIO {
     override protected def :++[C](q: FnNec[B, C]): MIO[C] = MIO.Impure(state, result, qab ++ q)
   }
 
+  // ------------------------------------------- MLocal delegates to these --------------------------------------------
+
   private[effect] def get[A](local: MLocal[A]): MIO[A] = void :+ {
     case (s, Right(_)) => Pure(s, Right(s.get(local)))
     case (s, Left(e))  => Pure(s, Left(e))
@@ -266,6 +268,8 @@ object MIO {
     case (s, Right(_)) => Pure(s.set(local, a), Right(()))
     case (s, Left(e))  => Pure(s, Left(e))
   }
+
+  // --------------------------------------------- Log delegates to these ---------------------------------------------
 
   private[effect] def log(log: => Log): MIO[Unit] = void :+ ((s, r) => Pure(s.log(log), r))
   private[effect] def nameLogsScope[A](name: String, io: MIO[A]): MIO[A] =
