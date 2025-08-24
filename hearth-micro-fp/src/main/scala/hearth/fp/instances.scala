@@ -157,6 +157,10 @@ private[fp] trait instances0 extends instances1 { this: instances.type =>
       }
   }
 
+  /** [[List]] isn't ment to represent fallible computation, so we don't have parallel instance for it.
+    *
+    * @since 0.1.0
+    */
   implicit lazy val ApplicativeTraverseForList: ApplicativeTraverse[List] = new ApplicativeTraverse[List] {
 
     override def pure[A](a: A): List[A] = List(a)
@@ -175,6 +179,10 @@ private[fp] trait instances0 extends instances1 { this: instances.type =>
       }.map(_.toList)
   }
 
+  /** [[Vector]] isn't ment to represent fallible computation, so we don't have parallel instance for it.
+    *
+    * @since 0.1.0
+    */
   implicit lazy val ApplicativeTraverseForVector: ApplicativeTraverse[Vector] = new ApplicativeTraverse[Vector] {
 
     override def pure[A](a: A): Vector[A] = Vector(a)

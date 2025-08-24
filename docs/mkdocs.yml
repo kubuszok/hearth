@@ -51,6 +51,7 @@ theme:
   logo: assets/images/logo.svg
 nav:
   - 'Welcome': 'index.md'
+  - 'Micro FP': 'micro-fp.md'
 markdown_extensions:
   - admonition
   - pymdownx.details
