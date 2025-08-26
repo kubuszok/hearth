@@ -212,14 +212,6 @@ final class NonEmptyVectorSpec extends ScalaCheckSuite with Laws {
 
   group("Property-based Tests") {
 
-    property("prepend and append should produce different results") {
-      forAll { (nel: NonEmptyVector[Int], x: Int) =>
-        val prepended = x +: nel
-        val appended = nel :+ x
-        prepended.toVector != appended.toVector
-      }
-    }
-
     property("map should preserve length") {
       forAll { (nel: NonEmptyVector[Int]) =>
         val mapped = nel.map(_ * 2)
