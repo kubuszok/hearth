@@ -357,15 +357,8 @@ object MIO {
     override def parMap2[A, B, C](fa: MIO[A], fb: => MIO[B])(f: (A, B) => C): MIO[C] = fa.parMap2(fb)(f)
   }
 
-  private val terminated = {
-    val handler = new java.util.concurrent.atomic.AtomicBoolean(false)
-    java.lang.Runtime.getRuntime.addShutdownHook(new Thread(() => handler.set(true)))
-    sun.misc.Signal.handle(new sun.misc.Signal("INT"), _ => handler.set(true))
-    sun.misc.Signal.handle(new sun.misc.Signal("TERM"), _ => handler.set(true))
-    handler
-  }
   private def checkTermination[A, B](state: MState, result: MResult[A], ftc: FnNec[A, B]): Unit =
-    if (Thread.interrupted() || terminated.get()) {
+    if (TerminationObserver.isTerminated) {
       val msg = s"""Terminated compilation:
                    |
                    |Last result:      $result

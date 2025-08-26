@@ -212,14 +212,6 @@ final class NonEmptyListSpec extends ScalaCheckSuite with Laws {
 
   group("Property-based Tests") {
 
-    property("prepend and append should produce different results") {
-      forAll { (nel: NonEmptyList[Int], x: Int) =>
-        val prepended = x +: nel
-        val appended = nel :+ x
-        prepended.toList != appended.toList
-      }
-    }
-
     property("map should preserve length") {
       forAll { (nel: NonEmptyList[Int]) =>
         val mapped = nel.map(_ * 2)
