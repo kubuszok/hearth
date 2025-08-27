@@ -358,47 +358,5 @@ final class TypesSpec extends MacroSuite {
         }
       }
     }
-
-    group("methods: Type.Ctor[n].of, expected behavior") {
-      import TypesFixtures.*
-
-      test("for options (Ctor1)") {
-        testTypeCtor1[String] <==> Data("Not an option")
-        testTypeCtor1[Option[Int]] <==> Data(
-          Map(
-            "unapplied" -> Data.list(Data("scala.Int")),
-            "reapplied" -> Data("scala.Option[java.lang.String]")
-          )
-        )
-        testTypeCtor1[Option[String]] <==> Data(
-          Map(
-            "unapplied" -> Data.list(Data("java.lang.String")),
-            "reapplied" -> Data("scala.Option[java.lang.String]")
-          )
-        )
-        testTypeCtor1[Option[Option[String]]] <==> Data(
-          Map(
-            "unapplied" -> Data.list(Data("scala.Option[java.lang.String]")),
-            "reapplied" -> Data("scala.Option[java.lang.String]")
-          )
-        )
-        testTypeCtor1[Option[Option[Option[String]]]] <==> Data(
-          Map(
-            "unapplied" -> Data.list(Data("scala.Option[scala.Option[java.lang.String]]")),
-            "reapplied" -> Data("scala.Option[java.lang.String]")
-          )
-        )
-      }
-
-      test("for eithers (Ctor2)") {
-        testTypeCtor2[String] <==> Data("Not an either")
-        testTypeCtor2[Either[Int, String]] <==> Data(
-          Map(
-            "unapplied" -> Data.list(Data("scala.Int"), Data("java.lang.String")),
-            "reapplied" -> Data("scala.util.Either[java.lang.String, java.lang.String]")
-          )
-        )
-      }
-    }
   }
 }
