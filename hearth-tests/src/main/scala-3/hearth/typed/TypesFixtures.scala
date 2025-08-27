@@ -16,10 +16,4 @@ object TypesFixtures {
 
   inline def testFlags[A]: Data = ${ testFlagsImpl[A] }
   private def testFlagsImpl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testFlags[A]
-
-  inline def testTypeCtor1[A]: Data = ${ testTypeCtor1Impl[A] }
-  private def testTypeCtor1Impl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testTypeCtor1[A]
-
-  inline def testTypeCtor2[A]: Data = ${ testTypeCtor2Impl[A] }
-  private def testTypeCtor2Impl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testTypeCtor2[A]
 }
