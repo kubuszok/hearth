@@ -144,6 +144,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
   // Scala 3 generate prefix$macro$[n] while Scala 2 prefix[n] and we want to align the behavior
   private def freshName(prefix: String): TermName = c.universe.internal.reificationSupport.freshTermName(prefix)
+  private def freshTypeName(prefix: String): TypeName = c.universe.internal.reificationSupport.freshTypeName(prefix)
 
   private val anonumousClassPrefix = Pattern.quote("$anon")
   private val anonymousClassReplacement = "anonymous"
@@ -167,7 +168,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val ctx = freshName("ctx")
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
-    val typeInner = TypeName(freshName("Inner").toString)
+    val typeInner = freshTypeName("Inner")
 
     val result = q"""
       val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
@@ -204,7 +205,8 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 1, "HKT must have exactly one type parameter")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"))
+    val A = freshTypeName("A") // 1
+    val appliedHKT = applyToCtor(HKT, A)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -222,11 +224,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1: Type]: Type[$appliedHKT] =
+      def apply[$A >: $L1 <: $U1: Type]: Type[$appliedHKT] =
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[$L1 <:??<: $U1] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[$L1 <:??<: $U1] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1)) =>
             Some($ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1])
           case _ => None
@@ -267,7 +269,9 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 2, "HKT must have exactly two type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val appliedHKT = applyToCtor(HKT, A, B)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -285,11 +289,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2)) =>
             Some(
               (
@@ -334,7 +338,15 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 3, "HKT must have exactly three type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A")
+    val B = freshTypeName("B")
+    val C = freshTypeName("C")
+    val appliedHKT = applyToCtor(
+      HKT,
+      A, // 1
+      B, // 2
+      C // 3
+    )
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -352,7 +364,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
       def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3)] =
@@ -406,7 +418,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 4, "HKT must have exactly four type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val appliedHKT = applyToCtor(HKT, A, B, C, D)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -424,11 +440,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4)) =>
             Some(
               (
@@ -481,7 +497,12 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 5, "HKT must have exactly five type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -499,11 +520,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5)) =>
             Some(
               (
@@ -559,7 +580,13 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 6, "HKT must have exactly six type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -577,11 +604,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6)) =>
             Some(
               (
@@ -640,7 +667,14 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 7, "HKT must have exactly seven type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -658,11 +692,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7)) =>
             Some(
               (
@@ -724,7 +758,15 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 8, "HKT must have exactly eight type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -742,11 +784,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8)) =>
             Some(
               (
@@ -811,7 +853,16 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 9, "HKT must have exactly nine type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H, I)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -829,11 +880,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9)) =>
             Some(
               (
@@ -901,7 +952,17 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 10, "HKT must have exactly ten type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H, I, J)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -919,11 +980,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10)) =>
             Some(
               (
@@ -994,7 +1055,18 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 11, "HKT must have exactly eleven type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H, I, J, K)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -1012,11 +1084,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11)) =>
             Some(
               (
@@ -1090,7 +1162,19 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 12, "HKT must have exactly twelve type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H, I, J, K, L)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -1108,11 +1192,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12)) =>
             Some(
               (
@@ -1189,7 +1273,20 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 13, "HKT must have exactly thirteen type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H, I, J, K, L, M)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -1207,11 +1304,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13)) =>
             Some(
               (
@@ -1288,7 +1385,21 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 14, "HKT must have exactly fourteen type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H, I, J, K, L, M, N)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -1306,11 +1417,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14)) =>
             Some(
               (
@@ -1389,7 +1500,22 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 15, "HKT must have exactly fifteen type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -1407,11 +1533,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15)) =>
             Some(
               (
@@ -1493,7 +1619,23 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 16, "HKT must have exactly sixteen type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val P = freshTypeName("P") // 16
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -1511,11 +1653,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16)) =>
             Some(
               (
@@ -1600,7 +1742,24 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 17, "HKT must have exactly seventeen type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val P = freshTypeName("P") // 16
+    val Q = freshTypeName("Q") // 17
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -1618,11 +1777,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17)) =>
             Some(
               (
@@ -1710,7 +1869,25 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 18, "HKT must have exactly eighteen type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val P = freshTypeName("P") // 16
+    val Q = freshTypeName("Q") // 17
+    val R = freshTypeName("R") // 18
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -1728,11 +1905,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18)) =>
             Some(
               (
@@ -1823,7 +2000,26 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 19, "HKT must have exactly nineteen type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val P = freshTypeName("P") // 16
+    val Q = freshTypeName("Q") // 17
+    val R = freshTypeName("R") // 18
+    val S = freshTypeName("S") // 19
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -1841,11 +2037,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19)) =>
             Some(
               (
@@ -1939,7 +2135,27 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 20, "HKT must have exactly twenty type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val P = freshTypeName("P") // 16
+    val Q = freshTypeName("Q") // 17
+    val R = freshTypeName("R") // 18
+    val S = freshTypeName("S") // 19
+    val T = freshTypeName("T") // 20
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -1957,11 +2173,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type, $T >: $L20 <: $U20: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20)) =>
             Some(
               (
@@ -2058,7 +2274,28 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 21, "HKT must have exactly twenty-one type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val P = freshTypeName("P") // 16
+    val Q = freshTypeName("Q") // 17
+    val R = freshTypeName("R") // 18
+    val S = freshTypeName("S") // 19
+    val T = freshTypeName("T") // 20
+    val U = freshTypeName("U") // 21
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -2076,11 +2313,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type, $T >: $L20 <: $U20: Type, $U >: $L21 <: $U21: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20, $L21 <:??<: $U21)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20, $L21 <:??<: $U21)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21)) =>
             Some(
               (
@@ -2180,7 +2417,29 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     assert(HKTE.tpe.typeParams.size == 22, "HKT must have exactly twenty-two type parameters")
 
     val HKT = typeCtorFrom(HKTE)
-    val appliedHKT = applyToCtor(HKT, TypeName("A"), TypeName("B"))
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val P = freshTypeName("P") // 16
+    val Q = freshTypeName("Q") // 17
+    val R = freshTypeName("R") // 18
+    val S = freshTypeName("S") // 19
+    val T = freshTypeName("T") // 20
+    val U = freshTypeName("U") // 21
+    val V = freshTypeName("V") // 22
+    val appliedHKT = applyToCtor(HKT, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V)
 
     val fullName = HKT.typeSymbol.fullName
 
@@ -2198,11 +2457,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
       private val HKT = $ctx.mirror.staticClass($fullName)
 
-      def apply[A >: $L1 <: $U1, B >: $L2 <: $U2, C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type, $T >: $L20 <: $U20: Type, $U >: $L21 <: $U21: Type, $V >: $L22 <: $U22: Type]: Type[$appliedHKT] = 
         $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-      def unapply[A](A: Type[A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20, $L21 <:??<: $U21, $L22 <:??<: $U22)] =
-        A.asInstanceOf[$ctx.WeakTypeTag[A]].tpe.dealias.widen.baseType(HKT) match {
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20, $L21 <:??<: $U21, $L22 <:??<: $U22)] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.dealias.widen.baseType(HKT) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21, tp22)) =>
             Some(
               (
