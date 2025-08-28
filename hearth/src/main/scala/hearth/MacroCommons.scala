@@ -32,23 +32,26 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
       *
       * @param macroName
       *   name of the macro that is being expanded, it will be used the the top scope of the logs tree
-      * @param renderInfoLogs
-      *   whether to render info logs
-      * @param renderWarnLogs
-      *   whether to render warn logs
+      * @param infoRendering
+      *   how to render info logs, if [[DontRender]] is used, info logs will not be rendered
+      * @param warnRendering
+      *   how to render warn logs, if [[DontRender]] is used, warn logs will not be rendered
+      * @param errorRendering
+      *   how to render error logs, if [[DontRender]] is used, error logs will not be rendered
       * @param failOnErrorLog
-      *   whether to fail if there are error logs
+      *   whether to fail if there are error logs, if true, the macro expansion will fail if there is any error log
       * @param renderFailure
       *   if macro expansion failed and there are both errors logs anf exceptions, this function will be called to
       *   render the error message
       * @return
       *   the final expression OR fails the macro expansion with the error message
       */
-    def expandFinalResultOrFail(
+    def runToExprOrFail(
         macroName: String,
-        renderInfoLogs: Boolean = false,
-        renderWarnLogs: Boolean = true,
-        failOnErrorLog: Boolean = true
+        infoRendering: hearth.fp.effect.LogRendering = hearth.fp.effect.DontRender,
+        warnRendering: hearth.fp.effect.LogRendering = hearth.fp.effect.RenderFrom(hearth.fp.effect.Log.Level.Warn),
+        errorRendering: hearth.fp.effect.LogRendering = hearth.fp.effect.RenderFrom(hearth.fp.effect.Log.Level.Error),
+        failOnErrorLog: Boolean = false
     )(
         renderFailure: (String, fp.data.NonEmptyVector[Throwable]) => String
     ): Expr[A] = {
@@ -57,25 +60,29 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
       val (state, result) = io.unsafe.runSync
       result match {
         case Right(expr) =>
-          lazy val info = state.logs.render.onlyInfo(macroName)
-          if (renderInfoLogs && info.length - 2 > macroName.length) {
-            Environment.reportInfo(info)
-          }
-          lazy val warnings = state.logs.render.onlyWarn(macroName)
-          if (renderWarnLogs && warnings.length - 2 > macroName.length) {
-            Environment.reportWarn(warnings)
-          }
-          lazy val errors = state.logs.render.onlyError(macroName)
-          if (failOnErrorLog && errors.length - 2 > macroName.length) {
-            Environment.reportErrorAndAbort(state.logs.render.fromInfo(macroName))
-          }
+          state.logs
+            .render(macroName, infoRendering)
+            .filter(_.length - 2 > macroName.length)
+            .foreach(Environment.reportInfo)
+          state.logs
+            .render(macroName, warnRendering)
+            .filter(_.length - 2 > macroName.length)
+            .foreach(Environment.reportWarn)
+          state.logs
+            .render(macroName, errorRendering)
+            .filter(_.length - 2 > macroName.length && failOnErrorLog)
+            .foreach(Environment.reportErrorAndAbort)
           expr
         case Left(errors) =>
-          val renderedErrors =
-            if (renderInfoLogs) renderFailure(state.logs.render.fromInfo(macroName), errors)
-            else if (renderWarnLogs) renderFailure(state.logs.render.fromWarn(macroName), errors)
-            else renderFailure(state.logs.render.onlyError(macroName), errors)
-          Environment.reportErrorAndAbort(if (renderedErrors.trim.count(_ == '\n') > 0) renderedErrors else "")
+          Environment.reportErrorAndAbort(
+            state.logs
+              .render(macroName, infoRendering)
+              .map(renderFailure(_, errors))
+              .orElse(state.logs.render(macroName, warnRendering).map(renderFailure(_, errors)))
+              .orElse(state.logs.render(macroName, errorRendering).map(renderFailure(_, errors)))
+              .filter(_.trim.count(_ == '\n') > 0)
+              .getOrElse("")
+          )
       }
     }
   }

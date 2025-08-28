@@ -30,7 +30,10 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
     .namedScope(s"Derivation for $name") {
       attemptAllRules[A](value)
     }
-    .expandFinalResultOrFail(name, renderInfoLogs = shouldWeLogDerivation) { (errorLogs, errors) =>
+    .runToExprOrFail(
+      name,
+      infoRendering = if (shouldWeLogDerivation) RenderFrom(Log.Level.Info) else DontRender
+    ) { (errorLogs, errors) =>
       val errorsStr = errors.toVector
         .map {
           case DerivationError.UnsupportedType(typeName)           => s"Derivation of $typeName is not supported"

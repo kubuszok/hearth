@@ -20,6 +20,12 @@ package object effect {
 
       def apply(rootScopeName: String)(filter: Log.Level => Boolean): String = Log.render(rootScopeName, logs)(filter)
 
+      def apply(rootScopeName: String, rendering: LogRendering): Option[String] = rendering match {
+        case DontRender        => None
+        case RenderFrom(level) => Some(render(rootScopeName)(_ >= level))
+        case RenderOnly(level) => Some(render(rootScopeName)(_ == level))
+      }
+
       def fromInfo(rootScopeName: String): String = render(rootScopeName)(_ >= Log.Level.Info)
       def fromWarn(rootScopeName: String): String = render(rootScopeName)(_ >= Log.Level.Warn)
       def fromError(rootScopeName: String): String = render(rootScopeName)(_ >= Log.Level.Error)

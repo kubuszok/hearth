@@ -668,6 +668,45 @@ A non-empty vector that provides indexed access and better performance for large
     }
     ```
 
+With MacroCommons there is also an integration provided, that would extract successful value,
+log and fail if necessary:
+
+!!! example "Convert errors to error message, log"
+
+    ```scala
+    def deriveOrFail[A: Type](value: Expr[A], name: String): Expr[String] = Log
+      .namedScope(s"Derivation for $name") {
+        attemptAllRules[A](value)
+      }
+      .runToExprOrFail(
+        name,
+        // Renders all logs if `shouldWeLogDerivation` and none otherwise
+        infoRendering = if (shouldWeLogDerivation) RenderFrom(Log.Level.Info) else DontRender
+      ) { (errorLogs, errors) =>
+        val errorsStr = errors.toVector
+          .map {
+            case DerivationError.UnsupportedType(typeName)           => s"Derivation of $typeName is not supported"
+            case DerivationError.UnsupportedMethod(typeName, method) =>
+              s"Derivation of $typeName.$method is not supported"
+            case DerivationError.AssertionFailed(message) => s"Assertion failed: $message"
+            case e => s"Unexpected error: ${e.getMessage}:\n${e.getStackTrace.mkString("\n")}"
+          }
+          .mkString("\n")
+
+        if (errorLogs.nonEmpty) {
+          s"""Failed to derive $name:
+            |$errorsStr
+            |Error logs:
+            |$errorLogs
+            |""".stripMargin
+        } else {
+          s"""Failed to derive $name:
+            |$errorsStr
+            |""".stripMargin
+        }
+      }
+    ```
+
 ### Running MIO
 
 !!! example "Running MIO computations"
