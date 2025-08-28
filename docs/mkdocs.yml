@@ -52,6 +52,7 @@ theme:
 nav:
   - 'Welcome': 'index.md'
   - 'Micro FP': 'micro-fp.md'
+  - 'Cross Quotes': 'cross-quotes.md'
 markdown_extensions:
   - admonition
   - pymdownx.details
