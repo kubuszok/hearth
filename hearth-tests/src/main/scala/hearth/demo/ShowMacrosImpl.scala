@@ -28,7 +28,8 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
   /** Converts the [[MIO]] results into an [[Expr]] or error message. */
   private def deriveOrFail[A: Type](value: Expr[A], name: String): Expr[String] = Log
     .namedScope(s"Derivation for $name") {
-      attemptAllRules[A](value)
+      Log.info(s"Macro expansion started at ${Environment.currentPosition.prettyPrint}") >>
+        attemptAllRules[A](value)
     }
     .runToExprOrFail(
       name,
