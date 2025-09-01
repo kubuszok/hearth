@@ -2,6 +2,7 @@ package hearth
 package fp
 package effect
 
+import scala.math.Ordering.Implicits.*
 import hearth.fp.data.NonEmptyVector
 import org.scalacheck.Prop.{Exception as _, *}
 
@@ -289,8 +290,9 @@ final class MioSpec extends ScalaCheckSuite with Laws {
 
       // Before JDK 17, virtual threads are not available, we're falling back to normal threads and deep nesting is stack-safe
       // but can cause OutOfMemoryError.
-      val n = if (sys.props("java.vm.specification.version").toInt < 17) 1000
-      else 100000
+      val n =
+        if (JDKVersion.runtimeJDKVersion < JDKVersion(1, 17)) 1000
+        else 100000
 
       countdown(n) === MIO.void
     }

@@ -12,7 +12,7 @@ final case class ScalaVersion(major: Int, minor: Int, patch: Int) {
     case _                      => throw new RuntimeException(s"Unsupported Scala version: $major.$minor.$patch")
   }
 
-  override def toString: String = s"$major.$minor.$patch"
+  override def toString: String = s"Scala $major.$minor.$patch"
 }
 object ScalaVersion {
 
@@ -28,6 +28,22 @@ object ScalaVersion {
       case _ => throw new RuntimeException(s"Cannot resolve Scala version from library: $library")
     }
   }
+
+  /** Resolves the runtime Scala version. It does not have to be the same as the compiler version. */
+  lazy val runtimeScalaVersion: ScalaVersion =
+    (try
+      getClass.getClassLoader
+        .loadClass("dotty.tools.dotc.config.Properties")
+        .getMethod("versionNumberString")
+        .invoke(null)
+        .asInstanceOf[String]
+    catch {
+      case _: ClassNotFoundException => scala.util.Properties.versionNumberString
+    }) match {
+      case s"$major.$minor.$patch" => ScalaVersion(major.toInt, minor.toInt, patch.toInt)
+      case versionString           =>
+        throw new RuntimeException(s"Cannot resolve Scala version from version string: $versionString")
+    }
 
   implicit val ordering: Ordering[ScalaVersion] = Ordering.by((v: ScalaVersion) => (v.major, v.minor, v.patch))
 }
@@ -52,4 +68,60 @@ object LanguageVersion {
     case Scala2_13 => 0
     case Scala3    => 1
   }
+}
+
+final case class JDKVersion(major: Int, minor: Int) {
+
+  override def toString: String = s"JDK $major.$minor"
+}
+object JDKVersion {
+
+  lazy val runtimeJDKVersion: JDKVersion = {
+    val major = 1
+    val minor = fromRuntimeApi
+      .orElse(fromProps)
+      .orElse(fromClassVersion)
+      .getOrElse(throw new RuntimeException("Cannot determine Java version"))
+    JDKVersion(major, minor)
+  }
+
+  // Try JDK 9+ API via reflection to stay binary-compatible with JDK 8
+  private val fromRuntimeApi: Option[Int] =
+    try {
+      val rt = classOf[java.lang.Runtime]
+      val vMethod = rt.getMethod("version")
+      val vObj = vMethod.invoke(Runtime.getRuntime)
+      val fMethod = vObj.getClass.getMethod("feature")
+      Some(fMethod.invoke(vObj).asInstanceOf[Integer].intValue)
+    } catch {
+      case _: Throwable => None
+    }
+
+  private def parseSpecOrVersion(s: String): Option[Int] = {
+    // keep only digits and dots at the start (handles "23-ea+7")
+    val head = s.takeWhile(ch => ch.isDigit || ch == '.')
+    val parts = head.split("\\.", -1).toList
+    parts match {
+      case "1" :: minor :: _ if minor.forall(_.isDigit) => Some(minor.toInt) // "1.8" -> 8
+      case major :: _ if major.forall(_.isDigit)        => Some(major.toInt) // "11"  -> 11
+      case _                                            => None
+    }
+  }
+
+  private def fromProps: Option[Int] =
+    sys.props
+      .get("java.specification.version")
+      .flatMap(parseSpecOrVersion)
+      .orElse(sys.props.get("java.version").flatMap(parseSpecOrVersion))
+
+  private def fromClassVersion: Option[Int] =
+    sys.props.get("java.class.version").flatMap { s =>
+      val head = s.takeWhile(ch => ch.isDigit || ch == '.')
+      if (head.nonEmpty) {
+        val major = math.floor(head.toDouble).toInt
+        Some(major - 44) // classfile major -> feature
+      } else None
+    }
+
+  implicit val ordering: Ordering[JDKVersion] = Ordering.by((v: JDKVersion) => (v.major, v.minor))
 }
