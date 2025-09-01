@@ -370,8 +370,13 @@ object MIO {
                    |Last result:      $result
                    |Next computation: $ftc
                    |
+                   |Locals at the time of termination:
+                   |${state.locals.map { case (local, value) => s"  $local: $value" }.mkString("\n")}
+                   |
                    |${state.logs.render.fromInfo("Logs at the time of termination")}""".stripMargin
-      throw new scala.concurrent.CancellationException(msg)
+      val e = new java.lang.InterruptedException(msg) // We need to use something ignored by NonFatal.
+      e.printStackTrace()
+      throw e
     }
 }
 
