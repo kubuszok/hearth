@@ -94,6 +94,16 @@ trait Suite extends munit.BaseFunSuite { self =>
 
   implicit class StringOps(private val str: String) {
     def stripANSI: String = Suite.AnsiControlCode.replaceAllIn(str, "")
+
+    def ignoreOnJvm(implicit loc: Location): TestOptions = if (Platform.isJvm) str.ignore else TestOptions(str)
+    def ignoreOnJs(implicit loc: Location): TestOptions = if (Platform.isJs) str.ignore else TestOptions(str)
+    def ignoreOnNative(implicit loc: Location): TestOptions = if (Platform.isNative) str.ignore else TestOptions(str)
+  }
+
+  implicit class TestOptionsOps(private val options: TestOptions) {
+    def ignoreOnJvm(implicit loc: Location): TestOptions = if (Platform.isJvm) options.ignore else options
+    def ignoreOnJs(implicit loc: Location): TestOptions = if (Platform.isJs) options.ignore else options
+    def ignoreOnNative(implicit loc: Location): TestOptions = if (Platform.isNative) options.ignore else options
   }
 
   implicit class CompileErrorsCheck(private val msg: String) {

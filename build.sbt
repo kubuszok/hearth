@@ -159,6 +159,7 @@ val settings = Seq(
         Seq(
           // format: off
           "-encoding", "UTF-8",
+          //"-release", "8",
           "-rewrite",
           "-source", "3.3-migration",
           // format: on

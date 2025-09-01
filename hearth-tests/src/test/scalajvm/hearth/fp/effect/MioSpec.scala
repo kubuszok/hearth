@@ -284,15 +284,14 @@ final class MioSpec extends ScalaCheckSuite with Laws {
       countdown(100000) === MIO.void
     }
 
-    // I have not found a way to make this stack-safe.
-    // test("should be stack-safe with .scoped") {
-    //   def countdown(n: Int): MIO[Unit] = MIO.scoped { runSafe =>
-    //     if (n <= 0) ()
-    //     else runSafe(countdown(n - 1))
-    //   }
+    test("should be stack-safe with .scoped") {
+      def countdown(n: Int): MIO[Unit] = MIO.scoped { runSafe =>
+        if (n <= 0) ()
+        else runSafe(countdown(n - 1))
+      }
 
-    //   countdown(100000) === MIO.void
-    // }
+      countdown(100000) === MIO.void
+    }
   }
 
   group("Instances for MIO") {

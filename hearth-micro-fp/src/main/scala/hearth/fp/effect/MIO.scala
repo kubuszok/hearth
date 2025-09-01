@@ -322,20 +322,26 @@ object MIO {
     private val ongoingStates = scala.collection.mutable.Map.empty[Any, MState]
 
     @scala.annotation.nowarn
-    override protected def scopedUnsafe[A](owner: DirectStyle.ScopeOwner[MIO])(thunk: => A): MIO[A] =
-      // We're keeping the track of ownership because, there can be nested awaits.
-      // And we have to consolidate state because there might be multiple awaits in the thunk.
-      try {
-        ignore(ongoingStates.put(owner, MState.empty))
-        val a = thunk // We have to trigger side-effect before we'll extract current state
-        Pure(ongoingStates(owner), MResult.pure(a)) // There might have been no call to `await` in the thunk.
-      } catch {
-        case PassErrors(`owner`, errors) =>
-          Pure(ongoingStates(owner), MResult.fail(errors)) // There should be some state, otherwise it's a bug.
-      } finally
-        ignore(ongoingStates.remove(owner))
-    override protected def runUnsafe[A](owner: DirectStyle.ScopeOwner[MIO])(mio: MIO[A]): A = {
-      val (state, result) = run(mio)
+    override protected def scopedUnsafe[A](owner: DirectStyle.ScopeOwner[MIO])(thunk: => A): MIO[A] = void :+ {
+      case (initialState, Right(_)) =>
+        // We're keeping the track of ownership because, there can be nested awaits.
+        // And we have to consolidate state because there might be multiple awaits in the thunk.
+        try {
+          ignore(ongoingStates.put(owner, initialState))
+          val a = thunk // We have to trigger side-effect before we'll extract current state
+          Pure(ongoingStates(owner), MResult.pure(a)) // There might have been no call to `await` in the thunk.
+        } catch {
+          case PassErrors(`owner`, errors) =>
+            Pure(ongoingStates(owner), MResult.fail(errors)) // There should be some state, otherwise it's a bug.
+        } finally
+          ignore(ongoingStates.remove(owner))
+      case (initialState, Left(e)) => Pure(initialState, Left(e))
+    }
+    override protected def runUnsafe[A](owner: DirectStyle.ScopeOwner[MIO])(mio: => MIO[A]): A = {
+      // We're running the MIO in a virtual thread, to avoid StackOverflowError when using recursive MIO with direct style.
+      val (state, result) = DirectStyleExecutor {
+        run(Pure(ongoingStates(owner), Right(())) >> mio)
+      }
 
       val previousState = ongoingStates(owner)
       val newState = previousState ++ state
