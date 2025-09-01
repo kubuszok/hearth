@@ -7,9 +7,6 @@ import org.scalacheck.Prop.{Exception as _, *}
 
 final class MioSpec extends ScalaCheckSuite with Laws {
 
-  // TODO: Log should have a separate test suite
-  // TODO: MLocal should have a separate test suite
-
   group("MIO's redeem's family of methods'") {
 
     test(".redeemWith should combine .flatMap and .handleErrorWith") {
@@ -290,7 +287,12 @@ final class MioSpec extends ScalaCheckSuite with Laws {
         else runSafe(countdown(n - 1))
       }
 
-      countdown(100000) === MIO.void
+      // Before JDK 17, virtual threads are not available, we're falling back to normal threads and deep nesting is stack-safe
+      // but can cause OutOfMemoryError.
+      val n = if (sys.props("java.vm.specification.version").toInt < 17) 1000
+      else 100000
+
+      countdown(n) === MIO.void
     }
   }
 
