@@ -49,14 +49,14 @@ trait DirectStyle[F[_]] {
   }
 
   protected def scopedUnsafe[A](owner: ScopeOwner[F])(thunk: => A): F[A]
-  protected def runUnsafe[A](owner: ScopeOwner[F])(value: F[A]): A
+  protected def runUnsafe[A](owner: ScopeOwner[F])(value: => F[A]): A
 }
 object DirectStyle {
 
   def apply[F[_]](implicit F: DirectStyle[F]): DirectStyle[F] = F
 
   final class RunSafe[F[_]](directStyle: DirectStyle[F]) {
-    def apply[A](value: F[A]): A = directStyle.runUnsafe(this.asOwner)(value)
+    def apply[A](value: => F[A]): A = directStyle.runUnsafe(this.asOwner)(value)
     private[DirectStyle] def asOwner: ScopeOwner[F] = this.asInstanceOf[ScopeOwner[F]]
   }
 
@@ -71,7 +71,7 @@ object DirectStyle {
     */
   implicit def DirectStyleForId: DirectStyle[Id] = new DirectStyle[Id] {
     override protected def scopedUnsafe[A](owner: ScopeOwner[Id])(thunk: => A): Id[A] = thunk
-    override protected def runUnsafe[A](owner: ScopeOwner[Id])(value: Id[A]): A = value
+    override protected def runUnsafe[A](owner: ScopeOwner[Id])(value: => Id[A]): A = effect.DirectStyleExecutor(value)
   }
 
   /** Allows using [[DirectStyle]] with [[scala.Either]].
@@ -87,8 +87,8 @@ object DirectStyle {
     catch {
       case PassErrors(`owner`, error) => Left(error.asInstanceOf[Errors])
     }
-    override protected def runUnsafe[A](owner: ScopeOwner[Either[Errors, *]])(value: Either[Errors, A]): A =
-      value match {
+    override protected def runUnsafe[A](owner: ScopeOwner[Either[Errors, *]])(value: => Either[Errors, A]): A =
+      effect.DirectStyleExecutor(value) match {
         case Left(error)  => throw PassErrors(owner, error)
         case Right(value) => value
       }
@@ -107,10 +107,11 @@ object DirectStyle {
     catch {
       case PassErrors(`owner`) => None
     }
-    override protected def runUnsafe[A](owner: ScopeOwner[Option])(value: Option[A]): A = value match {
-      case None        => throw PassErrors(owner)
-      case Some(value) => value
-    }
+    override protected def runUnsafe[A](owner: ScopeOwner[Option])(value: => Option[A]): A =
+      effect.DirectStyleExecutor(value) match {
+        case None        => throw PassErrors(owner)
+        case Some(value) => value
+      }
   }
 
   /** Allows using [[DirectStyle]] with [[scala.util.Try]].
@@ -126,9 +127,10 @@ object DirectStyle {
     catch {
       case PassErrors(`owner`, error) => Failure(error.asInstanceOf[Throwable])
     }
-    override protected def runUnsafe[A](owner: ScopeOwner[Try])(value: Try[A]): A = value match {
-      case Failure(error) => throw PassErrors(owner, error)
-      case Success(value) => value
-    }
+    override protected def runUnsafe[A](owner: ScopeOwner[Try])(value: => Try[A]): A =
+      effect.DirectStyleExecutor(value) match {
+        case Failure(error) => throw PassErrors(owner, error)
+        case Success(value) => value
+      }
   }
 }

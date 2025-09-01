@@ -64,7 +64,8 @@ object MEval {
 
   implicit val DirectStyleForMEval: fp.DirectStyle[MEval] = new DirectStyle[MEval] {
 
-    override protected def runUnsafe[A](owner: DirectStyle.ScopeOwner[MEval])(value: MEval[A]): A = run(value)
     override protected def scopedUnsafe[A](owner: DirectStyle.ScopeOwner[MEval])(thunk: => A): MEval[A] = apply(thunk)
+    override protected def runUnsafe[A](owner: DirectStyle.ScopeOwner[MEval])(value: => MEval[A]): A =
+      DirectStyleExecutor(run(value))
   }
 }
