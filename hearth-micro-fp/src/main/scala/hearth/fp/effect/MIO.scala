@@ -365,19 +365,52 @@ object MIO {
 
   private def checkTermination[A, B](state: MState, result: MResult[A], ftc: FnNec[A, B]): Unit =
     if (TerminationObserver.isTerminated) {
-      val msg = s"""Terminated compilation:
-                   |
-                   |Last result:      $result
-                   |Next computation: $ftc
-                   |
-                   |Locals at the time of termination:
-                   |${state.locals.map { case (local, value) => s"  $local: $value" }.mkString("\n")}
-                   |
-                   |${state.logs.render.fromInfo("Logs at the time of termination")}""".stripMargin
-      val e = new java.lang.InterruptedException(msg) // We need to use something ignored by NonFatal.
-      e.printStackTrace()
-      throw e
+      throw MioTerminationException(state, result, ftc)
     }
+
+  /** We need to use something ignored by NonFatal. */
+  final case class MioTerminationException(prettyPrintedMessage: String)
+      extends java.lang.InterruptedException("\u001b\\[([0-9]+)m".r.replaceAllIn(prettyPrintedMessage, "")) {
+
+    def prettyPrintedMessageWithStackTrace: String = {
+      val stackTrace = getStackTrace.map(e => s"  ${Console.RED}at $e${Console.RESET}").mkString("\n")
+      s"""$prettyPrintedMessage
+         |
+         |${Console.BLUE}Stack trace at the time of termination${Console.RESET}:
+         |$stackTrace""".stripMargin
+    }
+
+    def prettyPrintMessageWithStackTrace(): Unit = java.lang.System.err.println(prettyPrintedMessageWithStackTrace)
+  }
+  object MioTerminationException {
+
+    def apply[A, B](state: MState, result: MResult[A], ftc: FnNec[A, B]): MioTerminationException = {
+      val locals =
+        if (state.locals.isEmpty) s"  ${Console.BLUE}No MLocal values${Console.RESET}"
+        else
+          state.locals
+            .map { case (local, value) =>
+              s"    ${Console.BLUE}$local${Console.RESET}: ${Console.GREEN}$value${Console.RESET}"
+            }
+            .mkString(s"  ${Console.BLUE}MLocal values at the time of termination${Console.RESET}:\n", "\n", "")
+      val logs =
+        if (state.logs.isEmpty) s"  ${Console.BLUE}No Logs${Console.RESET}"
+        else
+          state.logs.render
+            .fromInfo(s"${Console.BLUE}Logs at the time of termination${Console.RESET}")
+            .split("\n")
+            .map(l => s"  $l")
+            .mkString("\n")
+      val exceptionMsg = s"""${Console.BLUE}Terminated compilation${Console.RESET}:
+                            |
+                            |${Console.BLUE}MIO execution at the time of termination${Console.RESET}:
+                            |  ${Console.BLUE}Last MResult${Console.RESET}:     ${Console.GREEN}$result${Console.RESET}
+                            |  ${Console.BLUE}Next computation${Console.RESET}: ${Console.YELLOW}$ftc${Console.RESET}
+                            |$locals
+                            |$logs""".stripMargin
+      new MioTerminationException(exceptionMsg)
+    }
+  }
 }
 
 // ---------------------------------------------- Implementation details ----------------------------------------------

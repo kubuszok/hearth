@@ -54,7 +54,7 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
         failOnErrorLog: Boolean = false
     )(
         renderFailure: (String, fp.data.NonEmptyVector[Throwable]) => String
-    ): Expr[A] = {
+    ): Expr[A] = Environment.handleMioTerminationException {
       import fp.effect.LogsOps
 
       val (state, result) = io.unsafe.runSync
