@@ -60,7 +60,11 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
           case _                                                                      =>
             val tpes = tpe.typeArgs.map(helper)
             val tpeArgs = if (tpes.isEmpty) "" else s"[${tpes.mkString(", ")}]"
-            tpe.dealias.typeSymbol.fullName + tpeArgs
+            val dealiased = tpe.dealias
+            val naiveAttempt = dealiased.toString.takeWhile(_ != '[') // does not work for e.g. primitive types
+            def typeSymbolAttempt = dealiased.typeSymbol.fullName // does not work for e.g. path-dependent types
+            val fullName = if (naiveAttempt.exists(_ == '.')) naiveAttempt else typeSymbolAttempt
+            fullName + tpeArgs
         }
 
       Console.MAGENTA + helper(Type[A].tpe) + Console.RESET

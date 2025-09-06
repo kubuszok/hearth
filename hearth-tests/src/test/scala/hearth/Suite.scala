@@ -95,15 +95,24 @@ trait Suite extends munit.BaseFunSuite { self =>
   implicit class StringOps(private val str: String) {
     def stripANSI: String = Suite.AnsiControlCode.replaceAllIn(str, "")
 
-    def ignoreOnJvm(implicit loc: Location): TestOptions = if (Platform.isJvm) str.ignore else TestOptions(str)
-    def ignoreOnJs(implicit loc: Location): TestOptions = if (Platform.isJs) str.ignore else TestOptions(str)
-    def ignoreOnNative(implicit loc: Location): TestOptions = if (Platform.isNative) str.ignore else TestOptions(str)
+    private def language = LanguageVersion.byHearth
+    def ignoreOnScala2_13(implicit loc: Location): TestOptions =
+      if (language.isScala2_13) str.ignore else TestOptions(str)
+    def ignoreOnScala3(implicit loc: Location): TestOptions = if (language.isScala3) str.ignore else TestOptions(str)
+    private def platform = Platform.byHearth
+    def ignoreOnJvm(implicit loc: Location): TestOptions = if (platform.isJvm) str.ignore else TestOptions(str)
+    def ignoreOnJs(implicit loc: Location): TestOptions = if (platform.isJs) str.ignore else TestOptions(str)
+    def ignoreOnNative(implicit loc: Location): TestOptions = if (platform.isNative) str.ignore else TestOptions(str)
   }
 
   implicit class TestOptionsOps(private val options: TestOptions) {
-    def ignoreOnJvm(implicit loc: Location): TestOptions = if (Platform.isJvm) options.ignore else options
-    def ignoreOnJs(implicit loc: Location): TestOptions = if (Platform.isJs) options.ignore else options
-    def ignoreOnNative(implicit loc: Location): TestOptions = if (Platform.isNative) options.ignore else options
+    private def language = LanguageVersion.byHearth
+    def ignoreOnScala2_13(implicit loc: Location): TestOptions = if (language.isScala2_13) options.ignore else options
+    def ignoreOnScala3(implicit loc: Location): TestOptions = if (language.isScala3) options.ignore else options
+    private def platform = Platform.byHearth
+    def ignoreOnJvm(implicit loc: Location): TestOptions = if (platform.isJvm) options.ignore else options
+    def ignoreOnJs(implicit loc: Location): TestOptions = if (platform.isJs) options.ignore else options
+    def ignoreOnNative(implicit loc: Location): TestOptions = if (platform.isNative) options.ignore else options
   }
 
   implicit class CompileErrorsCheck(private val msg: String) {

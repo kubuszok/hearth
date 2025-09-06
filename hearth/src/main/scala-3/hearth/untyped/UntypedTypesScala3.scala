@@ -14,7 +14,10 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     object platformSpecific {
 
-      def subtypeName(subtype: Symbol): String = subtype.name
+      def subtypeName(subtype: Symbol): String = {
+        val name = subtype.name
+        if name.endsWith('$'.toString) then name.dropRight(1) else name
+      }
 
       /** Applies type arguments from supertype to subtype if there are any */
       def subtypeTypeOf(instanceTpe: UntypedType, subtype: Symbol): UntypedType =
@@ -54,12 +57,18 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     }
     override def isFinal(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
-      !A.isNoSymbol && A.flags.is(Flags.Final)
+      // String is not being detected as a final in Scala 3, so we need to check it manually.
+      // TODO: check if it's not a general issue with Java classes in Scala 3
+      !A.isNoSymbol && ((A.flags.is(Flags.Final) || instanceTpe.asTyped[Any] <:< Type.of[String]) || isArray(
+        instanceTpe
+      ))
     }
 
     override def isClass(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
-      !A.isNoSymbol && A.isClassDef
+      // String is not being detected as a class in Scala 3, so we need to check it manually.
+      // TODO: check if it's not a general issue with Java classes in Scala 3
+      !A.isNoSymbol && ((A.isClassDef || instanceTpe.asTyped[Any] <:< Type.of[String]) && !isArray(instanceTpe))
     }
 
     override def isSealed(instanceTpe: UntypedType): Boolean = {

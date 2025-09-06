@@ -49,15 +49,15 @@ trait Environments extends EnvironmentCrossQuotesSupport {
     def currentScalaVersion: ScalaVersion
 
     lazy val currentLanguageVersion: LanguageVersion = currentScalaVersion.toLanguageVersion
-    lazy val isScala2_13: Boolean = currentLanguageVersion == LanguageVersion.Scala2_13
-    lazy val isScala3: Boolean = currentLanguageVersion == LanguageVersion.Scala3
+    lazy val isScala2_13: Boolean = currentLanguageVersion.isScala2_13
+    lazy val isScala3: Boolean = currentLanguageVersion.isScala3
 
     lazy val currentJDKVersion: JDKVersion = JDKVersion.runtimeJDKVersion
 
-    lazy val currentPlatform: Platform = Platform.current
-    lazy val isJvm: Boolean = currentPlatform == Platform.Jvm
-    lazy val isJs: Boolean = currentPlatform == Platform.Js
-    lazy val isNative: Boolean = currentPlatform == Platform.Native
+    lazy val currentPlatform: Platform = Platform.byHearth
+    lazy val isJvm: Boolean = currentPlatform.isJvm
+    lazy val isJs: Boolean = currentPlatform.isJs
+    lazy val isNative: Boolean = currentPlatform.isNative
 
     def XMacroSettings: List[String]
 

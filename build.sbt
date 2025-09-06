@@ -159,7 +159,7 @@ val settings = Seq(
         Seq(
           // format: off
           "-encoding", "UTF-8",
-          //"-release", "8",
+          "-release", "11",
           "-rewrite",
           "-source", "3.3-migration",
           // format: on
@@ -188,7 +188,7 @@ val settings = Seq(
         Seq(
           // format: off
           "-encoding", "UTF-8",
-          "-release", "8",
+          "-release", "11",
           // format: on
           "-unchecked",
           "-deprecation",
@@ -216,6 +216,7 @@ val settings = Seq(
           "-Xlint:stars-align",
           "-Xlint:type-parameter-shadow",
           "-Xsource:3",
+          "-Yrangepos",
           "-Ywarn-dead-code",
           "-Ywarn-numeric-widen",
           "-Ywarn-unused:locals",

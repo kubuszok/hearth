@@ -7,7 +7,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
   import c.universe.*
 
-  import UntypedMethod.platformSpecific.{positionOf, symbolName}
+  import UntypedType.platformSpecific.{positionOf, symbolName}
 
   final class UntypedParameter private (val method: UntypedMethod, val symbol: TermSymbol, val index: Int)
       extends UntypedParameterMethods {
@@ -124,17 +124,6 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
   }
 
   object UntypedMethod extends UntypedMethodModule {
-
-    object platformSpecific {
-
-      def positionOf(symbol: Symbol): Option[Position] =
-        Option(symbol.pos)
-          .filter(_ != NoPosition)
-          // Prevent crashed in case of https://github.com/scala/scala3/issues/21672
-          .filter(pos => scala.util.Try(pos.start).isSuccess)
-
-      def symbolName(symbol: Symbol): String = symbol.name.decodedName.toString
-    }
 
     private def parse(
         isDeclared: Boolean,
