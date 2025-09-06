@@ -35,11 +35,42 @@ trait UntypedTypes { this: MacroCommons =>
     def position(untyped: UntypedType): Option[Position]
 
     def fromClass(clazz: java.lang.Class[?]): UntypedType
+    def toClass(untyped: UntypedType): Option[java.lang.Class[?]] =
+      if (isBuiltIn(untyped)) {
+        // classOf[Unit].toString == "void" while possbleClassesOfType[Unit]....toString would resolve to "class scala.Unit"
+        // If we want to be consistent, we have to fix this manually.
+        if (untyped <:< Type.of[Unit].asUntyped) Some(classOf[Unit])
+        else if (untyped <:< Type.of[Boolean].asUntyped) Some(classOf[Boolean])
+        else if (untyped <:< Type.of[Byte].asUntyped) Some(classOf[Byte])
+        else if (untyped <:< Type.of[Short].asUntyped) Some(classOf[Short])
+        else if (untyped <:< Type.of[Int].asUntyped) Some(classOf[Int])
+        else if (untyped <:< Type.of[Long].asUntyped) Some(classOf[Long])
+        else if (untyped <:< Type.of[Float].asUntyped) Some(classOf[Float])
+        else if (untyped <:< Type.of[Double].asUntyped) Some(classOf[Double])
+        else if (untyped <:< Type.of[Char].asUntyped) Some(classOf[Char])
+        else if (untyped <:< Type.of[String].asUntyped) Some(classOf[String])
+        else
+          untyped.asTyped[Any] match {
+            case ArrayCtor(elementType) =>
+              toClass(elementType.asUntyped).map { elementClass =>
+                scala.reflect.ClassTag(elementClass).newArray(0).getClass()
+              }
+            case _ =>
+              assertionFailed(
+                s"${untyped.prettyPrint} is recognized as built-in type, but is not handled by a build-in branch"
+              )
+          }
+      } else
+        Type.possibleClassesOfType(untyped.asTyped[Any]).collectFirst { case AvailableClass(value) =>
+          value
+        }
 
     final def isPrimitive(instanceTpe: UntypedType): Boolean =
       Type.primitiveTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
+    final def isArray(instanceTpe: UntypedType): Boolean =
+      ArrayCtor.unapply(toTyped[Any](instanceTpe)).isDefined
     final def isBuiltIn(instanceTpe: UntypedType): Boolean =
-      Type.builtInTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
+      Type.builtInTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying)) || isArray(instanceTpe)
 
     def isAbstract(instanceTpe: UntypedType): Boolean
     def isFinal(instanceTpe: UntypedType): Boolean
@@ -77,6 +108,17 @@ trait UntypedTypes { this: MacroCommons =>
         .map(ListMap.from(_))
 
     def annotations(untyped: UntypedType): List[UntypedExpr]
+
+    private lazy val ArrayCtor = Type.Ctor1.of[Array]
+
+    /** Matches if name represents a class existing in the classpath. */
+    private object AvailableClass {
+      def unapply(className: String): Option[java.lang.Class[?]] = try
+        Option(java.lang.Class.forName(className))
+      catch {
+        case _: Throwable => None
+      }
+    }
   }
 
   implicit final class UntypedTypeMethods(private val untyped: UntypedType) {
@@ -87,6 +129,7 @@ trait UntypedTypes { this: MacroCommons =>
     def position: Option[Position] = UntypedType.position(untyped)
 
     def isPrimitive: Boolean = UntypedType.isPrimitive(untyped)
+    def isArray: Boolean = UntypedType.isArray(untyped)
     def isBuiltIn: Boolean = UntypedType.isBuiltIn(untyped)
 
     def isAbstract: Boolean = UntypedType.isAbstract(untyped)

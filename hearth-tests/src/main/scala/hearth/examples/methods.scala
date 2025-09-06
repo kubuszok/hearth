@@ -3,14 +3,18 @@ package examples
 package methods
 
 class ExampleAnnotation extends scala.annotation.StaticAnnotation
+class ExampleAnnotation2(val value: Int) extends scala.annotation.StaticAnnotation
 
+@ExampleAnnotation
 trait Trait {
 
+  @ExampleAnnotation2(2)
   def inheritedAbstractMethod(arg: Int): Int
 
   final def inheritedFinalMethod(arg: Int): Int = arg + 1
 }
 
+@ExampleAnnotation2(1)
 class NoCompanionClass extends Trait {
 
   def method(arg: Int): Int = arg + 1

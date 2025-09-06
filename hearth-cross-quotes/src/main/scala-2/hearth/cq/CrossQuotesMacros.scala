@@ -120,12 +120,15 @@ class CrossQuotesMacros(val c: blackbox.Context) {
 
   import c.universe.{Expr as _, *}
 
-  private def reportIssue(message: String): Nothing =
+  private def reportIssue(throwable: Throwable): Nothing =
     c.abort(
       c.enclosingPosition,
       s"""Unexpected error:
          |
-         |  $message
+         |  ${throwable.getMessage}
+         |
+         |from:
+         |${throwable.getStackTrace.map(item => s"  at: $item").mkString("\n")}
          |
          |Please, report an issue at https://github.com/MateuszKubuszok/hearth/issues
          |""".stripMargin
@@ -159,6 +162,12 @@ class CrossQuotesMacros(val c: blackbox.Context) {
   private def paint(color: String)(text: String): String =
     text.split("\n").map(line => s"$color$line${Console.RESET}").mkString("\n")
 
+  private def suppressWarnings(result: c.Tree): c.Tree =
+    // val nowarnResult = freshName("nowarnResult")
+    q"""
+    $result : @_root_.scala.annotation.nowarn
+    """
+
   /* Replaces:
    *   Type.of[A]
    * with:
@@ -170,7 +179,8 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val termInner = freshName("Inner")
     val typeInner = freshTypeName("Inner")
 
-    val result = q"""
+    val result = suppressWarnings(
+      q"""
       val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       import $ctx.universe.{Type => _, internal => _, _}
       implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
@@ -178,6 +188,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
       _root_.hearth.fp.ignore($convertProvidedTypesForCrossQuotes[Any](_: Type[Any]))
       $ctx.weakTypeTag[${weakTypeOf[A]}].asInstanceOf[Type[${weakTypeOf[A]}]]
       """
+    )
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.of${Console.RESET} expansion:
@@ -186,7 +197,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor1.of[HKT]
@@ -236,7 +247,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor1.of${Console.RESET} expansion:
@@ -248,7 +259,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor2.of[HKT]
@@ -306,7 +317,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor2.of${Console.RESET} expansion:
@@ -315,7 +326,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor3.of[HKT]
@@ -382,7 +393,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor3.of${Console.RESET} expansion:
@@ -393,7 +404,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor4.of[HKT]
@@ -459,7 +470,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor4.of${Console.RESET} expansion:
@@ -470,7 +481,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor5.of[HKT]
@@ -540,7 +551,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor5.of${Console.RESET} expansion:
@@ -551,7 +562,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor6.of[HKT]
@@ -625,7 +636,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor6.of${Console.RESET} expansion:
@@ -636,7 +647,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor7.of[HKT]
@@ -714,7 +725,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor7.of${Console.RESET} expansion:
@@ -725,7 +736,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor8.of[HKT]
@@ -807,7 +818,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor8.of${Console.RESET} expansion:
@@ -818,7 +829,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor9.of[HKT]
@@ -904,7 +915,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor9.of${Console.RESET} expansion:
@@ -915,7 +926,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor10.of[HKT]
@@ -1005,7 +1016,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor10.of${Console.RESET} expansion:
@@ -1016,7 +1027,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor11.of[HKT]
@@ -1110,7 +1121,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor11.of${Console.RESET} expansion:
@@ -1121,7 +1132,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor12.of[HKT]
@@ -1219,7 +1230,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor12.of${Console.RESET} expansion:
@@ -1230,7 +1241,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor13.of[HKT]
@@ -1332,7 +1343,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor13.of${Console.RESET} expansion:
@@ -1343,7 +1354,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor14.of[HKT]
@@ -1446,7 +1457,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor14.of${Console.RESET} expansion:
@@ -1457,7 +1468,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor15.of[HKT]
@@ -1563,7 +1574,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor15.of${Console.RESET} expansion:
@@ -1574,7 +1585,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor16.of[HKT]
@@ -1684,7 +1695,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor16.of${Console.RESET} expansion:
@@ -1695,7 +1706,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor17.of[HKT]
@@ -1809,7 +1820,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor17.of${Console.RESET} expansion:
@@ -1820,7 +1831,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor18.of[HKT]
@@ -1938,7 +1949,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor18.of${Console.RESET} expansion:
@@ -1949,7 +1960,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor19.of[HKT]
@@ -2071,7 +2082,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor19.of${Console.RESET} expansion:
@@ -2082,7 +2093,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor20.of[HKT]
@@ -2208,7 +2219,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor20.of${Console.RESET} expansion:
@@ -2219,7 +2230,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor21.of[HKT]
@@ -2349,7 +2360,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor21.of${Console.RESET} expansion:
@@ -2360,7 +2371,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Type.Ctor22.of[HKT]
@@ -2494,7 +2505,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     }
     """
 
-    val result = c.typecheck(unchecked)
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${Console.BLUE}Type.Ctor22.of${Console.RESET} expansion:
@@ -2505,7 +2516,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Expr.quote[A](a)
@@ -2518,14 +2529,15 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
 
-    val result = q"""
+    val result = suppressWarnings(q"""
       val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       import $ctx.universe.Quasiquote
+      @_root_.scala.annotation.nowarn
       implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
       _root_.hearth.fp.ignore($convertProvidedTypesForCrossQuotes[Any](_: Type[Any]))
       $ctx.Expr[${weakTypeOf[A]}](${convert(ctx)(expr.tree)}).asInstanceOf[Expr[${weakTypeOf[A]}]]
-      """
+      """)
 
     log(
       s"""Cross-quotes ${Console.BLUE}Expr.quote${Console.RESET} expansion:
@@ -2534,7 +2546,7 @@ class CrossQuotesMacros(val c: blackbox.Context) {
     )
 
     result
-  } catch { case e: Throwable => reportIssue(e.getMessage) }
+  } catch { case e: Throwable => reportIssue(e) }
 
   private def convert(ctx: TermName)(tree: c.Tree): c.Tree = {
     // 1. Replace certain trees with stubs,
@@ -2551,11 +2563,11 @@ class CrossQuotesMacros(val c: blackbox.Context) {
       // Convert to String
       .pipe(_.toString)
       .tap { source =>
-        if (loggingEnabled) {
-          println(s"""Stubbed source:
-                     |${paint(Console.BLUE)(source)}
-                     |""".stripMargin)
-        }
+        log(
+          s"""Stubbed source:
+             |${paint(Console.BLUE)(source)}
+             |""".stripMargin
+        )
       }
       // Replace stubs with their values
       .pipe(abstractTypeReferenceReplacer.replaceStubsInSource)

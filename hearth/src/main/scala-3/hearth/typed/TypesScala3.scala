@@ -50,8 +50,8 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
           // Classes defined inside a "class" or "def" have package.name.ClassName removed from the type,
           // so we have to prepend it ourselves to keep behavior consistent with Scala 2.
           //
-          // TODO: We only add prefix to the outermost type, type parameters are not fixed this way.
-          if symbolFullName != colorlessReprNameWithoutParams then {
+          // TODO: Currently we only add prefix to the outermost type, type parameters are not fixed this way.
+          val result = if symbolFullName != colorlessReprNameWithoutParams then {
             val pkg_Len = symbolFullName.length - colorlessReprNameWithoutParams.length
             (0 to pkg_Len)
               .takeWhile(i => symbolFullName.endsWith(("_" * i) + colorlessReprNameWithoutParams))
@@ -60,6 +60,10 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
               case None       => colorfulReprName
             }
           } else colorfulReprName
+
+          // TODO: This is a quick workaround for missing .type, we have to fix it preoperly for nested types.
+          if (Type[A].isObject || Type[A].isVal) && !result.contains(".type") then result + ".type"
+          else result
         }
         .getOrElse(repr.toString)
     }

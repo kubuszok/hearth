@@ -246,11 +246,7 @@ final class CrossQuotesPhase(loggingEnabledFor: Option[JFile] => Boolean) extend
         else {
           try {
             givensInjected = givensInjected ++ newGivensInjected
-            val block = untpd.Block(newGivensInjectedWithSuppression, thunk)
-            if block.show.contains("Underlying") then {
-              println(s"Block: ${block.show}")
-            }
-            block
+            untpd.Block(newGivensInjectedWithSuppression, thunk)
           } finally
             givensInjected = oldGivensInjected
         }

@@ -26,6 +26,19 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
           instanceTpe.typeArgs
         )
       }
+
+      def symbolName(symbol: Symbol): String = symbol.name.decodedName.toString
+
+      def positionOf(symbol: Symbol): Option[Position] =
+        Option(symbol.pos)
+          .filter(_ != NoPosition)
+          // Prevent crash in case of https://github.com/scala/scala3/issues/21672
+          .filter(pos => scala.util.Try(pos.start).isSuccess)
+
+      implicit val symbolOrdering: Ordering[Symbol] = {
+        val stringSorting = hearth.fp.NaturalLanguageOrdering.caseSensitive
+        Ordering.by(positionOf).orElse(stringSorting.on(symbolName))
+      }
     }
     import platformSpecific.*
 
@@ -33,7 +46,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     override def toTyped[A](untyped: UntypedType): Type[A] = c.WeakTypeTag(untyped)
 
     override def position(untyped: UntypedType): Option[Position] =
-      UntypedMethod.platformSpecific.positionOf(untyped.typeSymbol)
+      positionOf(untyped.typeSymbol)
 
     override def fromClass(clazz: java.lang.Class[?]): UntypedType = c.mirror.staticClass(clazz.getName).typeSignature
 
@@ -44,12 +57,12 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     }
     override def isFinal(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
-      A != NoSymbol && A.isFinal
+      A != NoSymbol && (A.isFinal || A.isModuleClass || isArray(instanceTpe))
     }
 
     override def isClass(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
-      A != NoSymbol && A.isClass
+      A != NoSymbol && (A.isClass && !isArray(instanceTpe))
     }
 
     override def isSealed(instanceTpe: UntypedType): Boolean = {
@@ -121,7 +134,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
           ListMap.from(
             // calling .distinct here as `knownDirectSubclasses` returns duplicates for multiply-inherited types
             extractRecursively(A.asType).distinct
-              .sortBy(_.pos)
+              .sorted(symbolOrdering)
               .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
           )
         )

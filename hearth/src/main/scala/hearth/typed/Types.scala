@@ -41,11 +41,34 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     final def plainPrint[A: Type]: String = removeAnsiColors(prettyPrint[A])
     def prettyPrint[A: Type]: String
 
-    // This can only work if the type is available in the classpath, so it's not a good idea to use it for
-    // e.g. types from the current project.
+    /** This can only work if the type is available in the classpath, so it's not a good idea to use it for e.g. types
+      * from the current project.
+      */
     final def classOfType[A: Type]: Option[java.lang.Class[A]] =
-      // TODO: improve, we should probably reuse ModuleSingleton resolution logic
-      scala.util.Try(java.lang.Class.forName(Type.fcqn[A]).asInstanceOf[java.lang.Class[A]]).toOption
+      UntypedType.toClass(UntypedType.fromTyped[A]).map(_.asInstanceOf[java.lang.Class[A]])
+
+    /** Attempts: top-level object, object in object, etc.
+      *
+      * We can use the resulting stream to find first class name that e.g. is an actual class, or is a class
+      * representing a module singleton.
+      *
+      * Based on https://github.com/MateuszKubuszok/MacroTypeclass ideas.
+      */
+    final def possibleClassesOfType[A: Type]: Array[String] = {
+      val name = {
+        val plain = plainPrint[A].takeWhile(_ != '[')
+        if (isObject[A]) {
+          assert(plain.endsWith(".type"))
+          plain.dropRight(".type".length) + '$'
+        } else plain
+      }
+
+      scala.collection.Iterator
+        .iterate(name)(_.reverse.replaceFirst("[.]", "\\$").reverse)
+        .take(name.count(_ == '.') + 1) // ...then this is: "foo.bar.baz$", "foo.bar$baz$", "foo$bar$baz$"...
+        .toArray
+        .reverse // ...and this is: "foo.bar.baz$", "foo.bar$baz$", "foo$bar$baz$"
+    }
 
     final def position[A: Type]: Option[Position] = UntypedType.fromTyped[A].position
 
@@ -70,11 +93,16 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
       Type.of[Char].as_??
     )
     final def isPrimitive[A: Type]: Boolean = UntypedType.fromTyped[A].isPrimitive
+    final def isArray[A: Type]: Boolean = UntypedType.fromTyped[A].isArray
 
     // TODO: rename to builtInJvmTypes
     // TODO: add: java.lang.Class, java.lang.Object, java.lang.Enum, java.lang.EnumValue?
     // TODO: add: java.lang.reflect.*, java.lang.invoke.*
-    /** Types which are either primitives or specially treated by JVM: Unit, String. */
+    /** Types which are either primitives or specially treated by JVM: Unit, String.
+      *
+      * Arrays are also considered built-in types, but we cannot list all possible array types, so we should check for
+      * isArray instead.
+      */
     final val builtInTypes: List[??] = primitiveTypes ++ List(
       Type.of[String].as_??,
       Type.of[Unit].as_??
@@ -187,28 +215,18 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
 
       def toType[A](value: A): Type[A] = UntypedType.fromClass(value.getClass).asTyped[A]
 
-      def fromType[A](tpe: Type[A]): Option[Existential.UpperBounded[Any, Id]] = {
-        // assuming this is "foo.bar.baz"...
-        val name = plainPrint(using tpe)
+      def fromType[A](tpe: Type[A]): Option[Existential.UpperBounded[Any, Id]] =
+        possibleClassesOfType(tpe).collectFirst { case ModuleSingleton(value) =>
+          Existential.UpperBounded[Any, Id, A](value.asInstanceOf[A])(using tpe)
+        }
 
-        scala.collection.Iterator
-          .iterate(name + '$')(_.reverse.replaceFirst("[.]", "\\$").reverse)
-          .take(name.count(_ == '.') + 1) // ...then this is: "foo.bar.baz$", "foo.bar$baz$", "foo$bar$baz$"...
-          .toArray
-          .reverse // ...and this is: "foo.bar.baz$", "foo.bar$baz$", "foo$bar$baz$"
-          .collectFirst { case ModuleSingleton(value) =>
-            Existential.UpperBounded[Any, Id, A](value.asInstanceOf[A])(using tpe)
-          } // attempts: top-level object, object in object, etc
-      }
-
-      // based on https://github.com/MateuszKubuszok/MacroTypeclass ideas
+      /** Matches if name represents a module singleton existing in the classpath. */
       private object ModuleSingleton {
-        def unapply(className: String): Option[Any] =
-          try
-            Option(java.lang.Class.forName(className).getField("MODULE$").get(null))
-          catch {
-            case _: Throwable => None
-          }
+        def unapply(className: String): Option[Any] = try
+          Option(java.lang.Class.forName(className).getField("MODULE$").get(null))
+        catch {
+          case _: Throwable => None
+        }
       }
     }
     def ModuleCodec[ModuleSingleton]: TypeCodec[ModuleSingleton] =
@@ -236,6 +254,10 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     def annotations: List[Expr_??] = Type.annotations(using tpe)
 
     def summonExpr: Option[Expr[A]] = Expr.summonImplicit(using tpe)
+
+    def isPrimitive: Boolean = Type.isPrimitive(using tpe)
+    def isArray: Boolean = Type.isArray(using tpe)
+    def isBuiltIn: Boolean = Type.isBuiltIn(using tpe)
 
     def isAbstract: Boolean = Type.isAbstract(using tpe)
     def isFinal: Boolean = Type.isFinal(using tpe)

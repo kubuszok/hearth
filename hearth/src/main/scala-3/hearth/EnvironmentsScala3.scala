@@ -13,12 +13,12 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
     override def file(pos: Position): Option[java.nio.file.Path] = pos.sourceFile.getJPath
     override def offset(pos: Position): Int = pos.start
     override def line(pos: Position): Int = pos.startLine + 1 // for some reason, the line number is 0-based in Scala 3
-    override def column(pos: Position): Int = pos.startColumn
+    override def column(pos: Position): Int = pos.startColumn + 1 // same for the column number
   }
 
   object Environment extends EnvironmentModule {
 
-    override lazy val currentScalaVersion: ScalaVersion = ScalaVersion.resolveByLibrary(quotes)
+    override lazy val currentScalaVersion: ScalaVersion = ScalaVersion.byScalaLibrary(quotes)
 
     override lazy val XMacroSettings: List[String] = {
       // workaround to contain @experimental from polluting the whole codebase
