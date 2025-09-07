@@ -29,7 +29,7 @@ val versions = new {
   val kindProjector = "0.13.3"
   val munit = "1.1.1"
   val scalaCollectionCompat = "2.13.0"
-  val scalacheck = "1.18.1"
+  val scalacheck = "1.19.0"
 }
 
 // Development settings:
