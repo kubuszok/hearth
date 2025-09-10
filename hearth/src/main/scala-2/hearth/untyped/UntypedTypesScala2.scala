@@ -53,7 +53,9 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       // We use =:= to check whether A is known to be exactly of the build-in type or is it some upper bound.
-      A != NoSymbol && A.isAbstract && !Type.builtInTypes.exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))
+      A != NoSymbol &&
+      (isJavaEnum(instanceTpe) || (A.isAbstract && !Type.builtInTypes
+        .exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))))
     }
     override def isFinal(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
@@ -67,15 +69,15 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
     override def isSealed(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
-      A != NoSymbol && A.isClass && A.asClass.isSealed
+      A != NoSymbol && A.isClass && A.asClass.isSealed && !isJavaEnumValue(instanceTpe)
     }
     override def isJavaEnum(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
-      A.isJavaEnum && javaEnumRegexpFormat.matches(instanceTpe.toString)
+      A.isJavaEnum && !javaEnumRegexpFormat.matches(instanceTpe.toString)
     }
     override def isJavaEnumValue(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
-      A.isJavaEnum && !javaEnumRegexpFormat.matches(instanceTpe.toString)
+      A.isJavaEnum && javaEnumRegexpFormat.matches(instanceTpe.toString)
     }
 
     override def isCase(instanceTpe: UntypedType): Boolean = {
@@ -123,6 +125,8 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
               .map(termSymbol => termSymbol.name.toString -> termSymbol.asTerm.typeSignature)
           )
         )
+      } else if (isJavaEnumValue(instanceTpe)) {
+        None
       } else if (isSealed(instanceTpe)) {
         forceTypeSymbolInitialization(A)
 
@@ -130,14 +134,26 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
           if (t.asClass.isSealed) t.asClass.knownDirectSubclasses.toVector.map(_.asType).flatMap(extractRecursively)
           else Vector(t)
 
-        Some(
-          ListMap.from(
-            // calling .distinct here as `knownDirectSubclasses` returns duplicates for multiply-inherited types
-            extractRecursively(A.asType).distinct
-              .sorted(symbolOrdering)
-              .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
+        try
+          Some(
+            ListMap.from(
+              // calling .distinct here as `knownDirectSubclasses` returns duplicates for multiply-inherited types
+              extractRecursively(A.asType).distinct
+                .sorted(symbolOrdering)
+                .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
+            )
           )
-        )
+        catch {
+          case err: Throwable =>
+            println(s"""Unexpected error:
+                       |error: ${err.getMessage}
+                       |tpe:   ${instanceTpe.prettyPrint}
+                       |toString:        ${instanceTpe.toString}
+                       |isJavaEnum:      ${isJavaEnum(instanceTpe)}
+                       |isJavaEnumValue: ${isJavaEnumValue(instanceTpe)}
+                       |""".stripMargin)
+            None
+        }
       } else None
     }
 

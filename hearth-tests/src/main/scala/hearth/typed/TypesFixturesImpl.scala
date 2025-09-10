@@ -17,7 +17,7 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
 
   def testClassOfType[A: Type]: Expr[Data] = Expr(
     Data.map(
-      "Type.classOfType" -> Data(Type.classOfType[A].fold("not a class")(_.toString))
+      "Type.classOfType" -> Data(Type.classOfType[A].fold("not on classpath")(_.toString))
     )
   )
 
@@ -33,11 +33,10 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
         .directChildren[A]
         .map(children => Data(children.view.mapValues(value => Data(value.plainPrint)).toMap))
         .getOrElse(Data("<no direct children>")),
-      "Type.exhaustiveChildren" ->
-        Type
-          .exhaustiveChildren[A]
-          .map(children => Data(children.view.mapValues(value => Data(value.plainPrint)).toMap))
-          .getOrElse(Data("<no exhaustive children>"))
+      "Type.exhaustiveChildren" -> Type
+        .exhaustiveChildren[A]
+        .map(children => Data(children.view.mapValues(value => Data(value.plainPrint)).toMap))
+        .getOrElse(Data("<no exhaustive children>"))
     )
   )
 
