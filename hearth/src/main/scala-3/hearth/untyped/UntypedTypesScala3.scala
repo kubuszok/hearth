@@ -39,6 +39,11 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           case _ =>
             subtype.typeRef
         }
+
+      implicit val symbolOrdering: Ordering[Symbol] = {
+        val stringSorting = hearth.fp.NaturalLanguageOrdering.caseSensitive
+        Ordering.by((_: Symbol).pos).orElse(stringSorting.on((_: Symbol).name))
+      }
     }
     import platformSpecific.*
 
@@ -125,8 +130,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
       // no need for separate java.lang.Enum handling contrary to Scala 2
-      if isSealed(instanceTpe) || isJavaEnum(instanceTpe)
-      then Some( // TODO: check if isSealed should be aligned on Scala 2
+      if isSealed(instanceTpe) || isJavaEnum(instanceTpe) then Some(
         ListMap.from {
           def handleSymbols(sym: Symbol): Symbol =
             if sym.flags.is(Flags.Enum) then sym.typeRef.typeSymbol
@@ -136,7 +140,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           // calling .distinct here as `children` returns duplicates for multiply-inherited types
           instanceTpe.typeSymbol.children
             .map(handleSymbols)
-            // .sorted(Ordering.by(_.pos)) // TODO: check if this is necessary?
+            .sorted
             .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
         }
       )
