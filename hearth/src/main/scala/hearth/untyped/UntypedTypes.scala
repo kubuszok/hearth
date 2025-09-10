@@ -99,10 +99,11 @@ trait UntypedTypes { this: MacroCommons =>
     final def exhaustiveChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
       directChildren(instanceTpe)
         .flatMap(_.foldLeft[Option[Vector[(String, UntypedType)]]](Some(Vector.empty)) {
-          case (None, _)                                      => None
-          case (Some(list), (_, subtype)) if subtype.isSealed => exhaustiveChildren(subtype).map(list ++ _)
-          case (_, (_, subtype)) if subtype.isAbstract        => None
-          case (Some(list), nameSubtype)                      => Some(list :+ nameSubtype)
+          case (None, _)                                                                  => None
+          case (Some(list), (_, subtype)) if subtype.isSealed && !subtype.isJavaEnumValue =>
+            exhaustiveChildren(subtype).map(list ++ _)
+          case (_, (_, subtype)) if subtype.isAbstract => None
+          case (Some(list), nameSubtype)               => Some(list :+ nameSubtype)
         })
         .map(_.filter(_._2 <:< instanceTpe)) // TODO: handle it somehow for GADT in abstract type context
         .map(ListMap.from(_))
@@ -164,6 +165,9 @@ trait UntypedTypes { this: MacroCommons =>
 
     def annotations: List[UntypedExpr] = UntypedType.annotations(untyped)
 
+    def shortName: String = Type.shortName(using untyped.asTyped[Any])
+    def fcqn: String = Type.fcqn(using untyped.asTyped[Any])
     def prettyPrint: String = Type.prettyPrint(using untyped.asTyped[Any])
+    def plainPrint: String = Type.plainPrint(using untyped.asTyped[Any])
   }
 }

@@ -56,7 +56,7 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
     override def prettyPrint[A: Type]: String = {
       def helper(tpe: c.Type): String =
         tpe.toString match {
-          case javaEnumRegexpFormat(enumName, valueName) if tpe.typeSymbol.isJavaEnum => s"$enumName.$valueName"
+          case javaEnumRegexpFormat(enumName, valueName) if tpe.typeSymbol.isJavaEnum => s"$enumName.$valueName.type"
           case _                                                                      =>
             val tpes = tpe.typeArgs.map(helper)
             val tpeArgs = if (tpes.isEmpty) "" else s"[${tpes.mkString(", ")}]"

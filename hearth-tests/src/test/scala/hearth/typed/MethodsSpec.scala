@@ -12,9 +12,11 @@ final class MethodsSpec extends MacroSuite {
       import MethodsFixtures.testMethodsExtraction
 
       test(
-        "for java.lang.Object".ignoreOnScala3.pending(
-          "On Scala + JDK 21 we have different positions than on other JDKs or Scala 2"
-        )
+        "for java.lang.Object".ignoreOnScala3
+          .tag(Tags.jdkFlaky)
+          .pending(
+            "On Scala + JDK 21 we have different positions than on other JDKs or Scala 2"
+          )
       ) {
         testMethodsExtraction[java.lang.Object]("getClass", "equals") <==> Data.map(
           // actual methods of java.lang.Object

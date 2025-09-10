@@ -76,9 +76,14 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       !A.isNoSymbol && A.flags.is(Flags.Sealed)
     }
     override def isJavaEnum(instanceTpe: UntypedType): Boolean =
-      instanceTpe <:< fromTyped[java.lang.Enum[?]] && isAbstract(instanceTpe)
+      isEnumOrEnumValue(instanceTpe) && !instanceTpe.typeSymbol.flags.is(Flags.JavaStatic)
     override def isJavaEnumValue(instanceTpe: UntypedType): Boolean =
-      instanceTpe <:< fromTyped[java.lang.Enum[?]] && !isAbstract(instanceTpe)
+      isEnumOrEnumValue(instanceTpe) && instanceTpe.typeSymbol.flags.is(Flags.JavaStatic)
+    private def isEnumOrEnumValue(instanceTpe: UntypedType): Boolean =
+      instanceTpe <:< fromTyped[java.lang.Enum[?]] && instanceTpe.typeSymbol.flags.is(
+        Flags.Enum | Flags.Final | Flags.JavaDefined
+      )
+
     override def isCase(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       !A.isNoSymbol && A.flags.is(Flags.Case)
@@ -120,17 +125,18 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
       // no need for separate java.lang.Enum handling contrary to Scala 2
-      if isSealed(instanceTpe) then Some(
+      if isSealed(instanceTpe) || isJavaEnum(instanceTpe)
+      then Some( // TODO: check if isSealed should be aligned on Scala 2
         ListMap.from {
-          def extractRecursively(sym: Symbol): Vector[Symbol] =
-            if sym.flags.is(Flags.Sealed) then sym.children.toVector.flatMap(extractRecursively)
-            else if sym.flags.is(Flags.Enum) then Vector(sym.typeRef.typeSymbol)
-            else if sym.flags.is(Flags.Module) then Vector(sym.typeRef.typeSymbol.moduleClass)
-            else Vector(sym)
+          def handleSymbols(sym: Symbol): Symbol =
+            if sym.flags.is(Flags.Enum) then sym.typeRef.typeSymbol
+            else if sym.flags.is(Flags.Module) then sym.typeRef.typeSymbol.moduleClass
+            else sym
 
           // calling .distinct here as `children` returns duplicates for multiply-inherited types
-          extractRecursively(instanceTpe.typeSymbol).distinct
-            .sorted(Ordering.by(_.pos))
+          instanceTpe.typeSymbol.children
+            .map(handleSymbols)
+            // .sorted(Ordering.by(_.pos)) // TODO: check if this is necessary?
             .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
         }
       )

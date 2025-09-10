@@ -183,11 +183,11 @@ final class TypesSpec extends MacroSuite {
         testClassOfType[Char] <==> Data.map("Type.classOfType" -> Data(classOf[Char].toString))
       }
 
-      test("for build-in types") {
+      test("for build-in types".tag(Tags.platformMismatch)) {
         testClassOfType[Unit] <==> Data.map("Type.classOfType" -> Data(classOf[Unit].toString))
         testClassOfType[String] <==> Data.map("Type.classOfType" -> Data(classOf[String].toString))
         if (!Platform.byHearth.isNative) {
-          // TODO:
+          // FIXME:
           // On Native we have:
           //   classOf[Array[Int]].toString == "class scala.scalanative.runtime.IntArray"
           // instead of:
@@ -247,21 +247,26 @@ final class TypesSpec extends MacroSuite {
         @unused
         case class ExampleCaseClassWithTypeParam[A](a: A)
 
-        testClassOfType[ExampleTrait] <==> Data.map("Type.classOfType" -> Data("not a class"))
-        testClassOfType[ExampleTraitWithTypeParam[Int]] <==> Data.map("Type.classOfType" -> Data("not a class"))
-        testClassOfType[ExampleAbstractClass] <==> Data.map("Type.classOfType" -> Data("not a class"))
-        testClassOfType[ExampleAbstractClassWithTypeParam[Int]] <==> Data.map("Type.classOfType" -> Data("not a class"))
-        testClassOfType[ExampleClass] <==> Data.map("Type.classOfType" -> Data("not a class"))
-        testClassOfType[ExampleClassWithTypeParam[Int]] <==> Data.map("Type.classOfType" -> Data("not a class"))
-        testClassOfType[ExampleCaseClass] <==> Data.map("Type.classOfType" -> Data("not a class"))
-        testClassOfType[ExampleCaseClassWithTypeParam[Int]] <==> Data.map("Type.classOfType" -> Data("not a class"))
+        testClassOfType[ExampleTrait] <==> Data.map("Type.classOfType" -> Data("not on classpath"))
+        testClassOfType[ExampleTraitWithTypeParam[Int]] <==> Data.map("Type.classOfType" -> Data("not on classpath"))
+        testClassOfType[ExampleAbstractClass] <==> Data.map("Type.classOfType" -> Data("not on classpath"))
+        testClassOfType[ExampleAbstractClassWithTypeParam[Int]] <==> Data.map(
+          "Type.classOfType" -> Data("not on classpath")
+        )
+        testClassOfType[ExampleClass] <==> Data.map("Type.classOfType" -> Data("not on classpath"))
+        testClassOfType[ExampleClassWithTypeParam[Int]] <==> Data.map("Type.classOfType" -> Data("not on classpath"))
+        testClassOfType[ExampleCaseClass] <==> Data.map("Type.classOfType" -> Data("not on classpath"))
+        testClassOfType[ExampleCaseClassWithTypeParam[Int]] <==> Data.map(
+          "Type.classOfType" -> Data("not on classpath")
+        )
       }
 
       test("for enumerations") {
         testClassOfType[examples.enums.WeekDay.type] <==> Data.map(
           "Type.classOfType" -> Data(classOf[examples.enums.WeekDay.type].toString)
         )
-        // TODO:In the runtime `examples.enums.WeekDay.Value` will be `scala.Eumeration$Value`
+        // FIXME:
+        // In the runtime `examples.enums.WeekDay.Value` will be `scala.Eumeration$Value`
         // so we have to come up with a fallback that resolves a different name for the type.
         // testClassOfType[examples.enums.WeekDay.Value] <==> Data(
         //   Map("Type.classOfType" -> Data(classOf[examples.enums.WeekDay.Value].toString))
@@ -269,7 +274,8 @@ final class TypesSpec extends MacroSuite {
         testClassOfType[examples.enums.Planet.type] <==> Data.map(
           "Type.classOfType" -> Data(classOf[examples.enums.Planet.type].toString)
         )
-        // TODO:In the runtime `examples.enums.WeekDay.Value` will be `scala.Eumeration$Value`
+        // FIXME:
+        // In the runtime `examples.enums.WeekDay.Value` will be `scala.Eumeration$Value`
         // so we have to come up with a fallback that resolves a different name for the type.
         // testClassOfType[examples.enums.Planet.Value] <==> Data(
         //   Map("Type.classOfType" -> Data(classOf[examples.enums.Planet.Value].toString))
@@ -300,7 +306,7 @@ final class TypesSpec extends MacroSuite {
         testPosition[Char] <==> Data.map("Type.position" -> Data("<no position>"))
       }
 
-      test("for build-in types") {
+      test("for build-in types".tag(Tags.langVerMismatch)) {
         // Apparently: Scala 2 does not store position for for types from previous compilation unit,
         // Scala 3 does store... something? Filename?
         val position = if (LanguageVersion.byHearth.isScala3) "Predef.scala:1:1" else "<no position>"
@@ -309,7 +315,7 @@ final class TypesSpec extends MacroSuite {
         testPosition[Array[Int]] <==> Data.map("Type.position" -> Data("<no position>"))
       }
 
-      test("for top-level classes (non-sealed)") {
+      test("for top-level classes (non-sealed)".tag(Tags.langVerMismatch)) {
         // Apparently: Scala 2 does not store position for for types from previous compilation unit,
         // Scala 3 does store... something? Filename?
         val position = if (LanguageVersion.byHearth.isScala3) "classes.scala:1:1" else "<no position>"
@@ -374,7 +380,7 @@ final class TypesSpec extends MacroSuite {
         )
       }
 
-      test("for enumerations") {
+      test("for enumerations".tag(Tags.langVerMismatch)) {
         // Apparently: Scala 2 does not store position for for types from previous compilation unit,
         // Scala 3 does store... something? Filename?
         val position = if (LanguageVersion.byHearth.isScala3) "enums.scala:1:1" else "<no position>"
@@ -485,7 +491,7 @@ final class TypesSpec extends MacroSuite {
           "Type.directChildren" -> Data("<no direct children>"),
           "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
         )
-        // TODO: handle enumerations
+        // FIXME: handle enumerations
         // testChildren[examples.enums.WeekDay.Value] <==> Data.map(
         //   "Type.directChildren" -> Data("<no direct children>"),
         //   "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
@@ -494,7 +500,7 @@ final class TypesSpec extends MacroSuite {
           "Type.directChildren" -> Data("<no direct children>"),
           "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
         )
-        // TODO: handle enumerations
+        // FIXME: handle enumerations
         // testChildren[examples.enums.Planet.Value] <==> Data.map(
         //   "Type.directChildren" -> Data("<no direct children>"),
         //   "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
@@ -763,9 +769,9 @@ final class TypesSpec extends MacroSuite {
 
       test("for enumerations") {
         List(
-          // TODO: fix WeekDay.Value on Scala 2
+          // FIXME: fix WeekDay.Value on Scala 2
           testFlags[examples.enums.WeekDay.type] -> ((false, true, false, true)),
-          // TODO: fix Planet.Value on Scala 2
+          // FIXME: fix Planet.Value on Scala 2
           testFlags[examples.enums.Planet.type] -> ((false, true, false, true)),
           testFlags[examples.enums.ExampleSealedTrait] -> ((true, false, true, false)),
           testFlags[examples.enums.ExampleSealedTraitWithTypeParam[Int]] -> ((true, false, true, false)),
