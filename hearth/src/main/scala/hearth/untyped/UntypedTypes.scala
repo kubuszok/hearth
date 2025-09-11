@@ -36,7 +36,17 @@ trait UntypedTypes { this: MacroCommons =>
 
     def fromClass(clazz: java.lang.Class[?]): UntypedType
     def toClass(untyped: UntypedType): Option[java.lang.Class[?]] =
-      if (isBuiltIn(untyped)) {
+      if (isTypeSystemSpecial(untyped)) {
+        if (untyped =:= Type.of[Any].asUntyped) Some(classOf[Any])
+        else if (untyped =:= Type.of[AnyRef].asUntyped) Some(classOf[AnyRef])
+        else if (untyped =:= Type.of[AnyVal].asUntyped) Some(classOf[AnyVal])
+        else if (untyped =:= Type.of[Null].asUntyped) Some(classOf[Null])
+        else if (untyped =:= Type.of[Nothing].asInstanceOf[Type[Any]].asUntyped) Some(classOf[Nothing])
+        else
+          assertionFailed(
+            s"${untyped.prettyPrint} is recognized as type-system-special type, but is not handled by a type-system-special branch"
+          )
+      } else if (isBuiltIn(untyped)) {
         // classOf[Unit].toString == "void" while possbleClassesOfType[Unit]....toString would resolve to "class scala.Unit"
         // If we want to be consistent, we have to fix this manually.
         if (untyped <:< Type.of[Unit].asUntyped) Some(classOf[Unit])
@@ -71,6 +81,8 @@ trait UntypedTypes { this: MacroCommons =>
       ArrayCtor.unapply(toTyped[Any](instanceTpe)).isDefined
     final def isBuiltIn(instanceTpe: UntypedType): Boolean =
       Type.builtInTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying)) || isArray(instanceTpe)
+    final def isTypeSystemSpecial(instanceTpe: UntypedType): Boolean =
+      Type.typeSystemSpecialTypes.exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))
 
     def isAbstract(instanceTpe: UntypedType): Boolean
     def isFinal(instanceTpe: UntypedType): Boolean
@@ -132,6 +144,7 @@ trait UntypedTypes { this: MacroCommons =>
     def isPrimitive: Boolean = UntypedType.isPrimitive(untyped)
     def isArray: Boolean = UntypedType.isArray(untyped)
     def isBuiltIn: Boolean = UntypedType.isBuiltIn(untyped)
+    def isTypeSystemSpecial: Boolean = UntypedType.isTypeSystemSpecial(untyped)
 
     def isAbstract: Boolean = UntypedType.isAbstract(untyped)
     def isFinal: Boolean = UntypedType.isFinal(untyped)

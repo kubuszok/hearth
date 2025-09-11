@@ -54,6 +54,39 @@ final class TypesSpec extends MacroSuite {
         )
       }
 
+      test("for type-system-special types") {
+        testNamesPrinters[Any] <==> Data.map(
+          "Type.shortName" -> Data("Any"),
+          "Type.fcqn" -> Data("scala.Any"),
+          "Type.plainPrint" -> Data("scala.Any"),
+          "Type.prettyPrint" -> Data("scala.Any")
+        )
+        testNamesPrinters[AnyRef] <==> Data.map(
+          "Type.shortName" -> Data("Object"),
+          "Type.fcqn" -> Data("java.lang.Object"),
+          "Type.plainPrint" -> Data("java.lang.Object"),
+          "Type.prettyPrint" -> Data("java.lang.Object")
+        )
+        testNamesPrinters[AnyVal] <==> Data.map(
+          "Type.shortName" -> Data("AnyVal"),
+          "Type.fcqn" -> Data("scala.AnyVal"),
+          "Type.plainPrint" -> Data("scala.AnyVal"),
+          "Type.prettyPrint" -> Data("scala.AnyVal")
+        )
+        testNamesPrinters[Null] <==> Data.map(
+          "Type.shortName" -> Data("Null"),
+          "Type.fcqn" -> Data("scala.Null"),
+          "Type.plainPrint" -> Data("scala.Null"),
+          "Type.prettyPrint" -> Data("scala.Null")
+        )
+        testNamesPrinters[Nothing] <==> Data.map(
+          "Type.shortName" -> Data("Nothing"),
+          "Type.fcqn" -> Data("scala.Nothing"),
+          "Type.plainPrint" -> Data("scala.Nothing"),
+          "Type.prettyPrint" -> Data("scala.Nothing")
+        )
+      }
+
       test("for top-level classes (non-sealed)") {
         List(
           testNamesPrinters[examples.classes.ExampleTrait] -> (("ExampleTrait", "")),
@@ -197,6 +230,15 @@ final class TypesSpec extends MacroSuite {
         }
       }
 
+      test("for type-system-special types") {
+        testClassOfType[Any] <==> Data.map("Type.classOfType" -> Data(classOf[Any].toString))
+        testClassOfType[AnyRef] <==> Data.map("Type.classOfType" -> Data(classOf[AnyRef].toString))
+        testClassOfType[AnyVal] <==> Data.map("Type.classOfType" -> Data(classOf[AnyVal].toString))
+        println("Null is " + classOf[Null].toString)
+        testClassOfType[Null] <==> Data.map("Type.classOfType" -> Data(classOf[Null].toString))
+        testClassOfType[Nothing] <==> Data.map("Type.classOfType" -> Data(classOf[Nothing].toString))
+      }
+
       test("for top-level classes (non-sealed)") {
         testClassOfType[examples.classes.ExampleTrait] <==> Data.map(
           "Type.classOfType" -> Data(classOf[examples.classes.ExampleTrait].toString)
@@ -315,6 +357,14 @@ final class TypesSpec extends MacroSuite {
         testPosition[Array[Int]] <==> Data.map("Type.position" -> Data("<no position>"))
       }
 
+      test("for type-system-special types".tag(Tags.langVerMismatch)) {
+        testPosition[Any] <==> Data.map("Type.position" -> Data("<no position>"))
+        testPosition[AnyRef] <==> Data.map("Type.position" -> Data("<no position>"))
+        testPosition[AnyVal] <==> Data.map("Type.position" -> Data("<no position>"))
+        testPosition[Null] <==> Data.map("Type.position" -> Data("<no position>"))
+        testPosition[Nothing] <==> Data.map("Type.position" -> Data("<no position>"))
+      }
+
       test("for top-level classes (non-sealed)".tag(Tags.langVerMismatch)) {
         // Apparently: Scala 2 does not store position for for types from previous compilation unit,
         // Scala 3 does store... something? Filename?
@@ -422,6 +472,21 @@ final class TypesSpec extends MacroSuite {
           testChildren[Unit],
           testChildren[String],
           testChildren[Array[Int]]
+        ).foreach {
+          _ <==> Data.map(
+            "Type.directChildren" -> Data("<no direct children>"),
+            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+          )
+        }
+      }
+
+      test("for type-system-special types") {
+        List(
+          testChildren[Any],
+          testChildren[AnyRef],
+          testChildren[AnyVal],
+          testChildren[Null],
+          testChildren[Nothing]
         ).foreach {
           _ <==> Data.map(
             "Type.directChildren" -> Data("<no direct children>"),

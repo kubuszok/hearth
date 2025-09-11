@@ -10,14 +10,14 @@ import scala.util.matching.Regex
   *
   * Provides some utilities like:
   *   - `group(name) { ... }` - grouping tests under a common name
+  *   - `test("name".ignoreOnScala2_13) { ... }` - ignoring test on Scala 2.13
+  *   - `test("name".ignoreOnScala3) { ... }` - ignoring test on Scala 3
+  *   - `test("name".ignoreOnJvm) { ... }` - ignoring test on JVM
+  *   - `test("name".ignoreOnJs) { ... }` - ignoring test on JS
+  *   - `test("name".ignoreOnNative) { ... }` - ignoring test on Native
   *   - `actual ==> expected` - asserting that `actual` is equal to `expected`, simply failing test if they don't
   *   - `actual <==> expected` - comparing `actual` and `expected` (when they are both [[String]] or both [[Data]]), and
   *     showing an error with a [[Diff]] if they aren't equal
-  *   - `compileErrors("code").check(expectedLinesInExpectedOrder*)` - asserting that the error message contains all of
-  *     the `expected` strings in order (lines do not have to be consequtive, some lines can be skipped from comparison)
-  *   - `compileErrors("code").checkNot(absentLines*)` - asserting that the error message does not contain any of the
-  *     `absent` strings
-  *   - `compileErrors("code").arePresent()` - asserting that the error message is not empty
   */
 trait Suite extends munit.BaseFunSuite { self =>
 
@@ -38,6 +38,29 @@ trait Suite extends munit.BaseFunSuite { self =>
   override def test(options: TestOptions)(body: => Any)(implicit loc: Location): Unit =
     if (options.name.startsWith(prefix)) super.test(options)(body)
     else super.test(options.withName(appendName(prefix, options.name)))(body)
+
+  implicit class StringOps(private val str: String) {
+    def stripANSI: String = Suite.AnsiControlCode.replaceAllIn(str, "")
+
+    private def language = LanguageVersion.byHearth
+    def ignoreOnScala2_13(implicit loc: Location): TestOptions =
+      if (language.isScala2_13) str.ignore else TestOptions(str)
+    def ignoreOnScala3(implicit loc: Location): TestOptions = if (language.isScala3) str.ignore else TestOptions(str)
+    private def platform = Platform.byHearth
+    def ignoreOnJvm(implicit loc: Location): TestOptions = if (platform.isJvm) str.ignore else TestOptions(str)
+    def ignoreOnJs(implicit loc: Location): TestOptions = if (platform.isJs) str.ignore else TestOptions(str)
+    def ignoreOnNative(implicit loc: Location): TestOptions = if (platform.isNative) str.ignore else TestOptions(str)
+  }
+
+  implicit class TestOptionsOps(private val options: TestOptions) {
+    private def language = LanguageVersion.byHearth
+    def ignoreOnScala2_13(implicit loc: Location): TestOptions = if (language.isScala2_13) options.ignore else options
+    def ignoreOnScala3(implicit loc: Location): TestOptions = if (language.isScala3) options.ignore else options
+    private def platform = Platform.byHearth
+    def ignoreOnJvm(implicit loc: Location): TestOptions = if (platform.isJvm) options.ignore else options
+    def ignoreOnJs(implicit loc: Location): TestOptions = if (platform.isJs) options.ignore else options
+    def ignoreOnNative(implicit loc: Location): TestOptions = if (platform.isNative) options.ignore else options
+  }
 
   implicit class ArrowAssert(actual: Any) {
     def ==>[V](expected: V)(implicit loc: Location): Unit =
@@ -90,63 +113,6 @@ trait Suite extends munit.BaseFunSuite { self =>
            |""".stripMargin
       )
     }
-  }
-
-  implicit class StringOps(private val str: String) {
-    def stripANSI: String = Suite.AnsiControlCode.replaceAllIn(str, "")
-
-    private def language = LanguageVersion.byHearth
-    def ignoreOnScala2_13(implicit loc: Location): TestOptions =
-      if (language.isScala2_13) str.ignore else TestOptions(str)
-    def ignoreOnScala3(implicit loc: Location): TestOptions = if (language.isScala3) str.ignore else TestOptions(str)
-    private def platform = Platform.byHearth
-    def ignoreOnJvm(implicit loc: Location): TestOptions = if (platform.isJvm) str.ignore else TestOptions(str)
-    def ignoreOnJs(implicit loc: Location): TestOptions = if (platform.isJs) str.ignore else TestOptions(str)
-    def ignoreOnNative(implicit loc: Location): TestOptions = if (platform.isNative) str.ignore else TestOptions(str)
-  }
-
-  implicit class TestOptionsOps(private val options: TestOptions) {
-    private def language = LanguageVersion.byHearth
-    def ignoreOnScala2_13(implicit loc: Location): TestOptions = if (language.isScala2_13) options.ignore else options
-    def ignoreOnScala3(implicit loc: Location): TestOptions = if (language.isScala3) options.ignore else options
-    private def platform = Platform.byHearth
-    def ignoreOnJvm(implicit loc: Location): TestOptions = if (platform.isJvm) options.ignore else options
-    def ignoreOnJs(implicit loc: Location): TestOptions = if (platform.isJs) options.ignore else options
-    def ignoreOnNative(implicit loc: Location): TestOptions = if (platform.isNative) options.ignore else options
-  }
-
-  implicit class CompileErrorsCheck(private val msg: String) {
-
-    def check(msgs: String*): Unit = {
-      val msgNoColors = msg.stripANSI
-      var lastChar = 0
-      for (msg <- msgs) {
-        lastChar = msgNoColors.indexOf(msg, lastChar)
-        Predef.assert(
-          0 <= lastChar,
-          s"""Error message did not contain expected snippet
-             |Error message:
-             |${this.msg}
-             |Expected Snippet:
-             |$msg""".stripMargin
-        )
-      }
-    }
-
-    def checkNot(msgs: String*): Unit = {
-      val msgNoColors = msg.stripANSI
-      for (msg <- msgs)
-        Predef.assert(
-          !msgNoColors.contains(msg),
-          s"""Error message contain snippet that was expected to be not there
-             |Error message:
-             |${this.msg}
-             |Not Expected Snippet:
-             |$msg""".stripMargin
-        )
-    }
-
-    def arePresent(): Unit = Predef.assert(msg.nonEmpty, "Expected compilation errors")
   }
 }
 object Suite {
