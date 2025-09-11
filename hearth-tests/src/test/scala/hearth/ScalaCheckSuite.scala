@@ -4,7 +4,6 @@ import org.scalacheck.{Arbitrary, Gen, Prop, Test as ScalaCheckTest}
 import org.scalacheck.util.Pretty
 import org.scalacheck.rng.Seed
 import munit.{FailException, FailExceptionLike, Location, TestOptions}
-import munit.internal.FutureCompat.*
 
 import scala.util.{Failure, Success, Try}
 import scala.language.implicitConversions
@@ -27,8 +26,7 @@ trait ScalaCheckSuite extends Suite {
   // instead of returning a Boolean.
   implicit def unitToProp(unit: Unit): Prop = Prop.passed
 
-  override def munitTestTransforms: List[TestTransform] =
-    scalaCheckPropTransform +: super.munitTestTransforms
+  override def munitTestTransforms: List[TestTransform] = scalaCheckPropTransform +: super.munitTestTransforms
 
   protected def scalaCheckTestParameters = ScalaCheckTest.Parameters.default
 
@@ -103,6 +101,18 @@ trait ScalaCheckSuite extends Suite {
         implicit val loc = test.location
         Try(fail("\n" + renderResult(result)))
     }
+  }
+
+  // Copy-pasted from munit.internal.FutureCompat
+
+  implicit private class ExtensionFuture[T](f: scala.concurrent.Future[T]) {
+    import scala.concurrent.ExecutionContext
+    import scala.concurrent.Future
+    import scala.util.Try
+
+    def flattenCompat[S](ec: ExecutionContext)(implicit ev: T <:< Future[S]): Future[S] = f.flatten
+    def transformCompat[B](fn: Try[T] => Try[B])(implicit ec: ExecutionContext): Future[B] = f.transform(fn)
+    def transformWithCompat[B](fn: Try[T] => Future[B])(implicit ec: ExecutionContext): Future[B] = f.transformWith(fn)
   }
 
   // Our own extensions
