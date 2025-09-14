@@ -101,7 +101,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       else c.Expr[B](q"($expr : ${Type[B]})") // check A <:< B AND add a syntax to force upcasting
     }
 
-    override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = c.Expr[Unit](q"val _ = $expr")
+    override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = c.Expr[Unit](q"val _ = $expr; ()")
 
     override lazy val NullExprCodec: ExprCodec[Null] = {
       implicit val liftable: Liftable[Null] = Liftable[Null](_ => q"null")
