@@ -102,7 +102,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       expr.asInstanceOf[Expr[B]] // check that A <:< B without upcasting in code (Scala 3 should get away without it)
     }
 
-    override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = '{ val _ = ${ expr } }
+    override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = '{ val _ = ${ expr }; () }
 
     override lazy val NullExprCodec: ExprCodec[Null] = {
       given ToExpr[Null] = new {
