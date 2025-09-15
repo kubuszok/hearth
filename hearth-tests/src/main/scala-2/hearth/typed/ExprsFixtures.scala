@@ -28,6 +28,12 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
     testMatchCaseTraverse[A, B](expr)
 
   def testScopeCreateAndUseImpl: c.Expr[Data] = testScopeCreateAndUse
+
+  def testScopePartitionAndCloseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
+    testScopePartitionAndClose[A, B](expr)
+
+  def testScopeTraverseAndCloseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
+    testScopeTraverseAndClose[A, B](expr)
 }
 
 object ExprsFixtures {
@@ -47,4 +53,8 @@ object ExprsFixtures {
   def testMatchCaseTraverse[A, B](expr: A): B = macro ExprsFixtures.testMatchCaseTraverseImpl[A, B]
 
   def testScopeCreateAndUse: Data = macro ExprsFixtures.testScopeCreateAndUseImpl
+
+  def testScopePartitionAndClose[A, B](expr: A): B = macro ExprsFixtures.testScopePartitionAndCloseImpl[A, B]
+
+  def testScopeTraverseAndClose[A, B](expr: A): B = macro ExprsFixtures.testScopeTraverseAndCloseImpl[A, B]
 }

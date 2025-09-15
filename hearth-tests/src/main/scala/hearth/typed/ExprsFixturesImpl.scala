@@ -64,7 +64,7 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
       }
       else Left("Not supported")
     }
-    @scala.annotation.nowarn // TODO: make quote by-name to avoid such errors
+    @scala.annotation.nowarn // TODO: make quote by-name to avoid "Unreachable code" errors
     def runtimeFail: Expr[B] = Expr.quote(???)
     unmatchedOpt.fold[Expr[B]](_ => runtimeFail, unmatched => expr.matchOn(matched, unmatched))
   }
@@ -77,7 +77,7 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
       }
       else None
     }
-    @scala.annotation.nowarn // TODO: make quote by-name to avoid such errors
+    @scala.annotation.nowarn // TODO: make quote by-name to avoid "Unreachable code" errors
     def runtimeFail: Expr[B] = Expr.quote(???)
     unmatchedOpt.fold[Expr[B]](runtimeFail) { unmatched =>
       expr.matchOn(matched, unmatched)
@@ -107,6 +107,27 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
     }
   }
 
-  // TODO: test partition
-  // TODO: add traverse here
+  def testScopePartitionAndClose[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
+    val defValue = Scoped.createDef(expr, "a").partition { a =>
+      if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) Right {
+        Expr.quote(Expr.splice(a).asInstanceOf[B])
+      }
+      else Left("Not supported")
+    }
+    @scala.annotation.nowarn // TODO: make quote by-name to avoid "Unreachable code" errors
+    def runtimeFail: Expr[B] = Expr.quote(???)
+    defValue.fold[Expr[B]](_ => runtimeFail, _.close)
+  }
+
+  def testScopeTraverseAndClose[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
+    val defValue = Scoped.createDef(expr, "a").traverse { a =>
+      if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) Some {
+        Expr.quote(Expr.splice(a).asInstanceOf[B])
+      }
+      else None
+    }
+    @scala.annotation.nowarn // TODO: make quote by-name to avoid "Unreachable code" errors
+    def runtimeFail: Expr[B] = Expr.quote(???)
+    defValue.fold[Expr[B]](runtimeFail)(_.close)
+  }
 }

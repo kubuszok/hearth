@@ -40,4 +40,12 @@ object ExprsFixtures {
 
   inline def testScopeCreateAndUse: Data = ${ testScopeCreateAndUseImpl }
   private def testScopeCreateAndUseImpl(using q: Quotes): Expr[Data] = new ExprsFixtures(q).testScopeCreateAndUse
+
+  inline def testScopePartitionAndClose[A, B](inline expr: A): B = ${ testScopePartitionAndCloseImpl[A, B]('{ expr }) }
+  private def testScopePartitionAndCloseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
+    new ExprsFixtures(q).testScopePartitionAndClose[A, B](expr)
+
+  inline def testScopeTraverseAndClose[A, B](inline expr: A): B = ${ testScopeTraverseAndCloseImpl[A, B]('{ expr }) }
+  private def testScopeTraverseAndCloseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
+    new ExprsFixtures(q).testScopeTraverseAndClose[A, B](expr)
 }
