@@ -2,6 +2,7 @@ package hearth
 package typed
 
 import hearth.data.Data
+import hearth.fp.instances.*
 import hearth.fp.syntax.*
 
 /** Fixtured for testing [[ExprsSpec]]. */
@@ -42,7 +43,6 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
       .fold(Expr(Data("<no exhaustive children>"))) { children =>
         expr.matchOn(children.toNonEmptyList.map { case (name, child) =>
           import child.Underlying as Child
-          // TODO: add traverse here
           MatchCase.typeMatch[Child](FreshName.FromType).map { matchedExpr =>
             Expr(
               Data.map(
@@ -56,12 +56,36 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
       }
   }
 
-  // TODO: test partition
+  def testMatchCasePartition[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
+    val matched = MatchCase.typeMatch[B]("matched")
+    val unmatchedOpt = MatchCase.typeMatch[A]("unmatched").partition { a =>
+      if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) Right {
+        Expr.quote(Expr.splice(a).asInstanceOf[B])
+      }
+      else Left("Not supported")
+    }
+    @scala.annotation.nowarn // TODO: make quote by-name to avoid such errors
+    def runtimeFail: Expr[B] = Expr.quote(???)
+    unmatchedOpt.fold[Expr[B]](_ => runtimeFail, unmatched => expr.matchOn(matched, unmatched))
+  }
+
+  def testMatchCaseTraverse[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
+    val matched = MatchCase.typeMatch[B]("matched")
+    val unmatchedOpt = MatchCase.typeMatch[A]("unmatched").traverse { a =>
+      if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) Some {
+        Expr.quote(Expr.splice(a).asInstanceOf[B])
+      }
+      else None
+    }
+    @scala.annotation.nowarn // TODO: make quote by-name to avoid such errors
+    def runtimeFail: Expr[B] = Expr.quote(???)
+    unmatchedOpt.fold[Expr[B]](runtimeFail) { unmatched =>
+      expr.matchOn(matched, unmatched)
+    }
+  }
 
   def testScopeCreateAndUse: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
-
-    // TODO: add traverse here
     val valValue = Scoped.createVal(Expr(1), "a").use { (a: Expr[Int]) =>
       Expr.quote(Expr.splice(a) + 1)
     }
@@ -84,4 +108,5 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
   }
 
   // TODO: test partition
+  // TODO: add traverse here
 }
