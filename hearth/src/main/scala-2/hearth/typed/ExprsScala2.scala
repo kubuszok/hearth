@@ -221,6 +221,15 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       c.Expr[B](q"$toMatch match { case ..$caseTrees }")
     }
 
+    override def partition[A, B, C](matchCase: MatchCase[A])(f: A => Either[B, C]): Either[MatchCase[B], MatchCase[C]] =
+      matchCase match {
+        case TypeMatch(name, expr, result) =>
+          f(result) match {
+            case Left(value)  => Left(TypeMatch(name, expr, value))
+            case Right(value) => Right(TypeMatch(name, expr, value))
+          }
+      }
+
     override val traverse: fp.Traverse[MatchCase] = new fp.Traverse[MatchCase] {
 
       override def traverse[G[_]: fp.Applicative, A, B](fa: MatchCase[A])(f: A => G[B]): G[MatchCase[B]] =

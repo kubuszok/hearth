@@ -2,6 +2,7 @@ package hearth
 package typed
 
 import hearth.fp.Id
+import hearth.fp.data.*
 import scala.collection.immutable.ListMap
 import scala.language.implicitConversions
 
@@ -74,8 +75,8 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
 
     final def directChildren[A: Type]: Option[ListMap[String, ??<:[A]]] =
       UntypedType.fromTyped[A].directChildren.map(m => ListMap.from(m.view.mapValues(_.asTyped[A].as_??<:[A])))
-    final def exhaustiveChildren[A: Type]: Option[ListMap[String, ??<:[A]]] =
-      UntypedType.fromTyped[A].exhaustiveChildren.map(m => ListMap.from(m.view.mapValues(_.asTyped[A].as_??<:[A])))
+    final def exhaustiveChildren[A: Type]: Option[NonEmptyMap[String, ??<:[A]]] =
+      UntypedType.fromTyped[A].exhaustiveChildren.map(m => m.map { case (k, v) => (k, v.asTyped[A].as_??<:[A]) })
 
     final def annotations[A: Type]: List[Expr_??] = UntypedType.fromTyped[A].annotations.map(UntypedExpr.as_??)
 
@@ -258,7 +259,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     def methods: List[Method.Of[A]] = Method.methodsOf(using tpe)
 
     def directChildren: Option[ListMap[String, ??<:[A]]] = Type.directChildren(using tpe)
-    def exhaustiveChildren: Option[ListMap[String, ??<:[A]]] = Type.exhaustiveChildren(using tpe)
+    def exhaustiveChildren: Option[NonEmptyMap[String, ??<:[A]]] = Type.exhaustiveChildren(using tpe)
 
     def annotations: List[Expr_??] = Type.annotations(using tpe)
 

@@ -1,6 +1,7 @@
 package hearth.untyped
 
 import hearth.MacroCommons
+import hearth.fp.data.*
 import scala.collection.immutable.ListMap
 
 trait UntypedTypes { this: MacroCommons =>
@@ -108,17 +109,18 @@ trait UntypedTypes { this: MacroCommons =>
     def isSameAs(a: UntypedType, b: UntypedType): Boolean
 
     def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]]
-    final def exhaustiveChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
+    final def exhaustiveChildren(instanceTpe: UntypedType): Option[NonEmptyMap[String, UntypedType]] =
       directChildren(instanceTpe)
         .flatMap(_.foldLeft[Option[Vector[(String, UntypedType)]]](Some(Vector.empty)) {
-          case (None, _)                                                                  => None
-          case (Some(list), (_, subtype)) if subtype.isSealed && !subtype.isJavaEnumValue =>
-            exhaustiveChildren(subtype).map(list ++ _)
+          case (None, _)                                                                    => None
+          case (Some(vector), (_, subtype)) if subtype.isSealed && !subtype.isJavaEnumValue =>
+            exhaustiveChildren(subtype).map(vector ++ _.toVector)
           case (_, (_, subtype)) if subtype.isAbstract => None
-          case (Some(list), nameSubtype)               => Some(list :+ nameSubtype)
+          case (Some(vector), nameSubtype)             => Some(vector :+ nameSubtype)
         })
         .map(_.filter(_._2 <:< instanceTpe)) // TODO: handle it somehow for GADT in abstract type context
         .map(ListMap.from(_))
+        .flatMap(NonEmptyMap.fromListMap(_))
 
     def annotations(untyped: UntypedType): List[UntypedExpr]
 
@@ -173,7 +175,7 @@ trait UntypedTypes { this: MacroCommons =>
     def methods: List[UntypedMethod] = UntypedMethod.methods(untyped)
 
     def directChildren: Option[ListMap[String, UntypedType]] = UntypedType.directChildren(untyped)
-    def exhaustiveChildren: Option[ListMap[String, UntypedType]] = UntypedType.exhaustiveChildren(untyped)
+    def exhaustiveChildren: Option[NonEmptyMap[String, UntypedType]] = UntypedType.exhaustiveChildren(untyped)
     def defaultValue(param: UntypedParameter): Option[UntypedExpr] = UntypedExpr.defaultValue(untyped)(param)
 
     def annotations: List[UntypedExpr] = UntypedType.annotations(untyped)
