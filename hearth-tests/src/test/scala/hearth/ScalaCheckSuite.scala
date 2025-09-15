@@ -5,6 +5,7 @@ import org.scalacheck.util.Pretty
 import org.scalacheck.rng.Seed
 import munit.{FailException, FailExceptionLike, Location, TestOptions}
 
+import scala.collection.immutable.ListMap
 import scala.util.{Failure, Success, Try}
 import scala.language.implicitConversions
 
@@ -168,13 +169,19 @@ trait ScalaCheckSuite extends Suite {
   implicit def ArbitraryForNonEmptyVector[A: Arbitrary]: Arbitrary[hearth.fp.data.NonEmptyVector[A]] = Arbitrary(
     Gen.nonEmptyListOf(Arbitrary.arbitrary[A]).map(_.toVector).map(hearth.fp.data.NonEmptyVector.fromVector(_).get)
   )
+  implicit def ArbitraryForNonEmptyMap[K: Arbitrary, V: Arbitrary]: Arbitrary[hearth.fp.data.NonEmptyMap[K, V]] =
+    Arbitrary(
+      Gen
+        .nonEmptyListOf(Gen.zip(Arbitrary.arbitrary[K], Arbitrary.arbitrary[V]))
+        .map(l => hearth.fp.data.NonEmptyMap.fromListMap(ListMap.from(l)).get)
+    )
   implicit def ArbitraryForMEval[A: Arbitrary]: Arbitrary[hearth.fp.effect.MEval[A]] = Arbitrary(
     Gen.const(hearth.fp.effect.MEval.pure(Arbitrary.arbitrary[A].sample.get))
   )
   implicit def ArbitraryForMIO[A: Arbitrary]: Arbitrary[hearth.fp.effect.MIO[A]] = Arbitrary(
     Gen.oneOf(
-      Gen.const(hearth.fp.effect.MIO.pure(Arbitrary.arbitrary[A].sample.get)),
-      Gen.const(hearth.fp.effect.MIO.fail(ExampleError(Arbitrary.arbitrary[String].sample.get)))
+      Arbitrary.arbitrary[A].map(hearth.fp.effect.MIO.pure(_)),
+      Arbitrary.arbitrary[String].map(e => hearth.fp.effect.MIO.fail(ExampleError(e)))
     )
   )
   case class ExampleError(message: String) extends Throwable(message)

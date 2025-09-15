@@ -266,9 +266,17 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     def matchOn[A: Type, B: Type](toMatch: Expr[A])(cases: NonEmptyVector[MatchCase[Expr[B]]]): Expr[B]
 
+    def partition[A, B, C](matchCase: MatchCase[A])(f: A => Either[B, C]): Either[MatchCase[B], MatchCase[C]]
+
     def traverse: fp.Traverse[MatchCase]
   }
   implicit val MatchCaseTraverse: fp.Traverse[MatchCase] = MatchCase.traverse
+
+  implicit final class MatchCaseMethods[A](private val matchCase: MatchCase[A]) {
+
+    def partition[B, C](f: A => Either[B, C]): Either[MatchCase[B], MatchCase[C]] =
+      MatchCase.partition(matchCase)(f)
+  }
 
   implicit final class MatchClauseMethods[A: Type](private val toMatch: Expr[A]) {
 

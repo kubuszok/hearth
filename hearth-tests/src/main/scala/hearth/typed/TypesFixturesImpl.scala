@@ -35,7 +35,7 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
         .getOrElse(Data("<no direct children>")),
       "Type.exhaustiveChildren" -> Type
         .exhaustiveChildren[A]
-        .map(children => Data(children.view.mapValues(value => Data(value.plainPrint)).toMap))
+        .map(children => Data(children.toListMap.view.mapValues(value => Data(value.plainPrint)).toMap))
         .getOrElse(Data("<no exhaustive children>"))
     )
   )

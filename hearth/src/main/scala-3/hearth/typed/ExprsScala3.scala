@@ -333,6 +333,15 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       Match(uncheckedToMatch.asTerm, caseTrees).asExprOf[B]
     }
 
+    override def partition[A, B, C](matchCase: MatchCase[A])(f: A => Either[B, C]): Either[MatchCase[B], MatchCase[C]] =
+      matchCase match {
+        case TypeMatch(name, expr, result) =>
+          f(result) match {
+            case Left(value)  => Left(TypeMatch(name, expr, value))
+            case Right(value) => Right(TypeMatch(name, expr, value))
+          }
+      }
+
     override val traverse: fp.Traverse[MatchCase] = new fp.Traverse[MatchCase] {
 
       override def traverse[G[_]: fp.Applicative, A, B](fa: MatchCase[A])(f: A => G[B]): G[MatchCase[B]] =

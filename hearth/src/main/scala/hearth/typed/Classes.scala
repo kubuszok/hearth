@@ -2,7 +2,7 @@ package hearth
 package typed
 
 import hearth.fp.{DirectStyle, Parallel}
-import hearth.fp.data.NonEmptyList
+import hearth.fp.data.*
 import hearth.fp.instances.*
 import hearth.fp.syntax.*
 
@@ -121,7 +121,7 @@ trait Classes { this: MacroCommons =>
       val directChildren: ListMap[String, ??<:[A]]
   ) extends Class[A]()(using tpe0) {
 
-    lazy val exhaustiveChildren: Option[ListMap[String, ??<:[A]]] = tpe.exhaustiveChildren
+    lazy val exhaustiveChildren: Option[NonEmptyMap[String, ??<:[A]]] = tpe.exhaustiveChildren
 
     def matchOn[F[_]: DirectStyle: Parallel, B: Type](
         value: Expr[A]
