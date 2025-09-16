@@ -52,4 +52,16 @@ object ExprsFixtures {
   inline def testLambdaBuilderOfNAndBuild: Data = ${ testLambdaBuilderOfNAndBuildImpl }
   private def testLambdaBuilderOfNAndBuildImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testLambdaBuilderOfNAndBuild
+
+  inline def testLambdaBuilderBuildWith: Data = ${ testLambdaBuilderBuildWithImpl }
+  private def testLambdaBuilderBuildWithImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderBuildWith
+
+  inline def testLambdaBuilderPartition[A](inline expr: A): Data = ${ testLambdaBuilderPartitionImpl[A]('{ expr }) }
+  private def testLambdaBuilderPartitionImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderPartition[A](expr)
+
+  inline def testLambdaBuilderTraverse[A](inline expr: A): Data = ${ testLambdaBuilderTraverseImpl[A]('{ expr }) }
+  private def testLambdaBuilderTraverseImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderTraverse[A](expr)
 }

@@ -704,11 +704,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V])]
     // format: on
 
+    def build[From[_], To: Type](builder: LambdaBuilder[From, Expr[To]]): Expr[From[To]]
+
     def partition[From[_], A, B, C](promise: LambdaBuilder[From, A])(
         f: A => Either[B, C]
     ): Either[LambdaBuilder[From, B], LambdaBuilder[From, C]]
-
-    def build[From[_], To: Type](builder: LambdaBuilder[From, Expr[To]]): Expr[From[To]]
 
     def traverse[From[_]]: fp.Traverse[LambdaBuilder[From, *]]
   }

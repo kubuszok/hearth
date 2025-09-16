@@ -131,7 +131,7 @@ final class ExprsSpec extends MacroSuite {
 
     group("type LambdaBuilder") {
 
-      test("methods LambdaBuilder.{of1, of2, ..., of21, of22, buildWith} should allow building a lambda") {
+      test("methods LambdaBuilder.{of1, of2, ..., of21, of22, build} should allow building a lambda") {
         import ExprsFixtures.testLambdaBuilderOfNAndBuild
 
         testLambdaBuilderOfNAndBuild ==> Data.map(
@@ -164,6 +164,24 @@ final class ExprsSpec extends MacroSuite {
             2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 * 67 * 71 * 73 * 79 + 1
           )
         )
+      }
+
+      test("methods LambdaBuilder.buildWith should allow building a lambda") {
+        import ExprsFixtures.testLambdaBuilderBuildWith
+
+        testLambdaBuilderBuildWith ==> Data(2 + 1)
+      }
+
+      test("methods LambdaBuilder.partition should allow branching LambdaBuilder in a macro") {
+        import ExprsFixtures.testLambdaBuilderPartition
+
+        testLambdaBuilderPartition[Int](5) ==> Data(5 + 2)
+      }
+
+      test("methods LambdaBuilder.traverse should allow traversing LambdaBuilder in a macro") {
+        import ExprsFixtures.testLambdaBuilderTraverse
+
+        testLambdaBuilderTraverse[Int](5) ==> Data(5 + 2)
       }
     }
   }

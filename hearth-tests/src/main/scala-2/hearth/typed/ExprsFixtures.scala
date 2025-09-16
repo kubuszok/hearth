@@ -36,6 +36,14 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
     testScopeTraverseAndClose[A, B](expr)
 
   def testLambdaBuilderOfNAndBuildImpl: c.Expr[Data] = testLambdaBuilderOfNAndBuild
+
+  def testLambdaBuilderBuildWithImpl: c.Expr[Data] = testLambdaBuilderBuildWith
+
+  def testLambdaBuilderPartitionImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testLambdaBuilderPartition[A](expr)
+
+  def testLambdaBuilderTraverseImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testLambdaBuilderTraverse[A](expr)
 }
 
 object ExprsFixtures {
@@ -61,4 +69,10 @@ object ExprsFixtures {
   def testScopeTraverseAndClose[A, B](expr: A): B = macro ExprsFixtures.testScopeTraverseAndCloseImpl[A, B]
 
   def testLambdaBuilderOfNAndBuild: Data = macro ExprsFixtures.testLambdaBuilderOfNAndBuildImpl
+
+  def testLambdaBuilderBuildWith: Data = macro ExprsFixtures.testLambdaBuilderBuildWithImpl
+
+  def testLambdaBuilderPartition[A](expr: A): Data = macro ExprsFixtures.testLambdaBuilderPartitionImpl[A]
+
+  def testLambdaBuilderTraverse[A](expr: A): Data = macro ExprsFixtures.testLambdaBuilderTraverseImpl[A]
 }
