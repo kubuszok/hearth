@@ -45,6 +45,13 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         def bind[A: Type](freshName: FreshName, flags: Flags): Symbol =
           Symbol.newBind(Symbol.spliceOwner, apply[A](freshName, null), flags, TypeRepr.of[A])
 
+        def defdef[A: Type](freshName: FreshName, expr: Expr[A]): Symbol =
+          Symbol.newMethod(
+            Symbol.spliceOwner,
+            apply[A](freshName, expr),
+            MethodType(Nil)(_ => Nil, _ => TypeRepr.of[A])
+          )
+
         def valdef[A: Type](freshName: FreshName, expr: Expr[A], flags: Flags): Symbol =
           Symbol.newVal(Symbol.spliceOwner, apply[A](freshName, expr), TypeRepr.of[A], flags, Symbol.noSymbol)
 
@@ -379,10 +386,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       new Scoped[Expr[A]](NonEmptyVector.one(ValDef(name, Some(value.asTerm.changeOwner(name)))), Ref(name).asExprOf[A])
     }
     override def createDef[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): Scoped[Expr[A]] = {
-      val name = freshTerm.valdef[A](freshName, value, Flags.EmptyFlags)
+      val name = freshTerm.defdef[A](freshName, value)
       new Scoped[Expr[A]](
         NonEmptyVector.one(DefDef(name, _ => Some(value.asTerm.changeOwner(name)))),
-        Ref(name).asExprOf[A]
+        Ref(name).appliedToArgss(List(Nil)).asExprOf[A]
       )
     }
 

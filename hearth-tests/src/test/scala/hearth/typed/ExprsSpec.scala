@@ -64,5 +64,69 @@ final class ExprsSpec extends MacroSuite {
         testSuppressUnused(expr)
       }
     }
+
+    group("type MatchCase") {
+
+      test("method MatchCase.matchType should allow pattern-matching by the type") {
+        import ExprsFixtures.testMatchCaseTypeMatch
+
+        def expand(example: examples.enums.ExampleSealedTrait): Data = testMatchCaseTypeMatch(example)
+
+        expand(examples.enums.ExampleSealedTrait.ExampleSealedTraitClass(1)) <==> Data.map(
+          "name" -> Data("ExampleSealedTraitClass"),
+          "type" -> Data("hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitClass"),
+          "matchCase" -> Data("examplesealedtraitclass")
+        )
+        expand(examples.enums.ExampleSealedTrait.ExampleSealedTraitObject) <==> Data.map(
+          "name" -> Data("ExampleSealedTraitObject"),
+          "type" -> Data("hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type"),
+          "matchCase" -> Data("examplesealedtraitobject")
+        )
+      }
+
+      test("method MatchCase.partition should allow branching MatchCase in a macro") {
+        import ExprsFixtures.testMatchCasePartition
+
+        // Tests whether the result build using these methods compiles
+        @scala.annotation.nowarn // suppress "unreachable code" error
+        def run = testMatchCasePartition[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
+        run
+      }
+
+      test("method MatchCase.traverse should allow traversing MatchCase in a macro") {
+        import ExprsFixtures.testMatchCaseTraverse
+
+        // Tests whether the result build using these methods compiles
+        @scala.annotation.nowarn // suppress "unreachable code" error
+        def run = testMatchCaseTraverse[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
+        run
+      }
+    }
+
+    group("type Scoped") {
+
+      test(
+        "methods Scoped.{createVal, createVar, createLazy, createDef, use} should create a scoped block with a definition, and allow using it"
+      ) {
+        import ExprsFixtures.testScopeCreateAndUse
+
+        // Tests whether the result build using these methods compiles and correct
+        testScopeCreateAndUse ==> Data(2 + 20 + 300 + 4000)
+      }
+
+      test("methods Scoped.{partition, close} should allow branching and closing a scoped block") {
+        import ExprsFixtures.testScopePartitionAndClose
+
+        // Tests whether the result build using these methods compiles and correct
+        testScopePartitionAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
+      }
+
+      test("methods Scoped.{traverse, close} should allow traversing and closing a scoped block") {
+        import ExprsFixtures.testScopeTraverseAndClose
+
+        // Tests whether the result build using these methods compiles and correct
+        testScopeTraverseAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
+      }
+    }
   }
 }
