@@ -128,5 +128,14 @@ final class ExprsSpec extends MacroSuite {
         testScopeTraverseAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
     }
+
+    group("type LambdaBuilder") {
+
+      test("methods LambdaBuilder.{of1, of2, buildWith} should allow building a lambda") {
+        import ExprsFixtures.testLambdaBuilderOfNAndBuild
+
+        testLambdaBuilderOfNAndBuild ==> Data.map("of1" -> Data(2 + 1), "of2" -> Data(2 * 3 + 1))
+      }
+    }
   }
 }

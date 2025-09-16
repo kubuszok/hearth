@@ -48,4 +48,8 @@ object ExprsFixtures {
   inline def testScopeTraverseAndClose[A, B](inline expr: A): B = ${ testScopeTraverseAndCloseImpl[A, B]('{ expr }) }
   private def testScopeTraverseAndCloseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
     new ExprsFixtures(q).testScopeTraverseAndClose[A, B](expr)
+
+  inline def testLambdaBuilderOfNAndBuild: Data = ${ testLambdaBuilderOfNAndBuildImpl }
+  private def testLambdaBuilderOfNAndBuildImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOfNAndBuild
 }

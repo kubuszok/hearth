@@ -8,6 +8,8 @@ import hearth.fp.syntax.*
 /** Fixtured for testing [[ExprsSpec]]. */
 trait ExprsFixturesImpl { this: MacroTypedCommons =>
 
+  // Expr methods
+
   def testExprPrinters[A: Type](expr: Expr[A]): Expr[Data] = Expr(
     Data.map(
       "Expr.plainPrint" -> Data(Expr.plainPrint(expr)),
@@ -32,8 +34,7 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
   def testSuppressUnused[A: Type](expr: Expr[A]): Expr[Unit] =
     Expr.suppressUnused(expr)
 
-  private val IntType = Type.of[Int]
-  private val DataType = Type.of[Data]
+  // MatchCase methods
 
   def testMatchCaseTypeMatch[A: Type](expr: Expr[A]): Expr[Data] = {
     implicit val dataType: Type[Data] = DataType
@@ -84,6 +85,8 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
     }
   }
 
+  // Scoped methods
+
   def testScopeCreateAndUse: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
     val valValue = Scoped.createVal(Expr(1), "a").use { (a: Expr[Int]) =>
@@ -130,4 +133,43 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
     def runtimeFail: Expr[B] = Expr.quote(???)
     defValue.fold[Expr[B]](runtimeFail)(_.close)
   }
+
+  // LambdaBuilder methods
+
+  def testLambdaBuilderOfNAndBuild: Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+    val lambda1 = LambdaBuilder
+      .of1[Int]("a")
+      .map { case (a) =>
+        Expr.quote(Expr.splice(a) + 1)
+      }
+      .build
+    val lambda2 = LambdaBuilder
+      .of2[Int, Int]("a", "b")
+      .map { case ((a, b)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) + 1)
+      }
+      .build
+    Expr.quote {
+      Data.map(
+        "of1" -> Data(Expr.splice(lambda1)(2)),
+        "of2" -> Data(Expr.splice(lambda2)(2, 3))
+      )
+    }
+  }
+
+  // TODO buildWith
+
+  // TODO partition
+
+  // TODO traverse
+
+  // ExprCodecs
+
+  // TODO
+
+  // types using in fixtures
+
+  private val IntType = Type.of[Int]
+  private val DataType = Type.of[Data]
 }
