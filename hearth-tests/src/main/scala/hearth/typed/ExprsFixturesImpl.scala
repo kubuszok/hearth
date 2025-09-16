@@ -351,6 +351,5 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
   private val DataType = Type.of[Data]
   private val IntFunctionType = Type.of[Int => Int]
 
-  @scala.annotation.nowarn // TODO: make quote by-name to avoid "Unreachable code" errors
   private def runtimeFail[A: Type]: Expr[A] = Expr.quote(???)
 }
