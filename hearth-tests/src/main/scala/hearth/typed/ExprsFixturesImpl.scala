@@ -59,28 +59,24 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
 
   def testMatchCasePartition[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
     val matched = MatchCase.typeMatch[B]("matched")
-    val unmatchedOpt = MatchCase.typeMatch[A]("unmatched").partition { a =>
+    val either = MatchCase.typeMatch[A]("unmatched").partition { a =>
       if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) Right {
         Expr.quote(Expr.splice(a).asInstanceOf[B])
       }
-      else Left("Not supported")
+      else Left(runtimeFail[B])
     }
-    @scala.annotation.nowarn // TODO: make quote by-name to avoid "Unreachable code" errors
-    def runtimeFail: Expr[B] = Expr.quote(???)
-    unmatchedOpt.fold[Expr[B]](_ => runtimeFail, unmatched => expr.matchOn(matched, unmatched))
+    either.fold[Expr[B]](throwing => expr.matchOn(matched, throwing), unmatched => expr.matchOn(matched, unmatched))
   }
 
   def testMatchCaseTraverse[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
     val matched = MatchCase.typeMatch[B]("matched")
-    val unmatchedOpt = MatchCase.typeMatch[A]("unmatched").traverse { a =>
+    val option = MatchCase.typeMatch[A]("unmatched").traverse { a =>
       if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) Some {
         Expr.quote(Expr.splice(a).asInstanceOf[B])
       }
       else None
     }
-    @scala.annotation.nowarn // TODO: make quote by-name to avoid "Unreachable code" errors
-    def runtimeFail: Expr[B] = Expr.quote(???)
-    unmatchedOpt.fold[Expr[B]](runtimeFail) { unmatched =>
+    option.fold[Expr[B]](runtimeFail[B]) { unmatched =>
       expr.matchOn(matched, unmatched)
     }
   }
@@ -111,27 +107,23 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
   }
 
   def testScopePartitionAndClose[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
-    val defValue = Scoped.createDef(expr, "a").partition { a =>
+    val either = Scoped.createDef(expr, "a").partition { a =>
       if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) Right {
         Expr.quote(Expr.splice(a).asInstanceOf[B])
       }
-      else Left("Not supported")
+      else Left(runtimeFail[B])
     }
-    @scala.annotation.nowarn // TODO: make quote by-name to avoid "Unreachable code" errors
-    def runtimeFail: Expr[B] = Expr.quote(???)
-    defValue.fold[Expr[B]](_ => runtimeFail, _.close)
+    either.fold[Expr[B]](_.close, _.close)
   }
 
   def testScopeTraverseAndClose[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
-    val defValue = Scoped.createDef(expr, "a").traverse { a =>
+    val option = Scoped.createDef(expr, "a").traverse { a =>
       if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) Some {
         Expr.quote(Expr.splice(a).asInstanceOf[B])
       }
       else None
     }
-    @scala.annotation.nowarn // TODO: make quote by-name to avoid "Unreachable code" errors
-    def runtimeFail: Expr[B] = Expr.quote(???)
-    defValue.fold[Expr[B]](runtimeFail)(_.close)
+    option.fold[Expr[B]](runtimeFail)(_.close)
   }
 
   // LambdaBuilder methods
@@ -306,11 +298,48 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
     }
   }
 
-  // TODO buildWith
+  def testLambdaBuilderBuildWith: Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+    val lambda = LambdaBuilder
+      .of1[Int]("a")
+      .buildWith { case (a) => Expr.quote(Expr.splice(a) + 1) }
+    Expr.quote {
+      Data(Expr.splice(lambda)(2))
+    }
+  }
 
-  // TODO partition
+  def testLambdaBuilderPartition[A: Type](expr: Expr[A]): Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+    val either = LambdaBuilder
+      .of1[Int]("a")
+      .partition { case (a) =>
+        if (Type[A] <:< Type.of[Int]) Right {
+          Expr.quote(Expr.splice(expr.upcast[Int]) + Expr.splice(a))
+        }
+        else Left(runtimeFail[Int])
+      }
+    val lambda = either.fold[Expr[Int => Int]](_.build, _.build)
+    Expr.quote {
+      Data(Expr.splice(lambda)(2))
+    }
+  }
 
-  // TODO traverse
+  def testLambdaBuilderTraverse[A: Type](expr: Expr[A]): Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+    implicit val intFunctionType: Type[Int => Int] = IntFunctionType
+    val option = LambdaBuilder
+      .of1[Int]("a")
+      .traverse { case (a) =>
+        if (Type[A] <:< Type.of[Int]) Some {
+          Expr.quote(Expr.splice(expr.upcast[Int]) + Expr.splice(a))
+        }
+        else None
+      }
+    val lambda = option.fold[Expr[Int => Int]](runtimeFail)(_.build)
+    Expr.quote {
+      Data(Expr.splice(lambda)(2))
+    }
+  }
 
   // ExprCodecs
 
@@ -320,4 +349,8 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
 
   private val IntType = Type.of[Int]
   private val DataType = Type.of[Data]
+  private val IntFunctionType = Type.of[Int => Int]
+
+  @scala.annotation.nowarn // TODO: make quote by-name to avoid "Unreachable code" errors
+  private def runtimeFail[A: Type]: Expr[A] = Expr.quote(???)
 }

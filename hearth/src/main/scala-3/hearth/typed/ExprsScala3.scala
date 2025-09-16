@@ -1994,6 +1994,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     }
     // format: on
 
+    override def build[From[_], To: Type](builder: LambdaBuilder[From, Expr[To]]): Expr[From[To]] =
+      builder.mk(builder.value)
+
     override def partition[From[_], A, B, C](promise: LambdaBuilder[From, A])(
         f: A => Either[B, C]
     ): Either[LambdaBuilder[From, B], LambdaBuilder[From, C]] =
@@ -2001,9 +2004,6 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         case Left(value)  => Left(new LambdaBuilder[From, B](promise.mk, value))
         case Right(value) => Right(new LambdaBuilder[From, C](promise.mk, value))
       }
-
-    override def build[From[_], To: Type](builder: LambdaBuilder[From, Expr[To]]): Expr[From[To]] =
-      builder.mk(builder.value)
 
     override def traverse[From[_]]: fp.Traverse[LambdaBuilder[From, *]] = new fp.Traverse[LambdaBuilder[From, *]] {
 
