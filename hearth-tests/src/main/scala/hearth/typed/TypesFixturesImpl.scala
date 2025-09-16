@@ -6,6 +6,8 @@ import hearth.data.Data
 /** Fixtured for testing [[TypesSpec]] and [[TypedJvmSpec]]. */
 trait TypesFixturesImpl { this: MacroTypedCommons =>
 
+  // Type methods
+
   def testNamesPrinters[A: Type]: Expr[Data] = Expr(
     Data.map(
       "Type.shortName" -> Data(Type.shortName[A]),
@@ -109,8 +111,7 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
     )
   }
 
-  val aStringType = Type.of["a"]
-  val bStringType = Type.of["b"]
+  // TypeCodecs
 
   def testOneWayCodecs: Expr[Data] = {
     def oneWay[A: TypeCodec](value: A): Data = {
@@ -139,4 +140,9 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
       )
     )
   }
+
+  // types using in fixtures
+
+  private val aStringType = Type.of["a"]
+  private val bStringType = Type.of["b"]
 }
