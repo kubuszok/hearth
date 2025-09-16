@@ -138,6 +138,7 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
 
   def testLambdaBuilderOfNAndBuild: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
+    // format: off
     val lambda1 = LambdaBuilder
       .of1[Int]("a")
       .map { case (a) =>
@@ -150,10 +151,157 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
         Expr.quote(Expr.splice(a) * Expr.splice(b) + 1)
       }
       .build
+    val lambda3 = LambdaBuilder
+      .of3[Int, Int, Int]("a", "b", "c")
+      .map { case ((a, b, c)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) + 1)
+      }
+      .build
+    val lambda4 = LambdaBuilder
+      .of4[Int, Int, Int, Int]("a", "b", "c", "d")
+      .map { case ((a, b, c, d)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) + 1)
+      }
+      .build
+    val lambda5 = LambdaBuilder
+      .of5[Int, Int, Int, Int, Int]("a", "b", "c", "d", "e")
+      .map { case ((a, b, c, d, e)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) + 1)
+      }
+      .build
+    val lambda6 = LambdaBuilder
+      .of6[Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f")
+      .map { case ((a, b, c, d, e, f)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) + 1)
+      }
+      .build
+    val lambda7 = LambdaBuilder
+      .of7[Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g")
+      .map { case ((a, b, c, d, e, f, g)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) + 1)
+      }
+      .build
+    val lambda8 = LambdaBuilder
+      .of8[Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h")
+      .map { case ((a, b, c, d, e, f, g, h)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) + 1)
+      }
+      .build
+    val lambda9 = LambdaBuilder
+      .of9[Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i")
+      .map { case ((a, b, c, d, e, f, g, h, i)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) + 1)
+      }
+      .build
+    val lambda10 = LambdaBuilder
+      .of10[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j")
+      .map { case ((a, b, c, d, e, f, g, h, i, j)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) + 1)
+      }
+      .build
+    val lambda11 = LambdaBuilder
+      .of11[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k")
+      .map { case ((a, b, c, d, e, f, g, h, i, j, k)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) + 1)
+      }
+      .build
+    val lambda12 = LambdaBuilder
+      .of12[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l")
+      .map { case ((a, b, c, d, e, f, g, h, i, j, k, l)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) + 1)
+      }
+      .build
+    val lambda13 = LambdaBuilder
+      .of13[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m")
+      .map { case ((a, b, c, d, e, f, g, h, i, j, k, l, m)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) + 1)
+      }
+      .build
+    val lambda14 = LambdaBuilder
+      .of14[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n")
+      .map { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) + 1)
+      }
+      .build
+    val lambda15 = LambdaBuilder
+      .of15[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o")
+      .map { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) + 1)
+      }
+      .build
+    val lambda16 = LambdaBuilder
+      .of16[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p")
+      .map { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) + 1)
+      }
+      .build
+    val lambda17 = LambdaBuilder
+      .of17[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q")
+      .map { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) + 1)
+      }
+      .build
+    val lambda18 = LambdaBuilder
+      .of18[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r")
+      .map { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) + 1)
+      }
+      .build
+    val lambda19 = LambdaBuilder
+      .of19[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s")
+      .map { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) * Expr.splice(s) + 1)
+      }
+      .build
+    val lambda20 = LambdaBuilder
+      .of20[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t")
+      .map { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) * Expr.splice(s) * Expr.splice(t) + 1)
+      }
+      .build
+    val lambda21 = LambdaBuilder
+      .of21[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u")
+      .map { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) * Expr.splice(s) * Expr.splice(t) * Expr.splice(u) + 1)
+      }
+      .build
+    val lambda22 = LambdaBuilder
+      .of22[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v")
+      .map { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v)) =>
+        Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) * Expr.splice(s) * Expr.splice(t) * Expr.splice(u) * Expr.splice(v) + 1)
+      }
+      .build
+    // format: on
     Expr.quote {
       Data.map(
         "of1" -> Data(Expr.splice(lambda1)(2)),
-        "of2" -> Data(Expr.splice(lambda2)(2, 3))
+        "of2" -> Data(Expr.splice(lambda2)(2, 3)),
+        "of3" -> Data(Expr.splice(lambda3)(2, 3, 5)),
+        "of4" -> Data(Expr.splice(lambda4)(2, 3, 5, 7)),
+        "of5" -> Data(Expr.splice(lambda5)(2, 3, 5, 7, 11)),
+        "of6" -> Data(Expr.splice(lambda6)(2, 3, 5, 7, 11, 13)),
+        "of7" -> Data(Expr.splice(lambda7)(2, 3, 5, 7, 11, 13, 17)),
+        "of8" -> Data(Expr.splice(lambda8)(2, 3, 5, 7, 11, 13, 17, 19)),
+        "of9" -> Data(Expr.splice(lambda9)(2, 3, 5, 7, 11, 13, 17, 19, 23)),
+        "of10" -> Data(Expr.splice(lambda10)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29)),
+        "of11" -> Data(Expr.splice(lambda11)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31)),
+        "of12" -> Data(Expr.splice(lambda12)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37)),
+        "of13" -> Data(Expr.splice(lambda13)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41)),
+        "of14" -> Data(Expr.splice(lambda14)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43)),
+        "of15" -> Data(Expr.splice(lambda15)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47)),
+        "of16" -> Data(Expr.splice(lambda16)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53)),
+        "of17" -> Data(Expr.splice(lambda17)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59)),
+        "of18" -> Data(Expr.splice(lambda18)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61)),
+        "of19" -> Data(Expr.splice(lambda19)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67)),
+        "of20" -> Data(
+          Expr.splice(lambda20)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71)
+        ),
+        "of21" -> Data(
+          Expr.splice(lambda21)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73)
+        ),
+        "of22" -> Data(
+          Expr.splice(lambda22)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79)
+        )
       )
     }
   }
