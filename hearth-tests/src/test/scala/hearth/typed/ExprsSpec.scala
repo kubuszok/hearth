@@ -131,10 +131,39 @@ final class ExprsSpec extends MacroSuite {
 
     group("type LambdaBuilder") {
 
-      test("methods LambdaBuilder.{of1, of2, buildWith} should allow building a lambda") {
+      test("methods LambdaBuilder.{of1, of2, ..., of21, of22, buildWith} should allow building a lambda") {
         import ExprsFixtures.testLambdaBuilderOfNAndBuild
 
-        testLambdaBuilderOfNAndBuild ==> Data.map("of1" -> Data(2 + 1), "of2" -> Data(2 * 3 + 1))
+        testLambdaBuilderOfNAndBuild ==> Data.map(
+          "of1" -> Data(2 + 1),
+          "of2" -> Data(2 * 3 + 1),
+          "of3" -> Data(2 * 3 * 5 + 1),
+          "of4" -> Data(2 * 3 * 5 * 7 + 1),
+          "of5" -> Data(2 * 3 * 5 * 7 * 11 + 1),
+          "of6" -> Data(2 * 3 * 5 * 7 * 11 * 13 + 1),
+          "of7" -> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 + 1),
+          "of8" -> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 + 1),
+          "of9" -> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 + 1),
+          "of10" -> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 + 1),
+          "of11" -> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 + 1),
+          "of12" -> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 + 1),
+          "of13" -> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 + 1),
+          "of14" -> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 + 1),
+          "of15" -> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 + 1),
+          "of16" -> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 + 1),
+          "of17" -> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 + 1),
+          "of18" -> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 + 1),
+          "of19" -> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 * 67 + 1),
+          "of20" -> Data(
+            2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 * 67 * 71 + 1
+          ),
+          "of21" -> Data(
+            2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 * 67 * 71 * 73 + 1
+          ),
+          "of22" -> Data(
+            2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 * 67 * 71 * 73 * 79 + 1
+          )
+        )
       }
     }
   }

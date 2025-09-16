@@ -421,6 +421,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       def apply[To: Type](body: Expr[To]): Expr[From[To]]
     }
 
+    // format: off
     override def of1[A: Type](
         freshA: FreshName = FreshName.FromType
     ): LambdaBuilder[A => *, Expr[A]] = {
@@ -472,6 +473,1526 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         (a1Expr, b1Expr)
       )
     }
+    def of3[A: Type, B: Type, C: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C) => *, (Expr[A], Expr[B], Expr[C])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      new LambdaBuilder[(A, B, C) => *, (Expr[A], Expr[B], Expr[C])](
+        new Mk[(A, B, C) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C) => ${ mkBody('a, 'b, 'c) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr)
+      )
+    }
+    def of4[A: Type, B: Type, C: Type, D: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D) => *, (Expr[A], Expr[B], Expr[C], Expr[D])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val d1Expr = Ref(d1).asExprOf[D]
+      new LambdaBuilder[(A, B, C, D) => *, (Expr[A], Expr[B], Expr[C], Expr[D])](
+        new Mk[(A, B, C, D) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D) => ${ mkBody('a, 'b, 'c, 'd) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr)
+      )
+    }
+    def of5[A: Type, B: Type, C: Type, D: Type, E: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val e1Expr = Ref(e1).asExprOf[E]
+      new LambdaBuilder[(A, B, C, D, E) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E])](
+        new Mk[(A, B, C, D, E) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E) => ${ mkBody('a, 'b, 'c, 'd, 'e) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr)
+      )
+    }
+    def of6[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val f1Expr = Ref(f1).asExprOf[F]
+      new LambdaBuilder[(A, B, C, D, E, F) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F])](
+        new Mk[(A, B, C, D, E, F) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr)
+      )
+    }
+    def of7[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val g1Expr = Ref(g1).asExprOf[G]
+      new LambdaBuilder[(A, B, C, D, E, F, G) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G])](
+        new Mk[(A, B, C, D, E, F, G) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr)
+      )
+    }
+    def of8[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val h1Expr = Ref(h1).asExprOf[H]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H])](
+        new Mk[(A, B, C, D, E, F, G, H) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr)
+      )
+    }
+    def of9[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H, I) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val h1Expr = Ref(h1).asExprOf[H]
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val i1Expr = Ref(i1).asExprOf[I]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H, I) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I])](
+        new Mk[(A, B, C, D, E, F, G, H, I) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm,
+                ValDef(i1, Some(i.asTerm)),
+                '{ val _ = $i1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr, i1Expr)
+      )
+    }
+    def of10[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val h1Expr = Ref(h1).asExprOf[H]
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val i1Expr = Ref(i1).asExprOf[I]
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val j1Expr = Ref(j1).asExprOf[J]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J])](
+        new Mk[(A, B, C, D, E, F, G, H, I, J) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm,
+                ValDef(i1, Some(i.asTerm)),
+                '{ val _ = $i1Expr }.asTerm,
+                ValDef(j1, Some(j.asTerm)),
+                '{ val _ = $j1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr, i1Expr, j1Expr)
+      )
+    }
+    def of11[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val h1Expr = Ref(h1).asExprOf[H]
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val i1Expr = Ref(i1).asExprOf[I]
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val j1Expr = Ref(j1).asExprOf[J]
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val k1Expr = Ref(k1).asExprOf[K]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K])](
+        new Mk[(A, B, C, D, E, F, G, H, I, J, K) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm,
+                ValDef(i1, Some(i.asTerm)),
+                '{ val _ = $i1Expr }.asTerm,
+                ValDef(j1, Some(j.asTerm)),
+                '{ val _ = $j1Expr }.asTerm,
+                ValDef(k1, Some(k.asTerm)),
+                '{ val _ = $k1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr, i1Expr, j1Expr, k1Expr)
+      )
+    }
+    def of12[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val h1Expr = Ref(h1).asExprOf[H]
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val i1Expr = Ref(i1).asExprOf[I]
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val j1Expr = Ref(j1).asExprOf[J]
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val k1Expr = Ref(k1).asExprOf[K]
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val l1Expr = Ref(l1).asExprOf[L]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L])](
+        new Mk[(A, B, C, D, E, F, G, H, I, J, K, L) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm,
+                ValDef(i1, Some(i.asTerm)),
+                '{ val _ = $i1Expr }.asTerm,
+                ValDef(j1, Some(j.asTerm)),
+                '{ val _ = $j1Expr }.asTerm,
+                ValDef(k1, Some(k.asTerm)),
+                '{ val _ = $k1Expr }.asTerm,
+                ValDef(l1, Some(l.asTerm)),
+                '{ val _ = $l1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr, i1Expr, j1Expr, k1Expr, l1Expr)
+      )
+    }
+    def of13[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val h1Expr = Ref(h1).asExprOf[H]
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val i1Expr = Ref(i1).asExprOf[I]
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val j1Expr = Ref(j1).asExprOf[J]
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val k1Expr = Ref(k1).asExprOf[K]
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val l1Expr = Ref(l1).asExprOf[L]
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val m1Expr = Ref(m1).asExprOf[M]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M])](
+        new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm,
+                ValDef(i1, Some(i.asTerm)),
+                '{ val _ = $i1Expr }.asTerm,
+                ValDef(j1, Some(j.asTerm)),
+                '{ val _ = $j1Expr }.asTerm,
+                ValDef(k1, Some(k.asTerm)),
+                '{ val _ = $k1Expr }.asTerm,
+                ValDef(l1, Some(l.asTerm)),
+                '{ val _ = $l1Expr }.asTerm,
+                ValDef(m1, Some(m.asTerm)),
+                '{ val _ = $m1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr, i1Expr, j1Expr, k1Expr, l1Expr, m1Expr)
+      )
+    }
+    def of14[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType,
+        freshN: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val h1Expr = Ref(h1).asExprOf[H]
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val i1Expr = Ref(i1).asExprOf[I]
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val j1Expr = Ref(j1).asExprOf[J]
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val k1Expr = Ref(k1).asExprOf[K]
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val l1Expr = Ref(l1).asExprOf[L]
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val m1Expr = Ref(m1).asExprOf[M]
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val n1Expr = Ref(n1).asExprOf[N]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N])](
+        new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm,
+                ValDef(i1, Some(i.asTerm)),
+                '{ val _ = $i1Expr }.asTerm,
+                ValDef(j1, Some(j.asTerm)),
+                '{ val _ = $j1Expr }.asTerm,
+                ValDef(k1, Some(k.asTerm)),
+                '{ val _ = $k1Expr }.asTerm,
+                ValDef(l1, Some(l.asTerm)),
+                '{ val _ = $l1Expr }.asTerm,
+                ValDef(m1, Some(m.asTerm)),
+                '{ val _ = $m1Expr }.asTerm,
+                ValDef(n1, Some(n.asTerm)),
+                '{ val _ = $n1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr, i1Expr, j1Expr, k1Expr, l1Expr, m1Expr, n1Expr)
+      )
+    }
+    def of15[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType,
+        freshN: FreshName = FreshName.FromType,
+        freshO: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val h1Expr = Ref(h1).asExprOf[H]
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val i1Expr = Ref(i1).asExprOf[I]
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val j1Expr = Ref(j1).asExprOf[J]
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val k1Expr = Ref(k1).asExprOf[K]
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val l1Expr = Ref(l1).asExprOf[L]
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val m1Expr = Ref(m1).asExprOf[M]
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val n1Expr = Ref(n1).asExprOf[N]
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val o1Expr = Ref(o1).asExprOf[O]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O])](
+        new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm,
+                ValDef(i1, Some(i.asTerm)),
+                '{ val _ = $i1Expr }.asTerm,
+                ValDef(j1, Some(j.asTerm)),
+                '{ val _ = $j1Expr }.asTerm,
+                ValDef(k1, Some(k.asTerm)),
+                '{ val _ = $k1Expr }.asTerm,
+                ValDef(l1, Some(l.asTerm)),
+                '{ val _ = $l1Expr }.asTerm,
+                ValDef(m1, Some(m.asTerm)),
+                '{ val _ = $m1Expr }.asTerm,
+                ValDef(n1, Some(n.asTerm)),
+                '{ val _ = $n1Expr }.asTerm,
+                ValDef(o1, Some(o.asTerm)),
+                '{ val _ = $o1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr, i1Expr, j1Expr, k1Expr, l1Expr, m1Expr, n1Expr, o1Expr)
+      )
+    }
+    def of16[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType,
+        freshN: FreshName = FreshName.FromType,
+        freshO: FreshName = FreshName.FromType,
+        freshP: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val h1Expr = Ref(h1).asExprOf[H]
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val i1Expr = Ref(i1).asExprOf[I]
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val j1Expr = Ref(j1).asExprOf[J]
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val k1Expr = Ref(k1).asExprOf[K]
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val l1Expr = Ref(l1).asExprOf[L]
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val m1Expr = Ref(m1).asExprOf[M]
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val n1Expr = Ref(n1).asExprOf[N]
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val o1Expr = Ref(o1).asExprOf[O]
+      val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags)
+      val p1Expr = Ref(p1).asExprOf[P]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P])](
+        new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm,
+                ValDef(i1, Some(i.asTerm)),
+                '{ val _ = $i1Expr }.asTerm,
+                ValDef(j1, Some(j.asTerm)),
+                '{ val _ = $j1Expr }.asTerm,
+                ValDef(k1, Some(k.asTerm)),
+                '{ val _ = $k1Expr }.asTerm,
+                ValDef(l1, Some(l.asTerm)),
+                '{ val _ = $l1Expr }.asTerm,
+                ValDef(m1, Some(m.asTerm)),
+                '{ val _ = $m1Expr }.asTerm,
+                ValDef(n1, Some(n.asTerm)),
+                '{ val _ = $n1Expr }.asTerm,
+                ValDef(o1, Some(o.asTerm)),
+                '{ val _ = $o1Expr }.asTerm,
+                ValDef(p1, Some(p.asTerm)),
+                '{ val _ = $p1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr, i1Expr, j1Expr, k1Expr, l1Expr, m1Expr, n1Expr, o1Expr, p1Expr)
+      )
+    }
+    def of17[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type](
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType,
+        freshN: FreshName = FreshName.FromType,
+        freshO: FreshName = FreshName.FromType,
+        freshP: FreshName = FreshName.FromType,
+        freshQ: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val h1Expr = Ref(h1).asExprOf[H]
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val i1Expr = Ref(i1).asExprOf[I]
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val j1Expr = Ref(j1).asExprOf[J]
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val k1Expr = Ref(k1).asExprOf[K]
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val l1Expr = Ref(l1).asExprOf[L]
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val m1Expr = Ref(m1).asExprOf[M]
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val n1Expr = Ref(n1).asExprOf[N]
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val o1Expr = Ref(o1).asExprOf[O]
+      val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags)
+      val p1Expr = Ref(p1).asExprOf[P]
+      val q1 = freshTerm.valdef[Q](freshQ, null, Flags.EmptyFlags)
+      val q1Expr = Ref(q1).asExprOf[Q]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q])](
+        new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm,
+                ValDef(i1, Some(i.asTerm)),
+                '{ val _ = $i1Expr }.asTerm,
+                ValDef(j1, Some(j.asTerm)),
+                '{ val _ = $j1Expr }.asTerm,
+                ValDef(k1, Some(k.asTerm)),
+                '{ val _ = $k1Expr }.asTerm,
+                ValDef(l1, Some(l.asTerm)),
+                '{ val _ = $l1Expr }.asTerm,
+                ValDef(m1, Some(m.asTerm)),
+                '{ val _ = $m1Expr }.asTerm,
+                ValDef(n1, Some(n.asTerm)),
+                '{ val _ = $n1Expr }.asTerm,
+                ValDef(o1, Some(o.asTerm)),
+                '{ val _ = $o1Expr }.asTerm,
+                ValDef(p1, Some(p.asTerm)),
+                '{ val _ = $p1Expr }.asTerm,
+                ValDef(q1, Some(q.asTerm)),
+                '{ val _ = $q1Expr }.asTerm
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr, i1Expr, j1Expr, k1Expr, l1Expr, m1Expr, n1Expr, o1Expr, p1Expr, q1Expr)
+      )
+    }
+    def of18[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type](
+        freshA: FreshName = FreshName.FromType, freshB: FreshName = FreshName.FromType, freshC: FreshName = FreshName.FromType, freshD: FreshName = FreshName.FromType, freshE: FreshName = FreshName.FromType, freshF: FreshName = FreshName.FromType, freshG: FreshName = FreshName.FromType, freshH: FreshName = FreshName.FromType, freshI: FreshName = FreshName.FromType, freshJ: FreshName = FreshName.FromType, freshK: FreshName = FreshName.FromType, freshL: FreshName = FreshName.FromType, freshM: FreshName = FreshName.FromType, freshN: FreshName = FreshName.FromType, freshO: FreshName = FreshName.FromType, freshP: FreshName = FreshName.FromType, freshQ: FreshName = FreshName.FromType, freshR: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags)
+      val q1 = freshTerm.valdef[Q](freshQ, null, Flags.EmptyFlags)
+      val r1 = freshTerm.valdef[R](freshR, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1Expr = Ref(h1).asExprOf[H]
+      val i1Expr = Ref(i1).asExprOf[I]
+      val j1Expr = Ref(j1).asExprOf[J]
+      val k1Expr = Ref(k1).asExprOf[K]
+      val l1Expr = Ref(l1).asExprOf[L]
+      val m1Expr = Ref(m1).asExprOf[M]
+      val n1Expr = Ref(n1).asExprOf[N]
+      val o1Expr = Ref(o1).asExprOf[O]
+      val p1Expr = Ref(p1).asExprOf[P]
+      val q1Expr = Ref(q1).asExprOf[Q]
+      val r1Expr = Ref(r1).asExprOf[R]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R])](
+        new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm,
+                ValDef(i1, Some(i.asTerm)),
+                '{ val _ = $i1Expr }.asTerm,
+                ValDef(j1, Some(j.asTerm)),
+                '{ val _ = $j1Expr }.asTerm,
+                ValDef(k1, Some(k.asTerm)),
+                '{ val _ = $k1Expr }.asTerm,
+                ValDef(l1, Some(l.asTerm)),
+                '{ val _ = $l1Expr }.asTerm,
+                ValDef(m1, Some(m.asTerm)),
+                '{ val _ = $m1Expr }.asTerm,
+                ValDef(n1, Some(n.asTerm)),
+                '{ val _ = $n1Expr }.asTerm,
+                ValDef(o1, Some(o.asTerm)),
+                '{ val _ = $o1Expr }.asTerm,
+                ValDef(p1, Some(p.asTerm)),
+                '{ val _ = $p1Expr }.asTerm,
+                ValDef(q1, Some(q.asTerm)),
+                '{ val _ = $q1Expr }.asTerm,
+                ValDef(r1, Some(r.asTerm)),
+                '{ val _ = $r1Expr }.asTerm,
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr, i1Expr, j1Expr, k1Expr, l1Expr, m1Expr, n1Expr, o1Expr, p1Expr, q1Expr, r1Expr)
+      )
+    }
+
+    def of19[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type](
+        freshA: FreshName = FreshName.FromType, freshB: FreshName = FreshName.FromType, freshC: FreshName = FreshName.FromType, freshD: FreshName = FreshName.FromType, freshE: FreshName = FreshName.FromType, freshF: FreshName = FreshName.FromType, freshG: FreshName = FreshName.FromType, freshH: FreshName = FreshName.FromType, freshI: FreshName = FreshName.FromType, freshJ: FreshName = FreshName.FromType, freshK: FreshName = FreshName.FromType, freshL: FreshName = FreshName.FromType, freshM: FreshName = FreshName.FromType, freshN: FreshName = FreshName.FromType, freshO: FreshName = FreshName.FromType, freshP: FreshName = FreshName.FromType, freshQ: FreshName = FreshName.FromType, freshR: FreshName = FreshName.FromType, freshS: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags)
+      val q1 = freshTerm.valdef[Q](freshQ, null, Flags.EmptyFlags)
+      val r1 = freshTerm.valdef[R](freshR, null, Flags.EmptyFlags)
+      val s1 = freshTerm.valdef[S](freshS, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1Expr = Ref(h1).asExprOf[H]
+      val i1Expr = Ref(i1).asExprOf[I]
+      val j1Expr = Ref(j1).asExprOf[J]
+      val k1Expr = Ref(k1).asExprOf[K]
+      val l1Expr = Ref(l1).asExprOf[L]
+      val m1Expr = Ref(m1).asExprOf[M]
+      val n1Expr = Ref(n1).asExprOf[N]
+      val o1Expr = Ref(o1).asExprOf[O]
+      val p1Expr = Ref(p1).asExprOf[P]
+      val q1Expr = Ref(q1).asExprOf[Q]
+      val r1Expr = Ref(r1).asExprOf[R]
+      val s1Expr = Ref(s1).asExprOf[S]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S])](
+        new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm,
+                ValDef(i1, Some(i.asTerm)),
+                '{ val _ = $i1Expr }.asTerm,
+                ValDef(j1, Some(j.asTerm)),
+                '{ val _ = $j1Expr }.asTerm,
+                ValDef(k1, Some(k.asTerm)),
+                '{ val _ = $k1Expr }.asTerm,
+                ValDef(l1, Some(l.asTerm)),
+                '{ val _ = $l1Expr }.asTerm,
+                ValDef(m1, Some(m.asTerm)),
+                '{ val _ = $m1Expr }.asTerm,
+                ValDef(n1, Some(n.asTerm)),
+                '{ val _ = $n1Expr }.asTerm,
+                ValDef(o1, Some(o.asTerm)),
+                '{ val _ = $o1Expr }.asTerm,
+                ValDef(p1, Some(p.asTerm)),
+                '{ val _ = $p1Expr }.asTerm,
+                ValDef(q1, Some(q.asTerm)),
+                '{ val _ = $q1Expr }.asTerm,
+                ValDef(r1, Some(r.asTerm)),
+                '{ val _ = $r1Expr }.asTerm,
+                ValDef(s1, Some(s.asTerm)),
+                '{ val _ = $s1Expr }.asTerm,
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R, s: S) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r, 's) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr, i1Expr, j1Expr, k1Expr, l1Expr, m1Expr, n1Expr, o1Expr, p1Expr, q1Expr, r1Expr, s1Expr)
+      )
+    }
+
+    def of20[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type](
+        freshA: FreshName = FreshName.FromType, freshB: FreshName = FreshName.FromType, freshC: FreshName = FreshName.FromType, freshD: FreshName = FreshName.FromType, freshE: FreshName = FreshName.FromType, freshF: FreshName = FreshName.FromType, freshG: FreshName = FreshName.FromType, freshH: FreshName = FreshName.FromType, freshI: FreshName = FreshName.FromType, freshJ: FreshName = FreshName.FromType, freshK: FreshName = FreshName.FromType, freshL: FreshName = FreshName.FromType, freshM: FreshName = FreshName.FromType, freshN: FreshName = FreshName.FromType, freshO: FreshName = FreshName.FromType, freshP: FreshName = FreshName.FromType, freshQ: FreshName = FreshName.FromType, freshR: FreshName = FreshName.FromType, freshS: FreshName = FreshName.FromType, freshT: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags)
+      val q1 = freshTerm.valdef[Q](freshQ, null, Flags.EmptyFlags)
+      val r1 = freshTerm.valdef[R](freshR, null, Flags.EmptyFlags)
+      val s1 = freshTerm.valdef[S](freshS, null, Flags.EmptyFlags)
+      val t1 = freshTerm.valdef[T](freshT, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1Expr = Ref(h1).asExprOf[H]
+      val i1Expr = Ref(i1).asExprOf[I]
+      val j1Expr = Ref(j1).asExprOf[J]
+      val k1Expr = Ref(k1).asExprOf[K]
+      val l1Expr = Ref(l1).asExprOf[L]
+      val m1Expr = Ref(m1).asExprOf[M]
+      val n1Expr = Ref(n1).asExprOf[N]
+      val o1Expr = Ref(o1).asExprOf[O]
+      val p1Expr = Ref(p1).asExprOf[P]
+      val q1Expr = Ref(q1).asExprOf[Q]
+      val r1Expr = Ref(r1).asExprOf[R]
+      val s1Expr = Ref(s1).asExprOf[S]
+      val t1Expr = Ref(t1).asExprOf[T]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T])](
+        new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm,
+                ValDef(i1, Some(i.asTerm)),
+                '{ val _ = $i1Expr }.asTerm,
+                ValDef(j1, Some(j.asTerm)),
+                '{ val _ = $j1Expr }.asTerm,
+                ValDef(k1, Some(k.asTerm)),
+                '{ val _ = $k1Expr }.asTerm,
+                ValDef(l1, Some(l.asTerm)),
+                '{ val _ = $l1Expr }.asTerm,
+                ValDef(m1, Some(m.asTerm)),
+                '{ val _ = $m1Expr }.asTerm,
+                ValDef(n1, Some(n.asTerm)),
+                '{ val _ = $n1Expr }.asTerm,
+                ValDef(o1, Some(o.asTerm)),
+                '{ val _ = $o1Expr }.asTerm,
+                ValDef(p1, Some(p.asTerm)),
+                '{ val _ = $p1Expr }.asTerm,
+                ValDef(q1, Some(q.asTerm)),
+                '{ val _ = $q1Expr }.asTerm,
+                ValDef(r1, Some(r.asTerm)),
+                '{ val _ = $r1Expr }.asTerm,
+                ValDef(s1, Some(s.asTerm)),
+                '{ val _ = $s1Expr }.asTerm,
+                ValDef(t1, Some(t.asTerm)),
+                '{ val _ = $t1Expr }.asTerm,
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R, s: S, t: T) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r, 's, 't) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr, i1Expr, j1Expr, k1Expr, l1Expr, m1Expr, n1Expr, o1Expr, p1Expr, q1Expr, r1Expr, s1Expr, t1Expr)
+      )
+    }
+
+    def of21[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type](
+        freshA: FreshName = FreshName.FromType, freshB: FreshName = FreshName.FromType, freshC: FreshName = FreshName.FromType, freshD: FreshName = FreshName.FromType, freshE: FreshName = FreshName.FromType, freshF: FreshName = FreshName.FromType, freshG: FreshName = FreshName.FromType, freshH: FreshName = FreshName.FromType, freshI: FreshName = FreshName.FromType, freshJ: FreshName = FreshName.FromType, freshK: FreshName = FreshName.FromType, freshL: FreshName = FreshName.FromType, freshM: FreshName = FreshName.FromType, freshN: FreshName = FreshName.FromType, freshO: FreshName = FreshName.FromType, freshP: FreshName = FreshName.FromType, freshQ: FreshName = FreshName.FromType, freshR: FreshName = FreshName.FromType, freshS: FreshName = FreshName.FromType, freshT: FreshName = FreshName.FromType, freshU: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags)
+      val q1 = freshTerm.valdef[Q](freshQ, null, Flags.EmptyFlags)
+      val r1 = freshTerm.valdef[R](freshR, null, Flags.EmptyFlags)
+      val s1 = freshTerm.valdef[S](freshS, null, Flags.EmptyFlags)
+      val t1 = freshTerm.valdef[T](freshT, null, Flags.EmptyFlags)
+      val u1 = freshTerm.valdef[U](freshU, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1Expr = Ref(h1).asExprOf[H]
+      val i1Expr = Ref(i1).asExprOf[I]
+      val j1Expr = Ref(j1).asExprOf[J]
+      val k1Expr = Ref(k1).asExprOf[K]
+      val l1Expr = Ref(l1).asExprOf[L]
+      val m1Expr = Ref(m1).asExprOf[M]
+      val n1Expr = Ref(n1).asExprOf[N]
+      val o1Expr = Ref(o1).asExprOf[O]
+      val p1Expr = Ref(p1).asExprOf[P]
+      val q1Expr = Ref(q1).asExprOf[Q]
+      val r1Expr = Ref(r1).asExprOf[R]
+      val s1Expr = Ref(s1).asExprOf[S]
+      val t1Expr = Ref(t1).asExprOf[T]
+      val u1Expr = Ref(u1).asExprOf[U]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U])](
+        new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T], u: Expr[U]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm,
+                ValDef(i1, Some(i.asTerm)),
+                '{ val _ = $i1Expr }.asTerm,
+                ValDef(j1, Some(j.asTerm)),
+                '{ val _ = $j1Expr }.asTerm,
+                ValDef(k1, Some(k.asTerm)),
+                '{ val _ = $k1Expr }.asTerm,
+                ValDef(l1, Some(l.asTerm)),
+                '{ val _ = $l1Expr }.asTerm,
+                ValDef(m1, Some(m.asTerm)),
+                '{ val _ = $m1Expr }.asTerm,
+                ValDef(n1, Some(n.asTerm)),
+                '{ val _ = $n1Expr }.asTerm,
+                ValDef(o1, Some(o.asTerm)),
+                '{ val _ = $o1Expr }.asTerm,
+                ValDef(p1, Some(p.asTerm)),
+                '{ val _ = $p1Expr }.asTerm,
+                ValDef(q1, Some(q.asTerm)),
+                '{ val _ = $q1Expr }.asTerm,
+                ValDef(r1, Some(r.asTerm)),
+                '{ val _ = $r1Expr }.asTerm,
+                ValDef(s1, Some(s.asTerm)),
+                '{ val _ = $s1Expr }.asTerm,
+                ValDef(t1, Some(t.asTerm)),
+                '{ val _ = $t1Expr }.asTerm,
+                ValDef(u1, Some(u.asTerm)),
+                '{ val _ = $u1Expr }.asTerm,
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R, s: S, t: T, u: U) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r, 's, 't, 'u) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr, i1Expr, j1Expr, k1Expr, l1Expr, m1Expr, n1Expr, o1Expr, p1Expr, q1Expr, r1Expr, s1Expr, t1Expr, u1Expr)
+      )
+    }
+
+    def of22[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type, V: Type](
+        freshA: FreshName = FreshName.FromType, freshB: FreshName = FreshName.FromType, freshC: FreshName = FreshName.FromType, freshD: FreshName = FreshName.FromType, freshE: FreshName = FreshName.FromType, freshF: FreshName = FreshName.FromType, freshG: FreshName = FreshName.FromType, freshH: FreshName = FreshName.FromType, freshI: FreshName = FreshName.FromType, freshJ: FreshName = FreshName.FromType, freshK: FreshName = FreshName.FromType, freshL: FreshName = FreshName.FromType, freshM: FreshName = FreshName.FromType, freshN: FreshName = FreshName.FromType, freshO: FreshName = FreshName.FromType, freshP: FreshName = FreshName.FromType, freshQ: FreshName = FreshName.FromType, freshR: FreshName = FreshName.FromType, freshS: FreshName = FreshName.FromType, freshT: FreshName = FreshName.FromType, freshU: FreshName = FreshName.FromType, freshV: FreshName = FreshName.FromType
+    ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V])] = {
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags)
+      val q1 = freshTerm.valdef[Q](freshQ, null, Flags.EmptyFlags)
+      val r1 = freshTerm.valdef[R](freshR, null, Flags.EmptyFlags)
+      val s1 = freshTerm.valdef[S](freshS, null, Flags.EmptyFlags)
+      val t1 = freshTerm.valdef[T](freshT, null, Flags.EmptyFlags)
+      val u1 = freshTerm.valdef[U](freshU, null, Flags.EmptyFlags)
+      val v1 = freshTerm.valdef[V](freshV, null, Flags.EmptyFlags)
+      val a1Expr = Ref(a1).asExprOf[A]
+      val b1Expr = Ref(b1).asExprOf[B]
+      val c1Expr = Ref(c1).asExprOf[C]
+      val d1Expr = Ref(d1).asExprOf[D]
+      val e1Expr = Ref(e1).asExprOf[E]
+      val f1Expr = Ref(f1).asExprOf[F]
+      val g1Expr = Ref(g1).asExprOf[G]
+      val h1Expr = Ref(h1).asExprOf[H]
+      val i1Expr = Ref(i1).asExprOf[I]
+      val j1Expr = Ref(j1).asExprOf[J]
+      val k1Expr = Ref(k1).asExprOf[K]
+      val l1Expr = Ref(l1).asExprOf[L]
+      val m1Expr = Ref(m1).asExprOf[M]
+      val n1Expr = Ref(n1).asExprOf[N]
+      val o1Expr = Ref(o1).asExprOf[O]
+      val p1Expr = Ref(p1).asExprOf[P]
+      val q1Expr = Ref(q1).asExprOf[Q]
+      val r1Expr = Ref(r1).asExprOf[R]
+      val s1Expr = Ref(s1).asExprOf[S]
+      val t1Expr = Ref(t1).asExprOf[T]
+      val u1Expr = Ref(u1).asExprOf[U]
+      val v1Expr = Ref(v1).asExprOf[V]
+      new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V])](
+        new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) => *] {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) => To] = {
+
+            def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T], u: Expr[U], v: Expr[V]) = Block(
+              List(
+                ValDef(a1, Some(a.asTerm)),
+                '{ val _ = $a1Expr }.asTerm,
+                ValDef(b1, Some(b.asTerm)),
+                '{ val _ = $b1Expr }.asTerm,
+                ValDef(c1, Some(c.asTerm)),
+                '{ val _ = $c1Expr }.asTerm,
+                ValDef(d1, Some(d.asTerm)),
+                '{ val _ = $d1Expr }.asTerm,
+                ValDef(e1, Some(e.asTerm)),
+                '{ val _ = $e1Expr }.asTerm,
+                ValDef(f1, Some(f.asTerm)),
+                '{ val _ = $f1Expr }.asTerm,
+                ValDef(g1, Some(g.asTerm)),
+                '{ val _ = $g1Expr }.asTerm,
+                ValDef(h1, Some(h.asTerm)),
+                '{ val _ = $h1Expr }.asTerm,
+                ValDef(i1, Some(i.asTerm)),
+                '{ val _ = $i1Expr }.asTerm,
+                ValDef(j1, Some(j.asTerm)),
+                '{ val _ = $j1Expr }.asTerm,
+                ValDef(k1, Some(k.asTerm)),
+                '{ val _ = $k1Expr }.asTerm,
+                ValDef(l1, Some(l.asTerm)),
+                '{ val _ = $l1Expr }.asTerm,
+                ValDef(m1, Some(m.asTerm)),
+                '{ val _ = $m1Expr }.asTerm,
+                ValDef(n1, Some(n.asTerm)),
+                '{ val _ = $n1Expr }.asTerm,
+                ValDef(o1, Some(o.asTerm)),
+                '{ val _ = $o1Expr }.asTerm,
+                ValDef(p1, Some(p.asTerm)),
+                '{ val _ = $p1Expr }.asTerm,
+                ValDef(q1, Some(q.asTerm)),
+                '{ val _ = $q1Expr }.asTerm,
+                ValDef(r1, Some(r.asTerm)),
+                '{ val _ = $r1Expr }.asTerm,
+                ValDef(s1, Some(s.asTerm)),
+                '{ val _ = $s1Expr }.asTerm,
+                ValDef(t1, Some(t.asTerm)),
+                '{ val _ = $t1Expr }.asTerm,
+                ValDef(u1, Some(u.asTerm)),
+                '{ val _ = $u1Expr }.asTerm,
+                ValDef(v1, Some(v.asTerm)),
+                '{ val _ = $v1Expr }.asTerm,
+              ),
+              body.asTerm
+            ).asExprOf[To]
+
+            '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R, s: S, t: T, u: U, v: V) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r, 's, 't, 'u, 'v) } }
+          }
+        },
+        (a1Expr, b1Expr, c1Expr, d1Expr, e1Expr, f1Expr, g1Expr, h1Expr, i1Expr, j1Expr, k1Expr, l1Expr, m1Expr, n1Expr, o1Expr, p1Expr, q1Expr, r1Expr, s1Expr, t1Expr, u1Expr, v1Expr)
+      )
+    }
+    // format: on
 
     override def partition[From[_], A, B, C](promise: LambdaBuilder[From, A])(
         f: A => Either[B, C]
