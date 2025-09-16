@@ -35,6 +35,9 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
       name,
       infoRendering = if (shouldWeLogDerivation) RenderFrom(Log.Level.Info) else DontRender
     ) { (errorLogs, errors) =>
+      // errorLogs: String - pretty-printed log
+      // errors: NonEmptyVector[Throwable] - errors that happened during the derivation (if it succeeded, this wouldn't be called)
+      
       val errorsStr = errors.toVector
         .map {
           case DerivationError.UnsupportedType(typeName)           => s"Derivation of $typeName is not supported"

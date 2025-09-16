@@ -1,4 +1,4 @@
-# Micro FP library
+# Micro FP Library
 
 Usually, in macros, we would see on the JVM class path both libraries that we would only need for the compilation,
 and libraries that are needed in the runtime.
@@ -14,7 +14,7 @@ because it would be their almost-compile-time-only dependency... they they might
 Meanwhile, some FP functionalities are very useful for writing macros, so it would be a shame to give up on them
 completely.
 
-## Library's scope
+## Library's Scope
 
 From my experience, when writing macros you may need to:
 
@@ -66,7 +66,7 @@ whatever type you would be using for handling errors, would have these type clas
 
 The micro-fp library provides a minimal set of type classes for functional programming patterns commonly needed in macros. All type classes are designed to be lightweight and focused on practical use cases.
 
-### Type Class Hierarchy
+### Type Classes Hierarchy
 
 ```
 Functor
@@ -315,10 +315,12 @@ Provides a way to write effectful code in a direct style, similar to using `for`
 
 The library provides combined type classes to avoid implicit resolution conflicts:
 
-#### `ApplicativeTraverse[F[_]]`
+#### `ApplicativeTraverse`
+
 Combines `Applicative[F]` and `Traverse[F]`. Useful when you need both capabilities.
 
-#### `ParallelTraverse[F[_]]`
+#### `ParallelTraverse`
+
 Combines `Parallel[F]` and `Traverse[F]`. Provides both parallel semantics and traversal capabilities.
 
 ### Creating Type Class Instances
@@ -423,7 +425,7 @@ The library provides a few essential data types that are commonly needed in func
 
 A non-empty list that guarantees at least one element. Useful for representing collections that cannot be empty, such as error messages or required parameters.
 
-!!! example "Creating NonEmptyList"
+!!! example "Creating `NonEmptyList`"
 
     ```scala
     import hearth.fp.data.*
@@ -443,7 +445,7 @@ A non-empty list that guarantees at least one element. Useful for representing c
     // Result: Some(NonEmptyList(1, List(2, 3))) and None
     ```
 
-!!! example "Operations on NonEmptyList"
+!!! example "Operations on `NonEmptyList`"
 
     ```scala
     import hearth.fp.data.*
@@ -475,7 +477,7 @@ A non-empty list that guarantees at least one element. Useful for representing c
     val asNEV: NonEmptyVector[Int] = nel.toNonEmptyVector
     ```
 
-!!! example "Error aggregation with NonEmptyList"
+!!! example "Error aggregation with `NonEmptyList`"
 
     ```scala
     import hearth.fp.data.*
@@ -507,7 +509,7 @@ A non-empty list that guarantees at least one element. Useful for representing c
 
 A non-empty vector that provides indexed access and better performance for larger collections compared to `NonEmptyList`.
 
-!!! example "Creating NonEmptyVector"
+!!! example "Creating `NonEmptyVector`"
 
     ```scala
     import hearth.fp.data.*
@@ -527,7 +529,7 @@ A non-empty vector that provides indexed access and better performance for large
     // Result: Some(NonEmptyVector(1, Vector(2, 3))) and None
     ```
 
-!!! example "Operations on NonEmptyVector"
+!!! example "Operations on `NonEmptyVector`"
 
     ```scala
     import hearth.fp.data.*
@@ -559,7 +561,7 @@ A non-empty vector that provides indexed access and better performance for large
     val asNEL: NonEmptyList[Int] = nev.toNonEmptyList
     ```
 
-!!! example "Error aggregation with NonEmptyVector"
+!!! example "Error aggregation with `NonEmptyVector`"
 
     ```scala
     import hearth.fp.data.*
@@ -587,6 +589,66 @@ A non-empty vector that provides indexed access and better performance for large
     // Result: Left(NonEmptyVector("Email cannot be empty", "Email must contain @", "Phone cannot be empty"))
     ```
 
+### `NonEmptyMap`
+
+A non-empty `ListMap` that guarantees at least one key-value pair and preserves the order of insertion.
+
+!!! example "Creating `NonEmptyMap`"
+
+    ```scala
+    import hearth.fp.data.*
+    
+    // Create with constructor
+    val nem1: NonEmptyMap[String, Int] = NonEmptyMap(("a", 1), ListMap("b" -> 2, "c" -> 3))
+    
+    // Create with apply method
+    val nem2: NonEmptyMap[String, String] = NonEmptyMap(("name", "Alice"), ("age", "30"), ("city", "New York"))
+    
+    // Create single element
+    val single: NonEmptyMap[String, Int] = NonEmptyMap.one(("key", 42))
+    
+    // Convert from ListMap (returns Option)
+    val fromListMap: Option[NonEmptyMap[String, Int]] = NonEmptyMap.fromListMap(ListMap("a" -> 1, "b" -> 2, "c" -> 3))
+    val fromEmpty: Option[NonEmptyMap[String, Int]] = NonEmptyMap.fromListMap(ListMap.empty)
+    // Result: Some(NonEmptyMap(("a", 1), ListMap("b" -> 2, "c" -> 3))) and None
+    ```
+
+!!! example "Operations on `NonEmptyMap`"
+
+    ```scala
+    import hearth.fp.data.*
+    import hearth.fp.syntax.*
+    import hearth.fp.instances.*
+    import scala.collection.immutable.ListMap
+    
+    val nem: NonEmptyMap[String, Int] = NonEmptyMap(("a", 1), ListMap("b" -> 2, "c" -> 3))
+    
+    // Prepend element
+    val prepended: NonEmptyMap[String, Int] = ("x", 0) +: nem
+    // Result: NonEmptyMap(("x", 0), ListMap("a" -> 1, "b" -> 2, "c" -> 3))
+    
+    // Append element
+    val appended: NonEmptyMap[String, Int] = nem :+ ("d", 4)
+    // Result: NonEmptyMap(("a", 1), ListMap("b" -> 2, "c" -> 3, "d" -> 4))
+    
+    // Map over key-value pairs
+    val mapped: NonEmptyMap[String, String] = nem.map { case (k, v) => (k.toUpperCase, v.toString) }
+    // Result: NonEmptyMap(("A", "1"), ListMap("B" -> "2", "C" -> "3"))
+    
+    // FlatMap over key-value pairs
+    val flatMapped: NonEmptyMap[String, Int] = nem.flatMap { case (k, v) =>
+      NonEmptyMap.one((k + "_copy", v * 2))
+    }
+    // Result: NonEmptyMap(("a_copy", 2), ListMap("b_copy" -> 4, "c_copy" -> 6))
+    
+    // Convert to other collections
+    val asListMap: ListMap[String, Int] = nem.toListMap
+    val asList: List[(String, Int)] = nem.toList
+    val asVector: Vector[(String, Int)] = nem.toVector
+    val asNEL: NonEmptyList[(String, Int)] = nem.toNonEmptyList
+    val asNEV: NonEmptyVector[(String, Int)] = nem.toNonEmptyVector
+    ```
+
 ## Macro IO (`MIO`)
 
 `MIO` (Macro IO) is a specialized effect type designed for safe data transformations in macros. It provides stack-safety, structured logging, error aggregation, and referential transparency without external dependencies.
@@ -601,7 +663,7 @@ A non-empty vector that provides indexed access and better performance for large
 
 ### Basic Usage
 
-!!! example "Simple MIO operations"
+!!! example "Simple `MIO` operations"
 
     ```scala
     import hearth.fp.effect.*
@@ -668,10 +730,10 @@ A non-empty vector that provides indexed access and better performance for large
     }
     ```
 
-With MacroCommons there is also an integration provided, that would extract successful value,
+Within `MacroCommons` there is also an integration provided, that would extract successful value,
 log and fail if necessary:
 
-!!! example "Convert errors to error message, log"
+!!! example "Convert errors to error message, log using `info`"
 
     ```scala
     def deriveOrFail[A: Type](value: Expr[A], name: String): Expr[String] = Log
@@ -683,6 +745,9 @@ log and fail if necessary:
         // Renders all logs if `shouldWeLogDerivation` and none otherwise
         infoRendering = if (shouldWeLogDerivation) RenderFrom(Log.Level.Info) else DontRender
       ) { (errorLogs, errors) =>
+        // errorLogs: String - pretty-printed log
+        // errors: NonEmptyVector[Throwable] - errors that happened during the derivation (if it succeeded, this wouldn't be called)
+
         val errorsStr = errors.toVector
           .map {
             case DerivationError.UnsupportedType(typeName)           => s"Derivation of $typeName is not supported"
@@ -707,9 +772,9 @@ log and fail if necessary:
       }
     ```
 
-### Running MIO
+### Running `MIO`
 
-!!! example "Running MIO computations"
+!!! example "Running `MIO` computations"
 
     ```scala
     import hearth.fp.effect.*
@@ -734,7 +799,7 @@ log and fail if necessary:
     // └─ [Info]  Computation complete
     ```
 
-### Error Handling Patterns
+### Error-Handling Patterns
 
 !!! example "Safe computation with error recovery"
 
@@ -759,14 +824,14 @@ log and fail if necessary:
 
 `MIO` implements all the type classes discussed earlier, making it easy to integrate with existing functional programming patterns:
 
-!!! example "MIO with type classes"
+!!! example "`MIO` with type classes"
 
     ```scala
     import hearth.fp.effect.*
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
     
-    // Use with traverse
+    // Usage with traverse
     val items: List[Int] = List(1, 2, 3, 4)
     val processed: MIO[List[String]] = items.traverse { item =>
       for {
@@ -775,7 +840,7 @@ log and fail if necessary:
       } yield result
     }
     
-    // Use with direct style
+    // Usage with direct style
     val directResult: MIO[String] = DirectStyle[MIO].scoped { runSafe =>
       val a: Int = runSafe(MIO.pure(10))
       val b: Int = runSafe(MIO.pure(20))
