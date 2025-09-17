@@ -1,6 +1,9 @@
 package hearth
 
-trait Environments extends EnvironmentCrossQuotesSupport {
+import hearth.fp.data.NonEmptyVector
+import scala.reflect.{classTag, ClassTag}
+
+trait Environments extends EnvironmentCrossQuotesSupport { env =>
 
   /** Platform-specific position representation (`c.universe.Position` in 2, `quotes.reflect.Position` in 3).
     *
@@ -139,6 +142,44 @@ trait Environments extends EnvironmentCrossQuotesSupport {
           e.prettyPrintMessageWithStackTrace()
           throw e
         }
+    }
+
+    /** Loads all the macro extensions for the given extension type.
+      *
+      * @since 0.1.0
+      *
+      * @tparam Extension
+      *   the type of the extension to load
+      *
+      * @return
+      *   `Right(())` if all the extensions were loaded successfully, `Left(errors)` otherwise
+      */
+    def loadMacroExtensions[Extension <: MacroExtension[?]: ClassTag]: Either[NonEmptyVector[Throwable], Unit] = {
+      @scala.annotation.nowarn
+      val Extension = classTag[Extension].runtimeClass.asInstanceOf[Class[Extension]]
+
+      // Allow aggregating errors from each extension loading
+      def safeLoadExtension(ext: Extension): Either[Throwable, Unit] = try
+        if (ext.isDefinedAt(env)) {
+          Right(ext(env))
+        } else {
+          Left(
+            new IllegalStateException(
+              s"Instance of ${ext.getClass.getName} cannot be applied to ${env.getClass.getName}"
+            )
+          )
+        }
+      catch {
+        case e: Throwable => Left(e)
+      }
+
+      platformSpecificServiceLoader.load[Extension](Extension, env.getClass.getClassLoader).flatMap { extensions =>
+        val (errors, _) = extensions.partitionMap(safeLoadExtension)
+        NonEmptyVector.fromVector(errors) match {
+          case Some(errors) => Left(errors)
+          case None         => Right(())
+        }
+      }
     }
   }
 
