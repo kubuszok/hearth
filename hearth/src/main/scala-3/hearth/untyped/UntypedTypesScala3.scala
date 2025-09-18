@@ -128,6 +128,15 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def isSameAs(a: UntypedType, b: UntypedType): Boolean =
       quotes.reflect.TypeReprMethods.=:=(a)(b)
 
+    override def companionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] =
+      if untyped.isObject then None
+      else {
+        val sym = untyped.typeSymbol
+        Option(sym.moduleClass).filterNot(_.isNoSymbol).zip(Option(sym.companionModule).filterNot(_.isNoSymbol)).map {
+          case (moduleClass, module) => (subtypeTypeOf(untyped, moduleClass), Ref(module))
+        }
+      }
+
     override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
       // no need for separate java.lang.Enum handling contrary to Scala 2
       if isSealed(instanceTpe) || isJavaEnum(instanceTpe) then Some(

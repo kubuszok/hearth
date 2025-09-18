@@ -102,7 +102,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     )(instance: Option[UntypedExpr], arguments: UntypedArguments): UntypedExpr = {
       type Instance
       given Instance: Type[Instance] = instanceTpe.asTyped[Instance]
-      lazy val adaptedArguments = arguments.adaptToParams(instanceTpe, this)
+      lazy val adaptedArguments = arguments.adaptToParams(instanceTpe, instance, this)
       invocation match {
         case Invocation.Constructor =>
           // new A
@@ -142,6 +142,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def position: Option[Position] = symbol.pos
 
     override def annotations: List[UntypedExpr] = symbol.annotations
+
+    override def isConstructor: Boolean = symbol.isClassConstructor
 
     override def isVal: Boolean = symbol.isValDef && !symbol.flags.is(Flags.Mutable)
     override def isVar: Boolean = symbol.flags.is(Flags.Mutable)
@@ -284,6 +286,50 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           }
       )
     }
+
+    override def defaultValue(instanceTpe: UntypedType)(param: UntypedParameter): Option[UntypedMethod] =
+      if param.hasDefault
+      then Some {
+        val (names, invocation, decls) = param.method.invocation match {
+          case Invocation.Constructor =>
+            val (companionTpe, companionRef) = instanceTpe.companionObject.getOrElse {
+              // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
+              assertionFailed(s"Expected that ${instanceTpe.prettyPrint} would have a companion object")
+              // $COVERAGE-ON$
+            }
+            val names = possibleConstructorNames
+            val invocation = Invocation.OnModule(companionRef)
+            val decls = companionTpe.typeSymbol
+            (names, invocation, decls)
+          case Invocation.OnInstance =>
+            val names = List(param.method.name)
+            val invocation = Invocation.OnInstance
+            val decls = instanceTpe.typeSymbol
+            (names, invocation, decls)
+          case Invocation.OnModule(module) =>
+            val names = List(param.method.name)
+            val invocation = Invocation.OnModule(module)
+            val decls = module.as_??.Underlying.asUntyped.typeSymbol
+            (names, invocation, decls)
+        }
+
+        val possibleDefaultNames = names.map(defaultValueMethodName(_, param.index + 1))
+        val defaultMethod = possibleDefaultNames.flatMap(decls.declaredMethod).headOption.getOrElse {
+          // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
+          assertionFailed(
+            s"Expected that ${instanceTpe.prettyPrint}'s constructor parameter `${param.name}` would have default value: attempted `${possibleDefaultNames.mkString(", ")}`, found: ${decls.declarations.mkString(", ")}"
+          )
+          // $COVERAGE-ON$
+        }
+        new UntypedMethod(
+          symbol = defaultMethod,
+          invocation = invocation,
+          isDeclared = param.method.isDeclared,
+          isConstructorArgument = false,
+          isCaseField = false
+        )
+      }
+      else None
 
     override def enclosing: Option[UntypedMethod] = {
       // TODO: figure out somehow if it's inherited and if it's a module

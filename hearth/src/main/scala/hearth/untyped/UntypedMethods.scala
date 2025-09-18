@@ -53,7 +53,7 @@ trait UntypedMethods { this: MacroCommons =>
     def isImplicit: Boolean
     def hasDefault: Boolean
 
-    def default(instanceTpe: UntypedType): Option[UntypedExpr] = UntypedExpr.defaultValue(instanceTpe)(this)
+    final def default(instanceTpe: UntypedType): Option[UntypedMethod] = UntypedMethod.defaultValue(instanceTpe)(this)
   }
 
   /** Ordered map of [[UntypedParameter]]s by their name.
@@ -87,16 +87,24 @@ trait UntypedMethods { this: MacroCommons =>
   type UntypedArguments = Map[String, UntypedExpr]
   object UntypedArguments {
 
-    def fromTyped(typed: Arguments): UntypedArguments = typed.view.mapValues(_.value.asUntyped).toMap // wtf?
-    def toTyped(untyped: UntypedArguments): Arguments = untyped.view.mapValues(_.as_??).toMap
+    final def fromTyped(typed: Arguments): UntypedArguments = typed.view.mapValues(_.value.asUntyped).toMap // wtf?
+    final def toTyped(untyped: UntypedArguments): Arguments = untyped.view.mapValues(_.as_??).toMap
   }
 
   implicit final class UntypedArgumentsMethods(private val arguments: UntypedArguments) {
 
-    def adaptToParams(instanceTpe: UntypedType, method: UntypedMethod): List[List[UntypedExpr]] =
+    def adaptToParams(
+        instanceTpe: UntypedType,
+        instance: Option[UntypedExpr],
+        method: UntypedMethod
+    ): List[List[UntypedExpr]] =
       method.parameters.map { params =>
         params.view.map { case (paramName, untyped) =>
-          arguments.get(paramName).orElse(untyped.default(instanceTpe)).getOrElse {
+          def defaultValue = untyped.default(instanceTpe).map { method =>
+            // Default value is called on the same instance as it's method, and without any arguments
+            method.unsafeApply(instanceTpe)(instance, Map.empty)
+          }
+          arguments.get(paramName).orElse(defaultValue).getOrElse {
             assertionFailed(
               s"Expected that ${Type.prettyPrint(using instanceTpe.asTyped[Any])}'s ${method.name} parameter `$paramName` would be provided or have default value"
             )
@@ -120,6 +128,8 @@ trait UntypedMethods { this: MacroCommons =>
     def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod]
     def constructors(instanceTpe: UntypedType): List[UntypedMethod]
     def methods(instanceTpe: UntypedType): List[UntypedMethod]
+
+    def defaultValue(instanceTpe: UntypedType)(param: UntypedParameter): Option[UntypedMethod]
 
     def enclosing: Option[UntypedMethod]
 
@@ -145,6 +155,16 @@ trait UntypedMethods { this: MacroCommons =>
       //       Probably we should filter by declared and keep the original order?
       declared.sortBy(_._1).map(_._2) ++ others.sortBy(_._1).map(_._2)
     }
+
+    // Defaults methods' positionsare 1-indexed. They are named `methodName$default$indexOfParameter`.
+
+    final protected def defaultValueMethodName(methodName: String, idx: Int): String = methodName + "$default$" + idx
+
+    final protected val possibleConstructorNames: List[String] = List(
+      "<init>", // Ctor of non-case class (no `apply`) has `<init>$default$idx` default (on Scala 2, unencoded).
+      "apply", // Ctor of case class on Scala 2 has `apply$default$idx` default (= `apply` method).
+      "$lessinit$greater$apply" // Ctor of case class on Scala 3 has `$lessinit$greater$default$idx`(no `apply` but encoded).
+    )
   }
 
   trait UntypedMethodMethods { this: UntypedMethod =>
@@ -166,6 +186,8 @@ trait UntypedMethods { this: MacroCommons =>
     def position: Option[Position]
 
     def annotations: List[UntypedExpr]
+
+    def isConstructor: Boolean
 
     def isConstructorArgument: Boolean
     def isCaseField: Boolean

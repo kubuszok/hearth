@@ -30,19 +30,6 @@ trait UntypedExprs { this: MacroCommons =>
     def fromTyped[A](expr: Expr[A]): UntypedExpr
     def toTyped[A: Type](untyped: UntypedExpr): Expr[A]
     def as_??(untyped: UntypedExpr): Expr_??
-
-    def defaultValue(untyped: UntypedType)(param: UntypedParameter): Option[UntypedExpr]
-
-    // Defaults methods' positionsare 1-indexed. They are named `methodName$default$indexOfParameter`.
-
-    /** Ctor of non-case class (no `apply`) has `<init>$default$idx` default (on Scala 2, unencoded). */
-    final protected def classNewDefaultScala2(idx: Int): String = "<init>$default$" + idx
-
-    /** Ctor of case class on Scala 2 has `apply$default$idx` default (= `apply` method). */
-    final protected def caseClassApplyDefaultScala2(idx: Int): String = "apply$default$" + idx
-
-    /** Ctor of case class on Scala 3 has `$lessinit$greater$default$idx`(no `apply` but encoded). */
-    final protected def caseClassApplyDefaultScala3(idx: Int): String = "$lessinit$greater$default$" + idx
   }
 
   implicit final class UntypedExprMethods(private val untyped: UntypedExpr) {

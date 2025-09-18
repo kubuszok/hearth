@@ -15,6 +15,28 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
     object platformSpecific {
 
+      // Borrowed from jsoniter-scala: https://github.com/plokhotnyuk/jsoniter-scala/blob/b14dbe51d3ae6752e5a9f90f1f3caf5bceb5e4b0/jsoniter-scala-macros/shared/src/main/scala/com/github/plokhotnyuk/jsoniter_scala/macros/JsonCodecMaker.scala#L462
+      def companionSymbol(untyped: UntypedType): scala.util.Try[Symbol] = {
+        val sym = untyped.typeSymbol
+        val comp = sym.companion
+        if (comp.isModule) scala.util.Success(comp)
+        else {
+          val ownerChainOf: Symbol => Iterator[Symbol] =
+            s => Iterator.iterate(s)(_.owner).takeWhile(x => x != null && x != NoSymbol).toVector.reverseIterator
+          val path = ownerChainOf(sym)
+            .zipAll(ownerChainOf(c.internal.enclosingOwner), NoSymbol, NoSymbol)
+            .dropWhile { case (x, y) => x == y }
+            .takeWhile(_._1 != NoSymbol)
+            .map(_._1.name.toTermName)
+          // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
+          scala.util.Try {
+            if (path.isEmpty) assertionFailed(s"Cannot find a companion for ${untyped.prettyPrint}")
+            else c.typecheck(path.foldLeft[Tree](Ident(path.next()))(Select(_, _)), silent = true).symbol
+          }
+          // $COVERAGE-ON$
+        }
+      }
+
       def subtypeName(typeSymbol: TypeSymbol): String = typeSymbol.name.toString
 
       /** Applies type arguments from supertype to subtype if there are any */
@@ -113,6 +135,11 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
     override def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean = subtype <:< supertype
     override def isSameAs(a: UntypedType, b: UntypedType): Boolean = a =:= b
+
+    override def companionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] =
+      if (untyped.typeSymbol.isModuleClass) None
+      else
+        companionSymbol(untyped).toOption.map(companion => (subtypeTypeOf(untyped, companion.asType), q"$companion"))
 
     override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] = {
       val A = instanceTpe.typeSymbol

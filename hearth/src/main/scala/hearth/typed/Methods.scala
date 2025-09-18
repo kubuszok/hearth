@@ -27,7 +27,12 @@ trait Methods { this: MacroCommons =>
     lazy val index: Int = asUntyped.index
     lazy val position: Option[Position] = asUntyped.position
 
-    lazy val defaultValue: Option[Expr_??] = asUntyped.default(untypedInstanceType).map(_.as_??)
+    lazy val defaultValue: Option[Existential[Method.Of]] = asUntyped.default(untypedInstanceType).map { untyped =>
+      untypedInstanceType.as_??.mapK[Method.Of] { tpe => _ =>
+        UntypedMethod.toTyped(untyped)(tpe)
+      }
+    }
+
     lazy val annotations: List[Expr_??] = asUntyped.annotations.map(_.as_??)
 
     lazy val isByName: Boolean = asUntyped.isByName
@@ -101,6 +106,8 @@ trait Methods { this: MacroCommons =>
     final lazy val isNullary: Boolean = isNAry(0)
     final lazy val isUnary: Boolean = isNAry(1)
     final lazy val isBinary: Boolean = isNAry(2)
+
+    final lazy val isConstructor: Boolean = untyped.isConstructor
 
     final lazy val isConstructorArgument: Boolean = untyped.isConstructorArgument
     final lazy val isCaseField: Boolean = untyped.isCaseField

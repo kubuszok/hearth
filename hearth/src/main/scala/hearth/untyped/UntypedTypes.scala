@@ -108,6 +108,8 @@ trait UntypedTypes { this: MacroCommons =>
     def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean
     def isSameAs(a: UntypedType, b: UntypedType): Boolean
 
+    def companionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)]
+
     def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]]
     final def exhaustiveChildren(instanceTpe: UntypedType): Option[NonEmptyMap[String, UntypedType]] =
       directChildren(instanceTpe)
@@ -174,9 +176,12 @@ trait UntypedTypes { this: MacroCommons =>
     def constructors: List[UntypedMethod] = UntypedMethod.constructors(untyped)
     def methods: List[UntypedMethod] = UntypedMethod.methods(untyped)
 
+    def companionObject: Option[(UntypedType, UntypedExpr)] = UntypedType.companionObject(untyped)
+
     def directChildren: Option[ListMap[String, UntypedType]] = UntypedType.directChildren(untyped)
     def exhaustiveChildren: Option[NonEmptyMap[String, UntypedType]] = UntypedType.exhaustiveChildren(untyped)
-    def defaultValue(param: UntypedParameter): Option[UntypedExpr] = UntypedExpr.defaultValue(untyped)(param)
+
+    def defaultValue(param: UntypedParameter): Option[UntypedMethod] = UntypedMethod.defaultValue(untyped)(param)
 
     def annotations: List[UntypedExpr] = UntypedType.annotations(untyped)
 
