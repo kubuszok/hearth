@@ -73,6 +73,13 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
 
     final def position[A: Type]: Option[Position] = UntypedType.fromTyped[A].position
 
+    final def companionObject[A: Type]: Option[Expr_??] =
+      UntypedType.fromTyped[A].companionObject.map { case (tpe, expr) =>
+        val A0 = tpe.asTyped[A]
+        val expr0 = expr.asTyped[A](using A0)
+        Existential(expr0)(using A0)
+      }
+
     final def directChildren[A: Type]: Option[ListMap[String, ??<:[A]]] =
       UntypedType.fromTyped[A].directChildren.map(m => ListMap.from(m.view.mapValues(_.asTyped[A].as_??<:[A])))
     final def exhaustiveChildren[A: Type]: Option[NonEmptyMap[String, ??<:[A]]] =
@@ -257,6 +264,8 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     def constructors: List[Method.NoInstance[A]] = Method.constructorsOf(using tpe)
 
     def methods: List[Method.Of[A]] = Method.methodsOf(using tpe)
+
+    def companionObject: Option[Expr_??] = Type.companionObject(using tpe)
 
     def directChildren: Option[ListMap[String, ??<:[A]]] = Type.directChildren(using tpe)
     def exhaustiveChildren: Option[NonEmptyMap[String, ??<:[A]]] = Type.exhaustiveChildren(using tpe)
