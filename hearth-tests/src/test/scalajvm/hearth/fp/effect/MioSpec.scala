@@ -259,7 +259,7 @@ final class MioSpec extends ScalaCheckSuite with Laws {
       }
     }
 
-    test(".&> should behave like .parMap2(fb)((a, _) => a)") {
+    test("&> should behave like .parMap2(fb)((a, _) => a)") {
       forAll { (fa: MIO[Int], fb: MIO[Int]) =>
         (fa &> fb) === fa.parMap2(fb)((a, _) => a)
       }

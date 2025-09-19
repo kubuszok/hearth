@@ -31,13 +31,13 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
   val Expr: ExprModule
   trait ExprModule extends ExprCrossQuotes { this: Expr.type =>
 
-    def apply[A: ExprCodec](value: A): Expr[A] = ExprCodec[A].toExpr(value)
+    final def apply[A: ExprCodec](value: A): Expr[A] = ExprCodec[A].toExpr(value)
 
-    def unapply[A: ExprCodec](expr: Expr[A]): Option[A] = ExprCodec[A].fromExpr(expr)
+    final def unapply[A: ExprCodec](expr: Expr[A]): Option[A] = ExprCodec[A].fromExpr(expr)
 
-    def plainPrint[A](expr: Expr[A]): String = removeAnsiColors(prettyPrint(expr))
+    final def plainPrint[A](expr: Expr[A]): String = removeAnsiColors(prettyPrint(expr))
     def prettyPrint[A](expr: Expr[A]): String
-    def plainAST[A](expr: Expr[A]): String = removeAnsiColors(prettyAST(expr))
+    final def plainAST[A](expr: Expr[A]): String = removeAnsiColors(prettyAST(expr))
     def prettyAST[A](expr: Expr[A]): String
 
     def summonImplicit[A: Type]: Option[Expr[A]]
@@ -75,11 +75,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     def LeftExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Left[L, R]]
     def RightExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Right[L, R]]
 
-    def DataExprCodec: ExprCodec[data.Data] = new ExprCodec[data.Data] {
+    final def DataExprCodec: ExprCodec[data.Data] = new ExprCodec[data.Data] {
 
-      val DataType: Type[data.Data] = Type.of[data.Data]
+      private val DataType: Type[data.Data] = Type.of[data.Data]
 
-      val StringType: Type[String] = Type.of[String]
+      private val StringType: Type[String] = Type.of[String]
 
       def toExpr(value: data.Data): Expr[data.Data] = value.fold(
         onNull = Expr.quote(data.Data()),
@@ -150,11 +150,13 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
   final type Expr_??<:[U] = Existential.UpperBounded[U, Expr]
   final type Expr_<:??<:[L, U >: L] = Existential.Bounded[L, U, Expr]
 
-  implicit def ExistentialExprMethods(expr: Expr_??): BoundedExistentialExprMethods[Nothing, Any] =
+  implicit final def ExistentialExprMethods(expr: Expr_??): BoundedExistentialExprMethods[Nothing, Any] =
     new BoundedExistentialExprMethods[Nothing, Any](expr)
-  implicit def LowerBoundedExistentialExprMethods[L](expr: Expr_??>:[L]): BoundedExistentialExprMethods[L, Any] =
+  implicit final def LowerBoundedExistentialExprMethods[L](expr: Expr_??>:[L]): BoundedExistentialExprMethods[L, Any] =
     new BoundedExistentialExprMethods[L, Any](expr)
-  implicit def UpperBoundedExistentialExprMethods[U](expr: Expr_??<:[U]): BoundedExistentialExprMethods[Nothing, U] =
+  implicit final def UpperBoundedExistentialExprMethods[U](
+      expr: Expr_??<:[U]
+  ): BoundedExistentialExprMethods[Nothing, U] =
     new BoundedExistentialExprMethods[Nothing, U](expr)
   implicit final class BoundedExistentialExprMethods[L, U >: L](private val expr: Expr_<:??<:[L, U]) {
 
@@ -270,7 +272,7 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     def traverse: fp.Traverse[MatchCase]
   }
-  implicit val MatchCaseTraverse: fp.Traverse[MatchCase] = MatchCase.traverse
+  implicit final val MatchCaseTraverse: fp.Traverse[MatchCase] = MatchCase.traverse
 
   implicit final class MatchCaseMethods[A](private val matchCase: MatchCase[A]) {
 
@@ -348,7 +350,7 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     def traverse: fp.Traverse[Scoped]
   }
-  implicit val ScopedTraverse: fp.Traverse[Scoped] = Scoped.traverse
+  implicit final val ScopedTraverse: fp.Traverse[Scoped] = Scoped.traverse
 
   implicit final class ScopedMethods[A](private val scoped: Scoped[A]) {
 
@@ -712,7 +714,7 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     def traverse[From[_]]: fp.Traverse[LambdaBuilder[From, *]]
   }
-  implicit def LambdaBuilderTraverse[From[_]]: fp.Traverse[LambdaBuilder[From, *]] = LambdaBuilder.traverse
+  implicit final def LambdaBuilderTraverse[From[_]]: fp.Traverse[LambdaBuilder[From, *]] = LambdaBuilder.traverse
 
   implicit final class LambdaBuilderMethods[From[_], A](private val builder: LambdaBuilder[From, A]) {
 

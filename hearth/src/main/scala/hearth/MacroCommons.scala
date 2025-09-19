@@ -22,7 +22,7 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
     *
     * @since 0.1.0
     */
-  def assertionFailed(message: String): Nothing = throw new AssertionError(message)
+  final def assertionFailed(message: String): Nothing = throw new AssertionError(message)
 
   implicit final class MioExprOps[A](private val io: fp.effect.MIO[Expr[A]]) {
 

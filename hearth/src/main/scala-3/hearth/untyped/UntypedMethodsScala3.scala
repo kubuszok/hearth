@@ -125,9 +125,9 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       }
     }
 
-    lazy val hasTypeParameters: Boolean = symbol.paramSymss.exists(_.exists(_.isType))
+    override lazy val hasTypeParameters: Boolean = symbol.paramSymss.exists(_.exists(_.isType))
 
-    lazy val parameters: UntypedParameters = {
+    override lazy val parameters: UntypedParameters = {
       val paramss = symbol.paramSymss.filterNot(_.exists(_.isType))
       val indices = paramss.flatten.zipWithIndex.toMap
       paramss
@@ -138,7 +138,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         )
     }
 
-    lazy val name: String = symbol.name
+    override lazy val name: String = symbol.name
     override def position: Option[Position] = symbol.pos
 
     override def annotations: List[UntypedExpr] = symbol.annotations

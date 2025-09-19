@@ -4,7 +4,7 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
 
   import quotes.*, quotes.reflect.*
 
-  override type Position = quotes.reflect.Position
+  final override type Position = quotes.reflect.Position
 
   object Position extends PositionModule {
 

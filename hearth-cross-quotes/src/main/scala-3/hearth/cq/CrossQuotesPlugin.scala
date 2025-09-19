@@ -30,7 +30,7 @@ import dotty.tools.dotc.typer.Typer
 import java.io.File as JFile
 import scala.jdk.OptionConverters.*
 
-class CrossQuotesPlugin extends StandardPlugin {
+final class CrossQuotesPlugin extends StandardPlugin {
   val name = CrossQuotesSettings.crossQuotesName
   val description = "Rewrites Expr.quote/splice into native quotes"
 

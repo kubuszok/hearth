@@ -25,7 +25,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
     final def prettyPrint(pos: Position): String =
       fileName(pos).map(f => s"$f:${pos.line}:${pos.column}").getOrElse(s"<unknown>:${pos.line}:${pos.column}")
   }
-  implicit class PositionMethods(private val position: Position) {
+  implicit final class PositionMethods(private val position: Position) {
 
     def file: Option[java.nio.file.Path] = Position.file(position)
     def offset: Int = Position.offset(position)
@@ -36,7 +36,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
     def prettyPrint: String = Position.prettyPrint(position)
   }
 
-  implicit lazy val PositionOrdering: Ordering[Position] =
+  implicit final lazy val PositionOrdering: Ordering[Position] =
     Ordering[String].on[Position](_.file.toString).orElseBy(_.offset)
 
   /** Provides some reporting and information about the current expansion: where is happens, what is the current Scala
@@ -47,24 +47,24 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
   val Environment: EnvironmentModule
   trait EnvironmentModule { this: Environment.type =>
 
-    lazy val currentPosition: Position = Position.current
+    final lazy val currentPosition: Position = Position.current
 
     def currentScalaVersion: ScalaVersion
 
-    lazy val currentLanguageVersion: LanguageVersion = currentScalaVersion.toLanguageVersion
-    lazy val isScala2_13: Boolean = currentLanguageVersion.isScala2_13
-    lazy val isScala3: Boolean = currentLanguageVersion.isScala3
+    final lazy val currentLanguageVersion: LanguageVersion = currentScalaVersion.toLanguageVersion
+    final lazy val isScala2_13: Boolean = currentLanguageVersion.isScala2_13
+    final lazy val isScala3: Boolean = currentLanguageVersion.isScala3
 
-    lazy val currentJDKVersion: JDKVersion = JDKVersion.runtimeJDKVersion
+    final lazy val currentJDKVersion: JDKVersion = JDKVersion.runtimeJDKVersion
 
-    lazy val currentPlatform: Platform = Platform.byHearth
-    lazy val isJvm: Boolean = currentPlatform.isJvm
-    lazy val isJs: Boolean = currentPlatform.isJs
-    lazy val isNative: Boolean = currentPlatform.isNative
+    final lazy val currentPlatform: Platform = Platform.byHearth
+    final lazy val isJvm: Boolean = currentPlatform.isJvm
+    final lazy val isJs: Boolean = currentPlatform.isJs
+    final lazy val isNative: Boolean = currentPlatform.isNative
 
     def XMacroSettings: List[String]
 
-    def typedSettings: Either[String, data.Data] = data.Data.parseList(XMacroSettings)
+    final def typedSettings: Either[String, data.Data] = data.Data.parseList(XMacroSettings)
 
     def reportInfo(msg: String): Unit
     def reportWarn(msg: String): Unit
@@ -80,7 +80,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
       * @param compilationLogPosition
       *   position as seen in the compilation log
       */
-    def isExpandedAt(compilationLogPosition: String): Boolean = compilationLogPosition match {
+    final def isExpandedAt(compilationLogPosition: String): Boolean = compilationLogPosition match {
       case fileLineColumnRegex(fileName, line, column) =>
         val fileMatches = currentPosition.file.exists(_.toString.endsWith(fileName))
         val actualLine = currentPosition.line
@@ -121,7 +121,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
       * @return
       *   the result of the code execution or handled MIO termination exception
       */
-    def handleMioTerminationException[A](thunk: => A): A = try
+    final def handleMioTerminationException[A](thunk: => A): A = try
       thunk
     catch {
       case e: fp.effect.MIO.MioTerminationException =>
@@ -154,7 +154,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
       * @return
       *   `Right(())` if all the extensions were loaded successfully, `Left(errors)` otherwise
       */
-    def loadMacroExtensions[Extension <: MacroExtension[?]: ClassTag]: Either[NonEmptyVector[Throwable], Unit] = {
+    final def loadMacroExtensions[Extension <: MacroExtension[?]: ClassTag]: Either[NonEmptyVector[Throwable], Unit] = {
       @scala.annotation.nowarn
       val Extension = classTag[Extension].runtimeClass.asInstanceOf[Class[Extension]]
 

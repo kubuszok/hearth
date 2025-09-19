@@ -89,9 +89,9 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       }
     }
 
-    lazy val hasTypeParameters: Boolean = symbol.typeParams.nonEmpty
+    override lazy val hasTypeParameters: Boolean = symbol.typeParams.nonEmpty
 
-    lazy val parameters: UntypedParameters = {
+    override lazy val parameters: UntypedParameters = {
       val paramss = symbol.paramLists
       val indices = paramss.flatten.zipWithIndex.toMap
       paramss
@@ -102,7 +102,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         )
     }
 
-    lazy val name: String = symbolName(symbol)
+    override lazy val name: String = symbolName(symbol)
     override def position: Option[Position] = positionOf(symbol)
 
     override def annotations: List[UntypedExpr] =

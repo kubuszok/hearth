@@ -699,6 +699,14 @@ final class MethodsSpec extends MacroSuite {
           )
         )
       }
+
+      // TODO: class with companion
+
+      // TODO: module
     }
+
+    // TODO: attempt calling methods
+
+    // TODO: attempt calling methods with default values
   }
 }

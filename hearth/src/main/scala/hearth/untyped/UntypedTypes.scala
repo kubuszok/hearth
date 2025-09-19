@@ -36,7 +36,7 @@ trait UntypedTypes { this: MacroCommons =>
     def position(untyped: UntypedType): Option[Position]
 
     def fromClass(clazz: java.lang.Class[?]): UntypedType
-    def toClass(untyped: UntypedType): Option[java.lang.Class[?]] =
+    final def toClass(untyped: UntypedType): Option[java.lang.Class[?]] =
       if (isTypeSystemSpecial(untyped)) {
         if (untyped =:= Type.of[Any].asUntyped) Some(classOf[Any])
         else if (untyped =:= Type.of[AnyRef].asUntyped) Some(classOf[AnyRef])
