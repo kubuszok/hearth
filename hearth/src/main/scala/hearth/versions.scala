@@ -169,10 +169,10 @@ object ScalaVersion {
   */
 sealed trait LanguageVersion extends Product with Serializable {
 
-  def isScala2_13: Boolean = this == LanguageVersion.Scala2_13
-  def isScala3: Boolean = this == LanguageVersion.Scala3
+  final def isScala2_13: Boolean = this == LanguageVersion.Scala2_13
+  final def isScala3: Boolean = this == LanguageVersion.Scala3
 
-  override def toString: String = this match {
+  final override def toString: String = this match {
     case LanguageVersion.Scala2_13 => "Scala 2.13"
     case LanguageVersion.Scala3    => "Scala 3"
   }
@@ -203,13 +203,13 @@ object LanguageVersion extends LanguageVersionCompanionCompat {
 sealed trait Platform extends Product with Serializable {
 
   /** Whether we are compiling for the JVM platform. */
-  def isJvm: Boolean = this == Platform.Jvm
+  final def isJvm: Boolean = this == Platform.Jvm
 
   /** Whether we are compiling for the Scala JS platform. */
-  def isJs: Boolean = this == Platform.Js
+  final def isJs: Boolean = this == Platform.Js
 
   /** Whether we are compiling for the Scala Native platform. */
-  def isNative: Boolean = this == Platform.Native
+  final def isNative: Boolean = this == Platform.Native
 }
 
 /** Which platform we are currently compiling for.

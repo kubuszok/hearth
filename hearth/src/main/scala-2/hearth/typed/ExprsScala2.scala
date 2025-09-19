@@ -30,7 +30,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         override def fromExpr(expr: Expr[A]): Option[A] = from.unapply(expr.tree)
       }
 
-      implicit class ExprCodecCompanionOps(private val self: ExprCodec.type) {
+      implicit final class ExprCodecCompanionOps(private val self: ExprCodec.type) {
 
         def make[A: Liftable: Unliftable]: ExprCodec[A] =
           new ExprCodecImpl[A](None)
@@ -131,69 +131,69 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     // implicit ExprCodec[Coll[A]] from the companion object, which would create a circular dependency. Instead, we
     // want to extract the implicit ToExpr[A] and FromExpr[A] from the ExprCodec[A], and then use it in the code below.
 
-    def ArrayExprCodec[A: ExprCodec: Type]: ExprCodec[Array[A]] = {
+    override def ArrayExprCodec[A: ExprCodec: Type]: ExprCodec[Array[A]] = {
       implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
       implicit val unliftable: Unliftable[Array[A]] = Unliftable[Array[A]](PartialFunction.empty) // TODO
       ExprCodec.make[Array[A]]
     }
-    def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = {
+    override def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = {
       implicit val liftable: Liftable[Seq[A]] = Liftable[Seq[A]] { seq =>
         q"scala.collection.immutable.Seq(..${seq.map(ExprCodec[A].toExpr)})"
       }
       implicit val unliftable: Unliftable[Seq[A]] = Unliftable[Seq[A]](PartialFunction.empty) // TODO
       ExprCodec.make[Seq[A]]
     }
-    def ListExprCodec[A: ExprCodec: Type]: ExprCodec[List[A]] = {
+    override def ListExprCodec[A: ExprCodec: Type]: ExprCodec[List[A]] = {
       implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
       implicit val unliftable: Unliftable[List[A]] = Unliftable[List[A]](PartialFunction.empty) // TODO
       ExprCodec.make[List[A]]
     }
-    lazy val NilExprCodec: ExprCodec[Nil.type] = {
+    override lazy val NilExprCodec: ExprCodec[Nil.type] = {
       implicit val unliftable: Unliftable[Nil.type] = Unliftable[Nil.type](PartialFunction.empty) // TODO
       ExprCodec.make[Nil.type]
     }
-    def VectorExprCodec[A: ExprCodec: Type]: ExprCodec[Vector[A]] = {
+    override def VectorExprCodec[A: ExprCodec: Type]: ExprCodec[Vector[A]] = {
       implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
       implicit val unliftable: Unliftable[Vector[A]] = Unliftable[Vector[A]](PartialFunction.empty) // TODO
       ExprCodec.make[Vector[A]]
     }
-    def MapExprCodec[K: ExprCodec: Type, V: ExprCodec: Type]: ExprCodec[Map[K, V]] = {
+    override def MapExprCodec[K: ExprCodec: Type, V: ExprCodec: Type]: ExprCodec[Map[K, V]] = {
       implicit val liftableK: Liftable[K] = platformSpecific.implicits.ExprCodecLiftable[K]
       implicit val liftableV: Liftable[V] = platformSpecific.implicits.ExprCodecLiftable[V]
       implicit val unliftable: Unliftable[Map[K, V]] = Unliftable[Map[K, V]](PartialFunction.empty) // TODO
       ExprCodec.make[Map[K, V]]
     }
-    def SetExprCodec[A: ExprCodec: Type]: ExprCodec[Set[A]] = {
+    override def SetExprCodec[A: ExprCodec: Type]: ExprCodec[Set[A]] = {
       implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
       implicit val unliftable: Unliftable[Set[A]] = Unliftable[Set[A]](PartialFunction.empty) // TODO
       ExprCodec.make[Set[A]]
     }
-    def OptionExprCodec[A: ExprCodec: Type]: ExprCodec[Option[A]] = {
+    override def OptionExprCodec[A: ExprCodec: Type]: ExprCodec[Option[A]] = {
       implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
       implicit val unliftable: Unliftable[Option[A]] = Unliftable[Option[A]](PartialFunction.empty) // TODO
       ExprCodec.make[Option[A]]
     }
-    def SomeExprCodec[A: ExprCodec: Type]: ExprCodec[Some[A]] = {
+    override def SomeExprCodec[A: ExprCodec: Type]: ExprCodec[Some[A]] = {
       implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
       implicit val unliftable: Unliftable[Some[A]] = Unliftable[Some[A]](PartialFunction.empty) // TODO
       ExprCodec.make[Some[A]]
     }
-    lazy val NoneExprCodec: ExprCodec[None.type] = {
+    override lazy val NoneExprCodec: ExprCodec[None.type] = {
       implicit val unliftable: Unliftable[None.type] = Unliftable[None.type](PartialFunction.empty) // TODO
       ExprCodec.make[None.type]
     }
-    def EitherExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Either[L, R]] = {
+    override def EitherExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Either[L, R]] = {
       implicit val liftableL: Liftable[L] = platformSpecific.implicits.ExprCodecLiftable[L]
       implicit val liftableR: Liftable[R] = platformSpecific.implicits.ExprCodecLiftable[R]
       implicit val unliftable: Unliftable[Either[L, R]] = Unliftable[Either[L, R]](PartialFunction.empty) // TODO
       ExprCodec.make[Either[L, R]]
     }
-    def LeftExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Left[L, R]] = {
+    override def LeftExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Left[L, R]] = {
       implicit val liftableL: Liftable[L] = platformSpecific.implicits.ExprCodecLiftable[L]
       implicit val unliftable: Unliftable[Left[L, R]] = Unliftable[Left[L, R]](PartialFunction.empty) // TODO
       ExprCodec.make[Left[L, R]]
     }
-    def RightExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Right[L, R]] = {
+    override def RightExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Right[L, R]] = {
       implicit val liftableR: Liftable[R] = platformSpecific.implicits.ExprCodecLiftable[R]
       implicit val unliftable: Unliftable[Right[L, R]] = Unliftable[Right[L, R]](PartialFunction.empty) // TODO
       ExprCodec.make[Right[L, R]]

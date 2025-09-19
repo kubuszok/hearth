@@ -2,7 +2,7 @@ package hearth
 
 trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
 
-  override type Position = c.universe.Position
+  final override type Position = c.universe.Position
 
   object Position extends PositionModule {
     override def current: Position = c.enclosingPosition

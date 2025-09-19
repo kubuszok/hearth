@@ -39,7 +39,7 @@ trait UntypedMethods { this: MacroCommons =>
   val UntypedParameter: UntypedParameterModule
   trait UntypedParameterModule { this: UntypedParameter.type =>
 
-    def fromTyped(param: Parameter): UntypedParameter = param.asUntyped
+    final def fromTyped(param: Parameter): UntypedParameter = param.asUntyped
   }
 
   trait UntypedParameterMethods { this: UntypedParameter =>
@@ -143,7 +143,7 @@ trait UntypedMethods { this: MacroCommons =>
       *   - so for non-declared methods we sort by name, but for declared methods we sort by position
       *   - TODO: decide how we should order inherited methods with overloaded names
       */
-    protected def sortMethods(methods: List[UntypedMethod]): List[UntypedMethod] = {
+    final protected def sortMethods(methods: List[UntypedMethod]): List[UntypedMethod] = {
       val (declared, others) = methods.partitionMap { method =>
         method.position match {
           case Some(position) if method.isDeclared => Left(position -> method)
@@ -197,15 +197,14 @@ trait UntypedMethods { this: MacroCommons =>
     def isLazy: Boolean
     def isDef: Boolean
     def isDeclared: Boolean
-    def isImplicit: Boolean
     def isSynthetic: Boolean
-
     final def isInherited: Boolean = !isDeclared && !isSynthetic
+    def isImplicit: Boolean
 
     def isAvailable(scope: Accessible): Boolean
   }
 
-  implicit lazy val UntypedMethodOrdering: Ordering[UntypedMethod] =
+  implicit final lazy val UntypedMethodOrdering: Ordering[UntypedMethod] =
     // Stabilize order in case of https://github.com/scala/scala3/issues/21672 (does not solve the warnings!)
     // TODO: order Strings using lexicographic order
     Ordering[Option[Position]].on[UntypedMethod](_.position).orElseBy(_.name)

@@ -73,7 +73,7 @@ trait Existentials { this: MacroCommons =>
         Existential.Bounded[Nothing, U, F, A](value)
     }
 
-    private class Impl[L, U >: L, F[_ >: L <: U], A >: L <: U](
+    final private class Impl[L, U >: L, F[_ >: L <: U], A >: L <: U](
         val Underlying: Type[A],
         val value: F[A]
     ) extends Existential.Bounded[L, U, F] {

@@ -19,13 +19,13 @@ trait Classes { this: MacroCommons =>
     */
   class Class[A]()(implicit val tpe: Type[A]) {
 
-    lazy val constructors: List[Method.NoInstance[A]] = tpe.constructors
-    lazy val methods: List[Method.Of[A]] = tpe.methods
-    def method(name: String): List[Method.Of[A]] = methods.filter(_.value.name == name)
+    final lazy val constructors: List[Method.NoInstance[A]] = tpe.constructors
+    final lazy val methods: List[Method.Of[A]] = tpe.methods
+    final def method(name: String): List[Method.Of[A]] = methods.filter(_.value.name == name)
 
-    def asCaseClass: Option[CaseClass[A]] = CaseClass.unapply(tpe)
-    def asEnum: Option[Enum[A]] = Enum.unapply(tpe)
-    def asJavaBean: Option[JavaBean[A]] = JavaBean.unapply(tpe)
+    final def asCaseClass: Option[CaseClass[A]] = CaseClass.unapply(tpe)
+    final def asEnum: Option[Enum[A]] = Enum.unapply(tpe)
+    final def asJavaBean: Option[JavaBean[A]] = JavaBean.unapply(tpe)
 
     override def equals(other: Any): Boolean = other match {
       case that: Class[?] => tpe =:= that.tpe

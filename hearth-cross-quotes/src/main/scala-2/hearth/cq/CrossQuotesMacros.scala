@@ -116,7 +116,7 @@ import scala.util.chaining.*
   *
   * It's the most fragile part of the whole macro. But for the Proof-of-Concept, it's good enough.
   */
-class CrossQuotesMacros(val c: blackbox.Context) {
+final class CrossQuotesMacros(val c: blackbox.Context) {
 
   import c.universe.{Expr as _, *}
 

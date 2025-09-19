@@ -92,12 +92,16 @@ trait Methods { this: MacroCommons =>
 
     final lazy val annotations: List[Expr_??] = untyped.annotations.map(_.as_??)
 
+    final lazy val isConstructor: Boolean = untyped.isConstructor
+
     final lazy val isVal: Boolean = untyped.isVal
     final lazy val isVar: Boolean = untyped.isVar
     final lazy val isLazy: Boolean = untyped.isLazy
     final lazy val isDef: Boolean = untyped.isDef
-    final lazy val isInherited: Boolean = untyped.isInherited
     final lazy val isImplicit: Boolean = untyped.isImplicit
+    final lazy val isDeclared: Boolean = untyped.isDeclared
+    final lazy val isSynthetic: Boolean = untyped.isSynthetic
+    final lazy val isInherited: Boolean = untyped.isInherited
 
     final def isAvailable(scope: Accessible): Boolean = untyped.isAvailable(scope)
 
@@ -106,8 +110,6 @@ trait Methods { this: MacroCommons =>
     final lazy val isNullary: Boolean = isNAry(0)
     final lazy val isUnary: Boolean = isNAry(1)
     final lazy val isBinary: Boolean = isNAry(2)
-
-    final lazy val isConstructor: Boolean = untyped.isConstructor
 
     final lazy val isConstructorArgument: Boolean = untyped.isConstructorArgument
     final lazy val isCaseField: Boolean = untyped.isCaseField

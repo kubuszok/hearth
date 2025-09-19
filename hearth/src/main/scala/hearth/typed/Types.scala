@@ -317,11 +317,11 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
   final type ??<:[U] = Existential.UpperBounded[U, Type]
   final type <:??<:[L, U >: L] = Existential.Bounded[L, U, Type]
 
-  implicit def ExistentialTypeMethods(tpe: ??): BoundedExistentialTypeMethods[Nothing, Any] =
+  implicit final def ExistentialTypeMethods(tpe: ??): BoundedExistentialTypeMethods[Nothing, Any] =
     new BoundedExistentialTypeMethods[Nothing, Any](tpe)
-  implicit def LowerBoundedExistentialTypeMethods[L](tpe: ??>:[L]): BoundedExistentialTypeMethods[L, Any] =
+  implicit final def LowerBoundedExistentialTypeMethods[L](tpe: ??>:[L]): BoundedExistentialTypeMethods[L, Any] =
     new BoundedExistentialTypeMethods[L, Any](tpe)
-  implicit def UpperBoundedExistentialTypeMethods[U](tpe: ??<:[U]): BoundedExistentialTypeMethods[Nothing, U] =
+  implicit final def UpperBoundedExistentialTypeMethods[U](tpe: ??<:[U]): BoundedExistentialTypeMethods[Nothing, U] =
     new BoundedExistentialTypeMethods[Nothing, U](tpe)
   implicit final class BoundedExistentialTypeMethods[L, U >: L](private val tpe: L <:??<: U) {
 

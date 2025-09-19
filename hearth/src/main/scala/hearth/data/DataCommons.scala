@@ -20,7 +20,7 @@ private[data] trait DataCommons {
   final def list(values: Data*): Data = apply(values.toList)
   final def map(values: (String, Data)*): Data = apply(ListMap.from(values))
 
-  def parseString(string: String): Either[String, Data] = string.trim match {
+  final def parseString(string: String): Either[String, Data] = string.trim match {
     case s @ digitRegex(_, _) =>
       try
         Right(if (s.endsWith("f")) Data(s.toFloat) else Data(s.toDouble))
@@ -42,7 +42,7 @@ private[data] trait DataCommons {
   private val digitRegex = """^-?\d+(\.\d+)?(f|d)?$""".r
   private val intRegex = """^-?\d+L?$""".r
 
-  def parseList(strings: List[String]): Either[String, Data] =
+  final def parseList(strings: List[String]): Either[String, Data] =
     parsePairs(strings.collect { case s"$name=$value" =>
       (NonEmptyList.fromList(name.split('.').toList).get, value)
     }).left.map(_.mkString("\n"))

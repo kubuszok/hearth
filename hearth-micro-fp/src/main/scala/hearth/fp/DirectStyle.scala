@@ -43,7 +43,7 @@ import scala.util.control.{ControlThrowable, NoStackTrace}
 trait DirectStyle[F[_]] {
   import DirectStyle.*
 
-  def scoped[A](thunk: RunSafe[F] => A): F[A] = {
+  final def scoped[A](thunk: RunSafe[F] => A): F[A] = {
     val runSafe = new RunSafe(this)
     scopedUnsafe(runSafe.asOwner)(thunk(runSafe))
   }
