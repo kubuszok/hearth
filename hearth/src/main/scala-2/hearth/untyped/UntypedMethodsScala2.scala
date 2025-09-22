@@ -78,7 +78,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         case Invocation.OnInstance =>
           instance match {
             case None =>
-              assertionFailed(s"Expected an instance for method $name that is called on an instance")
+              hearthAssertionFailed(s"Expected an instance for method $name that is called on an instance")
             case Some(instance) =>
               // instance.method, or instance.method(), or instance.method(b1, b2, ...)
               q"$instance.$symbol(...$adaptedArguments)"
@@ -243,7 +243,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
           case Invocation.Constructor =>
             val (companionTpe, companionRef) = instanceTpe.companionObject.getOrElse {
               // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
-              assertionFailed(s"Expected that ${instanceTpe.prettyPrint} would have a companion object")
+              hearthAssertionFailed(s"Expected that ${instanceTpe.prettyPrint} would have a companion object")
               // $COVERAGE-ON$
             }
             val names = possibleConstructorNames
@@ -270,7 +270,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
           }
           .getOrElse {
             // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
-            assertionFailed(
+            hearthAssertionFailed(
               s"Expected that ${instanceTpe.prettyPrint}'s constructor parameter `${param.name}` would have default value: attempted `${possibleDefaultNames.mkString(", ")}`, found: ${decls.to(List).mkString(", ")}"
             )
             // $COVERAGE-ON$

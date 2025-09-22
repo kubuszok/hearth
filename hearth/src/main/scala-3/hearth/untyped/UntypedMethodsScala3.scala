@@ -37,15 +37,14 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       lazy val instanceTpe = UntypedType.fromTyped[Instance]
       lazy val method = untyped.head.head._2.method // If params are empty it would throw... unless we don't use it.
 
-      // constructor methods still have to have their type parameters manually applied,
-      // even if we know the exact type of their class
+      // Constructor methods still have to have their type parameters manually applied, even if we know the exact type of their class.
       lazy val appliedIfNecessary =
         if instanceTpe.typeArgs.isEmpty && method.symbol.isClassConstructor then instanceTpe.memberType(method.symbol)
         else instanceTpe.memberType(method.symbol).appliedTo(instanceTpe.typeArgs)
       lazy val typesByParamName = appliedIfNecessary match {
-        // monomorphic
+        // Monomorphic type - no type parameters to re-apply
         case MethodType(names, types, _) => names.zip(types).toMap
-        // polymorphic
+        // Polymorphic type - type parameters are applied to the method type
         case PolyType(_, _, MethodType(names, types, AppliedType(_, typeRefs))) =>
           val typeArgumentByAlias = typeRefs.zip(instanceTpe.typeArgs).toMap
           val typeArgumentByName: Map[String, TypeRepr] =
@@ -58,6 +57,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
               }
               .toMap
           typeArgumentByName
+        // Type is monomorphic, but because we it got its types applied.
         case AppliedType(MethodType(names, types, _), typeRefs) =>
           val typeArgumentByAlias = typeRefs.zip(instanceTpe.typeArgs).toMap
           val typeArgumentByName: Map[String, TypeRepr] =
@@ -70,12 +70,13 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
               }
               .toMap
           typeArgumentByName
-        // unknown
+        // Unknown type - should never happen unless we messed up.
         // $COVERAGE-OFF$should never happen unless we messed up
         case out =>
-          throw new AssertionError(
-            s"Constructor of ${Type.prettyPrint(UntypedType.toTyped[Any](instanceTpe))} has unrecognized/unsupported format of type: $out"
-          )
+          val methodName = if method.isConstructor then "Constructor" else s"Method ${method.name}"
+          val typeName = Type.prettyPrint(UntypedType.toTyped[Any](instanceTpe))
+          val outTypeName = Type.prettyPrint(UntypedType.toTyped[Any](out))
+          hearthAssertionFailed(s"$methodName of $typeName has unrecognized/unsupported format of type: $outTypeName")
         // $COVERAGE-ON$
       }
 
@@ -114,7 +115,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         case Invocation.OnInstance =>
           instance match {
             case None =>
-              assertionFailed(s"Expected an instance for method $name that is called on an instance")
+              hearthAssertionFailed(s"Expected an instance for method $name that is called on an instance")
             case Some(instance) =>
               // instance.method, or instance.method(), or instance.method(b1, b2, ...)
               instance.select(symbol).appliedToArgss(adaptedArguments)
@@ -294,7 +295,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           case Invocation.Constructor =>
             val (companionTpe, companionRef) = instanceTpe.companionObject.getOrElse {
               // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
-              assertionFailed(s"Expected that ${instanceTpe.prettyPrint} would have a companion object")
+              hearthAssertionFailed(s"Expected that ${instanceTpe.prettyPrint} would have a companion object")
               // $COVERAGE-ON$
             }
             val names = possibleConstructorNames
@@ -316,7 +317,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         val possibleDefaultNames = names.map(defaultValueMethodName(_, param.index + 1))
         val defaultMethod = possibleDefaultNames.flatMap(decls.declaredMethod).headOption.getOrElse {
           // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
-          assertionFailed(
+          hearthAssertionFailed(
             s"Expected that ${instanceTpe.prettyPrint}'s constructor parameter `${param.name}` would have default value: attempted `${possibleDefaultNames.mkString(", ")}`, found: ${decls.declarations.mkString(", ")}"
           )
           // $COVERAGE-ON$

@@ -24,6 +24,21 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
     */
   final def assertionFailed(message: String): Nothing = throw new AssertionError(message)
 
+  /** Throws an [[HearthAssertionError]] with the given description.
+    *
+    * Intended to signal that there is an invalid path in macro that hasn't been properly handled, that should be
+    * reported as an issue.
+    *
+    * @since 0.1.0
+    */
+  final private[hearth] def hearthAssertionFailed(description: String): Nothing = throw HearthAssertionError(
+    description,
+    hearthVersion = HearthVersion.byHearthLibrary,
+    scalaVersion = Environment.currentScalaVersion,
+    platform = Environment.currentPlatform,
+    jdkVersion = Environment.currentJDKVersion
+  )
+
   implicit final class MioExprOps[A](private val io: fp.effect.MIO[Expr[A]]) {
 
     /** Expand the final result of the MIO, or fail with a message.

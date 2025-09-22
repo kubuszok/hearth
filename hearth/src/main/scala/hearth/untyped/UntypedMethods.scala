@@ -105,7 +105,7 @@ trait UntypedMethods { this: MacroCommons =>
             method.unsafeApply(instanceTpe)(instance, Map.empty)
           }
           arguments.get(paramName).orElse(defaultValue).getOrElse {
-            assertionFailed(
+            hearthAssertionFailed(
               s"Expected that ${Type.prettyPrint(using instanceTpe.asTyped[Any])}'s ${method.name} parameter `$paramName` would be provided or have default value"
             )
           }
