@@ -28,5 +28,6 @@ object Applicative {
   final class Ops[F[_], A](private val fa: F[A]) extends AnyVal {
 
     def map2[B, C](fb: => F[B])(f: (A, B) => C)(implicit F: Applicative[F]): F[C] = F.map2(fa, fb)(f)
+    def tuple[B](fb: => F[B])(implicit F: Applicative[F]): F[(A, B)] = F.map2(fa, fb)(_ -> _)
   }
 }
