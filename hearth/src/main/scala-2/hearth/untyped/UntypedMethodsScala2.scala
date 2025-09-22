@@ -219,7 +219,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
           val allMembers = classMembers ++ companionMembers
           val allDeclared = classDeclared ++ companionDeclared
-          val moduleBySymbol = allMembers.toList.map(_ -> companionRef).toMap[Symbol, UntypedExpr]
+          val moduleBySymbol = companionMembers.toList.map(_ -> companionRef).toMap[Symbol, UntypedExpr]
           (allMembers, allDeclared, moduleBySymbol)
         }
         .getOrElse((classMembers, classDeclared, Map.empty[Symbol, UntypedExpr]))

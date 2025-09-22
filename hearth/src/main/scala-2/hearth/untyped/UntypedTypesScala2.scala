@@ -139,7 +139,12 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     override def companionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] =
       if (untyped.typeSymbol.isModuleClass) None
       else
-        companionSymbol(untyped).toOption.map(companion => (subtypeTypeOf(untyped, companion.asType), q"$companion"))
+        for {
+          companion <- companionSymbol(untyped).toOption.flatMap(Option(_))
+          if companion != NoSymbol && companion.isModule
+          companionClass <- Option(companion.asModule.moduleClass)
+          if companionClass != NoSymbol && companionClass.isType
+        } yield (subtypeTypeOf(untyped, companionClass.asType), q"$companion")
 
     override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] = {
       val A = instanceTpe.typeSymbol
@@ -161,26 +166,14 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
           if (t.asClass.isSealed) t.asClass.knownDirectSubclasses.toVector.map(_.asType).flatMap(extractRecursively)
           else Vector(t)
 
-        try
-          Some(
-            ListMap.from(
-              // calling .distinct here as `knownDirectSubclasses` returns duplicates for multiply-inherited types
-              extractRecursively(A.asType).distinct
-                .sorted(symbolOrdering)
-                .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
-            )
+        Some(
+          ListMap.from(
+            // calling .distinct here as `knownDirectSubclasses` returns duplicates for multiply-inherited types
+            extractRecursively(A.asType).distinct
+              .sorted(symbolOrdering)
+              .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
           )
-        catch {
-          case err: Throwable =>
-            println(s"""Unexpected error:
-                       |error: ${err.getMessage}
-                       |tpe:   ${instanceTpe.prettyPrint}
-                       |toString:        ${instanceTpe.toString}
-                       |isJavaEnum:      ${isJavaEnum(instanceTpe)}
-                       |isJavaEnumValue: ${isJavaEnumValue(instanceTpe)}
-                       |""".stripMargin)
-            None
-        }
+        )
       } else None
     }
 
