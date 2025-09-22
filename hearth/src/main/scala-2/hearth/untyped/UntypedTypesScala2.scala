@@ -30,7 +30,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
             .map(_._1.name.toTermName)
           // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
           scala.util.Try {
-            if (path.isEmpty) assertionFailed(s"Cannot find a companion for ${untyped.prettyPrint}")
+            if (path.isEmpty) hearthAssertionFailed(s"Cannot find a companion for ${untyped.prettyPrint}")
             else c.typecheck(path.foldLeft[Tree](Ident(path.next()))(Select(_, _)), silent = true).symbol
           }
           // $COVERAGE-ON$

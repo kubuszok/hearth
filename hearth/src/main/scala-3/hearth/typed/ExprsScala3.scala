@@ -216,7 +216,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                   ToExpr.ArrayToExpr[A]
                 }
                 .getOrElse {
-                  assertionFailed(
+                  hearthAssertionFailed(
                     s"Could not figure out ClassTag[${Type.prettyPrint[A]}] - support for such cases is still experimental"
                   )
                   // given scala.reflect.ClassTag[A] = scala.reflect.ClassTag(classOf[Any]).asInstanceOf[scala.reflect.ClassTag[A]]

@@ -1,5 +1,33 @@
 package hearth
 
+/** Exact Hearth version.
+  *
+  * Used internally only to report the version of Hearth that was used to compile the code in errors.
+  *
+  * @since 0.1.0
+  */
+final case class HearthVersion(version: String, languageVersion: LanguageVersion, platform: Platform) {
+
+  override def toString: String = s"Hearth $version ($languageVersion, $platform)"
+}
+object HearthVersion {
+
+  def byHearthLibrary: Option[HearthVersion] = libraryJarName(HearthVersion) match {
+    case s"hearth_2.13-$version.jar"        => Some(HearthVersion(version, LanguageVersion.Scala2_13, Platform.Jvm))
+    case s"hearth_3-$version.jar"           => Some(HearthVersion(version, LanguageVersion.Scala3, Platform.Jvm))
+    case s"hearth_sjs1_2.13-$version.jar"   => Some(HearthVersion(version, LanguageVersion.Scala2_13, Platform.Js))
+    case s"hearth_sjs1_3-$version.jar"      => Some(HearthVersion(version, LanguageVersion.Scala3, Platform.Js))
+    case s"hearth_native_2.13-$version.jar" => Some(HearthVersion(version, LanguageVersion.Scala2_13, Platform.Native))
+    case s"hearth_native_3-$version.jar"    => Some(HearthVersion(version, LanguageVersion.Scala3, Platform.Native))
+    case _                                  => None
+  }
+
+  private def libraryJarName(ctx: Any): String = {
+    val library = ctx.getClass.getProtectionDomain.getCodeSource.getLocation.toString
+    library.substring(library.lastIndexOf('/') + 1)
+  }
+}
+
 /** Exact JDK version.
   *
   * Uses tools available only in JVM runtime, so it should be used either only on JVM Scala or the code, that is used

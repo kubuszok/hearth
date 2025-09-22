@@ -44,7 +44,7 @@ trait UntypedTypes { this: MacroCommons =>
         else if (untyped =:= Type.of[Null].asUntyped) Some(classOf[Null])
         else if (untyped =:= Type.of[Nothing].asInstanceOf[Type[Any]].asUntyped) Some(classOf[Nothing])
         else
-          assertionFailed(
+          hearthAssertionFailed(
             s"${untyped.prettyPrint} is recognized as type-system-special type, but is not handled by a type-system-special branch"
           )
       } else if (isBuiltIn(untyped)) {
@@ -67,7 +67,7 @@ trait UntypedTypes { this: MacroCommons =>
                 scala.reflect.ClassTag(elementClass).newArray(0).getClass()
               }
             case _ =>
-              assertionFailed(
+              hearthAssertionFailed(
                 s"${untyped.prettyPrint} is recognized as built-in type, but is not handled by a build-in branch"
               )
           }
