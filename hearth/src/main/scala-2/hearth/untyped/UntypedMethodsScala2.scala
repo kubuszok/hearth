@@ -206,9 +206,24 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       instanceTpe.decls.filter(_.isConstructor).flatMap(parseCtorOption).toList
     override def methods(instanceTpe: UntypedType): List[UntypedMethod] = {
       // Defined in the type or its parent, or synthetic
-      val members = instanceTpe.members
+      val classMembers = instanceTpe.members
       // Defined exatcly in the type
-      val declared = instanceTpe.decls.toSet
+      val classDeclared = instanceTpe.decls.toSet
+
+      val (members, declared, moduleBySymbol) = instanceTpe.companionObject
+        .map { case (companionTpe, companionRef) =>
+          // Defined in the companion object or its parent, or synthetic
+          val companionMembers = companionTpe.members
+          // Defined exatcly in the companion object
+          val companionDeclared = companionTpe.decls.toSet
+
+          val allMembers = classMembers ++ companionMembers
+          val allDeclared = classDeclared ++ companionDeclared
+          val moduleBySymbol = allMembers.toList.map(_ -> companionRef).toMap[Symbol, UntypedExpr]
+          (allMembers, allDeclared, moduleBySymbol)
+        }
+        .getOrElse((classMembers, classDeclared, Map.empty[Symbol, UntypedExpr]))
+
       val constructorArguments = (for {
         symbol <- List(instanceTpe.typeSymbol)
         if symbol.isClass
@@ -216,7 +231,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         if primaryConstructor.isConstructor
         argument <- primaryConstructor.asMethod.paramLists.flatten
       } yield symbolName(argument)).toSet
-      // TODO: companion methods
+
       sortMethods(
         members
           .filter(_.isMethod)
@@ -224,11 +239,12 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
           .filterNot(s => symbolName(s).contains("$default$")) // Default parameters are methods, but we don't want them
           .flatMap { s =>
             val fieldNames = Set(symbolName(s), symbolName(s) + "_=")
+            val module = moduleBySymbol.get(s)
             UntypedMethod.parseOption(
               isDeclared = declared(s),
               isConstructorArgument = (constructorArguments & fieldNames).nonEmpty,
               isCaseField = s.asMethod.isCaseAccessor,
-              module = None
+              module = module
             )(s)
           }
           .toList
