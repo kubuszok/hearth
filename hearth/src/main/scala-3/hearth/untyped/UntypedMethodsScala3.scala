@@ -255,9 +255,28 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def methods(instanceTpe: UntypedType): List[UntypedMethod] = {
       val symbol = instanceTpe.typeSymbol
       // Defined in the type or its parent, or synthetic
-      val members = symbol.methodMembers ++ symbol.fieldMembers
+      val classMembers = symbol.methodMembers ++ symbol.fieldMembers
       // Defined exatcly in the type
-      val declared = symbol.declaredMethods.toSet ++ symbol.declaredFields.toSet ++ declaredByJvmOrScala(symbol)
+      val classDeclared = symbol.declaredMethods.toSet ++ symbol.declaredFields.toSet ++ declaredByJvmOrScala(symbol)
+
+      val (members, declared, moduleBySymbol) = instanceTpe.companionObject
+        .map { case (companionTpe, companionRef) =>
+          val companionSymbol = companionTpe.typeSymbol
+          // Defined in the companion object or its parent, or synthetic
+          val companionMembers = companionSymbol.methodMembers ++ companionSymbol.fieldMembers
+          // Defined exatcly in the companion object
+          val companionDeclared =
+            companionSymbol.declaredMethods.toSet ++ companionSymbol.declaredFields.toSet ++ declaredByJvmOrScala(
+              companionSymbol
+            )
+
+          val allMembers = classMembers ++ companionMembers
+          val allDeclared = classDeclared ++ companionDeclared
+          val moduleBySymbol = allMembers.toList.map(_ -> companionRef).toMap[Symbol, UntypedExpr]
+          (allMembers, allDeclared, moduleBySymbol)
+        }
+        .getOrElse((classMembers, classDeclared, Map.empty[Symbol, UntypedExpr]))
+
       val constructorArguments = (for {
         primaryConstructor <- Option(symbol.primaryConstructor).toList
         if !primaryConstructor.isNoSymbol
@@ -267,7 +286,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         field <- symbol.caseFields
         if !field.isNoSymbol
       } yield field.name).toSet
-      // TODO: companion methods
+
       sortMethods(
         members
           .filterNot(_.isNoSymbol)
@@ -278,11 +297,12 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
             val fieldName = s.name.pipe { name =>
               if name.endsWith("_=") then name.dropRight(2) else name
             }
+            val module = moduleBySymbol.get(s)
             UntypedMethod.parseOption(
               isDeclared = declared(s),
               isConstructorArgument = constructorArguments(fieldName),
               isCaseField = caseFields(fieldName),
-              module = None
+              module = module
             )(s)
           }
       )
