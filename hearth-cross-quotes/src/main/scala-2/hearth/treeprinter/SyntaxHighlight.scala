@@ -16,8 +16,9 @@ trait SyntaxHighlight {
 
 object SyntaxHighlight {
 
-// Moved out of ANSI and removed `private`
-// Keep in sync with SyntaxHighlighting
+  // Moved out of ANSI and removed `private`
+
+  // Keep in sync with SyntaxHighlighting
   val NoColor = Console.RESET
   val CommentColor = Console.BLUE
   val KeywordColor = Console.YELLOW

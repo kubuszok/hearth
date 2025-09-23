@@ -3,18 +3,19 @@ package treeprinter
 
 import java.io.PrintWriter
 
-class PrettyPrintUniverse(u: scala.reflect.macros.Universe, syntaxHighlight: SyntaxHighlight) extends ExtensibleUniverse(u) {
+class PrettyPrintUniverse(u: scala.reflect.macros.Universe, syntaxHighlight: SyntaxHighlight)
+    extends ExtensibleUniverse(u) {
 
   import syntaxHighlight.*
   import SyntaxHighlight.*
 
   def showCodeAnsi(
-    tree:           Tree,
-    printTypes:     BooleanFlag = None,
-    printIds:       BooleanFlag = None,
-    printOwners:    BooleanFlag = None,
-    printPositions: BooleanFlag = None,
-    printRootPkg:   Boolean = false
+      tree: Tree,
+      printTypes: BooleanFlag = None,
+      printIds: BooleanFlag = None,
+      printOwners: BooleanFlag = None,
+      printPositions: BooleanFlag = None,
+      printRootPkg: Boolean = false
   ): String = render(
     tree,
     new AnsiCodePrinter(_, printRootPkg),
@@ -27,17 +28,17 @@ class PrettyPrintUniverse(u: scala.reflect.macros.Universe, syntaxHighlight: Syn
   )
 
   override def quotedName(name: Name, decode: Boolean): String = {
-    val s     = if (decode) name.decode else name.toString
-    val term  = name.toTermName
+    val s = if (decode) name.decode else name.toString
+    val term = name.toTermName
     val value = if (nme.keywords(term) && term != nme.USCOREkw) "`%s`" format s else s
     if (name.isTypeName) highlightTypeDef(value)
     else value
   }
 
   private def symNameInternal(tree: Tree, name: Name, decoded: Boolean): String = {
-    val sym     = tree.symbol
-    def qname   = quotedName(name.dropLocal, decoded)
-    def qowner  = quotedName(sym.owner.name.dropLocal, decoded)
+    val sym = tree.symbol
+    def qname = quotedName(name.dropLocal, decoded)
+    def qowner = quotedName(sym.owner.name.dropLocal, decoded)
     def qsymbol = quotedName(sym.nameString)
     if (sym == null || sym.isInstanceOf[NoSymbol]) qname
     else if (sym.isErroneous) s"<$qname: error>"
@@ -46,7 +47,7 @@ class PrettyPrintUniverse(u: scala.reflect.macros.Universe, syntaxHighlight: Syn
   }
 
   override def decodedSymName(tree: Tree, name: Name): String = symNameInternal(tree, name, decoded = true)
-  override def symName(tree: Tree, name: Name):        String = symNameInternal(tree, name, decoded = false)
+  override def symName(tree: Tree, name: Name): String = symNameInternal(tree, name, decoded = false)
 
   class AnsiCodePrinter(out: PrintWriter, printRootPkg: Boolean) extends CodePrinter(out, printRootPkg) {
 
@@ -96,8 +97,13 @@ class PrettyPrintUniverse(u: scala.reflect.macros.Universe, syntaxHighlight: Syn
     private def ifSym(tree: Tree, p: Symbol => Boolean) = symFn(tree, p, false)
 
     private[this] var currentOwner: Symbol = NoSymbol
-    private[this] var selectorType: Type   = NoType
+    private[this] var selectorType: Type = NoType
 
+    /** Adaptation of [[scala.reflect.internal.Printers#printTree]] that supports syntax highlighting and avoids
+      * printing incorrect code.
+      * @param tree
+      *   tree to print
+      */
     @scala.annotation.nowarn
     override def printTree(tree: Tree): Unit = {
       tree match {
