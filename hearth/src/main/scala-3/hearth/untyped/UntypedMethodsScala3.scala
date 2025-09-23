@@ -12,7 +12,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       extends UntypedParameterMethods {
 
     override def name: String = symbol.name
-    override def position: Option[Position] = symbol.pos
+    override def position: Option[Position] = UntypedType.platformSpecific.positionOf(symbol)
 
     override def annotations: List[UntypedExpr] = symbol.annotations
 
@@ -140,7 +140,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     }
 
     override lazy val name: String = symbol.name
-    override def position: Option[Position] = symbol.pos
+    override def position: Option[Position] = UntypedType.platformSpecific.positionOf(symbol)
 
     override def annotations: List[UntypedExpr] = symbol.annotations
 
@@ -151,7 +151,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def isLazy: Boolean = symbol.flags.is(Flags.Lazy)
     override def isDef: Boolean = symbol.isDefDef
     override def isImplicit: Boolean = symbol.flags.is(Flags.Implicit)
-    override def isSynthetic: Boolean = symbol.flags.is(Flags.Synthetic)
+    override def isSynthetic: Boolean =
+      symbol.flags.is(Flags.Synthetic) || UntypedMethod.methodsConsideredSynthetic(symbol)
 
     override def isAvailable(scope: Accessible): Boolean = scope match {
       case Everywhere =>
@@ -299,7 +300,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
             }
             val module = moduleBySymbol.get(s)
             UntypedMethod.parseOption(
-              isDeclared = declared(s),
+              isDeclared = declared(s) && !methodsConsideredSynthetic(s),
               isConstructorArgument = constructorArguments(fieldName),
               isCaseField = caseFields(fieldName),
               module = module
@@ -384,8 +385,14 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     // ensured to exist, even when they do not appear in the source code, and they should not be considered "inherited".
     private lazy val declaredByJvmOrScala = Map {
       val objectSymbol = TypeRepr.of[java.lang.Object].typeSymbol
-      val objectExceptionNames = Set("##", "==", "!=", "toString", "equals", "hashCode")
+      val objectExceptionNames = Set("toString", "equals", "hashCode")
       objectSymbol -> objectSymbol.methodMembers.filter(symbol => objectExceptionNames(symbol.name)).toSet
     }.withDefaultValue(Set.empty)
+
+    // For these symbol.isSynthetic flag is false, but we want to consider them synthetic.
+    private val methodsConsideredSynthetic = {
+      val names = Set("asInstanceOf", "isInstanceOf", "getClass", "synchronized", "==", "!=", "eq", "ne", "##")
+      TypeRepr.of[Object].typeSymbol.methodMembers.filter(symbol => names(symbol.name)).toSet
+    }
   }
 }
