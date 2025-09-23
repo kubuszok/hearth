@@ -292,7 +292,11 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         members
           .filterNot(_.isNoSymbol)
           .filterNot(_.isClassConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
-          .filterNot(_.name.contains("$default$")) // Default parameters are methods, but we don't want them
+          .filterNot { s =>
+            val name = s.name
+            name.contains("$default$") || // Default parameters are methods, but we don't want them
+            name == "<clinit>" // Class static initializer is a method, but we don't want it
+          }
           .filterNot(excludedMethods)
           .flatMap { s =>
             val fieldName = s.name.pipe { name =>
