@@ -114,8 +114,8 @@ trait Methods { this: MacroCommons =>
     final lazy val isConstructorArgument: Boolean = untyped.isConstructorArgument
     final lazy val isCaseField: Boolean = untyped.isCaseField
 
-    final lazy val isScalaGetter: Boolean = isVal || isVar || isLazy
-    final lazy val isScalaSetter: Boolean = isVar
+    final lazy val isScalaGetter: Boolean = (isVal || isVar || isLazy) && !isScalaSetter
+    final lazy val isScalaSetter: Boolean = (isUnary && name.endsWith("_="))
     final lazy val isScalaAccessor: Boolean = isScalaGetter || isScalaSetter
 
     final lazy val isJavaGetter: Boolean = this match {

@@ -112,17 +112,41 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
     override def isConstructor: Boolean = symbol.isConstructor
 
-    override def isVal: Boolean = symbol.isVal
-    override def isVar: Boolean = symbol.isVar
-    override def isLazy: Boolean = symbol.isLazy
-    override def isDef: Boolean = !symbol.isVal && !symbol.isVar && !symbol.isLazy
+    override def isVal: Boolean = symbol.isVal || accessedOf(symbol).exists(_.isVal)
+    override def isVar: Boolean = symbol.isVar || accessedOf(symbol).exists(_.isVar)
+    override def isLazy: Boolean = symbol.isLazy || accessedOf(symbol).exists(_.isLazy)
+    override def isDef: Boolean =
+      !isVal && !isLazy && (!isVar || name.endsWith("_=")) // var's setter should both var AND def
     override def isImplicit: Boolean = symbol.isImplicit
-    override def isSynthetic: Boolean = symbol.isSynthetic
+    override def isSynthetic: Boolean = symbol.isSynthetic || UntypedMethod.methodsConsideredSynthetic(symbol)
 
     override def isAvailable(scope: Accessible): Boolean = scope match {
       case Everywhere => symbol.isPublic
       case AtCallSite => false // TODO
     }
+
+    // -------------------------------------------- Special cases handling --------------------------------------------
+    // So, the symbol of val/var is no just one symbol - there is a symbol for var/var `fieldName` as a `TermSymbol`,
+    // representing the field, but there is also a separate symbol for `def fieldName` as a getter `MethodSymbol`,
+    // and - if we are talking about var - a separate symbol for `def fieldName_=` as a setter `MethodSymbol`.
+    //
+    // Oh. and if we are talking about class constructor argument then I guess it's another one?
+    //
+    // These symbols are not equal, so if we want to check for .isVal, .isVar, .isLazy, etc, we need to check both the
+    // symbol itself and the accessed symbol. FML
+
+    private def accessedOf(symbol: MethodSymbol): Option[TermSymbol] =
+      scala.util.Try(symbol.accessed).toOption.filterNot(_ == NoSymbol).collectFirst {
+        case s if s.isTerm => s.asTerm
+      }
+    private def getterOf(symbol: MethodSymbol): Option[MethodSymbol] =
+      scala.util.Try(symbol.getter).toOption.filterNot(_ == NoSymbol).collectFirst {
+        case s if s.isMethod => s.asMethod
+      }
+    private def setterOf(symbol: MethodSymbol): Option[MethodSymbol] =
+      scala.util.Try(symbol.setter).toOption.filterNot(_ == NoSymbol).collectFirst {
+        case s if s.isMethod => s.asMethod
+      }
   }
 
   object UntypedMethod extends UntypedMethodModule {
@@ -240,8 +264,8 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
           .flatMap { s =>
             val fieldNames = Set(symbolName(s), symbolName(s) + "_=")
             val module = moduleBySymbol.get(s)
-            UntypedMethod.parseOption(
-              isDeclared = declared(s),
+            parseOption(
+              isDeclared = declared(s) && !methodsConsideredSynthetic(s),
               isConstructorArgument = (constructorArguments & fieldNames).nonEmpty,
               isCaseField = s.asMethod.isCaseAccessor,
               module = module
@@ -310,6 +334,16 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         else if (symbol.isClass) parseCtorOption(symbol.asClass.primaryConstructor)
         else enclosingOf(symbol.owner)
       enclosingOf(c.internal.enclosingOwner)
+    }
+
+    // ------------------------------------------------- Special cases handling -------------------------------------------------
+    // When behavior between Scala 2 and 3 is different, and it makes sense to align them, we have to decide which behavior is
+    // "saner" and which one needs adjustment. Below are methods used to adjust behavior on Scala 2 side.
+
+    // For these symbol.isSynthetic flag is false, but we want to consider them synthetic.
+    private val methodsConsideredSynthetic = {
+      val names = Set("asInstanceOf", "isInstanceOf", "getClass", "synchronized", "==", "!=", "eq", "ne", "##")
+      c.weakTypeOf[Object].members.filter(symbol => names(symbolName(symbol))).toSet
     }
   }
 }

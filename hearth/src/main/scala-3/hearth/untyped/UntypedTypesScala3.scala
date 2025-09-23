@@ -40,6 +40,11 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
             subtype.typeRef
         }
 
+      def positionOf(symbol: Symbol): Option[Position] =
+        symbol.pos
+          // Removes values like "/BCDEF/java.base/java/lang/Object.sig" which are not actual positions.
+          .filterNot(_.sourceFile.path.endsWith(".sig"))
+
       implicit val symbolOrdering: Ordering[Symbol] = {
         val stringSorting = hearth.fp.NaturalLanguageOrdering.caseSensitive
         Ordering.by((_: Symbol).pos).orElse(stringSorting.on((_: Symbol).name))
@@ -50,7 +55,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def fromTyped[A: Type]: UntypedType = TypeRepr.of[A]
     override def toTyped[A](untyped: UntypedType): Type[A] = untyped.asType.asInstanceOf[Type[A]]
 
-    override def position(untyped: UntypedType): Option[Position] = untyped.typeSymbol.pos
+    override def position(untyped: UntypedType): Option[Position] = positionOf(untyped.typeSymbol)
 
     override def fromClass(clazz: java.lang.Class[?]): UntypedType = TypeRepr.typeConstructorOf(clazz)
 
@@ -132,6 +137,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       if untyped.isObject then None
       else {
         val sym = untyped.typeSymbol
+        // So... if you have `object Foo`, the `Foo` is a `Term` and have a `Symbol` (via `.companionModule`),
+        // while its type is `Foo.type` and it has another `Symbol` (via `.moduleClass`).
+        // We need to use 2 of them in different places, so we have to pass a tuple.
         Option(sym.moduleClass).filterNot(_.isNoSymbol).zip(Option(sym.companionModule).filterNot(_.isNoSymbol)).map {
           case (moduleClass, module) => (subtypeTypeOf(untyped, moduleClass), Ref(module))
         }

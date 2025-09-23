@@ -15,7 +15,36 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
     object platformSpecific {
 
-      // Borrowed from jsoniter-scala: https://github.com/plokhotnyuk/jsoniter-scala/blob/b14dbe51d3ae6752e5a9f90f1f3caf5bceb5e4b0/jsoniter-scala-macros/shared/src/main/scala/com/github/plokhotnyuk/jsoniter_scala/macros/JsonCodecMaker.scala#L462
+      /** Finds the actual companion symbol for the given type.
+        *
+        * Borrowed from Jsoniter-Scala:
+        * https://github.com/plokhotnyuk/jsoniter-scala/blob/b14dbe51d3ae6752e5a9f90f1f3caf5bceb5e4b0/jsoniter-scala-macros/shared/src/main/scala/com/github/plokhotnyuk/jsoniter_scala/macros/JsonCodecMaker.scala#L462
+        * which in turn Borrowed from Magnolia:
+        * https://github.com/propensive/magnolia/blob/f21f2aabb49e43b372240e98ec77981662cc570c/core/shared/src/main/scala/magnolia.scala#L123-L155
+        * which I believe borrowed it from AVSystem/scala-commons (?) (the first version of ownerChain that I found):
+        * https://github.com/AVSystem/scala-commons/blob/51776d33d48050fc201357a83ed469da5a60dbf2/commons-macros/src/main/scala/com/avsystem/commons/macros/MacroCommons.scala#L19
+        *
+        * Basically, the issue is that: when you ask for a symbol of a companion object, you'll get some symbol... but
+        * it might not be an object.
+        *
+        * When you have things like:
+        * {{{
+        * object Foo {
+        *   object Bar {
+        *     object Baz {
+        *       ...
+        *     }
+        *   }
+        * }
+        * }}}
+        *
+        * only the outermost object is an actual object, the inner ones are not necessarily treated modules: they might
+        * not contains the default values definitions, etc.
+        *
+        * Similarly messed up situation with classes containing objects containing classes, etc.
+        *
+        * This function basically finds the Symbol that can be used as an actual companion object.
+        */
       def companionSymbol(untyped: UntypedType): scala.util.Try[Symbol] = {
         val sym = untyped.typeSymbol
         val comp = sym.companion

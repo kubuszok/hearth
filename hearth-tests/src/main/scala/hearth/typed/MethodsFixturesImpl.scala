@@ -66,7 +66,7 @@ trait MethodsFixturesImpl { this: MacroCommons =>
             "invocation" -> Data(method.untyped.invocation.toString),
             "hasTypeParameters" -> Data(method.untyped.hasTypeParameters),
             "position" -> Data(position),
-            "annotations" -> Data.list(method.annotations.map(e => Data(e.prettyPrint))*),
+            "annotations" -> Data.list(method.annotations.map(e => Data(removeAnsiColors(e.prettyPrint)))*),
             "isConstructor" -> Data(method.isConstructor),
             "isVal" -> Data(method.isVal),
             "isVar" -> Data(method.isVar),
