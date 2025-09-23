@@ -4,8 +4,6 @@ import hearth.data.*
 import hearth.fp.ignore
 import munit.{Location, TestOptions}
 
-import scala.util.matching.Regex
-
 /** Base trait for all Hearth tests.
   *
   * Provides some utilities like:
@@ -40,7 +38,7 @@ trait Suite extends munit.BaseFunSuite { self =>
     else super.test(options.withName(appendName(prefix, options.name)))(body)
 
   implicit class StringOps(private val str: String) {
-    def stripANSI: String = Suite.AnsiControlCode.replaceAllIn(str, "")
+    def stripANSI: String = removeAnsiColors(str)
 
     private def language = LanguageVersion.byHearth
     def ignoreOnScala2_13(implicit loc: Location): TestOptions =
@@ -114,8 +112,4 @@ trait Suite extends munit.BaseFunSuite { self =>
       )
     }
   }
-}
-object Suite {
-
-  val AnsiControlCode: Regex = "\u001b\\[([0-9]+)m".r
 }
