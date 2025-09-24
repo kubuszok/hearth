@@ -93,7 +93,7 @@ trait Classes { this: MacroCommons =>
           }
         case method =>
           throw new AssertionError(
-            s"Field ${method.name} of ${tpe.prettyPrint} is not nullary instance method: arity=${method.arity}, invocation=${method.untyped.invocation}"
+            s"Field ${method.name} of ${tpe.prettyPrint} is not nullary instance method: arity=${method.arity}, invocation=${method.asUntyped.invocation}"
           )
       }): @scala.annotation.nowarn
     })

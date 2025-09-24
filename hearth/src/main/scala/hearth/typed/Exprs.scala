@@ -58,8 +58,8 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     def CharExprCodec: ExprCodec[Char]
     def StringExprCodec: ExprCodec[String]
 
-    // TODO: def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = ???
-    // TODO: def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]] = ???
+    def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]]
+    def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]]
 
     def ArrayExprCodec[A: ExprCodec: Type]: ExprCodec[Array[A]]
     def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]]
@@ -176,11 +176,20 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     * @see
     *   [[https://docs.scala-lang.org/overviews/quasiquotes/lifting.html]] for Scala 2 underlying concept
     * @see
-    *   [[https://docs.scala-lang.org/scala3/guides/macros/macros.html#creating-expression-from-values]] for Scala 3
-    *   `ToExpr`
+    *   [[https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/StandardLiftables.scala]] for Scala 2
+    *   built-in liftables
     * @see
     *   [[https://docs.scala-lang.org/scala3/guides/macros/macros.html#extracting-values-from-expressions]] for Scala 3
     *   `FromExpr`
+    * @see
+    *   [[https://github.com/scala/scala3/blob/master/library/src/scala/quoted/FromExpr.scala]] for Scala 3 built-in
+    *   FromExpr
+    * @see
+    *   [[https://docs.scala-lang.org/scala3/guides/macros/macros.html#creating-expression-from-values]] for Scala 3
+    *   `ToExpr`
+    * @see
+    *   [[https://github.com/scala/scala3/blob/master/library/src/scala/quoted/ToExpr.scala]] for Scala 3 built-in
+    *   ToExpr
     *
     * @since 0.1.0
     */
@@ -193,10 +202,9 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     def apply[A](implicit codec: ExprCodec[A]): ExprCodec[A] = codec
 
-    // TODO: implement all these:
-    // TODO: - https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/StandardLiftables.scala
-    // TODO: - https://github.com/scala/scala3/blob/master/library/src/scala/quoted/ToExpr.scala
-    // TODO: https://github.com/scala/scala3/blob/master/library/src/scala/quoted/FromExpr.scala
+    // TODO: Consider implementing more of these:
+    // TODO: Tuple1-Tuple22
+    // TODO: BigInt, BigDecimal, StringContext
     // TODO: derivation?
 
     implicit lazy val NullExprCodec: ExprCodec[Null] = Expr.NullExprCodec
@@ -211,8 +219,8 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     implicit lazy val CharExprCodec: ExprCodec[Char] = Expr.CharExprCodec
     implicit lazy val StringExprCodec: ExprCodec[String] = Expr.StringExprCodec
 
-    // implicit def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = Expr.ClassExprCodec[A]
-    // implicit def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]] = Expr.ClassTagExprCodec[A]
+    implicit def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = Expr.ClassExprCodec[A]
+    implicit def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]] = Expr.ClassTagExprCodec[A]
 
     implicit def ArrayExprCodec[A: ExprCodec: Type]: ExprCodec[Array[A]] = Expr.ArrayExprCodec[A]
     implicit def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = Expr.SeqExprCodec[A]

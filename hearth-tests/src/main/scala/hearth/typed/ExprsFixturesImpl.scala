@@ -12,10 +12,10 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
 
   def testExprPrinters[A: Type](expr: Expr[A]): Expr[Data] = Expr(
     Data.map(
-      "Expr.plainPrint" -> Data(Expr.plainPrint(expr)),
-      "Expr.prettyPrint" -> Data(removeAnsiColors((Expr.prettyPrint(expr)))),
-      "Expr.plainAST" -> Data(Expr.plainAST(expr)),
-      "Expr.prettyAST" -> Data(removeAnsiColors((Expr.prettyAST(expr))))
+      "Expr.plainPrint" -> Data(expr.plainPrint),
+      "Expr.prettyPrint" -> Data(removeAnsiColors((expr.prettyPrint))),
+      "Expr.plainAST" -> Data(expr.plainAST),
+      "Expr.prettyAST" -> Data(removeAnsiColors((expr.prettyAST)))
     )
   )
 
@@ -32,15 +32,14 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
   )
 
   def testSuppressUnused[A: Type](expr: Expr[A]): Expr[Unit] =
-    Expr.suppressUnused(expr)
+    expr.suppressUnused
 
   // MatchCase methods
 
   def testMatchCaseTypeMatch[A: Type](expr: Expr[A]): Expr[Data] = {
     implicit val dataType: Type[Data] = DataType
 
-    Type
-      .exhaustiveChildren[A]
+    Type[A].exhaustiveChildren
       .fold(Expr(Data("<no exhaustive children>"))) { children =>
         expr.matchOn(children.toNonEmptyList.map { case (name, child) =>
           import child.Underlying as Child
@@ -48,7 +47,7 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
             Expr(
               Data.map(
                 "name" -> Data(name),
-                "type" -> Data(Type.plainPrint[Child]),
+                "type" -> Data(Type[Child].plainPrint),
                 "matchCase" -> Data(matchedExpr.plainPrint)
               )
             )

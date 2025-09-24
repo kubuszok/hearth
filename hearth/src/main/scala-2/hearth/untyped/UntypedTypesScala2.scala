@@ -103,10 +103,10 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
-      // We use =:= to check whether A is known to be exactly of the build-in type or is it some upper bound.
+      // We use =:= to check whether A is known to be exactly of the built-in type or is it some upper bound.
       A != NoSymbol &&
-      (isJavaEnum(instanceTpe) || (A.isAbstract && !Type.builtInTypes
-        .exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))))
+      (isJavaEnum(instanceTpe) || (A.isAbstract && !Type.jvmBuiltInTypes
+        .exists(tpe => instanceTpe =:= tpe.Underlying.asUntyped)))
     }
     override def isFinal(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol

@@ -123,7 +123,7 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
 
   /** Attempts to show `A` value using a built-in handlers for primitive types. */
   private def attemptAsBuiltIn[A: Type](value: Expr[A]): Attempt[String] =
-    Log.info(s"Attempting to use build-in support to show value of type ${Type.prettyPrint[A]}") >> MIO {
+    Log.info(s"Attempting to use built-in support to show value of type ${Type.prettyPrint[A]}") >> MIO {
       if (Type[A] <:< Type.of[Boolean]) Some(Expr.quote {
         Expr.splice(value).toString
       })

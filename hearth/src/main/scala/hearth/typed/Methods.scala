@@ -29,7 +29,7 @@ trait Methods { this: MacroCommons =>
 
     lazy val defaultValue: Option[Existential[Method.Of]] = asUntyped.default(untypedInstanceType).map { untyped =>
       untypedInstanceType.as_??.mapK[Method.Of] { tpe => _ =>
-        UntypedMethod.toTyped(untyped)(tpe)
+        untyped.asTyped(using tpe)
       }
     }
 
@@ -82,28 +82,28 @@ trait Methods { this: MacroCommons =>
     * @since 0.1.0
     */
   sealed trait Method[+Instance, Returned] {
-    val untyped: UntypedMethod
+    val asUntyped: UntypedMethod
     val untypedInstanceType: UntypedType
 
     def parameters: Parameters
 
-    final lazy val name: String = untyped.name
-    final lazy val position: Option[Position] = untyped.position
+    final lazy val name: String = asUntyped.name
+    final lazy val position: Option[Position] = asUntyped.position
 
-    final lazy val annotations: List[Expr_??] = untyped.annotations.map(_.as_??)
+    final lazy val annotations: List[Expr_??] = asUntyped.annotations.map(_.as_??)
 
-    final lazy val isConstructor: Boolean = untyped.isConstructor
+    final lazy val isConstructor: Boolean = asUntyped.isConstructor
 
-    final lazy val isVal: Boolean = untyped.isVal
-    final lazy val isVar: Boolean = untyped.isVar
-    final lazy val isLazy: Boolean = untyped.isLazy
-    final lazy val isDef: Boolean = untyped.isDef
-    final lazy val isImplicit: Boolean = untyped.isImplicit
-    final lazy val isDeclared: Boolean = untyped.isDeclared
-    final lazy val isSynthetic: Boolean = untyped.isSynthetic
-    final lazy val isInherited: Boolean = untyped.isInherited
+    final lazy val isVal: Boolean = asUntyped.isVal
+    final lazy val isVar: Boolean = asUntyped.isVar
+    final lazy val isLazy: Boolean = asUntyped.isLazy
+    final lazy val isDef: Boolean = asUntyped.isDef
+    final lazy val isImplicit: Boolean = asUntyped.isImplicit
+    final lazy val isDeclared: Boolean = asUntyped.isDeclared
+    final lazy val isSynthetic: Boolean = asUntyped.isSynthetic
+    final lazy val isInherited: Boolean = asUntyped.isInherited
 
-    final def isAvailable(scope: Accessible): Boolean = untyped.isAvailable(scope)
+    final def isAvailable(scope: Accessible): Boolean = asUntyped.isAvailable(scope)
 
     final lazy val arity: Int = parameters.flatten.size
     final def isNAry(n: Int): Boolean = arity == n
@@ -111,8 +111,8 @@ trait Methods { this: MacroCommons =>
     final lazy val isUnary: Boolean = isNAry(1)
     final lazy val isBinary: Boolean = isNAry(2)
 
-    final lazy val isConstructorArgument: Boolean = untyped.isConstructorArgument
-    final lazy val isCaseField: Boolean = untyped.isCaseField
+    final lazy val isConstructorArgument: Boolean = asUntyped.isConstructorArgument
+    final lazy val isCaseField: Boolean = asUntyped.isCaseField
 
     final lazy val isScalaGetter: Boolean = (isVal || isVar || isLazy) && !isScalaSetter
     final lazy val isScalaSetter: Boolean = (isUnary && name.endsWith("_="))
@@ -146,7 +146,7 @@ trait Methods { this: MacroCommons =>
 
     @scala.annotation.nowarn
     def primaryConstructorOf[A: Type]: Option[Method.NoInstance[A]] =
-      UntypedType.fromTyped[A].primaryConstructor.map(UntypedMethod.toTyped[A](_)).flatMap { tpd =>
+      UntypedType.fromTyped[A].primaryConstructor.map(_.asTyped[A]).flatMap { tpd =>
         import tpd.Underlying as A0
         if (A0 <:< Type[A]) tpd.value match {
           case m: Method.NoInstance[A] => Some(m)
@@ -156,7 +156,7 @@ trait Methods { this: MacroCommons =>
       }
     @scala.annotation.nowarn
     def constructorsOf[A: Type]: List[Method.NoInstance[A]] =
-      UntypedType.fromTyped[A].constructors.map(UntypedMethod.toTyped[A](_)).flatMap { tpd =>
+      UntypedType.fromTyped[A].constructors.map(_.asTyped[A]).flatMap { tpd =>
         import tpd.Underlying as A0
         if (A0 <:< Type[A]) tpd.value match {
           case m: Method.NoInstance[A] => List(m)
@@ -165,7 +165,7 @@ trait Methods { this: MacroCommons =>
         else Nil
       }
     def methodsOf[A: Type]: List[Method.Of[A]] =
-      UntypedType.fromTyped[A].methods.map(UntypedMethod.toTyped[A](_))
+      UntypedType.fromTyped[A].methods.map(_.asTyped[A])
 
     /** Constructor/static method/stable object method.
       *
@@ -187,14 +187,14 @@ trait Methods { this: MacroCommons =>
       *   the untyped instance type
       */
     final case class NoInstance[Returned0](
-        untyped: UntypedMethod,
+        asUntyped: UntypedMethod,
         untypedInstanceType: UntypedType
     )(implicit val Returned: Type[Returned0])
         extends Method[Nothing, Returned0] {
 
       final type Returned = Returned0
 
-      lazy val parameters: Parameters = UntypedParameters.toTyped[Returned](untyped.parameters)
+      lazy val parameters: Parameters = asUntyped.parameters.asTyped[Returned]
 
       def apply(arguments: Arguments): Either[String, Expr[Returned]] = {
         val issues = parameters.flatten.flatMap { case (name, parameter) =>
@@ -207,7 +207,9 @@ trait Methods { this: MacroCommons =>
         }
         if (issues.isEmpty)
           Right(
-            untyped.unsafeApplyNoInstance(untypedInstanceType)(UntypedArguments.fromTyped(arguments)).asTyped[Returned]
+            asUntyped
+              .unsafeApplyNoInstance(untypedInstanceType)(UntypedArguments.fromTyped(arguments))
+              .asTyped[Returned]
           )
         else Left(issues.mkString("\n"))
       }
@@ -215,10 +217,10 @@ trait Methods { this: MacroCommons =>
       // We need to compare types with =:=, on Scala 3, == does not work
       override def equals(that: Any): Boolean = that match {
         case that: NoInstance[?] =>
-          untyped == that.untyped && untypedInstanceType =:= that.untypedInstanceType && Returned =:= that.Returned
+          asUntyped == that.asUntyped && untypedInstanceType =:= that.untypedInstanceType && Returned =:= that.Returned
         case _ => false
       }
-      override def hashCode: Int = untyped.hashCode
+      override def hashCode: Int = asUntyped.hashCode
     }
 
     /** Instance method.
@@ -243,7 +245,7 @@ trait Methods { this: MacroCommons =>
       *   the untyped instance type
       */
     final case class OfInstance[Instance0, Returned0](
-        untyped: UntypedMethod,
+        asUntyped: UntypedMethod,
         untypedInstanceType: UntypedType
     )(implicit val Returned: Type[Returned0])
         extends Method[Instance0, Returned0] {
@@ -251,9 +253,9 @@ trait Methods { this: MacroCommons =>
       final type Returned = Returned0
 
       final type Instance = Instance0
-      implicit val Instance: Type[Instance] = UntypedType.toTyped[Instance](untypedInstanceType)
+      implicit val Instance: Type[Instance] = untypedInstanceType.asTyped[Instance]
 
-      lazy val parameters: Parameters = UntypedParameters.toTyped[Instance](untyped.parameters)
+      lazy val parameters: Parameters = asUntyped.parameters.asTyped[Instance]
 
       def apply(instance: Expr[Instance], arguments: Arguments): Either[String, Expr[Returned]] = {
         val issues = parameters.flatten.flatMap { case (name, parameter) =>
@@ -266,7 +268,7 @@ trait Methods { this: MacroCommons =>
         }
         if (issues.isEmpty)
           Right(
-            untyped
+            asUntyped
               .unsafeApplyInstance(untypedInstanceType)(instance.asUntyped, UntypedArguments.fromTyped(arguments))
               .asTyped[Returned]
           )
@@ -276,10 +278,10 @@ trait Methods { this: MacroCommons =>
       // We need to compare types with =:=, on Scala 3, == does not work
       override def equals(that: Any): Boolean = that match {
         case that: OfInstance[?, ?] =>
-          untyped == that.untyped && untypedInstanceType =:= that.untypedInstanceType && Returned =:= that.Returned
+          asUntyped == that.asUntyped && untypedInstanceType =:= that.untypedInstanceType && Returned =:= that.Returned
         case _ => false
       }
-      override def hashCode: Int = untyped.hashCode
+      override def hashCode: Int = asUntyped.hashCode
     }
 
     /** Everything that we cannot handle with the above (e.g. polymorphic methods).
@@ -298,7 +300,7 @@ trait Methods { this: MacroCommons =>
       *   the reason why this method is unsupported
       */
     final case class Unsupported[Instance, Returned](
-        untyped: UntypedMethod,
+        asUntyped: UntypedMethod,
         untypedInstanceType: UntypedType
     )(val reasonForUnsupported: String)
         extends Method[Instance, Returned] {
@@ -307,10 +309,10 @@ trait Methods { this: MacroCommons =>
 
       // We need to compare types with =:=, on Scala 3, == does not work
       override def equals(that: Any): Boolean = that match {
-        case that: Unsupported[?, ?] => untyped == that.untyped && untypedInstanceType =:= that.untypedInstanceType
+        case that: Unsupported[?, ?] => asUntyped == that.asUntyped && untypedInstanceType =:= that.untypedInstanceType
         case _                       => false
       }
-      override def hashCode: Int = untyped.hashCode
+      override def hashCode: Int = asUntyped.hashCode
     }
   }
 

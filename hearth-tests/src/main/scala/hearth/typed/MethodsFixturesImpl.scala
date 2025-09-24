@@ -63,8 +63,8 @@ trait MethodsFixturesImpl { this: MacroCommons =>
               .map(value => value.drop(value.indexOf("hearth-tests")))
               .toString
           val props = Data.map(
-            "invocation" -> Data(method.untyped.invocation.toString),
-            "hasTypeParameters" -> Data(method.untyped.hasTypeParameters),
+            "invocation" -> Data(method.asUntyped.invocation.toString),
+            "hasTypeParameters" -> Data(method.asUntyped.hasTypeParameters),
             "position" -> Data(position),
             "annotations" -> Data.list(method.annotations.map(e => Data(removeAnsiColors(e.prettyPrint)))*),
             "isConstructor" -> Data(method.isConstructor),

@@ -74,6 +74,11 @@ trait UntypedMethods { this: MacroCommons =>
     def toTyped[Instance: Type](untyped: UntypedParameters): Parameters
   }
 
+  implicit final class UntypedParametersMethods(private val parameters: UntypedParameters) {
+
+    def asTyped[Instance: Type]: Parameters = UntypedParameters.toTyped(parameters)
+  }
+
   /** Map of argument values by their names.
     *
     * This map is flat because arguments would be matched by their name, so the order in which we have them here is
@@ -93,6 +98,8 @@ trait UntypedMethods { this: MacroCommons =>
 
   implicit final class UntypedArgumentsMethods(private val arguments: UntypedArguments) {
 
+    def asTyped[Instance: Type]: Arguments = UntypedArguments.toTyped(arguments)
+
     def adaptToParams(
         instanceTpe: UntypedType,
         instance: Option[UntypedExpr],
@@ -105,8 +112,8 @@ trait UntypedMethods { this: MacroCommons =>
             method.unsafeApply(instanceTpe)(instance, Map.empty)
           }
           arguments.get(paramName).orElse(defaultValue).getOrElse {
-            hearthAssertionFailed(
-              s"Expected that ${Type.prettyPrint(using instanceTpe.asTyped[Any])}'s ${method.name} parameter `$paramName` would be provided or have default value"
+            assertionFailed(
+              s"Expected that ${instanceTpe.prettyPrint}'s ${method.name} parameter `$paramName` would be provided or have default value"
             )
           }
         }.toList
@@ -122,7 +129,7 @@ trait UntypedMethods { this: MacroCommons =>
   val UntypedMethod: UntypedMethodModule
   trait UntypedMethodModule { this: UntypedMethod.type =>
 
-    final def fromTyped[Instance, Returned](method: Method[Instance, Returned]): UntypedMethod = method.untyped
+    final def fromTyped[Instance, Returned](method: Method[Instance, Returned]): UntypedMethod = method.asUntyped
     def toTyped[Instance: Type](untyped: UntypedMethod): Method.Of[Instance]
 
     def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod]
@@ -168,6 +175,8 @@ trait UntypedMethods { this: MacroCommons =>
   }
 
   trait UntypedMethodMethods { this: UntypedMethod =>
+
+    def asTyped[Instance: Type]: Method.Of[Instance] = UntypedMethod.toTyped(this)
 
     def invocation: Invocation
 
