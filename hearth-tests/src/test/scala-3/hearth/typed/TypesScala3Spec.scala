@@ -179,7 +179,7 @@ final class TypesScala3Spec extends MacroSuite {
     }
 
     group(
-      "methods: Type.{isPrimitive, isBuiltIn, isAbstract, isFinal, isClass, notBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
+      "methods: Type.{isPrimitive, isBuiltIn, isAbstract, isFinal, isClass, notJvmBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
     ) {
       import TypesFixtures.testFlags
 
@@ -192,11 +192,11 @@ final class TypesScala3Spec extends MacroSuite {
           actual <==> Data.map(
             "Type.isPrimitive" -> Data(false),
             "Type.isArray" -> Data(false),
-            "Type.isBuiltIn" -> Data(false),
+            "Type.isJvmBuiltIn" -> Data(false),
             "Type.isAbstract" -> Data(true),
             "Type.isFinal" -> Data(false),
             "Type.isClass" -> Data(true),
-            "Type.notBuiltInClass" -> Data(true),
+            "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),
             "Type.isSealed" -> Data(true),
@@ -217,11 +217,11 @@ final class TypesScala3Spec extends MacroSuite {
         testFlags[examples.ExampleEnum.ExampleEnumClass] <==> Data.map(
           "Type.isPrimitive" -> Data(false),
           "Type.isArray" -> Data(false),
-          "Type.isBuiltIn" -> Data(false),
+          "Type.isJvmBuiltIn" -> Data(false),
           "Type.isAbstract" -> Data(false),
           "Type.isFinal" -> Data(true),
           "Type.isClass" -> Data(true),
-          "Type.notBuiltInClass" -> Data(true),
+          "Type.notJvmBuiltInClass" -> Data(true),
           "Type.isPlainOldJavaObject" -> Data(true),
           "Type.isJavaBean" -> Data(false),
           "Type.isSealed" -> Data(false),

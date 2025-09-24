@@ -74,8 +74,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         // $COVERAGE-OFF$should never happen unless we messed up
         case out =>
           val methodName = if method.isConstructor then "Constructor" else s"Method ${method.name}"
-          val typeName = Type.prettyPrint(UntypedType.toTyped[Any](instanceTpe))
-          val outTypeName = Type.prettyPrint(UntypedType.toTyped[Any](out))
+          val typeName = instanceTpe.prettyPrint
+          val outTypeName = out.prettyPrint
           hearthAssertionFailed(s"$methodName of $typeName has unrecognized/unsupported format of type: $outTypeName")
         // $COVERAGE-ON$
       }

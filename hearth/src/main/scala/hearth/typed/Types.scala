@@ -103,7 +103,6 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     final def isPrimitive[A: Type]: Boolean = UntypedType.fromTyped[A].isPrimitive
     final def isArray[A: Type]: Boolean = UntypedType.fromTyped[A].isArray
 
-    // TODO: rename to builtInJvmTypes
     // TODO: add: java.lang.Class, java.lang.Object, java.lang.Enum, java.lang.EnumValue?
     // TODO: add: java.lang.reflect.*, java.lang.invoke.*
     /** Types which are either primitives or specially treated by JVM: Unit, String.
@@ -111,30 +110,30 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
       * Arrays are also considered built-in types, but we cannot list all possible array types, so we should check for
       * isArray instead.
       */
-    final val builtInTypes: List[??] = primitiveTypes ++ List(
+    final val jvmBuiltInTypes: List[??] = primitiveTypes ++ List(
       Type.of[String].as_??,
       Type.of[Unit].as_??
     )
-    final def isBuiltIn[A: Type]: Boolean = UntypedType.fromTyped[A].isBuiltIn
+    final def isJvmBuiltIn[A: Type]: Boolean = UntypedType.fromTyped[A].isJvmBuiltIn
 
     final val typeSystemSpecialTypes: List[??] = List(
       Type.of[Any].as_??,
       Type.of[AnyRef].as_??,
       Type.of[AnyVal].as_??,
       Type.of[Null].as_??,
-      Type.of[Nothing].asInstanceOf[Type[Any]].as_?? // Type[Nothing] see no extension methods
+      Type.of[Nothing].asInstanceOf[Type[Any]].as_?? // Type[Nothing] sees no extension methods
     )
     final def isTypeSystemSpecial[A: Type]: Boolean = UntypedType.fromTyped[A].isTypeSystemSpecial
 
     final def isAbstract[A: Type]: Boolean = UntypedType.fromTyped[A].isAbstract
     final def isFinal[A: Type]: Boolean = UntypedType.fromTyped[A].isFinal
 
-    // TODO: rename class to something more unambiguous
     final def isClass[A: Type]: Boolean = UntypedType.fromTyped[A].isClass
-    final def notBuiltInClass[A: Type]: Boolean = isClass[A] && !isBuiltIn[A]
+    final def notJvmBuiltInClass[A: Type]: Boolean = isClass[A] && !isJvmBuiltIn[A]
     final def isPlainOldJavaObject[A: Type]: Boolean =
-      notBuiltInClass[A] && !(isAbstract[A] || isSealed[A] || isJavaEnum[A] || isJavaEnumValue[A])
-    final def isJavaBean[A: Type]: Boolean = false // TODO: priority 1
+      notJvmBuiltInClass[A] && !(isAbstract[A] || isSealed[A] || isJavaEnum[A] || isJavaEnumValue[A])
+    final def isJavaBean[A: Type]: Boolean =
+      !isObject[A] && isPlainOldJavaObject[A] && Type[A].defaultConstructor.exists(_.isAvailable(Everywhere))
 
     final def isSealed[A: Type]: Boolean = UntypedType.fromTyped[A].isSealed
     final def isJavaEnum[A: Type]: Boolean = UntypedType.fromTyped[A].isJavaEnum
@@ -153,8 +152,6 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     final def isSubtypeOf[A: Type, B: Type]: Boolean = UntypedType.fromTyped[A] <:< UntypedType.fromTyped[B]
     final def isSameAs[A: Type, B: Type]: Boolean = UntypedType.fromTyped[A] =:= UntypedType.fromTyped[B]
 
-    // TODO: more instances - for starters cover all types in covered by ToExpr i FromExpr in Quotes
-
     // Literal types
 
     def NullCodec: TypeCodec[Null]
@@ -169,7 +166,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     def CharCodec: TypeCodec[Char]
     def StringCodec: TypeCodec[String]
 
-    // TODO: BigInt, BigDecimal, StringContext, Class, ClassTag
+    // TODO: BigInt, BigDecimal, StringContext, Class, ClassTag, Tuple1-Tuple22
 
     // TODO: specialize for primitive types
     final def ArrayCodec[A: Type]: TypeCodec[Array[A]] = new TypeCodec[Array[A]] {
@@ -226,8 +223,6 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
       override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Right[L, R], Id]] = None // TODO
     }
 
-    // TODO: Tuples
-
     private object ModuleCodecImpl extends TypeCodec[Any] {
 
       def toType[A](value: A): Type[A] = UntypedType.fromClass(value.getClass).asTyped[A]
@@ -259,6 +254,8 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
 
     def position: Option[Position] = Type.position(using tpe)
 
+    def getRuntimeClass: Option[java.lang.Class[A]] = Type.classOfType(using tpe)
+
     def primaryConstructor: Option[Method.NoInstance[A]] = Method.primaryConstructorOf(using tpe)
     def defaultConstructor: Option[Method.NoInstance[A]] = constructors.find(_.isNullary)
     def constructors: List[Method.NoInstance[A]] = Method.constructorsOf(using tpe)
@@ -276,7 +273,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
 
     def isPrimitive: Boolean = Type.isPrimitive(using tpe)
     def isArray: Boolean = Type.isArray(using tpe)
-    def isBuiltIn: Boolean = Type.isBuiltIn(using tpe)
+    def isJvmBuiltIn: Boolean = Type.isJvmBuiltIn(using tpe)
     def isTypeSystemSpecial: Boolean = Type.isTypeSystemSpecial(using tpe)
 
     def isAbstract: Boolean = Type.isAbstract(using tpe)

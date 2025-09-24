@@ -129,7 +129,7 @@ final class TypesJvmSpec extends MacroSuite {
     // TODO: annotations? Could we even use StaticAnnotation on Java classes? Can we detect Java annotations in macro at all?
 
     group(
-      "methods: Type.{isPrimitive, isBuiltIn, isAbstract, isFinal, isClass, notBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
+      "methods: Type.{isPrimitive, isBuiltIn, isAbstract, isFinal, isClass, notJvmBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
     ) {
       import TypesFixtures.testFlags
 
@@ -141,13 +141,13 @@ final class TypesJvmSpec extends MacroSuite {
           actual <==> Data.map(
             "Type.isPrimitive" -> Data(false),
             "Type.isArray" -> Data(false),
-            "Type.isBuiltIn" -> Data(false),
+            "Type.isJvmBuiltIn" -> Data(false),
             "Type.isAbstract" -> Data(isAbstract),
             "Type.isFinal" -> Data(isFinal),
             "Type.isClass" -> Data(true),
-            "Type.notBuiltInClass" -> Data(true),
+            "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(!isAbstract),
-            "Type.isJavaBean" -> Data(false),
+            "Type.isJavaBean" -> Data(!isAbstract),
             "Type.isSealed" -> Data(false),
             "Type.isJavaEnum" -> Data(false),
             "Type.isJavaEnumValue" -> Data(false),
@@ -170,11 +170,11 @@ final class TypesJvmSpec extends MacroSuite {
           actual <==> Data.map(
             "Type.isPrimitive" -> Data(false),
             "Type.isArray" -> Data(false),
-            "Type.isBuiltIn" -> Data(false),
+            "Type.isJvmBuiltIn" -> Data(false),
             "Type.isAbstract" -> Data(true),
             "Type.isFinal" -> Data(true),
             "Type.isClass" -> Data(true),
-            "Type.notBuiltInClass" -> Data(true),
+            "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),
             "Type.isSealed" -> Data(true),

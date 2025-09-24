@@ -121,11 +121,28 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     // For now, assume that all ExprCodecs below are of PoC quality. It was needed to unblock some other work.
     // But each should have unit tests which would make sure that Scala 2 and Scala 3 are in sync (which would
-    // require adding missing implementations to both sides, and then expanding the build-in Liftable and Unliftable
+    // require adding missing implementations to both sides, and then expanding the built-in Liftable and Unliftable
     // with more cases).
 
-    // TODO: def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = ???
-    // TODO: def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]] = ??
+    override def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = {
+      implicit val liftable: Liftable[java.lang.Class[A]] = Liftable[java.lang.Class[A]] { _ =>
+        q"scala.Predef.classOf[${Type[A]}]"
+      }
+      implicit val unliftable: Unliftable[java.lang.Class[A]] = new Unliftable[java.lang.Class[A]] {
+        def unapply(tree: Tree): Option[java.lang.Class[A]] = Type[A].getRuntimeClass
+      }
+      ExprCodec.make[java.lang.Class[A]]
+    }
+    override def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]] = {
+      implicit val liftable: Liftable[scala.reflect.ClassTag[A]] = Liftable[scala.reflect.ClassTag[A]] { _ =>
+        q"scala.reflect.classTag[${Type[A]}]"
+      }
+      implicit val unliftable: Unliftable[scala.reflect.ClassTag[A]] = new Unliftable[scala.reflect.ClassTag[A]] {
+        def unapply(tree: Tree): Option[scala.reflect.ClassTag[A]] =
+          Type[A].getRuntimeClass.map(scala.reflect.ClassTag(_))
+      }
+      ExprCodec.make[scala.reflect.ClassTag[A]]
+    }
 
     // In the code below we cannot just `import platformSpecific.implicits.given`, because Expr.make[Coll[A]] would use
     // implicit ExprCodec[Coll[A]] from the companion object, which would create a circular dependency. Instead, we

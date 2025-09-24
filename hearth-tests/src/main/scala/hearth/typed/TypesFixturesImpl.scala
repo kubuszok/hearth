@@ -10,16 +10,16 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
 
   def testNamesPrinters[A: Type]: Expr[Data] = Expr(
     Data.map(
-      "Type.shortName" -> Data(Type.shortName[A]),
-      "Type.fcqn" -> Data(Type.fcqn[A]),
-      "Type.plainPrint" -> Data(Type.plainPrint[A]),
-      "Type.prettyPrint" -> Data(removeAnsiColors(Type.prettyPrint[A]))
+      "Type.shortName" -> Data(Type[A].shortName),
+      "Type.fcqn" -> Data(Type[A].fcqn),
+      "Type.plainPrint" -> Data(Type[A].plainPrint),
+      "Type.prettyPrint" -> Data(removeAnsiColors(Type[A].prettyPrint))
     )
   )
 
   def testClassOfType[A: Type]: Expr[Data] = Expr(
     Data.map(
-      "Type.classOfType" -> Data(Type.classOfType[A].fold("not on classpath")(_.toString))
+      "Type.classOfType" -> Data(Type[A].getRuntimeClass.fold("not on classpath")(_.toString))
     )
   )
 
@@ -31,12 +31,10 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
 
   def testChildren[A: Type]: Expr[Data] = Expr(
     Data.map(
-      "Type.directChildren" -> Type
-        .directChildren[A]
+      "Type.directChildren" -> Type[A].directChildren
         .map(children => Data(children.view.mapValues(value => Data(value.plainPrint)).toMap))
         .getOrElse(Data("<no direct children>")),
-      "Type.exhaustiveChildren" -> Type
-        .exhaustiveChildren[A]
+      "Type.exhaustiveChildren" -> Type[A].exhaustiveChildren
         .map(children => Data(children.toListMap.view.mapValues(value => Data(value.plainPrint)).toMap))
         .getOrElse(Data("<no exhaustive children>"))
     )
@@ -53,11 +51,11 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
       Data.map(
         "Type.isPrimitive" -> Data(Type.isPrimitive[A]),
         "Type.isArray" -> Data(Type.isArray[A]),
-        "Type.isBuiltIn" -> Data(Type.isBuiltIn[A]),
+        "Type.isJvmBuiltIn" -> Data(Type.isJvmBuiltIn[A]),
         "Type.isAbstract" -> Data(Type.isAbstract[A]),
         "Type.isFinal" -> Data(Type.isFinal[A]),
         "Type.isClass" -> Data(Type.isClass[A]),
-        "Type.notBuiltInClass" -> Data(Type.notBuiltInClass[A]),
+        "Type.notJvmBuiltInClass" -> Data(Type.notJvmBuiltInClass[A]),
         "Type.isPlainOldJavaObject" -> Data(Type.isPlainOldJavaObject[A]),
         "Type.isJavaBean" -> Data(Type.isJavaBean[A]),
         "Type.isSealed" -> Data(Type.isSealed[A]),

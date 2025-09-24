@@ -61,9 +61,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
-      // We use =:= to check whether A is known to be exactly of the build-in type or is it some upper bound.
+      // We use =:= to check whether A is known to be exactly of the built-in type or is it some upper bound.
       !A.isNoSymbol && (A.flags.is(Flags.Abstract) || A.flags.is(Flags.Trait)) &&
-      !Type.builtInTypes.exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))
+      !Type.jvmBuiltInTypes.exists(tpe => instanceTpe =:= tpe.Underlying.asUntyped)
     }
     override def isFinal(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol

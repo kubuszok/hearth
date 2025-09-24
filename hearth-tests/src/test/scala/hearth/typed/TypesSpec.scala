@@ -33,7 +33,7 @@ final class TypesSpec extends MacroSuite {
         }
       }
 
-      test("for build-in types") {
+      test("for built-in types") {
         testNamesPrinters[Unit] <==> Data.map(
           "Type.shortName" -> Data("Unit"),
           "Type.fcqn" -> Data(s"scala.Unit"),
@@ -216,7 +216,7 @@ final class TypesSpec extends MacroSuite {
         testClassOfType[Char] <==> Data.map("Type.classOfType" -> Data(classOf[Char].toString))
       }
 
-      test("for build-in types".tag(Tags.platformMismatch)) {
+      test("for built-in types".tag(Tags.platformMismatch)) {
         testClassOfType[Unit] <==> Data.map("Type.classOfType" -> Data(classOf[Unit].toString))
         testClassOfType[String] <==> Data.map("Type.classOfType" -> Data(classOf[String].toString))
         if (!Platform.byHearth.isNative) {
@@ -348,7 +348,7 @@ final class TypesSpec extends MacroSuite {
         testPosition[Char] <==> Data.map("Type.position" -> Data("<no position>"))
       }
 
-      test("for build-in types".tag(Tags.langVerMismatch)) {
+      test("for built-in types".tag(Tags.langVerMismatch)) {
         // Apparently: Scala 2 does not store position for for types from previous compilation unit,
         // Scala 3 does store... something? Filename?
         val position = if (LanguageVersion.byHearth.isScala3) "Predef.scala:1:1" else "<no position>"
@@ -467,7 +467,7 @@ final class TypesSpec extends MacroSuite {
         }
       }
 
-      test("for build-in types") {
+      test("for built-in types") {
         List(
           testChildren[Unit],
           testChildren[String],
@@ -634,7 +634,7 @@ final class TypesSpec extends MacroSuite {
     }
 
     group(
-      "methods: Type.{isPrimitive, isBuiltIn, isAbstract, isFinal, isClass, notBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
+      "methods: Type.{isPrimitive, isBuiltIn, isAbstract, isFinal, isClass, notJvmBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
     ) {
       import TypesFixtures.testFlags
 
@@ -652,11 +652,11 @@ final class TypesSpec extends MacroSuite {
           _ <==> Data.map(
             "Type.isPrimitive" -> Data(true),
             "Type.isArray" -> Data(false),
-            "Type.isBuiltIn" -> Data(true),
+            "Type.isJvmBuiltIn" -> Data(true),
             "Type.isAbstract" -> Data(false),
             "Type.isFinal" -> Data(true),
             "Type.isClass" -> Data(true),
-            "Type.notBuiltInClass" -> Data(false),
+            "Type.notJvmBuiltInClass" -> Data(false),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),
             "Type.isSealed" -> Data(false),
@@ -673,16 +673,16 @@ final class TypesSpec extends MacroSuite {
         }
       }
 
-      test("for build-in types") {
+      test("for built-in types") {
 
         testFlags[Unit] <==> Data.map(
           "Type.isPrimitive" -> Data(false),
           "Type.isArray" -> Data(false),
-          "Type.isBuiltIn" -> Data(true),
+          "Type.isJvmBuiltIn" -> Data(true),
           "Type.isAbstract" -> Data(false),
           "Type.isFinal" -> Data(true),
           "Type.isClass" -> Data(true),
-          "Type.notBuiltInClass" -> Data(false),
+          "Type.notJvmBuiltInClass" -> Data(false),
           "Type.isPlainOldJavaObject" -> Data(false),
           "Type.isJavaBean" -> Data(false),
           "Type.isSealed" -> Data(false),
@@ -700,11 +700,11 @@ final class TypesSpec extends MacroSuite {
         testFlags[String] <==> Data.map(
           "Type.isPrimitive" -> Data(false),
           "Type.isArray" -> Data(false),
-          "Type.isBuiltIn" -> Data(true),
+          "Type.isJvmBuiltIn" -> Data(true),
           "Type.isAbstract" -> Data(false),
           "Type.isFinal" -> Data(true),
           "Type.isClass" -> Data(true),
-          "Type.notBuiltInClass" -> Data(false),
+          "Type.notJvmBuiltInClass" -> Data(false),
           "Type.isPlainOldJavaObject" -> Data(false),
           "Type.isJavaBean" -> Data(false),
           "Type.isSealed" -> Data(false),
@@ -722,11 +722,11 @@ final class TypesSpec extends MacroSuite {
         testFlags[Array[Int]] <==> Data.map(
           "Type.isPrimitive" -> Data(false),
           "Type.isArray" -> Data(true),
-          "Type.isBuiltIn" -> Data(true),
+          "Type.isJvmBuiltIn" -> Data(true),
           "Type.isAbstract" -> Data(false),
           "Type.isFinal" -> Data(true),
           "Type.isClass" -> Data(false),
-          "Type.notBuiltInClass" -> Data(false),
+          "Type.notJvmBuiltInClass" -> Data(false),
           "Type.isPlainOldJavaObject" -> Data(false),
           "Type.isJavaBean" -> Data(false),
           "Type.isSealed" -> Data(false),
@@ -744,25 +744,25 @@ final class TypesSpec extends MacroSuite {
 
       test("for top-level classes (non-sealed)") {
         List(
-          testFlags[examples.classes.ExampleTrait] -> ((true, false, false)),
-          testFlags[examples.classes.ExampleTraitWithTypeParam[Int]] -> ((true, false, false)),
-          testFlags[examples.classes.ExampleAbstractClass] -> ((true, false, false)),
-          testFlags[examples.classes.ExampleAbstractClassWithTypeParam[Int]] -> ((true, false, false)),
-          testFlags[examples.classes.ExampleClass] -> ((false, true, false)),
-          testFlags[examples.classes.ExampleClassWithTypeParam[Int]] -> ((false, true, false)),
-          testFlags[examples.classes.ExampleCaseClass] -> ((false, false, true)),
-          testFlags[examples.classes.ExampleCaseClassWithTypeParam[Int]] -> ((false, false, true))
-        ).foreach { case (actual, (isAbstract, isFinal, isCase)) =>
+          testFlags[examples.classes.ExampleTrait] -> ((true, false, false, false)),
+          testFlags[examples.classes.ExampleTraitWithTypeParam[Int]] -> ((true, false, false, false)),
+          testFlags[examples.classes.ExampleAbstractClass] -> ((true, false, false, false)),
+          testFlags[examples.classes.ExampleAbstractClassWithTypeParam[Int]] -> ((true, false, false, false)),
+          testFlags[examples.classes.ExampleClass] -> ((false, true, false, true)),
+          testFlags[examples.classes.ExampleClassWithTypeParam[Int]] -> ((false, true, false, true)),
+          testFlags[examples.classes.ExampleCaseClass] -> ((false, false, true, false)),
+          testFlags[examples.classes.ExampleCaseClassWithTypeParam[Int]] -> ((false, false, true, false))
+        ).foreach { case (actual, (isAbstract, isFinal, isCase, isJavaBean)) =>
           actual <==> Data.map(
             "Type.isPrimitive" -> Data(false),
             "Type.isArray" -> Data(false),
-            "Type.isBuiltIn" -> Data(false),
+            "Type.isJvmBuiltIn" -> Data(false),
             "Type.isAbstract" -> Data(isAbstract),
             "Type.isFinal" -> Data(isFinal),
             "Type.isClass" -> Data(true),
-            "Type.notBuiltInClass" -> Data(true),
+            "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(!isAbstract),
-            "Type.isJavaBean" -> Data(false),
+            "Type.isJavaBean" -> Data(isJavaBean),
             "Type.isSealed" -> Data(false),
             "Type.isJavaEnum" -> Data(false),
             "Type.isJavaEnumValue" -> Data(false),
@@ -799,25 +799,25 @@ final class TypesSpec extends MacroSuite {
         case class ExampleCaseClassWithTypeParam[A](a: A)
 
         List(
-          testFlags[ExampleTrait] -> ((true, false, false)),
-          testFlags[ExampleTraitWithTypeParam[Int]] -> ((true, false, false)),
-          testFlags[ExampleAbstractClass] -> ((true, false, false)),
-          testFlags[ExampleAbstractClassWithTypeParam[Int]] -> ((true, false, false)),
-          testFlags[ExampleClass] -> ((false, true, false)),
-          testFlags[ExampleClassWithTypeParam[Int]] -> ((false, true, false)),
-          testFlags[ExampleCaseClass] -> ((false, false, true)),
-          testFlags[ExampleCaseClassWithTypeParam[Int]] -> ((false, false, true))
-        ).foreach { case (actual, (isAbstract, isFinal, isCase)) =>
+          testFlags[ExampleTrait] -> ((true, false, false, false)),
+          testFlags[ExampleTraitWithTypeParam[Int]] -> ((true, false, false, false)),
+          testFlags[ExampleAbstractClass] -> ((true, false, false, false)),
+          testFlags[ExampleAbstractClassWithTypeParam[Int]] -> ((true, false, false, false)),
+          testFlags[ExampleClass] -> ((false, true, false, true)),
+          testFlags[ExampleClassWithTypeParam[Int]] -> ((false, true, false, true)),
+          testFlags[ExampleCaseClass] -> ((false, false, true, false)),
+          testFlags[ExampleCaseClassWithTypeParam[Int]] -> ((false, false, true, false))
+        ).foreach { case (actual, (isAbstract, isFinal, isCase, isJavaBean)) =>
           actual <==> Data.map(
             "Type.isPrimitive" -> Data(false),
             "Type.isArray" -> Data(false),
-            "Type.isBuiltIn" -> Data(false),
+            "Type.isJvmBuiltIn" -> Data(false),
             "Type.isAbstract" -> Data(isAbstract),
             "Type.isFinal" -> Data(isFinal),
             "Type.isClass" -> Data(true),
-            "Type.notBuiltInClass" -> Data(true),
+            "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(!isAbstract),
-            "Type.isJavaBean" -> Data(false),
+            "Type.isJavaBean" -> Data(isJavaBean),
             "Type.isSealed" -> Data(false),
             "Type.isJavaEnum" -> Data(false),
             "Type.isJavaEnumValue" -> Data(false),
@@ -835,23 +835,23 @@ final class TypesSpec extends MacroSuite {
       test("for enumerations") {
         List(
           // FIXME: fix WeekDay.Value on Scala 2
-          testFlags[examples.enums.WeekDay.type] -> ((false, true, false, true)),
+          testFlags[examples.enums.WeekDay.type] -> ((false, true, false, true, false)),
           // FIXME: fix Planet.Value on Scala 2
-          testFlags[examples.enums.Planet.type] -> ((false, true, false, true)),
-          testFlags[examples.enums.ExampleSealedTrait] -> ((true, false, true, false)),
-          testFlags[examples.enums.ExampleSealedTraitWithTypeParam[Int]] -> ((true, false, true, false)),
-          testFlags[examples.enums.ExampleSealedTraitGADT[Unit]] -> ((true, false, true, false))
-        ).foreach { case (actual, (isAbstract, isFinal, isSealed, isObject)) =>
+          testFlags[examples.enums.Planet.type] -> ((false, true, false, true, false)),
+          testFlags[examples.enums.ExampleSealedTrait] -> ((true, false, true, false, false)),
+          testFlags[examples.enums.ExampleSealedTraitWithTypeParam[Int]] -> ((true, false, true, false, false)),
+          testFlags[examples.enums.ExampleSealedTraitGADT[Unit]] -> ((true, false, true, false, false))
+        ).foreach { case (actual, (isAbstract, isFinal, isSealed, isObject, isJavaBean)) =>
           actual <==> Data.map(
             "Type.isPrimitive" -> Data(false),
             "Type.isArray" -> Data(false),
-            "Type.isBuiltIn" -> Data(false),
+            "Type.isJvmBuiltIn" -> Data(false),
             "Type.isAbstract" -> Data(isAbstract),
             "Type.isFinal" -> Data(isFinal),
             "Type.isClass" -> Data(true),
-            "Type.notBuiltInClass" -> Data(true),
+            "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(!isAbstract),
-            "Type.isJavaBean" -> Data(false),
+            "Type.isJavaBean" -> Data(isJavaBean),
             "Type.isSealed" -> Data(isSealed),
             "Type.isJavaEnum" -> Data(false),
             "Type.isJavaEnumValue" -> Data(false),

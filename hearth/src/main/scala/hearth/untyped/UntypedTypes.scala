@@ -33,6 +33,11 @@ trait UntypedTypes { this: MacroCommons =>
     def toTyped[A](untyped: UntypedType): Type[A]
     final def as_??(untyped: UntypedType): ?? = toTyped[Any](untyped).as_??
 
+    final def shortName(untyped: UntypedType): String = toTyped[Any](untyped).shortName
+    final def fcqn(untyped: UntypedType): String = toTyped[Any](untyped).fcqn
+    final def plainPrint(untyped: UntypedType): String = toTyped[Any](untyped).plainPrint
+    final def prettyPrint(untyped: UntypedType): String = toTyped[Any](untyped).prettyPrint
+
     def position(untyped: UntypedType): Option[Position]
 
     def fromClass(clazz: java.lang.Class[?]): UntypedType
@@ -47,7 +52,7 @@ trait UntypedTypes { this: MacroCommons =>
           hearthAssertionFailed(
             s"${untyped.prettyPrint} is recognized as type-system-special type, but is not handled by a type-system-special branch"
           )
-      } else if (isBuiltIn(untyped)) {
+      } else if (isJvmBuiltIn(untyped)) {
         // classOf[Unit].toString == "void" while possbleClassesOfType[Unit]....toString would resolve to "class scala.Unit"
         // If we want to be consistent, we have to fix this manually.
         if (untyped <:< Type.of[Unit].asUntyped) Some(classOf[Unit])
@@ -68,7 +73,7 @@ trait UntypedTypes { this: MacroCommons =>
               }
             case _ =>
               hearthAssertionFailed(
-                s"${untyped.prettyPrint} is recognized as built-in type, but is not handled by a build-in branch"
+                s"${untyped.prettyPrint} is recognized as built-in type, but is not handled by a built-in branch"
               )
           }
       } else
@@ -80,15 +85,14 @@ trait UntypedTypes { this: MacroCommons =>
       Type.primitiveTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
     final def isArray(instanceTpe: UntypedType): Boolean =
       ArrayCtor.unapply(toTyped[Any](instanceTpe)).isDefined
-    final def isBuiltIn(instanceTpe: UntypedType): Boolean =
-      Type.builtInTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying)) || isArray(instanceTpe)
+    final def isJvmBuiltIn(instanceTpe: UntypedType): Boolean =
+      Type.jvmBuiltInTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying)) || isArray(instanceTpe)
     final def isTypeSystemSpecial(instanceTpe: UntypedType): Boolean =
       Type.typeSystemSpecialTypes.exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))
 
     def isAbstract(instanceTpe: UntypedType): Boolean
     def isFinal(instanceTpe: UntypedType): Boolean
 
-    // TODO: rename class to something more unambiguous
     def isClass(instanceTpe: UntypedType): Boolean
 
     def isSealed(instanceTpe: UntypedType): Boolean
@@ -143,11 +147,16 @@ trait UntypedTypes { this: MacroCommons =>
     def asTyped[A]: Type[A] = UntypedType.toTyped(untyped)
     def as_?? : ?? = UntypedType.as_??(untyped)
 
+    def shortName: String = UntypedType.shortName(untyped)
+    def fcqn: String = UntypedType.fcqn(untyped)
+    def plainPrint: String = UntypedType.plainPrint(untyped)
+    def prettyPrint: String = UntypedType.prettyPrint(untyped)
+
     def position: Option[Position] = UntypedType.position(untyped)
 
     def isPrimitive: Boolean = UntypedType.isPrimitive(untyped)
     def isArray: Boolean = UntypedType.isArray(untyped)
-    def isBuiltIn: Boolean = UntypedType.isBuiltIn(untyped)
+    def isJvmBuiltIn: Boolean = UntypedType.isJvmBuiltIn(untyped)
     def isTypeSystemSpecial: Boolean = UntypedType.isTypeSystemSpecial(untyped)
 
     def isAbstract: Boolean = UntypedType.isAbstract(untyped)
@@ -184,10 +193,5 @@ trait UntypedTypes { this: MacroCommons =>
     def defaultValue(param: UntypedParameter): Option[UntypedMethod] = UntypedMethod.defaultValue(untyped)(param)
 
     def annotations: List[UntypedExpr] = UntypedType.annotations(untyped)
-
-    def shortName: String = Type.shortName(using untyped.asTyped[Any])
-    def fcqn: String = Type.fcqn(using untyped.asTyped[Any])
-    def prettyPrint: String = Type.prettyPrint(using untyped.asTyped[Any])
-    def plainPrint: String = Type.plainPrint(using untyped.asTyped[Any])
   }
 }

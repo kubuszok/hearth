@@ -149,12 +149,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
     // For now, assume that all ExprCodecs below are of PoC quality. It was needed to unblock some other work.
     // But each should have unit tests which would make sure that Scala 2 and Scala 3 are in sync (which would
-    // require adding missing implementations to both sides, and then expanding the build-in FromExpr and ToExpr
+    // require adding missing implementations to both sides, and then expanding the built-in FromExpr and ToExpr
     // with more cases).
 
-    // TODO: define it in Scala 2, add in Exprs, and use override
-
-    def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = {
+    override def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = {
       import platformSpecific.implicits.given
       given FromExpr[java.lang.Class[A]] = new {
         override def unapply(expr: Expr[java.lang.Class[A]])(using scala.quoted.Quotes): Option[java.lang.Class[A]] =
@@ -167,7 +165,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       }
       ExprCodec.make[java.lang.Class[A]]
     }
-    def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]] = {
+    override def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]] = {
       import platformSpecific.implicits.given
       given FromExpr[scala.reflect.ClassTag[A]] = new {
         override def unapply(
