@@ -154,11 +154,33 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def isSynthetic: Boolean =
       symbol.flags.is(Flags.Synthetic) || UntypedMethod.methodsConsideredSynthetic(symbol)
 
-    override def isAvailable(scope: Accessible): Boolean = scope match {
-      case Everywhere =>
-        !symbol.flags.is(Flags.Private) && !symbol.flags.is(Flags.Protected) &&
-        symbol.privateWithin.isEmpty && symbol.protectedWithin.isEmpty
-      case AtCallSite => false // TODO
+    override def isAvailable(scope: Accessible): Boolean = {
+      // TODO: test this new implementation
+      val owner = symbol.owner
+      val enclosing = Symbol.spliceOwner
+
+      // Helper methods
+      def isPrivate: Boolean = symbol.flags.is(Flags.Private)
+      def isProtected: Boolean = symbol.flags.is(Flags.Protected)
+
+      // High-level checks
+      def isPublic: Boolean =
+        !isPrivate && !isProtected && symbol.privateWithin.isEmpty && symbol.protectedWithin.isEmpty
+      def isPrivateButInTheSameClass: Boolean = isPrivate && enclosing == owner
+      def isProtectedButInTheSameClass: Boolean =
+        isProtected && enclosing.isClassDef && (enclosing.typeRef <:< owner.typeRef)
+      def isPrivateWithinButInTheRightPlace: Boolean = symbol.privateWithin.exists { pw =>
+        enclosing.isType && enclosing.typeRef =:= pw
+      } || symbol.protectedWithin.exists { pw =>
+        enclosing.isType && enclosing.typeRef <:< pw
+      }
+
+      scope match {
+        case Everywhere => isPublic
+        case AtCallSite =>
+          // TODO: or try the approach from [[UntypedTypesScala3.isAvailable]]
+          isPublic || isPrivateButInTheSameClass || isProtectedButInTheSameClass || isPrivateWithinButInTheRightPlace
+      }
     }
   }
 

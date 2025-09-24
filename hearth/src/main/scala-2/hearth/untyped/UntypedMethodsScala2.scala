@@ -120,9 +120,31 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     override def isImplicit: Boolean = symbol.isImplicit
     override def isSynthetic: Boolean = symbol.isSynthetic || UntypedMethod.methodsConsideredSynthetic(symbol)
 
-    override def isAvailable(scope: Accessible): Boolean = scope match {
-      case Everywhere => symbol.isPublic
-      case AtCallSite => false // TODO
+    override def isAvailable(scope: Accessible): Boolean = {
+      // TODO: test this new implementation
+      val owner = symbol.owner
+      val enclosing = c.internal.enclosingOwner
+
+      // Helper methods
+      def privateWithin: Option[Symbol] = Option(symbol.privateWithin).filterNot(_ == NoSymbol)
+
+      // High-level checks
+      def isPublic: Boolean = symbol.isPublic
+      def isPrivateButInTheSameClass: Boolean = symbol.isPrivate && enclosing == owner
+      def isProtectedButInTheSameClass: Boolean =
+        symbol.isProtected && enclosing.isClass && enclosing.asClass.toType <:< owner.asClass.toType
+      def isPrivateWithinButInTheRightPlace: Boolean = privateWithin.exists { pw =>
+        def isPackagePrivateButInTheRightPackage: Boolean =
+          pw.isPackage && owner.fullName.toString.startsWith(pw.fullName.toString)
+        isPackagePrivateButInTheRightPackage
+      }
+
+      scope match {
+        case Everywhere => isPublic
+        case AtCallSite =>
+          // TODO: or try the approach from [[UntypedTypesScala2.isAvailable]]
+          isPublic || isPrivateButInTheSameClass || isProtectedButInTheSameClass || isPrivateWithinButInTheRightPlace
+      }
     }
 
     // -------------------------------------------- Special cases handling --------------------------------------------
