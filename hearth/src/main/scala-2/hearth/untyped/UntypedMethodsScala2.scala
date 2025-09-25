@@ -282,7 +282,8 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
           .filterNot(_.isConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
           .filterNot { s =>
             val name = symbolName(s)
-            // val/vars create both term and method symbols - one of them is redundant, but we have to allow terms to not loose ctro arguments
+            // val/vars create both term and method symbols - one of them is redundant, but we have to allow terms to not lose ctor arguments.
+            // We can recognize extra term symbols by checking if the name ends with " " (for term) or not (for method).
             name.endsWith(" ") ||
             // Default parameters are methods, but we don't want them
             name.contains("$default$") ||
