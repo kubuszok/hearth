@@ -286,12 +286,26 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         .map { case (companionTpe, companionRef) =>
           val companionSymbol = companionTpe.typeSymbol
           // Defined in the companion object or its parent, or synthetic
-          val companionMembers = companionSymbol.methodMembers ++ companionSymbol.fieldMembers
+          val companionMembers =
+            (companionSymbol.methodMembers ++ companionSymbol.fieldMembers).filterNot(methodsSkippedInCompanion)
           // Defined exatcly in the companion object
           val companionDeclared =
-            companionSymbol.declaredMethods.toSet ++ companionSymbol.declaredFields.toSet ++ declaredByJvmOrScala(
+            (companionSymbol.declaredMethods.toSet ++ companionSymbol.declaredFields.toSet ++ declaredByJvmOrScala(
               companionSymbol
-            )
+            )).filterNot(methodsSkippedInCompanion)
+
+          if instanceTpe.fcqn.contains("WithCompanion") then {
+            companionMembers.foreach { s =>
+              println(s"""companionMember:
+                         |${s.name}
+                         |${s.flags.show}
+                         |""".stripMargin)
+            }
+            // println(s"""WithCompanion:
+            //            |companionMembers: ${companionMembers.mkString(", ")}
+            //            |companionDeclared: ${companionDeclared.mkString(", ")}
+            //            |""".stripMargin)
+          }
 
           val allMembers = classMembers ++ companionMembers
           val allDeclared = classDeclared ++ companionDeclared
@@ -316,6 +330,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           .filterNot(_.isClassConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
           .filterNot { s =>
             val name = s.name
+            (name == "apply" && s.flags
+              .is(Flags.Synthetic)) || // Generated apply methods that just forward the arguments to the constructor
             name.contains("$default$") || // Default parameters are methods, but we don't want them
             name == "<clinit>" // Class static initializer is a method, but we don't want it
           }
@@ -419,6 +435,13 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     private val methodsConsideredSynthetic = {
       val names = Set("asInstanceOf", "isInstanceOf", "getClass", "synchronized", "==", "!=", "eq", "ne", "##")
       TypeRepr.of[Object].typeSymbol.methodMembers.filter(symbol => names(symbol.name)).toSet
+    }
+
+    // We do not want to include methods and fields from java.lang.Object in the companion object.
+    // Because the companion class has them and we don't want to mix them when listing methods for companion class.
+    private val methodsSkippedInCompanion = {
+      val sym = TypeRepr.of[java.lang.Object].typeSymbol
+      (sym.methodMembers ++ sym.fieldMembers).toSet
     }
   }
 }

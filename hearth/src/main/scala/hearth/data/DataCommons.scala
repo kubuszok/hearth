@@ -146,8 +146,15 @@ private[data] trait DataCommons {
     onFloat = _.toString + "f",
     onDouble = _.toString,
     onBoolean = _.toString,
-    onString = s => '"'.toString + s + '"'.toString,
-    onList = _.map(d => "  " + d.render).mkString("[\n", ",\n", "\n]"),
-    onMap = _.map { case (key, value) => s"  $key: ${value.render}" }.mkString("{\n", ",\n", "\n}")
+    onString = s => '"'.toString + s.replace("\"", "\\\"") + '"'.toString,
+    onList = l =>
+      if (l.isEmpty) "[]"
+      else l.map(_.render.split("\n").map("  " + _).mkString("\n")).mkString("[\n", ",\n", "\n]"),
+    onMap = m =>
+      if (m.isEmpty) "{}"
+      else
+        m
+          .map { case (k, v) => (s"$k: ${v.render}").split("\n").map("  " + _).mkString("\n") }
+          .mkString("{\n", ",\n", "\n}")
   )
 }

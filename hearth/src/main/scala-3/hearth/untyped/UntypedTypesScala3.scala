@@ -135,15 +135,13 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     override def companionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] =
       if untyped.isObject then None
-      else {
-        val sym = untyped.typeSymbol
-        // So... if you have `object Foo`, the `Foo` is a `Term` and have a `Symbol` (via `.companionModule`),
-        // while its type is `Foo.type` and it has another `Symbol` (via `.moduleClass`).
-        // We need to use 2 of them in different places, so we have to pass a tuple.
-        Option(sym.moduleClass).filterNot(_.isNoSymbol).zip(Option(sym.companionModule).filterNot(_.isNoSymbol)).map {
-          case (moduleClass, module) => (subtypeTypeOf(untyped, moduleClass), Ref(module))
+      else
+        Option(untyped.typeSymbol.companionModule).filterNot(_.isNoSymbol).map { module =>
+          // So... if you have `object Foo`, the `Foo` is a `Term` and have a `Symbol` (via `.companionModule`),
+          // while its type is `Foo.type` and it has another `Symbol` (via `.moduleClass`).
+          // We need to use 2 of them in different places, so we have to pass a tuple.
+          (subtypeTypeOf(untyped, module.moduleClass), Ref(module))
         }
-      }
 
     override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
       // no need for separate java.lang.Enum handling contrary to Scala 2

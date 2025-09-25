@@ -60,7 +60,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
   }
 
   final class UntypedMethod private (
-      val symbol: MethodSymbol,
+      val symbol: TermSymbol,
       val invocation: Invocation,
       val isDeclared: Boolean,
       val isConstructorArgument: Boolean,
@@ -89,10 +89,10 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       }
     }
 
-    override lazy val hasTypeParameters: Boolean = symbol.typeParams.nonEmpty
+    override lazy val hasTypeParameters: Boolean = symbol.isMethod && symbol.asMethod.typeParams.nonEmpty
 
     override lazy val parameters: UntypedParameters = {
-      val paramss = symbol.paramLists
+      val paramss = if (symbol.isMethod) symbol.asMethod.paramLists else Nil
       val indices = paramss.flatten.zipWithIndex.toMap
       paramss
         .map(inner =>
@@ -112,11 +112,10 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
     override def isConstructor: Boolean = symbol.isConstructor
 
-    override def isVal: Boolean = symbol.isVal || accessedOf(symbol).exists(_.isVal)
+    override def isVal: Boolean = symbol.isVal || accessedOf(symbol).exists(_.isVal) || isLazy
     override def isVar: Boolean = symbol.isVar || accessedOf(symbol).exists(_.isVar)
     override def isLazy: Boolean = symbol.isLazy || accessedOf(symbol).exists(_.isLazy)
-    override def isDef: Boolean =
-      !isVal && !isLazy && (!isVar || name.endsWith("_=")) // var's setter should both var AND def
+    override def isDef: Boolean = !isVal && (!isVar || name.endsWith("_=")) // var's setter should both var AND def
     override def isImplicit: Boolean = symbol.isImplicit
     override def isSynthetic: Boolean = symbol.isSynthetic || UntypedMethod.methodsConsideredSynthetic(symbol)
 
@@ -157,15 +156,15 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     // These symbols are not equal, so if we want to check for .isVal, .isVar, .isLazy, etc, we need to check both the
     // symbol itself and the accessed symbol. FML
 
-    private def accessedOf(symbol: MethodSymbol): Option[TermSymbol] =
+    private def accessedOf(symbol: TermSymbol): Option[TermSymbol] =
       scala.util.Try(symbol.accessed).toOption.filterNot(_ == NoSymbol).collectFirst {
         case s if s.isTerm => s.asTerm
       }
-    private def getterOf(symbol: MethodSymbol): Option[MethodSymbol] =
+    private def getterOf(symbol: TermSymbol): Option[MethodSymbol] =
       scala.util.Try(symbol.getter).toOption.filterNot(_ == NoSymbol).collectFirst {
         case s if s.isMethod => s.asMethod
       }
-    private def setterOf(symbol: MethodSymbol): Option[MethodSymbol] =
+    private def setterOf(symbol: TermSymbol): Option[MethodSymbol] =
       scala.util.Try(symbol.setter).toOption.filterNot(_ == NoSymbol).collectFirst {
         case s if s.isMethod => s.asMethod
       }
@@ -181,10 +180,10 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     )(
         symbol: Symbol
     ): Either[String, UntypedMethod] =
-      if (symbol.isMethod)
+      if (symbol.isTerm)
         Right(
           new UntypedMethod(
-            symbol = symbol.asMethod,
+            symbol = symbol.asTerm,
             invocation =
               if (symbol.isConstructor) Invocation.Constructor
               else module.map(Invocation.OnModule).getOrElse(Invocation.OnInstance),
@@ -259,9 +258,9 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       val (members, declared, moduleBySymbol) = instanceTpe.companionObject
         .map { case (companionTpe, companionRef) =>
           // Defined in the companion object or its parent, or synthetic
-          val companionMembers = companionTpe.members
+          val companionMembers = companionTpe.members.filterNot(methodsSkippedInCompanion)
           // Defined exatcly in the companion object
-          val companionDeclared = companionTpe.decls.toSet
+          val companionDeclared = companionTpe.decls.toSet.filterNot(methodsSkippedInCompanion)
 
           val allMembers = classMembers ++ companionMembers
           val allDeclared = classDeclared ++ companionDeclared
@@ -280,12 +279,15 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
       sortMethods(
         members
-          .filter(_.isMethod)
           .filterNot(_.isConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
           .filterNot { s =>
             val name = symbolName(s)
-            name.contains("$default$") || // Default parameters are methods, but we don't want them
-            name == "<clinit>" // Class static initializer is a method, but we don't want it
+            // val/vars create both term and method symbols - one of them is redundant, but we have to allow terms to not loose ctro arguments
+            name.endsWith(" ") ||
+            // Default parameters are methods, but we don't want them
+            name.contains("$default$") ||
+            // Class static initializer is a method, but we don't want it
+            name == "<clinit>"
           }
           .flatMap { s =>
             val fieldNames = Set(symbolName(s), symbolName(s) + "_=")
@@ -293,7 +295,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
             parseOption(
               isDeclared = declared(s) && !methodsConsideredSynthetic(s),
               isConstructorArgument = (constructorArguments & fieldNames).nonEmpty,
-              isCaseField = s.asMethod.isCaseAccessor,
+              isCaseField = s.isMethod && s.asMethod.isCaseAccessor,
               module = module
             )(s)
           }
@@ -371,5 +373,10 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       val names = Set("asInstanceOf", "isInstanceOf", "getClass", "synchronized", "==", "!=", "eq", "ne", "##")
       c.weakTypeOf[Object].members.filter(symbol => names(symbolName(symbol))).toSet
     }
+
+    // We do not want to include methods and fields from java.lang.Object in the companion object.
+    // Because the companion class has them and we don't want to mix them when listing methods for companion class.
+    private val methodsSkippedInCompanion =
+      c.weakTypeOf[java.lang.Object].members.toSet
   }
 }
