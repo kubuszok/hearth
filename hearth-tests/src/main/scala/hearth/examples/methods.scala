@@ -43,3 +43,19 @@ object WithCompanion {
 
   def apply(arg: Int): WithCompanion = new WithCompanion(arg)
 }
+
+@scala.annotation.nowarn
+abstract class ScopeVisibility(privateCtorArg: Int, val publicCtorArg: Int) {
+
+  def publicMethod: Int = 1
+
+  private def privateMethod: Int = 1
+
+  protected def protectedMethod: Int = 1
+
+  private[this] def privateThisMethod: Int = 1
+
+  private[hearth] def privateHearthMethod: Int = 1
+
+  private[examples] def privateHearthExamplesMethod: Int = 1
+}
