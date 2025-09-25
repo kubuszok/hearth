@@ -294,19 +294,6 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
               companionSymbol
             )).filterNot(methodsSkippedInCompanion)
 
-          if instanceTpe.fcqn.contains("WithCompanion") then {
-            companionMembers.foreach { s =>
-              println(s"""companionMember:
-                         |${s.name}
-                         |${s.flags.show}
-                         |""".stripMargin)
-            }
-            // println(s"""WithCompanion:
-            //            |companionMembers: ${companionMembers.mkString(", ")}
-            //            |companionDeclared: ${companionDeclared.mkString(", ")}
-            //            |""".stripMargin)
-          }
-
           val allMembers = classMembers ++ companionMembers
           val allDeclared = classDeclared ++ companionDeclared
           val moduleBySymbol = companionMembers.toList.map(_ -> companionRef).toMap[Symbol, UntypedExpr]
