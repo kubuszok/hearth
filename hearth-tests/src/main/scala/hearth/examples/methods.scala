@@ -30,7 +30,16 @@ class NoCompanionClass extends Trait {
 
   var scalaVariable: Int = 1
 
-  // TODO: lazy val
+  lazy val scalaLazyValue: Int = 1
 
   override def inheritedAbstractMethod(arg: Int): Int = arg + 1
+}
+
+final class WithCompanion(arg: Int) {
+
+  def method(arg2: Int): Int = arg + arg2
+}
+object WithCompanion {
+
+  def apply(arg: Int): WithCompanion = new WithCompanion(arg)
 }

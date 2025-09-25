@@ -238,6 +238,35 @@ final class MethodsSpec extends MacroSuite {
             "isJavaAccessor" -> Data(false),
             "isAccessor" -> Data(true)
           ),
+          "scalaLazyValue" -> Data.map(
+            "invocation" -> Data("OnInstance"),
+            "hasTypeParameters" -> Data(false),
+            "position" -> envDependedPosition,
+            "annotations" -> Data.list(),
+            "isConstructor" -> Data(false),
+            "isVal" -> Data(true),
+            "isVar" -> Data(false),
+            "isLazy" -> Data(true),
+            "isDef" -> Data(false),
+            "isImplicit" -> Data(false),
+            "isDeclared" -> Data(true),
+            "isSynthetic" -> Data(false),
+            "isInherited" -> Data(false),
+            "isAvailable(Everywhere)" -> Data(true),
+            "arity" -> Data(0),
+            "isNullary" -> Data(true),
+            "isUnary" -> Data(false),
+            "isBinary" -> Data(false),
+            "isConstructorArgument" -> Data(false),
+            "isCaseField" -> Data(false),
+            "isScalaGetter" -> Data(true),
+            "isScalaSetter" -> Data(false),
+            "isScalaAccessor" -> Data(true),
+            "isJavaGetter" -> Data(false),
+            "isJavaSetter" -> Data(false),
+            "isJavaAccessor" -> Data(false),
+            "isAccessor" -> Data(true)
+          ),
           "inheritedAbstractMethod(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
@@ -299,7 +328,122 @@ final class MethodsSpec extends MacroSuite {
         )
       }
 
-      // TODO: class with companion
+      test("for class with companion") {
+        val envDependedPosition =
+          if (LanguageVersion.byHearth.isScala2_13) Data("None")
+          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala)")
+
+        testMethodsExtraction[examples.methods.WithCompanion](
+          "clone",
+          "equals",
+          "finalize",
+          "getClass",
+          "hashCode",
+          "notify",
+          "notifyAll",
+          "toString",
+          "wait",
+          "asInstanceOf",
+          "isInstanceOf",
+          "synchronized",
+          "==",
+          "!=",
+          "eq",
+          "ne",
+          "##",
+          "writeReplace" // Scala 3-only, private def for serialization only
+        ) <==> Data.map(
+          "arg" -> Data.map(
+            "invocation" -> Data("OnInstance"),
+            "hasTypeParameters" -> Data(false),
+            "position" -> envDependedPosition,
+            "annotations" -> Data.list(),
+            "isConstructor" -> Data(false),
+            "isVal" -> Data(true),
+            "isVar" -> Data(false),
+            "isLazy" -> Data(false),
+            "isDef" -> Data(false),
+            "isImplicit" -> Data(false),
+            "isDeclared" -> Data(true),
+            "isSynthetic" -> Data(false),
+            "isInherited" -> Data(false),
+            "isAvailable(Everywhere)" -> Data(false),
+            "arity" -> Data(0),
+            "isNullary" -> Data(true),
+            "isUnary" -> Data(false),
+            "isBinary" -> Data(false),
+            "isConstructorArgument" -> Data(true),
+            "isCaseField" -> Data(false),
+            "isScalaGetter" -> Data(true),
+            "isScalaSetter" -> Data(false),
+            "isScalaAccessor" -> Data(true),
+            "isJavaGetter" -> Data(false),
+            "isJavaSetter" -> Data(false),
+            "isJavaAccessor" -> Data(false),
+            "isAccessor" -> Data(true)
+          ),
+          "method(Int)" -> Data.map(
+            "invocation" -> Data("OnInstance"),
+            "hasTypeParameters" -> Data(false),
+            "position" -> envDependedPosition,
+            "annotations" -> Data.list(),
+            "isConstructor" -> Data(false),
+            "isVal" -> Data(false),
+            "isVar" -> Data(false),
+            "isLazy" -> Data(false),
+            "isDef" -> Data(true),
+            "isImplicit" -> Data(false),
+            "isDeclared" -> Data(true),
+            "isSynthetic" -> Data(false),
+            "isInherited" -> Data(false),
+            "isAvailable(Everywhere)" -> Data(true),
+            "arity" -> Data(1),
+            "isNullary" -> Data(false),
+            "isUnary" -> Data(true),
+            "isBinary" -> Data(false),
+            "isConstructorArgument" -> Data(false),
+            "isCaseField" -> Data(false),
+            "isScalaGetter" -> Data(false),
+            "isScalaSetter" -> Data(false),
+            "isScalaAccessor" -> Data(false),
+            "isJavaGetter" -> Data(false),
+            "isJavaSetter" -> Data(false),
+            "isJavaAccessor" -> Data(false),
+            "isAccessor" -> Data(false)
+          ),
+          "apply(Int)" -> Data.map(
+            "invocation" -> Data(
+              if (LanguageVersion.byHearth.isScala2_13) "OnModule(WithCompanion)" else "OnModule(Ident(WithCompanion))"
+            ),
+            "hasTypeParameters" -> Data(false),
+            "position" -> envDependedPosition,
+            "annotations" -> Data.list(),
+            "isConstructor" -> Data(false),
+            "isVal" -> Data(false),
+            "isVar" -> Data(false),
+            "isLazy" -> Data(false),
+            "isDef" -> Data(true),
+            "isImplicit" -> Data(false),
+            "isDeclared" -> Data(true),
+            "isSynthetic" -> Data(false),
+            "isInherited" -> Data(false),
+            "isAvailable(Everywhere)" -> Data(true),
+            "arity" -> Data(1),
+            "isNullary" -> Data(false),
+            "isUnary" -> Data(true),
+            "isBinary" -> Data(false),
+            "isConstructorArgument" -> Data(false),
+            "isCaseField" -> Data(false),
+            "isScalaGetter" -> Data(false),
+            "isScalaSetter" -> Data(false),
+            "isJavaGetter" -> Data(false),
+            "isScalaAccessor" -> Data(false),
+            "isJavaSetter" -> Data(false),
+            "isJavaAccessor" -> Data(false),
+            "isAccessor" -> Data(false)
+          )
+        )
+      }
 
       // TODO: module
     }
