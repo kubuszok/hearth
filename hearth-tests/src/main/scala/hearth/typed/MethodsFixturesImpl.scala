@@ -7,7 +7,7 @@ import hearth.data.Data
 trait MethodsFixturesImpl { this: MacroCommons =>
 
   def testMethodsExtraction[A: Type](excluding: Seq[String]): Expr[Data] = {
-    val methods = Method.methodsOf[A]
+    val methods = Type[A].methods
     val filtered = methods.filterNot(m => excluding.contains(m.value.name))
     Expr(renderMethods(filtered))
   }
@@ -37,7 +37,7 @@ trait MethodsFixturesImpl { this: MacroCommons =>
 
   def testMethodProperties[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
     case Expr(methodName) =>
-      val method = Method.methodsOf[A].filter(_.value.name == methodName)
+      val method = Type[A].methods.filter(_.value.name == methodName)
       Expr(renderMethods(method))
     case _ =>
       Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
