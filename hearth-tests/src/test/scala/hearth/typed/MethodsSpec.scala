@@ -8,6 +8,36 @@ final class MethodsSpec extends MacroSuite {
 
   group("trait typed.Methods") {
 
+    group(
+      "constructors: Method.{primaryConstructorOf[A], defaultConstructorOf[A], constructorsOf[A]}, returns preprocessed constructors"
+    ) {
+      import MethodsFixtures.testConstructorsExtraction
+
+      test("for class without companion") {
+        testConstructorsExtraction[examples.methods.NoCompanionClass] <==> Data.map(
+          "primaryConstructor" -> Data("()"),
+          "defaultConstructor" -> Data("()"),
+          "constructors" -> Data.list(Data("()"))
+        )
+      }
+
+      test("for class with companion") {
+        testConstructorsExtraction[examples.methods.WithCompanion] <==> Data.map(
+          "primaryConstructor" -> Data("(arg: scala.Int)"),
+          "defaultConstructor" -> Data("<no default constructor>"),
+          "constructors" -> Data.list(Data("(arg: scala.Int)"))
+        )
+      }
+
+      test("for companion object") {
+        testConstructorsExtraction[examples.methods.WithCompanion.type] <==> Data.map(
+          "primaryConstructor" -> Data("()"),
+          "defaultConstructor" -> Data("()"),
+          "constructors" -> Data.list(Data("()"))
+        )
+      }
+    }
+
     group("methods: Method.methodsOf[A], returns preprocessed methods") {
       import MethodsFixtures.testMethodsExtraction
 

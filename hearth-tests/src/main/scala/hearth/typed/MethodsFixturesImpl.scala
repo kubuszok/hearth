@@ -6,6 +6,21 @@ import hearth.data.Data
 /** Fixtured for testing [[MethodsSpec]]. */
 trait MethodsFixturesImpl { this: MacroCommons =>
 
+  def testConstructorsExtraction[A: Type]: Expr[Data] = Expr(
+    Data.map(
+      "primaryConstructor" -> Type[A].primaryConstructor
+        .map(renderConstructor(_))
+        .getOrElse(Data("<no primary constructor>")),
+      "defaultConstructor" -> Type[A].defaultConstructor
+        .map(renderConstructor(_))
+        .getOrElse(Data("<no default constructor>")),
+      "constructors" -> Data(Type[A].constructors.map(renderConstructor(_)))
+    )
+  )
+
+  private def renderConstructor[A: Type](constructor: Method.NoInstance[A]): Data =
+    renderParameters(constructor.parameters)
+
   def testMethodsExtraction[A: Type](excluding: Seq[String]): Expr[Data] = {
     val methods = Type[A].methods
     val filtered = methods.filterNot(m => excluding.contains(m.value.name))
@@ -100,5 +115,16 @@ trait MethodsFixturesImpl { this: MacroCommons =>
           case (name, methods)                    => List(name -> Data(methods.toMap))
         }
         .toMap
+    )
+
+  private def renderParameters(parameters: Parameters): Data =
+    Data(
+      parameters.view
+        .map(params =>
+          Data(
+            params.view.map { case (name, parameter) => s"$name: ${parameter.tpe.plainPrint}" }.mkString("(", ", ", ")")
+          )
+        )
+        .mkString
     )
 }

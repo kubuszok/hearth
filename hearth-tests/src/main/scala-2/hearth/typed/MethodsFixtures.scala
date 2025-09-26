@@ -10,11 +10,16 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
 
   // TODO: create macro annotation which would allow to do the following
 
+  def testConstructorsExtractionImpl[A: c.WeakTypeTag]: c.Expr[Data] =
+    testConstructorsExtraction[A]
+
   def testMethodsExtractionImpl[A: c.WeakTypeTag](excluding: c.Expr[String]*): c.Expr[Data] =
     testMethodsExtractionS2Adapter[A](excluding)
 }
 
 object MethodsFixtures {
+
+  def testConstructorsExtraction[A]: Data = macro MethodsFixtures.testConstructorsExtractionImpl[A]
 
   def testMethodsExtraction[A](excluding: String*): Data = macro MethodsFixtures.testMethodsExtractionImpl[A]
 }
