@@ -8,6 +8,20 @@ final class MethodsJvmSpec extends MacroSuite {
 
   group("trait typed.Methods") {
 
+    group(
+      "constructors: Method.{primaryConstructorOf[A], defaultConstructorOf[A], constructorsOf[A]}, returns preprocessed constructors"
+    ) {
+      import MethodsFixtures.testConstructorsExtraction
+
+      test("for java.lang.Object") {
+        testConstructorsExtraction[java.lang.Object] <==> Data.map(
+          "primaryConstructor" -> Data("()"),
+          "defaultConstructor" -> Data("()"),
+          "constructors" -> Data.list(Data("()"))
+        )
+      }
+    }
+
     group("methods: Method.methodsOf[A], returns preprocessed methods") {
       import MethodsFixtures.testMethodsExtraction
 
