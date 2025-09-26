@@ -103,7 +103,8 @@ trait UntypedTypes { this: MacroCommons =>
     def isObject(instanceTpe: UntypedType): Boolean
     def isVal(instanceTpe: UntypedType): Boolean
 
-    final def isCaseClass(instanceTpe: UntypedType): Boolean = isClass(instanceTpe) && isCase(instanceTpe)
+    final def isCaseClass(instanceTpe: UntypedType): Boolean =
+      isClass(instanceTpe) && !isObject(instanceTpe) && isCase(instanceTpe)
     final def isCaseObject(instanceTpe: UntypedType): Boolean = isObject(instanceTpe) && isCase(instanceTpe)
     final def isCaseVal(instanceTpe: UntypedType): Boolean = isVal(instanceTpe) && isCase(instanceTpe)
 

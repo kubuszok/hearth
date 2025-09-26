@@ -25,7 +25,7 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
 
   def testPosition[A: Type]: Expr[Data] = Expr(
     Data.map(
-      "Type.position" -> Data(Type.position[A].map(_.prettyPrint).getOrElse("<no position>"))
+      "Type.position" -> Data(Type[A].position.map(_.prettyPrint).getOrElse("<no position>"))
     )
   )
 
@@ -46,35 +46,51 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
     )
   )
 
-  def testFlags[A: Type]: Expr[Data] = try
-    Expr(
-      Data.map(
-        "Type.isPrimitive" -> Data(Type.isPrimitive[A]),
-        "Type.isArray" -> Data(Type.isArray[A]),
-        "Type.isJvmBuiltIn" -> Data(Type.isJvmBuiltIn[A]),
-        "Type.isAbstract" -> Data(Type.isAbstract[A]),
-        "Type.isFinal" -> Data(Type.isFinal[A]),
-        "Type.isClass" -> Data(Type.isClass[A]),
-        "Type.notJvmBuiltInClass" -> Data(Type.notJvmBuiltInClass[A]),
-        "Type.isPlainOldJavaObject" -> Data(Type.isPlainOldJavaObject[A]),
-        "Type.isJavaBean" -> Data(Type.isJavaBean[A]),
-        "Type.isSealed" -> Data(Type.isSealed[A]),
-        "Type.isJavaEnum" -> Data(Type.isJavaEnum[A]),
-        "Type.isJavaEnumValue" -> Data(Type.isJavaEnumValue[A]),
-        "Type.isCase" -> Data(Type.isCase[A]),
-        "Type.isObject" -> Data(Type.isObject[A]),
-        "Type.isVal" -> Data(Type.isVal[A]),
-        "Type.isCaseClass" -> Data(Type.isCaseClass[A]),
-        "Type.isCaseObject" -> Data(Type.isCaseObject[A]),
-        "Type.isCaseVal" -> Data(Type.isCaseVal[A]),
-        "Type.isAvailable(Everywhere)" -> Data(Type.isAvailable[A](Everywhere))
-      )
+  def testFlags[A: Type]: Expr[Data] = Expr(
+    Data.map(
+      "Type.isPrimitive" -> Data(Type[A].isPrimitive),
+      "Type.isArray" -> Data(Type[A].isArray),
+      "Type.isJvmBuiltIn" -> Data(Type[A].isJvmBuiltIn),
+      "Type.isAbstract" -> Data(Type[A].isAbstract),
+      "Type.isFinal" -> Data(Type[A].isFinal),
+      "Type.isClass" -> Data(Type[A].isClass),
+      "Type.isTypeSystemSpecial" -> Data(Type[A].isTypeSystemSpecial),
+      "Type.notJvmBuiltInClass" -> Data(Type[A].notJvmBuiltInClass),
+      "Type.isPlainOldJavaObject" -> Data(Type[A].isPlainOldJavaObject),
+      "Type.isJavaBean" -> Data(Type[A].isJavaBean),
+      "Type.isSealed" -> Data(Type[A].isSealed),
+      "Type.isJavaEnum" -> Data(Type[A].isJavaEnum),
+      "Type.isJavaEnumValue" -> Data(Type[A].isJavaEnumValue),
+      "Type.isCase" -> Data(Type[A].isCase),
+      "Type.isObject" -> Data(Type[A].isObject),
+      "Type.isVal" -> Data(Type[A].isVal),
+      "Type.isCaseClass" -> Data(Type[A].isCaseClass),
+      "Type.isCaseObject" -> Data(Type[A].isCaseObject),
+      "Type.isCaseVal" -> Data(Type[A].isCaseVal),
+      "Type.isAvailable(Everywhere)" -> Data(Type[A].isAvailable(Everywhere))
     )
-  catch {
-    case e: Throwable =>
-      e.printStackTrace()
-      throw e
-  }
+  )
+
+  def testChildrenFlags[A: Type]: Expr[Data] = Expr(
+    Type[A].directChildren
+      .map { children =>
+        Data(children.view.map { case (name, child) =>
+          import child.Underlying as Child
+          name -> Data.map(
+            "Type.isSealed" -> Data(Child.isSealed),
+            "Type.isJavaEnum" -> Data(Child.isJavaEnum),
+            "Type.isJavaEnumValue" -> Data(Child.isJavaEnumValue),
+            "Type.isCase" -> Data(Child.isCase),
+            "Type.isObject" -> Data(Child.isObject),
+            "Type.isVal" -> Data(Child.isVal),
+            "Type.isCaseClass" -> Data(Child.isCaseClass),
+            "Type.isCaseObject" -> Data(Child.isCaseObject),
+            "Type.isCaseVal" -> Data(Child.isCaseVal)
+          )
+        }.toMap)
+      }
+      .getOrElse(Data("<no direct children>"))
+  )
 
   def testComparisons[A: Type, B: Type]: Expr[Data] = Expr(
     Data.map(

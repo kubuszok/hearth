@@ -181,7 +181,7 @@ final class TypesScala3Spec extends MacroSuite {
     group(
       "methods: Type.{isPrimitive, isBuiltIn, isAbstract, isFinal, isClass, notJvmBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
     ) {
-      import TypesFixtures.testFlags
+      import TypesFixtures.{testFlags, testChildrenFlags}
 
       test("for Scala 3 enums") {
         List(
@@ -196,6 +196,7 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isAbstract" -> Data(true),
             "Type.isFinal" -> Data(false),
             "Type.isClass" -> Data(true),
+            "Type.isTypeSystemSpecial" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),
@@ -211,6 +212,31 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isAvailable(Everywhere)" -> Data(true)
           )
         }
+
+        testChildrenFlags[examples.ExampleEnum] <==> Data.map(
+          "ExampleEnumClass" -> Data.map(
+            "Type.isSealed" -> Data(false),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isCase" -> Data(true),
+            "Type.isObject" -> Data(false),
+            "Type.isVal" -> Data(false),
+            "Type.isCaseClass" -> Data(true),
+            "Type.isCaseObject" -> Data(false),
+            "Type.isCaseVal" -> Data(false)
+          ),
+          "ExampleEnumValue" -> Data.map(
+            "Type.isSealed" -> Data(false),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isCase" -> Data(true),
+            "Type.isObject" -> Data(false),
+            "Type.isVal" -> Data(true),
+            "Type.isCaseClass" -> Data(false),
+            "Type.isCaseObject" -> Data(false),
+            "Type.isCaseVal" -> Data(true)
+          )
+        )
       }
 
       test("for Scala 3 enum cases") {
@@ -221,6 +247,7 @@ final class TypesScala3Spec extends MacroSuite {
           "Type.isAbstract" -> Data(false),
           "Type.isFinal" -> Data(true),
           "Type.isClass" -> Data(true),
+          "Type.isTypeSystemSpecial" -> Data(false),
           "Type.notJvmBuiltInClass" -> Data(true),
           "Type.isPlainOldJavaObject" -> Data(true),
           "Type.isJavaBean" -> Data(false),
