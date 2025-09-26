@@ -636,7 +636,7 @@ final class TypesSpec extends MacroSuite {
     group(
       "methods: Type.{isPrimitive, isBuiltIn, isAbstract, isFinal, isClass, notJvmBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
     ) {
-      import TypesFixtures.testFlags
+      import TypesFixtures.{testFlags, testChildrenFlags}
 
       test("for primitive types") {
         List(
@@ -656,6 +656,7 @@ final class TypesSpec extends MacroSuite {
             "Type.isAbstract" -> Data(false),
             "Type.isFinal" -> Data(true),
             "Type.isClass" -> Data(true),
+            "Type.isTypeSystemSpecial" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(false),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),
@@ -682,6 +683,7 @@ final class TypesSpec extends MacroSuite {
           "Type.isAbstract" -> Data(false),
           "Type.isFinal" -> Data(true),
           "Type.isClass" -> Data(true),
+          "Type.isTypeSystemSpecial" -> Data(false),
           "Type.notJvmBuiltInClass" -> Data(false),
           "Type.isPlainOldJavaObject" -> Data(false),
           "Type.isJavaBean" -> Data(false),
@@ -704,6 +706,7 @@ final class TypesSpec extends MacroSuite {
           "Type.isAbstract" -> Data(false),
           "Type.isFinal" -> Data(true),
           "Type.isClass" -> Data(true),
+          "Type.isTypeSystemSpecial" -> Data(false),
           "Type.notJvmBuiltInClass" -> Data(false),
           "Type.isPlainOldJavaObject" -> Data(false),
           "Type.isJavaBean" -> Data(false),
@@ -726,6 +729,7 @@ final class TypesSpec extends MacroSuite {
           "Type.isAbstract" -> Data(false),
           "Type.isFinal" -> Data(true),
           "Type.isClass" -> Data(false),
+          "Type.isTypeSystemSpecial" -> Data(false),
           "Type.notJvmBuiltInClass" -> Data(false),
           "Type.isPlainOldJavaObject" -> Data(false),
           "Type.isJavaBean" -> Data(false),
@@ -760,6 +764,7 @@ final class TypesSpec extends MacroSuite {
             "Type.isAbstract" -> Data(isAbstract),
             "Type.isFinal" -> Data(isFinal),
             "Type.isClass" -> Data(true),
+            "Type.isTypeSystemSpecial" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(!isAbstract),
             "Type.isJavaBean" -> Data(isJavaBean),
@@ -815,6 +820,7 @@ final class TypesSpec extends MacroSuite {
             "Type.isAbstract" -> Data(isAbstract),
             "Type.isFinal" -> Data(isFinal),
             "Type.isClass" -> Data(true),
+            "Type.isTypeSystemSpecial" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(!isAbstract),
             "Type.isJavaBean" -> Data(isJavaBean),
@@ -849,6 +855,7 @@ final class TypesSpec extends MacroSuite {
             "Type.isAbstract" -> Data(isAbstract),
             "Type.isFinal" -> Data(isFinal),
             "Type.isClass" -> Data(true),
+            "Type.isTypeSystemSpecial" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(!isAbstract),
             "Type.isJavaBean" -> Data(isJavaBean),
@@ -864,6 +871,79 @@ final class TypesSpec extends MacroSuite {
             "Type.isAvailable(Everywhere)" -> Data(true)
           )
         }
+
+        testChildrenFlags[examples.enums.ExampleSealedTrait] <==> Data.map(
+          "ExampleSealedTraitClass" -> Data.map(
+            "Type.isSealed" -> Data(false),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isCase" -> Data(true),
+            "Type.isObject" -> Data(false),
+            "Type.isVal" -> Data(false),
+            "Type.isCaseClass" -> Data(true),
+            "Type.isCaseObject" -> Data(false),
+            "Type.isCaseVal" -> Data(false)
+          ),
+          "ExampleSealedTraitObject" -> Data.map(
+            "Type.isSealed" -> Data(false),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isCase" -> Data(true),
+            "Type.isObject" -> Data(true),
+            "Type.isVal" -> Data(false),
+            "Type.isCaseClass" -> Data(false),
+            "Type.isCaseObject" -> Data(true),
+            "Type.isCaseVal" -> Data(false)
+          )
+        )
+        testChildrenFlags[examples.enums.ExampleSealedTraitWithTypeParam[Int]] <==> Data.map(
+          "ExampleSealedTraitWithTypeParamClass" -> Data.map(
+            "Type.isSealed" -> Data(false),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isCase" -> Data(true),
+            "Type.isObject" -> Data(false),
+            "Type.isVal" -> Data(false),
+            "Type.isCaseClass" -> Data(true),
+            "Type.isCaseObject" -> Data(false),
+            "Type.isCaseVal" -> Data(false)
+          ),
+          "ExampleSealedTraitWithTypeParamObject" -> Data.map(
+            "Type.isSealed" -> Data(false),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isCase" -> Data(true),
+            "Type.isObject" -> Data(true),
+            "Type.isVal" -> Data(false),
+            "Type.isCaseClass" -> Data(false),
+            "Type.isCaseObject" -> Data(true),
+            "Type.isCaseVal" -> Data(false)
+          )
+        )
+        testChildrenFlags[examples.enums.ExampleSealedTraitGADT[Unit]] <==> Data.map(
+          "ExampleSealedTraitWithTypeParamClass" -> Data.map(
+            "Type.isSealed" -> Data(false),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isCase" -> Data(true),
+            "Type.isObject" -> Data(false),
+            "Type.isVal" -> Data(false),
+            "Type.isCaseClass" -> Data(true),
+            "Type.isCaseObject" -> Data(false),
+            "Type.isCaseVal" -> Data(false)
+          ),
+          "ExampleSealedTraitWithTypeParamObject" -> Data.map(
+            "Type.isSealed" -> Data(false),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isCase" -> Data(true),
+            "Type.isObject" -> Data(true),
+            "Type.isVal" -> Data(false),
+            "Type.isCaseClass" -> Data(false),
+            "Type.isCaseObject" -> Data(true),
+            "Type.isCaseVal" -> Data(false)
+          )
+        )
       }
     }
   }

@@ -280,6 +280,8 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     def isFinal: Boolean = Type.isFinal(using tpe)
 
     def isClass: Boolean = Type.isClass(using tpe)
+    def notJvmBuiltInClass: Boolean = Type.notJvmBuiltInClass(using tpe)
+    def isPlainOldJavaObject: Boolean = Type.isPlainOldJavaObject(using tpe)
     def isJavaBean: Boolean = Type.isJavaBean(using tpe)
 
     def isSealed: Boolean = Type.isSealed(using tpe)

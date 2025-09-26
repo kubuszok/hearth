@@ -131,7 +131,7 @@ final class TypesJvmSpec extends MacroSuite {
     group(
       "methods: Type.{isPrimitive, isBuiltIn, isAbstract, isFinal, isClass, notJvmBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
     ) {
-      import TypesFixtures.testFlags
+      import TypesFixtures.{testFlags, testChildrenFlags}
 
       test("for top-level Java classes") {
         List(
@@ -145,6 +145,7 @@ final class TypesJvmSpec extends MacroSuite {
             "Type.isAbstract" -> Data(isAbstract),
             "Type.isFinal" -> Data(isFinal),
             "Type.isClass" -> Data(true),
+            "Type.isTypeSystemSpecial" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(!isAbstract),
             "Type.isJavaBean" -> Data(!isAbstract),
@@ -174,6 +175,7 @@ final class TypesJvmSpec extends MacroSuite {
             "Type.isAbstract" -> Data(true),
             "Type.isFinal" -> Data(true),
             "Type.isClass" -> Data(true),
+            "Type.isTypeSystemSpecial" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),
@@ -187,6 +189,55 @@ final class TypesJvmSpec extends MacroSuite {
             "Type.isCaseObject" -> Data(false),
             "Type.isCaseVal" -> Data(false),
             "Type.isAvailable(Everywhere)" -> Data(true)
+          )
+
+          testChildrenFlags[examples.enums.ExampleJavaEnum] <==> Data.map(
+            "VALUE1" -> Data.map(
+              "Type.isSealed" -> Data(false),
+              "Type.isJavaEnum" -> Data(false),
+              "Type.isJavaEnumValue" -> Data(true),
+              "Type.isCase" -> Data(false),
+              "Type.isObject" -> Data(false),
+              "Type.isVal" -> Data(true),
+              "Type.isCaseClass" -> Data(false),
+              "Type.isCaseObject" -> Data(false),
+              "Type.isCaseVal" -> Data(false)
+            ),
+            "VALUE2" -> Data.map(
+              "Type.isSealed" -> Data(false),
+              "Type.isJavaEnum" -> Data(false),
+              "Type.isJavaEnumValue" -> Data(true),
+              "Type.isCase" -> Data(false),
+              "Type.isObject" -> Data(false),
+              "Type.isVal" -> Data(true),
+              "Type.isCaseClass" -> Data(false),
+              "Type.isCaseObject" -> Data(false),
+              "Type.isCaseVal" -> Data(false)
+            )
+          )
+          testChildrenFlags[examples.enums.ExampleJavaEnumWithMethods] <==> Data.map(
+            "VALUE1" -> Data.map(
+              "Type.isSealed" -> Data(false),
+              "Type.isJavaEnum" -> Data(false),
+              "Type.isJavaEnumValue" -> Data(true),
+              "Type.isCase" -> Data(false),
+              "Type.isObject" -> Data(false),
+              "Type.isVal" -> Data(true),
+              "Type.isCaseClass" -> Data(false),
+              "Type.isCaseObject" -> Data(false),
+              "Type.isCaseVal" -> Data(false)
+            ),
+            "VALUE2" -> Data.map(
+              "Type.isSealed" -> Data(false),
+              "Type.isJavaEnum" -> Data(false),
+              "Type.isJavaEnumValue" -> Data(true),
+              "Type.isCase" -> Data(false),
+              "Type.isObject" -> Data(false),
+              "Type.isVal" -> Data(true),
+              "Type.isCaseClass" -> Data(false),
+              "Type.isCaseObject" -> Data(false),
+              "Type.isCaseVal" -> Data(false)
+            )
           )
         }
       }

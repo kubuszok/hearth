@@ -108,7 +108,7 @@ trait Classes { this: MacroCommons =>
   object CaseClass {
 
     def unapply[A](tpe: Type[A]): Option[CaseClass[A]] =
-      if (tpe.isCaseClass) tpe.primaryConstructor.map(new CaseClass(tpe, _))
+      if (tpe.isCase) tpe.primaryConstructor.map(new CaseClass(tpe, _))
       else None
     def parse[A: Type]: Option[CaseClass[A]] = unapply(Type[A])
   }

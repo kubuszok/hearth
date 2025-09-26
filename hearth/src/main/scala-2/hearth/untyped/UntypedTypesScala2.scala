@@ -142,7 +142,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     }
     override def isVal(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
-      isObject(instanceTpe) && A.isStatic && A.isFinal // ???
+      (isObject(instanceTpe) && A.isStatic && A.isFinal) || isJavaEnumValue(instanceTpe)
     }
 
     override def isAvailable(instanceTpe: UntypedType, scope: Accessible): Boolean =

@@ -22,6 +22,8 @@ final private class TypesFixtures(val c: blackbox.Context) extends MacroCommonsS
 
   def testFlagsImpl[A: c.WeakTypeTag]: c.Expr[Data] = testFlags[A]
 
+  def testChildrenFlagsImpl[A: c.WeakTypeTag]: c.Expr[Data] = testChildrenFlags[A]
+
   def testComparisonsImpl[A: c.WeakTypeTag, B: c.WeakTypeTag]: c.Expr[Data] = testComparisons[A, B]
 
   def testBidirectionalCodecsImpl: c.Expr[Data] = testBidirectionalCodecs
@@ -42,6 +44,8 @@ object TypesFixtures {
   def testAnnotations[A]: Data = macro TypesFixtures.testAnnotationsImpl[A]
 
   def testFlags[A]: Data = macro TypesFixtures.testFlagsImpl[A]
+
+  def testChildrenFlags[A]: Data = macro TypesFixtures.testChildrenFlagsImpl[A]
 
   def testComparisons[A, B]: Data = macro TypesFixtures.testComparisonsImpl[A, B]
 
