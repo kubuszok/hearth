@@ -14,7 +14,7 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
     testConstructorsExtraction[A]
 
   def testMethodsExtractionImpl[A: c.WeakTypeTag](excluding: c.Expr[String]*): c.Expr[Data] =
-    testMethodsExtractionS2Adapter[A](excluding)
+    testMethodsExtraction[A](excluding)
 }
 
 object MethodsFixtures {

@@ -19,5 +19,5 @@ object MethodsFixtures {
     testMethodsExtractionImpl[A]('{ excluding })
   }
   private def testMethodsExtractionImpl[A: Type](excluding: Expr[Seq[String]])(using q: Quotes): Expr[Data] =
-    new MethodsFixtures(q).testMethodsExtractionS3Adapter[A](excluding)
+    new MethodsFixtures(q).testMethodsExtraction[A](excluding)
 }

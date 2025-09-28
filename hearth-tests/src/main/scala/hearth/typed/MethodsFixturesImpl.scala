@@ -21,33 +21,17 @@ trait MethodsFixturesImpl { this: MacroCommons =>
   private def renderConstructor[A: Type](constructor: Method.NoInstance[A]): Data =
     renderParameters(constructor.parameters)
 
-  def testMethodsExtraction[A: Type](excluding: Seq[String]): Expr[Data] = {
-    val methods = Type[A].methods
-    val filtered = methods.filterNot(m => excluding.contains(m.value.name))
-    Expr(renderMethods(filtered))
-  }
-  // Scala 2 varargs pass Seq[Expr[String]]
-  def testMethodsExtractionS2Adapter[A: Type](excluding: Seq[Expr[String]]): Expr[Data] =
-    testMethodsExtraction[A](
-      excluding.map {
-        case Expr(excluding) => excluding
-        case unmatched       =>
-          Environment.reportErrorAndAbort(
-            s"Excluded methods names must be a sequence of strings literals, got ${unmatched.prettyPrint}"
-          )
-      }
-    )
-  // Scala 3 varargs pass Expr[Seq[String]]
-  def testMethodsExtractionS3Adapter[A: Type](excluding: Expr[Seq[String]]): Expr[Data] = {
-    implicit val StringType: Type[String] = mkStringType // Make visible for ExprCodec[Seq[String]]
-    excluding match {
-      case Expr(excluding) =>
-        testMethodsExtraction[A](excluding)
-      case _ =>
+  def testMethodsExtraction[A: Type](excluding: VarArgs[String]): Expr[Data] = {
+    val excluded = excluding.toIterable.map {
+      case Expr(excluding) => excluding
+      case unmatched       =>
         Environment.reportErrorAndAbort(
-          s"Excluded methods names must be a sequence of strings literals, got ${excluding.prettyPrint}"
+          s"Excluded methods names must be a sequence of strings literals, got ${unmatched.prettyPrint}"
         )
-    }
+    }.toSet
+    val methods = Type[A].methods
+    val filtered = methods.filterNot(m => excluded(m.value.name))
+    Expr(renderMethods(filtered))
   }
 
   def testMethodProperties[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
@@ -57,8 +41,6 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     case _ =>
       Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
   }
-
-  private def mkStringType: Type[String] = Type.of[String]
 
   private def renderMethods[A](methods: List[Method.Of[A]]): Data =
     Data(
