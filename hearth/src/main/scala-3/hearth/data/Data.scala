@@ -47,6 +47,17 @@ object Data extends DataCommons { self =>
     def asMap: Option[Map[String, Data]] = fold(None, onInt = _ => None, onLong = _ => None, onFloat = _ => None, onDouble = _ => None, onBoolean = _ => None, onString = _ => None, onList = _ => None, onMap = Some(_))
     // format: on
 
+    // format: off
+    def updateAsInt(f: Int => Int): Data = asInt.fold(data)(a => Data(f(a)))
+    def updateAsLong(f: Long => Long): Data = asLong.fold(data)(a => Data(f(a)))
+    def updateAsFloat(f: Float => Float): Data = asFloat.fold(data)(a => Data(f(a)))
+    def updateAsDouble(f: Double => Double): Data = asDouble.fold(data)(a => Data(f(a)))
+    def updateAsBoolean(f: Boolean => Boolean): Data = asBoolean.fold(data)(a => Data(f(a)))
+    def updateAsString(f: String => String): Data = asString.fold(data)(a => Data(f(a)))
+    def updateAsList(f: List[Data] => List[Data]): Data = asList.fold(data)(a => Data(f(a)))
+    def updateAsMap(f: Map[String, Data] => Map[String, Data]): Data = asMap.fold(data)(a => Data(f(a)))
+    // format: on
+
     def get(key: String): Option[Data] = asMap.flatMap(_.get(key))
     def getOrElse(key: String, default: Data): Data = get(key).getOrElse(default)
 

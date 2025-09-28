@@ -497,7 +497,17 @@ lazy val hearthTests = projectMatrix
   .settings(
     moduleName := "hearth-tests",
     name := "hearth-tests",
-    description := "Tests for hearth utilities"
+    description := "Tests for hearth utilities",
+    scalacOptions ++= Seq(
+      // To test parsing of scalacOptions
+      "-Xmacro-settings:hearth-tests.primitives.int=1024",
+      "-Xmacro-settings:hearth-tests.primitives.long=65536L",
+      "-Xmacro-settings:hearth-tests.primitives.float=3.14f",
+      "-Xmacro-settings:hearth-tests.primitives.double=2.71828",
+      "-Xmacro-settings:hearth-tests.primitives.boolean=true",
+      "-Xmacro-settings:hearth-tests.primitives.explicit-string=\"hello\"",
+      "-Xmacro-settings:hearth-tests.primitives.implicit-string=hello"
+    )
   )
   .settings(settings *)
   .settings(versionSchemeSettings *)

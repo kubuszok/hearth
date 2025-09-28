@@ -27,9 +27,9 @@ private[data] trait DataCommons {
       catch {
         case e: NumberFormatException => Left(e.getMessage)
       }
-    case s @ intRegex() =>
+    case s @ intRegex(n) =>
       try
-        Right(if (s.endsWith("L")) Data(s.toLong) else Data(s.toInt))
+        Right(if (s.endsWith("L")) Data(n.toLong) else Data(n.toInt))
       catch {
         case e: NumberFormatException => Left(e.getMessage)
       }
@@ -40,7 +40,7 @@ private[data] trait DataCommons {
     case _ => Right(Data(string))
   }
   private val digitRegex = """^-?\d+(\.\d+)?(f|d)?$""".r
-  private val intRegex = """^-?\d+L?$""".r
+  private val intRegex = """^(-?\d+)L?$""".r
 
   final def parseList(strings: List[String]): Either[String, Data] =
     parsePairs(strings.collect { case s"$name=$value" =>
