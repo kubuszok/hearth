@@ -294,6 +294,13 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       ExprCodec.make[Right[L, R]]
     }
   }
+
+  final override type VarArgs[A] = Expr[Seq[A]]
+
+  object VarArgs extends VarArgsModule {
+    override def toIterable[A](args: VarArgs[A]): Iterable[Expr[A]] = scala.quoted.Varargs.unapply(args).getOrElse(Nil)
+  }
+
   import Expr.platformSpecific.*
 
   sealed trait MatchCase[A] extends Product with Serializable

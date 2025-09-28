@@ -241,6 +241,33 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     implicit lazy val DataCodec: ExprCodec[data.Data] = Expr.DataExprCodec
   }
 
+  /** Allow us to convert VarArgs to various collection types.
+    *
+    * When the macro input is variadic argument, we have different interface between Scala 2 and Scala 3:
+    *   - Scala 2: `Seq[Expr[A]]`
+    *   - Scala 3: `Expr[Seq[A]]`
+    *
+    * This type allows us to use the same interface in both cases.
+    *
+    * @since 0.1.0
+    */
+  type VarArgs[A]
+
+  val VarArgs: VarArgsModule
+  trait VarArgsModule { this: VarArgs.type =>
+
+    def toIterable[A](args: VarArgs[A]): Iterable[Expr[A]]
+  }
+
+  implicit final class VarArgsMethods[A](private val varArgs: VarArgs[A]) {
+
+    def toIterable: Iterable[Expr[A]] = VarArgs.toIterable(varArgs)
+    def toSeq: Seq[Expr[A]] = toIterable.toSeq
+    def toList: List[Expr[A]] = toIterable.toList
+    def toVector: Vector[Expr[A]] = toIterable.toVector
+    def to[C](factory: scala.collection.Factory[Expr[A], C]): C = toIterable.to(factory)
+  }
+
   /** Provides support for building pattern-matching expressions.
     *
     * {{{
