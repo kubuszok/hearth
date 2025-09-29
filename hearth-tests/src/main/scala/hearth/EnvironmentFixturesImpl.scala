@@ -34,6 +34,7 @@ trait EnvironmentFixturesImpl { this: MacroCommons =>
         "isJvm" -> Data(Environment.isJvm),
         "isJs" -> Data(Environment.isJs),
         "isNative" -> Data(Environment.isNative),
+        // Drop possible hearth.cross-quotes.* settings, we are using them for debugging, and they should not fail the test when used.
         "XMacroSettings" -> Data(
           Environment.XMacroSettings.filterNot(_.startsWith("hearth.cross-quotes.")).map(Data(_))
         ),
@@ -51,5 +52,26 @@ trait EnvironmentFixturesImpl { this: MacroCommons =>
       Expr(Environment.isExpandedAt(position))
     }
 
-  // loadMacroExtensions
+  def weLoadedAnExtension(name: String): Unit =
+    loadedExtensions :+= name
+  private var loadedExtensions: Vector[String] = Vector.empty
+
+  def testLoadingExtensions: Expr[Data] =
+    Environment.loadMacroExtensions[ExampleMacroExtension] match {
+      case Left(errors) =>
+        Environment.reportErrorAndAbort(s"Failed to load macro extensions: ${errors.mkString("\n")}")
+      case Right(_) =>
+        Expr(Data.list(loadedExtensions.map(Data(_))*))
+    }
 }
+
+// Nothing fancy, jsut demonstarate that we can distinct extensions by type, and that they can access macro API
+// that we prepared for them.
+abstract class ExampleMacroExtension(name: String) extends MacroExtension[EnvironmentFixturesImpl] {
+
+  def extend(ctx: EnvironmentFixturesImpl): Unit = ctx.weLoadedAnExtension(name)
+}
+
+// These need corresponding resource under META-INF/services/hearth.ExampleMacroExtension
+final class Example1MacroExtension extends ExampleMacroExtension("Example 1")
+final class Example2MacroExtension extends ExampleMacroExtension("Example 2")

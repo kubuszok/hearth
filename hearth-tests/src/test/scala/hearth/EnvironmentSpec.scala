@@ -92,5 +92,13 @@ final class EnvironmentSpec extends MacroSuite {
         compileErrors("EnvironmentFixtures.testErrorAndAbort").check("Error and abort message")
       }
     }
+
+    group("methods: Environment.loadMacroExtensions, expected behavior") {
+      import EnvironmentFixtures.testLoadingExtensions
+
+      test("should load macro extensions") {
+        testLoadingExtensions <==> Data.list(Data("Example 1"), Data("Example 2"))
+      }
+    }
   }
 }
