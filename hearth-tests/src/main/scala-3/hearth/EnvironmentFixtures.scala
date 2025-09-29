@@ -22,4 +22,7 @@ object EnvironmentFixtures {
   inline def testIsExpandedAt(inline position: String): Boolean = ${ testIsExpandedAtImpl('{ position }) }
   private def testIsExpandedAtImpl(position: Expr[String])(using q: Quotes): Expr[Boolean] =
     new EnvironmentFixtures(q).testIsExpandedAt(position)
+
+  inline def testLoadingExtensions: Data = ${ testLoadingExtensionsImpl }
+  private def testLoadingExtensionsImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(q).testLoadingExtensions
 }

@@ -16,6 +16,8 @@ final private class EnvironmentFixtures(val c: blackbox.Context)
   def testErrorAndAbortImpl: c.Expr[Any] = testErrorAndAbort
 
   def testIsExpandedAtImpl(position: c.Expr[String]): c.Expr[Boolean] = testIsExpandedAt(position)
+
+  def testLoadingExtensionsImpl: c.Expr[Data] = testLoadingExtensions
 }
 
 object EnvironmentFixtures {
@@ -24,4 +26,5 @@ object EnvironmentFixtures {
   def testEnvironment: Data = macro EnvironmentFixtures.testEnvironmentImpl
   def testErrorAndAbort: Any = macro EnvironmentFixtures.testErrorAndAbortImpl
   def testIsExpandedAt(position: String): Boolean = macro EnvironmentFixtures.testIsExpandedAtImpl
+  def testLoadingExtensions: Data = macro EnvironmentFixtures.testLoadingExtensionsImpl
 }
