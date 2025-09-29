@@ -9,9 +9,31 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
 
     override def file(pos: Position): Option[java.nio.file.Path] =
       scala.util.Try(new java.io.File(pos.source.path).toPath).toOption
-    override def offset(pos: Position): Int = pos.start
+    override def offset(pos: Position): Int = pos.start - macroPositionCorrection(pos)
     override def line(pos: Position): Int = pos.line
-    override def column(pos: Position): Int = pos.column
+    override def column(pos: Position): Int = pos.column - macroPositionCorrection(pos)
+
+    /** So, apparently when we expanding a macro, the position of the macro expansion is computed differently for
+      * macro-methods that have no parameret lists and for those that have:
+      *
+      * {{{
+      * MyType.noParamMacro
+      * //     ^ macro expansion is counted from this place
+      * MyType.nullaryMacro()
+      * //                 ^ macro expansion is counted from this place
+      * MyType.paramMacro(arg)
+      * //               ^ macro expansion is counted from this place
+      * }}}
+      *
+      * It means that the column/offset has to be adjusted by the macro-method's name length.
+      */
+    private def macroPositionCorrection(pos: Position) =
+      if (pos.source == current.source && pos.start == current.start) macroPossitionCorrectonValue else 0
+    private lazy val macroPossitionCorrectonValue: Int = {
+      val currentMacro = c.macroApplication.symbol.asMethod
+      if (currentMacro.paramLists.isEmpty) 0
+      else currentMacro.name.decodedName.toString.length
+    }
   }
 
   object Environment extends EnvironmentModule {

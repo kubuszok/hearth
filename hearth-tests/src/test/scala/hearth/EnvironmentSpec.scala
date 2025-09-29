@@ -21,6 +21,27 @@ final class EnvironmentSpec extends MacroSuite {
       }
     }
 
+    group("methods: Environment.isExpandedAt, expected behavior") {
+      import EnvironmentFixtures.testIsExpandedAt
+
+      test("should return true if the current position matches the given position") {
+        testIsExpandedAt("EnvironmentSpec.scala:28") ==> true
+        testIsExpandedAt(
+          "EnvironmentSpec.scala:29"
+        ) ==> true
+        testIsExpandedAt("EnvironmentSpec.scala:32:9") ==> true
+      }
+
+      test("should return false if the current position does not match the given position") {
+        testIsExpandedAt("EnvironmentSpec.scala:35") ==> false
+        testIsExpandedAt("EnvironmentSpec.scala:37:10") ==> false
+      }
+
+      test("should report error and abort if the position has invalid format") {
+        compileErrors("EnvironmentFixtures.testIsExpandedAt(\"123\")").check("Invalid position: 123")
+      }
+    }
+
     group(
       "methods: Environment.{currentPosition, currentLanguageVersion, currentPlatform, isJvm, isJs, isNative, XMacroSettings, typedSettings}, expected behavior"
     ) {
@@ -28,8 +49,10 @@ final class EnvironmentSpec extends MacroSuite {
 
       test("should return the current Scala version") {
         testEnvironment <==> Data.map(
-          "currentPosition" -> Data("EnvironmentSpec.scala:30:9"),
+          "currentPosition" -> Data("EnvironmentSpec.scala:51:9"),
           "currentLanguageVersion" -> Data(LanguageVersion.byHearth.toString),
+          "isScala2_13" -> Data(LanguageVersion.byHearth.isScala2_13),
+          "isScala3" -> Data(LanguageVersion.byHearth.isScala3),
           "currentPlatform" -> Data(Platform.byHearth.toString),
           "isJvm" -> Data(Platform.byHearth.isJvm),
           "isJs" -> Data(Platform.byHearth.isJs),
@@ -57,6 +80,16 @@ final class EnvironmentSpec extends MacroSuite {
             )
           )
         )
+      }
+    }
+
+    group(
+      "methods: Environment.reportErrorAndAbort, expected behavior"
+    ) {
+
+      test("should report error and abort") {
+        // Apparently, there is no way to check if there were some info/warn messages.
+        compileErrors("EnvironmentFixtures.testErrorAndAbort").check("Error and abort message")
       }
     }
   }

@@ -52,11 +52,9 @@ trait MethodsFixturesImpl { this: MacroCommons =>
               params.map { case (_, p) => s"${p.tpe.shortName}" }.mkString("(", ", ", ")")
             }
             .mkString(" ")
-          // TODO: for now we're only printing file, since we didn't standardize how to print the position yet
           val position =
             method.position
-              .flatMap(_.file)
-              .map(_.toString)
+              .map(_.prettyPrintLong)
               .map(value => value.drop(value.indexOf("hearth-tests")))
               .toString
           val props = Data.map(
