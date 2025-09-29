@@ -28,6 +28,8 @@ trait EnvironmentFixturesImpl { this: MacroCommons =>
       Data.map(
         "currentPosition" -> Data(Environment.currentPosition.prettyPrint),
         "currentLanguageVersion" -> Data(Environment.currentLanguageVersion.toString),
+        "isScala2_13" -> Data(Environment.isScala2_13),
+        "isScala3" -> Data(Environment.isScala3),
         "currentPlatform" -> Data(Environment.currentPlatform.toString),
         "isJvm" -> Data(Environment.isJvm),
         "isJs" -> Data(Environment.isJs),
@@ -38,4 +40,16 @@ trait EnvironmentFixturesImpl { this: MacroCommons =>
         "typedSettings" -> Environment.typedSettings.fold(Data(_), _.updateAsMap(_.removed("hearth")))
       )
     )
+
+  def testErrorAndAbort: Expr[Any] = Environment.reportErrorAndAbort("Error and abort message")
+
+  def testIsExpandedAt(position: Expr[String]): Expr[Boolean] = Expr
+    .unapply(position)
+    .fold(
+      Environment.reportErrorAndAbort(s"Position must be a string literal, got ${position.prettyPrint}")
+    ) { position =>
+      Expr(Environment.isExpandedAt(position))
+    }
+
+  // loadMacroExtensions
 }

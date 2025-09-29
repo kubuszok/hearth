@@ -44,7 +44,7 @@ final class MethodsSpec extends MacroSuite {
       test("for class without companion") {
         val envDependedPosition =
           if (LanguageVersion.byHearth.isScala2_13) Data("None")
-          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala)")
+          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala:1:1)")
 
         testMethodsExtraction[examples.methods.NoCompanionClass](
           "clone",
@@ -361,7 +361,7 @@ final class MethodsSpec extends MacroSuite {
       test("for class with companion") {
         val envDependedPosition =
           if (LanguageVersion.byHearth.isScala2_13) Data("None")
-          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala)")
+          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala:1:1)")
 
         testMethodsExtraction[examples.methods.WithCompanion](
           "clone",
@@ -478,7 +478,7 @@ final class MethodsSpec extends MacroSuite {
       test("for companion object") {
         val envDependedPosition =
           if (LanguageVersion.byHearth.isScala2_13) Data("None")
-          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala)")
+          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala:1:1)")
 
         testMethodsExtraction[examples.methods.WithCompanion.type](
           "clone",
@@ -535,7 +535,7 @@ final class MethodsSpec extends MacroSuite {
       test("for scope visibility from the outside") {
         val envDependedPosition =
           if (LanguageVersion.byHearth.isScala2_13) Data("None")
-          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala)")
+          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala:1:1)")
 
         testMethodsExtraction[examples.methods.ScopeVisibility](
           "clone",
