@@ -42,6 +42,8 @@ final class WithCompanion(arg: Int) {
 object WithCompanion {
 
   def apply(arg: Int): WithCompanion = new WithCompanion(arg)
+
+  def call(arg: Int, arg2: Int): Int = apply(arg).method(arg2)
 }
 
 @scala.annotation.nowarn

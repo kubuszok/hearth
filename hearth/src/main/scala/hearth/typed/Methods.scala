@@ -27,6 +27,7 @@ trait Methods { this: MacroCommons =>
     lazy val index: Int = asUntyped.index
     lazy val position: Option[Position] = asUntyped.position
 
+    lazy val hasDefault: Boolean = asUntyped.hasDefault
     lazy val defaultValue: Option[Existential[Method.Of]] = asUntyped.default(untypedInstanceType).map { untyped =>
       untypedInstanceType.as_??.mapK[Method.Of] { tpe => _ =>
         untyped.asTyped(using tpe)
