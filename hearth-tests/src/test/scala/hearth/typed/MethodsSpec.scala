@@ -471,6 +471,37 @@ final class MethodsSpec extends MacroSuite {
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
             "isAccessor" -> Data(false)
+          ),
+          "call(Int, Int)" -> Data.map(
+            "invocation" -> Data(
+              if (LanguageVersion.byHearth.isScala2_13) "OnModule(WithCompanion)" else "OnModule(Ident(WithCompanion))"
+            ),
+            "hasTypeParameters" -> Data(false),
+            "position" -> envDependedPosition,
+            "annotations" -> Data.list(),
+            "isConstructor" -> Data(false),
+            "isVal" -> Data(false),
+            "isVar" -> Data(false),
+            "isLazy" -> Data(false),
+            "isDef" -> Data(true),
+            "isImplicit" -> Data(false),
+            "isDeclared" -> Data(true),
+            "isSynthetic" -> Data(false),
+            "isInherited" -> Data(false),
+            "isAvailable(Everywhere)" -> Data(true),
+            "arity" -> Data(2),
+            "isNullary" -> Data(false),
+            "isUnary" -> Data(false),
+            "isBinary" -> Data(true),
+            "isConstructorArgument" -> Data(false),
+            "isCaseField" -> Data(false),
+            "isScalaGetter" -> Data(false),
+            "isScalaSetter" -> Data(false),
+            "isScalaAccessor" -> Data(false),
+            "isJavaGetter" -> Data(false),
+            "isJavaSetter" -> Data(false),
+            "isJavaAccessor" -> Data(false),
+            "isAccessor" -> Data(false)
           )
         )
       }
@@ -519,6 +550,35 @@ final class MethodsSpec extends MacroSuite {
             "isNullary" -> Data(false),
             "isUnary" -> Data(true),
             "isBinary" -> Data(false),
+            "isConstructorArgument" -> Data(false),
+            "isCaseField" -> Data(false),
+            "isScalaGetter" -> Data(false),
+            "isScalaSetter" -> Data(false),
+            "isScalaAccessor" -> Data(false),
+            "isJavaGetter" -> Data(false),
+            "isJavaSetter" -> Data(false),
+            "isJavaAccessor" -> Data(false),
+            "isAccessor" -> Data(false)
+          ),
+          "call(Int, Int)" -> Data.map(
+            "invocation" -> Data("OnInstance"),
+            "hasTypeParameters" -> Data(false),
+            "position" -> envDependedPosition,
+            "annotations" -> Data.list(),
+            "isConstructor" -> Data(false),
+            "isVal" -> Data(false),
+            "isVar" -> Data(false),
+            "isLazy" -> Data(false),
+            "isDef" -> Data(true),
+            "isImplicit" -> Data(false),
+            "isDeclared" -> Data(true),
+            "isSynthetic" -> Data(false),
+            "isInherited" -> Data(false),
+            "isAvailable(Everywhere)" -> Data(true),
+            "arity" -> Data(2),
+            "isNullary" -> Data(false),
+            "isUnary" -> Data(false),
+            "isBinary" -> Data(true),
             "isConstructorArgument" -> Data(false),
             "isCaseField" -> Data(false),
             "isScalaGetter" -> Data(false),
@@ -790,15 +850,305 @@ final class MethodsSpec extends MacroSuite {
             "isAccessor" -> Data(false)
           )
         )
+      }
 
-        // TODO: repeat inside class extending tested object
+      test("for scope visibility from the inside") {
+        val envDependedPosition =
+          if (LanguageVersion.byHearth.isScala2_13) Data("None")
+          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala:1:1)")
+
+        class ScopeVisibilityExtending extends examples.methods.ScopeVisibility(0, 0) {
+
+          def expandMacroInsideAClass: Data = testMethodsExtraction[examples.methods.ScopeVisibility](
+            "clone",
+            "equals",
+            "finalize",
+            "getClass",
+            "hashCode",
+            "notify",
+            "notifyAll",
+            "toString",
+            "wait",
+            "asInstanceOf",
+            "isInstanceOf",
+            "synchronized",
+            "==",
+            "!=",
+            "eq",
+            "ne",
+            "##",
+            "writeReplace" // Scala 3-only, private def for serialization only
+          )
+        }
+
+        (new ScopeVisibilityExtending).expandMacroInsideAClass <==> Data.map(
+          "privateCtorArg" -> Data.map(
+            "invocation" -> Data("OnInstance"),
+            "hasTypeParameters" -> Data(false),
+            "position" -> envDependedPosition,
+            "annotations" -> Data.list(),
+            "isConstructor" -> Data(false),
+            "isVal" -> Data(true),
+            "isVar" -> Data(false),
+            "isLazy" -> Data(false),
+            "isDef" -> Data(false),
+            "isImplicit" -> Data(false),
+            "isDeclared" -> Data(true),
+            "isSynthetic" -> Data(false),
+            "isInherited" -> Data(false),
+            "isAvailable(Everywhere)" -> Data(false),
+            "arity" -> Data(0),
+            "isNullary" -> Data(true),
+            "isUnary" -> Data(false),
+            "isBinary" -> Data(false),
+            "isConstructorArgument" -> Data(true),
+            "isCaseField" -> Data(false),
+            "isScalaGetter" -> Data(true),
+            "isScalaSetter" -> Data(false),
+            "isScalaAccessor" -> Data(true),
+            "isJavaGetter" -> Data(false),
+            "isJavaSetter" -> Data(false),
+            "isJavaAccessor" -> Data(false),
+            "isAccessor" -> Data(true)
+          ),
+          "publicCtorArg" -> Data.map(
+            "invocation" -> Data("OnInstance"),
+            "hasTypeParameters" -> Data(false),
+            "position" -> envDependedPosition,
+            "annotations" -> Data.list(),
+            "isConstructor" -> Data(false),
+            "isVal" -> Data(true),
+            "isVar" -> Data(false),
+            "isLazy" -> Data(false),
+            "isDef" -> Data(false),
+            "isImplicit" -> Data(false),
+            "isDeclared" -> Data(true),
+            "isSynthetic" -> Data(false),
+            "isInherited" -> Data(false),
+            "isAvailable(Everywhere)" -> Data(true),
+            "arity" -> Data(0),
+            "isNullary" -> Data(true),
+            "isUnary" -> Data(false),
+            "isBinary" -> Data(false),
+            "isConstructorArgument" -> Data(true),
+            "isCaseField" -> Data(false),
+            "isScalaGetter" -> Data(true),
+            "isScalaSetter" -> Data(false),
+            "isScalaAccessor" -> Data(true),
+            "isJavaGetter" -> Data(false),
+            "isJavaSetter" -> Data(false),
+            "isJavaAccessor" -> Data(false),
+            "isAccessor" -> Data(true)
+          ),
+          "publicMethod" -> Data.map(
+            "invocation" -> Data("OnInstance"),
+            "hasTypeParameters" -> Data(false),
+            "position" -> envDependedPosition,
+            "annotations" -> Data.list(),
+            "isConstructor" -> Data(false),
+            "isVal" -> Data(false),
+            "isVar" -> Data(false),
+            "isLazy" -> Data(false),
+            "isDef" -> Data(true),
+            "isImplicit" -> Data(false),
+            "isDeclared" -> Data(true),
+            "isSynthetic" -> Data(false),
+            "isInherited" -> Data(false),
+            "isAvailable(Everywhere)" -> Data(true),
+            "arity" -> Data(0),
+            "isNullary" -> Data(true),
+            "isUnary" -> Data(false),
+            "isBinary" -> Data(false),
+            "isConstructorArgument" -> Data(false),
+            "isCaseField" -> Data(false),
+            "isScalaGetter" -> Data(false),
+            "isScalaSetter" -> Data(false),
+            "isJavaGetter" -> Data(false),
+            "isScalaAccessor" -> Data(false),
+            "isJavaSetter" -> Data(false),
+            "isJavaAccessor" -> Data(false),
+            "isAccessor" -> Data(false)
+          ),
+          "privateMethod" -> Data.map(
+            "invocation" -> Data("OnInstance"),
+            "hasTypeParameters" -> Data(false),
+            "position" -> envDependedPosition,
+            "annotations" -> Data.list(),
+            "isConstructor" -> Data(false),
+            "isVal" -> Data(false),
+            "isVar" -> Data(false),
+            "isLazy" -> Data(false),
+            "isDef" -> Data(true),
+            "isImplicit" -> Data(false),
+            "isDeclared" -> Data(true),
+            "isSynthetic" -> Data(false),
+            "isInherited" -> Data(false),
+            "isAvailable(Everywhere)" -> Data(false),
+            "arity" -> Data(0),
+            "isNullary" -> Data(true),
+            "isUnary" -> Data(false),
+            "isBinary" -> Data(false),
+            "isConstructorArgument" -> Data(false),
+            "isCaseField" -> Data(false),
+            "isScalaGetter" -> Data(false),
+            "isScalaSetter" -> Data(false),
+            "isJavaGetter" -> Data(false),
+            "isScalaAccessor" -> Data(false),
+            "isJavaSetter" -> Data(false),
+            "isJavaAccessor" -> Data(false),
+            "isAccessor" -> Data(false)
+          ),
+          "protectedMethod" -> Data.map(
+            "invocation" -> Data("OnInstance"),
+            "hasTypeParameters" -> Data(false),
+            "position" -> envDependedPosition,
+            "annotations" -> Data.list(),
+            "isConstructor" -> Data(false),
+            "isVal" -> Data(false),
+            "isVar" -> Data(false),
+            "isLazy" -> Data(false),
+            "isDef" -> Data(true),
+            "isImplicit" -> Data(false),
+            "isDeclared" -> Data(true),
+            "isSynthetic" -> Data(false),
+            "isInherited" -> Data(false),
+            "isAvailable(Everywhere)" -> Data(false),
+            "arity" -> Data(0),
+            "isNullary" -> Data(true),
+            "isUnary" -> Data(false),
+            "isBinary" -> Data(false),
+            "isConstructorArgument" -> Data(false),
+            "isCaseField" -> Data(false),
+            "isScalaGetter" -> Data(false),
+            "isScalaSetter" -> Data(false),
+            "isJavaGetter" -> Data(false),
+            "isScalaAccessor" -> Data(false),
+            "isJavaSetter" -> Data(false),
+            "isJavaAccessor" -> Data(false),
+            "isAccessor" -> Data(false)
+          ),
+          "privateThisMethod" -> Data.map(
+            "invocation" -> Data("OnInstance"),
+            "hasTypeParameters" -> Data(false),
+            "position" -> envDependedPosition,
+            "annotations" -> Data.list(),
+            "isConstructor" -> Data(false),
+            "isVal" -> Data(false),
+            "isVar" -> Data(false),
+            "isLazy" -> Data(false),
+            "isDef" -> Data(true),
+            "isImplicit" -> Data(false),
+            "isDeclared" -> Data(true),
+            "isSynthetic" -> Data(false),
+            "isInherited" -> Data(false),
+            "isAvailable(Everywhere)" -> Data(false),
+            "arity" -> Data(0),
+            "isNullary" -> Data(true),
+            "isUnary" -> Data(false),
+            "isBinary" -> Data(false),
+            "isConstructorArgument" -> Data(false),
+            "isCaseField" -> Data(false),
+            "isScalaGetter" -> Data(false),
+            "isScalaSetter" -> Data(false),
+            "isJavaGetter" -> Data(false),
+            "isScalaAccessor" -> Data(false),
+            "isJavaSetter" -> Data(false),
+            "isJavaAccessor" -> Data(false),
+            "isAccessor" -> Data(false)
+          ),
+          "privateHearthMethod" -> Data.map(
+            "invocation" -> Data("OnInstance"),
+            "hasTypeParameters" -> Data(false),
+            "position" -> envDependedPosition,
+            "annotations" -> Data.list(),
+            "isConstructor" -> Data(false),
+            "isVal" -> Data(false),
+            "isVar" -> Data(false),
+            "isLazy" -> Data(false),
+            "isDef" -> Data(true),
+            "isImplicit" -> Data(false),
+            "isDeclared" -> Data(true),
+            "isSynthetic" -> Data(false),
+            "isInherited" -> Data(false),
+            "isAvailable(Everywhere)" -> Data(false),
+            "arity" -> Data(0),
+            "isNullary" -> Data(true),
+            "isUnary" -> Data(false),
+            "isBinary" -> Data(false),
+            "isConstructorArgument" -> Data(false),
+            "isCaseField" -> Data(false),
+            "isScalaGetter" -> Data(false),
+            "isScalaSetter" -> Data(false),
+            "isJavaGetter" -> Data(false),
+            "isScalaAccessor" -> Data(false),
+            "isJavaSetter" -> Data(false),
+            "isJavaAccessor" -> Data(false),
+            "isAccessor" -> Data(false)
+          ),
+          "privateHearthExamplesMethod" -> Data.map(
+            "invocation" -> Data("OnInstance"),
+            "hasTypeParameters" -> Data(false),
+            "position" -> envDependedPosition,
+            "annotations" -> Data.list(),
+            "isConstructor" -> Data(false),
+            "isVal" -> Data(false),
+            "isVar" -> Data(false),
+            "isLazy" -> Data(false),
+            "isDef" -> Data(true),
+            "isImplicit" -> Data(false),
+            "isDeclared" -> Data(true),
+            "isSynthetic" -> Data(false),
+            "isInherited" -> Data(false),
+            "isAvailable(Everywhere)" -> Data(false),
+            "arity" -> Data(0),
+            "isNullary" -> Data(true),
+            "isUnary" -> Data(false),
+            "isBinary" -> Data(false),
+            "isConstructorArgument" -> Data(false),
+            "isCaseField" -> Data(false),
+            "isScalaGetter" -> Data(false),
+            "isScalaSetter" -> Data(false),
+            "isJavaGetter" -> Data(false),
+            "isScalaAccessor" -> Data(false),
+            "isJavaSetter" -> Data(false),
+            "isJavaAccessor" -> Data(false),
+            "isAccessor" -> Data(false)
+          )
+        )
       }
     }
 
-    // TODO: attempt calling methods
+    group("Calling methods") {
+      import MethodsFixtures.testCallNoInstanceIntMethod
+      import MethodsFixtures.testCallInstanceIntMethod
 
-    // TODO: attempt calling methods with default values
+      test("Calling no-instance methods (companion methods see for companion class)") {
+        testCallNoInstanceIntMethod[examples.methods.WithCompanion]("call")(
+          1,
+          2
+        ) ==> examples.methods.WithCompanion.call(1, 2)
+      }
 
-    // TODO: attempt calling companion methods
+      test("Calling instance methods") {
+        testCallInstanceIntMethod[examples.methods.WithCompanion](new examples.methods.WithCompanion(1))("method")(
+          2
+        ) ==> (new examples.methods.WithCompanion(1)).method(2)
+      }
+
+      test("Calling companion methods (for companion object directly)") {
+        testCallInstanceIntMethod[examples.methods.WithCompanion.type](examples.methods.WithCompanion)("call")(
+          1,
+          2
+        ) ==> examples.methods.WithCompanion.call(1, 2)
+      }
+
+      test("Calling methods with default values") {
+        testCallInstanceIntMethod[examples.methods.NoCompanionClass](new examples.methods.NoCompanionClass)(
+          "methodWithDefault"
+        )(
+          1
+        ) ==> (new examples.methods.NoCompanionClass).methodWithDefault()
+      }
+    }
   }
 }

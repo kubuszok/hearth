@@ -20,4 +20,22 @@ object MethodsFixtures {
   }
   private def testMethodsExtractionImpl[A: Type](excluding: Expr[Seq[String]])(using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testMethodsExtraction[A](excluding)
+
+  inline def testCallNoInstanceIntMethod[A](inline methodName: String)(inline params: Int*): Int = ${
+    testCallNoInstanceIntMethodImpl[A]('{ methodName }, 'params)
+  }
+  private def testCallNoInstanceIntMethodImpl[A: Type](methodName: Expr[String], params: Expr[Seq[Int]])(using
+      q: Quotes
+  ): Expr[Int] =
+    new MethodsFixtures(q).testCallNoInstanceIntMethod[A](methodName)(params)
+
+  inline def testCallInstanceIntMethod[A](inline instance: A)(inline methodName: String)(inline params: Int*): Int = ${
+    testCallInstanceIntMethodImpl[A]('{ instance }, 'methodName, 'params)
+  }
+  private def testCallInstanceIntMethodImpl[A: Type](
+      instance: Expr[A],
+      methodName: Expr[String],
+      params: Expr[Seq[Int]]
+  )(using q: Quotes): Expr[Int] =
+    new MethodsFixtures(q).testCallInstanceIntMethod[A](instance)(methodName)(params)
 }

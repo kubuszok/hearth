@@ -107,4 +107,84 @@ trait MethodsFixturesImpl { this: MacroCommons =>
         )
         .mkString
     )
+
+  private val IntType: Type[Int] = Type.of[Int]
+
+  def testCallNoInstanceIntMethod[A: Type](methodName: Expr[String])(params: VarArgs[Int]): Expr[Int] = {
+    implicit val IntType: Type[Int] = this.IntType
+    val name = Expr
+      .unapply(methodName)
+      .getOrElse(
+        Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+      )
+    val method: Method[A, Int] = Type[A].methods.filter(_.value.name == name) match {
+      case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
+      case method :: Nil =>
+        import method.Underlying as Returned
+        if (!(Returned <:< Type.of[Int])) Environment.reportErrorAndAbort(s"Method $name returns not an Int")
+        else method.value.asInstanceOf[Method[A, Int]]
+      case _ => Environment.reportErrorAndAbort(s"Method $name is not unique")
+    }
+    method match {
+      case noInstance: Method.NoInstance[Int] @unchecked =>
+        val providedParams = params.toVector
+        val arguments = noInstance.parameters.flatten.zipWithIndex.flatMap { case ((name, param), index) =>
+          providedParams.lift(index) match {
+            case _ if !(param.tpe.Underlying <:< Type.of[Int]) =>
+              Environment.reportErrorAndAbort(s"Parameter $name has wrong type: ${param.tpe.plainPrint} is not an Int")
+            case Some(value)              => Some(name -> value.as_??)
+            case None if param.hasDefault => None
+            case _ => Environment.reportErrorAndAbort(s"Missing parameter for $name (not default value as well)")
+          }
+        }.toMap
+        noInstance.apply(arguments) match {
+          case Right(result) => result
+          case Left(error)   => Environment.reportErrorAndAbort(s"Failed to call method $name: $error")
+        }
+      case _: Method.OfInstance[A, Int] @unchecked =>
+        Environment.reportErrorAndAbort(s"Method $name is not a no-instance method")
+      case unsupported: Method.Unsupported[A, Int] @unchecked =>
+        Environment.reportErrorAndAbort(s"Method $name is unsupported: ${unsupported.reasonForUnsupported}")
+    }
+  }
+
+  def testCallInstanceIntMethod[A: Type](
+      instance: Expr[A]
+  )(methodName: Expr[String])(params: VarArgs[Int]): Expr[Int] = {
+    implicit val IntType: Type[Int] = this.IntType
+    val name = Expr
+      .unapply(methodName)
+      .getOrElse(
+        Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+      )
+    val method: Method[A, Int] = Type[A].methods.filter(_.value.name == name) match {
+      case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
+      case method :: Nil =>
+        import method.Underlying as Returned
+        if (!(Returned <:< Type.of[Int])) Environment.reportErrorAndAbort(s"Method $name returns not an Int")
+        else method.value.asInstanceOf[Method[A, Int]]
+      case _ => Environment.reportErrorAndAbort(s"Method $name is not unique")
+    }
+    method match {
+      case _: Method.NoInstance[Int] @unchecked =>
+        Environment.reportErrorAndAbort(s"Method $name is not an instance method")
+      case ofInstance: Method.OfInstance[A, Int] @unchecked =>
+        val providedParams = params.toVector
+        val arguments = ofInstance.parameters.flatten.zipWithIndex.flatMap { case ((name, param), index) =>
+          providedParams.lift(index) match {
+            case _ if !(param.tpe.Underlying <:< Type.of[Int]) =>
+              Environment.reportErrorAndAbort(s"Parameter $name has wrong type: ${param.tpe.plainPrint} is not an Int")
+            case Some(value)              => Some(name -> value.as_??)
+            case None if param.hasDefault => None
+            case _ => Environment.reportErrorAndAbort(s"Missing parameter for $name (not default value as well)")
+          }
+        }.toMap
+        ofInstance.apply(instance, arguments) match {
+          case Right(result) => result
+          case Left(error)   => Environment.reportErrorAndAbort(s"Failed to call method $name: $error")
+        }
+      case unsupported: Method.Unsupported[A, Int] @unchecked =>
+        Environment.reportErrorAndAbort(s"Method $name is unsupported: ${unsupported.reasonForUnsupported}")
+    }
+  }
 }
