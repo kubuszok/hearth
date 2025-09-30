@@ -241,7 +241,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
         }
       }
     }
-    def ModuleCodec[ModuleSingleton]: TypeCodec[ModuleSingleton] =
+    final def ModuleCodec[ModuleSingleton <: Singleton]: TypeCodec[ModuleSingleton] =
       ModuleCodecImpl.asInstanceOf[TypeCodec[ModuleSingleton]]
   }
 
@@ -371,7 +371,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     implicit def LeftCodec[L: Type, R: Type]: TypeCodec[Left[L, R]] = Type.LeftCodec[L, R]
     implicit def RightCodec[L: Type, R: Type]: TypeCodec[Right[L, R]] = Type.RightCodec[L, R]
 
-    implicit def ModuleCodec[ModuleSingleton <: Product & Serializable & Singleton]: TypeCodec[ModuleSingleton] =
+    implicit def ModuleCodec[ModuleSingleton <: Singleton]: TypeCodec[ModuleSingleton] =
       Type.ModuleCodec[ModuleSingleton]
   }
 }
