@@ -105,7 +105,13 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
       val decoded = Type.unapply(encoded)
       Data.map(
         "encoded" -> Data(encoded.plainPrint),
-        "decoded" -> Data(decoded.fold("not decoded")(s => s"$s"))
+        "decoded" -> Data(decoded.fold("not decoded") { s =>
+          val result = s"$s"
+          result.indexOf('@') match {
+            case -1    => result
+            case index => result.substring(0, index)
+          }
+        })
       )
     }
     Expr(
@@ -120,7 +126,8 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
         "float" -> roundtrip(1.toFloat),
         "double" -> roundtrip(1.toDouble),
         "char" -> roundtrip('a'),
-        "string" -> roundtrip("a")
+        "string" -> roundtrip("a"),
+        "module" -> roundtrip(scala.Predef)(using TypeCodec.ModuleCodec)
       )
     )
   }
