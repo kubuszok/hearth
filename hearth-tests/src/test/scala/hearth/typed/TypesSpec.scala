@@ -1417,7 +1417,7 @@ final class TypesSpec extends MacroSuite {
             "decoded" -> Data("a")
           ),
           "module" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Predef" else "scala.Predef.type"),
+            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Predef$" else "scala.Predef.type"),
             "decoded" -> Data("scala.Predef$")
           )
         )
