@@ -104,8 +104,8 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
       val encoded = Type(value)
       val decoded = Type.unapply(encoded)
       Data.map(
-        "encoded" -> Data(encoded.prettyPrint),
-        "decoded" -> Data(decoded.fold("not decoded")(_.toString))
+        "encoded" -> Data(encoded.plainPrint),
+        "decoded" -> Data(decoded.fold("not decoded")(s => s"$s"))
       )
     }
     Expr(
@@ -131,7 +131,7 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
     def oneWay[A: TypeCodec](value: A): Data = {
       val encoded = Type(value)
       Data.map(
-        "encoded" -> Data(encoded.prettyPrint)
+        "encoded" -> Data(encoded.plainPrint)
       )
     }
     implicit val a: Type["a"] = aStringType

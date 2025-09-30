@@ -234,7 +234,6 @@ final class TypesSpec extends MacroSuite {
         testClassOfType[Any] <==> Data.map("Type.classOfType" -> Data(classOf[Any].toString))
         testClassOfType[AnyRef] <==> Data.map("Type.classOfType" -> Data(classOf[AnyRef].toString))
         testClassOfType[AnyVal] <==> Data.map("Type.classOfType" -> Data(classOf[AnyVal].toString))
-        println("Null is " + classOf[Null].toString)
         testClassOfType[Null] <==> Data.map("Type.classOfType" -> Data(classOf[Null].toString))
         testClassOfType[Nothing] <==> Data.map("Type.classOfType" -> Data(classOf[Nothing].toString))
       }
@@ -1363,6 +1362,141 @@ final class TypesSpec extends MacroSuite {
         "<:<" -> Data(true),
         "=:=" -> Data(false)
       )
+    }
+
+    group("type TypeCodec") {
+
+      test(
+        "methods TypeCodec.{toType, fromType} should allow converting between types and values for types supporting bidirectional transformation"
+      ) {
+        import TypesFixtures.testBidirectionalCodecs
+
+        testBidirectionalCodecs <==> Data.map(
+          "null" -> Data.map(
+            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Null" else "null"),
+            "decoded" -> Data("null")
+          ),
+          "unit" -> Data.map(
+            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Unit" else "()"),
+            "decoded" -> Data("()")
+          ),
+          "boolean" -> Data.map(
+            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Boolean" else "true"),
+            "decoded" -> Data("true")
+          ),
+          "byte" -> Data.map(
+            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Byte" else "1"),
+            "decoded" -> Data("1")
+          ),
+          "short" -> Data.map(
+            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Short" else "1"),
+            "decoded" -> Data("1")
+          ),
+          "int" -> Data.map(
+            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Int" else "1"),
+            "decoded" -> Data("1")
+          ),
+          "long" -> Data.map(
+            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Long" else "1L"),
+            "decoded" -> Data("1")
+          ),
+          "float" -> Data.map(
+            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "Float(1.0)" else "1.0f"),
+            "decoded" -> Data("1.0")
+          ),
+          "double" -> Data.map(
+            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "Double(1.0)" else "1.0"),
+            "decoded" -> Data("1.0")
+          ),
+          "char" -> Data.map(
+            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Char" else "'a'"),
+            "decoded" -> Data("a")
+          ),
+          "string" -> Data.map(
+            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "java.lang.String" else "\"a\""),
+            "decoded" -> Data("a")
+          )
+        )
+      }
+
+      test(
+        "methods TypeCodec.{toType, fromType} should allow converting between types and values for types supporting one-way transformation"
+      ) {
+        import TypesFixtures.testOneWayCodecs
+
+        testOneWayCodecs <==> Data.map(
+          """Array["a"]""" -> Data.map(
+            "encoded" -> Data(
+              if (LanguageVersion.byHearth.isScala2_13) "scala.Array[java.lang.String]" else "scala.Array[\"a\"]"
+            )
+          ),
+          """Seq["a"]""" -> Data.map(
+            "encoded" -> Data(
+              if (LanguageVersion.byHearth.isScala2_13) "scala.collection.immutable.Seq[java.lang.String]"
+              else "scala.collection.immutable.Seq[\"a\"]"
+            )
+          ),
+          """List["a"]""" -> Data.map(
+            "encoded" -> Data(
+              if (LanguageVersion.byHearth.isScala2_13) "scala.collection.immutable.List[java.lang.String]"
+              else "scala.collection.immutable.List[\"a\"]"
+            )
+          ),
+          "Nil" -> Data.map(
+            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "Nil.type" else "scala.Nil.type")
+          ),
+          """Vector["a"]""" -> Data.map(
+            "encoded" -> Data(
+              if (LanguageVersion.byHearth.isScala2_13) "scala.collection.immutable.Vector[java.lang.String]"
+              else "scala.collection.immutable.Vector[\"a\"]"
+            )
+          ),
+          """Map["a", "b"]""" -> Data.map(
+            "encoded" -> Data(
+              if (LanguageVersion.byHearth.isScala2_13)
+                "scala.collection.immutable.Map[java.lang.String, java.lang.String]"
+              else "scala.collection.immutable.Map[\"a\", \"b\"]"
+            )
+          ),
+          """Set["a"]""" -> Data.map(
+            "encoded" -> Data(
+              if (LanguageVersion.byHearth.isScala2_13) "scala.collection.immutable.Set[java.lang.String]"
+              else "scala.collection.immutable.Set[\"a\"]"
+            )
+          ),
+          """Option["a"]""" -> Data.map(
+            "encoded" -> Data(
+              if (LanguageVersion.byHearth.isScala2_13) "scala.Option[java.lang.String]" else "scala.Option[\"a\"]"
+            )
+          ),
+          """Some["a"]""" -> Data.map(
+            "encoded" -> Data(
+              if (LanguageVersion.byHearth.isScala2_13) "scala.Some[java.lang.String]" else "scala.Some[\"a\"]"
+            )
+          ),
+          "None" -> Data.map(
+            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "None.type" else "scala.None.type")
+          ),
+          """Either["a", "b"]""" -> Data.map(
+            "encoded" -> Data(
+              if (LanguageVersion.byHearth.isScala2_13) "scala.util.Either[java.lang.String, java.lang.String]"
+              else "scala.util.Either[\"a\", \"b\"]"
+            )
+          ),
+          """Left["a", "b"]""" -> Data.map(
+            "encoded" -> Data(
+              if (LanguageVersion.byHearth.isScala2_13) "scala.util.Left[java.lang.String, java.lang.String]"
+              else "scala.util.Left[\"a\", \"b\"]"
+            )
+          ),
+          """Right["a", "b"]""" -> Data.map(
+            "encoded" -> Data(
+              if (LanguageVersion.byHearth.isScala2_13) "scala.util.Right[java.lang.String, java.lang.String]"
+              else "scala.util.Right[\"a\", \"b\"]"
+            )
+          )
+        )
+      }
     }
   }
 }
