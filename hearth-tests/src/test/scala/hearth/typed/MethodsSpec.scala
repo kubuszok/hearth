@@ -92,7 +92,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "methodWithDefault(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -121,7 +124,10 @@ final class MethodsSpec extends MacroSuite {
             "isScalaAccessor" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "methodWithAnnotation(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -150,7 +156,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "methodWithAnnotatedParam(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -179,7 +188,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "scalaValue" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -208,7 +220,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(true)
+            "isAccessor" -> Data(true),
+            "scalaAccessorName" -> Data("scalaValue"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("scalaValue")
           ),
           "scalaVariable" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -237,7 +252,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(true)
+            "isAccessor" -> Data(true),
+            "scalaAccessorName" -> Data("scalaVariable"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("scalaVariable")
           ),
           "scalaVariable_=(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -266,7 +284,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(true)
+            "isAccessor" -> Data(true),
+            "scalaAccessorName" -> Data("scalaVariable"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("scalaVariable")
           ),
           "scalaLazyValue" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -295,7 +316,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(true)
+            "isAccessor" -> Data(true),
+            "scalaAccessorName" -> Data("scalaLazyValue"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("scalaLazyValue")
           ),
           "inheritedAbstractMethod(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -324,7 +348,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "inheritedFinalMethod(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -353,7 +380,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           )
         )
       }
@@ -410,7 +440,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(true)
+            "isAccessor" -> Data(true),
+            "scalaAccessorName" -> Data("arg"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("arg")
           ),
           "method(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -439,7 +472,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "apply(Int)" -> Data.map(
             "invocation" -> Data(
@@ -470,7 +506,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "call(Int, Int)" -> Data.map(
             "invocation" -> Data(
@@ -501,7 +540,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           )
         )
       }
@@ -558,7 +600,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "call(Int, Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -587,7 +632,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           )
         )
       }
@@ -644,7 +692,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(true)
+            "isAccessor" -> Data(true),
+            "scalaAccessorName" -> Data("privateCtorArg"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("privateCtorArg")
           ),
           "publicCtorArg" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -673,7 +724,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(true)
+            "isAccessor" -> Data(true),
+            "scalaAccessorName" -> Data("publicCtorArg"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("publicCtorArg")
           ),
           "publicMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -702,7 +756,10 @@ final class MethodsSpec extends MacroSuite {
             "isScalaAccessor" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "privateMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -731,7 +788,10 @@ final class MethodsSpec extends MacroSuite {
             "isScalaAccessor" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "protectedMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -760,7 +820,10 @@ final class MethodsSpec extends MacroSuite {
             "isScalaAccessor" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "privateThisMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -789,7 +852,10 @@ final class MethodsSpec extends MacroSuite {
             "isScalaAccessor" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "privateHearthMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -818,7 +884,10 @@ final class MethodsSpec extends MacroSuite {
             "isScalaAccessor" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "privateHearthExamplesMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -847,7 +916,10 @@ final class MethodsSpec extends MacroSuite {
             "isScalaAccessor" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           )
         )
       }
@@ -909,7 +981,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(true)
+            "isAccessor" -> Data(true),
+            "scalaAccessorName" -> Data("privateCtorArg"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("privateCtorArg")
           ),
           "publicCtorArg" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -938,7 +1013,10 @@ final class MethodsSpec extends MacroSuite {
             "isJavaGetter" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(true)
+            "isAccessor" -> Data(true),
+            "scalaAccessorName" -> Data("publicCtorArg"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("publicCtorArg")
           ),
           "publicMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -967,7 +1045,10 @@ final class MethodsSpec extends MacroSuite {
             "isScalaAccessor" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "privateMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -996,7 +1077,10 @@ final class MethodsSpec extends MacroSuite {
             "isScalaAccessor" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "protectedMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -1025,7 +1109,10 @@ final class MethodsSpec extends MacroSuite {
             "isScalaAccessor" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "privateThisMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -1054,7 +1141,10 @@ final class MethodsSpec extends MacroSuite {
             "isScalaAccessor" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "privateHearthMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -1083,7 +1173,10 @@ final class MethodsSpec extends MacroSuite {
             "isScalaAccessor" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           ),
           "privateHearthExamplesMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
@@ -1112,7 +1205,10 @@ final class MethodsSpec extends MacroSuite {
             "isScalaAccessor" -> Data(false),
             "isJavaSetter" -> Data(false),
             "isJavaAccessor" -> Data(false),
-            "isAccessor" -> Data(false)
+            "isAccessor" -> Data(false),
+            "scalaAccessorName" -> Data("<no scala accessor name>"),
+            "javaAccessorName" -> Data("<no java accessor name>"),
+            "accessorName" -> Data("<no accessor name>")
           )
         )
       }

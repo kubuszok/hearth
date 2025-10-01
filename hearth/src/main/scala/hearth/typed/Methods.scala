@@ -119,6 +119,9 @@ trait Methods { this: MacroCommons =>
     final lazy val isScalaSetter: Boolean = (isUnary && name.endsWith("_="))
     final lazy val isScalaAccessor: Boolean = isScalaGetter || isScalaSetter
 
+    final lazy val scalaAccessorName: Option[String] =
+      if (isScalaGetter) Some(name) else if (isScalaSetter) Some(name.dropRight(2)) else None
+
     final lazy val isJavaGetter: Boolean = this match {
       case m: Method.OfInstance[?, ?] =>
         import m.Returned
@@ -135,7 +138,20 @@ trait Methods { this: MacroCommons =>
     }
     final lazy val isJavaAccessor: Boolean = isJavaGetter || isJavaSetter
 
+    final lazy val javaAccessorName: Option[String] =
+      if (isJavaGetter) Some {
+        val n = if (name.startsWith("is")) name.drop(2) else name.drop(3)
+        n.head.toLower.toString + n.tail
+      }
+      else if (isJavaSetter) Some {
+        val n = name.drop(3)
+        n.head.toLower.toString + n.tail
+      }
+      else None
+
     final lazy val isAccessor: Boolean = isScalaAccessor || isJavaAccessor
+
+    final lazy val accessorName: Option[String] = scalaAccessorName.orElse(javaAccessorName)
   }
   object Method {
 
