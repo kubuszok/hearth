@@ -84,7 +84,10 @@ trait MethodsFixturesImpl { this: MacroCommons =>
             "isJavaGetter" -> Data(method.isJavaGetter),
             "isJavaSetter" -> Data(method.isJavaSetter),
             "isJavaAccessor" -> Data(method.isJavaAccessor),
-            "isAccessor" -> Data(method.isAccessor)
+            "isAccessor" -> Data(method.isAccessor),
+            "scalaAccessorName" -> Data(method.scalaAccessorName.getOrElse("<no scala accessor name>")),
+            "javaAccessorName" -> Data(method.javaAccessorName.getOrElse("<no java accessor name>")),
+            "accessorName" -> Data(method.accessorName.getOrElse("<no accessor name>"))
           )
           Vector(signature -> props)
         }(_ ++ _)
