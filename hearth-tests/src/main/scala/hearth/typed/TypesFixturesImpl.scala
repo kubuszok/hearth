@@ -99,6 +99,8 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
     )
   )
 
+  // TypeCodecs
+
   def testBidirectionalCodecs: Expr[Data] = {
     def roundtrip[A: TypeCodec](value: A): Data = {
       val encoded = Type(value)
@@ -131,8 +133,6 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
       )
     )
   }
-
-  // TypeCodecs
 
   def testOneWayCodecs: Expr[Data] = {
     def oneWay[A: TypeCodec](value: A): Data = {

@@ -342,7 +342,65 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
 
   // ExprCodecs
 
-  // TODO
+  def testBidirectionalCodecs: Expr[Data] = try {
+    implicit val intType: Type[Int] = IntType
+    def roundtrip[A: ExprCodec](value: A): Data = {
+      val encoded = Expr(value)
+      val decoded = Expr.unapply(encoded)
+      Data.map(
+        "encoded" -> Data(encoded.plainPrint),
+        "decoded" -> Data(decoded.fold("not decoded")(s => s"$s"))
+      )
+    }
+    Expr(
+      Data.map(
+        "null" -> roundtrip(null),
+        "unit" -> roundtrip(()),
+        "boolean" -> roundtrip(true),
+        "byte" -> roundtrip[Byte](1),
+        "short" -> roundtrip[Short](1),
+        "int" -> roundtrip(1),
+        "long" -> roundtrip(1L),
+        "float" -> roundtrip(1.0f),
+        "double" -> roundtrip(1.0),
+        "char" -> roundtrip('a'),
+        "string" -> roundtrip("a"),
+        "Class" -> roundtrip(classOf[Int]),
+        "ClassTag" -> roundtrip(scala.reflect.classTag[Int])
+      )
+    )
+  } catch {
+    case e: Throwable =>
+      e.printStackTrace()
+      Environment.reportErrorAndAbort(e.getMessage)
+  }
+
+  def testOneWayCodecs: Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+    def oneWay[A: ExprCodec](value: A): Data = {
+      val encoded = Expr(value)
+      Data.map(
+        "encoded" -> Data(encoded.plainPrint)
+      )
+    }
+    Expr(
+      Data.map(
+        "Array[Int]" -> oneWay(Array[Int](1)),
+        "Seq[Int]" -> oneWay(Seq[Int](1)),
+        "List[Int]" -> oneWay(List[Int](1)),
+        "Nil" -> oneWay(Nil),
+        "Vector[Int]" -> oneWay(Vector[Int](1)),
+        "Map[Int, Int]" -> oneWay(Map[Int, Int](1 -> 1)),
+        "Set[Int]" -> oneWay(Set[Int](1)),
+        "Option[Int]" -> oneWay(Option[Int](1)),
+        "Some[Int]" -> oneWay(Some[Int](1)),
+        "None" -> oneWay(None),
+        "Either[Int, Int]" -> oneWay(Left[Int, Int](1)),
+        "Left[Int, Int]" -> oneWay(Left[Int, Int](1)),
+        "Right[Int, Int]" -> oneWay(Right[Int, Int](1))
+      )
+    )
+  }
 
   // types using in fixtures
 

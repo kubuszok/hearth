@@ -44,6 +44,10 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
 
   def testLambdaBuilderTraverseImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
     testLambdaBuilderTraverse[A](expr)
+
+  def testBidirectionalCodecsImpl: c.Expr[Data] = testBidirectionalCodecs
+
+  def testOneWayCodecsImpl: c.Expr[Data] = testOneWayCodecs
 }
 
 object ExprsFixtures {
@@ -75,4 +79,8 @@ object ExprsFixtures {
   def testLambdaBuilderPartition[A](expr: A): Data = macro ExprsFixtures.testLambdaBuilderPartitionImpl[A]
 
   def testLambdaBuilderTraverse[A](expr: A): Data = macro ExprsFixtures.testLambdaBuilderTraverseImpl[A]
+
+  def testBidirectionalCodecs: Data = macro ExprsFixtures.testBidirectionalCodecsImpl
+
+  def testOneWayCodecs: Data = macro ExprsFixtures.testOneWayCodecsImpl
 }

@@ -64,4 +64,12 @@ object ExprsFixtures {
   inline def testLambdaBuilderTraverse[A](inline expr: A): Data = ${ testLambdaBuilderTraverseImpl[A]('{ expr }) }
   private def testLambdaBuilderTraverseImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testLambdaBuilderTraverse[A](expr)
+
+  inline def testBidirectionalCodecs: Data = ${ testBidirectionalCodecsImpl }
+  private def testBidirectionalCodecsImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testBidirectionalCodecs
+
+  inline def testOneWayCodecs: Data = ${ testOneWayCodecsImpl }
+  private def testOneWayCodecsImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testOneWayCodecs
 }
