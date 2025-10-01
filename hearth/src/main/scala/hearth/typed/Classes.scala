@@ -1,7 +1,7 @@
 package hearth
 package typed
 
-import hearth.fp.{DirectStyle, Parallel}
+import hearth.fp.{Applicative, DirectStyle, Parallel}
 import hearth.fp.data.*
 import hearth.fp.instances.*
 import hearth.fp.syntax.*
@@ -62,21 +62,33 @@ trait Classes { this: MacroCommons =>
       def apply(field: Parameter): F[Expr[field.tpe.Underlying]]
     }
 
-    def construct[F[_]: DirectStyle: Parallel](makeArgument: ConstructField[F]): F[Option[Expr[A]]] =
+    def construct[F[_]: DirectStyle: Applicative](makeArgument: ConstructField[F]): F[Option[Expr[A]]] =
       if (!primaryConstructor.isAvailable(Everywhere)) Option.empty[Expr[A]].pure[F]
       else {
-        val fieldResults = primaryConstructor.parameters.flatten.toList.parTraverse { case (name, parameter) =>
-          DirectStyle[F].scoped { runSafe =>
-            import parameter.tpe.Underlying
-            name -> runSafe(makeArgument(parameter)).as_??
-          }
-        }
-        DirectStyle[F].scoped { runSafe =>
-          primaryConstructor(runSafe(fieldResults).toMap) match {
-            case Right(value) => Some(value)
-            case Left(error)  =>
-              throw new AssertionError(s"Failed to call the primary constructor of ${tpe.prettyPrint}: $error")
-          }
+        callConstructor(primaryConstructor.parameters.flatten.toList.traverse(buildFieldResults(makeArgument)))
+      }
+
+    def parConstruct[F[_]: DirectStyle: Parallel](makeArgument: ConstructField[F]): F[Option[Expr[A]]] =
+      if (!primaryConstructor.isAvailable(Everywhere)) Option.empty[Expr[A]].pure[F]
+      else {
+        callConstructor(primaryConstructor.parameters.flatten.toList.parTraverse(buildFieldResults(makeArgument)))
+      }
+
+    private def buildFieldResults[F[_]: DirectStyle](
+        makeArgument: ConstructField[F]
+    ): ((String, Parameter)) => F[(String, Expr_??)] = { case (name, parameter) =>
+      DirectStyle[F].scoped { runSafe =>
+        import parameter.tpe.Underlying
+        name -> runSafe(makeArgument(parameter)).as_??
+      }
+    }
+
+    private def callConstructor[F[_]: DirectStyle](fieldResults: F[List[(String, Expr_??)]]): F[Option[Expr[A]]] =
+      DirectStyle[F].scoped { runSafe =>
+        primaryConstructor(runSafe(fieldResults).toMap) match {
+          case Right(value) => Some(value)
+          case Left(error)  =>
+            throw new AssertionError(s"Failed to call the primary constructor of ${tpe.prettyPrint}: $error")
         }
       }
 
@@ -126,7 +138,25 @@ trait Classes { this: MacroCommons =>
 
     lazy val exhaustiveChildren: Option[NonEmptyMap[String, ??<:[A]]] = tpe.exhaustiveChildren
 
-    def matchOn[F[_]: DirectStyle: Parallel, B: Type](
+    def matchOn[F[_]: DirectStyle: Applicative, B: Type](
+        value: Expr[A]
+    )(handle: Expr_??<:[A] => F[Expr[B]]): F[Option[Expr[B]]] =
+      directChildren.toList
+        .traverse { case (name, child) =>
+          DirectStyle[F].scoped { runSafe =>
+            import child.Underlying as A0
+            MatchCase.typeMatch[A0](name).map { matched =>
+              runSafe(handle(matched.as_??<:[A]))
+            }
+          }
+        }
+        .map { list =>
+          NonEmptyList.fromList(list).map { cases =>
+            MatchCase.matchOn(value)(cases.toNonEmptyVector)
+          }
+        }
+
+    def parMatchOn[F[_]: DirectStyle: Parallel, B: Type](
         value: Expr[A]
     )(handle: Expr_??<:[A] => F[Expr[B]]): F[Option[Expr[B]]] =
       directChildren.toList
@@ -170,6 +200,87 @@ trait Classes { this: MacroCommons =>
       tpe0: Type[A],
       val defaultConstructor: Method.NoInstance[A]
   ) extends Class[A]()(using tpe0) {
+
+    lazy val beanGetters: List[Existential[Method.OfInstance[A, *]]] = methods
+      .collect {
+        case getter if getter.value.isJavaGetter => getter.value.asInstanceOf[Method[A, ?]]
+      }
+      .collect { case getter: Method.OfInstance[A, ?] @unchecked =>
+        Existential[Method.OfInstance[A, *], getter.Returned](getter)(using getter.Returned)
+      }
+    lazy val beanSetters: List[Method.OfInstance[A, Unit]] = methods
+      .collect {
+        case setter if setter.value.isJavaSetter => setter.value.asInstanceOf[Method[A, Unit]]
+      }
+      .collect { case setter: Method.OfInstance[A, Unit] @unchecked =>
+        setter
+      }
+
+    def constructWithoutSetters: Option[Expr[A]] =
+      if (!defaultConstructor.isAvailable(Everywhere)) Option.empty[Expr[A]]
+      else
+        Some(
+          defaultConstructor
+            .apply(Map.empty)
+            .getOrElse(throw new AssertionError(s"Failed to call the default constructor of ${tpe.prettyPrint}"))
+            .upcast[A]
+        )
+
+    trait SetField[F[_]] {
+      def apply(name: String, input: Parameter): F[Expr[input.tpe.Underlying]]
+    }
+
+    def constructWithSetters[F[_]: DirectStyle: Applicative](setField: SetField[F]): F[Option[Expr[A]]] =
+      constructWithoutSetters.traverse[F, Expr[A]] { constructorExpr =>
+        Scoped
+          .createVal(constructorExpr)
+          .traverse { constructorResult =>
+            beanSetters
+              .traverse(applySetters(constructorResult, setField))
+              .map(combineSetterResults(constructorResult))
+          }
+          .map(_.close)
+      }
+
+    def parConstructWithSetters[F[_]: DirectStyle: Parallel](setField: SetField[F]): F[Option[Expr[A]]] =
+      constructWithoutSetters.traverse[F, Expr[A]] { constructorExpr =>
+        Scoped
+          .createVal(constructorExpr)
+          .parTraverse { constructorResult =>
+            beanSetters
+              .traverse(applySetters(constructorResult, setField))
+              .map(combineSetterResults(constructorResult))
+          }
+          .map(_.close)
+      }
+
+    private def applySetters[F[_]: DirectStyle](constructorResult: Expr[A], setField: SetField[F])(
+        setter: Method.OfInstance[A, Unit]
+    ): F[Expr[Unit]] = {
+      val (name, param) = setter.parameters.flatten.head
+      import setter.Returned
+      import param.tpe.Underlying
+      DirectStyle[F].scoped { runSafe =>
+        val value = runSafe(setField(name, param))
+        setter.apply(constructorResult, Map(name -> value.as_??)) match {
+          case Right(unit) => unit.upcast(using Returned, Type.of[Unit])
+          case Left(error) =>
+            throw new AssertionError(
+              s"Failed to call the setter ${setter.name} of ${tpe.prettyPrint}: $error"
+            )
+        }
+      }
+    }
+
+    // TODO: cross-quotes should look for the Type[A] not only in the type params but also in the parent scope, it seems.
+    private def combineSetterResults[A0: Type](constructorResult: Expr[A0])(setterResults: List[Expr[Unit]]): Expr[A0] =
+      setterResults.toVector
+        .foldRight(constructorResult) { (setterResult, acc) =>
+          Expr.quote {
+            Expr.splice(setterResult)
+            Expr.splice(acc)
+          }
+        }
 
     override def toString: String = s"JavaBean(${tpe.plainPrint})"
 

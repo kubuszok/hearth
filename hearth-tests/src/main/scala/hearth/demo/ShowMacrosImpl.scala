@@ -216,7 +216,7 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
     Log.info(s"Attempting to use case class support to show value of type ${Type.prettyPrint[A]}") >>
       CaseClass
         .parse[A]
-        .traverse { caseClass =>
+        .parTraverse { caseClass =>
           val nameExpr = Expr(Type.shortName[A])
 
           if (Type[A].isCaseObject || Type[A].isCaseVal) {
@@ -265,7 +265,7 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
         .parse[A]
         .traverse { enumm =>
           implicit val String: Type[String] = Types.String
-          enumm.matchOn(value) { matchedSubtype =>
+          enumm.parMatchOn(value) { matchedSubtype =>
             import matchedSubtype.{Underlying as B, value as matchedExpr}
             Log.namedScope(s"Attempting subtype ${Type.prettyPrint[B]} <: ${Type.prettyPrint[A]}") {
               attemptAllRules[B](matchedExpr)
