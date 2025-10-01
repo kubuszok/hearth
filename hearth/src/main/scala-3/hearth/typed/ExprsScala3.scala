@@ -112,6 +112,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = '{ val _ = ${ expr }; () }
 
     override lazy val NullExprCodec: ExprCodec[Null] = {
+      given FromExpr[Null] = new {
+        override def unapply(expr: Expr[Null])(using scala.quoted.Quotes): Option[Null] = expr match {
+          case '{ null } => Some(null)
+          case _         => None
+        }
+      }
       given ToExpr[Null] = new {
         override def apply(value: Null)(using scala.quoted.Quotes): Expr[Null] = '{ null }
       }
@@ -135,7 +141,11 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       given FromExpr[Short] = new {
         override def unapply(expr: Expr[Short])(using scala.quoted.Quotes): Option[Short] = expr match {
           case '{ (${ inner }: Int).toShort } => scala.quoted.Expr.unapply(inner).map(_.toShort)
-          case _                              => None
+          case _                              =>
+            expr.asTerm match {
+              case Literal(ShortConstant(value)) => Some(value)
+              case _                             => None
+            }
         }
       }
       ExprCodec.make[Short]
@@ -153,20 +163,23 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     // with more cases).
 
     override def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = {
-      import platformSpecific.implicits.given
       given FromExpr[java.lang.Class[A]] = new {
-        override def unapply(expr: Expr[java.lang.Class[A]])(using scala.quoted.Quotes): Option[java.lang.Class[A]] =
-          expr.asTerm match {
+        override def unapply(expr: Expr[java.lang.Class[A]])(using scala.quoted.Quotes): Option[java.lang.Class[A]] = {
+          def matchTerm(tree: Tree): Option[java.lang.Class[A]] = tree match {
+            case Inlined(_, _, tree)                                               => matchTerm(tree)
+            case Literal(ClassOfConstant(typeRepr)) if typeRepr =:= TypeRepr.of[A] => Type.classOfType[A]
             case Applied(ref: Ref, List(typeTree: TypeTree))
                 if ref.symbol == defn.Predef_classOf && typeTree.tpe =:= TypeRepr.of[A] =>
               Type.classOfType[A]
-            case _ => None
+            case TypeApply(Ident("classOf"), List(typeTree)) if typeTree.tpe =:= TypeRepr.of[A] => Type.classOfType[A]
+            case _                                                                              => None
           }
+          matchTerm(expr.asTerm)
+        }
       }
       ExprCodec.make[java.lang.Class[A]]
     }
     override def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]] = {
-      import platformSpecific.implicits.given
       given FromExpr[scala.reflect.ClassTag[A]] = new {
         override def unapply(
             expr: Expr[scala.reflect.ClassTag[A]]
@@ -227,6 +240,16 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     override def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = {
       given FromExpr[A] = platformSpecific.implicits.ExprCodecIsFromExpr[A]
       given ToExpr[A] = platformSpecific.implicits.ExprCodecIsToExpr[A]
+      // Default implementation of ToExpr[Seq[A]] is not correct, uses VarArgs so for e.g.
+      //   Seq(1)
+      // we would print expression generating...
+      //   1
+      given ToExpr[Seq[A]] = new {
+        override def apply(value: Seq[A])(using scala.quoted.Quotes): Expr[Seq[A]] = {
+          val xs = value.map(summon[ToExpr[A]].apply)
+          if xs.isEmpty then '{ Seq.empty[A] } else '{ Seq(${ Varargs(xs) }*) }
+        }
+      }
       ExprCodec.make[Seq[A]]
     }
     override def ListExprCodec[A: ExprCodec: Type]: ExprCodec[List[A]] = {

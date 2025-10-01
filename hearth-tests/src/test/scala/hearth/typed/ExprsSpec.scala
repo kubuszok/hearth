@@ -185,4 +185,152 @@ final class ExprsSpec extends MacroSuite {
       }
     }
   }
+
+  group("type ExprCodec") {
+
+    test(
+      "methods ExprCodec.{toExpr, fromExpr} should allow converting between expressions and values for expressions supporting bidirectional transformation"
+    ) {
+      import ExprsFixtures.testBidirectionalCodecs
+
+      testBidirectionalCodecs <==> Data.map(
+        "null" -> Data.map(
+          "encoded" -> Data("null"),
+          "decoded" -> Data("null")
+        ),
+        "unit" -> Data.map(
+          "encoded" -> Data("()"),
+          "decoded" -> Data("()")
+        ),
+        "boolean" -> Data.map(
+          "encoded" -> Data("true"),
+          "decoded" -> Data("true")
+        ),
+        "byte" -> Data.map(
+          "encoded" -> Data("1"),
+          "decoded" -> Data("1")
+        ),
+        "short" -> Data.map(
+          "encoded" -> Data("1"),
+          "decoded" -> Data("1")
+        ),
+        "int" -> Data.map(
+          "encoded" -> Data("1"),
+          "decoded" -> Data("1")
+        ),
+        "long" -> Data.map(
+          "encoded" -> Data("1L"),
+          "decoded" -> Data("1")
+        ),
+        "float" -> Data.map(
+          "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "1.0" else "1.0f"),
+          "decoded" -> Data("1.0")
+        ),
+        "double" -> Data.map(
+          "encoded" -> Data("1.0"),
+          "decoded" -> Data("1.0")
+        ),
+        "char" -> Data.map(
+          "encoded" -> Data("\'a\'"),
+          "decoded" -> Data("a")
+        ),
+        "string" -> Data.map(
+          "encoded" -> Data("\"a\""),
+          "decoded" -> Data("a")
+        ),
+        "Class" -> Data.map(
+          "encoded" -> Data(
+            if (LanguageVersion.byHearth.isScala2_13) "scala.Predef.classOf[Int]"
+            else "scala.Predef.classOf[scala.Int]"
+          ),
+          "decoded" -> Data("int") // TODO: 3
+        ),
+        "ClassTag" -> Data.map(
+          "encoded" -> Data(
+            if (LanguageVersion.byHearth.isScala2_13) "scala.reflect.classTag[Int]"
+            else "scala.reflect.ClassTag.apply[scala.Int](scala.Predef.classOf[scala.Int])"
+          ),
+          "decoded" -> Data("Int")
+        )
+      )
+    }
+
+    test(
+      "methods ExprCodec.{toExpr, fromExpr} should allow converting between expressions and values for expressions supporting one-way transformation"
+    ) {
+      import ExprsFixtures.testOneWayCodecs
+
+      testOneWayCodecs <==> Data.map(
+        "Array[Int]" -> Data.map(
+          "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Array(1)" else "scala.Array.apply(1, )")
+        ),
+        "Seq[Int]" -> Data.map(
+          "encoded" -> Data(
+            if (LanguageVersion.byHearth.isScala2_13) "scala.collection.immutable.Seq(1)"
+            else "scala.Seq.apply[scala.Int](1)"
+          )
+        ),
+        "List[Int]" -> Data.map(
+          "encoded" -> Data(
+            if (LanguageVersion.byHearth.isScala2_13) "scala.collection.immutable.List(1)"
+            else "scala.List.apply[scala.Int](1)"
+          )
+        ),
+        "Nil" -> Data.map(
+          "encoded" -> Data(
+            if (LanguageVersion.byHearth.isScala2_13) "scala.collection.immutable.Nil" else "scala.Nil"
+          )
+        ),
+        "Vector[Int]" -> Data.map(
+          "encoded" -> Data(
+            if (LanguageVersion.byHearth.isScala2_13) "scala.collection.immutable.Vector(1)"
+            else "scala.Vector.apply[scala.Int](1)"
+          )
+        ),
+        "Map[Int, Int]" -> Data.map(
+          "encoded" -> Data(
+            if (LanguageVersion.byHearth.isScala2_13) "scala.collection.immutable.Map(scala.Tuple2(1, 1))"
+            else "scala.Predef.Map.apply[scala.Int, scala.Int](scala.Tuple2.apply[scala.Int, scala.Int](1, 1))"
+          )
+        ),
+        "Set[Int]" -> Data.map(
+          "encoded" -> Data(
+            if (LanguageVersion.byHearth.isScala2_13) "scala.collection.immutable.Set(1)"
+            else "scala.Predef.Set.apply[scala.Int](1)"
+          )
+        ),
+        "Option[Int]" -> Data.map(
+          "encoded" -> Data(
+            if (LanguageVersion.byHearth.isScala2_13) "scala.Some(1)" else "scala.Some.apply[scala.Int](1)"
+          )
+        ),
+        "Some[Int]" -> Data.map(
+          "encoded" -> Data(
+            if (LanguageVersion.byHearth.isScala2_13) "scala.Some(1)" else "scala.Some.apply[scala.Int](1)"
+          )
+        ),
+        "None" -> Data.map(
+          "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.None" else "scala.None")
+        ),
+        "Either[Int, Int]" -> Data.map(
+          "encoded" -> Data(
+            if (LanguageVersion.byHearth.isScala2_13) "scala.util.Left(1)"
+            else "scala.Left.apply[scala.Int, scala.Int](1)"
+          )
+        ),
+        "Left[Int, Int]" -> Data.map(
+          "encoded" -> Data(
+            if (LanguageVersion.byHearth.isScala2_13) "scala.util.Left(1)"
+            else "scala.Left.apply[scala.Int, scala.Int](1)"
+          )
+        ),
+        "Right[Int, Int]" -> Data.map(
+          "encoded" -> Data(
+            if (LanguageVersion.byHearth.isScala2_13) "scala.util.Right(1)"
+            else "scala.Right.apply[scala.Int, scala.Int](1)"
+          )
+        )
+      )
+    }
+  }
 }
