@@ -84,4 +84,10 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         )
         .mkString
     )
+
+  // TODO: case class construct and parConstruct
+
+  // TODO: case class caseFieldValuesAt
+
+  // TODO: enum matchOn and parMatchOn
 }
