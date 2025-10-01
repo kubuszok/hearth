@@ -26,7 +26,7 @@ val versions = new {
   val platforms = List(VirtualAxis.jvm, VirtualAxis.js, VirtualAxis.native)
 
   // Dependencies
-  val kindProjector = "0.13.3"
+  val kindProjector = "0.13.4"
   val munit = "1.2.0"
   val scalaCollectionCompat = "2.13.0"
   val scalacheck = "1.19.0"
