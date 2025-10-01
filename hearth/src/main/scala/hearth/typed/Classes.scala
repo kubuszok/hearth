@@ -58,24 +58,20 @@ trait Classes { this: MacroCommons =>
     lazy val nonPrimaryConstructors: List[Method.NoInstance[A]] = constructors.filter(_ != primaryConstructor)
     lazy val caseFields: List[Method.Of[A]] = methods.filter(_.value.isCaseField)
 
-    trait ConstructField[F[_]] {
-      def apply(field: Parameter): F[Expr[field.tpe.Underlying]]
-    }
-
-    def construct[F[_]: DirectStyle: Applicative](makeArgument: ConstructField[F]): F[Option[Expr[A]]] =
+    def construct[F[_]: DirectStyle: Applicative](makeArgument: CaseClass.ConstructField[F]): F[Option[Expr[A]]] =
       if (!primaryConstructor.isAvailable(Everywhere)) Option.empty[Expr[A]].pure[F]
       else {
         callConstructor(primaryConstructor.parameters.flatten.toList.traverse(buildFieldResults(makeArgument)))
       }
 
-    def parConstruct[F[_]: DirectStyle: Parallel](makeArgument: ConstructField[F]): F[Option[Expr[A]]] =
+    def parConstruct[F[_]: DirectStyle: Parallel](makeArgument: CaseClass.ConstructField[F]): F[Option[Expr[A]]] =
       if (!primaryConstructor.isAvailable(Everywhere)) Option.empty[Expr[A]].pure[F]
       else {
         callConstructor(primaryConstructor.parameters.flatten.toList.parTraverse(buildFieldResults(makeArgument)))
       }
 
     private def buildFieldResults[F[_]: DirectStyle](
-        makeArgument: ConstructField[F]
+        makeArgument: CaseClass.ConstructField[F]
     ): ((String, Parameter)) => F[(String, Expr_??)] = { case (name, parameter) =>
       DirectStyle[F].scoped { runSafe =>
         import parameter.tpe.Underlying
@@ -123,6 +119,11 @@ trait Classes { this: MacroCommons =>
       if (tpe.isCase) tpe.primaryConstructor.map(new CaseClass(tpe, _))
       else None
     def parse[A: Type]: Option[CaseClass[A]] = unapply(Type[A])
+
+    @FunctionalInterface
+    trait ConstructField[F[_]] {
+      def apply(field: Parameter): F[Expr[field.tpe.Underlying]]
+    }
   }
 
   /** Represents a sealed trait, Scala 3's enum or Java's enum.
@@ -226,11 +227,7 @@ trait Classes { this: MacroCommons =>
             .upcast[A]
         )
 
-    trait SetField[F[_]] {
-      def apply(name: String, input: Parameter): F[Expr[input.tpe.Underlying]]
-    }
-
-    def constructWithSetters[F[_]: DirectStyle: Applicative](setField: SetField[F]): F[Option[Expr[A]]] =
+    def constructWithSetters[F[_]: DirectStyle: Applicative](setField: JavaBean.SetField[F]): F[Option[Expr[A]]] =
       constructWithoutSetters.traverse[F, Expr[A]] { constructorExpr =>
         Scoped
           .createVal(constructorExpr)
@@ -242,7 +239,7 @@ trait Classes { this: MacroCommons =>
           .map(_.close)
       }
 
-    def parConstructWithSetters[F[_]: DirectStyle: Parallel](setField: SetField[F]): F[Option[Expr[A]]] =
+    def parConstructWithSetters[F[_]: DirectStyle: Parallel](setField: JavaBean.SetField[F]): F[Option[Expr[A]]] =
       constructWithoutSetters.traverse[F, Expr[A]] { constructorExpr =>
         Scoped
           .createVal(constructorExpr)
@@ -254,7 +251,7 @@ trait Classes { this: MacroCommons =>
           .map(_.close)
       }
 
-    private def applySetters[F[_]: DirectStyle](constructorResult: Expr[A], setField: SetField[F])(
+    private def applySetters[F[_]: DirectStyle](constructorResult: Expr[A], setField: JavaBean.SetField[F])(
         setter: Method.OfInstance[A, Unit]
     ): F[Expr[Unit]] = {
       val (name, param) = setter.parameters.flatten.head
@@ -295,5 +292,10 @@ trait Classes { this: MacroCommons =>
       if (tpe.isJavaBean) tpe.defaultConstructor.map(new JavaBean(tpe, _))
       else None
     def parse[A: Type]: Option[JavaBean[A]] = unapply(Type[A])
+
+    @FunctionalInterface
+    trait SetField[F[_]] {
+      def apply(name: String, input: Parameter): F[Expr[input.tpe.Underlying]]
+    }
   }
 }

@@ -2,6 +2,7 @@ package hearth
 package typed
 
 import hearth.data.Data
+import hearth.fp.effect.MIO
 
 /** Fixtured for testing [[ClassesSpec]]. */
 trait ClassesFixturesImpl { this: MacroCommons =>
@@ -85,9 +86,105 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         .mkString
     )
 
-  // TODO: case class construct and parConstruct
+  private val intType: Type[Int] = Type.of[Int]
+  private val stringType: Type[String] = Type.of[String]
 
-  // TODO: case class caseFieldValuesAt
+  def testCaseClassConstructAndParConstruct[A: Type]: Expr[String] = Expr {
+    CaseClass.parse[A].fold("<no case class>") { caseClass =>
+      // Why it fails to work as a SAM?
+      val makeArgument: CaseClass.ConstructField[MIO] = new CaseClass.ConstructField[MIO] {
+        def apply(field: Parameter): MIO[Expr[field.tpe.Underlying]] = {
+          import field.tpe.Underlying as FieldType
+          implicit val IntType: Type[Int] = intType
+          implicit val StringType: Type[String] = stringType
+          if (FieldType <:< Type[Int]) MIO.pure(Expr(0).upcast[FieldType])
+          else if (FieldType <:< Type[String]) MIO.pure(Expr(field.name).upcast[FieldType])
+          else MIO.fail(new Exception(s"Field $field.name has wrong type: ${field.tpe.plainPrint}"))
+        }
+      }
+      val sequential = caseClass.construct(makeArgument).map { result =>
+        result.fold("<failed to construct sequentail>")(_.plainPrint)
+      }
+      val parallel = caseClass.parConstruct(makeArgument).map { result =>
+        result.fold("<failed to construct parallel>")(_.plainPrint)
+      }
+      sequential
+        .parMap2(parallel) { (sequential, parallel) =>
+          s"sequential: $sequential, parallel: $parallel"
+        }
+        .unsafe
+        .runSync
+        ._2
+        .getOrElse("<failed to construct>")
+    }
+  }
 
-  // TODO: enum matchOn and parMatchOn
+  def testCaseClassCaseFieldValuesAt[A: Type](expr: Expr[A]): Expr[String] = Expr {
+    CaseClass.parse[A].fold("<no case class>") { caseClass =>
+      caseClass
+        .caseFieldValuesAt(expr)
+        .toList
+        .sortBy(_._1)
+        .map { case (name, value) =>
+          s"$name: ${value.plainPrint}"
+        }
+        .mkString("(", ", ", ")")
+    }
+  }
+
+  def testEnumMatchOnAndParMatchOn[A: Type](expr: Expr[A]): Expr[String] =
+    Enum.parse[A].fold(Expr("<no enum>")) { enumm =>
+      implicit val StringType: Type[String] = stringType
+      val sequential = enumm
+        .matchOn(expr) { matched =>
+          import matched.{Underlying as Subtype, value as matchedExpr}
+          MIO.pure(Expr(s"subtype name: ${Subtype.plainPrint}, expr: ${matchedExpr.plainPrint}"))
+        }
+        .map(_.getOrElse(Expr("<failed to perform exhaustive match>")))
+      val parallel = enumm
+        .parMatchOn(expr) { matched =>
+          import matched.{Underlying as Subtype, value as matchedExpr}
+          MIO.pure(Expr(s"subtype name: ${Subtype.plainPrint}, expr: ${matchedExpr.plainPrint}"))
+        }
+        .map(_.getOrElse(Expr("<failed to perform exhaustive match>")))
+      sequential
+        .parMap2(parallel) { (sequential, parallel) =>
+          Expr.quote {
+            s"sequential: ${Expr.splice(sequential)}, parallel: ${Expr.splice(parallel)}"
+          }
+        }
+        .unsafe
+        .runSync
+        ._2
+        .getOrElse(Expr("<failed to construct>"))
+    }
+
+  def testJavaBeanConstructWithSettersAndParConstructWithSetters[A: Type]: Expr[String] = Expr {
+    JavaBean.parse[A].fold("<no java bean>") { javaBean =>
+      val setField: JavaBean.SetField[MIO] = new JavaBean.SetField[MIO] {
+        def apply(name: String, input: Parameter): MIO[Expr[input.tpe.Underlying]] = {
+          import input.tpe.Underlying as FieldType
+          implicit val IntType: Type[Int] = intType
+          implicit val StringType: Type[String] = stringType
+          if (FieldType <:< Type[Int]) MIO.pure(Expr(0).upcast[FieldType])
+          else if (FieldType <:< Type[String]) MIO.pure(Expr(name).upcast[FieldType])
+          else MIO.fail(new Exception(s"Field $name has wrong type: ${input.tpe.plainPrint}"))
+        }
+      }
+      val sequential = javaBean.constructWithSetters(setField).map { result =>
+        result.fold("<failed to construct with setters>")(_.plainPrint)
+      }
+      val parallel = javaBean.parConstructWithSetters(setField).map { result =>
+        result.fold("<failed to construct with setters>")(_.plainPrint)
+      }
+      sequential
+        .parMap2(parallel) { (sequential, parallel) =>
+          s"sequential: $sequential, parallel: $parallel"
+        }
+        .unsafe
+        .runSync
+        ._2
+        .getOrElse("<failed to construct>")
+    }
+  }
 }
