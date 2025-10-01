@@ -86,6 +86,7 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         .mkString
     )
 
+  private val booleanType: Type[Boolean] = Type.of[Boolean]
   private val intType: Type[Int] = Type.of[Int]
   private val stringType: Type[String] = Type.of[String]
 
@@ -115,7 +116,7 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         .unsafe
         .runSync
         ._2
-        .getOrElse("<failed to construct>")
+        .fold(errors => s"<failed to construct: ${errors.mkString(", ")}>", identity)
     }
   }
 
@@ -156,7 +157,7 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         .unsafe
         .runSync
         ._2
-        .getOrElse(Expr("<failed to construct>"))
+        .fold(errors => Expr(s"<failed to construct: ${errors.mkString(", ")}>"), identity)
     }
 
   def testJavaBeanConstructWithSettersAndParConstructWithSetters[A: Type]: Expr[String] = Expr {
@@ -164,9 +165,11 @@ trait ClassesFixturesImpl { this: MacroCommons =>
       val setField: JavaBean.SetField[MIO] = new JavaBean.SetField[MIO] {
         def apply(name: String, input: Parameter): MIO[Expr[input.tpe.Underlying]] = {
           import input.tpe.Underlying as FieldType
+          implicit val BooleanType: Type[Boolean] = booleanType
           implicit val IntType: Type[Int] = intType
           implicit val StringType: Type[String] = stringType
-          if (FieldType <:< Type[Int]) MIO.pure(Expr(0).upcast[FieldType])
+          if (FieldType <:< Type[Boolean]) MIO.pure(Expr(true).upcast[FieldType])
+          else if (FieldType <:< Type[Int]) MIO.pure(Expr(0).upcast[FieldType])
           else if (FieldType <:< Type[String]) MIO.pure(Expr(name).upcast[FieldType])
           else MIO.fail(new Exception(s"Field $name has wrong type: ${input.tpe.plainPrint}"))
         }
@@ -179,12 +182,12 @@ trait ClassesFixturesImpl { this: MacroCommons =>
       }
       sequential
         .parMap2(parallel) { (sequential, parallel) =>
-          s"sequential: $sequential, parallel: $parallel"
+          s"sequential:\n$sequential\nparallel:\n$parallel"
         }
         .unsafe
         .runSync
         ._2
-        .getOrElse("<failed to construct>")
+        .fold(errors => s"<failed to construct: ${errors.mkString(", ")}>", identity)
     }
   }
 }

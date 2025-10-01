@@ -133,5 +133,69 @@ final class ClassesJvmSpec extends MacroSuite {
         )
       }
     }
+
+    test("Enum[A].{matchOn and parMatchOn} should match on the Java enum") {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+
+      def code(input: hearth.examples.enums.ExampleJavaEnum) = testEnumMatchOnAndParMatchOn(input)
+      code(hearth.examples.enums.ExampleJavaEnum.VALUE1) <==>
+        "sequential: subtype name: hearth.examples.enums.ExampleJavaEnum.VALUE1.type, expr: VALUE1, parallel: subtype name: hearth.examples.enums.ExampleJavaEnum.VALUE1.type, expr: VALUE1"
+      code(hearth.examples.enums.ExampleJavaEnum.VALUE2) <==>
+        "sequential: subtype name: hearth.examples.enums.ExampleJavaEnum.VALUE2.type, expr: VALUE2, parallel: subtype name: hearth.examples.enums.ExampleJavaEnum.VALUE2.type, expr: VALUE2"
+    }
+
+    test(
+      "JavaBean[A].{constructWithSetters and parConstructWithSetters} should construct an instance of the Java bean"
+    ) {
+      import ClassesFixtures.testJavaBeanConstructWithSettersAndParConstructWithSetters
+
+      testJavaBeanConstructWithSettersAndParConstructWithSetters[examples.classes.ExampleJavaClass] <==>
+        (if (LanguageVersion.byHearth.isScala2_13)
+           """sequential:
+             |{
+             |  val examplejavaclass = new hearth.examples.classes.ExampleJavaClass();
+             |  {
+             |    examplejavaclass.setBoolean(true);
+             |    {
+             |      examplejavaclass.setInt(0);
+             |      {
+             |        examplejavaclass.setString("x");
+             |        examplejavaclass
+             |      }
+             |    }
+             |  }
+             |}
+             |parallel:
+             |{
+             |  val examplejavaclass = new hearth.examples.classes.ExampleJavaClass();
+             |  {
+             |    examplejavaclass.setBoolean(true);
+             |    {
+             |      examplejavaclass.setInt(0);
+             |      {
+             |        examplejavaclass.setString("x");
+             |        examplejavaclass
+             |      }
+             |    }
+             |  }
+             |}""".stripMargin
+         else
+           """sequential:
+             |{
+             |  val examplejavaclass: hearth.examples.classes.ExampleJavaClass = new hearth.examples.classes.ExampleJavaClass()
+             |  examplejavaclass.setBoolean(true)
+             |  examplejavaclass.setInt(0)
+             |  examplejavaclass.setString("x")
+             |  examplejavaclass
+             |}
+             |parallel:
+             |{
+             |  val examplejavaclass: hearth.examples.classes.ExampleJavaClass = new hearth.examples.classes.ExampleJavaClass()
+             |  examplejavaclass.setBoolean(true)
+             |  examplejavaclass.setInt(0)
+             |  examplejavaclass.setString("x")
+             |  examplejavaclass
+             |}""".stripMargin)
+    }
   }
 }

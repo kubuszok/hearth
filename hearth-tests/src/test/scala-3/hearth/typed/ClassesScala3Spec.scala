@@ -63,5 +63,15 @@ final class ClassesScala3Spec extends MacroSuite {
         )
       }
     }
+
+    test("Enum[A].{matchOn and parMatchOn} should match on the Scala 3 enum") {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+
+      def code(input: hearth.examples.ExampleEnum) = testEnumMatchOnAndParMatchOn(input)
+      code(hearth.examples.ExampleEnum.ExampleEnumClass(1)) <==>
+        "sequential: subtype name: hearth.examples.ExampleEnum.ExampleEnumClass, expr: ExampleEnumClass, parallel: subtype name: hearth.examples.ExampleEnum.ExampleEnumClass, expr: ExampleEnumClass"
+      code(hearth.examples.ExampleEnum.ExampleEnumValue) <==>
+        "sequential: subtype name: hearth.examples.ExampleEnum.ExampleEnumValue.type, expr: ExampleEnumValue, parallel: subtype name: hearth.examples.ExampleEnum.ExampleEnumValue.type, expr: ExampleEnumValue"
+    }
   }
 }

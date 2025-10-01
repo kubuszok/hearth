@@ -191,5 +191,29 @@ final class ClassesSpec extends MacroSuite {
         )
       }
     }
+
+    test("CaseClass[A].{construct and parConstruct} should construct an instance of the case class") {
+      import ClassesFixtures.testCaseClassConstructAndParConstruct
+
+      testCaseClassConstructAndParConstruct[examples.classes.ExampleCaseClass] <==>
+        "sequential: new hearth.examples.classes.ExampleCaseClass(0), parallel: new hearth.examples.classes.ExampleCaseClass(0)"
+    }
+
+    test("CaseClass[A].caseFieldValuesAt should extract fields of the case class") {
+      import ClassesFixtures.testCaseClassCaseFieldValuesAt
+
+      testCaseClassCaseFieldValuesAt(hearth.examples.classes.ExampleCaseClass(0)) <==>
+        "(a: hearth.examples.classes.ExampleCaseClass.apply(0).a)"
+    }
+
+    test("Enum[A].{matchOn and parMatchOn} should match on the sealed trait") {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+
+      def code(input: hearth.examples.enums.ExampleSealedTrait) = testEnumMatchOnAndParMatchOn(input)
+      code(hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitClass(1)) <==>
+        "sequential: subtype name: hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitClass, expr: ExampleSealedTraitClass, parallel: subtype name: hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitClass, expr: ExampleSealedTraitClass"
+      code(hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitObject) <==>
+        "sequential: subtype name: hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type, expr: ExampleSealedTraitObject, parallel: subtype name: hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type, expr: ExampleSealedTraitObject"
+    }
   }
 }
