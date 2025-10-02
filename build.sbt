@@ -498,6 +498,8 @@ lazy val hearthTests = projectMatrix
     moduleName := "hearth-tests",
     name := "hearth-tests",
     description := "Tests for hearth utilities",
+    // Do not cover Fixtures and FixturesImpl, they are used to test the library, not a part of it.
+    coverageExcludedFiles := ".*Fixtures;.*FixturesImpl",
     scalacOptions ++= Seq(
       // To test parsing of scalacOptions
       "-Xmacro-settings:hearth-tests.primitives.int=1024",
