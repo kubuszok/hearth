@@ -1,7 +1,6 @@
 package hearth
 package untyped
 
-import hearth.fp.ignore
 import scala.collection.immutable.ListMap
 
 trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
@@ -80,6 +79,34 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
       def symbolName(symbol: Symbol): String = symbol.name.decodedName.toString
 
+      def symbolAvailable(symbol: Symbol, scope: Accessible): Boolean = {
+        val owner = symbol.owner
+        val enclosing = c.internal.enclosingOwner
+
+        // Helper methods
+        def privateWithin: Option[Symbol] = Option(symbol.privateWithin).filterNot(_ == NoSymbol)
+
+        // High-level checks
+        def isPublic: Boolean = symbol.isPublic
+        def isPrivateButInTheSameClass: Boolean = symbol.isPrivate && enclosing == owner
+        def isProtectedButInTheSameClass: Boolean =
+          symbol.isProtected && enclosing.isClass && enclosing.asClass.toType <:< owner.asClass.toType
+        def isPrivateWithinButInTheRightPlace: Boolean = privateWithin.exists { pw =>
+          def isPackagePrivateButInTheRightPackage: Boolean = pw.isPackage && {
+            val en = enclosing.fullName.toString
+            val pn = pw.fullName.toString
+            en == pn || en.startsWith(pn + ".")
+          }
+          isPackagePrivateButInTheRightPackage
+        }
+
+        scope match {
+          case Everywhere => isPublic
+          case AtCallSite =>
+            isPublic || isPrivateButInTheSameClass || isProtectedButInTheSameClass || isPrivateWithinButInTheRightPlace
+        }
+      }
+
       def positionOf(symbol: Symbol): Option[Position] =
         Option(symbol.pos)
           .filter(_ != NoPosition)
@@ -153,21 +180,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     }
 
     override def isAvailable(instanceTpe: UntypedType, scope: Accessible): Boolean =
-      scope match {
-        case Everywhere =>
-          val A = instanceTpe.typeSymbol
-          A != NoSymbol && A.isPublic
-        case AtCallSite =>
-          try {
-            // Try to access the type in the current context.
-            // If it's not accessible, this will throw an exception.
-            // TODO: test this assumption
-            ignore(c.typecheck(q"null.asInstanceOf[$instanceTpe]", silent = true))
-            true
-          } catch {
-            case _: Throwable => false
-          }
-      }
+      symbolAvailable(instanceTpe.typeSymbol, scope)
 
     override def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean = subtype <:< supertype
     override def isSameAs(a: UntypedType, b: UntypedType): Boolean = a =:= b

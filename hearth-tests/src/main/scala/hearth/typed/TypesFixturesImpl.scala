@@ -67,7 +67,8 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
       "Type.isCaseClass" -> Data(Type[A].isCaseClass),
       "Type.isCaseObject" -> Data(Type[A].isCaseObject),
       "Type.isCaseVal" -> Data(Type[A].isCaseVal),
-      "Type.isAvailable(Everywhere)" -> Data(Type[A].isAvailable(Everywhere))
+      "Type.isAvailable(Everywhere)" -> Data(Type[A].isAvailable(Everywhere)),
+      "Type.isAvailable(AtCallSite)" -> Data(Type[A].isAvailable(AtCallSite))
     )
   )
 
@@ -85,7 +86,9 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
             "Type.isVal" -> Data(Child.isVal),
             "Type.isCaseClass" -> Data(Child.isCaseClass),
             "Type.isCaseObject" -> Data(Child.isCaseObject),
-            "Type.isCaseVal" -> Data(Child.isCaseVal)
+            "Type.isCaseVal" -> Data(Child.isCaseVal),
+            "Type.isAvailable(Everywhere)" -> Data(Child.isAvailable(Everywhere)),
+            "Type.isAvailable(AtCallSite)" -> Data(Child.isAvailable(AtCallSite))
           )
         }.toMap)
       }

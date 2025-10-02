@@ -46,3 +46,10 @@ object ExampleSealedTraitGADT {
   case class ExampleSealedTraitWithTypeParamClass(str: String) extends ExampleSealedTraitGADT[String]
   case object ExampleSealedTraitWithTypeParamObject extends ExampleSealedTraitGADT[Unit]
 }
+
+sealed trait ScopeVisibility
+object ScopeVisibility {
+  case object Public extends ScopeVisibility
+  private[hearth] case object HearthPrivate extends ScopeVisibility
+  private[examples] case object HearthExamplesPrivate extends ScopeVisibility
+}

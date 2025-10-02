@@ -158,7 +158,8 @@ final class TypesJvmSpec extends MacroSuite {
             "Type.isCaseClass" -> Data(isCase),
             "Type.isCaseObject" -> Data(false),
             "Type.isCaseVal" -> Data(false),
-            "Type.isAvailable(Everywhere)" -> Data(true)
+            "Type.isAvailable(Everywhere)" -> Data(true),
+            "Type.isAvailable(AtCallSite)" -> Data(true)
           )
         }
       }
@@ -188,7 +189,8 @@ final class TypesJvmSpec extends MacroSuite {
             "Type.isCaseClass" -> Data(false),
             "Type.isCaseObject" -> Data(false),
             "Type.isCaseVal" -> Data(false),
-            "Type.isAvailable(Everywhere)" -> Data(true)
+            "Type.isAvailable(Everywhere)" -> Data(true),
+            "Type.isAvailable(AtCallSite)" -> Data(true)
           )
 
           testChildrenFlags[examples.enums.ExampleJavaEnum] <==> Data.map(
@@ -201,7 +203,9 @@ final class TypesJvmSpec extends MacroSuite {
               "Type.isVal" -> Data(true),
               "Type.isCaseClass" -> Data(false),
               "Type.isCaseObject" -> Data(false),
-              "Type.isCaseVal" -> Data(false)
+              "Type.isCaseVal" -> Data(false),
+              "Type.isAvailable(Everywhere)" -> Data(true),
+              "Type.isAvailable(AtCallSite)" -> Data(true)
             ),
             "VALUE2" -> Data.map(
               "Type.isSealed" -> Data(false),
@@ -212,7 +216,9 @@ final class TypesJvmSpec extends MacroSuite {
               "Type.isVal" -> Data(true),
               "Type.isCaseClass" -> Data(false),
               "Type.isCaseObject" -> Data(false),
-              "Type.isCaseVal" -> Data(false)
+              "Type.isCaseVal" -> Data(false),
+              "Type.isAvailable(Everywhere)" -> Data(true),
+              "Type.isAvailable(AtCallSite)" -> Data(true)
             )
           )
           testChildrenFlags[examples.enums.ExampleJavaEnumWithMethods] <==> Data.map(
@@ -225,7 +231,9 @@ final class TypesJvmSpec extends MacroSuite {
               "Type.isVal" -> Data(true),
               "Type.isCaseClass" -> Data(false),
               "Type.isCaseObject" -> Data(false),
-              "Type.isCaseVal" -> Data(false)
+              "Type.isCaseVal" -> Data(false),
+              "Type.isAvailable(Everywhere)" -> Data(true),
+              "Type.isAvailable(AtCallSite)" -> Data(true)
             ),
             "VALUE2" -> Data.map(
               "Type.isSealed" -> Data(false),
@@ -236,7 +244,9 @@ final class TypesJvmSpec extends MacroSuite {
               "Type.isVal" -> Data(true),
               "Type.isCaseClass" -> Data(false),
               "Type.isCaseObject" -> Data(false),
-              "Type.isCaseVal" -> Data(false)
+              "Type.isCaseVal" -> Data(false),
+              "Type.isAvailable(Everywhere)" -> Data(true),
+              "Type.isAvailable(AtCallSite)" -> Data(true)
             )
           )
         }
