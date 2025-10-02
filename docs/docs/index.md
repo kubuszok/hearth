@@ -19,7 +19,7 @@ Introduces among others:
  * small FP library that let you reuse your Cats experience in macros (including Macro IO/MIO monad)
  * direct style utilities for working with cases that are hard to handle with monad and combinators (or even impossible to handle with them)
  * macro-extension system allowing to extend your macros just by adding a dependency to the class path - without any additional imports!
- * and finally, macro API that has implementation
+ * and finally, macro API that has implementations for Scala 2 and Scala 3 macro systems - you can use it with either or both!
 
 !!! warning "Tutorials planned"
 
@@ -30,9 +30,44 @@ Introduces among others:
 
 ## How to use the library for cross-compilable macros?
 
+As a showcase we will build cross-compilable `Show` derivation.
+
+Let's start by defining a build that cross-compiles and allows using [cross-quotes](./cross-quotes.md).
+
+```scala
+project.settings(
+  // Add the core library
+  libraryDependencies += "com.kubuszok" %%% "hearth" % "{{ hearth_version() }}",
+
+  // Add the cross-quotes compiler plugin (but only on Scala 3, Scala 2.13 uses macros)
+  libraryDependencies ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((3, _)) => Seq(
+        compilerPlugin(("com.kubuszok" % "hearth" % "{{ hearth_version() }}").cross(CrossVersion.Patch))
+      )
+      case _ => Seq()
+    }
+  },
+
+  // If you want to enable debugging of cross-quotes, pass the right option to the macro/compiler plugin
+  scalacOptions ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((3, _)) => Seq(
+        // set to true OR file1.scala,file2.scala,... if you want to debug cross-quotes generation on Scala 3
+        "-P:hearth.cross-quotes:logging=false"
+      )
+      case Some((2, 13)) => Seq(
+        // set to true OR file1.scala,file2.scala,... if you want to debug cross-quotes generation on Scala 2
+        "-Xmacro-settings:hearth.cross-quotes.logging=false"
+      )
+    }
+  }
+)
+```
+
 Majority of the macros code would be shared, by putting it into a mix-in trait.
 
-Then in Scala 2 and Scala 3 specific code you would write only adapters.
+Then in Scala 2 and Scala 3-specific code you would write only adapters.
 
 !!! example "`src/main/scala/example/Show.scala` - shared `Show` type class"
 

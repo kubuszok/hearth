@@ -140,12 +140,125 @@ You can see 3 different representations of a type in Hearth codebase:
    import unknownType.Underlying as Param
    Type[Param] // now, references to Param would resolve to unknownType.Underlying
    ```
-   which ise useful, when we are e.g. receive a list of subtypes of some enum `E`: we get a `List[??<:[E]]` (list of existential types
+   which is useful, when we are e.g. receive a list of subtypes of some enum `E`: we get a `List[??<:[E]]` (list of existential types
    with `E` as upper bound).
+
+### Type Operations
+
+`Type[A]` provides many operations for introspecting and manipulating types:
+
+**Printing and display:**
+
+```scala
+Type[Int].shortName      // "Int"
+Type[Int].fcqn           // "scala.Int" (fully-qualified class name)
+Type[Int].plainPrint     // "scala.Int" (without ANSI colors)
+Type[Int].prettyPrint    // colored output for terminals
+```
+
+**Type predicates:**
+
+```scala
+// Primitives and built-ins
+Type[Int].isPrimitive           // true for Boolean, Byte, Short, Int, Long, Float, Double, Char
+Type[Array[Int]].isArray        // true
+Type[String].isJvmBuiltIn       // true for primitives, Unit, String, arrays
+Type[Any].isTypeSystemSpecial   // true for Any, AnyRef, AnyVal, Null, Nothing
+
+// Class types
+Type[MyClass].isClass                  // true for classes
+Type[MyClass].notJvmBuiltInClass       // isClass && !isJvmBuiltIn
+Type[MyClass].isPlainOldJavaObject     // non-abstract, non-sealed, non-enum class
+Type[MyClass].isJavaBean               // POJO with default constructor
+
+// Modifiers
+Type[MyClass].isAbstract    // abstract class or trait
+Type[MyClass].isFinal       // final class
+Type[MyClass].isSealed      // sealed trait/class
+Type[MyClass].isObject      // object/module
+
+// Case classes and enums
+Type[MyClass].isCase           // case class, case object, or case val
+Type[MyClass].isCaseClass      // case class specifically
+Type[MyClass].isCaseObject     // case object specifically
+Type[MyClass].isJavaEnum       // Java enum
+Type[MyClass].isJavaEnumValue  // Java enum value
+```
+
+**Type relationships:**
+
+```scala
+Type[String] <:< Type[AnyRef]  // true (String is subtype of AnyRef)
+Type[Int] =:= Type[Int]        // true (types are equal)
+```
+
+**Metadata and navigation:**
+
+```scala
+Type[MyClass].position            // Option[Position] - where type is defined
+Type[MyClass].companionObject     // Option[Expr_??] - companion object if exists
+Type[MyClass].annotations         // List[Expr_??] - type annotations
+Type[MyClass].directChildren      // Option[ListMap[String, ??<:[MyClass]]] - immediate subtypes
+Type[MyClass].exhaustiveChildren  // Option[NonEmptyMap[String, ??<:[MyClass]]] - all subtypes
+```
+
+**Constructors and methods:**
+
+```scala
+Type[MyClass].primaryConstructor   // Option[Method.NoInstance[MyClass]]
+Type[MyClass].defaultConstructor   // Option[Method.NoInstance[MyClass]] - nullary constructor
+Type[MyClass].constructors         // List[Method.NoInstance[MyClass]]
+Type[MyClass].methods              // List[Method.Of[MyClass]]
+```
+
+**Visibility check:**
+
+```scala
+Type[MyClass].isAvailable(Everywhere)  // public
+Type[MyClass].isAvailable(AtCallSite)  // accessible from call site (including package-private)
+```
+
+### TypeCodec
+
+`TypeCodec[A]` provides bidirectional conversion between singleton/literal type values and their type representation:
+
+```scala
+// Creating type from literal value
+val intType: Type[5] = Type(5)           // creates Type[5] (literal type)
+val stringType: Type["hello"] = Type("hello")
+
+// Extracting value from literal type (if available)
+Type.unapply[5](Type[5]) // Some(5)
+Type.unapply[Int](Type[Int]) // None (not a literal type)
+```
+
+Built-in codecs exist for:
+
+- Primitives: `Null`, `Unit`, `Boolean`, `Byte`, `Short`, `Int`, `Long`, `Float`, `Double`, `Char`, `String`
+- Collections: `Array[A]`, `Seq[A]`, `List[A]`, `Nil.type`, `Vector[A]`, `Map[K,V]`, `Set[A]`
+- Options: `Option[A]`, `Some[A]`, `None.type`
+- Either: `Either[L,R]`, `Left[L,R]`, `Right[L,R]`
+- Module singletons: any `object` in classpath
+
+### Existential Types
+
+Existential types allow working with types whose exact identity is unknown at macro-writing time but will be known at macro-execution time:
+
+```scala
+// Basic existential
+val tpe: ?? = someType.as_??
+import tpe.Underlying as T
+// Now T can be used as a type parameter
+
+// Bounded existentials
+val subtypeOfFoo: ??<:[Foo] = ...  // upper bound
+val supertypeOfBar: ??>:[Bar] = ... // lower bound  
+val bounded: Foo <:??<: Bar = ...   // both bounds
+```
 
 ## `Expr`, `UntypedExpr` and `Expr_??`
 
-You can see 3 different representations of a type in Hearth codebase:
+You can see 3 different representations of expressions in Hearth codebase:
 
  * `Expr[A]` - corresponds to `c.Expr[A]` or `scala.quoted.Expr[A]`. Because the type for which information
    is stored is reflected in the, well, type (e.g. `Expr[String]` vs `Expr[Int]`) we can use them in quotes and splices
@@ -159,45 +272,762 @@ You can see 3 different representations of a type in Hearth codebase:
    Type[Param] // now, references to Param would resolve to unknownExpr.Underlying
    expr: Expr[Param] // and this is an Expr of some type that we can use
    ```
-   which ise useful, when we are e.g. trying to call some method or constructor.
+   which is useful, when we are e.g. trying to call some method or constructor.
+
+### Expression Operations
+
+`Expr[A]` provides operations for working with expressions:
+
+**Printing and display:**
+
+```scala
+val expr: Expr[Int] = Expr(42)
+expr.plainPrint   // "42" (without ANSI colors)
+expr.prettyPrint  // colored code representation
+expr.plainAST     // AST representation without colors
+expr.prettyAST    // colored AST representation
+```
+
+**Summoning implicits:**
+
+```scala
+Expr.summonImplicit[Ordering[String]]  // Option[Expr[Ordering[String]]]
+Type[String].summonExpr                 // Option[Expr[String]] - if implicit String exists
+```
+
+**Type operations:**
+
+```scala
+val stringExpr: Expr[String] = ???
+val anyRefExpr: Expr[AnyRef] = stringExpr.upcast[AnyRef]  // safe upcast
+expr.suppressUnused  // Expr[Unit] - prevents "unused value" warnings
+```
+
+### ExprCodec
+
+`ExprCodec[A]` generalizes over Scala 2's `Lifting`/`Unliftable` and Scala 3's `ToExpr`/`FromExpr`, allowing bidirectional conversion between values and expressions:
+
+```scala
+// Creating expressions from values (lifting)
+val intExpr: Expr[Int] = Expr(42)
+val listExpr: Expr[List[Int]] = Expr(List(1, 2, 3))
+val mapExpr: Expr[Map[String, Int]] = Expr(Map("a" -> 1, "b" -> 2))
+
+// Extracting values from expressions (unlifting)
+Expr.unapply(intExpr)   // Some(42)
+intExpr.value           // Some(42)
+```
+
+Built-in codecs exist for:
+
+- Primitives: `Null`, `Unit`, `Boolean`, `Byte`, `Short`, `Int`, `Long`, `Float`, `Double`, `Char`, `String`
+- Special: `Class[A]`, `ClassTag[A]`
+- Collections: `Array[A]`, `Seq[A]`, `List[A]`, `Nil.type`, `Vector[A]`, `Map[K,V]`, `Set[A]`
+- Options: `Option[A]`, `Some[A]`, `None.type`
+- Either: `Either[L,R]`, `Left[L,R]`, `Right[L,R]`
+- Data: Hearth's `data.Data` type
+
+### VarArgs
+
+Cross-platform handling of variadic arguments (Scala 2 uses `Seq[Expr[A]]`, Scala 3 uses `Expr[Seq[A]]`):
+
+```scala
+def myMacro[A: Type](args: VarArgs[A]): Expr[Unit] = {
+  val exprs: List[Expr[A]] = args.toList
+  // work with individual expressions
+  ???
+}
+```
+
+### MatchCase
+
+Build pattern-matching expressions programmatically:
+
+```scala
+// Generate: expr match { case x: A => handleA(x); case y: B => handleB(y) }
+expr.matchOn(
+  MatchCase.typeMatch[A]("x").map { x: Expr[A] => handleA(x) },
+  MatchCase.typeMatch[B]("y").map { y: Expr[B] => handleB(y) }
+)
+```
+
+### FreshName
+
+Strategies for generating fresh variable names to avoid clashes:
+
+```scala
+FreshName.FromType            // derive from type name
+FreshName.FromExpr            // derive from expression
+FreshName.FromPrefix("temp")  // use specific prefix
+"myPrefix"                    // String implicitly converts to FromPrefix
+```
+
+### Scoped
+
+Create scoped definitions (`val`, `var`, `lazy val`, `def`) with automatic scope management:
+
+```scala
+// Generate: { val x = expr; useX(x) }
+Scoped.createVal(expr, "x").use { x: Expr[A] =>
+  useX(x): Expr[B]
+} // : Expr[B]
+
+// Generate: { var x = initial; x = newValue; readX(x) }
+Scoped.createVar(initial, "x").use { case (getter, setter) =>
+  Expr.quote {
+    Expr.splice(setter(newValue))
+    Expr.splice(readX(getter))
+  }
+}
+
+// Lazy and def work similarly
+Scoped.createLazy(expr).use { x => ??? }
+Scoped.createDef(expr).use { x => ??? }
+```
+
+### LambdaBuilder
+
+Build lambda expressions with unknown return types and error aggregation support:
+
+```scala
+// Simple lambda: (a: A) => useA(a)
+LambdaBuilder.of1[A]("a").buildWith { a: Expr[A] =>
+  useA(a): Expr[B]
+} // : Expr[A => B]
+
+// Two arguments: (a: A, b: B) => useAB(a, b)
+LambdaBuilder.of2[A, B]("a", "b").buildWith { case (a, b) =>
+  useAB(a, b): Expr[C]
+} // : Expr[(A, B) => C]
+
+// With error handling (using MIO or other effect)
+LambdaBuilder.of1[A]("a").traverse[MIO, B] { a: Expr[A] =>
+  validateAndUseA(a): MIO[Expr[B]]
+}.map(_.build) // : MIO[Expr[A => B]]
+```
+
+Supports up to 22 parameters (`of1` through `of22`).
 
 ## `Method`
 
-`Method` represents a method that can be called. Currently we are supporting 2 kinds of methods:
+`Method` represents a method that can be called. Methods come in different flavors depending on how they're invoked:
 
- * `Method.NoInstance[Out]` - can be used to build calls like `Companon.method(args)` 
- * `Method.OfInstance[A, Out]` - can be used to build calls like `instance.method(args)`
+ * `Method.NoInstance[Out]` - constructors, static methods, or stable object methods: `Companion.method(args)` 
+ * `Method.OfInstance[A, Out]` - instance methods: `instance.method(args)`
+ * `Method.Unsupported[A, Out]` - methods we cannot handle (e.g., polymorphic methods with explicit type parameters)
 
-Applying type parameters is not yet supported, so calls like `instance.method[A, B](values)`
-where type parameters are applied explicitly or are inferred is not yet possible.
+!!! warning "Type Parameter Limitation"
+    Applying type parameters is not yet supported. Calls like `instance.method[A, B](values)` where type parameters 
+    are applied explicitly or need to be inferred are represented as `Method.Unsupported`.
+
+### Pattern Matching on Methods
+
+The recommended way to handle methods is through pattern matching:
+
+```scala
+method match {
+  case m: Method.NoInstance[?] =>
+    import m.Returned
+    m(arguments) // Either[String, Expr[Returned]]
+    
+  case m: Method.OfInstance[?, ?] =>
+    import m.{ Instance, Returned }
+    m(instance /* Expr[Instance] */, arguments) // Either[String, Expr[Returned]]
+    
+  case Method.Unsupported(_, _) =>
+    Left(method.reasonForUnsupported)
+}
+```
+
+### Parameters and Arguments
+
+**Parameter** - represents a method parameter definition:
+
+```scala
+val param: Parameter = ???
+param.name           // String - parameter name
+param.index          // Int - parameter position
+param.position       // Option[Position] - source location
+param.tpe            // ?? - the parameter type
+param.hasDefault     // Boolean - has default value?
+param.defaultValue   // Option[Existential[Method.Of]] - default value getter
+param.annotations    // List[Expr_??] - parameter annotations
+param.isByName       // Boolean - by-name parameter?
+param.isImplicit     // Boolean - implicit parameter?
+```
+
+**Parameters** - all parameters of a method, grouped by parameter list:
+
+```scala
+type Parameters = List[ListMap[String, Parameter]]
+
+// Example: def foo(a: Int, b: String)(implicit c: Boolean)
+// Parameters = List(
+//   ListMap("a" -> paramA, "b" -> paramB),
+//   ListMap("c" -> paramC)
+// )
+```
+
+**Arguments** - values to pass to a method:
+
+```scala
+type Arguments = Map[String, Expr_??]
+
+// Build arguments
+val args: Arguments = Map(
+  "a" -> Expr(42).as_??,
+  "b" -> Expr("hello").as_??
+)
+```
+
+### Method Properties
+
+**Metadata:**
+
+```scala
+method.name           // String - method name
+method.position       // Option[Position] - source location
+method.annotations    // List[Expr_??] - method annotations
+method.parameters     // Parameters - parameter groups
+```
+
+**Kind checks:**
+
+```scala
+method.isConstructor           // true for constructors
+method.isVal                   // val member
+method.isVar                   // var member
+method.isLazy                  // lazy val
+method.isDef                   // def method
+method.isImplicit              // implicit def/val
+```
+
+**Source info:**
+
+```scala
+method.isDeclared              // declared in this class
+method.isSynthetic             // compiler-generated
+method.isInherited             // inherited from parent
+method.isCaseField             // case class field
+method.isConstructorArgument   // constructor parameter
+```
+
+**Arity:**
+
+```scala
+method.arity           // Int - total parameter count
+method.isNullary       // no parameters
+method.isUnary         // one parameter
+method.isBinary        // two parameters
+method.isNAry(n)       // exactly n parameters
+```
+
+**Accessors (getters/setters):**
+
+```scala
+// Scala-style accessors
+method.isScalaGetter         // val, var, lazy val (without _=)
+method.isScalaSetter         // var setter (name_=)
+method.scalaAccessorName     // Option[String] - field name
+
+// Java Bean accessors
+method.isJavaGetter          // getX() -> X, isX() -> Boolean
+method.isJavaSetter          // setX(v) -> Unit
+method.javaAccessorName      // Option[String] - property name
+
+// Combined
+method.isAccessor            // any accessor
+method.accessorName          // Option[String] - property name
+```
+
+**Visibility:**
+
+```scala
+method.isAvailable(Everywhere)  // public
+method.isAvailable(AtCallSite)  // accessible from call site
+```
+
+### Calling Methods
+
+```scala
+// Constructor or static method
+val ctor: Method.NoInstance[MyClass] = Type[MyClass].primaryConstructor.get
+ctor(Map("param1" -> arg1, "param2" -> arg2)) // Either[String, Expr[MyClass]]
+
+// Instance method
+val method: Method.OfInstance[MyClass, String] = ???
+import method.{ Instance, Returned }
+method(
+  instance = myInstance,  // Expr[Instance]
+  arguments = Map("x" -> argX)
+) // Either[String, Expr[Returned]]
+```
+
+The methods validate that:
+- All required parameters are provided
+- Argument types match parameter types
+- Returns `Right(expr)` on success or `Left(error)` on failure
 
 ## `Class`
 
-`Class[A]` is a handy utility which at once takes care of:
+`Class[A]` is a convenient utility that aggregates information about a type:
 
- * finding out all constructors
- * finding out all instance methods or companion object methods
+```scala
+val cls = Class[MyClass]
+cls.constructors  // List[Method.NoInstance[MyClass]]
+cls.methods       // List[Method.Of[MyClass]]
+cls.method("foo") // List[Method.Of[MyClass]] - all overloads named "foo"
+```
 
-of some class. It also exposes a views (`asCaseClass`, `asEnum`, `asJavaBean`) providing additional functionalities when available:
+`Class` also provides specialized views when applicable:
 
- * `CaseClass[A]` assumes that there is a primary constructor and a set of fields defined by it
- * `Enum[A]` exposes a list of subtypes and a way of pattern matching on them
- * `JavaBean[A]` assumes that there is a default constructor and a set of setters to call during construction
+```scala
+cls.asCaseClass   // Option[CaseClass[MyClass]]
+cls.asEnum        // Option[Enum[MyClass]]
+cls.asJavaBean    // Option[JavaBean[MyClass]]
+```
 
-These utilities are there for convenience as you could implement them yourself using methods exposed by `Type` and `Method` interfaces.
+These utilities are built on top of `Type` and `Method` - you could implement similar functionality yourself, but these provide convenient shortcuts.
+
+### `CaseClass[A]`
+
+Specialized view for case classes, providing access to primary constructor and case fields:
+
+```scala
+val cc = CaseClass.parse[Person].get  // or Type[Person].asCaseClass.get
+
+cc.primaryConstructor        // Method.NoInstance[Person] 
+cc.nonPrimaryConstructors    // List[Method.NoInstance[Person]]
+cc.caseFields                // List[Method.Of[Person]] - the fields
+```
+
+**Constructing instances:**
+
+```scala
+// Sequential field construction
+cc.construct[MIO] { field: Parameter =>
+  import field.tpe.Underlying as FieldType
+  createExpr[FieldType]: MIO[Expr[FieldType]]
+}.map(_.get) // MIO[Expr[Person]]
+
+// Parallel field construction (for independent computations)
+cc.parConstruct[MIO] { field: Parameter =>
+  import field.tpe.Underlying as FieldType
+  createExprInParallel[FieldType]: MIO[Expr[FieldType]]
+}.map(_.get) // MIO[Expr[Person]]
+```
+
+**Deconstructing instances:**
+
+```scala
+val person: Expr[Person] = ???
+val fieldValues: ListMap[String, Expr_??] = cc.caseFieldValuesAt(person)
+// Map("name" -> nameExpr, "age" -> ageExpr, ...)
+```
+
+### `Enum[A]`
+
+Specialized view for sealed traits, Scala 3 enums, or Java enums:
+
+```scala
+val enumm = Enum.parse[Color].get  // or Type[Color].asEnum.get
+
+enumm.directChildren       // ListMap[String, ??<:[Color]] - immediate subtypes
+enumm.exhaustiveChildren   // Option[NonEmptyMap[String, ??<:[Color]]] - all subtypes
+```
+
+**Pattern matching on enum values:**
+
+```scala
+val colorExpr: Expr[Color] = ???
+
+// Sequential case handling
+enumm.matchOn[MIO, String](colorExpr) { child: Expr_??<:[Color] =>
+  import child.{Underlying as ChildType, value as childExpr}
+  // childExpr: Expr[ChildType] where ChildType <: Color
+  handleColor[ChildType](childExpr): MIO[Expr[String]]
+}.map(_.get) // MIO[Expr[String]]
+
+// Parallel case handling
+enumm.parMatchOn[MIO, String](colorExpr) { child =>
+  import child.{Underlying as ChildType, value as childExpr}
+  handleColorInParallel[ChildType](childExpr): MIO[Expr[String]]
+}.map(_.get) // MIO[Expr[String]]
+```
+
+This generates exhaustive pattern matching over all direct children:
+
+```scala
+// Generated code:
+colorExpr match {
+  case red: Red.type => handleColor(red)
+  case Green(value) => handleColor(Green(value))
+  case Blue => handleColor(Blue)
+}
+```
+
+### `JavaBean[A]`
+
+Specialized view for Java Beans (POJOs with default constructor and setters):
+
+```scala
+val bean = JavaBean.parse[PersonBean].get  // or Type[PersonBean].asJavaBean.get
+
+bean.defaultConstructor   // Method.NoInstance[PersonBean] - nullary constructor
+bean.beanGetters          // List[Existential[Method.OfInstance[PersonBean, *]]]
+bean.beanSetters          // List[Method.OfInstance[PersonBean, Unit]]
+```
+
+**Constructing without setters:**
+
+```scala
+val instance: Option[Expr[PersonBean]] = bean.constructWithoutSetters
+// Generates: new PersonBean()
+```
+
+**Constructing with setters:**
+
+```scala
+// Sequential setter calls
+bean.constructWithSetters[MIO] { (name: String, param: Parameter) =>
+  import param.tpe.Underlying as FieldType
+  createValue[FieldType](name): MIO[Expr[FieldType]]
+}.map(_.get) // MIO[Expr[PersonBean]]
+
+// Parallel setter preparation (setters still called sequentially)
+bean.parConstructWithSetters[MIO] { (name, param) =>
+  import param.tpe.Underlying as FieldType
+  createValueInParallel[FieldType](name): MIO[Expr[FieldType]]
+}.map(_.get) // MIO[Expr[PersonBean]]
+```
+
+This generates code like:
+
+```scala
+{
+  val bean = new PersonBean()
+  bean.setName(nameValue)
+  bean.setAge(ageValue)
+  bean
+}
+```
+
+## `Position`
+
+Represents a source code location (corresponds to `c.universe.Position` on Scala 2, `quotes.reflect.Position` on Scala 3):
+
+```scala
+val pos: Position = Type[MyClass].position.get
+
+pos.file        // Option[java.nio.file.Path] - source file
+pos.fileName    // Option[String] - file name only
+pos.line        // Int - line number
+pos.column      // Int - column number
+pos.offset      // Int - character offset from file start
+
+pos.prettyPrint       // "MyFile.scala:42:10"
+pos.prettyPrintLong   // "/full/path/to/MyFile.scala:42:10"
+```
+
+Positions can be compared and sorted:
+
+```scala
+import PositionOrdering.given  // or implicit val _ = PositionOrdering
+positions.sorted  // sorts by file path, then offset
+```
 
 ## `Environment`
 
-`Environment` provides some usful utilities like:
+`Environment` provides utilities for introspecting the compilation environment and reporting messages:
 
- * `currentPosition` - the position of the macro expansion
- * `currentScalaVersion` - 2.13 or 3?
- * `currentJDKVersion` - if we want to provide different features depending on JDK used
- * `currentPlatform` - JVM, JS or Native?
- * `XMacroSettings` - all settings provided as a `List` via `-Xmacro-setting:...` scalac option
- * `typedSettings` - same as above but parsed into a JSON-like structure
- * `reportInfo`/`reportWarn`/`reportError`/`reportErrorAndAbort` - provide a message to show as `[INFO]`, `[WARN]` or `[ERROR]`
-   during compilation/by IDE/Scastie - for each level only the first call matters, all following are no-ops!
- * `isExpandedAt` - let you test your macros for a single use case (`if (isExpandedAt("someFile.scala:10:4"))`)
- * `loadMacroExtension` - allows defining API for macro extensions, so that functionaity of a macro could be expanded, just like
-   implicit-based metaprogramming, but without providing new implicits - add extension on a classpath and its availabe to the macros!
+### Current Compilation Context
+
+```scala
+Environment.currentPosition     // Position - where macro is expanded
+
+Environment.currentScalaVersion // ScalaVersion - e.g. 2.13.10, 3.3.0
+Environment.currentLanguageVersion  // LanguageVersion - Scala2_13 or Scala3
+Environment.isScala2_13         // Boolean
+Environment.isScala3            // Boolean
+
+Environment.currentJDKVersion   // JDKVersion - runtime JDK version
+Environment.currentPlatform     // Platform - JVM, JS, or Native
+Environment.isJvm               // Boolean
+Environment.isJs                // Boolean  
+Environment.isNative            // Boolean
+```
+
+### Macro Settings
+
+Pass settings to macros via `-Xmacro-settings:key=value`:
+
+```scala
+// scalacOptions += "-Xmacro-settings:myMacro.debug=true"
+// scalacOptions += "-Xmacro-settings:myMacro.threshold=42"
+
+Environment.XMacroSettings  // List[String] - all settings as strings
+
+Environment.typedSettings   // Either[String, data.Data] - parsed as JSON-like structure
+Environment.typedSettings.toOption.flatMap(_.get("myMacro")).flatMap(_.get("debug"))
+```
+
+### Reporting
+
+Report messages to the user during compilation:
+
+```scala
+Environment.reportInfo("Generating code for MyClass")
+Environment.reportWarn("Type parameter might be incorrect")
+Environment.reportError("Invalid configuration")
+Environment.reportErrorAndAbort("Fatal error, cannot continue")  // throws exception
+```
+
+!!! note "Reporting Behavior"
+    For each level (INFO, WARN, ERROR), only the **first** call matters. Subsequent calls at the same level are no-ops.
+    This behavior is consistent between Scala 2 and Scala 3 macros.
+
+### Debug Helpers
+
+**Selective macro expansion:**
+
+Useful for debugging a specific macro invocation without seeing output from all expansions:
+
+```scala
+if (Environment.isExpandedAt("MyFile.scala:42:10")) {
+  // Print debug info only for this specific expansion
+  println(s"Debug: ${someValue}")
+}
+```
+
+Accepts formats:
+- `"File.scala:12"` - matches line
+- `"File.scala:12:34"` - matches line and column
+
+### Macro Extensions
+
+Load service provider extensions to extend macro functionality:
+
+```scala
+// Define an extension
+trait MyMacroExtension extends MacroExtension[MacroCommons] {
+  def isDefinedAt(env: MacroCommons): Boolean = true
+  def apply(env: MacroCommons): Unit = {
+    // Configure or extend the macro environment
+  }
+}
+
+// In your macro
+Environment.loadMacroExtensions[MyMacroExtension] match {
+  case Right(()) => // all extensions loaded successfully
+  case Left(errors) => // handle errors
+}
+```
+
+Extensions are discovered via Java's ServiceLoader mechanism, allowing functionality to be added just by having the right JAR on the classpath.
+
+### MIO Termination Handling
+
+When using Hearth's `MIO` effect system, handle Ctrl+C interruption:
+
+```scala
+Environment.handleMioTerminationException {
+  // Code that might be interrupted
+  someMioComputation.runToExprOrFail
+}
+```
+
+Behavior can be configured via `-Xmacro-settings:hearth.mioTerminationShouldUseReportError=true|false`:
+- `true` (default): Uses `reportErrorAndAbort` to show error and terminate current macro
+- `false`: Prints to stderr and throws exception to terminate compilation
+
+This is automatically handled when using `mio.runToExprOrFail(...)(...)` extension.
+
+## Advanced Patterns
+
+### Working with Existential Types
+
+Existential types (`??`) are essential when dealing with types whose identity isn't known at macro-writing time:
+
+```scala
+// Getting an existential from a Type[A]
+val tpe: Type[String] = Type.of[String]
+val existential: ?? = tpe.as_??
+
+// Using the existential - import the type to use it
+import existential.Underlying as T
+// Now T is available as a type parameter
+val expr: Expr[T] = Expr.quote { ??? }: Expr[T]
+val method: Method.Of[T] = ???
+```
+
+**Bounded existentials** constrain the possible types:
+
+```scala
+// Type must be subtype of Animal
+val animal: ??<:[Animal] = dogType.as_??<:[Animal]
+
+// Type must be supertype of Dog  
+val supertype: ??>:[Dog] = animalType.as_??>:[Dog]
+
+// Type must be between bounds
+val bounded: Dog <:??<: Animal = dogType.as_<:??<:[Dog, Animal]
+```
+
+**Working with lists of existentials:**
+
+```scala
+// Enum children are existentials
+val children: ListMap[String, ??<:[Color]] = enum.directChildren
+
+children.foreach { case (name, childType) =>
+  import childType.Underlying as Child
+  // Child is now available as a type
+  handleColorType[Child]: Unit
+}
+```
+
+### Parallel vs Sequential Operations
+
+Many operations come in two flavors:
+
+**Sequential** (`construct`, `matchOn`):
+- Processes items one after another
+- Later computations can depend on earlier results
+- Uses `Applicative` constraint
+
+**Parallel** (`parConstruct`, `parMatchOn`):
+- Processes items independently when possible
+- Better for independent, expensive computations
+- Uses `Parallel` constraint (which implies `Applicative`)
+
+```scala
+// Sequential: fields computed in order
+caseClass.construct[MIO] { field =>
+  // Can use results from previous fields
+  computeField(field): MIO[Expr_??]
+}
+
+// Parallel: fields computed independently
+caseClass.parConstruct[MIO] { field =>
+  // Should not depend on other fields
+  computeFieldIndependently(field): MIO[Expr_??]
+}
+```
+
+!!! tip "When to Use Parallel"
+
+    Use parallel variants when:
+
+    - Computations are independent
+    - You want to aggregate errors from all fields/cases (not fail on first error)
+
+### DirectStyle Pattern
+
+Many Hearth operations use the `DirectStyle[F]` pattern to enable working with effects:
+
+```scala
+def construct[F[_]: DirectStyle: Applicative](
+    makeField: Parameter => F[Expr[_]]
+): F[Option[Expr[A]]]
+```
+
+This allows:
+- Using effect types like `MIO`, `Either`, `Option`, `List`
+- Safely running computations within a scope
+- Type-safe handling of dependent types
+
+```scala
+DirectStyle[MIO].scoped { runSafe =>
+  import someExistential.Underlying as T
+  val result: Expr[T] = runSafe(computation): Expr[T]
+  // Use result
+  result.as_??
+}
+```
+
+The `runSafe` function ensures that:
+- Effect is executed safely within the current scope
+- Type information is preserved through dependent types
+- Existential types are handled correctly
+
+### Error Aggregation
+
+When building complex code generation, aggregate errors instead of failing fast:
+
+```scala
+// Using MIO to aggregate errors
+caseClass.parConstruct[MIO] { field =>
+  MIO {
+    if (isValid(field)) Right(createExpr(field))
+    else Left(NonEmptyVector.of(s"Invalid field: ${field.name}"))
+  }
+}.runToExprOrFail  // Aggregates all errors before failing
+```
+
+### Type Safety with Method Calls
+
+When calling methods with existential return types, use pattern matching:
+
+```scala
+val methods: List[Method.Of[MyClass]] = Type[MyClass].methods
+
+methods.foreach { methodExists =>
+  methodExists.value match {
+    case m: Method.OfInstance[?, ?] =>
+      import m.{ Instance, Returned }
+      // Now Instance and Returned are available as types
+      val result: Either[String, Expr[Returned]] = m(instance, args)
+      result.map { expr: Expr[Returned] =>
+        // Use expr with full type information
+        expr.as_??
+      }
+    case _ => ???
+  }
+}
+```
+
+### Accessor Patterns
+
+Handle both Scala and Java accessor patterns uniformly:
+
+```scala
+class.methods.filter(_.value.isAccessor).groupBy(_.value.accessorName).foreach {
+  case (Some(propName), methods) =>
+    val getters = methods.filter(_.value.isJavaGetter || _.value.isScalaGetter)
+    val setters = methods.filter(_.value.isJavaSetter || _.value.isScalaSetter)
+    // Handle property with getters and/or setters
+}
+```
+
+### Debugging Tips
+
+**1. Print types and expressions:**
+
+```scala
+println(s"Type: ${Type[MyClass].prettyPrint}")
+println(s"Expr: ${expr.prettyPrint}")
+println(s"AST: ${expr.prettyAST}")
+```
+
+**2. Use selective expansion for debugging:**
+
+```scala
+if (Environment.isExpandedAt("MyFile.scala:42:10")) {
+  // Only debug this specific expansion
+  println(s"Parameters: ${method.parameters}")
+}
+```
+
+**3. Validate argument types:**
+
+```scala
+method match {
+  case m: Method.OfInstance[?, ?] =>
+    m(instance, args) match {
+      case Right(result) => // success
+      case Left(error) =>
+        // Error message includes type mismatches
+        Environment.reportError(error)
+    }
+}
+```
