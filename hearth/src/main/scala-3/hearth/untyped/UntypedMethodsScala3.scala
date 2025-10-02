@@ -8,11 +8,13 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
   import quotes.*, quotes.reflect.*
 
+  import UntypedType.platformSpecific.{positionOf, symbolAvailable}
+
   final class UntypedParameter private (val method: UntypedMethod, val symbol: Symbol, val index: Int)
       extends UntypedParameterMethods {
 
     override def name: String = symbol.name
-    override def position: Option[Position] = UntypedType.platformSpecific.positionOf(symbol)
+    override def position: Option[Position] = positionOf(symbol)
 
     override def annotations: List[UntypedExpr] = symbol.annotations
 
@@ -140,7 +142,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     }
 
     override lazy val name: String = symbol.name
-    override def position: Option[Position] = UntypedType.platformSpecific.positionOf(symbol)
+    override def position: Option[Position] = positionOf(symbol)
 
     override def annotations: List[UntypedExpr] = symbol.annotations
 
@@ -154,34 +156,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def isSynthetic: Boolean =
       symbol.flags.is(Flags.Synthetic) || UntypedMethod.methodsConsideredSynthetic(symbol)
 
-    override def isAvailable(scope: Accessible): Boolean = {
-      // TODO: test this new implementation
-      val owner = symbol.owner
-      val enclosing = Symbol.spliceOwner
-      def enclosings = Iterator.iterate(enclosing)(_.owner).takeWhile(!_.isNoSymbol)
-
-      // Helper methods
-      def isPrivate: Boolean = symbol.flags.is(Flags.Private)
-      def isProtected: Boolean = symbol.flags.is(Flags.Protected)
-
-      // High-level checks
-      def isPublic: Boolean =
-        !isPrivate && !isProtected && symbol.privateWithin.isEmpty && symbol.protectedWithin.isEmpty
-      def isPrivateButInTheSameClass: Boolean = isPrivate && enclosing == owner
-      def isProtectedButInTheSameClass: Boolean =
-        isProtected && enclosing.isClassDef && (enclosing.typeRef <:< owner.typeRef)
-      def isPrivateWithinButInTheRightPlace: Boolean =
-        symbol.privateWithin.orElse(symbol.protectedWithin).exists { pw =>
-          val pwType = pw.typeSymbol
-          enclosings.exists(e => pwType == e || pwType == e.companionClass || pwType == e.companionModule)
-        }
-
-      scope match {
-        case Everywhere => isPublic
-        case AtCallSite =>
-          isPublic || isPrivateButInTheSameClass || isProtectedButInTheSameClass || isPrivateWithinButInTheRightPlace
-      }
-    }
+    override def isAvailable(scope: Accessible): Boolean = symbolAvailable(symbol, scope)
   }
 
   object UntypedMethod extends UntypedMethodModule {

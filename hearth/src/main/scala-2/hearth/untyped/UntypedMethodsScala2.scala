@@ -7,7 +7,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
   import c.universe.*
 
-  import UntypedType.platformSpecific.{positionOf, symbolName}
+  import UntypedType.platformSpecific.{positionOf, symbolAvailable, symbolName}
 
   final class UntypedParameter private (val method: UntypedMethod, val symbol: TermSymbol, val index: Int)
       extends UntypedParameterMethods {
@@ -119,35 +119,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     override def isImplicit: Boolean = symbol.isImplicit
     override def isSynthetic: Boolean = symbol.isSynthetic || UntypedMethod.methodsConsideredSynthetic(symbol)
 
-    override def isAvailable(scope: Accessible): Boolean = {
-      // TODO: test this new implementation
-      val owner = symbol.owner
-      val enclosing = c.internal.enclosingOwner
-
-      // Helper methods
-      def privateWithin: Option[Symbol] = Option(symbol.privateWithin).filterNot(_ == NoSymbol)
-
-      // High-level checks
-      def isPublic: Boolean = symbol.isPublic
-      def isPrivateButInTheSameClass: Boolean = symbol.isPrivate && enclosing == owner
-      def isProtectedButInTheSameClass: Boolean =
-        symbol.isProtected && enclosing.isClass && enclosing.asClass.toType <:< owner.asClass.toType
-      def isPrivateWithinButInTheRightPlace: Boolean = privateWithin.exists { pw =>
-        def isPackagePrivateButInTheRightPackage: Boolean = pw.isPackage && {
-          val en = enclosing.fullName.toString
-          val pn = pw.fullName.toString
-          en == pn || en.startsWith(pn + ".")
-        }
-        isPackagePrivateButInTheRightPackage
-      }
-
-      scope match {
-        case Everywhere => isPublic
-        case AtCallSite =>
-          // TODO: or try the approach from [[UntypedTypesScala2.isAvailable]]
-          isPublic || isPrivateButInTheSameClass || isProtectedButInTheSameClass || isPrivateWithinButInTheRightPlace
-      }
-    }
+    override def isAvailable(scope: Accessible): Boolean = symbolAvailable(symbol, scope)
 
     // -------------------------------------------- Special cases handling --------------------------------------------
     // So, the symbol of val/var is no just one symbol - there is a symbol for var/var `fieldName` as a `TermSymbol`,

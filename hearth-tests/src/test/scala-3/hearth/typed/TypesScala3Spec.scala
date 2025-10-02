@@ -209,7 +209,8 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isCaseClass" -> Data(false),
             "Type.isCaseObject" -> Data(false),
             "Type.isCaseVal" -> Data(false),
-            "Type.isAvailable(Everywhere)" -> Data(true)
+            "Type.isAvailable(Everywhere)" -> Data(true),
+            "Type.isAvailable(AtCallSite)" -> Data(true)
           )
         }
 
@@ -223,7 +224,9 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isVal" -> Data(false),
             "Type.isCaseClass" -> Data(true),
             "Type.isCaseObject" -> Data(false),
-            "Type.isCaseVal" -> Data(false)
+            "Type.isCaseVal" -> Data(false),
+            "Type.isAvailable(Everywhere)" -> Data(true),
+            "Type.isAvailable(AtCallSite)" -> Data(true)
           ),
           "ExampleEnumValue" -> Data.map(
             "Type.isSealed" -> Data(false),
@@ -234,7 +237,9 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isVal" -> Data(true),
             "Type.isCaseClass" -> Data(false),
             "Type.isCaseObject" -> Data(false),
-            "Type.isCaseVal" -> Data(true)
+            "Type.isCaseVal" -> Data(true),
+            "Type.isAvailable(Everywhere)" -> Data(true),
+            "Type.isAvailable(AtCallSite)" -> Data(true)
           )
         )
       }
@@ -260,7 +265,8 @@ final class TypesScala3Spec extends MacroSuite {
           "Type.isCaseClass" -> Data(true),
           "Type.isCaseObject" -> Data(false),
           "Type.isCaseVal" -> Data(false),
-          "Type.isAvailable(Everywhere)" -> Data(true)
+          "Type.isAvailable(Everywhere)" -> Data(true),
+          "Type.isAvailable(AtCallSite)" -> Data(true)
         )
       }
     }

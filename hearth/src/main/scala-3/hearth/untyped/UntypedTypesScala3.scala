@@ -40,6 +40,34 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
             subtype.typeRef
         }
 
+      def symbolAvailable(symbol: Symbol, scope: Accessible): Boolean = {
+        val owner = symbol.owner
+        val enclosing = Symbol.spliceOwner
+        def enclosings = Iterator.iterate(enclosing)(_.owner).takeWhile(!_.isNoSymbol)
+
+        // Helper methods
+        def isPrivate: Boolean = symbol.flags.is(Flags.Private)
+        def isProtected: Boolean = symbol.flags.is(Flags.Protected)
+
+        // High-level checks
+        def isPublic: Boolean =
+          !isPrivate && !isProtected && symbol.privateWithin.isEmpty && symbol.protectedWithin.isEmpty
+        def isPrivateButInTheSameClass: Boolean = isPrivate && enclosing == owner
+        def isProtectedButInTheSameClass: Boolean =
+          isProtected && enclosing.isClassDef && (enclosing.typeRef <:< owner.typeRef)
+        def isPrivateWithinButInTheRightPlace: Boolean =
+          symbol.privateWithin.orElse(symbol.protectedWithin).exists { pw =>
+            val pwType = pw.typeSymbol
+            enclosings.exists(e => pwType == e || pwType == e.companionClass || pwType == e.companionModule)
+          }
+
+        scope match {
+          case Everywhere => isPublic
+          case AtCallSite =>
+            isPublic || isPrivateButInTheSameClass || isProtectedButInTheSameClass || isPrivateWithinButInTheRightPlace
+        }
+      }
+
       def positionOf(symbol: Symbol): Option[Position] =
         symbol.pos
           // Removes values like "/BCDEF/java.base/java/lang/Object.sig" which are not actual positions.
@@ -109,24 +137,8 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       !A.isNoSymbol && (attempt(A) || attempt(instanceTpe.termSymbol))
     }
 
-    override def isAvailable(instanceTpe: UntypedType, scope: Accessible): Boolean = scope match {
-      case Everywhere =>
-        val A = instanceTpe.typeSymbol
-        !(A.flags.is(Flags.Private) || A.flags.is(Flags.PrivateLocal) || A.flags.is(Flags.Protected) ||
-          A.privateWithin.isDefined || A.protectedWithin.isDefined)
-      case AtCallSite =>
-        try {
-          // Try to access the type in the current context.
-          // If it's not accessible, this will throw an exception.
-          // TODO: test this assumption
-          val A0 = instanceTpe.as_??
-          import A0.Underlying as A
-          ignore('{ null.asInstanceOf[A] })
-          true
-        } catch {
-          case _: Throwable => false
-        }
-    }
+    override def isAvailable(instanceTpe: UntypedType, scope: Accessible): Boolean =
+      symbolAvailable(instanceTpe.typeSymbol, scope)
 
     override def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean =
       quotes.reflect.TypeReprMethods.<:<(subtype)(supertype)
