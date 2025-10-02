@@ -63,12 +63,16 @@ trait Classes { this: MacroCommons =>
       else {
         callConstructor(primaryConstructor.parameters.flatten.toList.traverse(buildFieldResults(makeArgument)))
       }
+    def construct[F[_]: DirectStyle: Applicative](makeArgument: Parameter => F[Expr_??]): F[Option[Expr[A]]] =
+      construct(CaseClass.ConstructField.apply[F](makeArgument))
 
     def parConstruct[F[_]: DirectStyle: Parallel](makeArgument: CaseClass.ConstructField[F]): F[Option[Expr[A]]] =
       if (!primaryConstructor.isAvailable(Everywhere)) Option.empty[Expr[A]].pure[F]
       else {
         callConstructor(primaryConstructor.parameters.flatten.toList.parTraverse(buildFieldResults(makeArgument)))
       }
+    def parConstruct[F[_]: DirectStyle: Parallel](makeArgument: Parameter => F[Expr_??]): F[Option[Expr[A]]] =
+      construct(CaseClass.ConstructField.apply[F](makeArgument))
 
     private def buildFieldResults[F[_]: DirectStyle](
         makeArgument: CaseClass.ConstructField[F]
@@ -123,6 +127,25 @@ trait Classes { this: MacroCommons =>
     @FunctionalInterface
     trait ConstructField[F[_]] {
       def apply(field: Parameter): F[Expr[field.tpe.Underlying]]
+    }
+    object ConstructField {
+
+      /** Constructs a [[ConstructField]] from a function that produces an [[Expr_??]] for a given field.
+        *
+        * Works around the limitation of Scala 2, that Single Abstract Methods cannot be constructed from what should be
+        * dependant duntion types (introduced only in Scala 3).
+        *
+        * @since 0.1.0
+        */
+      def apply[F[_]: Applicative](makeArgument: Parameter => F[Expr_??]): ConstructField[F] =
+        new CaseClass.ConstructField[F] {
+
+          def apply(field: Parameter): F[Expr[field.tpe.Underlying]] = makeArgument(field).map { eexpr =>
+            import eexpr.{Underlying as ExprType, value as expr}
+            import field.tpe.Underlying as FieldType
+            expr.upcast[FieldType]
+          }
+        }
     }
   }
 
@@ -238,6 +261,10 @@ trait Classes { this: MacroCommons =>
           }
           .map(_.close)
       }
+    def constructWithSetters[F[_]: DirectStyle: Applicative](
+        setField: (String, Parameter) => F[Expr_??]
+    ): F[Option[Expr[A]]] =
+      constructWithSetters(JavaBean.SetField.apply[F](setField))
 
     def parConstructWithSetters[F[_]: DirectStyle: Parallel](setField: JavaBean.SetField[F]): F[Option[Expr[A]]] =
       constructWithoutSetters.traverse[F, Expr[A]] { constructorExpr =>
@@ -250,6 +277,10 @@ trait Classes { this: MacroCommons =>
           }
           .map(_.close)
       }
+    def parConstructWithSetters[F[_]: DirectStyle: Parallel](
+        setField: (String, Parameter) => F[Expr_??]
+    ): F[Option[Expr[A]]] =
+      constructWithSetters(JavaBean.SetField.apply[F](setField))
 
     private def applySetters[F[_]: DirectStyle](constructorResult: Expr[A], setField: JavaBean.SetField[F])(
         setter: Method.OfInstance[A, Unit]
@@ -296,6 +327,25 @@ trait Classes { this: MacroCommons =>
     @FunctionalInterface
     trait SetField[F[_]] {
       def apply(name: String, input: Parameter): F[Expr[input.tpe.Underlying]]
+    }
+    object SetField {
+
+      /** Constructs a [[SetField]] from a function that produces an [[Expr_??]] for a given field.
+        *
+        * Works around the limitation of Scala 2, that Single Abstract Methods cannot be constructed from what should be
+        * dependant duntion types (introduced only in Scala 3).
+        *
+        * @since 0.1.0
+        */
+      def apply[F[_]: Applicative](makeArgument: (String, Parameter) => F[Expr_??]): SetField[F] =
+        new JavaBean.SetField[F] {
+          def apply(name: String, input: Parameter): F[Expr[input.tpe.Underlying]] = makeArgument(name, input).map {
+            eexpr =>
+              import eexpr.{Underlying as ExprType, value as expr}
+              import input.tpe.Underlying as FieldType
+              expr.upcast[FieldType]
+          }
+        }
     }
   }
 }
