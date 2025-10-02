@@ -92,16 +92,13 @@ trait ClassesFixturesImpl { this: MacroCommons =>
 
   def testCaseClassConstructAndParConstruct[A: Type]: Expr[String] = Expr {
     CaseClass.parse[A].fold("<no case class>") { caseClass =>
-      // Why it fails to work as a SAM?
-      val makeArgument: CaseClass.ConstructField[MIO] = new CaseClass.ConstructField[MIO] {
-        def apply(field: Parameter): MIO[Expr[field.tpe.Underlying]] = {
-          import field.tpe.Underlying as FieldType
-          implicit val IntType: Type[Int] = intType
-          implicit val StringType: Type[String] = stringType
-          if (FieldType <:< Type[Int]) MIO.pure(Expr(0).upcast[FieldType])
-          else if (FieldType <:< Type[String]) MIO.pure(Expr(field.name).upcast[FieldType])
-          else MIO.fail(new Exception(s"Field $field.name has wrong type: ${field.tpe.plainPrint}"))
-        }
+      val makeArgument: Parameter => MIO[Expr_??] = field => {
+        import field.tpe.Underlying as FieldType
+        implicit val IntType: Type[Int] = intType
+        implicit val StringType: Type[String] = stringType
+        if (FieldType <:< Type[Int]) MIO.pure(Expr(0).as_??)
+        else if (FieldType <:< Type[String]) MIO.pure(Expr(field.name).as_??)
+        else MIO.fail(new Exception(s"Field $field.name has wrong type: ${field.tpe.plainPrint}"))
       }
       val sequential = caseClass.construct(makeArgument).map { result =>
         result.fold("<failed to construct sequentail>")(_.plainPrint)
@@ -136,17 +133,15 @@ trait ClassesFixturesImpl { this: MacroCommons =>
   def testEnumMatchOnAndParMatchOn[A: Type](expr: Expr[A]): Expr[String] =
     Enum.parse[A].fold(Expr("<no enum>")) { enumm =>
       implicit val StringType: Type[String] = stringType
+      val handle: Expr_??<:[A] => MIO[Expr[String]] = matched => {
+        import matched.{Underlying as Subtype, value as matchedExpr}
+        MIO.pure(Expr(s"subtype name: ${Subtype.plainPrint}, expr: ${matchedExpr.plainPrint}"))
+      }
       val sequential = enumm
-        .matchOn(expr) { matched =>
-          import matched.{Underlying as Subtype, value as matchedExpr}
-          MIO.pure(Expr(s"subtype name: ${Subtype.plainPrint}, expr: ${matchedExpr.plainPrint}"))
-        }
+        .matchOn(expr)(handle)
         .map(_.getOrElse(Expr("<failed to perform exhaustive match>")))
       val parallel = enumm
-        .parMatchOn(expr) { matched =>
-          import matched.{Underlying as Subtype, value as matchedExpr}
-          MIO.pure(Expr(s"subtype name: ${Subtype.plainPrint}, expr: ${matchedExpr.plainPrint}"))
-        }
+        .parMatchOn(expr)(handle)
         .map(_.getOrElse(Expr("<failed to perform exhaustive match>")))
       sequential
         .parMap2(parallel) { (sequential, parallel) =>
@@ -162,17 +157,15 @@ trait ClassesFixturesImpl { this: MacroCommons =>
 
   def testJavaBeanConstructWithSettersAndParConstructWithSetters[A: Type]: Expr[String] = Expr {
     JavaBean.parse[A].fold("<no java bean>") { javaBean =>
-      val setField: JavaBean.SetField[MIO] = new JavaBean.SetField[MIO] {
-        def apply(name: String, input: Parameter): MIO[Expr[input.tpe.Underlying]] = {
-          import input.tpe.Underlying as FieldType
-          implicit val BooleanType: Type[Boolean] = booleanType
-          implicit val IntType: Type[Int] = intType
-          implicit val StringType: Type[String] = stringType
-          if (FieldType <:< Type[Boolean]) MIO.pure(Expr(true).upcast[FieldType])
-          else if (FieldType <:< Type[Int]) MIO.pure(Expr(0).upcast[FieldType])
-          else if (FieldType <:< Type[String]) MIO.pure(Expr(name).upcast[FieldType])
-          else MIO.fail(new Exception(s"Field $name has wrong type: ${input.tpe.plainPrint}"))
-        }
+      val setField: (String, Parameter) => MIO[Expr_??] = (name, input) => {
+        import input.tpe.Underlying as FieldType
+        implicit val BooleanType: Type[Boolean] = booleanType
+        implicit val IntType: Type[Int] = intType
+        implicit val StringType: Type[String] = stringType
+        if (FieldType <:< Type[Boolean]) MIO.pure(Expr(true).as_??)
+        else if (FieldType <:< Type[Int]) MIO.pure(Expr(0).as_??)
+        else if (FieldType <:< Type[String]) MIO.pure(Expr(name).as_??)
+        else MIO.fail(new Exception(s"Field $name has wrong type: ${input.tpe.plainPrint}"))
       }
       val sequential = javaBean.constructWithSetters(setField).map { result =>
         result.fold("<failed to construct with setters>")(_.plainPrint)
