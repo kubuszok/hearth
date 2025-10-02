@@ -8,21 +8,21 @@
 
 The first Scala macros' standard library.
 
-Planned features:
+Goals:
 
  - being able to build the code with `Type`s, `Expr`s and high-level utilities that operate on them - limitting the need for AST and Symbols manipulation
  - cross-compilable API, allowing reuse of the macro code for both Scala 2 and Scala 3
  - exhaustive documentation lowering the barrier of entry
- - no dependencies on additional ecosystems (some FP-utilities would be already provided)
+ - no dependencies on additional ecosystems (some FP-utilities are already provided!)
 
-## Work in Progress
+## Call for Feedback
 
 Hearth is an evolution of the [chimney-macro-commons](https://github.com/scalalandio/chimney-macro-commons/) idea,
 but one that could serve not only the [Chimney](https://chimney.readthedocs.io/) but also any other library that uses macros.
 
-While some utilities could be easily migrated, some requres a lot of new effort to make them more generic.
-What you see here should be treated as an early alpha.
-Please, take a look at [Roadmap](https://github.com/MateuszKubuszok/hearth/issues/10) and [Productisation](https://github.com/MateuszKubuszok/hearth/issues/36) for more infomation what could be in the scope for `0.1.0` release.
+The current version does not yet have all planned features, and we'd like to hear from you is the current API good enough or what to change.
+
+Please, take a look at [Roadmap](https://github.com/MateuszKubuszok/hearth/issues/10) and [Productisation](https://github.com/MateuszKubuszok/hearth/issues/36) for more infomation what is in the scope for `0.1.0` release and further.
 
 ## Contribution
 

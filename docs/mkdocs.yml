@@ -51,6 +51,7 @@ theme:
   logo: assets/images/logo.svg
 nav:
   - 'Welcome': 'index.md'
+  - 'Basic Utilities': 'basic-utilities.md'
   - 'Micro FP': 'micro-fp.md'
   - 'Cross Quotes': 'cross-quotes.md'
 markdown_extensions:

@@ -9,11 +9,17 @@ hide:
 <h1 style="margin-bottom:0">Hearth</h1>
 <h2 style="margin-top:0">The first Scala macros' standard library.</h2>
 
-!!! warning "Proof of Concept"
+The first library that focuses on helping you write robust and easy to maintain macros, that you can make cross-compilable between Scala 2 and Scala 3 macro systems.
 
-    This library is a work-in-progress proof-of-concept.
+Introduces among others:
 
-    APIs are not yet set in stone, currently the focus is on *delivering something*.
+ * reliable extension methods that make checking properties of types, expressions and methods easier
+ * Magnolia-like utilities for creating and decomposing data types
+ * improvements over built-in types and expression printing utilities
+ * small FP library that let you reuse your Cats experience in macros (including Macro IO/MIO monad)
+ * direct style utilities for working with cases that are hard to handle with monad and combinators (or even impossible to handle with them)
+ * macro-extension system allowing to extend your macros just by adding a dependency to the class path - without any additional imports!
+ * and finally, macro API that has implementation
 
 !!! warning "Tutorials planned"
 
@@ -21,7 +27,6 @@ hide:
 
     For now you have to be able to learn about the code by looking around the code base, reading commmends
     and tests.
-
 
 ## How to use the library for cross-compilable macros?
 
