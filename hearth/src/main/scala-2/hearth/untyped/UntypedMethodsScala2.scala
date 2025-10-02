@@ -133,8 +133,11 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       def isProtectedButInTheSameClass: Boolean =
         symbol.isProtected && enclosing.isClass && enclosing.asClass.toType <:< owner.asClass.toType
       def isPrivateWithinButInTheRightPlace: Boolean = privateWithin.exists { pw =>
-        def isPackagePrivateButInTheRightPackage: Boolean =
-          pw.isPackage && owner.fullName.toString.startsWith(pw.fullName.toString)
+        def isPackagePrivateButInTheRightPackage: Boolean = pw.isPackage && {
+          val en = enclosing.fullName.toString
+          val pn = pw.fullName.toString
+          en == pn || en.startsWith(pn + ".")
+        }
         isPackagePrivateButInTheRightPackage
       }
 

@@ -72,6 +72,7 @@ trait MethodsFixturesImpl { this: MacroCommons =>
             "isSynthetic" -> Data(method.isSynthetic),
             "isInherited" -> Data(method.isInherited),
             "isAvailable(Everywhere)" -> Data(method.isAvailable(Everywhere)),
+            "isAvailable(AtCallSite)" -> Data(method.isAvailable(AtCallSite)),
             "arity" -> Data(method.arity),
             "isNullary" -> Data(method.isNullary),
             "isUnary" -> Data(method.isUnary),
