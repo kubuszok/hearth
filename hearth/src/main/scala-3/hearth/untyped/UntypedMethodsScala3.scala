@@ -158,6 +158,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       // TODO: test this new implementation
       val owner = symbol.owner
       val enclosing = Symbol.spliceOwner
+      def enclosings = Iterator.iterate(enclosing)(_.owner).takeWhile(!_.isNoSymbol)
 
       // Helper methods
       def isPrivate: Boolean = symbol.flags.is(Flags.Private)
@@ -169,16 +170,15 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       def isPrivateButInTheSameClass: Boolean = isPrivate && enclosing == owner
       def isProtectedButInTheSameClass: Boolean =
         isProtected && enclosing.isClassDef && (enclosing.typeRef <:< owner.typeRef)
-      def isPrivateWithinButInTheRightPlace: Boolean = symbol.privateWithin.exists { pw =>
-        enclosing.isType && enclosing.typeRef =:= pw
-      } || symbol.protectedWithin.exists { pw =>
-        enclosing.isType && enclosing.typeRef <:< pw
-      }
+      def isPrivateWithinButInTheRightPlace: Boolean =
+        symbol.privateWithin.orElse(symbol.protectedWithin).exists { pw =>
+          val pwType = pw.typeSymbol
+          enclosings.exists(e => pwType == e || pwType == e.companionClass || pwType == e.companionModule)
+        }
 
       scope match {
         case Everywhere => isPublic
         case AtCallSite =>
-          // TODO: or try the approach from [[UntypedTypesScala3.isAvailable]]
           isPublic || isPrivateButInTheSameClass || isProtectedButInTheSameClass || isPrivateWithinButInTheRightPlace
       }
     }
