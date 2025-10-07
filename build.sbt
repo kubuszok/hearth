@@ -18,7 +18,7 @@ credentials += Credentials(
 // Versions:
 
 val versions = new {
-  val scala213 = "2.13.16"
+  val scala213 = "2.13.17"
   val scala3 = "3.3.6"
 
   // Which versions should be cross-compiled for publishing
