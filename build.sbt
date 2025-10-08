@@ -298,7 +298,7 @@ val publishSettings = Seq(
 val mimaSettings = Seq(
   mimaPreviousArtifacts := {
     val previousVersions = moduleName.value match {
-      case "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" => Set() // add after RC-1 publish
+      case "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" => Set("0.1.0")
       case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" =>
         Set()
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
@@ -307,7 +307,7 @@ val mimaSettings = Seq(
   },
   mimaFailOnNoPrevious := {
     moduleName.value match {
-      case "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" => false // add after RC-1 publish
+      case "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" => true
       case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" =>
         false
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
@@ -330,8 +330,7 @@ val al = new {
   private def projects(platform: String, scalaSuffix: String): Vector[String] =
     for {
       name <- prodProjects ++ testProjects
-      if (name != "hearthCrossQuotes" || isJVM(platform))
-      if (name != "hearthSandwichTests") || (scalaSuffix != "2_12" && isJVM(platform))
+      if ((name != "hearthCrossQuotes" && name != "hearthSandwichTests") || isJVM(platform))
     } yield s"$name${if (isJVM(platform)) "" else platform}$scalaSuffix"
 
   def ci(platform: String, scalaSuffix: String): String = {
