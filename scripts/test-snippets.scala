@@ -45,7 +45,7 @@ class HearthExtendedRunner(runner: Runner)(
     mkDocsCfg: MkDocsConfig
 ) extends Runner {
 
-  private val defaultScalaVersion = "2.13.16"
+  private val defaultScalaVersion = "2.13.17"
 
   private val replacePatterns = (mkDocsCfg.extra + (raw"hearth_version\(\)" -> hearthVersion)).map { case (k, v) =>
     (raw"\{\{\s*" + k + raw"\s*\}\}") -> v

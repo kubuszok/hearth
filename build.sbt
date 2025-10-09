@@ -14,7 +14,7 @@ val mavenCentralSnapshots = "Maven Central Snapshots" at "https://central.sonaty
 
 val versions = new {
   // Versions we are publishing for.
-  val scala213 = "2.13.16"
+  val scala213 = "2.13.17"
   val scala3 = "3.3.6"
 
   // Which versions should be cross-compiled for publishing.
@@ -28,11 +28,12 @@ val versions = new {
   val scalacheck = "1.19.0"
 
   // Explicitly handle Scala 2.13 and Scala 3 separately.
-  def fold[A](scalaVersion: String)(for2_13: => Seq[A], for3: => Seq[A]): Seq[A] = CrossVersion.partialVersion(scalaVersion) match {
-    case Some((2, 13)) => for2_13
-    case Some((3, _))  => for3
-    case _             => Seq.empty // for sbt, apparently
-  }
+  def fold[A](scalaVersion: String)(for2_13: => Seq[A], for3: => Seq[A]): Seq[A] =
+    CrossVersion.partialVersion(scalaVersion) match {
+      case Some((2, 13)) => for2_13
+      case Some((3, _))  => for3
+      case _             => Seq.empty // for sbt, apparently
+    }
 }
 
 // Development settings:
@@ -65,7 +66,8 @@ val dev = new {
     case _                               => !isCI
   }
 
-  def isIdeScala(scalaVersion: String): Boolean = CrossVersion.partialVersion(scalaVersion) == CrossVersion.partialVersion(ideScala)
+  def isIdeScala(scalaVersion: String): Boolean =
+    CrossVersion.partialVersion(scalaVersion) == CrossVersion.partialVersion(ideScala)
   def isIdePlatform(platform: VirtualAxis): Boolean = platform == idePlatform
 }
 
