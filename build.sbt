@@ -3,33 +3,37 @@ import com.typesafe.tools.mima.core.{Problem, ProblemFilters}
 import sbtwelcome.UsefulTask
 import commandmatrix.extra.*
 
-// Used to configure the build so that it would format+compile during development but not+CI.
+// Used to configure the build so that it would format+compile during development but not on CI.
 lazy val isCI = sys.env.get("CI").contains("true")
 ThisBuild / scalafmtOnCompile := !isCI
 
+// Used to publish snapshots to Maven Central.
 val mavenCentralSnapshots = "Maven Central Snapshots" at "https://central.sonatype.com/repository/maven-snapshots"
-credentials += Credentials(
-  "Maven Central Repository",
-  "central.sonatype.com",
-  sys.env.getOrElse("SONATYPE_USERNAME", ""),
-  sys.env.getOrElse("SONATYPE_PASSWORD", "")
-)
 
 // Versions:
 
 val versions = new {
+  // Versions we are publishing for.
   val scala213 = "2.13.16"
   val scala3 = "3.3.6"
 
-  // Which versions should be cross-compiled for publishing
+  // Which versions should be cross-compiled for publishing.
   val scalas = List(scala213, scala3)
   val platforms = List(VirtualAxis.jvm, VirtualAxis.js, VirtualAxis.native)
 
-  // Dependencies
+  // Dependencies.
   val kindProjector = "0.13.4"
   val munit = "1.2.0"
   val scalaCollectionCompat = "2.13.0"
   val scalacheck = "1.19.0"
+
+  // Explicitly handle Scala 2.13 and Scala 3 separately.
+  def fold[A](scalaVersion: String)(for2_13: => Seq[A], for3: => Seq[A]): Seq[A] =
+    CrossVersion.partialVersion(scalaVersion) match {
+      case Some((2, 13)) => for2_13
+      case Some((3, _))  => for3
+      case _             => Seq.empty // for sbt, apparently
+    }
 }
 
 // Development settings:
@@ -61,6 +65,10 @@ val dev = new {
     case otherwise if otherwise.nonEmpty => otherwise
     case _                               => !isCI
   }
+
+  def isIdeScala(scalaVersion: String): Boolean =
+    CrossVersion.partialVersion(scalaVersion) == CrossVersion.partialVersion(ideScala)
+  def isIdePlatform(platform: VirtualAxis): Boolean = platform == idePlatform
 }
 
 // Common settings:
@@ -68,172 +76,163 @@ val dev = new {
 Global / excludeLintKeys += git.useGitDescribe
 Global / excludeLintKeys += ideSkipProject
 val only1VersionInIDE =
+  // For the platform we are working with, show only the project for the Scala version we are working with.
   MatrixAction
     .ForPlatform(dev.idePlatform)
     .Configure(
       _.settings(
-        ideSkipProject := (scalaVersion.value != dev.ideScala),
-        bspEnabled := (scalaVersion.value == dev.ideScala),
+        ideSkipProject := !dev.isIdeScala(scalaVersion.value),
+        bspEnabled := dev.isIdeScala(scalaVersion.value),
         scalafmtOnCompile := !isCI
       )
     ) +:
-    versions.platforms.filter(_ != dev.idePlatform).map { platform =>
+    // Do not show in IDE and BSP projects for the platform we are not working with.
+    versions.platforms.filterNot(dev.isIdePlatform).map { platform =>
       MatrixAction
         .ForPlatform(platform)
         .Configure(_.settings(ideSkipProject := true, bspEnabled := false, scalafmtOnCompile := false))
     }
 
-// hearth-cross-quotes on Scala 2 are macros (defined for all platforms) and on Scala 3 are plugins (defined only for JVM)
-val defineCrossQuotes = versions.scalas.flatMap { scalaVersion =>
-  if (scalaVersion == versions.scala3) {
-    List(
+// The hearth-cross-quotes:
+//  - on Scala 2 are macros (defined for all platforms)
+//  - and on Scala 3 are plugins (defined only for JVM).
+val defineCrossQuotes = versions.scalas.flatMap(
+  versions.fold(_)(
+    // Scala 2: no skipping, we are defining projects for all platforms
+    for2_13 = List.empty,
+    // Scala 3: skip for JS and Native, we are defining projects only for JVM
+    for3 = List(
       MatrixAction {
         case (version, List(VirtualAxis.js))     => version.isScala3
         case (version, List(VirtualAxis.native)) => version.isScala3
         case _                                   => false
       }.Skip
     )
-  } else {
-    List.empty
-  }
-}
+  )
+)
 
-// same reason as above
+// The hearth-cross-quotes:
+//  - on Scala 2 are macros (defined for all platforms)
+//  - and on Scala 3 are plugins (defined only for JVM).
 val useCrossQuotes = versions.scalas.flatMap { scalaVersion =>
-  if (scalaVersion == versions.scala3) {
-    List(
+  versions.fold(scalaVersion)(
+    for2_13 = List(
+      // Enable logging from cross-quotes.
       MatrixAction
-        .ForScala(v => v.value == scalaVersion)
+        .ForScala(_.isScala2)
+        .Configure(_.settings(scalacOptions += s"-Xmacro-settings:hearth.cross-quotes.logging=${dev.logCrossQuotes}")),
+      // Depends on cross-quotes specific for the platform.
+      MatrixAction {
+        case (version, List(VirtualAxis.jvm)) => version.isScala2
+        case _                                => false
+      }.Configure(_.dependsOn(hearthCrossQuotes.jvm(scalaVersion))),
+      MatrixAction {
+        case (version, List(VirtualAxis.js)) => version.isScala2
+        case _                               => false
+      }.Configure(_.dependsOn(hearthCrossQuotes.js(scalaVersion))),
+      MatrixAction {
+        case (version, List(VirtualAxis.native)) => version.isScala2
+        case _                                   => false
+      }.Configure(_.dependsOn(hearthCrossQuotes.native(scalaVersion)))
+    ),
+    for3 = List(
+      MatrixAction
+        .ForScala(_.isScala3)
         .Configure(
           _.settings(
             scalacOptions ++= {
               val jar = (hearthCrossQuotes.jvm(scalaVersion) / Compile / packageBin).value
               Seq(
+                // Add the cross-quotes compiler plugin - the same for all platforms.
                 s"-Xplugin:${jar.getAbsolutePath}",
-                s"-Jdummy=${jar.lastModified}", // ensures recompilation
-                s"-P:hearth.cross-quotes:logging=${dev.logCrossQuotes}" // enable logging from cross-quotes
+                // Ensures recompilation.
+                s"-Jdummy=${jar.lastModified}",
+                // Enable logging from cross-quotes.
+                s"-P:hearth.cross-quotes:logging=${dev.logCrossQuotes}"
               )
             }
           )
         )
     )
-  } else {
-    List(
-      MatrixAction {
-        case (version, List(VirtualAxis.jvm)) => version.value == scalaVersion
-        case _                                => false
-      }.Configure(
-        _.settings(
-          scalacOptions += s"-Xmacro-settings:hearth.cross-quotes.logging=${dev.logCrossQuotes}" // enable logging from cross-quotes
-        )
-          .dependsOn(hearthCrossQuotes.jvm(scalaVersion))
-      ),
-      MatrixAction {
-        case (version, List(VirtualAxis.js)) => version.value == scalaVersion
-        case _                               => false
-      }.Configure(
-        _.settings(
-          scalacOptions += s"-Xmacro-settings:hearth.cross-quotes.logging=${dev.logCrossQuotes}" // enable logging from cross-quotes
-        )
-          .dependsOn(hearthCrossQuotes.js(scalaVersion))
-      ),
-      MatrixAction {
-        case (version, List(VirtualAxis.native)) => version.value == scalaVersion
-        case _                                   => false
-      }.Configure(
-        _.settings(
-          scalacOptions += s"-Xmacro-settings:hearth.cross-quotes.logging=${dev.logCrossQuotes}" // enable logging from cross-quotes
-        )
-          .dependsOn(hearthCrossQuotes.native(scalaVersion))
-      )
-    )
-  }
+  )
 }
 
 val settings = Seq(
   git.useGitDescribe := true,
   git.uncommittedSignifier := None,
-  scalacOptions ++= {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _)) =>
-        Seq(
-          // format: off
-          "-encoding", "UTF-8",
-          "-release", "11",
-          "-rewrite",
-          "-source", "3.3-migration",
-          // format: on
-          "-unchecked",
-          "-deprecation",
-          "-explain",
-          "-explain-cyclic",
-          "-explain-types",
-          "-feature",
-          "-no-indent",
-          "-Wconf:msg=Unreachable case:s", // suppress fake (?) errors in internal.compiletime
-          "-Wconf:msg=Missing symbol position:s", // suppress warning https://github.com/scala/scala3/issues/21672
-          "-Wnonunit-statement",
-          // "-Wunused:imports", // import x.Underlying as X is marked as unused even though it is! probably one of https://github.com/scala/scala3/issues/: #18564, #19252, #19657, #19912
-          "-Wunused:privates",
-          "-Wunused:locals",
-          "-Wunused:explicits",
-          "-Wunused:implicits",
-          "-Wunused:params",
-          "-Wvalue-discard",
-          "-Xfatal-warnings",
-          "-Xcheck-macros",
-          "-Ykind-projector:underscores"
-        )
-      case Some((2, 13)) =>
-        Seq(
-          // format: off
-          "-encoding", "UTF-8",
-          "-release", "11",
-          // format: on
-          "-unchecked",
-          "-deprecation",
-          "-explaintypes",
-          "-feature",
-          "-language:higherKinds",
-          "-Wconf:cat=scala3-migration:s", // silence mainly issues with -Xsource:3 and private case class constructors
-          "-Wconf:cat=deprecation&origin=hearth.*:s", // we want to be able to deprecate APIs and test them while they're deprecated
-          "-Wconf:msg=The outer reference in this type test cannot be checked at run time:s", // suppress fake(?) errors in internal.compiletime (adding origin breaks this suppression)
-          "-Wconf:msg=discarding unmoored doc comment:s", // silence errors when scaladoc cannot comprehend nested vals
-          "-Wconf:msg=Could not find any member to link for:s", // since errors when scaladoc cannot link to stdlib types or nested types
-          "-Wconf:msg=Variable .+ undefined in comment for:s", // silence errors when there we're showing a buggy Expr in scaladoc comment
-          "-Wunused:patvars",
-          "-Xfatal-warnings",
-          "-Xlint:adapted-args",
-          "-Xlint:delayedinit-select",
-          "-Xlint:doc-detached",
-          "-Xlint:inaccessible",
-          "-Xlint:infer-any",
-          "-Xlint:nullary-unit",
-          "-Xlint:option-implicit",
-          "-Xlint:package-object-classes",
-          "-Xlint:poly-implicit-overload",
-          "-Xlint:private-shadow",
-          "-Xlint:stars-align",
-          "-Xlint:type-parameter-shadow",
-          "-Xsource:3",
-          "-Yrangepos",
-          "-Ywarn-dead-code",
-          "-Ywarn-numeric-widen",
-          "-Ywarn-unused:locals",
-          "-Ywarn-unused:imports",
-          "-Ywarn-macros:after",
-          "-Ytasty-reader"
-        )
-      case _ => Seq.empty
-    }
-  },
-  Compile / doc / scalacOptions ++= {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _)) =>
-        Seq("-Ygenerate-inkuire") // type-based search for Scala 3, this option cannot go into compile
-      case _ => Seq.empty
-    }
-  },
+  scalacOptions ++= versions.fold(scalaVersion.value)(
+    for3 = Seq(
+      // format: off
+      "-encoding", "UTF-8",
+      "-release", "11",
+      "-rewrite",
+      "-source", "3.3-migration",
+      // format: on
+      "-unchecked",
+      "-deprecation",
+      "-explain",
+      "-explain-cyclic",
+      "-explain-types",
+      "-feature",
+      "-no-indent",
+      "-Wconf:msg=Unreachable case:s", // suppress fake (?) errors in internal.compiletime
+      "-Wconf:msg=Missing symbol position:s", // suppress warning https://github.com/scala/scala3/issues/21672
+      "-Wnonunit-statement",
+      // "-Wunused:imports", // import x.Underlying as X is marked as unused even though it is! probably one of https://github.com/scala/scala3/issues/: #18564, #19252, #19657, #19912
+      "-Wunused:privates",
+      "-Wunused:locals",
+      "-Wunused:explicits",
+      "-Wunused:implicits",
+      "-Wunused:params",
+      "-Wvalue-discard",
+      "-Xfatal-warnings",
+      "-Xcheck-macros",
+      "-Ykind-projector:underscores"
+    ),
+    for2_13 = Seq(
+      // format: off
+      "-encoding", "UTF-8",
+      "-release", "11",
+      // format: on
+      "-unchecked",
+      "-deprecation",
+      "-explaintypes",
+      "-feature",
+      "-language:higherKinds",
+      "-Wconf:cat=scala3-migration:s", // silence mainly issues with -Xsource:3 and private case class constructors
+      "-Wconf:cat=deprecation&origin=hearth.*:s", // we want to be able to deprecate APIs and test them while they're deprecated
+      "-Wconf:msg=The outer reference in this type test cannot be checked at run time:s", // suppress fake(?) errors in internal.compiletime (adding origin breaks this suppression)
+      "-Wconf:msg=discarding unmoored doc comment:s", // silence errors when scaladoc cannot comprehend nested vals
+      "-Wconf:msg=Could not find any member to link for:s", // since errors when scaladoc cannot link to stdlib types or nested types
+      "-Wconf:msg=Variable .+ undefined in comment for:s", // silence errors when there we're showing a buggy Expr in scaladoc comment
+      "-Wunused:patvars",
+      "-Xfatal-warnings",
+      "-Xlint:adapted-args",
+      "-Xlint:delayedinit-select",
+      "-Xlint:doc-detached",
+      "-Xlint:inaccessible",
+      "-Xlint:infer-any",
+      "-Xlint:nullary-unit",
+      "-Xlint:option-implicit",
+      "-Xlint:package-object-classes",
+      "-Xlint:poly-implicit-overload",
+      "-Xlint:private-shadow",
+      "-Xlint:stars-align",
+      "-Xlint:type-parameter-shadow",
+      "-Xsource:3",
+      "-Yrangepos",
+      "-Ywarn-dead-code",
+      "-Ywarn-numeric-widen",
+      "-Ywarn-unused:locals",
+      "-Ywarn-unused:imports",
+      "-Ywarn-macros:after",
+      "-Ytasty-reader"
+    )
+  ),
+  Compile / doc / scalacOptions ++= versions.fold(scalaVersion.value)(
+    for3 = Seq("-Ygenerate-inkuire"), // type-based search for Scala 3, this option cannot go into compile
+    for2_13 = Seq.empty
+  ),
   Compile / console / scalacOptions --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
 )
 
@@ -242,16 +241,13 @@ val dependencies = Seq(
     "org.scalameta" %%% "munit" % versions.munit % Test,
     "org.scalacheck" %%% "scalacheck" % versions.scalacheck % Test
   ),
-  libraryDependencies ++= {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, _)) =>
-        Seq(
-          "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
-          compilerPlugin("org.typelevel" % "kind-projector" % versions.kindProjector cross CrossVersion.full)
-        )
-      case _ => Seq.empty
-    }
-  }
+  libraryDependencies ++= versions.fold(scalaVersion.value)(
+    for2_13 = Seq(
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
+      compilerPlugin("org.typelevel" % "kind-projector" % versions.kindProjector cross CrossVersion.full)
+    ),
+    for3 = Seq.empty
+  )
 )
 
 val versionSchemeSettings = Seq(versionScheme := Some("early-semver"))
