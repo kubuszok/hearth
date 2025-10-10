@@ -14,6 +14,55 @@ because it would be their almost-compile-time-only dependency... they they might
 Meanwhile, some FP functionalities are very useful for writing macros, so it would be a shame to give up on them
 completely.
 
+## Installation
+
+[![Hearth Micro FP versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth-micro-fp/latest-by-scala-version.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_3) <br>
+[![Hearth Micro FP Scala.js 1.x versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth-micro-fp/latest-by-scala-version.svg?platform=sjs1)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_sjs1_3) <br>
+[![Hearth Micro FP Scala Native 0.5 versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth-micro-fp/latest-by-scala-version.svg?platform=native0.5)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth-micro-fp_native0.5_3) <br>
+
+!!! example "[sbt](https://www.scala-sbt.org/)"
+
+    JVM only:
+
+    ```scala
+    libraryDependencies += "com.kubuszok" %% "hearth-micro-fp" % "{{ hearth_version() }}"
+    ```
+
+    JVM/Scala.js/Scala Native via [sbt-crossproject](https://github.com/portable-scala/sbt-crossproject), [sbt-projectmatrix](https://github.com/sbt/sbt-projectmatrix) or sbt 2:
+
+    ```scala
+    libraryDependencies += "com.kubuszok" %%% "hearth-micro-fp" % "{{ hearth_version() }}"
+    ```
+
+!!! example "[Scala CLI](https://scala-cli.virtuslab.org/)"
+
+    JVM only:
+    
+    ```scala
+    //> using dep "com.kubuszok::hearth-micro-fp:{{ hearth_version() }}"
+    ```
+
+    JVM/Scala.js/Scala Native:
+    
+    ```scala
+    //> using dep "com.kubuszok::hearth-micro-fp::{{ hearth_version() }}"
+    ```
+
+!!! warning
+
+    Micro FP is a dependency of a [core Hearth library](basic-utilities.md#installation), so if you are using it, you don't need to pull it in.
+
+    You only need to add it if you want to use type classes/macro IO without the rest of Hearth goodies.
+
+!!! tip "Examples in this documentation"
+
+    Majority of the examples in this documentation is intended to be runnable.
+
+    That's why most file names would follow convention from [sbt](https://www.scala-sbt.org/) + [projectmatrix](https://github.com/sbt/sbt-projectmatrix) conventions
+    (or sbt 2.0).
+
+    However, all runnable examples are tested using [Scala CLI](https://scala-cli.virtuslab.org/) and are containing directives needed to make it happy.
+
 ## Library's Scope
 
 From my experience, when writing macros you may need to:

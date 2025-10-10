@@ -3,13 +3,77 @@
 Hearth API abstracts away from the particular macro system. It works with abstract types
 for which abstract methods are provided, and later on we implement them for a particular macro system.
 
+## Installation
+
+[![Hearth JVM versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth/latest-by-scala-version.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_3) <br>
+[![Hearth Scala.js 1.x versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth/latest-by-scala-version.svg?platform=sjs1)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_sjs1_3) <br>
+[![Hearth Scala Native 0.5 versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth/latest-by-scala-version.svg?platform=native0.5)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_native0.5_3) <br>
+
+!!! example "[sbt](https://www.scala-sbt.org/)"
+
+    JVM only:
+
+    ```scala
+    libraryDependencies += "com.kubuszok" %% "hearth" % "{{ hearth_version() }}"
+    ```
+
+    JVM/Scala.js/Scala Native via [sbt-crossproject](https://github.com/portable-scala/sbt-crossproject), [sbt-projectmatrix](https://github.com/sbt/sbt-projectmatrix) or sbt 2:
+
+    ```scala
+    libraryDependencies += "com.kubuszok" %%% "hearth" % "{{ hearth_version() }}"
+    ```
+
+!!! example "[Scala CLI](https://scala-cli.virtuslab.org/)"
+
+    JVM only:
+    
+    ```scala
+    //> using dep "com.kubuszok::hearth:{{ hearth_version() }}"
+    ```
+
+    JVM/Scala.js/Scala Native:
+    
+    ```scala
+    //> using dep "com.kubuszok::hearth::{{ hearth_version() }}"
+    ```
+
+!!! warning
+
+    If you want to cross-compile, you most likely also want to [add cross-quotes compiler plugin for Scala 3](cross-quotes.md#installation).
+
+    It is not needed if you want to use Hearth directly with Scala-2-macros-only or with Scala-3-macros-only.
+
+!!! tip "Examples in this documentation"
+
+    Majority of the examples in this documentation is intended to be runnable.
+
+    That's why most file names would follow convention from [sbt](https://www.scala-sbt.org/) + [projectmatrix](https://github.com/sbt/sbt-projectmatrix) conventions
+    (or sbt 2.0).
+
+    However, all runnable examples are tested using [Scala CLI](https://scala-cli.virtuslab.org/) and are containing directives needed to make it happy.
+
+## Your first Hearth-based macro
+
+Once you added Hearth to your project you can start writing Hearth-powered macros.
+
+You can decide to either:
+
+ - write cross-compilable macros (we suggest also using [cross-quotes](cross-quotes.md) in such case)
+ - writing Scala-2-only or Scala-3-only macros
+
+This is how you can write a cross-compilable macro.
+
 !!! example "Cross-compilable API"
 
     If you want to write cross-compilable macros, you'll see types and methods e.g.:
 
     ```scala
-    // Shared part
+    // file: src/main/scala/example/SharedMacroLogic.scala - part of shared macro logic example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+    package example
 
+    // Shared part
     trait SharedMacroLogic { this: hearth.MacroCommons =>
 
       // Type[A] - represents information about a type A, where we know what A is:
@@ -29,11 +93,15 @@ for which abstract methods are provided, and later on we implement them for a pa
     Then we use `MacroCommons` with adapters that we would write for Scala 2 and Scala 3.
 
     ```scala
-    // Scala 2 adapter
+    // file: src/main/scala-2/example/YourMacro.scala - part of shared macro logic example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+    package example
 
     import scala.language.experimental.macros
     import scala.reflect.macros.blackbox
 
+    // Scala 2 adapter
     class YourMacro(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with SharedMacroLogic {
 
       // Type[A] = c.WeakTypeTag[A]
@@ -49,10 +117,13 @@ for which abstract methods are provided, and later on we implement them for a pa
     ```
 
     ```scala
-    // Scala 3 adapter
+    // file: src/main/scala-3/example/YourMacro.scala - part of Show example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
 
     import scala.quoted.*
 
+    // Scala 3 adapter
     class YourMacro(q: Quotes) extends hearth.MacroCommonsScala3(using q), SharedMacroLogic
 
     object YourMacro {
@@ -67,12 +138,18 @@ for which abstract methods are provided, and later on we implement them for a pa
     inline def callingMacro[A](inline expr: A): String = ${ YourMacro.yourMacro('expr) }
     ```
 
+These examples show how you can write Scala-specific macros with Hearth.
+
 !!! example "Scala 2 API"
 
     If you want to write Scala 2-only macros, we can simplify the code - use `MacroCommonsScala2` directly,
     use `c.WeakTypeTag` and `c.Expr` directly, etc, but also using extension methods and utilities from Hearth:
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+    package example
+
     import hearth.MacroCommonsScala2
 
     import scala.language.experimental.macros
@@ -92,12 +169,16 @@ for which abstract methods are provided, and later on we implement them for a pa
     def callingMacro[A](expr: A): String = macro YourMacro.yourMacro
     ```
 
-!!! exmaple "Scala 3 API"
+!!! example "Scala 3 API"
 
     If you want to write Scala 3-only macros, we can simplify the code - use `MacroCommonsScala3` directly,
     use `quoted.Type` and `quoted.Expr` directly, etc, but also using extension methods and utilities from Hearth:
 
     ```scala
+    //> using scala {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+    package example
+
     import hearth.MacroCommonsScala3
 
     import scala.quoted.*

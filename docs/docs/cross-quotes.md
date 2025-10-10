@@ -2,6 +2,31 @@
 
 Cross Quotes is a library that provides a unified way to write quoted expressions and type operations that can be compiled on both Scala 2 and Scala 3. It bridges the gap between the different metaprogramming APIs in Scala 2 and Scala 3, allowing you to write code that works across both versions.
 
+## Installation
+
+[![Hearth Cross Quotes JVM versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth-cross-quotes/latest.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth-cross-quotes_3) <br>
+
+!!! example "[sbt](https://www.scala-sbt.org/)"
+
+    ```scala
+    libraryDependencies ++= CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((3, _)) => Seq(compilerPlugin("com.kubuszok" % "hearth-cross-quotes" % "{{ hearth_version() }}_3"))
+      case _            => Seq()
+    }
+    ```
+
+!!! example "[Scala CLI](https://scala-cli.virtuslab.org/)"
+    
+    ```scala
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+    ```
+
+!!! warning
+
+    Cross Quotes are implemented as macros on Scala 2 (so they are automatically pulled in with the rest of the library),
+    and as a compiler plugin on Scala 3 - so they have to be added **only** on Scala 3.
+
 ## The Problem
 
 Scala 2 and Scala 3 have fundamentally different metaprogramming systems:
