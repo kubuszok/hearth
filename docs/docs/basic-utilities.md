@@ -3,6 +3,8 @@
 Hearth API abstracts away from the particular macro system. It works with abstract types
 for which abstract methods are provided, and later on we implement them for a particular macro system.
 
+!!! warning "Work in Progress - follow [hearth#56](https://github.com/MateuszKubuszok/hearth/issues/56) to see the progress of documenting Hearth."
+
 ## Installation
 
 [![Hearth JVM versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth/latest-by-scala-version.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_3) <br>
@@ -197,7 +199,7 @@ These examples show how you can write Scala-specific macros with Hearth.
 
     final class ExampleSpec extends munit.FunSuite {
 
-      test("Example.callingMacro runs our cross-compilable macro") {
+      test("Example.callingMacro runs our Scala-3-only macro") {
         assertEquals(Example.callingMacro("value"), "\"value\" : java.lang.String")
       }
     }
@@ -249,7 +251,7 @@ These examples show how you can write Scala-specific macros with Hearth.
 
     final class ExampleSpec extends munit.FunSuite {
 
-      test("Example.callingMacro runs our cross-compilable macro") {
+      test("Example.callingMacro runs our Scala-3-only macro") {
         assertEquals(Example.callingMacro("value"), "\"value\" : java.lang.String")
       }
     }
