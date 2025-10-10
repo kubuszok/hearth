@@ -40,13 +40,9 @@ project.settings(
   libraryDependencies += "com.kubuszok" %%% "hearth" % "{{ hearth_version() }}",
 
   // Add the cross-quotes compiler plugin (but only on Scala 3, Scala 2.13 uses macros)
-  libraryDependencies ++= {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _)) => Seq(
-        compilerPlugin("com.kubuszok" % "hearth" % "{{ hearth_version() }}_3")
-      )
-      case _ => Seq()
-    }
+  libraryDependencies ++= CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((3, _)) => Seq(compilerPlugin("com.kubuszok" % "hearth-cross-quotes" % "{{ hearth_version() }}_3"))
+    case _            => Seq()
   },
 
   // If you want to enable debugging of cross-quotes, pass the right option to the macro/compiler plugin
@@ -69,10 +65,10 @@ Majority of the macros code would be shared, by putting it into a mix-in trait.
 
 Then in Scala 2 and Scala 3-specific code you would write only adapters.
 
-!!! example "`src/main/scala/example/Show.scala` - shared `Show` type class"
+!!! example "`src/main/scala/demo/Show.scala` - shared `Show` type class"
 
     ```scala
-    // file: src/main/scala/example/Show.scala - part of Show example
+    // file: src/main/scala/demo/Show.scala - part of Show example
     //> using scala {{ scala.2_13 }} {{ scala.3 }}
     //> using dep com.kubuszok::hearth:{{ hearth_version() }}
     package demo
@@ -107,10 +103,10 @@ Then in Scala 2 and Scala 3-specific code you would write only adapters.
     }
     ```
 
-!!! example "`src/main/scala/example/ShowMacrosImpl.scala` - shared macro logic"
+!!! example "`src/main/scala/demo/ShowMacrosImpl.scala` - shared macro logic"
 
     ```scala
-    // file: src/main/scala/example/ShowMacrosImpl.scala - part of Show example
+    // file: src/main/scala/demo/ShowMacrosImpl.scala - part of Show example
     package demo
 
     import hearth.*
@@ -413,10 +409,10 @@ Then in Scala 2 and Scala 3-specific code you would write only adapters.
     }
     ```
 
-??? example "`src/main/scala-2/example/ShowCompanionCompat.scala` - adapter for Scala 2"
+??? example "`src/main/scala-2/demo/ShowCompanionCompat.scala` - adapter for Scala 2"
 
     ```scala
-    // file: src/main/scala-2/example/ShowCompanionCompat.scala - part of Show example
+    // file: src/main/scala-2/demo/ShowCompanionCompat.scala - part of Show example
     //> using target.scala {{ scala.2_13 }}
     //> using options -Xsource:3
     package demo
@@ -440,10 +436,10 @@ Then in Scala 2 and Scala 3-specific code you would write only adapters.
     }
     ```
 
-??? example "`src/main/scala-3/example/ShowCompanionCompat.scala` - adapter for Scala 3"
+??? example "`src/main/scala-3/demo/ShowCompanionCompat.scala` - adapter for Scala 3"
 
     ```scala
-    // file: src/main/scala-3/example/ShowCompanionCompat.scala - part of Show example
+    // file: src/main/scala-3/demo/ShowCompanionCompat.scala - part of Show example
     //> using target.scala {{ scala.3 }}
     //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
     package demo
@@ -469,10 +465,10 @@ Then in Scala 2 and Scala 3-specific code you would write only adapters.
     }
     ```
 
-??? example "`src/test/scala/example/ShowCompanionCompat.scala` - tests"
+??? example "`src/test/scala/demo/ShowCompanionCompat.scala` - tests"
 
     ```scala
-    // file: src/test/scala/example/ShowSpec.scala - part of Show example
+    // file: src/test/scala/demo/ShowSpec.scala - part of Show example
     //> using test.dep org.scalameta::munit::{{ libraries.munit }}
     package demo
 
