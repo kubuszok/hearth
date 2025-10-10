@@ -67,28 +67,35 @@ completely.
 
 From my experience, when writing macros you may need to:
 
- 1. aggregate errors, so that users would be informed about all the issues preventing from compilation at once
- 2. occasionally handle some cases like this:
-    ```scala
-    '{
-      new TypeClass[A] {
-        def implementation(arg: A): Result = ${
-          generateImpl('{ arg }) // Returns F[Expr[Result]] - how to extract it safely?
-        }
-      } 
-    }
-    ```
- 3. provide some way of debugging the code - normally, people have logs for that, but with macros they usually do not
+ 1. **aggregate errors(()), so that users would be informed about all the issues preventing from compilation at once
+ 2. occasionally **handle some combinator-hostile cases** like this:
 
-Usually the first issue would be solved by Cats users with something like `.parTraverse` and some data type
+    !!! example "You cannot always `.traverse`"
+
+        ```scala
+        '{
+          new TypeClass[A] {
+            def implementation(arg: A): Result = ${
+              generateImpl('{ arg }) // Returns F[Expr[Result]] - how to extract Expr[Result] safely?
+            }
+          } 
+        } // Expr[TypeClass[A]]
+        ```
+
+ 3. **provide some way of debugging the code** - normally, people have logs for that, but when it comes to macros,
+    they somehow forget about providing them.
+
+Usually **the first issue** would be solved by Cats users with something like `.parTraverse` and some data type
  that allows error aggregation. `.parTraverse` implies `Traverse` and `Parallel` type classes.
  
 Occasionally, one might prefer `.traverse` which adds `Applicative` and all 3 imply `Functor` type class.
 
 And... that's it. That's all Cats-like type classes that the rest of the library rely on. You might add your own,
-but the libray aim to stay micro, to **not** encourage using it to replace some full-blown FP library.
+but the libray aims to stay micro, to **not** encourage using it to replace some full-blown FP library. No `Monad`s,
+no effect type classes, no dependency injections patterns - the bare miminum to let folks write slightly
+saner code in macros, but without jumping into enterprise, type-level FP.
 
-The only additional type class is needed to handle the second case:
+The only additional type class is needed to handle **the second case**:
 
 !!! example "Generic `DirectStyle` type class"
 
@@ -104,12 +111,12 @@ The only additional type class is needed to handle the second case:
     } // : F[Expr[TypeClass[A]]]
     ```
 
-The third issue is addressed by introducing `MIO` (Macro IO) and `Log`.
+**The third issue** is addressed by introducing `MIO` (Macro IO) and `Log`.
 
 All of these are opt-in. You don't have to use extension methods if you don't want to. You don't have to use `MIO` and `Log`.
 
 The rest of the library does not require you to write code with IO or type classes. However, it assumes in a few utilities, that
-whatever type you would be using for handling errors, would have these type classes provided.
+whatever type you would be using for handling errors, would have these type classes provided (and e.g. for `Option`/`Either` they are).
 
 ## Type classes
 
@@ -157,21 +164,32 @@ Extends `Functor` with the ability to lift values into a context (`pure`) and co
 !!! example "Lifting values with `pure`"
 
     ```scala
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
+    //> using plugin org.typelevel:::kind-projector:{{ libraries.kindProjector }}
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
     
     // Lift a value into Option
     val lifted: Option[String] = "hello".pure[Option]
-    // Result: Some("hello")
+    pprint.pprintln(lifted)
+    // expected output:
+    // Some(value = "hello")
     
     // Lift into Either
     val liftedEither: Either[String, Int] = 42.pure[Either[String, *]]
-    // Result: Right(42)
+    pprint.pprintln(liftedEither)
+    // expected output:
+    // Right(value = 42)
     ```
 
 !!! example "Combining contexts with `map2`"
 
     ```scala
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
     
@@ -181,15 +199,19 @@ Extends `Functor` with the ability to lift values into a context (`pure`) and co
     val person: Option[String] = name.map2(age) { (n, a) =>
       s"$n is $a years old"
     }
-    // Result: Some("Alice is 30 years old")
+    pprint.pprintln(person)
+    // expected output:
+    // Some(value = "Alice is 30 years old")
     
-    // Combine with failure (fail-fast)
+    // Combine with failure (fail-fast, only the first error matters)
     val name2: Option[String] = Some("Bob")
     val age2: Option[Int] = None
     val person2: Option[String] = name2.map2(age2) { (n, a) =>
       s"$n is $a years old"
     }
-    // Result: None (fail-fast semantics)
+    pprint.pprintln(person2)
+    // expected output:
+    // None
     ```
 
 ### `Parallel`
@@ -199,6 +221,9 @@ Extends `Applicative` with parallel semantics. Unlike `Applicative` which has fa
 !!! example "Parallel error aggregation"
 
     ```scala
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
     
@@ -206,26 +231,39 @@ Extends `Applicative` with parallel semantics. Unlike `Applicative` which has fa
     val name: Either[List[String], String] = Left(List("Name is required"))
     val age: Either[List[String], Int] = Left(List("Age must be positive"))
     
+    // Both errors are collected, not just the first one
     val result: Either[List[String], String] = name.parMap2(age) { (n, a) =>
       s"$n is $a years old"
     }
-    // Result: Left(List("Name is required", "Age must be positive"))
-    // Both errors are collected, not just the first one
+    pprint.pprintln(result)
+    // expected output:
+    // Left(value = List("Name is required", "Age must be positive"))
     ```
 
 !!! example "Parallel vs Sequential behavior"
 
     ```scala
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
+
+    // Using Either[List[String], *] for error aggregation
+    val name: Either[List[String], String] = Left(List("Name is required"))
+    val age: Either[List[String], Int] = Left(List("Age must be positive"))
     
     // Sequential (Applicative) - fails on first error
     val seqResult = name.map2(age) { (n, a) => s"$n is $a" }
-    // Result: Left(List("Name is required")) - stops at first error
+    pprint.pprintln(seqResult)
+    // expected output:
+    // Left(value = List("Name is required")
     
     // Parallel - collects all errors
     val parResult = name.parMap2(age) { (n, a) => s"$n is $a" }
-    // Result: Left(List("Name is required", "Age must be positive"))
+    pprint.pprintln(parResult)
+    // expected output:
+    // Left(value = List("Name is required", "Age must be positive"))
     ```
 
 ### `Traverse`
@@ -235,6 +273,9 @@ Represents types that can be traversed with an effect. Allows transforming each 
 !!! example "Traversing collections"
 
     ```scala
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
     
@@ -243,35 +284,51 @@ Represents types that can be traversed with an effect. Allows transforming each 
     val validateEven: Int => Option[Int] = n => 
       if (n % 2 == 0) Some(n) else None
     
+    // It will fail, because 1 and 3 are not even
     val result: Option[List[Int]] = numbers.traverse(validateEven)
-    // Result: None (because 1 and 3 are not even)
+    pprint.pprintln(result)
+    // expected output:
+    // None
     
     // Traverse with success
     val evenNumbers: List[Int] = List(2, 4, 6, 8)
     val success: Option[List[Int]] = evenNumbers.traverse(validateEven)
-    // Result: Some(List(2, 4, 6, 8))
+    pprint.pprintln(success)
+    // expected output:
+    // Some(value = List(2, 4, 6, 8))
     ```
 
 !!! example "Sequencing effects"
 
     ```scala
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
     
     // Convert List[Option[A]] to Option[List[A]]
     val maybeNumbers: List[Option[Int]] = List(Some(1), Some(2), None, Some(4))
+    // There is a None in the middle, so this should be None
     val sequenced: Option[List[Int]] = maybeNumbers.sequence
-    // Result: None (because of the None in the middle)
+    pprint.pprintln(sequenced)
+    // expected output:
+    // None
     
     // All Some values
     val allSome: List[Option[Int]] = List(Some(1), Some(2), Some(3))
     val sequenced2: Option[List[Int]] = allSome.sequence
-    // Result: Some(List(1, 2, 3))
+    pprint.pprintln(sequenced2)
+    // expected output:
+    // Some(value = List(1, 2, 3))
     ```
 
 !!! example "Parallel traversal"
 
     ```scala
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
     
@@ -288,16 +345,25 @@ Represents types that can be traversed with an effect. Allows transforming each 
     val ages: List[Int] = List(-1, 30, -5)
     
     val nameResults: Either[List[String], List[String]] = 
-      names.traverse(validateName)
+      names.parTraverse(validateName)
     val ageResults: Either[List[String], List[Int]] = 
-      ages.traverse(validateAge)
+      ages.parTraverse(validateAge)
     
     // Combine with parallel semantics
     val combined: Either[List[String], List[String]] = 
       nameResults.parMap2(ageResults) { (ns, as) =>
         ns.zip(as).map { case (n, a) => s"$n is $a" }
       }
-    // Result: Left(List("Name cannot be empty", "Age must be positive", "Name cannot be empty", "Age must be positive"))
+    pprint.pprintln(combined)
+    // expected output:
+    // Left(
+    //   value = List(
+    //     "Name cannot be empty",
+    //     "Name cannot be empty",
+    //     "Age must be positive",
+    //     "Age must be positive"
+    //   )
+    // )
     ```
 
 ### `DirectStyle`
@@ -307,6 +373,10 @@ Provides a way to write effectful code in a direct style, similar to using `for`
 !!! example "Direct style with Option"
 
     ```scala
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
+    import hearth.fp.DirectStyle
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
     
@@ -317,12 +387,19 @@ Provides a way to write effectful code in a direct style, similar to using `for`
       
       s"$name is $age years old and lives in $city"
     }
-    // Result: Some("Alice is 30 years old and lives in New York")
+    pprint.pprintln(result)
+    // expected output:
+    // Some(value = "Alice is 30 years old and lives in New York")
     ```
 
 !!! example "Direct style with error handling"
 
     ```scala
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
+    //> using plugin org.typelevel:::kind-projector:{{ libraries.kindProjector }}
+    import hearth.fp.DirectStyle
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
     
@@ -334,28 +411,77 @@ Provides a way to write effectful code in a direct style, similar to using `for`
       // This line is never reached due to the error above
       s"$name is $age years old and lives in $city"
     }
-    // Result: Left(List("Age is required"))
+    pprint.pprintln(result)
+    // expected output:
+    // Left(value = List("Age is required"))
     ```
 
 !!! example "Complex macro generation"
 
     ```scala
+    // file: src/main/scala/TypeClass.scala - part of MIO Direct Style example
+    //> using scala {{ scala.3 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    import hearth.fp.DirectStyle
+    import hearth.fp.effect.MIO
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
-    
-    // Example of generating complex macro code
-    def generateTypeClass[A]: MIO[Expr[TypeClass[A]]] = DirectStyle[MIO].scoped { runSafe =>
-      '{
-        new TypeClass[A] {
-          def method(arg: A): String = ${
-            // Extract Expr[String] from MIO[Expr[String]]
-            runSafe(generateMethodImpl('{ arg }))
-          }
-          
-          def anotherMethod(arg: A): Int = ${
-            runSafe(generateAnotherImpl('{ arg }))
+
+    import scala.quoted.*
+
+    // Our type class
+    trait TypeClass[A] {
+
+      def method(arg: A): String
+      def anotherMethod(arg: A): Int
+    }
+
+    object TypeClass {
+
+      // How its methods could be generated
+      def generateMethodImpl[A: Type](expr: Expr[A])(using Quotes): MIO[Expr[String]] = MIO {
+        '{ ${ expr }.toString }
+      }
+      def generateAnotherMethodImpl[A: Type](expr: Expr[A])(using Quotes): MIO[Expr[Int]] = MIO {
+        '{ ${ expr }.toString.size }
+      }
+      
+      // Example of generating complex macro code
+      def generateTypeClassImpl[A: Type](using q: Quotes): Expr[TypeClass[A]] = DirectStyle[MIO].scoped { runSafe =>
+        '{
+          new TypeClass[A] {
+            def method(arg: A): String = ${
+              // Extract Expr[String] from MIO[Expr[String]]
+              runSafe(generateMethodImpl('{ arg }))
+            }
+            
+            def anotherMethod(arg: A): Int = ${
+              // Extract Expr[Int] from MIO[Expr[Int]]
+              runSafe(generateAnotherMethodImpl('{ arg }))
+            }
           }
         }
+      }.unsafe.runSync._2.match {
+        case Left(errors) => q.reflect.report.errorAndAbort(errors.map(_.getMessage).mkString(", "), q.reflect.Position.ofMacroExpansion)
+        case Right(expr)  => expr
+      }
+
+      inline def generateTypeClass[A]: TypeClass[A] = ${ generateTypeClassImpl[A] }
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/TypeClass.scala - part of MIO Direct Style example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class TypeClassSpec extends munit.FunSuite {
+
+      test("TypeClass.generateTypeClass works") {
+        val tc = TypeClass.generateTypeClass[Long]
+
+        assertEquals(tc.method(1024L), "1024")
+        assertEquals(tc.anotherMethod(1024L), 4)
       }
     }
     ```

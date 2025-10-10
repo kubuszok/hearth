@@ -78,12 +78,19 @@ class HearthExtendedRunner(runner: Runner)(
       )
   }
 
-  export runner.{docsDir, filter, howToRun, tmpDir}
+  export runner.{docsDir, filter, tmpDir}
+
+  private val ignored = Map(
+    "cross-quotes.md:20" -> "We don't want to run empty snippet, and this one only demonstrates adding deps"
+  )
 
   extension (snippet: Snippet)
     def adjusted: Snippet =
       // interpolate templates before Default adjustments
       runner.adjusted(snippet.copy(content = interpolateTemplates(snippet.content)))
+
+    def howToRun: Runner.Strategy =
+      ignored.get(snippet.hint).fold(runner.howToRun(snippet))(Runner.Strategy.Ignore(_))
 
   extension (snippets: List[Snippet])
     def adjusted: List[Snippet] = runner.adjusted(snippets).map { snippet =>
