@@ -54,6 +54,7 @@ nav:
   - 'Basic Utilities': 'basic-utilities.md'
   - 'Micro FP': 'micro-fp.md'
   - 'Cross Quotes': 'cross-quotes.md'
+  - 'Best Practices': 'best-practices.md'
 markdown_extensions:
   - admonition
   - pymdownx.details
@@ -89,6 +90,7 @@ extra:
     2_13: "2.13.16"
     3:    "3.3.6"
   libraries:
+    kindProjector:    "0.13.4"
     munit:            "1.2.0"
     pprint:           "0.9.3"
   local:

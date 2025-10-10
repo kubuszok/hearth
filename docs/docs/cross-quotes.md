@@ -62,30 +62,64 @@ Get a type representation that works in both Scala 2 and Scala 3:
     ```
 
 This gets transformed to:
-- **Scala 2**: `weakTypeTag[String].asInstanceOf[Type[String]]`
-- **Scala 3**: `scala.quoted.Type.of[String]`
+
+!!! example "Scala 2 macro expansion result"
+
+    ```scala
+    val StringType = weakTypeTag[String].asInstanceOf[Type[String]]
+    ```
+
+!!! example "Scala 3 compiler plugin rewrite"
+
+    ```scala
+    val StringType = scala.quoted.Type.of[String]
+    ```
 
 If there are some type parameters:
 
-```scala
-def OptionType[A: Type] = Type.of[Option[A]]
-```
+!!! example "Type with type parameters"
+
+    ```scala
+    def OptionType[A: Type] = Type.of[Option[A]]
+    ```
 
 then it would also handle converting them as well:
 
-This gets transformed to:
-- **Scala 2**:
+!!! example "Scala 2 macro expansion result"
 
-  ```scala
-  implicit val A: WeakTypeTag[A] = Type[A].asInstanceOf[WeakTypeTag[A]]
-  weakTypeTag[Option[A]].asInstanceOf[Type[Option[A]]]
-  ```
-- **Scala 3**:
+    ```scala
+    def OptionType[A: Type] = {
+      implicit val A: WeakTypeTag[A] = Type[A].asInstanceOf[WeakTypeTag[A]]
+      weakTypeTag[Option[A]].asInstanceOf[Type[Option[A]]]
+    }
+    ```
 
-  ```scala
-  given A: scala.quoted.Type[A] = Type[A].asInstanceOf[scala.quoted.Type[A]]
-  scala.quoted.Type.of[Option[A]]
-  ```
+!!! example "Scala 3 compiler plugin rewrite"
+
+    ```scala
+    def OptionType[A: Type] = {
+      given A: scala.quoted.Type[A] = Type[A].asInstanceOf[scala.quoted.Type[A]]
+      scala.quoted.Type.of[Option[A]]
+    }
+    ```
+
+!!! warning
+
+    Both `weakTypeTag[A]` and `scala.quoted.Type.of[A]` would pick up implicit if it was in the scope.
+
+    So writing code like this:
+
+    ```scala
+    implicit val A: Type[A] = Type.of[A]
+    ```
+
+    generates:
+
+    ```scala
+    implicit val A: Type[A] = A // infinite recursion
+    ```
+
+    Therefore I **strongly** recommend to run `Type.of` in the scope where its results are **not** being pulled in as `implicit`s/`given`s.
 
 #### Type Constructor Operations
 

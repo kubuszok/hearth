@@ -17,7 +17,7 @@ for which abstract methods are provided, and later on we implement them for a pa
     libraryDependencies += "com.kubuszok" %% "hearth" % "{{ hearth_version() }}"
     ```
 
-    JVM/Scala.js/Scala Native via [sbt-crossproject](https://github.com/portable-scala/sbt-crossproject), [sbt-projectmatrix](https://github.com/sbt/sbt-projectmatrix) or sbt 2:
+    JVM/Scala.js/Scala Native via [sbt-crossproject](https://github.com/portable-scala/sbt-crossproject) or [sbt-projectmatrix](https://github.com/sbt/sbt-projectmatrix)/sbt 2:
 
     ```scala
     libraryDependencies += "com.kubuszok" %%% "hearth" % "{{ hearth_version() }}"
@@ -85,7 +85,7 @@ This is how you can write a cross-compilable macro.
       // These and other types becomes available to us in traits that extends from MacroCommons
 
       def yourMacro[A: Type](expr: Expr[A]): Expr[String] = Expr {
-        s"${expr.prettyPrint} : ${Type[A].prettyPrint}"
+        s"${expr.plainPrint} : ${Type[A].plainPrint}"
       }
     }
     ```
@@ -112,14 +112,17 @@ This is how you can write a cross-compilable macro.
       def yourMacroImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] = yourMacro(expr)
     }
 
-    // ... it is not smart enough to see it, if we wanted to call YourMacro.yourMacro directly.
-    def callingMacro[A](expr: A): String = macro YourMacro.yourMacroImpl
+    object Example {
+      // ... it is not smart enough to see it, if we wanted to call YourMacro.yourMacro directly.
+      def callingMacro[A](expr: A): String = macro YourMacro.yourMacroImpl[A]
+    }
     ```
 
     ```scala
-    // file: src/main/scala-3/example/YourMacro.scala - part of Show example
+    // file: src/main/scala-3/example/YourMacro.scala - part of shared macro logic example
     //> using target.scala {{ scala.3 }}
     //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+    package example
 
     import scala.quoted.*
 
@@ -132,10 +135,25 @@ This is how you can write a cross-compilable macro.
       // Since we define things in a mixin, we need to write an adapter that instantiate it
       // in a method.
       def yourMacro[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
-        new YourMacro(using q).yourMacro(expr)
+        new YourMacro(q).yourMacro(expr)
     }
 
-    inline def callingMacro[A](inline expr: A): String = ${ YourMacro.yourMacro('expr) }
+    object Example {
+      inline def callingMacro[A](inline expr: A): String = ${ YourMacro.yourMacro('expr) }
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of shared macro logic example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+    package example
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.callingMacro runs our cross-compilable macro") {
+        assertEquals(Example.callingMacro("value"), "\"value\" : java.lang.String")
+      }
+    }
     ```
 
 These examples show how you can write Scala-specific macros with Hearth.
@@ -146,6 +164,7 @@ These examples show how you can write Scala-specific macros with Hearth.
     use `c.WeakTypeTag` and `c.Expr` directly, etc, but also using extension methods and utilities from Hearth:
 
     ```scala
+    // file: src/main/scala/example/Example.scala - part of Scala-2-only macro example
     //> using scala {{ scala.2_13 }}
     //> using dep com.kubuszok::hearth:{{ hearth_version() }}
     package example
@@ -162,11 +181,26 @@ These examples show how you can write Scala-specific macros with Hearth.
       // Expr[A] = c.Expr[A]
 
       def yourMacro[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] = Expr {
-        s"${expr.prettyPrint} : ${Type[A].prettyPrint}"
+        s"${expr.plainPrint} : ${Type[A].plainPrint}"
       }
     }
 
-    def callingMacro[A](expr: A): String = macro YourMacro.yourMacro
+    object Example {
+      def callingMacro[A](expr: A): String = macro YourMacro.yourMacro[A]
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of Scala-2-only macro example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+    package example
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.callingMacro runs our cross-compilable macro") {
+        assertEquals(Example.callingMacro("value"), "\"value\" : java.lang.String")
+      }
+    }
     ```
 
 !!! example "Scala 3 API"
@@ -175,6 +209,7 @@ These examples show how you can write Scala-specific macros with Hearth.
     use `quoted.Type` and `quoted.Expr` directly, etc, but also using extension methods and utilities from Hearth:
 
     ```scala
+    // file: src/main/scala/example/Example.scala - part of Scala-3-only macro example
     //> using scala {{ scala.3 }}
     //> using dep com.kubuszok::hearth:{{ hearth_version() }}
     package example
@@ -190,7 +225,7 @@ These examples show how you can write Scala-specific macros with Hearth.
       // Expr[A] = c.Expr[A]
 
       def yourMacro[A: Type](expr: Expr[A]): Expr[String] = Expr {
-        s"${expr.prettyPrint} : ${Type[A].prettyPrint}"
+        s"${expr.plainPrint} : ${Type[A].plainPrint}"
       }
     }
     object YourMacro {
@@ -199,11 +234,83 @@ These examples show how you can write Scala-specific macros with Hearth.
       // Since we define things in a mixin, we need to write an adapter that instantiate it
       // in a method.
       def yourMacro[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
-        new YourMacro(using q).yourMacro(expr)
+        new YourMacro(q).yourMacro(expr)
     }
 
-    inline def callingMacro[A](inline expr: A): String = ${ YourMacro.yourMacro('expr) }
+    object Example {
+      inline def callingMacro[A](inline expr: A): String = ${ YourMacro.yourMacro('expr) }
+    }
     ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of Scala-3-only macro example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+    package example
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.callingMacro runs our cross-compilable macro") {
+        assertEquals(Example.callingMacro("value"), "\"value\" : java.lang.String")
+      }
+    }
+    ```
+
+## Library's conventions
+
+Inside a shared-logic trait (`MacroCommons`) we are working on abstract types and abstract methods:
+
+!!! example "`MacroCommons` API"
+
+    ```scala
+    type Type[A]
+    
+    val Type: TypeModule
+    trait TypeModule { this: Type.type => }
+    
+    implicit class TypeOps[A](tpe: Type[A]) {
+      // ops
+    }
+
+    type Expr[A]
+    val Expr: ExprModule
+    trait ExprModule { this: Expr.type => }
+
+    implicit class ExprOps[A](expr: Expr[A]) {
+      // ops
+    }
+    ```
+  
+Their implementations are being mix-in later (`MacroCommonsScala2`, `MacroCommonsScala3`).
+   
+Hearth implements shared utilities from bottom up: `Type[A]` and `Expr[A]` build on top of `UntypedType` and `UntypedExpr`,
+then `Method[A]`s build on top of `Type[A]` and `Expr[A]`, then `CaseClass[A]`, `Enum[A]` and `JavaBean[A]` build on top of them.
+(The lower is the abstraction level, the less likely API is to change).
+
+Probably for most common use cases you want to use high-level things like:
+
+!!! example "High-level `Class[A]` API"
+
+    ```scala
+    Class[A] match {
+      case caseClass: CaseClass[A] => // use case class utilities
+      case enumType: Enum[A] =>       // use enum utilities
+      case javaBean: JavaBean[A] =>   // use Java Bean utilities
+      case classType: Class[A] =>     // just a class
+    }
+    ```
+
+but they are work in progress, and when high level API is not sufficient, you can fall back on lower-lever.
+
+ If there is no API for what you try to do, you can always define:
+
+ ```scala
+ def mySharedAPI(): Result
+ ```
+
+ in the common part and implement the platform-specific logic in the traits where you are mixing-in.
+
+(I suggest doing as little of it as possible, and trying to separate the intents - what you try to achieve - from the means
+how you are doing it. It makes code easier to reason and maintain).
 
 ## `Type`, `UntypedType` and `??`
 
