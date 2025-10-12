@@ -2,6 +2,7 @@ package hearth
 package cq
 
 import java.util.regex.{Matcher, Pattern}
+import hearth.treeprinter.{ShowCodePretty, SyntaxHighlight}
 import scala.reflect.macros.blackbox
 import scala.util.chaining.*
 
@@ -116,7 +117,7 @@ import scala.util.chaining.*
   *
   * It's the most fragile part of the whole macro. But for the Proof-of-Concept, it's good enough.
   */
-final class CrossQuotesMacros(val c: blackbox.Context) {
+final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePretty {
 
   import c.universe.{Expr as _, *}
 
@@ -152,8 +153,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) {
   private val anonumousClassPrefix = Pattern.quote("$anon")
   private val anonymousClassReplacement = "anonymous"
 
-  private val anonymousClassConstructor =
-    "def <init>\\(\\): <.+> = \\{\n(\\s+anonymous.super.<init>)\\(\\);\n\\s+\\(\\)\n\\s+\\};"
+  // private val anonymousClassConstructor =
+  //  "def <init>\\(\\): <.+> = \\{\n(\\s+anonymous.super.<init>)\\(\\);\n\\s+\\(\\)\n\\s+\\};"
 
   private def typeCtorFrom[A](tag: c.WeakTypeTag[A]) = tag.tpe.typeConstructor
   private def applyToCtor(ctor: Type, args: TypeName*) =
@@ -2561,7 +2562,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) {
       .pipe(spliceReplacer.transform)
       .pipe(abstractTypeReferenceReplacer.transform)
       // Convert to String
-      .pipe(_.toString)
+      .pipe(showCodePretty(_, SyntaxHighlight.plain))
       .tap { source =>
         log(
           s"""Stubbed source:
@@ -2582,7 +2583,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) {
   }
 
   private def sourceWithFixedAnonymousClasses(source: String): String =
-    source.replaceAll(anonumousClassPrefix, anonymousClassReplacement).replaceAll(anonymousClassConstructor, "")
+    source.replaceAll(anonumousClassPrefix, anonymousClassReplacement) // .replaceAll(anonymousClassConstructor, "")
 
   private def parse(quoteContent: String): c.Tree = try {
     val quoted = "q\"\"\"" + quoteContent + "\"\"\""
