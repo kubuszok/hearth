@@ -294,7 +294,7 @@ val publishSettings = Seq(
 val mimaSettings = Seq(
   mimaPreviousArtifacts := {
     val previousVersions = moduleName.value match {
-      case "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" => Set("0.1.0")
+      case "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" => Set() // fix after 0.2.0 release
       case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" =>
         Set()
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
@@ -303,7 +303,7 @@ val mimaSettings = Seq(
   },
   mimaFailOnNoPrevious := {
     moduleName.value match {
-      case "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" => true
+      case "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" => false // fix after 0.2.0 release
       case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" =>
         false
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
