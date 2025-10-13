@@ -126,7 +126,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePretty {
       c.enclosingPosition,
       s"""Unexpected error ${throwable.getClass.getName}:
          |
-         |  ${throwable.getMessage}
+         |${indent(throwable.getMessage)}
          |
          |from:
          |${throwable.getStackTrace.map(item => s"  at: $item").mkString("\n")}
@@ -152,9 +152,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePretty {
 
   private val anonumousClassPrefix = Pattern.quote("$anon")
   private val anonymousClassReplacement = "anonymous"
-
-  // private val anonymousClassConstructor =
-  //  "def <init>\\(\\): <.+> = \\{\n(\\s+anonymous.super.<init>)\\(\\);\n\\s+\\(\\)\n\\s+\\};"
 
   private def typeCtorFrom[A](tag: c.WeakTypeTag[A]) = tag.tpe.typeConstructor
   private def applyToCtor(ctor: Type, args: TypeName*) =
@@ -2563,6 +2560,12 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePretty {
     // It is _so much easier_ than properly modifying the tree.
     val abstractTypeReferenceReplacer = new AbstractTypeReferenceReplacer(ctx)
     val spliceReplacer = new SpliceReplacer(ctx)
+    val putIntoQuasiquote: String => String = str =>
+      "q\"\"\"" + str.view.map {
+        // Escape $ - we have to do it before replacing stubs, because we might have accidentaly removed some actual string interpolation
+        case '$' => "$$"
+        case c   => c
+      }.mkString + "\"\"\""
     tree
       // replace some Exprs and Types with stubs
       .pipe(spliceReplacer.transform)
@@ -2570,12 +2573,16 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePretty {
       // Convert to String
       .pipe(showCodePretty(_, SyntaxHighlight.plain))
       .tap { source =>
-        log(
-          s"""Stubbed source:
-             |${showCodePretty(source, SyntaxHighlight.ANSI)}
-             |""".stripMargin
-        )
+        if (loggingEnabled) {
+          println(
+            s"""Stubbed source:
+               |${showCodePretty(source, SyntaxHighlight.ANSI)}
+               |""".stripMargin
+          )
+        }
       }
+      // Put into quasiquote - we have to do it before replacing stubs, because we might have accidentaly removed some actual string interpolation
+      .pipe(putIntoQuasiquote)
       // Replace stubs with their values
       .pipe(abstractTypeReferenceReplacer.replaceStubsInSource)
       .pipe(spliceReplacer.replaceStubsInSource)
@@ -2585,30 +2592,11 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePretty {
       .pipe(abstractTypeReferenceReplacer.validateNoStubsLeft)
       .pipe(spliceReplacer.validateNoStubsLeft)
       // Parse back to Tree
-      .pipe(parse)
+      .pipe(c.parse(_))
   }
 
   private def sourceWithFixedAnonymousClasses(source: String): String =
-    source.replaceAll(anonumousClassPrefix, anonymousClassReplacement) // .replaceAll(anonymousClassConstructor, "")
-
-  private def parse(quoteContent: String): c.Tree = try {
-    val quoted = "q\"\"\"" + quoteContent + "\"\"\""
-    val expr = c.parse(quoted)
-    // log(s"Quasiquote: $quoted")
-    expr
-  } catch {
-    // If quasiquotes contains anonymous variable e.g. x$1, it might look like a string interpolation,
-    // but it's not. So we try to escape the $ and parse again.
-    case e: scala.reflect.macros.ParseException if e.msg.contains("invalid string interpolation") =>
-      val escaped = quoteContent.view.map {
-        case '$' => "$$"
-        case c   => c
-      }.mkString
-      parse(escaped)
-    // case e: scala.reflect.macros.ParseException =>
-    //   println(s"Error: $e, at:\n$quoteContent")
-    //   throw e
-  }
+    source.replaceAll(anonumousClassPrefix, anonymousClassReplacement)
 
   /** Handles type parameters inside Expr.quote: Expr.quote { def foo[A] = ... // use A }, as we as type parameters
     * inside Expr.splice: that require Type[A] from the outside.
