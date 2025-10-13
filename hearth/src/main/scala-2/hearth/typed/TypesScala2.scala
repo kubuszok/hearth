@@ -56,6 +56,9 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
       }
     }
     override def prettyPrint[A: Type]: String = {
+      // TODO: for the time being this does not yet work
+      // showCodePretty(Type[A].tpe, treeprinter.SyntaxHighlight.ANSI)
+
       def helper(tpe: c.Type): String =
         tpe.toString match {
           case javaEnumRegexpFormat(enumName, valueName) if tpe.typeSymbol.isJavaEnum => s"$enumName.$valueName.type"
@@ -69,7 +72,7 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
             fullName + tpeArgs
         }
 
-      Console.MAGENTA + helper(Type[A].tpe) + Console.RESET
+      Console.MAGENTA + helper(Type[A].tpe)
     }
 
     override lazy val NullCodec: TypeCodec[Null] = new LiteralCodec[Null]
