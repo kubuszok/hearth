@@ -33,10 +33,7 @@ final class ExprsSpec extends MacroSuite {
       test("should summon implicit of available") {
         testExprSummoning[List[Int]] <==> Data.map("Expr.summonImplicit" -> Data("<failed to summon>"))
         testExprSummoning[DummyImplicit] <==> Data.map(
-          "Expr.summonImplicit" -> Data(
-            if (LanguageVersion.byHearth.isScala3) "scala.DummyImplicit.dummyImplicit"
-            else "scala.this.DummyImplicit.dummyImplicit"
-          )
+          "Expr.summonImplicit" -> Data("scala.DummyImplicit.dummyImplicit")
         )
       }
     }
@@ -223,7 +220,7 @@ final class ExprsSpec extends MacroSuite {
           "decoded" -> Data("1")
         ),
         "float" -> Data.map(
-          "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "1.0" else "1.0f"),
+          "encoded" -> Data("1.0f"),
           "decoded" -> Data("1.0")
         ),
         "double" -> Data.map(

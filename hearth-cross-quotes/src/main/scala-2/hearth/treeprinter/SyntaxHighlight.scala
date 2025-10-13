@@ -4,14 +4,24 @@ package treeprinter
 // Copy-paste of https://github.com/scala/scala3/blob/main/compiler/src/scala/quoted/runtime/impl/printers/SyntaxHighlight.scala
 
 trait SyntaxHighlight {
-  def highlightKeyword(str: String): String
-  def highlightTypeDef(str: String): String
-  def highlightLiteral(str: String): String
-  def highlightValDef(str: String): String
-  def highlightOperator(str: String): String
-  def highlightAnnotation(str: String): String
-  def highlightString(str: String): String
-  def highlightTripleQs: String
+  def KeywordColor: String
+  def TypeDefColor: String
+  def LiteralColor: String
+  def ValDefColor: String
+  def OperatorColor: String
+  def AnnotationColor: String
+  def StringColor: String
+  def TripleQsColor: String
+  def NoColor: String
+
+  def highlightKeyword(str: String): String = KeywordColor + str + NoColor
+  def highlightTypeDef(str: String): String = TypeDefColor + str + NoColor
+  def highlightLiteral(str: String): String = LiteralColor + str + NoColor
+  def highlightValDef(str: String): String = ValDefColor + str + NoColor
+  def highlightOperator(str: String): String = OperatorColor + str + NoColor
+  def highlightAnnotation(str: String): String = AnnotationColor + str + NoColor
+  def highlightString(str: String): String = StringColor + str + NoColor
+  def highlightTripleQs: String = TripleQsColor + "???" + NoColor
 }
 
 object SyntaxHighlight {
@@ -28,26 +38,27 @@ object SyntaxHighlight {
   val TypeColor = Console.MAGENTA
   val AnnotationColor = Console.MAGENTA
 
-  def ANSI: SyntaxHighlight = new SyntaxHighlight {
-
-    def highlightKeyword(str: String): String = KeywordColor + str + NoColor
-    def highlightTypeDef(str: String): String = TypeColor + str + NoColor
-    def highlightLiteral(str: String): String = LiteralColor + str + NoColor
-    def highlightValDef(str: String): String = ValDefColor + str + NoColor
-    def highlightOperator(str: String): String = TypeColor + str + NoColor
-    def highlightAnnotation(str: String): String = AnnotationColor + str + NoColor
-    def highlightString(str: String): String = StringColor + str + NoColor
-    def highlightTripleQs: String = Console.RED_B + "???" + NoColor
+  object ANSI extends SyntaxHighlight {
+    val KeywordColor = SyntaxHighlight.KeywordColor
+    val TypeDefColor = SyntaxHighlight.TypeColor
+    val LiteralColor = SyntaxHighlight.LiteralColor
+    val ValDefColor = SyntaxHighlight.ValDefColor
+    val OperatorColor = SyntaxHighlight.TypeColor
+    val AnnotationColor = SyntaxHighlight.AnnotationColor
+    val StringColor = SyntaxHighlight.StringColor
+    val TripleQsColor = Console.RED_B
+    val NoColor = SyntaxHighlight.NoColor
   }
 
-  def plain: SyntaxHighlight = new SyntaxHighlight {
-    def highlightKeyword(str: String): String = str
-    def highlightTypeDef(str: String): String = str
-    def highlightLiteral(str: String): String = str
-    def highlightValDef(str: String): String = str
-    def highlightOperator(str: String): String = str
-    def highlightAnnotation(str: String): String = str
-    def highlightString(str: String): String = str
-    def highlightTripleQs: String = "???"
+  object plain extends SyntaxHighlight {
+    val KeywordColor = ""
+    val TypeDefColor = ""
+    val LiteralColor = ""
+    val ValDefColor = ""
+    val OperatorColor = ""
+    val AnnotationColor = ""
+    val StringColor = ""
+    val TripleQsColor = ""
+    val NoColor = ""
   }
 }
