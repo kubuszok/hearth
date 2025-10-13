@@ -5,14 +5,15 @@ import scala.annotation.{nowarn, tailrec}
 import scala.reflect.internal.Chars
 import scala.reflect.internal.ModifierFlags.*
 
-trait ShowCodePretty {
+private[hearth] trait ShowCodePretty {
   val c: scala.reflect.macros.blackbox.Context
-  val st: scala.reflect.internal.SymbolTable = c.universe.asInstanceOf[scala.reflect.internal.SymbolTable]
+  import c.universe.BooleanFlag
 
-  import st.*
+  private val st: scala.reflect.internal.SymbolTable = c.universe.asInstanceOf[scala.reflect.internal.SymbolTable]
+  import st.{BooleanFlag as _, *}
 
   /** Better implementation of [[scala.reflect.internal.Printers#showCode]] that supports syntax highlighting. */
-  def showCodePretty(
+  private[hearth] def showCodePretty(
       any: Any,
       highlight: SyntaxHighlight,
       printTypes: BooleanFlag = None,
@@ -67,7 +68,7 @@ trait ShowCodePretty {
   private def ifSym(tree: Tree, p: Symbol => Boolean) = symFn(tree, p, false)
 
   /** Better implementation of [[scala.reflect.internal.Printers#CodePrinter]] that supports syntax highlighting. */
-  class HighlighedCodePrinter(out: PrintWriter, printRootPkg: Boolean, syntaxHighlight: SyntaxHighlight)
+  private class HighlighedCodePrinter(out: PrintWriter, printRootPkg: Boolean, syntaxHighlight: SyntaxHighlight)
       extends CodePrinter(out, printRootPkg) {
     import syntaxHighlight.*
 
