@@ -511,9 +511,8 @@ Nested expressions are also correctly handled by Cross Quotes:
 
 1. **Early Version**: Cross Quotes is still in an early development, so some complex expressions may fail with cryptic errors:
 
-    Scala 2 implementation relies on printing the expression inside quasiquotes, but built-in implementation of `show(expr)` might
-    print something that is not correct Scala code. E.g. anonymous classes and their constructors require a special workaround which removes
-    an illegal Scala syntax. [hearth#66](https://github.com/MateuszKubuszok/hearth/issues/66) is intended to address it.
+    Scala 2 implementation relies on custom tree printers ([hearth#66](https://github.com/MateuszKubuszok/hearth/issues/66)).
+    It should solve Scala 2 issues, but it's still a new solution, that would require testing in the field.
 
     Scala 3 implementation works with untyped trees. That means modifies the code before we can reliably tell, whether something is actually
     declared within `MacroCommons` mix-in.
@@ -537,11 +536,8 @@ Nested expressions are also correctly handled by Cross Quotes:
 
 ### Known Issues
 
-- Anonymous classes with complex type parameters may cause parsing issues
 - Very deeply nested expressions might hit compiler limits
 - Some edge cases in type parameter handling may not work as expected
-
-!!! warning "Most issues with Scala 2 implementation should be addressed after [hearth#66](https://github.com/MateuszKubuszok/hearth/issues/66) is implemented."
 
 ## Debugging
 

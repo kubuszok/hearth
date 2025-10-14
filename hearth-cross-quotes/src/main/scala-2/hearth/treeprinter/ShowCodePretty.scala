@@ -260,8 +260,6 @@ private[hearth] trait ShowCodePretty {
       print(highlightValDef("this") + " ")
     }
 
-    // TODO: detect anonymous instances and print them in a different way
-
     @nowarn
     override def processTreePrinting(tree: Tree): Unit = {
 
@@ -714,13 +712,7 @@ private[hearth] trait ShowCodePretty {
             // Note: copy-paste-modified (and inlined) from TreePrinter.printTree
             else if ((tree.tpe eq null) || (printPositions && tt.original != null)) {
               if (tt.original != null) print(tt.original) // Note: originally: print("<type: ", tt.original, ">")
-              else {
-                // Note: originally: print("<type ?>")
-                tt match {
-                  case _: TypeBoundsTree => // do nothing?
-                  case _                 => unsupportedTree(tree)
-                }
-              }
+              else unsupportedTree(tree) // Note: originally: print("<type ?>")
             } else if ((tree.tpe.typeSymbol ne null) && tree.tpe.typeSymbol.isAnonymousClass) {
               print(highlightTypeDef(tree.tpe.typeSymbol.toString)) // TODO: check if we can do better
             } else {
@@ -735,7 +727,7 @@ private[hearth] trait ShowCodePretty {
 
         // Note: copy-paste-modified from TreePrinter.printTree
         case SingletonTypeTree(ref) =>
-          print(ref, ".type") // TODO: check coloring of that
+          print(ref, ".type")
 
         case SelectFromTypeTree(qualifier, selector) =>
           print(
@@ -744,7 +736,7 @@ private[hearth] trait ShowCodePretty {
             ")#",
             blankForOperatorName(selector),
             printedName(selector)
-          ) // TODO: check coloring of that
+          )
 
         // Note: copy-paste-modified from TreePrinter.printTree
         case CompoundTypeTree(templ) =>
@@ -782,7 +774,7 @@ private[hearth] trait ShowCodePretty {
         // Note: copy-paste-modified from TreePrinter.printTree
         case ExistentialTypeTree(tpt, whereClauses) =>
           print("(", tpt)
-          printColumn(whereClauses, " forSome { ", ";", "})") // TODO: check coloring of that
+          printColumn(whereClauses, " " + highlightKeyword("forSome") + " { ", ";", "})")
 
         case tree => // Note: originally: super.printTree(tree) but we cannot rely on TreePrinter for syntax highlighting
           unsupportedTree(tree)
