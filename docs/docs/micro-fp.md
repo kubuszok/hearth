@@ -69,7 +69,7 @@ completely.
 
 From my experience, when writing macros you may need to:
 
- 1. **aggregate errors(()), so that users would be informed about all the issues preventing from compilation at once
+ 1. **aggregate errors**, so that users would be informed about all the issues preventing from compilation at once
  2. occasionally **handle some combinator-hostile cases** like this:
 
     !!! example "You cannot always `.traverse`"
@@ -427,8 +427,8 @@ Provides a way to write effectful code in a direct style, similar to using `for`
     //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
     import hearth.fp.DirectStyle
     import hearth.fp.effect.MIO
-    import hearth.fp.syntax.*
     import hearth.fp.instances.*
+    import hearth.fp.syntax.*
 
     import scala.quoted.*
 
@@ -507,6 +507,10 @@ To implement type classes for your own types, follow these patterns:
 !!! example "Implementing Functor"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.*
     
     // For a custom container type
@@ -516,17 +520,28 @@ To implement type classes for your own types, follow these patterns:
       def map[A, B](fa: Box[A])(f: A => B): Box[B] = 
         Box(f(fa.value))
     }
+
+    import hearth.fp.syntax.*
     
     // Usage
     val box: Box[Int] = Box(42)
     val doubled: Box[Int] = box.map(_ * 2)
-    // Result: Box(84)
+    pprint.pprintln(doubled)
+    // expected output:
+    // Box(value = 84)
     ```
 
 !!! example "Implementing Applicative"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.*
+
+    // For a custom container type
+    case class Box[A](value: A)
     
     implicit val ApplicativeForBox: Applicative[Box] = new Applicative[Box] {
       def pure[A](a: A): Box[A] = Box(a)
@@ -534,17 +549,25 @@ To implement type classes for your own types, follow these patterns:
       def map2[A, B, C](fa: Box[A], fb: => Box[B])(f: (A, B) => C): Box[C] = 
         Box(f(fa.value, fb.value))
     }
+
+    import hearth.fp.syntax.*
     
     // Usage
     val box1: Box[Int] = Box(10)
     val box2: Box[Int] = Box(20)
     val sum: Box[Int] = box1.map2(box2)(_ + _)
-    // Result: Box(30)
+    pprint.pprintln(sum)
+    // expected output:
+    // Box(value = 30)
     ```
 
 !!! example "Implementing Traverse"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.*
     
     // For a custom tree structure
@@ -555,18 +578,39 @@ To implement type classes for your own types, follow these patterns:
     implicit val TraverseForTree: Traverse[Tree] = new Traverse[Tree] {
       def traverse[G[_]: Applicative, A, B](fa: Tree[A])(f: A => G[B]): G[Tree[B]] = 
         fa match {
-          case Leaf(a) => f(a).map(Leaf(_))
-          case Node(left, right) => 
-            left.traverse(f).map2(right.traverse(f))(Node(_, _))
+          case Leaf(a) => Applicative[G].map(f(a))(Leaf(_))
+          case Node(left, right) =>
+            Applicative[G].map2(traverse(left)(f), traverse(right)(f))(Node(_, _))
+            // with syntax: left.traverse(f).map2(right.traverse(f))(Node(_, _))
         }
       
       def parTraverse[G[_]: Parallel, A, B](fa: Tree[A])(f: A => G[B]): G[Tree[B]] = 
         fa match {
-          case Leaf(a) => f(a).map(Leaf(_))
+          case Leaf(a) => Applicative[G].map(f(a))(Leaf(_))
           case Node(left, right) => 
-            left.parTraverse(f).parMap2(right.parTraverse(f))(Node(_, _))
+            Parallel[G].parMap2(parTraverse(left)(f), parTraverse(right)(f))(Node(_, _))
+            // with syntax:  left.parTraverse(f).parMap2(right.parTraverse(f))(Node(_, _))
         }
     }
+
+    import hearth.fp.instances.*
+    import hearth.fp.syntax.*
+
+    val tree: Tree[Int] = Node(Node(Leaf(1), Leaf(2)), Leaf(3))
+    val t = tree.traverse { i =>
+      if (i % 2 == 0) Right(i / 2)
+      else Left(List(s"$i is not even"))
+    }
+    pprint.pprintln(t)
+    // expected output:
+    // Left(value = List("1 is not even"))
+    val p = tree.parTraverse { i =>
+      if (i % 2 == 0) Right(i / 2)
+      else Left(List(s"$i is not even"))
+    }
+    pprint.pprintln(p)
+    // expected output:
+    // Left(value = List("1 is not even", "3 is not even"))
     ```
 
 ### Quick Reference
