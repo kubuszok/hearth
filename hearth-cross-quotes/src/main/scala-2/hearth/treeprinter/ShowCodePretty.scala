@@ -34,7 +34,8 @@ private[hearth] trait ShowCodePretty {
       printPositions
     )
 
-  // Copy-pasted from scala.reflect.internal.Printers
+  // Copy-paste-modified from scala.reflect.internal.Printers:
+
   private def render(
       what: Any,
       highlight: SyntaxHighlight,
@@ -61,6 +62,7 @@ private[hearth] trait ShowCodePretty {
     writer.flush()
     buffer.toString
   }
+
   private def symFn[T](tree: Tree, f: Symbol => T, orElse: => T): T = tree.symbol match {
     case null | NoSymbol => orElse
     case sym             => f(sym)
@@ -121,6 +123,33 @@ private[hearth] trait ShowCodePretty {
     }
 
     // Overriden from TreePrinter:
+
+    // Fixes printSeq to not print anonymous classes
+    // Since printSeq is final we cannot override it
+    @tailrec
+    private def printSeqFixed(ls: List[Tree])(printelem: Tree => Unit)(printsep: => Unit): Unit =
+      ls match {
+        case List()  =>
+        case List(x) => printelem(x)
+        case ClassDef(mods, anonName1, tparams, impl) ::
+            Apply(Select(New(Ident(anonName2)), termNames.CONSTRUCTOR), List()) :: rest if anonName1 == anonName2 =>
+          printelem(New(impl)); printsep; printSeqFixed(rest)(printelem)(printsep)
+        case x :: rest =>
+          if (showCode(x).contains("final class $anon")) {
+            scala.Predef.println(ls.take(2).map(showCode(_)).mkString("\n"))
+            scala.Predef.println(ls.take(2).map(showRaw(_)).mkString("\n"))
+          }
+          printelem(x); printsep; printSeqFixed(rest)(printelem)(printsep)
+      }
+
+    override def printColumn(ts: List[Tree], start: String, sep: String, end: String) = {
+      print(start); indent(); println()
+      printSeqFixed(ts)(print(_)) { print(sep); println() }; undent(); println(); print(end)
+    }
+
+    override def printRow(ts: List[Tree], start: String, sep: String, end: String): Unit = {
+      print(start); printSeqFixed(ts)(print(_))(print(sep)); print(end)
+    }
 
     override protected def printPackageDef(tree: PackageDef, separator: String) = {
       val PackageDef(packaged, stats) = tree
@@ -308,7 +337,7 @@ private[hearth] trait ShowCodePretty {
         case pd @ PackageDef(packaged, stats) =>
           packaged match {
             case Ident(name) if name == nme.EMPTY_PACKAGE_NAME =>
-              printSeq(stats) {
+              printSeqFixed(stats) {
                 print(_)
               } {
                 println()
@@ -562,8 +591,12 @@ private[hearth] trait ShowCodePretty {
             case Function(List(), EmptyTree)                         => print("(", expr, " _)") // func _
             // parentheses required when (a match {}) : Type
             case _ =>
-              // Note: originally: print("((", expr, "): ", tp, ")")
-              print("(", expr, ": ", tp, ")")
+              val safeToSkipExtraParens = expr match {
+                case Match(_, _) => false
+                case _           => true
+              }
+              if (safeToSkipExtraParens) print("(", expr, ": ", tp, ")")
+              else print("((", expr, "): ", tp, ")")
           }
 
         // print only fun when targs are TypeTrees with empty original

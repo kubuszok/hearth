@@ -150,9 +150,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePretty {
   private def freshName(prefix: String): TermName = c.universe.internal.reificationSupport.freshTermName(prefix)
   private def freshTypeName(prefix: String): TypeName = c.universe.internal.reificationSupport.freshTypeName(prefix)
 
-  private val anonumousClassPrefix = Pattern.quote("$anon")
-  private val anonymousClassReplacement = "anonymous"
-
   private def typeCtorFrom[A](tag: c.WeakTypeTag[A]) = tag.tpe.typeConstructor
   private def applyToCtor(ctor: Type, args: TypeName*) =
     AppliedTypeTree(c.internal.gen.mkAttributedRef(ctor.typeSymbol.asType), args.map(Ident(_)).toList)
@@ -2555,8 +2552,9 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePretty {
   private def convert(ctx: TermName)(tree: c.Tree): c.Tree = {
     // 1. Replace certain trees with stubs,
     // 2. then print the tree,
-    // 3. replace stubs with their actual replacements
-    // 3. and parse it back into Tree
+    // 3. put it into quasiquotes and escape `$`
+    // 4. replace stubs with their actual replacements
+    // 5. and parse it back into Tree
     // It is _so much easier_ than properly modifying the tree.
     val abstractTypeReferenceReplacer = new AbstractTypeReferenceReplacer(ctx)
     val spliceReplacer = new SpliceReplacer(ctx)
@@ -2586,17 +2584,12 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePretty {
       // Replace stubs with their values
       .pipe(abstractTypeReferenceReplacer.replaceStubsInSource)
       .pipe(spliceReplacer.replaceStubsInSource)
-      // Remove parts of anonymous classes that breaks the parser
-      .pipe(sourceWithFixedAnonymousClasses)
       // Validate that there are no stubs left
       .pipe(abstractTypeReferenceReplacer.validateNoStubsLeft)
       .pipe(spliceReplacer.validateNoStubsLeft)
       // Parse back to Tree
       .pipe(c.parse(_))
   }
-
-  private def sourceWithFixedAnonymousClasses(source: String): String =
-    source.replaceAll(anonumousClassPrefix, anonymousClassReplacement)
 
   /** Handles type parameters inside Expr.quote: Expr.quote { def foo[A] = ... // use A }, as we as type parameters
     * inside Expr.splice: that require Type[A] from the outside.
