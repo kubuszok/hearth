@@ -403,7 +403,6 @@ Nested expressions are also correctly handled by Cross Quotes:
 
     trait ExpressionBuilder { this: hearth.MacroTypedCommons =>
 
-      // XD, we have a bug to fix here
       def buildList[A: Type](elements: List[Expr[A]]): Expr[List[A]] = elements match {
         case Nil => Expr.quote { List.empty[A] }
         case head :: tail => Expr.quote {
@@ -411,6 +410,8 @@ Nested expressions are also correctly handled by Cross Quotes:
         }
       }
     }
+
+    object Stub { def main(args: Array[String]): Unit = () }
     ```
 
     ```scala
@@ -465,7 +466,7 @@ Nested expressions are also correctly handled by Cross Quotes:
 
     class Example (val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ComplexTypeMatching {
 
-      def analyzeTupleImpl[In: c.WeakTypeTag]: c.Expr[String] = analyzeTuple[A]
+      def analyzeTupleImpl[In: c.WeakTypeTag]: c.Expr[String] = analyzeTuple[In]
     }
     object Example {
 
@@ -484,7 +485,7 @@ Nested expressions are also correctly handled by Cross Quotes:
 
     object Example {
 
-      def analyzeTuple[In] = ${ analyzeTupleImpl[In] }
+      inline def analyzeTuple[In] = ${ analyzeTupleImpl[In] }
 
       def analyzeTupleImpl[In: Type](using q: Quotes): Expr[String] = new Example(q).analyzeTuple[In]
     }
