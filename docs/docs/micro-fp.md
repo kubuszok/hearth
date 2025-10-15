@@ -1068,3 +1068,37 @@ log and fail if necessary:
       s"Sum: ${a + b}"
     }
     ```
+
+### Integration with `MacroCommons`
+
+When using withing [`MacroCommons`](basic-utilities.md#librarys-conventions) you don't need to use `mio.unsafe.runSync`.
+
+There is a dedicated extension method for `MIO[Expr[A]]` that:
+
+ - will run `MIO` computation
+ - extract `Expr[A]` if it's a successful computation
+   - logging if you tell it to and there are logs
+ - on failure provide you with a rendered log and a non-empty collection of errors, so that you would have the whole information
+   to render complete error message
+   - handling reporting error as well
+
+!!! example "From `MIO[Expr[A]]` to done macro expansion"
+
+    ```scala
+    mioResult.runToExprOrFail(
+      nameOfTheMacroForReport: String, // required
+      infoRendering = DontRender, // or RenderFrom(logLevel) or RenderOnly(logLevel) - optional
+      warnRendering = RenderFrom(Log.Level.Warn), // optional
+      errorRendering = RenderFrom(Log.Level.Error), // optional
+      failOnErrorLog = false // optional
+    ) { (errorLogs: String, errors: NonEmptyVector[Throwable]) =>
+      "Your error message"
+    }
+    ```
+
+This utility also handles Ctrl+C signal - if you manage to write such a tail recursive computation, that the program would
+loop and only Ctrl+C would be a reasonable course of action, `MIO` would interrupt ongoing computations and fail. Without
+it you only get an exception, with it, you will also get error message telling you where the MIO program was
+when the error happened, helping you find a place where it looped.
+
+It does that with the help of [`Environment.handleMioTerminationException` utility](basic-utilities.md#mio-termination-handling).
