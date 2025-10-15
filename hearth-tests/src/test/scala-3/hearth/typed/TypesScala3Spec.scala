@@ -11,7 +11,7 @@ final class TypesScala3Spec extends MacroSuite {
 
   group("typed.Types") {
 
-    group("methods: Type.{simple, fcqn, plainPrint, prettyPrint}, expected behavior") {
+    group("methods: Type.{simple, fqcn, plainPrint, prettyPrint}, expected behavior") {
       import TypesFixtures.testNamesPrinters
 
       test("for Scala 3 enums") {
@@ -31,11 +31,11 @@ final class TypesScala3Spec extends MacroSuite {
             "hearth.examples.ExampleEnumGADT",
             "hearth.examples.ExampleEnumGADT[java.lang.String]"
           )
-        ).foreach { case (actual, (shortName, fcqn, fullName)) =>
+        ).foreach { case (actual, (shortName, fqcn, fullName)) =>
           actual <==> Data(
             Map(
               "Type.shortName" -> Data(shortName),
-              "Type.fcqn" -> Data(fcqn),
+              "Type.fqcn" -> Data(fqcn),
               "Type.plainPrint" -> Data(fullName),
               "Type.prettyPrint" -> Data(fullName)
             )
@@ -55,11 +55,11 @@ final class TypesScala3Spec extends MacroSuite {
             "hearth.examples.ExampleEnum.ExampleEnumValue",
             "hearth.examples.ExampleEnum.ExampleEnumValue"
           )
-        ).foreach { case (actual, (shortName, fcqn, fullName)) =>
+        ).foreach { case (actual, (shortName, fqcn, fullName)) =>
           actual <==> Data(
             Map(
               "Type.shortName" -> Data(shortName),
-              "Type.fcqn" -> Data(fcqn),
+              "Type.fqcn" -> Data(fqcn),
               "Type.plainPrint" -> Data(fullName),
               "Type.prettyPrint" -> Data(fullName)
             )

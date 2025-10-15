@@ -11,7 +11,7 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
   def testNamesPrinters[A: Type]: Expr[Data] = Expr(
     Data.map(
       "Type.shortName" -> Data(Type[A].shortName),
-      "Type.fcqn" -> Data(Type[A].fcqn),
+      "Type.fqcn" -> Data(Type[A].fqcn),
       "Type.plainPrint" -> Data(Type[A].plainPrint),
       "Type.prettyPrint" -> Data(removeAnsiColors(Type[A].prettyPrint))
     )

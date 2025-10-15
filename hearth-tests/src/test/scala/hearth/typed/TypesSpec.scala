@@ -10,7 +10,7 @@ final class TypesSpec extends MacroSuite {
 
   group("trait typed.Types") {
 
-    group("methods: Type.{simple, fcqn, plainPrint, prettyPrint}, expected behavior") {
+    group("methods: Type.{simple, fqcn, plainPrint, prettyPrint}, expected behavior") {
       import TypesFixtures.testNamesPrinters
 
       test("for primitive types") {
@@ -26,7 +26,7 @@ final class TypesSpec extends MacroSuite {
         ).foreach { case (actual, expected) =>
           actual <==> Data.map(
             "Type.shortName" -> Data(expected),
-            "Type.fcqn" -> Data(s"scala.$expected"),
+            "Type.fqcn" -> Data(s"scala.$expected"),
             "Type.plainPrint" -> Data(s"scala.$expected"),
             "Type.prettyPrint" -> Data(s"scala.$expected")
           )
@@ -36,19 +36,19 @@ final class TypesSpec extends MacroSuite {
       test("for built-in types") {
         testNamesPrinters[Unit] <==> Data.map(
           "Type.shortName" -> Data("Unit"),
-          "Type.fcqn" -> Data(s"scala.Unit"),
+          "Type.fqcn" -> Data(s"scala.Unit"),
           "Type.plainPrint" -> Data(s"scala.Unit"),
           "Type.prettyPrint" -> Data(s"scala.Unit")
         )
         testNamesPrinters[String] <==> Data.map(
           "Type.shortName" -> Data("String"),
-          "Type.fcqn" -> Data("java.lang.String"),
+          "Type.fqcn" -> Data("java.lang.String"),
           "Type.plainPrint" -> Data("java.lang.String"),
           "Type.prettyPrint" -> Data("java.lang.String")
         )
         testNamesPrinters[Array[Int]] <==> Data.map(
           "Type.shortName" -> Data("Array"),
-          "Type.fcqn" -> Data("scala.Array"),
+          "Type.fqcn" -> Data("scala.Array"),
           "Type.plainPrint" -> Data("scala.Array[scala.Int]"),
           "Type.prettyPrint" -> Data("scala.Array[scala.Int]")
         )
@@ -57,31 +57,31 @@ final class TypesSpec extends MacroSuite {
       test("for type-system-special types") {
         testNamesPrinters[Any] <==> Data.map(
           "Type.shortName" -> Data("Any"),
-          "Type.fcqn" -> Data("scala.Any"),
+          "Type.fqcn" -> Data("scala.Any"),
           "Type.plainPrint" -> Data("scala.Any"),
           "Type.prettyPrint" -> Data("scala.Any")
         )
         testNamesPrinters[AnyRef] <==> Data.map(
           "Type.shortName" -> Data("Object"),
-          "Type.fcqn" -> Data("java.lang.Object"),
+          "Type.fqcn" -> Data("java.lang.Object"),
           "Type.plainPrint" -> Data("java.lang.Object"),
           "Type.prettyPrint" -> Data("java.lang.Object")
         )
         testNamesPrinters[AnyVal] <==> Data.map(
           "Type.shortName" -> Data("AnyVal"),
-          "Type.fcqn" -> Data("scala.AnyVal"),
+          "Type.fqcn" -> Data("scala.AnyVal"),
           "Type.plainPrint" -> Data("scala.AnyVal"),
           "Type.prettyPrint" -> Data("scala.AnyVal")
         )
         testNamesPrinters[Null] <==> Data.map(
           "Type.shortName" -> Data("Null"),
-          "Type.fcqn" -> Data("scala.Null"),
+          "Type.fqcn" -> Data("scala.Null"),
           "Type.plainPrint" -> Data("scala.Null"),
           "Type.prettyPrint" -> Data("scala.Null")
         )
         testNamesPrinters[Nothing] <==> Data.map(
           "Type.shortName" -> Data("Nothing"),
-          "Type.fcqn" -> Data("scala.Nothing"),
+          "Type.fqcn" -> Data("scala.Nothing"),
           "Type.plainPrint" -> Data("scala.Nothing"),
           "Type.prettyPrint" -> Data("scala.Nothing")
         )
@@ -112,7 +112,7 @@ final class TypesSpec extends MacroSuite {
         ).foreach { case (actual, (expected, params)) =>
           actual <==> Data.map(
             "Type.shortName" -> Data(expected),
-            "Type.fcqn" -> Data(s"hearth.examples.classes.$expected"),
+            "Type.fqcn" -> Data(s"hearth.examples.classes.$expected"),
             "Type.plainPrint" -> Data(s"hearth.examples.classes.$expected$params"),
             "Type.prettyPrint" -> Data(s"hearth.examples.classes.$expected$params")
           )
@@ -155,7 +155,7 @@ final class TypesSpec extends MacroSuite {
         ).foreach { case (actual, (expected, params)) =>
           actual <==> Data.map(
             "Type.shortName" -> Data(expected),
-            "Type.fcqn" -> Data(s"hearth.typed.TypesSpec.$expected"),
+            "Type.fqcn" -> Data(s"hearth.typed.TypesSpec.$expected"),
             "Type.plainPrint" -> Data(s"hearth.typed.TypesSpec.$expected$params"),
             "Type.prettyPrint" -> Data(s"hearth.typed.TypesSpec.$expected$params")
           )
@@ -194,7 +194,7 @@ final class TypesSpec extends MacroSuite {
         ).foreach { case (actual, (shortName, longName, params)) =>
           actual <==> Data.map(
             "Type.shortName" -> Data(shortName),
-            "Type.fcqn" -> Data(s"hearth.examples.enums.$longName"),
+            "Type.fqcn" -> Data(s"hearth.examples.enums.$longName"),
             "Type.plainPrint" -> Data(s"hearth.examples.enums.$longName$params"),
             "Type.prettyPrint" -> Data(s"hearth.examples.enums.$longName$params")
           )
