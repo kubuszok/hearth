@@ -1160,4 +1160,4 @@ Behavior can be configured via `-Xmacro-settings:hearth.mioTerminationShouldUseR
 - `true` (default): Uses `reportErrorAndAbort` to show error and terminate current macro
 - `false`: Prints to stderr and throws exception to terminate compilation
 
-This is automatically handled when using `mio.runToExprOrFail(...)(...)` extension.
+This is automatically handled when using [`mio.runToExprOrFail(...)(...)` extension](micro-fp.md#integration-with-macrocommons).
