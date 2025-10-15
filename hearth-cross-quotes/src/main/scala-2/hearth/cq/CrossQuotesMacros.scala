@@ -6,7 +6,7 @@ import hearth.treeprinter.{ShowCodePretty, SyntaxHighlight}
 import scala.reflect.macros.blackbox
 import scala.util.chaining.*
 
-/** This macro is responsible for rewriting Expr.quote/Expr.splice into native quotes
+/** These macros are responsible for rewriting Expr.quote/Expr.splice into native quotes
   * ([[scala.reflect.macros.blackbox.Context.Expr]]/[[scala.reflect.macros.blackbox.Context.Type]]) in Scala 2.
   *
   *   1. The first thing that it does is to replace:
@@ -55,67 +55,25 @@ import scala.util.chaining.*
   * }}}
   *
   * It uses intermediate fresh name to create a stub and replace it with the actual expression unsing Regex.
+  * 
+  * Same for: Type.Ctor1.of[HKT], Type.Ctor2.of[HKT], Type.Ctor3.of[HKT], ..., Type.Ctor22.of[HKT].
   *
-  *   2. If there is an anonymous class, it fixes the troublesome parts of the printed Quasiquote:
-  *
-  * {{{
-  * final class $anon$1 extends Something {
-  *   def <init>(): $anon$1 = {
-  *     anonymous.super.<init>()
-  *     ()
-  *   }
-  *
-  *   ...
-  * }
-  * new $anon$1()
-  * }}}
-  *
-  * is replaced with:
-  *
-  * {{{
-  * final class anonymous extends Something {
-  *   // empty constructor is removed from the string representation
-  * }
-  * new anonymous()
-  * }}}
-  *
-  *   3. The last, hardest part is that:
-  *
-  * {{{
-  * new TypeClass[A] {
-  *
-  *   def someMethod(a: A): A = a
-  * }
-  * }}}
-  *
-  * does NOT parse. If we print it, we would get:
-  *
-  * {{{
-  * final class $anon extends AnyRef with TypeClass[A] {
-  *   def <init>(): $anon = {
-  *     anonymous.super.<init>()
-  *     ()
-  *   }
-  *
-  *   def someMethod(a: A): A = a
-  * }
-  * new $anon()
-  * }}}
-  *
-  * The issues here are:
-  *   - def <init> is correct AST... but parser does not understand it, even though the same code just printed it
-  *   - $anon break the interpolation
+  * The challenges here are:
+  *   - `expr.toString` and `showCode(expr)` does not always print the correct Scala code:
+  *     - `def <init>` is correct AST... but parser does not understand it, similarly many `<synthethic>` methods
+  *       (`expr.toString` prints it `showCode(expr)` has it fixed)
+  *     - `final class $anon` + `new $anon()` could break the interpolation (and looks odd in the printed code)
   *   - applied type parameter [A] makes sense outside the code... in the AST it's just an abstract type that doesn't
   *     make sense
   *
   * So, we have to:
   *
-  *   - remove the empty constructor
-  *   - rename $anon to something else (without `$`)
+  *   - use `showCodePretty` to print the code - it fixes most of the issues
+  *   - escape the remaining `$`s
   *   - carefully replace the type parameter [A] with something that makes sense - actually, the type that is
-  *     represented by `Type[A]`
+  *     represented by `Type[A]` - this is the most fragile part of the whole macro.
   *
-  * It's the most fragile part of the whole macro. But for the Proof-of-Concept, it's good enough.
+  * The result while not perfect, should be robust enough for most cases.
   */
 final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePretty {
 
@@ -164,7 +122,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePretty {
     text.split("\n").map(line => s"  $line").mkString("\n")
 
   private def suppressWarnings(result: c.Tree): c.Tree =
-    // val nowarnResult = freshName("nowarnResult")
     q"""
     $result : @_root_.scala.annotation.nowarn
     """

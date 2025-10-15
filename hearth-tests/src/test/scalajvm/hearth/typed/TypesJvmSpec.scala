@@ -8,7 +8,7 @@ final class TypesJvmSpec extends MacroSuite {
 
   group("typed.Types") {
 
-    group("methods: Type.{simple, fcqn, plainPrint, prettyPrint}, expected behavior") {
+    group("methods: Type.{simple, fqcn, plainPrint, prettyPrint}, expected behavior") {
       import TypesFixtures.testNamesPrinters
 
       test("for top-level Java classes") {
@@ -19,7 +19,7 @@ final class TypesJvmSpec extends MacroSuite {
           actual <==> Data(
             Map(
               "Type.shortName" -> Data(expected),
-              "Type.fcqn" -> Data(s"hearth.examples.classes.$expected"),
+              "Type.fqcn" -> Data(s"hearth.examples.classes.$expected"),
               "Type.plainPrint" -> Data(s"hearth.examples.classes.$expected"),
               "Type.prettyPrint" -> Data(s"hearth.examples.classes.$expected")
             )
@@ -35,7 +35,7 @@ final class TypesJvmSpec extends MacroSuite {
           actual <==> Data(
             Map(
               "Type.shortName" -> Data(expected),
-              "Type.fcqn" -> Data(s"hearth.examples.enums.$expected"),
+              "Type.fqcn" -> Data(s"hearth.examples.enums.$expected"),
               "Type.plainPrint" -> Data(s"hearth.examples.enums.$expected"),
               "Type.prettyPrint" -> Data(s"hearth.examples.enums.$expected")
             )

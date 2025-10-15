@@ -38,7 +38,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     final def unapply[A](tpe: Type[A])(implicit codec: TypeCodec[A]): Option[A] = codec.fromType(tpe).map(_.value)
 
     def shortName[A: Type]: String
-    final def fcqn[A: Type]: String = plainPrint[A].takeWhile(_ != '[')
+    final def fqcn[A: Type]: String = plainPrint[A].takeWhile(_ != '[')
     final def plainPrint[A: Type]: String = removeAnsiColors(prettyPrint[A])
     def prettyPrint[A: Type]: String
 
@@ -248,7 +248,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
   implicit final class TypeMethods[A](private val tpe: Type[A]) {
 
     def shortName: String = Type.shortName(using tpe)
-    def fcqn: String = Type.fcqn(using tpe)
+    def fqcn: String = Type.fqcn(using tpe)
     def plainPrint: String = Type.plainPrint(using tpe)
     def prettyPrint: String = Type.prettyPrint(using tpe)
 
@@ -325,7 +325,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
   implicit final class BoundedExistentialTypeMethods[L, U >: L](private val tpe: L <:??<: U) {
 
     def shortName: String = Type.shortName(using tpe.Underlying)
-    def fcqn: String = Type.fcqn(using tpe.Underlying)
+    def fqcn: String = Type.fqcn(using tpe.Underlying)
     def plainPrint: String = Type.plainPrint(using tpe.Underlying)
     def prettyPrint: String = Type.prettyPrint(using tpe.Underlying)
 

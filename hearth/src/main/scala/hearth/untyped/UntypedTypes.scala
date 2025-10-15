@@ -34,7 +34,7 @@ trait UntypedTypes { this: MacroCommons =>
     final def as_??(untyped: UntypedType): ?? = toTyped[Any](untyped).as_??
 
     final def shortName(untyped: UntypedType): String = toTyped[Any](untyped).shortName
-    final def fcqn(untyped: UntypedType): String = toTyped[Any](untyped).fcqn
+    final def fqcn(untyped: UntypedType): String = toTyped[Any](untyped).fqcn
     final def plainPrint(untyped: UntypedType): String = toTyped[Any](untyped).plainPrint
     final def prettyPrint(untyped: UntypedType): String = toTyped[Any](untyped).prettyPrint
 
@@ -149,7 +149,7 @@ trait UntypedTypes { this: MacroCommons =>
     def as_?? : ?? = UntypedType.as_??(untyped)
 
     def shortName: String = UntypedType.shortName(untyped)
-    def fcqn: String = UntypedType.fcqn(untyped)
+    def fqcn: String = UntypedType.fqcn(untyped)
     def plainPrint: String = UntypedType.plainPrint(untyped)
     def prettyPrint: String = UntypedType.prettyPrint(untyped)
 
