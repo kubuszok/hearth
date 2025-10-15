@@ -2,14 +2,11 @@
 
 First off, thanks for taking the time to contribute! ❤️
 
-Hearth is currently at the Proof-of-Concept stage. We want to deliver enough functionality to proove its usefulness, and we want to make the current features solid
-before we'd consider adding more of them and adjusting the design.
-
-Currently the best way oh helping is contributing to [making current features production-ready](https://github.com/MateuszKubuszok/hearth/issues/36) to deliver the solid 0.1.0!
+Currently the best way oh helping is contributing to [help us improve a few remaining utilities](https://github.com/MateuszKubuszok/hearth/issues/85) to deliver the solid 0.2.0! This includes testing Hearth, providing us with reproduction for bugs and maybe even fixes!
 
 The second best, is raising awareness about the project ☺️
 
-Once that is done, we have a lot more opportunities to contribute (feedback, documentation, bug reports, feature requests...).
+Once that is done, we have a lot more opportunities to contribute (e.g. implementing new features).
 
 ----
 
@@ -425,7 +422,7 @@ So `hearthTests/test ; hearthTests3/test` (or `quick-test`) should be enough.
 ### Writing tests
 
 Since testing macros is a pain - you have to create a dedicated macro "endpoint" every time you need to test something - we created
-`hearth.testdata.Data`.
+`hearth.data.Data`.
 
 It's a JSON-like structure, it can be turned from `Data` to `Expr[Data]` in the macro, and it has a nice `Diff`. So, we can use it
 to:
