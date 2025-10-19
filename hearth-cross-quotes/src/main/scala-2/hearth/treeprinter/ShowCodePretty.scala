@@ -757,7 +757,8 @@ private[hearth] trait ShowCodePretty {
               print("=> ", if (args.isEmpty) "()" else args(0))
             } else
               // Note: copy-paste-modified (and inlined) from TreePrinter.printTree
-              print(tp); printRow(args, "[", ", ", "]")
+              print(tp);
+            printRow(args, "[", ", ", "]")
           }
 
         // Note: copy-paste-modified from TreePrinter.printTree
