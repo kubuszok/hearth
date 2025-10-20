@@ -1026,9 +1026,11 @@ A non-empty `ListMap` that guarantees at least one key-value pair and preserves 
 !!! example "Simple `MIO` operations"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.effect.*
-    import hearth.fp.syntax.*
-    import hearth.fp.instances.*
     
     // Pure value
     val pureValue: MIO[Int] = MIO.pure(42)
@@ -1040,18 +1042,25 @@ A non-empty `ListMap` that guarantees at least one key-value pair and preserves 
     val mapped: MIO[Int] = pureValue.map(_ * 2)
     
     // Combine with map2
-    val combined: MIO[String] = pureValue.map2(suspended) { (i, s) =>
+    val combined: MIO[String] = mapped.map2(suspended) { (i, s) =>
       s"$s: $i"
     }
-    // Result: "hello: 42"
+
+    val (state, result) = combined.unsafe.runSync
+    pprint.pprintln(result)
+    // expected output:
+    // Right(value = "hello: 84")
     ```
 
 !!! example "Error handling"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
+    import hearth.fp.data.*
     import hearth.fp.effect.*
-    import hearth.fp.syntax.*
-    import hearth.fp.instances.*
     
     // Suspend with error
     val error: MIO[Int] = MIO.suspend(Left(NonEmptyVector.one(new RuntimeException("Something went wrong"))))
@@ -1062,6 +1071,16 @@ A non-empty `ListMap` that guarantees at least one key-value pair and preserves 
     
     val aggregated: MIO[Int] = error1.parMap2(error2)(_ + _)
     // Both errors are collected in the result
+
+    val (state, result) = aggregated.unsafe.runSync
+    pprint.pprintln(result)
+    // expected output:
+    // Left(
+    //   value = NonEmptyVector(
+    //     head = java.lang.RuntimeException: Error 1,
+    //     tail = Vector(java.lang.RuntimeException: Error 2)
+    //   )
+    // )
     ```
 
 ### Logging
@@ -1069,9 +1088,10 @@ A non-empty `ListMap` that guarantees at least one key-value pair and preserves 
 !!! example "Structured logging"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using options -Xsource:3
     import hearth.fp.effect.*
-    import hearth.fp.syntax.*
-    import hearth.fp.instances.*
     
     // Log messages
     val logged: MIO[Unit] = for {
@@ -1088,6 +1108,17 @@ A non-empty `ListMap` that guarantees at least one key-value pair and preserves 
         _ <- Log.info("Validation complete")
       } yield result
     }
+
+    val (state, result) = (logged >> scoped).unsafe.runSync
+    println(state.logs.render.fromInfo("Logs example"))
+    // expected output:
+    // Logs example:
+    // ├ [Info]  Starting computation
+    // ├ [Warn]  This is a warning
+    // ├ [Error] This is an error
+    // └ validation:
+    //   ├ [Info]  Validating input
+    //   └ [Info]  Validation complete
     ```
 
 Within `MacroCommons` there is also an integration provided, that would extract successful value,
@@ -1096,6 +1127,8 @@ log and fail if necessary:
 !!! example "Convert errors to error message, log using `info`"
 
     ```scala
+    // See our Show derivation demo in
+    // https://github.com/MateuszKubuszok/hearth/blob/{{ git.raw }}/hearth-tests/src/main/scala/hearth/demo/ShowMacrosImpl.scala
     def deriveOrFail[A: Type](value: Expr[A], name: String): Expr[String] = Log
       .namedScope(s"Derivation for $name") {
         attemptAllRules[A](value)
@@ -1136,10 +1169,14 @@ log and fail if necessary:
 
 !!! example "Running `MIO` computations"
 
+    If you don't want or cannot run `mio.runToExprOrFail(...)(...)`, use `mio.unsafe.runSync`
+    and then use the result and/or state information (logs, final values of `MLocal`).
+
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using options -Xsource:3
     import hearth.fp.effect.*
-    import hearth.fp.syntax.*
-    import hearth.fp.instances.*
     
     val computation: MIO[String] = for {
       _ <- Log.info("Starting")
@@ -1153,10 +1190,10 @@ log and fail if necessary:
     // Render logs
     val logOutput: String = state.logs.render.fromInfo("MyApp")
     println(logOutput)
-    // Output:
+    // expected output:
     // MyApp:
-    // ├─ [Info]  Starting
-    // └─ [Info]  Computation complete
+    // ├ [Info]  Starting
+    // └ [Info]  Computation complete
     ```
 
 ### Error-Handling Patterns
@@ -1164,6 +1201,10 @@ log and fail if necessary:
 !!! example "Safe computation with error recovery"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.effect.*
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
@@ -1178,6 +1219,9 @@ log and fail if necessary:
     ).parSequence
     
     val (_, result) = computations.unsafe.runSync
+    pprint.pprintln(result)
+    // expected output:
+    // Left(value = NonEmptyVector(head = java.lang.ArithmeticException: / by zero, tail = Vector()))
     ```
 
 ### Integration with Type Classes
@@ -1187,6 +1231,11 @@ log and fail if necessary:
 !!! example "`MIO` with type classes"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
+    import hearth.fp.DirectStyle
     import hearth.fp.effect.*
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
@@ -1206,6 +1255,18 @@ log and fail if necessary:
       val b: Int = runSafe(MIO.pure(20))
       s"Sum: ${a + b}"
     }
+
+    val (state, result) = (processed >> directResult).unsafe.runSync
+    pprint.pprintln(result)
+    pprint.pprintln(state.logs.render.fromInfo("Logs"))
+    // expected output:
+    // Right(value = "Sum: 30")
+    // """Logs:
+    // ├ [Info]  Processing item 1
+    // ├ [Info]  Processing item 2
+    // ├ [Info]  Processing item 3
+    // └ [Info]  Processing item 4
+    // """
     ```
 
 ### Integration with `MacroCommons`
