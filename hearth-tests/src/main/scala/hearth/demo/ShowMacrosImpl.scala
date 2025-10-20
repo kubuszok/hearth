@@ -38,7 +38,7 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
       // errorLogs: String - pretty-printed log
       // errors: NonEmptyVector[Throwable] - errors that happened during the derivation (if it succeeded, this wouldn't be called)
 
-      val errorsStr = errors.toVector
+      val errorsMessages = errors.toVector
         .map {
           case DerivationError.UnsupportedType(typeName)           => s"Derivation of $typeName is not supported"
           case DerivationError.UnsupportedMethod(typeName, method) =>
@@ -50,13 +50,13 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
 
       if (errorLogs.nonEmpty) {
         s"""Failed to derive $name:
-           |$errorsStr
+           |$errorsMessages
            |Error logs:
            |$errorLogs
            |""".stripMargin
       } else {
         s"""Failed to derive $name:
-           |$errorsStr
+           |$errorsMessages
            |""".stripMargin
       }
     }

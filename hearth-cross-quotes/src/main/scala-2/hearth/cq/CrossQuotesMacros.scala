@@ -55,7 +55,7 @@ import scala.util.chaining.*
   * }}}
   *
   * It uses intermediate fresh name to create a stub and replace it with the actual expression unsing Regex.
-  * 
+  *
   * Same for: Type.Ctor1.of[HKT], Type.Ctor2.of[HKT], Type.Ctor3.of[HKT], ..., Type.Ctor22.of[HKT].
   *
   * The challenges here are:
