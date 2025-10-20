@@ -649,26 +649,47 @@ A non-empty list that guarantees at least one element. Useful for representing c
 !!! example "Creating `NonEmptyList`"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.data.*
     
     // Create with constructor
     val nel1: NonEmptyList[Int] = NonEmptyList(1, List(2, 3, 4))
+    pprint.pprintln(nel1)
+    // expected output:
+    // NonEmptyList(head = 1, tail = List(2, 3, 4))
     
     // Create with apply method
     val nel2: NonEmptyList[String] = NonEmptyList("hello", "world", "!")
+    pprint.pprintln(nel2)
+    // expected output:
+    // NonEmptyList(head = "hello", tail = List("world", "!"))
     
     // Create single element
     val single: NonEmptyList[Int] = NonEmptyList.one(42)
+    pprint.pprintln(single)
+    // expected output:
+    // NonEmptyList(head = 42, tail = List())
     
     // Convert from List (returns Option)
     val fromList: Option[NonEmptyList[Int]] = NonEmptyList.fromList(List(1, 2, 3))
+    pprint.pprintln(fromList)
     val fromEmpty: Option[NonEmptyList[Int]] = NonEmptyList.fromList(List.empty)
-    // Result: Some(NonEmptyList(1, List(2, 3))) and None
+    pprint.pprintln(fromEmpty)
+    // expected output:
+    // Some(value = NonEmptyList(head = 1, tail = List(2, 3)))
+    // None
     ```
 
 !!! example "Operations on `NonEmptyList`"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.data.*
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
@@ -677,30 +698,49 @@ A non-empty list that guarantees at least one element. Useful for representing c
     
     // Prepend element
     val prepended: NonEmptyList[Int] = 0 +: nel
-    // Result: NonEmptyList(0, List(1, 2, 3))
+    pprint.pprintln(prepended)
+    // expected output:
+    // NonEmptyList(head = 0, tail = List(1, 2, 3))
     
     // Append element
     val appended: NonEmptyList[Int] = nel :+ 4
-    // Result: NonEmptyList(1, List(2, 3, 4))
+    pprint.pprintln(appended)
+    // expected output:
+    // NonEmptyList(head = 1, tail = List(2, 3, 4))
     
     // Concatenate
     val other: NonEmptyList[Int] = NonEmptyList(5, List(6))
     val combined: NonEmptyList[Int] = nel ++ other
-    // Result: NonEmptyList(1, List(2, 3, 5, 6))
+    pprint.pprintln(combined)
+    // expected output:
+    // NonEmptyList(head = 1, tail = List(2, 3, 5, 6))
     
     // Map over elements
     val doubled: NonEmptyList[Int] = nel.map(_ * 2)
-    // Result: NonEmptyList(2, List(4, 6))
+    pprint.pprintln(doubled)
+    // expected output:
+    // NonEmptyList(head = 2, tail = List(4, 6))
     
     // Convert to other collections
     val asList: List[Int] = nel.toList
+    pprint.pprintln(asList)
     val asVector: Vector[Int] = nel.toVector
+    pprint.pprintln(asVector)
     val asNEV: NonEmptyVector[Int] = nel.toNonEmptyVector
+    pprint.pprintln(asNEV)
+    // expected output:
+    // List(1, 2, 3)
+    // Vector(1, 2, 3)
+    // NonEmptyVector(head = 1, tail = Vector(2, 3))
     ```
 
 !!! example "Error aggregation with `NonEmptyList`"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.data.*
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
@@ -723,7 +763,14 @@ A non-empty list that guarantees at least one element. Useful for representing c
     val result: Either[NonEmptyList[String], String] = name.parMap2(age) { (n, a) =>
       s"$n is $a years old"
     }
-    // Result: Left(NonEmptyList("Name cannot be empty", "Name too short", "Age must be positive"))
+    pprint.pprintln(result)
+    // expected output:
+    // Left(
+    //   value = NonEmptyList(
+    //     head = "Name cannot be empty",
+    //     tail = List("Name too short", "Age must be positive")
+    //   )
+    // )
     ```
 
 ### `NonEmptyVector`
@@ -733,26 +780,47 @@ A non-empty vector that provides indexed access and better performance for large
 !!! example "Creating `NonEmptyVector`"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.data.*
     
     // Create with constructor
     val nev1: NonEmptyVector[Int] = NonEmptyVector(1, Vector(2, 3, 4))
+    pprint.pprintln(nev1)
+    // expected output:
+    // NonEmptyVector(head = 1, tail = Vector(2, 3, 4))
     
     // Create with apply method
     val nev2: NonEmptyVector[String] = NonEmptyVector("hello", "world", "!")
+    pprint.pprintln(nev2)
+    // expected output:
+    // NonEmptyVector(head = "hello", tail = Vector("world", "!"))
     
     // Create single element
     val single: NonEmptyVector[Int] = NonEmptyVector.one(42)
+    pprint.pprintln(single)
+    // expected output:
+    // NonEmptyVector(head = 42, tail = Vector())
     
     // Convert from Vector (returns Option)
     val fromVector: Option[NonEmptyVector[Int]] = NonEmptyVector.fromVector(Vector(1, 2, 3))
+    pprint.pprintln(fromVector)
     val fromEmpty: Option[NonEmptyVector[Int]] = NonEmptyVector.fromVector(Vector.empty)
-    // Result: Some(NonEmptyVector(1, Vector(2, 3))) and None
+    pprint.pprintln(fromEmpty)
+    // expected output:
+    // Some(value = NonEmptyVector(head = 1, tail = Vector(2, 3)))
+    // None
     ```
 
 !!! example "Operations on `NonEmptyVector`"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.data.*
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
@@ -761,30 +829,49 @@ A non-empty vector that provides indexed access and better performance for large
     
     // Prepend element
     val prepended: NonEmptyVector[Int] = 0 +: nev
-    // Result: NonEmptyVector(0, Vector(1, 2, 3))
+    pprint.pprintln(prepended)
+    // expected output:
+    // NonEmptyVector(head = 0, tail = Vector(1, 2, 3))
     
     // Append element
     val appended: NonEmptyVector[Int] = nev :+ 4
-    // Result: NonEmptyVector(1, Vector(2, 3, 4))
+    pprint.pprintln(appended)
+    // expected output:
+    // NonEmptyVector(head = 1, tail = Vector(2, 3, 4))
     
     // Concatenate
     val other: NonEmptyVector[Int] = NonEmptyVector(5, Vector(6))
     val combined: NonEmptyVector[Int] = nev ++ other
-    // Result: NonEmptyVector(1, Vector(2, 3, 5, 6))
+    pprint.pprintln(combined)
+    // expected output:
+    // NonEmptyVector(head = 1, tail = Vector(2, 3, 5, 6))
     
     // Map over elements
     val doubled: NonEmptyVector[Int] = nev.map(_ * 2)
-    // Result: NonEmptyVector(2, Vector(4, 6))
+    pprint.pprintln(doubled)
+    // expected output:
+    // NonEmptyVector(head = 2, tail = Vector(4, 6))
     
     // Convert to other collections
     val asList: List[Int] = nev.toList
+    pprint.pprintln(asList)
     val asVector: Vector[Int] = nev.toVector
+    pprint.pprintln(asVector)
     val asNEL: NonEmptyList[Int] = nev.toNonEmptyList
+    pprint.pprintln(asNEL)
+    // expected output:
+    // List(1, 2, 3)
+    // Vector(1, 2, 3)
+    // NonEmptyList(head = 1, tail = List(2, 3))
     ```
 
 !!! example "Error aggregation with `NonEmptyVector`"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.data.*
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
@@ -807,7 +894,14 @@ A non-empty vector that provides indexed access and better performance for large
     val result: Either[NonEmptyVector[String], String] = email.parMap2(phone) { (e, p) =>
       s"Contact: $e, $p"
     }
-    // Result: Left(NonEmptyVector("Email cannot be empty", "Email must contain @", "Phone cannot be empty"))
+    pprint.pprintln(result)
+    // expected output:
+    // Left(
+    //   value = NonEmptyVector(
+    //     head = "Email cannot be empty",
+    //     tail = Vector("Email must contain @", "Phone cannot be empty")
+    //   )
+    // )
     ```
 
 ### `NonEmptyMap`
@@ -817,26 +911,48 @@ A non-empty `ListMap` that guarantees at least one key-value pair and preserves 
 !!! example "Creating `NonEmptyMap`"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.data.*
+    import scala.collection.immutable.ListMap
     
     // Create with constructor
-    val nem1: NonEmptyMap[String, Int] = NonEmptyMap(("a", 1), ListMap("b" -> 2, "c" -> 3))
+    val nem1: NonEmptyMap[String, Int] = NonEmptyMap("a" -> 1, ListMap("b" -> 2, "c" -> 3))
+    pprint.pprintln(nem1)
+    // expected output:
+    // NonEmptyMap(head = ("a", 1), tail = ListMap("b" -> 2, "c" -> 3))
     
     // Create with apply method
-    val nem2: NonEmptyMap[String, String] = NonEmptyMap(("name", "Alice"), ("age", "30"), ("city", "New York"))
+    val nem2: NonEmptyMap[String, String] = NonEmptyMap("name" -> "Alice", "age" -> "30", "city" -> "New York")
+    pprint.pprintln(nem2)
+    // expected output:
+    // NonEmptyMap(head = ("name", "Alice"), tail = ListMap("age" -> "30", "city" -> "New York"))
     
     // Create single element
-    val single: NonEmptyMap[String, Int] = NonEmptyMap.one(("key", 42))
+    val single: NonEmptyMap[String, Int] = NonEmptyMap.one("key" -> 42)
+    pprint.pprintln(single)
+    // expected output:
+    // NonEmptyMap(head = ("key", 42), tail = ListMap())
     
     // Convert from ListMap (returns Option)
     val fromListMap: Option[NonEmptyMap[String, Int]] = NonEmptyMap.fromListMap(ListMap("a" -> 1, "b" -> 2, "c" -> 3))
+    pprint.pprintln(fromListMap)
     val fromEmpty: Option[NonEmptyMap[String, Int]] = NonEmptyMap.fromListMap(ListMap.empty)
-    // Result: Some(NonEmptyMap(("a", 1), ListMap("b" -> 2, "c" -> 3))) and None
+    pprint.pprintln(fromEmpty)
+    // expected output:
+    // Some(value = NonEmptyMap(head = ("a", 1), tail = ListMap("b" -> 2, "c" -> 3)))
+    // None
     ```
 
 !!! example "Operations on `NonEmptyMap`"
 
     ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
+    //> using dep com.lihaoyi::pprint::{{ libraries.pprint }}
+    //> using options -Xsource:3
     import hearth.fp.data.*
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
@@ -846,28 +962,51 @@ A non-empty `ListMap` that guarantees at least one key-value pair and preserves 
     
     // Prepend element
     val prepended: NonEmptyMap[String, Int] = ("x", 0) +: nem
-    // Result: NonEmptyMap(("x", 0), ListMap("a" -> 1, "b" -> 2, "c" -> 3))
+    pprint.pprintln(prepended)
+    // expected output:
+    // NonEmptyMap(head = ("x", 0), tail = ListMap("a" -> 1, "b" -> 2, "c" -> 3))
     
     // Append element
     val appended: NonEmptyMap[String, Int] = nem :+ ("d", 4)
-    // Result: NonEmptyMap(("a", 1), ListMap("b" -> 2, "c" -> 3, "d" -> 4))
+    pprint.pprintln(appended)
+    // expected output:
+    // NonEmptyMap(head = ("a", 1), tail = ListMap("b" -> 2, "c" -> 3, "d" -> 4))
     
     // Map over key-value pairs
     val mapped: NonEmptyMap[String, String] = nem.map { case (k, v) => (k.toUpperCase, v.toString) }
-    // Result: NonEmptyMap(("A", "1"), ListMap("B" -> "2", "C" -> "3"))
+    pprint.pprintln(mapped)
+    // expected output:
+    // NonEmptyMap(head = ("A", "1"), tail = ListMap("B" -> "2", "C" -> "3"))
     
     // FlatMap over key-value pairs
     val flatMapped: NonEmptyMap[String, Int] = nem.flatMap { case (k, v) =>
       NonEmptyMap.one((k + "_copy", v * 2))
     }
-    // Result: NonEmptyMap(("a_copy", 2), ListMap("b_copy" -> 4, "c_copy" -> 6))
+    pprint.pprintln(flatMapped)
+    // expected output:
+    // NonEmptyMap(head = ("a_copy", 2), tail = ListMap("b_copy" -> 4, "c_copy" -> 6))
     
     // Convert to other collections
     val asListMap: ListMap[String, Int] = nem.toListMap
+    pprint.pprintln(asListMap)
+    // expected output:
+    // ListMap("a" -> 1, "b" -> 2, "c" -> 3)
     val asList: List[(String, Int)] = nem.toList
+    pprint.pprintln(asList)
+    // expected output:
+    // List(("a", 1), ("b", 2), ("c", 3))
     val asVector: Vector[(String, Int)] = nem.toVector
+    pprint.pprintln(asVector)
+    // expected output:
+    // Vector(("a", 1), ("b", 2), ("c", 3))
     val asNEL: NonEmptyList[(String, Int)] = nem.toNonEmptyList
+    pprint.pprintln(asNEL)
+    // expected output:
+    // NonEmptyList(head = ("a", 1), tail = List(("b", 2), ("c", 3)))
     val asNEV: NonEmptyVector[(String, Int)] = nem.toNonEmptyVector
+    pprint.pprintln(asNEV)
+    // expected output:
+    // NonEmptyVector(head = ("a", 1), tail = Vector(("b", 2), ("c", 3)))
     ```
 
 ## Macro IO (`MIO`)
