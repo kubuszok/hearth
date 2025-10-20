@@ -309,7 +309,10 @@ but they are work in progress, and when high level API is not sufficient, you ca
 
     ```scala
     // in some common trait in src/main/scala
-    def mySharedAPI(): Result
+
+    type Result // abstract type
+
+    def mySharedAPI(): Result // abstract method
     ```
 
     in the common part and implement the platform-specific logic in the traits where you are mixing-in:
@@ -317,7 +320,10 @@ but they are work in progress, and when high level API is not sufficient, you ca
     ```scala
     // in some trait/class in src/main/scala-2 (using MacroCommonsScala2 and Scala 2 types)
     //           and again in src/main/scala-3 (using MacroCommonsScala3 and Scala 3 types)
-    override def mySharedAPI(): Result = ...
+
+    final override type Result = ... // type implementation
+
+    override final def mySharedAPI(): Result = ... // method implementation
     ```
 
     I suggest doing it as little as possible, and trying to separate _the intents_ (what you try to achieve) from _the means_
@@ -862,20 +868,19 @@ and returns `Right(expr)` on success or `Left(error)` on failure.
 
 `Class[A]` is a convenient utility that aggregates information about a type:
 
-```scala
-val cls = Class[MyClass]
-cls.constructors  // List[Method.NoInstance[MyClass]]
-cls.methods       // List[Method.Of[MyClass]]
-cls.method("foo") // List[Method.Of[MyClass]] - all overloads named "foo"
-```
+| Method              | Result type                        | Description                         |
+|---------------------|------------------------------------|-------------------------------------|
+| `cls.constructors`  | `List[Method.NoInstance[MyClass]]` | all constructors                    |
+| `cls.methods`       | `List[Method.Of[MyClass]]`         | all methods                         |
+| `cls.method("foo")` | `List[Method.Of[MyClass]]`         | all overloads named "foo"           |
 
 `Class` also provides specialized views when applicable:
 
-```scala
-cls.asCaseClass   // Option[CaseClass[MyClass]]
-cls.asEnum        // Option[Enum[MyClass]]
-cls.asJavaBean    // Option[JavaBean[MyClass]]
-```
+| Method            | Result type                     | Description                   |
+|-------------------|---------------------------------|-------------------------------|
+| `cls.asCaseClass` | `Option[CaseClass[MyClass]]`    | case class view if applicable |
+| `cls.asEnum`      | `Option[Enum[MyClass]]`         | enum view if applicable       |
+| `cls.asJavaBean`  | `Option[JavaBean[MyClass]]`     | Java Bean view if applicable  |
 
 These utilities are built on top of `Type` and `Method` - you could implement similar functionality yourself, but these provide convenient shortcuts.
 
@@ -883,13 +888,11 @@ These utilities are built on top of `Type` and `Method` - you could implement si
 
 Specialized view for case classes, providing access to primary constructor and case fields:
 
-```scala
-val cc = CaseClass.parse[Person].get  // or Type[Person].asCaseClass.get
-
-cc.primaryConstructor        // Method.NoInstance[Person] 
-cc.nonPrimaryConstructors    // List[Method.NoInstance[Person]]
-cc.caseFields                // List[Method.Of[Person]] - the fields
-```
+| Method                     | Result type                          | Description                   |
+|----------------------------|--------------------------------------|-------------------------------|
+| `cc.primaryConstructor`    | `Method.NoInstance[Person]`          | primary constructor           |
+| `cc.nonPrimaryConstructors`| `List[Method.NoInstance[Person]]`    | other constructors            |
+| `cc.caseFields`            | `List[Method.Of[Person]]`            | case class fields             |
 
 **Constructing instances:**
 
@@ -919,12 +922,10 @@ val fieldValues: ListMap[String, Expr_??] = cc.caseFieldValuesAt(person)
 
 Specialized view for sealed traits, Scala 3 enums, or Java enums:
 
-```scala
-val enumm = Enum.parse[Color].get  // or Type[Color].asEnum.get
-
-enumm.directChildren       // ListMap[String, ??<:[Color]] - immediate subtypes
-enumm.exhaustiveChildren   // Option[NonEmptyMap[String, ??<:[Color]]] - all subtypes
-```
+| Method                      | Result type                                | Description                |
+|-----------------------------|--------------------------------------------|----------------------------|
+| `enumm.directChildren`      | `ListMap[String, ??<:[Color]]`             | immediate subtypes         |
+| `enumm.exhaustiveChildren`  | `Option[NonEmptyMap[String, ??<:[Color]]]` | all subtypes               |
 
 **Pattern matching on enum values:**
 
@@ -960,13 +961,11 @@ colorExpr match {
 
 Specialized view for Java Beans (POJOs with default constructor and setters):
 
-```scala
-val bean = JavaBean.parse[PersonBean].get  // or Type[PersonBean].asJavaBean.get
-
-bean.defaultConstructor   // Method.NoInstance[PersonBean] - nullary constructor
-bean.beanGetters          // List[Existential[Method.OfInstance[PersonBean, *]]]
-bean.beanSetters          // List[Method.OfInstance[PersonBean, Unit]]
-```
+| Method                      | Result type                                       | Description                |
+|-----------------------------|---------------------------------------------------|----------------------------|
+| `bean.defaultConstructor`   | `Method.NoInstance[PersonBean]`                   | nullary constructor        |
+| `bean.beanGetters`          | `List[Existential[Method.OfInstance[PersonBean, *]]]` | getter methods         |
+| `bean.beanSetters`          | `List[Method.OfInstance[PersonBean, Unit]]`       | setter methods             |
 
 **Constructing without setters:**
 
@@ -1006,25 +1005,49 @@ This generates code like:
 
 Represents a source code location (corresponds to `c.universe.Position` on Scala 2, `quotes.reflect.Position` on Scala 3):
 
-```scala
-val pos: Position = Type[MyClass].position.get
-
-pos.file        // Option[java.nio.file.Path] - source file
-pos.fileName    // Option[String] - file name only
-pos.line        // Int - line number
-pos.column      // Int - column number
-pos.offset      // Int - character offset from file start
-
-pos.prettyPrint       // "MyFile.scala:42:10"
-pos.prettyPrintLong   // "/full/path/to/MyFile.scala:42:10"
-```
+| Property / Method       | Result type                      | Example result                           | Description                                |
+|-------------------------|----------------------------------|------------------------------------------|--------------------------------------------|
+| `pos.file`              | `Option[java.nio.file.Path]`     |                                          | source file path                           |
+| `pos.fileName`          | `Option[String]`                 |                                          | file name only (no path)                   |
+| `pos.line`              | `Int`                            |                                          | line number                                |
+| `pos.column`            | `Int`                            |                                          | column number                              |
+| `pos.offset`            | `Int`                            |                                          | character offset from file start           |
+| `pos.prettyPrint`       | `String`                         | `"MyFile.scala:42:10"`                   | short format with filename                 |
+| `pos.prettyPrintLong`   | `String`                         | `"/full/path/to/MyFile.scala:42:10"`     | full path format                           |
 
 Positions can be compared and sorted:
 
 ```scala
-import PositionOrdering.given  // or implicit val _ = PositionOrdering
 positions.sorted  // sorts by file path, then offset
 ```
+
+!!! tip
+
+    When giving you `line` or `column`, Hearth adjust the values to show - apparently:
+
+     - Scala 2 macros Position is 1-indexed while
+     - Scala 3 macros Position is 0-indexed
+    
+    but when pointing to an actual file location the Scala 3 error printer adjust its.
+
+    However another adjustment is needed for `Environment.currentPosition` since:
+
+     - Scala 2 points to the beginning of `macroMethod` name
+       ```scala
+       someInstance.someMacroMethod
+       //           ^ position of macro expansion on Scala 2
+       ```
+     - but on Scala 3 it depends on the arity of the method!
+       ```scala
+       someInstance.someMacroMethod
+       //           ^ position of macro expansion on Scala 3 when nullary
+       someInstance.someMacroMethodWithArgs(argument)
+       //                                   ^ position of macro expansion on Scala 3 when non-nullary
+       ```
+
+    Hearth makes sure that the behavior is consistent and sane and alignes it to always point
+    to the first letter of the macro method name, when you use `.line` or `.column`,
+    so you can get predicatable behavior of e.g. `Environment.isExpandedAt`.
 
 ## `Environment`
 
@@ -1032,20 +1055,18 @@ positions.sorted  // sorts by file path, then offset
 
 ### Current Compilation Context
 
-```scala
-Environment.currentPosition     // Position - where macro is expanded
-
-Environment.currentScalaVersion // ScalaVersion - e.g. 2.13.10, 3.3.0
-Environment.currentLanguageVersion  // LanguageVersion - Scala2_13 or Scala3
-Environment.isScala2_13         // Boolean
-Environment.isScala3            // Boolean
-
-Environment.currentJDKVersion   // JDKVersion - runtime JDK version
-Environment.currentPlatform     // Platform - JVM, JS, or Native
-Environment.isJvm               // Boolean
-Environment.isJs                // Boolean  
-Environment.isNative            // Boolean
-```
+| Property / Method                      | Result type         | Description                                    |
+|----------------------------------------|---------------------|------------------------------------------------|
+| `Environment.currentPosition`          | `Position`          | where macro is expanded                        |
+| `Environment.currentScalaVersion`      | `ScalaVersion`      | e.g. `2.13.10`, `3.3.0`                        |
+| `Environment.currentLanguageVersion`   | `LanguageVersion`   | `Scala2_13` or `Scala3`                        |
+| `Environment.isScala2_13`              | `Boolean`           | whether running under Scala 2.13               |
+| `Environment.isScala3`                 | `Boolean`           | whether running under Scala 3                  |
+| `Environment.currentJDKVersion`        | `JDKVersion`        | runtime JDK version                            |
+| `Environment.currentPlatform`          | `Platform`          | `JVM`, `JS`, or `Native`                       |
+| `Environment.isJvm`                    | `Boolean`           | whether running on JVM                         |
+| `Environment.isJs`                     | `Boolean`           | whether running on Scala.js                    |
+| `Environment.isNative`                 | `Boolean`           | whether running on Scala Native                |
 
 ### Macro Settings
 
@@ -1065,12 +1086,12 @@ Environment.typedSettings.toOption.flatMap(_.get("myMacro")).flatMap(_.get("debu
 
 Report messages to the user during compilation:
 
-```scala
-Environment.reportInfo("Generating code for MyClass")
-Environment.reportWarn("Type parameter might be incorrect")
-Environment.reportError("Invalid configuration")
-Environment.reportErrorAndAbort("Fatal error, cannot continue")  // throws exception
-```
+| Method                                 | Result type | Description                                            |
+|----------------------------------------|-------------|--------------------------------------------------------|
+| `Environment.reportInfo(msg)`          | `Unit`      | report informational message                           |
+| `Environment.reportWarn(msg)`          | `Unit`      | report warning message                                 |
+| `Environment.reportError(msg)`         | `Unit`      | report error message                                   |
+| `Environment.reportErrorAndAbort(msg)` | `Nothing`   | report error and abort compilation (throws exception)  |
 
 !!! note "Reporting Behavior"
     For each level (INFO, WARN, ERROR), only **the first** call matters. Subsequent calls at the same level are no-ops.
