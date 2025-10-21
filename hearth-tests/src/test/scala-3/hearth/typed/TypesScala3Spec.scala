@@ -51,9 +51,9 @@ final class TypesScala3Spec extends MacroSuite {
             "hearth.examples.ExampleEnum.ExampleEnumClass"
           ),
           testNamesPrinters[examples.ExampleEnum.ExampleEnumValue.type] -> (
-            "ExampleEnum",
-            "hearth.examples.ExampleEnum.ExampleEnumValue",
-            "hearth.examples.ExampleEnum.ExampleEnumValue"
+            "ExampleEnumValue",
+            "hearth.examples.ExampleEnum.ExampleEnumValue.type",
+            "hearth.examples.ExampleEnum.ExampleEnumValue.type"
           )
         ).foreach { case (actual, (shortName, fqcn, fullName)) =>
           actual <==> Data(

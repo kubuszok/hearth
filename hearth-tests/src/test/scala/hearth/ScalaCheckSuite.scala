@@ -5,6 +5,7 @@ import org.scalacheck.util.Pretty
 import org.scalacheck.rng.Seed
 import munit.{FailException, FailExceptionLike, Location, TestOptions}
 
+import scala.annotation.unused
 import scala.collection.immutable.ListMap
 import scala.util.{Failure, Success, Try}
 import scala.language.implicitConversions
@@ -25,7 +26,7 @@ trait ScalaCheckSuite extends Suite {
   // Allow property bodies of type Unit
   // This is done to support using MUnit assertions in property bodies
   // instead of returning a Boolean.
-  implicit def unitToProp(unit: Unit): Prop = Prop.passed
+  implicit def unitToProp(@unused unit: Unit): Prop = Prop.passed
 
   override def munitTestTransforms: List[TestTransform] = scalaCheckPropTransform +: super.munitTestTransforms
 
@@ -111,7 +112,7 @@ trait ScalaCheckSuite extends Suite {
     import scala.concurrent.Future
     import scala.util.Try
 
-    def flattenCompat[S](ec: ExecutionContext)(implicit ev: T <:< Future[S]): Future[S] = f.flatten
+    def flattenCompat[S](implicit ev: T <:< Future[S]): Future[S] = f.flatten
     def transformCompat[B](fn: Try[T] => Try[B])(implicit ec: ExecutionContext): Future[B] = f.transform(fn)
     def transformWithCompat[B](fn: Try[T] => Future[B])(implicit ec: ExecutionContext): Future[B] = f.transformWith(fn)
   }

@@ -4,6 +4,7 @@ package typed
 import hearth.data.Data
 
 import scala.annotation.unused
+import scala.annotation.nowarn
 
 /** Macro implementation is in [[TypesFixturesImpl]] */
 final class TypesSpec extends MacroSuite {
@@ -120,24 +121,24 @@ final class TypesSpec extends MacroSuite {
       }
 
       test("for inner classes (non-sealed)") {
-        @unused
+        @unused @nowarn
         trait ExampleTrait
-        @unused
+        @unused @nowarn
         trait ExampleTraitWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         abstract class ExampleAbstractClass
-        @unused
+        @unused @nowarn
         abstract class ExampleAbstractClassWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         final class ExampleClass
-        @unused
+        @unused @nowarn
         final class ExampleClassWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         case class ExampleCaseClass(a: Int)
-        @unused
+        @unused @nowarn
         case class ExampleCaseClassWithTypeParam[A](a: A)
 
         List(
@@ -268,24 +269,24 @@ final class TypesSpec extends MacroSuite {
       test(
         "for inner classes (non-sealed) should not work, since Classes are not available in the macro classpath yet"
       ) {
-        @unused
+        @unused @nowarn
         trait ExampleTrait
-        @unused
+        @unused @nowarn
         trait ExampleTraitWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         abstract class ExampleAbstractClass
-        @unused
+        @unused @nowarn
         abstract class ExampleAbstractClassWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         final class ExampleClass
-        @unused
+        @unused @nowarn
         final class ExampleClassWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         case class ExampleCaseClass(a: Int)
-        @unused
+        @unused @nowarn
         case class ExampleCaseClassWithTypeParam[A](a: A)
 
         testClassOfType[ExampleTrait] <==> Data.map("Type.classOfType" -> Data("not on classpath"))
@@ -387,24 +388,24 @@ final class TypesSpec extends MacroSuite {
       ) {
         val firstTestLine = implicitly[munit.Location].line
 
-        @unused
+        @unused @nowarn
         trait ExampleTrait
-        @unused
+        @unused @nowarn
         trait ExampleTraitWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         abstract class ExampleAbstractClass
-        @unused
+        @unused @nowarn
         abstract class ExampleAbstractClassWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         final class ExampleClass
-        @unused
+        @unused @nowarn
         final class ExampleClassWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         case class ExampleCaseClass(a: Int)
-        @unused
+        @unused @nowarn
         case class ExampleCaseClassWithTypeParam[A](a: A)
 
         testPosition[ExampleTrait] <==> Data.map("Type.position" -> Data(s"TypesSpec.scala:${firstTestLine + 3}:15"))
@@ -513,24 +514,24 @@ final class TypesSpec extends MacroSuite {
       }
 
       test("for inner classes (non-sealed)") {
-        @unused
+        @unused @nowarn
         trait ExampleTrait
-        @unused
+        @unused @nowarn
         trait ExampleTraitWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         abstract class ExampleAbstractClass
-        @unused
+        @unused @nowarn
         abstract class ExampleAbstractClassWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         final class ExampleClass
-        @unused
+        @unused @nowarn
         final class ExampleClassWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         case class ExampleCaseClass(a: Int)
-        @unused
+        @unused @nowarn
         case class ExampleCaseClassWithTypeParam[A](a: A)
 
         List(
@@ -787,24 +788,24 @@ final class TypesSpec extends MacroSuite {
       }
 
       test("for inner classes (non-sealed)") {
-        @unused
+        @unused @nowarn
         trait ExampleTrait
-        @unused
+        @unused @nowarn
         trait ExampleTraitWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         abstract class ExampleAbstractClass
-        @unused
+        @unused @nowarn
         abstract class ExampleAbstractClassWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         final class ExampleClass
-        @unused
+        @unused @nowarn
         final class ExampleClassWithTypeParam[A]
 
-        @unused
+        @unused @nowarn
         case class ExampleCaseClass(a: Int)
-        @unused
+        @unused @nowarn
         case class ExampleCaseClassWithTypeParam[A](a: A)
 
         List(
@@ -1224,24 +1225,24 @@ final class TypesSpec extends MacroSuite {
     }
 
     test("for inner classes (non-sealed)") {
-      @unused
+      @unused @nowarn
       trait ExampleTrait
-      @unused
+      @unused @nowarn
       trait ExampleTraitWithTypeParam[A]
 
-      @unused
+      @unused @nowarn
       abstract class ExampleAbstractClass
-      @unused
+      @unused @nowarn
       abstract class ExampleAbstractClassWithTypeParam[A]
 
-      @unused
+      @unused @nowarn
       final class ExampleClass
-      @unused
+      @unused @nowarn
       final class ExampleClassWithTypeParam[A]
 
-      @unused
+      @unused @nowarn
       case class ExampleCaseClass(a: Int)
-      @unused
+      @unused @nowarn
       case class ExampleCaseClassWithTypeParam[A](a: A)
 
       testComparisons[ExampleTrait, ExampleTrait] <==> Data.map(
