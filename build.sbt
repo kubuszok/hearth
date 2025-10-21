@@ -15,7 +15,7 @@ val mavenCentralSnapshots = "Maven Central Snapshots" at "https://central.sonaty
 val versions = new {
   // Versions we are publishing for.
   val scala213 = "2.13.17"
-  val scala3 = "3.3.7"
+  val scala3 = "3.7.3"
 
   // Which versions should be cross-compiled for publishing.
   val scalas = List(scala213, scala3)
@@ -187,7 +187,7 @@ val settings = Seq(
       "-Wvalue-discard",
       "-Xfatal-warnings",
       "-Xcheck-macros",
-      "-Ykind-projector:underscores"
+      "-Xkind-projector:underscores"
     ),
     for2_13 = Seq(
       // format: off
