@@ -52,8 +52,11 @@ jobs:
       matrix:
         scala: ["2_13", "3"]
         platform: ["jvm", "js", "native"]
-        jvm: ['temurin:1.11.0.28', 'temurin:1.21.0.1']
+        jvm: ['temurin:1.11.0.28', 'temurin:1.25.0.0']
+        test-lastest-scala: ['false', 'true']
       fail-fast: false
+
+    name: "Scala: ${{ matrix.scala == '2_13' && '2.13' || '3' }} / Platform: ${{ matrix.platform }} / JVM: ${{ matrix.jvm }} / Test: ${{ matrix.test-lastest-scala == 'true' && 'Latest' || 'Oldest Supported' }}"
 
     steps:
       - uses: actions/checkout@v5
@@ -66,6 +69,8 @@ jobs:
           apps: sbt
       - name: Clean, compile, test, generate coverage report, check MiMa
         run: sbt ci-${{ matrix.platform }}-${{ matrix.scala }}
+        env:
+          NEWEST_SCALA_TESTS: ${{ matrix.test-lastest-scala }}
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
