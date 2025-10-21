@@ -54,6 +54,11 @@ jobs:
         platform: ["jvm", "js", "native"]
         jvm: ['temurin:1.11.0.28', 'temurin:1.25.0.0']
         test-lastest-scala: ['false', 'true']
+        # Apparently 2.13 + JDK 25+ breaks?
+        # see: https://github.com/MateuszKubuszok/hearth/pull/102
+        exclude:
+          - scala: '2_13'
+            jvm: 'temurin:1.25.0.0'
       fail-fast: false
 
     name: "Scala: ${{ matrix.scala == '2_13' && '2.13' || '3' }} / Platform: ${{ matrix.platform }} / JVM: ${{ matrix.jvm }} / Test: ${{ matrix.test-lastest-scala == 'true' && 'Latest' || 'Oldest Supported' }}"
