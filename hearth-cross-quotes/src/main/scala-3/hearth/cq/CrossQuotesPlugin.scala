@@ -34,7 +34,7 @@ final class CrossQuotesPlugin extends StandardPlugin {
   val name = CrossQuotesSettings.crossQuotesName
   val description = "Rewrites Expr.quote/splice into native quotes"
 
-  def init(options: List[String]): List[PluginPhase] = {
+  override def initialize(options: List[String])(using Context): List[PluginPhase] = {
     val loggingEnabledFor = CrossQuotesSettings.parseLoggingSettingsForScala3(options)
     List(new CrossQuotesPhase(loggingEnabledFor))
   }
@@ -443,13 +443,15 @@ final class CrossQuotesPhase(loggingEnabledFor: Option[JFile] => Boolean) extend
          */
         case Apply(Select(Ident(expr), splice), List(thunk)) if expr.show == "Expr" && splice.show == "splice" =>
           val result = ensureQuotes(
-            untpd.Splice(
-              untpd.Apply(
-                untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("nestedCtx")),
-                List(
-                  untpd.Apply(
-                    untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("exprCrossToQuotes")),
-                    List(transform(thunk))
+            injectGivens(
+              untpd.Splice(
+                untpd.Apply(
+                  untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("nestedCtx")),
+                  List(
+                    untpd.Apply(
+                      untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("exprCrossToQuotes")),
+                      List(transform(thunk))
+                    )
                   )
                 )
               )
@@ -540,49 +542,70 @@ final class CrossQuotesPhase(loggingEnabledFor: Option[JFile] => Boolean) extend
               body: untpd.Tree
             ) =>
 
-          val newGivenCandidates = paramss.flatten[Any].collect {
-            /* If parameters is
-             *   [A: Type]
-             * then the name of the parameter is A and the type inside Type[_] type is also A, which we can use to distinguish such bound.
-             * Then we can injects a given for A:
-             *   given castedA: scala.quoted.Type[A] = Type[A].asInstanceOf[scala.quoted.Type[A]]
-             */
-            case TypeDef(
-                  name,
-                  untpd.ContextBounds(_, List(AppliedTypeTree(Ident(tpe), List(Ident(name2)))))
-                ) if tpe.show == "Type" && name.show == name2.show =>
-
-              untpd
-                .ValDef(
-                  name = termName(s"casted${name.mangledString}"),
-                  tpt = untpd.AppliedTypeTree(
-                    untpd.Select(
-                      untpd.Select(untpd.Ident(termName("scala")), termName("quoted")),
-                      typeName("Type")
-                    ),
-                    List(untpd.Ident(name))
+          // given castedname: scala.quoted.Type[name] = Type[name].asInstanceOf[scala.quoted.Type[name]]
+          def makeGiven(name: TypeName): untpd.ValDef =
+            untpd
+              .ValDef(
+                name = termName(s"casted${name.mangledString}"),
+                tpt = untpd.AppliedTypeTree(
+                  untpd.Select(
+                    untpd.Select(untpd.Ident(termName("scala")), termName("quoted")),
+                    typeName("Type")
                   ),
-                  rhs = untpd.TypeApply(
-                    untpd.Select(
-                      untpd.TypeApply(
-                        untpd.Ident(termName("Type")),
-                        List(untpd.Ident(name))
-                      ),
-                      termName("asInstanceOf")
+                  List(untpd.Ident(name))
+                ),
+                rhs = untpd.TypeApply(
+                  untpd.Select(
+                    untpd.TypeApply(
+                      untpd.Ident(termName("Type")),
+                      List(untpd.Ident(name))
                     ),
-                    List(
-                      untpd.AppliedTypeTree(
-                        untpd.Select(
-                          untpd.Select(untpd.Ident(termName("scala")), termName("quoted")),
-                          typeName("Type")
-                        ),
-                        List(untpd.Ident(name))
-                      )
+                    termName("asInstanceOf")
+                  ),
+                  List(
+                    untpd.AppliedTypeTree(
+                      untpd.Select(
+                        untpd.Select(untpd.Ident(termName("scala")), termName("quoted")),
+                        typeName("Type")
+                      ),
+                      List(untpd.Ident(name))
                     )
                   )
                 )
-                .withFlags(Flags.Given)
-          }
+              )
+              .withFlags(Flags.Given)
+
+          val newGivenCandidates = paramss
+            .flatten[Any]
+            .collect {
+              /* If parameters is
+               *   [A: Type]
+               * then the name of the parameter is A and the type inside Type[_] type is also A, which we can use to distinguish such bound.
+               * Then we can injects a given for A:
+               *   given castedA: scala.quoted.Type[A] = Type[A].asInstanceOf[scala.quoted.Type[A]]
+               */
+              case TypeDef(
+                    name,
+                    untpd.ContextBounds(_, List(AppliedTypeTree(Ident(tpe), List(Ident(name2)))))
+                  ) if tpe.show == "Type" && name.show == name2.show =>
+                makeGiven(name)
+
+              /** Same as above, but apparently AST changed between Scala 3.3.7 and 3.7.3.
+                */
+              case TypeDef(
+                    name,
+                    untpd.ContextBounds(_, List(untpd.ContextBoundTypeTree(Ident(tpe), name2, _)))
+                  ) if tpe.show == "Type" && name.show == name2.show =>
+                makeGiven(name)
+            }
+
+          // if loggingEnabled && newGivenCandidates.isEmpty && dd.toString.contains("Type") then {
+          //   println(s"""missed givens for:
+          //              |$dd
+          //              |paramss:
+          //              |${paramss.flatten.mkString("\n")}
+          //              |""".stripMargin)
+          // }
 
           val oldGivenCandidates = givenCandidates
           try {
