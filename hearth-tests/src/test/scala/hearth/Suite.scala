@@ -52,12 +52,12 @@ trait Suite extends munit.BaseFunSuite { self =>
 
   implicit class TestOptionsOps(private val options: TestOptions) {
     private def language = LanguageVersion.byHearth
-    def ignoreOnScala2_13(implicit loc: Location): TestOptions = if (language.isScala2_13) options.ignore else options
-    def ignoreOnScala3(implicit loc: Location): TestOptions = if (language.isScala3) options.ignore else options
+    def ignoreOnScala2_13: TestOptions = if (language.isScala2_13) options.ignore else options
+    def ignoreOnScala3: TestOptions = if (language.isScala3) options.ignore else options
     private def platform = Platform.byHearth
-    def ignoreOnJvm(implicit loc: Location): TestOptions = if (platform.isJvm) options.ignore else options
-    def ignoreOnJs(implicit loc: Location): TestOptions = if (platform.isJs) options.ignore else options
-    def ignoreOnNative(implicit loc: Location): TestOptions = if (platform.isNative) options.ignore else options
+    def ignoreOnJvm: TestOptions = if (platform.isJvm) options.ignore else options
+    def ignoreOnJs: TestOptions = if (platform.isJs) options.ignore else options
+    def ignoreOnNative: TestOptions = if (platform.isNative) options.ignore else options
   }
 
   implicit class ArrowAssert(actual: Any) {

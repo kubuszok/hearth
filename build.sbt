@@ -14,8 +14,8 @@ val mavenCentralSnapshots = "Maven Central Snapshots" at "https://central.sonaty
 
 val versions = new {
   // Versions we are publishing for.
-  val scala213 = "2.13.16"
-  val scala3 = "3.3.6"
+  val scala213 = "2.13.17"
+  val scala3 = "3.3.7"
 
   // Which versions should be cross-compiled for publishing.
   val scalas = List(scala213, scala3)
@@ -205,6 +205,7 @@ val settings = Seq(
       "-Wconf:msg=discarding unmoored doc comment:s", // silence errors when scaladoc cannot comprehend nested vals
       "-Wconf:msg=Could not find any member to link for:s", // since errors when scaladoc cannot link to stdlib types or nested types
       "-Wconf:msg=Variable .+ undefined in comment for:s", // silence errors when there we're showing a buggy Expr in scaladoc comment
+      "-Wconf:msg=a type was inferred to be kind-polymorphic `Nothing` to conform to:s", // silence warn that appeared after updating to Scala 2.13.17
       "-Wunused:patvars",
       "-Xfatal-warnings",
       "-Xlint:adapted-args",
@@ -220,6 +221,7 @@ val settings = Seq(
       "-Xlint:stars-align",
       "-Xlint:type-parameter-shadow",
       "-Xsource:3",
+      "-Xsource-features:eta-expand-always", // silence warn that appears since 2.13.17
       "-Yrangepos",
       "-Ywarn-dead-code",
       "-Ywarn-numeric-widen",
@@ -233,7 +235,8 @@ val settings = Seq(
     for3 = Seq("-Ygenerate-inkuire"), // type-based search for Scala 3, this option cannot go into compile
     for2_13 = Seq.empty
   ),
-  Compile / console / scalacOptions --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
+  Compile / console / scalacOptions --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings"),
+  coverageScalacPluginVersion := "2.4.0", // update, since sbt-scoverage was not updated
 )
 
 val dependencies = Seq(
@@ -242,11 +245,11 @@ val dependencies = Seq(
     "org.scalacheck" %%% "scalacheck" % versions.scalacheck % Test
   ),
   libraryDependencies ++= versions.fold(scalaVersion.value)(
+    for3 = Seq.empty,
     for2_13 = Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
       compilerPlugin("org.typelevel" % "kind-projector" % versions.kindProjector cross CrossVersion.full)
-    ),
-    for3 = Seq.empty
+    )
   )
 )
 
@@ -437,13 +440,10 @@ lazy val hearthCrossQuotes = projectMatrix
     moduleName := "hearth-cross-quotes",
     name := "hearth-cross-quotes",
     description := "Utilities for hurting little kittens",
-    libraryDependencies ++= {
-      CrossVersion.partialVersion(scalaVersion.value) match {
-        case Some((3, _)) => Seq("org.scala-lang" %% "scala3-compiler" % scalaVersion.value)
-        case Some((2, _)) => Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value)
-        case _            => ???
-      }
-    }
+    libraryDependencies ++= versions.fold(scalaVersion.value)(
+      for3 = Seq("org.scala-lang" %% "scala3-compiler" % scalaVersion.value),
+      for2_13 = Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value)
+    )
   )
   .settings(settings *)
   .settings(versionSchemeSettings *)
@@ -457,7 +457,11 @@ lazy val hearthMicroFp = projectMatrix
   .settings(
     moduleName := "hearth-micro-fp",
     name := "hearth-micro-fp",
-    description := "Micro FP library, for using a few useful extension without fetching a whole FP library"
+    description := "Micro FP library, for using a few useful extension without fetching a whole FP library",
+    scalacOptions ++= versions.fold(scalaVersion.value)(
+      for3 = Seq.empty,
+      for2_13 = Seq("-opt:l:inline") // we have a few @inline for micro-optimisations in micro-fp
+    )
   )
   .settings(settings *)
   .settings(versionSchemeSettings *)

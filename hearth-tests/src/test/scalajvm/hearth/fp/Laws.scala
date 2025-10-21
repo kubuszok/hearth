@@ -65,7 +65,7 @@ trait Laws { this: ScalaCheckSuite =>
       }
     }
 
-  def traverseLaws[F[_]: Traverse, G[_]: Parallel, A: Arbitrary: ArbitraryF[F, *]](implicit
+  def traverseLaws[F[_]: Traverse, G[_]: Parallel, A: ArbitraryF[F, *]](implicit
       loc: munit.Location,
       assertEqFA: AssertEq[F[A]],
       assertEqFGString: AssertEq[G[F[String]]]
@@ -95,7 +95,7 @@ trait Laws { this: ScalaCheckSuite =>
 
     property("No runSafe can be used to replace .pure") {
       forAll { (a: A) =>
-        DirectStyle[F].scoped { runSafe =>
+        DirectStyle[F].scoped { _ =>
           a
         } === a.pure[F]
       }

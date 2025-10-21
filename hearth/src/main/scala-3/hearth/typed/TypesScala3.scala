@@ -27,7 +27,14 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
     import platformSpecific.*
 
     override def shortName[A: Type]: String =
-      (TypeRepr.of[A].dealias.typeSymbol.name: String).replaceAll("\\$", "")
+      if Type[A].isVal then {
+        // Type symbol approach for case val would upcast it to the enum type.
+        val name = TypeRepr.of[A].dealias.show(using Printer.TypeReprCode)
+        name.lastIndexOf('.') match {
+          case -1  => name
+          case idx => name.substring(idx + 1)
+        }
+      } else (TypeRepr.of[A].dealias.typeSymbol.name: String).replaceAll("\\$", "")
     override def prettyPrint[A: Type]: String = {
       // In Scala 3 typeRepr.dealias dealiases only the "main" type but not types applied as type parameters,
       // while in Scala 2 macros it dealiases everything - to keep the same behavior between them we need to

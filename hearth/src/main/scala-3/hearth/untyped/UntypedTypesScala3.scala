@@ -133,7 +133,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def isVal(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       def attempt(sym: Symbol): Boolean =
-        A.flags.is(Flags.Enum) && (A.flags.is(Flags.JavaStatic) || A.flags.is(Flags.StableRealizable))
+        sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(Flags.StableRealizable))
       !A.isNoSymbol && (attempt(A) || attempt(instanceTpe.termSymbol))
     }
 
