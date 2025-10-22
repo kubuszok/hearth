@@ -50,15 +50,18 @@ jobs:
 
     strategy:
       matrix:
-        scala: ["2_13", "3"]
-        platform: ["jvm", "js", "native"]
-        jvm: ['temurin:1.11.0.28', 'temurin:1.25.0.0']
+        scala: ['2_13', '3']
+        platform: ['jvm', 'js', 'native']
+        jvm: ['temurin:1.11.0.28', 'temurin:1.24.0.2', 'temurin:1.25.0.0']
         test-lastest-scala: ['false', 'true']
-        # Apparently 2.13 + JDK 25+ breaks?
-        # see: https://github.com/MateuszKubuszok/hearth/pull/102
+        # Apparently 2.13.16 does not work with JDK 25+ at all
+        #   see: https://docs.scala-lang.org/overviews/jdk-compatibility/overview.html
+        # so for tests on higher JDK, we will use JDK24 as the lastest supported
         exclude:
           - scala: '2_13'
-            jvm: 'temurin:1.25.0.0'
+            jvm: 'temurin:1.25.0.0' # 2.13.16 does not work with JDK 25+
+          - scala: '3'
+            jvm: 'temurin:1.24.0.2' # Scala 3 we use does not need a workaround
       fail-fast: false
 
     name: "Scala: ${{ matrix.scala == '2_13' && '2.13' || '3' }} / Platform: ${{ matrix.platform }} / JVM: ${{ matrix.jvm }} / Test: ${{ matrix.test-lastest-scala == 'true' && 'Latest' || 'Oldest Supported' }}"
