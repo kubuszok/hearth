@@ -1,4 +1,4 @@
-//> using scala 3.3.6
+//> using scala 3.3.7
 //> using dep com.kubuszok::scala-cli-md-spec:0.2.0
 //> using dep org.virtuslab::scala-yaml:0.3.1
 
@@ -45,7 +45,7 @@ class HearthExtendedRunner(runner: Runner)(
     mkDocsCfg: MkDocsConfig
 ) extends Runner {
 
-  private val defaultScalaVersion = "2.13.16"
+  private val defaultScalaVersion = "2.13.17"
 
   private val replacePatterns = (mkDocsCfg.extra + (raw"hearth_version\(\)" -> hearthVersion)).map { case (k, v) =>
     (raw"\{\{\s*" + k + raw"\s*\}\}") -> v
