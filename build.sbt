@@ -248,8 +248,7 @@ val settings = Seq(
     for3 = Seq("-Ygenerate-inkuire"), // type-based search for Scala 3, this option cannot go into compile
     for2_13 = Seq.empty
   ),
-  Compile / console / scalacOptions --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings"),
-  coverageScalacPluginVersion := "2.4.0" // update, since sbt-scoverage was not updated
+  Compile / console / scalacOptions --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
 )
 
 val dependencies = Seq(
