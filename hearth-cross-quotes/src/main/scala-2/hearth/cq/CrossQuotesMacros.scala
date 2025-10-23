@@ -2640,9 +2640,9 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePretty {
         if (loggingEnabled) {
           println(s"""Transforming tree:
                      |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
-                     |     ${paint(Console.BLUE)(showRaw(tree))}
+                     |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
                      |Out: ${showCodePretty(transformed, SyntaxHighlight.ANSI)}
-                     |     ${paint(Console.BLUE)(showRaw(transformed))}
+                     |     ${showRawPretty(transformed, SyntaxHighlight.ANSI)}
                      |crap: $insideTypeParametricCrap
                      |""".stripMargin)
         }

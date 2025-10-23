@@ -32,6 +32,28 @@ private[hearth] trait ShowCodePretty {
       printPositions
     )
 
+  /** Better implementation of [[scala.reflect.internal.Printers#showRaw]] that supports syntax highlighting. */
+  private[hearth] def showRawPretty(
+      any: Any,
+      highlight: SyntaxHighlight,
+      printTypes: BooleanFlag = None,
+      printIds: BooleanFlag = None,
+      printOwners: BooleanFlag = None,
+      printPositions: BooleanFlag = None,
+      printRootPkg: Boolean = false
+  ): String =
+    render(
+      any,
+      highlight,
+      new HighlighedRawTreePrinter(_, _),
+      printTypes,
+      printIds,
+      printOwners,
+      printKinds = None,
+      printMirrors = None,
+      printPositions
+    )
+
   /** Adding new val/lazy val/var to the trait is breaking backward compatibility in the bytecode (SIC!).
     *
     * Therefore we should avoid that when possible - for private fields, `private` modifier does NOT help, since the
@@ -81,7 +103,7 @@ private[hearth] trait ShowCodePretty {
     private def ifSym(tree: Tree, p: Symbol => Boolean) = symFn(tree, p, false)
 
     /** Better implementation of [[scala.reflect.internal.Printers#CodePrinter]] that supports syntax highlighting. */
-    class HighlighedCodePrinter(out: PrintWriter, printRootPkg: Boolean, syntaxHighlight: SyntaxHighlight)
+    final class HighlighedCodePrinter(out: PrintWriter, printRootPkg: Boolean, syntaxHighlight: SyntaxHighlight)
         extends CodePrinter(out, printRootPkg) {
       import syntaxHighlight.*
 
@@ -821,6 +843,253 @@ private[hearth] trait ShowCodePretty {
            |Please, report an issue at https://github.com/MateuszKubuszok/hearth/issues
            |""".stripMargin
       )
+    }
+
+    /** Better implementation of [[scala.reflect.internal.Printers#RawTreePrinter]] that supports syntax highlighting
+      * and indentation.
+      *
+      * It skips printing type footnotes and mirrors.
+      */
+    final class HighlighedRawTreePrinter(out: PrintWriter, syntaxHighlight: SyntaxHighlight)
+        extends InternalTreePrinter(out) {
+      import syntaxHighlight.*
+
+      private var indentLevel = 0
+
+      private def indented[A](body: => A): A = {
+        indentLevel += 1
+        val result = body
+        indentLevel -= 1
+        result
+      }
+
+      // This code was copy-paste-edited from scala.reflect.internal.Printers#RawTreePrinter.
+
+      // private[this] var depth = 0
+      // private[this] var printTypesInFootnotes = true
+      // private[this] var printingFootnotes = false
+      // private[this] val footnotes = new Footnotes()
+
+      @nowarn
+      override def print(args: Any*): Unit = {
+        // // don't print type footnotes if the argument is a mere type
+        // if (depth == 0 && args.length == 1 && args(0) != null && args(0).isInstanceOf[Type])
+        //   printTypesInFootnotes = false
+
+        // depth += 1
+        args foreach {
+          case expr: Expr[?] =>
+            print(highlightTypeDef("Expr"))
+            if (printTypes) print(expr.staticType)
+            print("(", '\n')
+            indented {
+              print(expr.tree)
+            }
+            print('\n', ")")
+          case EmptyTree =>
+            print(highlightValDef("EmptyTree"))
+          case st.noSelfType =>
+            print(highlightValDef("noSelfType"))
+          case st.pendingSuperCall =>
+            print(highlightValDef("pendingSuperCall"))
+          case name: Name =>
+            print(show(name))
+          case tree: Tree =>
+            def hasSymbolField = tree.hasSymbolField && tree.symbol != NoSymbol
+            val isError = hasSymbolField && (tree.symbol.name string_== nme.ERROR)
+            printProduct(
+              tree,
+              preamble = _ => {
+                if (printPositions) print(tree.pos.show)
+                print(highlightTypeDef(tree.productPrefix))
+                if (printTypes && tree.tpe != null) print(highlightTypeDef(tree.tpe.toString))
+              },
+              body = {
+                case name: Name =>
+                  if (isError) {
+                    if (isError) print("<")
+                    print(name)
+                    if (isError) print(": error>")
+                  } else if (hasSymbolField) {
+                    tree match {
+                      case refTree: RefTree =>
+                        if (tree.symbol.name != refTree.name)
+                          print(
+                            "[",
+                            tree.symbol,
+                            " aka ",
+                            refTree.name,
+                            "]"
+                          )
+                        else print(tree.symbol)
+                      case defTree: DefTree =>
+                        print(tree.symbol)
+                      case _ =>
+                        print(tree.symbol.name)
+                    }
+                  } else {
+                    print(name)
+                  }
+                case Constant(s: String) =>
+                  print(
+                    highlightTypeDef("Constant") + "(" + highlightString("\"" + s + "\"") + ")"
+                  ) // TODO: escape quotes, newlines, etc?
+                case Constant(null) =>
+                  print(highlightTypeDef("Constant") + "(" + highlightLiteral("null") + ")")
+                case Constant(value) =>
+                  print(highlightTypeDef("Constant") + "(" + highlightLiteral(value.toString) + ")")
+                case arg =>
+                  print(arg)
+              },
+              postamble = {
+                case tree @ TypeTree() if tree.original != null => print(".setOriginal(", tree.original, ")")
+                case _                                          => // do nothing
+              }
+            )
+          case sym: Symbol =>
+            if (sym == NoSymbol) print(highlightValDef("NoSymbol"))
+            else if (sym.isStatic && (sym.isClass || sym.isModule))
+              print(
+                highlightTripleQs,
+                " /* Symbol of " + highlightKeyword(sym.keyString) + " " + highlightTypeDef(sym.fullName) + " */"
+              )
+            else
+              print(
+                highlightTripleQs,
+                " /* Symbol of " + highlightKeyword(sym.keyString) + " " + highlightValDef(
+                  sym.name.decoded.toString
+                ) + " */"
+              )
+            if (printIds) print("#", highlightValDef(sym.id.toString))
+            if (printOwners) print("@", highlightValDef(sym.owner.id.toString))
+          // if (printKinds) print("#", sym.abbreviatedKindString)
+          // if (printMirrors) print("%M", footnotes.put[scala.reflect.api.Mirror[_]](mirrorThatLoaded(sym)))
+          case tag: TypeTag[?] =>
+            print(highlightTypeDef("TypeTag") + "(")
+            indented {
+              print(tag.tpe)
+            }
+            print(")")
+          case tag: WeakTypeTag[?] =>
+            print(highlightTypeDef("WeakTypeTag") + "(")
+            indented {
+              print(tag.tpe)
+            }
+            print(")")
+          case tpe: Type =>
+            // val defer = printTypesInFootnotes && !printingFootnotes
+            // if (defer) print("[", footnotes.put(tpe), "]")
+            /*else*/
+            tpe match {
+              case NoType   => print(highlightValDef("NoType"))
+              case NoPrefix => print(highlightValDef("NoPrefix"))
+              case _        => printProduct(tpe.asInstanceOf[Product])
+            }
+          case mods: Modifiers =>
+            print(highlightTypeDef("Modifiers") + "(")
+            if (mods.flags != NoFlags || mods.privateWithin != tpnme.EMPTY || mods.annotations.nonEmpty)
+              print(show(mods.flags))
+            if (mods.privateWithin != tpnme.EMPTY || mods.annotations.nonEmpty) {
+              print(", "); print(mods.privateWithin)
+            }
+            if (mods.annotations.nonEmpty) { print(", "); print(mods.annotations); }
+            print(")")
+          case name: Name =>
+            print(show(name))
+          case scope: Scope =>
+            print(highlightTypeDef("Scope"))
+            printIterable(scope.toList)
+          case list: List[?] =>
+            print(highlightTypeDef("List"))
+            printIterable(list)
+          case product: Product =>
+            printProduct(product)
+          case arg =>
+            out.print(arg.toString.replaceAll("\n", "\n" + "  " * indentLevel))
+        }
+        // depth -= 1
+        /*
+        if (depth == 0 && !printingFootnotes) {
+          printingFootnotes = true
+          footnotes.print[Type](this)
+          footnotes.print[scala.reflect.api.Mirror[_]](this)
+          printingFootnotes = false
+        }
+         */
+      }
+
+      // This code was copy-paste-edited from scala.reflect.internal.Printers.
+
+      def printProduct(
+          p: Product,
+          preamble: Product => Unit = p => print(highlightTypeDef(p.productPrefix)),
+          body: Any => Unit = print(_),
+          postamble: Product => Unit = p => print("")
+      ): Unit = {
+        preamble(p)
+        printIterable(p.productIterator.toList, body = body)
+        postamble(p)
+      }
+
+      def printIterable(
+          iterable: List[?],
+          preamble: => Unit = print(""),
+          body: Any => Unit = print(_),
+          postamble: => Unit = print("")
+      ): Unit = {
+        preamble
+        print("(")
+        indented {
+          val it = iterable.iterator
+          if (iterable.nonEmpty) {
+            print('\n')
+          }
+          while (it.hasNext) {
+            body(it.next())
+            print(if (it.hasNext) ",\n" else "")
+          }
+        }
+        if (iterable.nonEmpty) {
+          print('\n')
+        }
+        print(")")
+        postamble
+      }
+
+      def show(name: Name): String = name match {
+        case tpnme.WILDCARD      => highlightValDef("typeNames") + "." + highlightValDef("WILDCARD")
+        case tpnme.EMPTY         => highlightValDef("typeNames") + "." + highlightValDef("EMPTY")
+        case tpnme.ERROR         => highlightValDef("typeNames") + "." + highlightValDef("ERROR")
+        case tpnme.PACKAGE       => highlightValDef("typeNames") + "." + highlightValDef("PACKAGE")
+        case tpnme.WILDCARD_STAR => highlightValDef("typeNames") + "." + highlightValDef("WILDCARD_STAR")
+        case nme.WILDCARD        => highlightValDef("termNames") + "." + highlightValDef("WILDCARD")
+        case nme.EMPTY           => highlightValDef("termNames") + "." + highlightValDef("EMPTY")
+        case nme.ERROR           => highlightValDef("termNames") + "." + highlightValDef("ERROR")
+        case nme.PACKAGE         => highlightValDef("termNames") + "." + highlightValDef("PACKAGE")
+        case nme.CONSTRUCTOR     => highlightValDef("termNames") + "." + highlightValDef("CONSTRUCTOR")
+        case nme.ROOTPKG         => highlightValDef("termNames") + "." + highlightValDef("ROOTPKG")
+        case _                   =>
+          highlightTypeDef(if (name.isTermName) "TermName" else "TypeName") + "(" +
+            highlightString("\"" + name.toString + "\"") + ")"
+      }
+
+      def show(flags: FlagSet): String =
+        if (flags == NoFlags) highlightValDef(nme.NoFlags.toString)
+        else {
+          val s_flags = new scala.collection.mutable.ListBuffer[String]
+          def hasFlag(left: Long, right: Long): Boolean = (left & right) != 0
+          for (i <- 0 to 63 if hasFlag(flags, 1L << i))
+            s_flags += highlightValDef(flagToString(1L << i).replace("<", "").replace(">", "").toUpperCase)
+          s_flags mkString " | "
+        }
+
+      def show(position: Position): String =
+        position.show
+
+      def showDecl(sym: Symbol): String = {
+        if (!isCompilerUniverse) definitions.fullyInitializeSymbol(sym)
+        sym.defString // TODO: check if we can improve this?
+      }
     }
   }
 }

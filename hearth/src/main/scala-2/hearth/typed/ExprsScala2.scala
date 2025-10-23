@@ -72,12 +72,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       .replaceAll("\\$macro", "")
       .replaceAll("\\$\\d+", "")
 
-    override def prettyAST[A](expr: Expr[A]): String = showRaw(expr.tree)
-      // color expression for better UX
-      .split('\n')
-      .view
-      .map(line => Console.MAGENTA + line + Console.RESET)
-      .mkString("\n")
+    override def prettyAST[A](expr: Expr[A]): String = showRawPretty(expr.tree, treeprinter.SyntaxHighlight.ANSI)
 
     override def summonImplicit[A: Type]: Option[Expr[A]] =
       scala.util
