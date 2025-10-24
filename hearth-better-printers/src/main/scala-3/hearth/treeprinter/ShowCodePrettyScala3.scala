@@ -8,8 +8,17 @@ trait ShowCodePrettyScala3 {
 
   import quotes.*, quotes.reflect.*
 
+  /** Printer that formats the tree with indentation.
+    *
+    * @since 0.2.0
+    */
   lazy val FormattedTreeStructure: Printer[Tree] =
     implementationDetails.HighlightedTreePrinter(SyntaxHighlight.plain)
+
+  /** Printer that formats the tree with indentation and ANSI colors.
+    *
+    * @since 0.2.0
+    */
   lazy val FormattedTreeStructureAnsi: Printer[Tree] =
     implementationDetails.HighlightedTreePrinter(SyntaxHighlight.ANSI)
 
@@ -18,7 +27,7 @@ trait ShowCodePrettyScala3 {
     * Therefore we should avoid that when possible - for private fields, `private` modifier does NOT help, since the
     * compiler still needs to do some magic to allow the val to refer to other vals which can be overridden.
     *
-    * Instead we can create a private object - adding it, would break backward compatibility, but if it already exist,
+    * Instead we can create a private object - adding it, would break backward compatibility, but if it already exists,
     * and it's not available to the user, it's fine to add things there when needed.
     */
   private object implementationDetails {
@@ -45,6 +54,8 @@ trait ShowCodePrettyScala3 {
         sb.toString()
       }
 
+      // Workaround for the fact, that the Tree hierarchy would change betwen versions - but it should always work
+      // via reflection.
       object ReflectModule {
 
         def unapply(arg: Any): Option[(String, Product)] = unapplies.view
@@ -53,45 +64,37 @@ trait ShowCodePrettyScala3 {
           }
           .collectFirst { case Some(value) => value }
 
-        private val unapplies = reflect.getClass
-          .getDeclaredMethods()
-          .view
-          .flatMap { reflectMethod =>
-            Option(reflectMethod)
-              .filter(_.getParameterCount == 0)
-              .filter(_.getReturnType.getSimpleName.endsWith("Module"))
-              .map(_.invoke(reflect))
-              .flatMap { module =>
-                module.getClass
-                  .getDeclaredMethods()
-                  .find { moduleMethod =>
-                    moduleMethod.getParameterCount == 1 && moduleMethod.getName == "unapply"
-                  }
-                  .map { moduleMethod =>
-                    val unapply: Any => Option[Product] = (arg: Any) =>
-                      try
-                        moduleMethod.invoke(module, arg).match {
-                          case opt: Option[?] => opt.asInstanceOf[Option[Product]]
-                          case p: Product     => Some(p)
-                        }
-                      catch {
-                        case _: Throwable =>
-                          // case e: Throwable =>
-                          //  println(s"failed to unapply $arg to ${moduleMethod.getName}: ${e.getMessage}")
-                          None
-                      }
-                    unapply
-                  }
+        private val unapplies =
+          (for {
+            reflectMethod <- reflect.getClass.getDeclaredMethods().view
+            if reflectMethod.getParameterCount == 0 && reflectMethod.getReturnType.getSimpleName.endsWith("Module")
+            module = reflectMethod.invoke(reflect)
+            moduleMethod <- module.getClass
+              .getDeclaredMethods()
+              .view
+              .find { moduleMethod =>
+                moduleMethod.getParameterCount == 1 && moduleMethod.getName == "unapply"
               }
-              .map { unapply =>
-                val name = reflectMethod.getName
-                (name, unapply)
+              .view
+          } yield {
+            val name = reflectMethod.getName
+            val unapply: Any => Option[Product] = (arg: Any) =>
+              try
+                moduleMethod.invoke(module, arg).match {
+                  case opt: Option[?] => opt.asInstanceOf[Option[Product]]
+                  case p: Product     => Some(p)
+                }
+              catch {
+                case _: Throwable =>
+                  // case e: Throwable =>
+                  //  println(s"failed to unapply $arg to ${moduleMethod.getName}: ${e.getMessage}")
+                  None
               }
-          }
-          .toList
+            (name, unapply)
+          }).toList
       }
 
-      // Workaround for the fact that we can't check if a type is a tree at runtime.
+      // Workaround for the fact, that we can't check if a type is a tree at runtime.
       private object IsTree {
 
         def unapply(tree: Any): Option[Tree] =
