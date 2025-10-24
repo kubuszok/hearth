@@ -58,8 +58,10 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     final def possibleClassesOfType[A: Type]: Array[String] = {
       val name = {
         val plain = plainPrint[A].takeWhile(_ != '[')
+        // TODO: test and list other cases where replacing .type with $ would help
+        // TODO: test and add case when .type could be dropped without adding $ (Java enum values?)
         if (isObject[A]) {
-          assert(plain.endsWith(".type"))
+          assert(plain.endsWith(".type"), s"$plain does not end with .type while it describes an object")
           plain.dropRight(".type".length) + '$'
         } else plain
       }

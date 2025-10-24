@@ -17,11 +17,15 @@ final class ExprsSpec extends MacroSuite {
           "Expr.prettyPrint" -> Data("\"test value\""),
           "Expr.plainAST" -> Data(
             if (LanguageVersion.byHearth.isScala3) "Inlined(None, Nil, Literal(StringConstant(\"test value\")))"
-            else "Literal(Constant(\"test value\"))"
+            else """Literal(
+                  |  Constant("test value")
+                  |)""".stripMargin
           ),
           "Expr.prettyAST" -> Data(
             if (LanguageVersion.byHearth.isScala3) "Inlined(None, Nil, Literal(StringConstant(\"test value\")))"
-            else "Literal(Constant(\"test value\"))"
+            else """Literal(
+                  |  Constant("test value")
+                  |)""".stripMargin
           )
         )
       }

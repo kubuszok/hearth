@@ -55,25 +55,7 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
         case _                                                               => tpe.dealias.typeSymbol.name.toString
       }
     }
-    override def prettyPrint[A: Type]: String = {
-      // TODO: for the time being this does not yet work
-      // showCodePretty(Type[A].tpe, treeprinter.SyntaxHighlight.ANSI)
-
-      def helper(tpe: c.Type): String =
-        tpe.toString match {
-          case javaEnumRegexpFormat(enumName, valueName) if tpe.typeSymbol.isJavaEnum => s"$enumName.$valueName.type"
-          case _                                                                      =>
-            val tpes = tpe.typeArgs.map(helper)
-            val tpeArgs = if (tpes.isEmpty) "" else s"[${tpes.mkString(", ")}]"
-            val dealiased = tpe.dealias
-            val naiveAttempt = dealiased.toString.takeWhile(_ != '[') // does not work for e.g. primitive types
-            def typeSymbolAttempt = dealiased.typeSymbol.fullName // does not work for e.g. path-dependent types
-            val fullName = if (naiveAttempt.exists(_ == '.')) naiveAttempt else typeSymbolAttempt
-            fullName + tpeArgs
-        }
-
-      Console.MAGENTA + helper(Type[A].tpe)
-    }
+    override def prettyPrint[A: Type]: String = showCodePretty(Type[A].tpe.dealias, treeprinter.SyntaxHighlight.ANSI)
 
     override lazy val NullCodec: TypeCodec[Null] = new LiteralCodec[Null]
     override lazy val UnitCodec: TypeCodec[Unit] = new LiteralCodec[Unit]
