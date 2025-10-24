@@ -11,7 +11,10 @@ trait ShowCodePrettyScala2 {
 
   import c.universe.BooleanFlag, implementationDetails.*
 
-  /** Better implementation of [[scala.reflect.internal.Printers#showCode]] that supports syntax highlighting. */
+  /** Better implementation of [[scala.reflect.internal.Printers#showCode]] that supports syntax highlighting.
+    *
+    * @since 0.2.0
+    */
   def showCodePretty(
       any: Any,
       highlight: SyntaxHighlight,
@@ -33,7 +36,10 @@ trait ShowCodePrettyScala2 {
       printPositions
     )
 
-  /** Better implementation of [[scala.reflect.internal.Printers#showRaw]] that supports syntax highlighting. */
+  /** Better implementation of [[scala.reflect.internal.Printers#showRaw]] that supports syntax highlighting.
+    *
+    * @since 0.2.0
+    */
   def showRawPretty(
       any: Any,
       highlight: SyntaxHighlight,
@@ -60,7 +66,7 @@ trait ShowCodePrettyScala2 {
     * Therefore we should avoid that when possible - for private fields, `private` modifier does NOT help, since the
     * compiler still needs to do some magic to allow the val to refer to other vals which can be overridden.
     *
-    * Instead we can create a private object - adding it, would break backward compatibility, but if it already exist,
+    * Instead we can create a private object - adding it, would break backward compatibility, but if it already exists,
     * and it's not available to the user, it's fine to add things there when needed.
     */
   private object implementationDetails {
