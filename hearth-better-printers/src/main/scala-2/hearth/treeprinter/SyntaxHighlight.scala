@@ -3,7 +3,7 @@ package treeprinter
 
 // Copy-paste of https://github.com/scala/scala3/blob/main/compiler/src/scala/quoted/runtime/impl/printers/SyntaxHighlight.scala
 
-private[hearth] trait SyntaxHighlight {
+trait SyntaxHighlight {
   def KeywordColor: String
   def TypeDefColor: String
   def LiteralColor: String
@@ -24,7 +24,7 @@ private[hearth] trait SyntaxHighlight {
   def highlightTripleQs: String = TripleQsColor + "???" + NoColor
 }
 
-private[hearth] object SyntaxHighlight {
+object SyntaxHighlight {
 
   // Moved out of ANSI and removed `private`
 
