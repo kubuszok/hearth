@@ -1,11 +1,12 @@
-package hearth.treeprinter
+package hearth
+package treeprinter
 
 import java.io.{PrintWriter, StringWriter}
 import scala.annotation.{nowarn, tailrec}
 import scala.reflect.internal.Chars
 import scala.reflect.internal.ModifierFlags.*
 
-trait ShowCodePretty {
+trait ShowCodePrettyScala2 {
   val c: scala.reflect.macros.blackbox.Context
 
   import c.universe.BooleanFlag, implementationDetails.*
@@ -935,7 +936,6 @@ trait ShowCodePretty {
       private def unsupportedTree(tree: Tree): Nothing = throw new UnsupportedOperationException(
         s"""Unsupported tree for `showCodePretty`:
            |
-           |
            |${Option(tree).map(showCode(_)).filter(_.nonEmpty).getOrElse("<no tree ?>")}
            |
            |constructed as:
@@ -954,7 +954,6 @@ trait ShowCodePretty {
 
       private def unsupportedType(tpe: Type): Nothing = throw new UnsupportedOperationException(
         s"""Unsupported type for `showCodePretty`:
-           |
            |
            |${Option(tpe).map(_.toString()).filter(_.nonEmpty).getOrElse("<no type ?>")}
            |

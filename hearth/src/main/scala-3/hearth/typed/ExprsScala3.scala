@@ -91,13 +91,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       .replaceAll("\\$macro", "")
       .replaceAll("\\$\\d+", "")
 
-    override def prettyAST[A](expr: Expr[A]): String = expr.asTerm
-      .show(using Printer.TreeStructure)
-      // color expression for better UX
-      .split('\n')
-      .view
-      .map(line => Console.MAGENTA + line + Console.RESET)
-      .mkString("\n")
+    override def prettyAST[A](expr: Expr[A]): String = expr.asTerm.show(using FormattedTreeStructureAnsi)
 
     override def summonImplicit[A: Type]: Option[Expr[A]] = scala.quoted.Expr.summon[A]
 
