@@ -5,13 +5,13 @@ import scala.annotation.{nowarn, tailrec}
 import scala.reflect.internal.Chars
 import scala.reflect.internal.ModifierFlags.*
 
-private[hearth] trait ShowCodePretty {
+trait ShowCodePretty {
   val c: scala.reflect.macros.blackbox.Context
 
   import c.universe.BooleanFlag, implementationDetails.*
 
   /** Better implementation of [[scala.reflect.internal.Printers#showCode]] that supports syntax highlighting. */
-  private[hearth] def showCodePretty(
+  def showCodePretty(
       any: Any,
       highlight: SyntaxHighlight,
       printTypes: BooleanFlag = None,
@@ -33,7 +33,7 @@ private[hearth] trait ShowCodePretty {
     )
 
   /** Better implementation of [[scala.reflect.internal.Printers#showRaw]] that supports syntax highlighting. */
-  private[hearth] def showRawPretty(
+  def showRawPretty(
       any: Any,
       highlight: SyntaxHighlight,
       printTypes: BooleanFlag = None,

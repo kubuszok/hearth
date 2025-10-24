@@ -309,7 +309,8 @@ val publishSettings = Seq(
 val mimaSettings = Seq(
   mimaPreviousArtifacts := {
     val previousVersions = moduleName.value match {
-      case "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" => Set() // fix after 0.2.0 release
+      case "hearth-better-printers" | "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" =>
+        Set() // fix after 0.2.0 release
       case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" =>
         Set()
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
@@ -318,7 +319,8 @@ val mimaSettings = Seq(
   },
   mimaFailOnNoPrevious := {
     moduleName.value match {
-      case "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" => false // fix after 0.2.0 release
+      case "hearth-better-printers" | "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" =>
+        false // fix after 0.2.0 release
       case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" =>
         false
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
@@ -333,7 +335,7 @@ val noPublishSettings =
 
 val al = new {
 
-  private val prodProjects = Vector("hearthCrossQuotes", "hearthMicroFp", "hearth")
+  private val prodProjects = Vector("hearthBetterPrinters", "hearthCrossQuotes", "hearthMicroFp", "hearth")
   private val testProjects = Vector("hearthTests", "hearthSandwichTests")
 
   private def isJVM(platform: String): Boolean = platform == "JVM"
@@ -383,6 +385,7 @@ lazy val root = project
   .settings(settings)
   .settings(publishSettings)
   .settings(noPublishSettings)
+  .aggregate(hearthBetterPrinters.projectRefs *)
   .aggregate(hearthCrossQuotes.projectRefs *)
   .aggregate(hearthMicroFp.projectRefs *)
   .aggregate(hearth.projectRefs *)
@@ -405,6 +408,7 @@ lazy val root = project
          |When working with IntelliJ or Scala Metals, edit dev.properties to control which Scala version you're currently working with.
          |
          |If you need to test library locally in a different project, use publish-local-for-tests or manually publishLocal:
+         | - hearth-better-printers (obligatory)
          | - hearth-cross-quotes (obligatory)
          | - hearth-micro-fp (obligatory)
          | - hearth (obligatory)
@@ -443,6 +447,24 @@ lazy val root = project
     )
   )
 
+lazy val hearthBetterPrinters = projectMatrix
+  .in(file("hearth-better-printers"))
+  .someVariations(versions.scalas, versions.platforms)(only1VersionInIDE *)
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .disablePlugins(WelcomePlugin, MimaPlugin)
+  .settings(
+    moduleName := "hearth-better-printers",
+    name := "hearth-better-printers",
+    description := "Better alternatiteves to Scala 2's showCode and showRaw, and Scala 3's Printer.TreeStructure",
+    libraryDependencies ++= versions.fold(scalaVersion.value)(
+      for3 = Seq("org.scala-lang" %% "scala3-compiler" % scalaVersion.value),
+      for2_13 = Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value)
+    )
+  )
+  .settings(settings *)
+  .settings(versionSchemeSettings *)
+  .settings(publishSettings *)
+
 lazy val hearthCrossQuotes = projectMatrix
   .in(file("hearth-cross-quotes"))
   .someVariations(versions.scalas, versions.platforms)((defineCrossQuotes ++ only1VersionInIDE) *)
@@ -460,6 +482,7 @@ lazy val hearthCrossQuotes = projectMatrix
   .settings(settings *)
   .settings(versionSchemeSettings *)
   .settings(publishSettings *)
+  .dependsOn(hearthBetterPrinters)
 
 lazy val hearthMicroFp = projectMatrix
   .in(file("hearth-micro-fp"))
@@ -497,6 +520,7 @@ lazy val hearth = projectMatrix
   .settings(dependencies *)
   .settings(mimaSettings *)
   .dependsOn(hearthMicroFp)
+  .dependsOn(hearthBetterPrinters)
 
 // Test normal use cases
 
