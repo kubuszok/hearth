@@ -946,7 +946,7 @@ trait ShowCodePrettyScala2 {
             def helper(tpe: Type): String =
               tpe.toString match {
                 case javaEnumRegexpFormat(enumName, valueName) if tpe.typeSymbol.isJavaEnum =>
-                  s"${highlightTypeDef(enumName)}.${highlighValDef(valueName)}.type"
+                  s"${highlightTypeDef(enumName)}.${highlightValDef(valueName)}.type"
                 case _ =>
                   val tpes = tpe.typeArgs.map(helper)
                   val tpeArgs = if (tpes.isEmpty) "" else s"[${tpes.mkString(", ")}]"
