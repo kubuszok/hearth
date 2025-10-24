@@ -172,7 +172,8 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     }
     override def isObject(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
-      A != NoSymbol && A.isClass && A.asClass.isModuleClass
+      A != NoSymbol && A.isClass && (A.asClass.isModule || A.asClass.isModuleClass || A.name.decodedName.toString
+        .endsWith("$"))
     }
     override def isVal(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol

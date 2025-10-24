@@ -67,6 +67,15 @@ private[hearth] trait ShowCodePretty {
     val st: scala.reflect.internal.SymbolTable = c.universe.asInstanceOf[scala.reflect.internal.SymbolTable]
     import st.{BooleanFlag as _, *}
 
+    // Copy-pasted from TypesScala2.scala because we need it here as well.
+
+    /** It is surprisingly ridiculous but I've found no other way of telling whether I am looking at enum abstract class
+      * or its value, since EVERYTHING else looks the same: parent is not abstract, everyone is static, everyone has the
+      * same baseClasses, everyone reports to have public primaryConstructor (which is <none>). The only different in
+      * behavior is that one prints com.my.Enum and another com.my.Enum(MyValue).
+      */
+    val javaEnumRegexpFormat = raw"^(.+)\((.+)\)$$".r
+
     // Copy-paste-modified from scala.reflect.internal.Printers:
 
     def render(
@@ -109,10 +118,16 @@ private[hearth] trait ShowCodePretty {
 
       // Overriden from CodePrinter:
 
-      // colors printed name
-      override protected def printedName(name: Name, decoded: Boolean = true) =
-        if (name.isTypeName) highlightTypeDef(super.printedName(name, decoded))
-        else highlightValDef(super.printedName(name, decoded))
+      // Colors printed name
+      // If symbol name ends with "$" it is an object, and we replace it with ".type".
+      override protected def printedName(name: Name, decoded: Boolean = true) = {
+        val (result, dotType) = {
+          val x = super.printedName(name, decoded)
+          if (x.endsWith("$")) (x.dropRight("$".length), true) else (x, false)
+        }
+        val hl = if (name.isTypeName) highlightTypeDef(result) else highlightValDef(result)
+        if (dotType) hl + ".type" else hl
+      }
 
       // replaces CodePrinter with HighlighedCodePrinter
       override protected def resolveSelect(t: Tree): String = t match {
@@ -171,10 +186,6 @@ private[hearth] trait ShowCodePretty {
               Apply(Select(New(Ident(anonName2)), termNames.CONSTRUCTOR), List()) :: rest if anonName1 == anonName2 =>
             printelem(New(impl)); printsep; printSeqFixed(rest)(printelem)(printsep)
           case x :: rest =>
-            if (showCode(x).contains("final class $anon")) {
-              scala.Predef.println(ls.take(2).map(showCode(_)).mkString("\n"))
-              scala.Predef.println(ls.take(2).map(showRaw(_)).mkString("\n"))
-            }
             printelem(x); printsep; printSeqFixed(rest)(printelem)(printsep)
         }
 
@@ -741,7 +752,8 @@ private[hearth] trait ShowCodePretty {
               case _: Float => "f" // Note: originally: "F"
               case _        => ""
             }
-            print(highlightLiteral(s"${x.escapedStringValue}$suffix"))
+            val result = s"${x.escapedStringValue}$suffix"
+            print(if (x.value.isInstanceOf[String]) highlightString(result) else highlightLiteral(result))
 
           case tt: TypeTree =>
             if (!isEmptyTree(tt)) {
@@ -821,6 +833,102 @@ private[hearth] trait ShowCodePretty {
         }
       }
 
+      // This code has to be invented from scratch because TreePrinter did not dealt with types.
+
+      private def printTypePrefix(pre: Type, sym: Symbol): Unit =
+        pre match {
+          // do nothing - no need to prepend `<root>`.
+          case root if super.printedName(root.typeSymbol.name, decoded = true) == "`<root>`" =>
+          // skip `package` - no use in having .`package`. in the middle of type
+          case TypeRef(pre2, sym2, _) if super.printedName(sym2.name, decoded = true) == "`package`" =>
+            printTypePrefix(pre2, sym2)
+          case SingleType(pre2, sym2) if super.printedName(sym2.name, decoded = true) == "`package`" =>
+            printTypePrefix(pre2, sym2)
+          // probably sth was imported and if we stopped now, we would be missing the prefix
+          case NoType | NoPrefix =>
+            val reconstructedPrefix =
+              sym.fullName.split('.').init.filterNot(Set("`<root>`", "`package`")).map(highlightValDef)
+            // if (reconstructedPrefix.nonEmpty) print("[[", reconstructedPrefix.mkString("."), "]]", ".")
+            if (reconstructedPrefix.nonEmpty) print(reconstructedPrefix.mkString("."), ".")
+          // normal case - just print the prefix
+          case _ =>
+            processTypePrinting(pre, isLastInChain = false)
+            print(".")
+        }
+
+      private def printTypeNameFromSymbol(sym: Symbol, isLastInChain: Boolean): Unit = {
+        val name = printedName(sym.name, decoded = true)
+        val isEnumValue = sym.isJavaEnum && javaEnumRegexpFormat.matches(sym.toString)
+        // print("<<", name)
+        print(name)
+        // We might need to add .type if sym.name was NOT ending with "$", but sym indicates that it is an object.
+        val needsDotType =
+          isLastInChain && (sym.isTerm || sym.isModuleOrModuleClass || isEnumValue) && !name.endsWith(".type")
+        if (needsDotType) print(".type")
+        // print(">>")
+      }
+
+      private def processTypePrinting(tpe: Type, isLastInChain: Boolean): Unit = tpe match {
+        // Added, as it was not handled in the original TreePrinter.
+        case FoldableConstantType(k @ Constant(s: String)) if s.contains(Chars.LF) =>
+          print(StringColor)
+          val tq = "\"" * 3
+          val lines = s.linesIterator.toList
+          if (lines.lengthCompare(1) <= 0) print(k.escapedStringValue)
+          else {
+            val tqp = """["]{3}""".r
+            val tqq = """""\\"""" // ""\" is triple-quote quoted
+            print(tq)
+            printSeq(lines.map(x => tqp.replaceAllIn(x, tqq)))(print(_))(print(Chars.LF))
+            print(tq)
+          }
+          print(NoColor)
+
+        case FoldableConstantType(x) =>
+          x.value match {
+            case sym: Symbol =>
+              printTypePrefix(NoType, sym)
+              printTypeNameFromSymbol(sym, isLastInChain)
+            case primitive =>
+              // processing Float constants
+              val suffix = primitive match {
+                case _: Float => "f" // Note: originally: "F"
+                case _        => ""
+              }
+              val result = s"${x.escapedStringValue}$suffix"
+              print(if (x.value.isInstanceOf[String]) highlightString(result) else highlightLiteral(result))
+          }
+
+        case TypeRef(pre, sym, args) =>
+          printTypePrefix(pre, sym)
+          printTypeNameFromSymbol(sym, isLastInChain)
+          if (args.nonEmpty) {
+            print("[")
+            val it = args.iterator
+            while (it.hasNext) {
+              print(it.next().dealias) // TODO: why it does not propagate?
+              if (it.hasNext) print(", ")
+            }
+            print("]")
+          }
+
+        case SingleType(pre, sym) =>
+          printTypePrefix(pre, sym)
+          printTypeNameFromSymbol(sym, isLastInChain)
+
+        case ThisType(sym) =>
+          printTypePrefix(NoType, sym) // we want to print the full name of the symbol
+          printTypeNameFromSymbol(sym, isLastInChain)
+
+        case _ => unsupportedType(tpe)
+      }
+
+      override def print(args: Any*): Unit = args foreach {
+        case tpe: Type => processTypePrinting(tpe, isLastInChain = true)
+
+        case arg => super.print(arg)
+      }
+
       private def codeForError(tree: Tree): String =
         Option(tree).map(showCode(_)).filter(_.nonEmpty).getOrElse("<no tree ?>")
 
@@ -832,13 +940,33 @@ private[hearth] trait ShowCodePretty {
            |
            |constructed as:
            |
-           |${showRaw(tree)}
+           |${showRawPretty(tree, SyntaxHighlight.ANSI)}
            |
            |inside:
            |
            |${parentsStack.iterator.map(showCode(_)).filter(_.nonEmpty).nextOption().getOrElse("<no parents ?>")}
            |
            |(Code in this error message rendered using `showCode` instead of `showCodePretty`)
+           |
+           |Please, report an issue at https://github.com/MateuszKubuszok/hearth/issues
+           |""".stripMargin
+      )
+
+      private def unsupportedType(tpe: Type): Nothing = throw new UnsupportedOperationException(
+        s"""Unsupported type for `showCodePretty`:
+           |
+           |
+           |${Option(tpe).map(_.toString()).filter(_.nonEmpty).getOrElse("<no type ?>")}
+           |
+           |constructed as:
+           |
+           |${showRawPretty(tpe, SyntaxHighlight.ANSI)}
+           |
+           |inside:
+           |
+           |${parentsStack.iterator.map(showCode(_)).filter(_.nonEmpty).nextOption().getOrElse("<no parents ?>")}
+           |
+           |(Code in this error message rendered using `toString` instead of `showCodePretty`)
            |
            |Please, report an issue at https://github.com/MateuszKubuszok/hearth/issues
            |""".stripMargin
@@ -930,14 +1058,12 @@ private[hearth] trait ShowCodePretty {
                   } else {
                     print(name)
                   }
-                case Constant(s: String) =>
-                  print(
-                    highlightTypeDef("Constant") + "(" + highlightString("\"" + s + "\"") + ")"
-                  ) // TODO: escape quotes, newlines, etc?
+                case k @ Constant(_: String) =>
+                  print(highlightTypeDef("Constant") + "(" + highlightString(k.escapedStringValue) + ")")
                 case Constant(null) =>
                   print(highlightTypeDef("Constant") + "(" + highlightLiteral("null") + ")")
-                case Constant(value) =>
-                  print(highlightTypeDef("Constant") + "(" + highlightLiteral(value.toString) + ")")
+                case k @ Constant(value) =>
+                  print(highlightTypeDef("Constant") + "(" + highlightLiteral(k.escapedStringValue) + ")")
                 case arg =>
                   print(arg)
               },

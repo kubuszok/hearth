@@ -1434,51 +1434,51 @@ final class TypesSpec extends MacroSuite {
 
         testBidirectionalCodecs <==> Data.map(
           "null" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Null" else "null"),
+            "encoded" -> Data("null"),
             "decoded" -> Data("null")
           ),
           "unit" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Unit" else "()"),
+            "encoded" -> Data("()"),
             "decoded" -> Data("()")
           ),
           "boolean" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Boolean" else "true"),
+            "encoded" -> Data("true"),
             "decoded" -> Data("true")
           ),
           "byte" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Byte" else "1"),
+            "encoded" -> Data("1"),
             "decoded" -> Data("1")
           ),
           "short" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Short" else "1"),
+            "encoded" -> Data("1"),
             "decoded" -> Data("1")
           ),
           "int" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Int" else "1"),
+            "encoded" -> Data("1"),
             "decoded" -> Data("1")
           ),
           "long" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Long" else "1L"),
+            "encoded" -> Data("1L"),
             "decoded" -> Data("1")
           ),
           "float" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "Float(1.0)" else "1.0f"),
+            "encoded" -> Data("1.0f"),
             "decoded" -> Data("1.0")
           ),
           "double" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "Double(1.0)" else "1.0"),
+            "encoded" -> Data("1.0"),
             "decoded" -> Data("1.0")
           ),
           "char" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Char" else "'a'"),
+            "encoded" -> Data("'a'"),
             "decoded" -> Data("a")
           ),
           "string" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "java.lang.String" else "\"a\""),
+            "encoded" -> Data("\"a\""),
             "decoded" -> Data("a")
           ),
           "module" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "scala.Predef$" else "scala.Predef.type"),
+            "encoded" -> Data("scala.Predef.type"),
             "decoded" -> Data("scala.Predef$")
           )
         )
@@ -1491,74 +1491,43 @@ final class TypesSpec extends MacroSuite {
 
         testOneWayCodecs <==> Data.map(
           """Array["a"]""" -> Data.map(
-            "encoded" -> Data(
-              if (LanguageVersion.byHearth.isScala2_13) "scala.Array[java.lang.String]" else "scala.Array[\"a\"]"
-            )
+            "encoded" -> Data("scala.Array[\"a\"]")
           ),
           """Seq["a"]""" -> Data.map(
-            "encoded" -> Data(
-              if (LanguageVersion.byHearth.isScala2_13) "scala.collection.immutable.Seq[java.lang.String]"
-              else "scala.collection.immutable.Seq[\"a\"]"
-            )
+            "encoded" -> Data("scala.collection.immutable.Seq[\"a\"]")
           ),
           """List["a"]""" -> Data.map(
-            "encoded" -> Data(
-              if (LanguageVersion.byHearth.isScala2_13) "scala.collection.immutable.List[java.lang.String]"
-              else "scala.collection.immutable.List[\"a\"]"
-            )
+            "encoded" -> Data("scala.collection.immutable.List[\"a\"]")
           ),
           "Nil" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "Nil.type" else "scala.Nil.type")
+            "encoded" -> Data("scala.Nil.type")
           ),
           """Vector["a"]""" -> Data.map(
-            "encoded" -> Data(
-              if (LanguageVersion.byHearth.isScala2_13) "scala.collection.immutable.Vector[java.lang.String]"
-              else "scala.collection.immutable.Vector[\"a\"]"
-            )
+            "encoded" -> Data("scala.collection.immutable.Vector[\"a\"]")
           ),
           """Map["a", "b"]""" -> Data.map(
-            "encoded" -> Data(
-              if (LanguageVersion.byHearth.isScala2_13)
-                "scala.collection.immutable.Map[java.lang.String, java.lang.String]"
-              else "scala.collection.immutable.Map[\"a\", \"b\"]"
-            )
+            "encoded" -> Data("scala.collection.immutable.Map[\"a\", \"b\"]")
           ),
           """Set["a"]""" -> Data.map(
-            "encoded" -> Data(
-              if (LanguageVersion.byHearth.isScala2_13) "scala.collection.immutable.Set[java.lang.String]"
-              else "scala.collection.immutable.Set[\"a\"]"
-            )
+            "encoded" -> Data("scala.collection.immutable.Set[\"a\"]")
           ),
           """Option["a"]""" -> Data.map(
-            "encoded" -> Data(
-              if (LanguageVersion.byHearth.isScala2_13) "scala.Option[java.lang.String]" else "scala.Option[\"a\"]"
-            )
+            "encoded" -> Data("scala.Option[\"a\"]")
           ),
           """Some["a"]""" -> Data.map(
-            "encoded" -> Data(
-              if (LanguageVersion.byHearth.isScala2_13) "scala.Some[java.lang.String]" else "scala.Some[\"a\"]"
-            )
+            "encoded" -> Data("scala.Some[\"a\"]")
           ),
           "None" -> Data.map(
-            "encoded" -> Data(if (LanguageVersion.byHearth.isScala2_13) "None.type" else "scala.None.type")
+            "encoded" -> Data("scala.None.type")
           ),
           """Either["a", "b"]""" -> Data.map(
-            "encoded" -> Data(
-              if (LanguageVersion.byHearth.isScala2_13) "scala.util.Either[java.lang.String, java.lang.String]"
-              else "scala.util.Either[\"a\", \"b\"]"
-            )
+            "encoded" -> Data("scala.util.Either[\"a\", \"b\"]")
           ),
           """Left["a", "b"]""" -> Data.map(
-            "encoded" -> Data(
-              if (LanguageVersion.byHearth.isScala2_13) "scala.util.Left[java.lang.String, java.lang.String]"
-              else "scala.util.Left[\"a\", \"b\"]"
-            )
+            "encoded" -> Data("scala.util.Left[\"a\", \"b\"]")
           ),
           """Right["a", "b"]""" -> Data.map(
-            "encoded" -> Data(
-              if (LanguageVersion.byHearth.isScala2_13) "scala.util.Right[java.lang.String, java.lang.String]"
-              else "scala.util.Right[\"a\", \"b\"]"
-            )
+            "encoded" -> Data("scala.util.Right[\"a\", \"b\"]")
           )
         )
       }
