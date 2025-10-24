@@ -457,7 +457,7 @@ lazy val hearthBetterPrinters = projectMatrix
     name := "hearth-better-printers",
     description := "Better alternatiteves to Scala 2's showCode and showRaw, and Scala 3's Printer.TreeStructure",
     libraryDependencies ++= versions.fold(scalaVersion.value)(
-      for3 = Seq("org.scala-lang" %% "scala3-compiler" % scalaVersion.value),
+      for3 = Seq(),
       for2_13 = Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value)
     )
   )
