@@ -36,7 +36,7 @@ trait EnvironmentFixturesImpl { this: MacroCommons =>
         "isNative" -> Data(Environment.isNative),
         // Drop possible hearth.cross-quotes.* settings, we are using them for debugging, and they should not fail the test when used.
         "XMacroSettings" -> Data(
-          Environment.XMacroSettings.filterNot(_.startsWith("hearth.cross-quotes.")).map(Data(_))
+          Environment.XMacroSettings.filter(_.startsWith("hearth-tests.")).map(Data(_))
         ),
         "typedSettings" -> Environment.typedSettings.fold(Data(_), _.updateAsMap(_.removed("hearth")))
       )
