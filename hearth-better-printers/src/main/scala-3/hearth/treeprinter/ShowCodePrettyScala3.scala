@@ -23,6 +23,18 @@ trait ShowCodePrettyScala3 {
     */
   private object implementationDetails {
 
+    lazy val failOnUnsupportedTree: Boolean = {
+      // workaround to contain @experimental from polluting the whole codebase
+      val info = quotes.reflect.CompilationInfo
+      val settings = info.getClass.getMethod("XmacroSettings").invoke(info).asInstanceOf[List[String]]
+      val defaultValue = true
+      settings
+        .collectFirst { case s"hearth.betterPrintersShouldFailOnUnsupportedTree=${value}" =>
+          scala.util.Try(value.trim.toBoolean).getOrElse(defaultValue)
+        }
+        .getOrElse(defaultValue)
+    }
+
     final class HighlightedTreePrinter(syntaxHighlight: SyntaxHighlight) extends Printer[Tree] {
 
       import syntaxHighlight.*
@@ -114,10 +126,15 @@ trait ShowCodePrettyScala3 {
           case raw: String        => appendIndent(indentLevel).append(highlightLiteral(escapedStringValue(raw)))
           // TODO: Class[?]
           // case cl: Class[?] => appendIndent(indentLevel).append(highlightTypeDef(cl.tpe.show(using Printer.TypeReprCode)))
-          // Unhandled cases are reported as unsupported trees.
-          case _ => unsupportedTree(lastTree, what)
+          // Unhandled cases are reported as unsupported trees, when such setting is enabled.
+          case _ if failOnUnsupportedTree => unsupportedTree(lastTree, what)
+          // Unhandled cases are rendered as is, when it's not enabled.
+          case IsTree(tree) =>
+            appendIndent(indentLevel).append(highlightTypeDef(tree.show(using Printer.TreeStructure)))
+          case _ => appendIndent(indentLevel).append(highlightTypeDef(what.toString))
         }
 
+        @scala.annotation.nowarn
         private def showProduct(name: String, it: Iterator[Any], indentLevel: Int, lastTree: Tree): Unit = {
           val _ = appendIndent(indentLevel).append(highlightTypeDef(name)).append("(")
 
@@ -143,7 +160,12 @@ trait ShowCodePrettyScala3 {
               case NullConstant()         => showProduct("NullConstant", Iterator.empty, indentLevel + 1, lastTree)
               case ClassOfConstant(value) =>
                 showProduct("ClassOfConstant", Iterator.single(value), indentLevel + 1, lastTree)
-              case _ => unsupportedTree(lastTree, lastTree)
+              // Unhandled cases are reported as unsupported trees, when such setting is enabled.
+              case _ if failOnUnsupportedTree => unsupportedTree(lastTree, lastTree)
+              // Unhandled cases are rendered as is, when it's not enabled.
+              case IsTree(tree) =>
+                appendIndent(indentLevel).append(highlightTypeDef(tree.show(using Printer.TreeStructure)))
+              case _ => appendIndent(indentLevel).append(highlightTypeDef(value.toString))
             }
             val _ = sb.append("\n").appendIndent(indentLevel)
           } else if it.nonEmpty then {

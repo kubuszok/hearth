@@ -536,6 +536,8 @@ lazy val hearthTests = projectMatrix
     // Do not cover Fixtures and FixturesImpl, they are used to test the library, not a part of it.
     coverageExcludedFiles := ".*Fixtures;.*FixturesImpl",
     scalacOptions ++= Seq(
+      // To make sure that we are not silently failing on unspupported trees
+      "-Xmacro-settings:hearth.betterPrintersShouldFailOnUnsupportedTree=true",
       // To test parsing of scalacOptions
       "-Xmacro-settings:hearth-tests.primitives.int=1024",
       "-Xmacro-settings:hearth-tests.primitives.long=65536L",
