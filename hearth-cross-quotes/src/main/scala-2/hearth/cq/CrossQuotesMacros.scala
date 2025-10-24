@@ -2,7 +2,7 @@ package hearth
 package cq
 
 import java.util.regex.{Matcher, Pattern}
-import hearth.treeprinter.{ShowCodePretty, SyntaxHighlight}
+import hearth.treeprinter.*
 import scala.reflect.macros.blackbox
 import scala.util.chaining.*
 
@@ -75,7 +75,7 @@ import scala.util.chaining.*
   *
   * The result while not perfect, should be robust enough for most cases.
   */
-final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePretty {
+final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettyScala2 {
 
   import c.universe.{Expr as _, *}
 
