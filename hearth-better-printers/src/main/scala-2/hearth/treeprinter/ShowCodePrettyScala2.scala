@@ -68,6 +68,16 @@ trait ShowCodePrettyScala2 {
     val st: scala.reflect.internal.SymbolTable = c.universe.asInstanceOf[scala.reflect.internal.SymbolTable]
     import st.{BooleanFlag as _, *}
 
+    lazy val failOnUnsupportedTree: Boolean = {
+      val settings = c.settings
+      val defaultValue = true
+      settings
+        .collectFirst { case s"hearth.betterPrintersShouldFailOnUnsupportedTree=${value}" =>
+          scala.util.Try(value.trim.toBoolean).getOrElse(defaultValue)
+        }
+        .getOrElse(defaultValue)
+    }
+
     // Copy-pasted from TypesScala2.scala because we need it here as well.
 
     /** It is surprisingly ridiculous but I've found no other way of telling whether I am looking at enum abstract class
@@ -763,7 +773,8 @@ trait ShowCodePrettyScala2 {
               // Note: copy-paste-modified (and inlined) from TreePrinter.printTree
               else if ((tree.tpe eq null) || (printPositions && tt.original != null)) {
                 if (tt.original != null) print(tt.original) // Note: originally: print("<type: ", tt.original, ">")
-                else unsupportedTree(tree) // Note: originally: print("<type ?>")
+                else if (failOnUnsupportedTree) unsupportedTree(tree) // Note: originally: print("<type ?>")
+                else print("<type ?>")
               } else if ((tree.tpe.typeSymbol ne null) && tree.tpe.typeSymbol.isAnonymousClass) {
                 print(highlightTypeDef(tree.tpe.typeSymbol.toString)) // TODO: check if we can do better
               } else {
@@ -828,9 +839,10 @@ trait ShowCodePrettyScala2 {
             print("(", tpt)
             printColumn(whereClauses, " " + highlightKeyword("forSome") + " { ", ";", "})")
 
-          case tree => // Note: originally: super.printTree(tree) but we cannot rely on TreePrinter for syntax highlighting
-            unsupportedTree(tree)
-
+          // Note: originally: super.printTree(tree) but we cannot rely on TreePrinter for syntax highlighting
+          case tree =>
+            if (failOnUnsupportedTree) unsupportedTree(tree)
+            else super.printTree(tree) // best effort fallback
         }
       }
 
@@ -921,7 +933,25 @@ trait ShowCodePrettyScala2 {
           printTypePrefix(NoType, sym) // we want to print the full name of the symbol
           printTypeNameFromSymbol(sym, isLastInChain)
 
-        case _ => unsupportedType(tpe)
+        case _ =>
+          if (failOnUnsupportedTree) unsupportedType(tpe)
+          else {
+            // best effort fallback
+            def helper(tpe: Type): String =
+              tpe.toString match {
+                case javaEnumRegexpFormat(enumName, valueName) if tpe.typeSymbol.isJavaEnum =>
+                  s"${highlightTypeDef(enumName)}.${highlighValDef(valueName)}.type"
+                case _ =>
+                  val tpes = tpe.typeArgs.map(helper)
+                  val tpeArgs = if (tpes.isEmpty) "" else s"[${tpes.mkString(", ")}]"
+                  val dealiased = tpe.dealias
+                  val naiveAttempt = dealiased.toString.takeWhile(_ != '[') // does not work for e.g. primitive types
+                  def typeSymbolAttempt = dealiased.typeSymbol.fullName // does not work for e.g. path-dependent types
+                  val fullName = if (naiveAttempt.exists(_ == '.')) naiveAttempt else typeSymbolAttempt
+                  highlightTypeDef(fullName) + tpeArgs
+              }
+            helper(tpe)
+          }
       }
 
       override def print(args: Any*): Unit = args foreach {
