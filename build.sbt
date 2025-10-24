@@ -451,7 +451,7 @@ lazy val hearthBetterPrinters = projectMatrix
   .in(file("hearth-better-printers"))
   .someVariations(versions.scalas, versions.platforms)(only1VersionInIDE *)
   .enablePlugins(GitVersioning, GitBranchPrompt)
-  .disablePlugins(WelcomePlugin, MimaPlugin)
+  .disablePlugins(WelcomePlugin)
   .settings(
     moduleName := "hearth-better-printers",
     name := "hearth-better-printers",
@@ -464,6 +464,7 @@ lazy val hearthBetterPrinters = projectMatrix
   .settings(settings *)
   .settings(versionSchemeSettings *)
   .settings(publishSettings *)
+  .settings(mimaSettings *)
 
 lazy val hearthCrossQuotes = projectMatrix
   .in(file("hearth-cross-quotes"))
