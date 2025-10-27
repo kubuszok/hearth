@@ -1,6 +1,7 @@
 package hearth
 package treeprinter
 
+import java.lang.reflect.InvocationTargetException
 import scala.reflect.ClassTag
 
 trait ShowCodePrettyScala3 {
@@ -44,21 +45,41 @@ trait ShowCodePrettyScala3 {
         .getOrElse(defaultValue)
     }
 
+    // Exception thrown when the StringBuilder approaches its maximum length limit.
+    // We catch it, to unwind the stack and return the truncated string.
+    case class StringBuildingTerminated(sb: StringBuilder) extends scala.util.control.NoStackTrace
+
+    private val stringBuilderLimitWarning =
+      "... (StringBuilder approaches its maximum length limit, output truncated - use Printer.TreeStructure or try printing smaller tree instead)"
+    private val stringBuilderHardLimit = 32000
+    private val stringBuilderSoftLimit = stringBuilderHardLimit - 1000
+
     final class HighlightedTreePrinter(syntaxHighlight: SyntaxHighlight) extends Printer[Tree] {
 
       import syntaxHighlight.*
 
-      def show(tree: Tree): String = {
-        val sb = new StringBuilder()
-        sb.show(tree, indentLevel = 0, lastTree = tree)
-        sb.toString()
-      }
+      def show(tree: Tree): String =
+        try {
+          val sb = new StringBuilder()
+          sb.show(tree, indentLevel = 0, lastTree = tree)
+          sb.toString()
+        } catch {
+          case StringBuildingTerminated(sb) =>
+            val warningLength = stringBuilderLimitWarning.length
+            val truncated =
+              if sb.length <= (stringBuilderHardLimit - warningLength) then sb
+              else sb.take(stringBuilderHardLimit - warningLength)
+            truncated.append(stringBuilderLimitWarning).toString
+        }
 
       // Workaround for the fact, that the Tree hierarchy would change betwen versions - but it should always work
       // via reflection.
       object ReflectModule {
 
-        def unapply(arg: Any): Option[(String, Product)] = unapplies.view
+        def unapply(arg: Any): Option[(String, Product | String)] =
+          if arg == null then None else attemptUnapply(arg)
+
+        private def attemptUnapply(arg: Any): Option[(String, Product | String)] = unapplies.view
           .map { (name, unapply) =>
             unapply(arg).map((name, _))
           }
@@ -78,31 +99,94 @@ trait ShowCodePrettyScala3 {
               .view
           } yield {
             val name = reflectMethod.getName
-            val unapply: Any => Option[Product] = (arg: Any) =>
-              try
-                moduleMethod.invoke(module, arg).match {
-                  case opt: Option[?] => opt.asInstanceOf[Option[Product]]
-                  case p: Product     => Some(p)
+            val unapply: Any => Option[Product | String] = (arg: Any) =>
+              if arg == null then None
+              else
+                try
+                  moduleMethod.invoke(module, arg).match {
+                    case b: Boolean     => Some(Tuple())
+                    case s: String      => Some(s)
+                    case opt: Option[?] => opt.asInstanceOf[Option[Product | String]]
+                    case p: Product     => Some(p)
+                  }
+                catch {
+                  // Wrong argument for the unapply method - usually if the type hierarchies are completely different.
+                  case _: IllegalArgumentException => None
+                  // Same as above, but when type hierarchy is the same, but the actual type is different.
+                  case e: InvocationTargetException if e.getCause.isInstanceOf[ClassCastException] => None
+                  case e: InvocationTargetException if e.getCause.isInstanceOf[MatchError]         => None
+                  case e: Throwable => if failOnUnsupportedTree then throw e else None
                 }
-              catch {
-                case _: Throwable =>
-                  // case e: Throwable =>
-                  //  println(s"failed to unapply $arg to ${moduleMethod.getName}: ${e.getMessage}")
-                  None
-              }
             (name, unapply)
           }).toList
+      }
+
+      // Handles highlighting of literals and their formatting.
+      private object HighlightedLiteral {
+
+        def apply(value: Null | Boolean | Byte | Short | Int | Long | Float | Double | Char | String): String =
+          value match {
+            case null                                       => highlightLiteral(escapedStringValue(null))
+            case _: (Boolean | Byte | Short | Int | Double) => highlightLiteral(value.toString)
+            case float: Float                               => highlightLiteral(float.toString + "f")
+            case raw: (Char | Long)                         => highlightLiteral(escapedStringValue(raw))
+            case raw: String                                => highlightString(escapedStringValue(raw))
+          }
+
+        def unapply(value: Any): Option[String] = value match {
+          case null                                           => Some(apply(null))
+          case value: (Boolean | Byte | Short | Int | Double) => Some(apply(value))
+          case float: Float                                   => Some(apply(float))
+          case raw: (Char | Long)                             => Some(apply(raw))
+          case raw: String                                    => Some(apply(raw))
+          case _                                              => None
+        }
+      }
+
+      // Workaround for the fact, that we can't check if a type is a tree at runtime.
+      private object IsSymbol {
+
+        def unapply(symbol: Any): Option[Symbol] =
+          try
+            Some {
+              val casted = symbol.asInstanceOf[Symbol]
+              val _ = casted.flags // should throw if not a symbol
+              casted
+            }
+          catch {
+            case _: Throwable => None
+          }
       }
 
       // Workaround for the fact, that we can't check if a type is a tree at runtime.
       private object IsTree {
 
         def unapply(tree: Any): Option[Tree] =
-          scala.util.Try {
-            val casted = tree.asInstanceOf[Tree]
-            val _ = casted.isExpr // should throw if not a tree
-            casted
-          }.toOption
+          try
+            Some {
+              val casted = tree.asInstanceOf[Tree]
+              val _ = casted.isExpr // should throw if not a tree
+              casted
+            }
+          catch {
+            case _: Throwable => None
+          }
+      }
+
+      // Workaround for the fact, that we can't check if a type is a tree at runtime.
+      private object IsTypeTree {
+
+        def unapply(tree: Any): Option[TypeTree] =
+          try
+            Some {
+              val casted = tree.asInstanceOf[TypeTree]
+              assert(casted.symbol.isType)
+              val _ = casted.tpe // should throw if not a type tree
+              casted
+            }
+          catch {
+            case _: Throwable => None
+          }
       }
 
       extension (sb: StringBuilder) {
@@ -111,24 +195,51 @@ trait ShowCodePrettyScala3 {
 
         @scala.annotation.nowarn
         private def show(what: Any, indentLevel: Int, lastTree: Tree): Unit = what match {
+          // To prevent "UTF8 string too large" errors, we limit the size of the StringBuilder.
+          case _ if sb.length > stringBuilderSoftLimit =>
+            // To test the whole tree, uncomment the code below and comment out the throw.
+            // - it will not pass tests, but we could look for exceptions on unhandled cases.
+            // sb.clear()
+            // show(what, indentLevel, lastTree)
+            throw StringBuildingTerminated(sb)
+
+          // Explicitly handled cases - reflection fails to deal with them correctly.
+          // And we almost always print them as String literals anyway.
+          case name if name.getClass.getName.startsWith("dotty.tools.dotc.core.Names$") =>
+            appendIndent(indentLevel).append(HighlightedLiteral(name.toString))
+
           // List and Option has to be handled before ReflectModule, since they are also products.
           case None           => appendIndent(indentLevel).append(highlightTypeDef("None"))
           case opt: Option[?] => showProduct(opt.productPrefix, opt.iterator, indentLevel, lastTree)
           case Nil            => appendIndent(indentLevel).append(highlightTypeDef("Nil"))
           case lst: List[?]   => showProduct("List", lst.iterator, indentLevel, lastTree)
-          case ReflectModule(name, product @ IsTree(tree)) =>
-            showProduct(name, product.productIterator, indentLevel, tree)
-          case ReflectModule(name, product) => showProduct(name, product.productIterator, indentLevel, lastTree)
-          // TODO" handle flags
-          // Primitives have to be formatted.
-          case null => appendIndent(indentLevel).append(highlightLiteral(escapedStringValue(null)))
-          case _: (Boolean | Byte | Short | Int | Double) =>
-            appendIndent(indentLevel).append(highlightLiteral(what.toString))
-          case float: Float       => appendIndent(indentLevel).append(highlightLiteral(float.toString + "f"))
-          case raw: (Char | Long) => appendIndent(indentLevel).append(highlightString(escapedStringValue(raw)))
-          case raw: String        => appendIndent(indentLevel).append(highlightLiteral(escapedStringValue(raw)))
-          // TODO: Class[?]
-          // case cl: Class[?] => appendIndent(indentLevel).append(highlightTypeDef(cl.tpe.show(using Printer.TypeReprCode)))
+
+          // We cannot print code that would build the symbols - but we can add comments what are they for.
+          case IsSymbol(symbol) =>
+            appendIndent(indentLevel)
+              .append(highlightTripleQs)
+              .append(" /* Symbol of ")
+              .append(highlightTypeDef(symbol.fullName))
+              .append(" */")
+          // We do-NOT-want to handle that, at all (possible recursion and shit)
+
+          case IsTypeTree(typeTree) =>
+            appendIndent(indentLevel).append(highlightTypeDef(typeTree.show(using Printer.TreeStructure)))
+
+          // Handle all Tree elements that can be handled with TypeName.unapply(tree).
+          case ReflectModule(name, product) =>
+            def newLastTree = product match {
+              case IsTree(tree) => tree
+              case _            => lastTree
+            }
+            product match {
+              case p: Product => showProduct(name, p.productIterator, indentLevel, newLastTree)
+              case s: String  => appendIndent(indentLevel).append(HighlightedLiteral(s))
+            }
+
+          // Handle all literals.
+          case HighlightedLiteral(literal) => appendIndent(indentLevel).append(literal)
+
           // Unhandled cases are reported as unsupported trees, when such setting is enabled.
           case _ if failOnUnsupportedTree => unsupportedTree(lastTree, what)
           // Unhandled cases are rendered as is, when it's not enabled.
@@ -268,7 +379,7 @@ trait ShowCodePrettyScala3 {
            |
            |failed at:
            |
-           |${what.toString()}
+           |${what.toString()} : ${what.getClass.getName}
            |
            |(Code in this error message rendered using `Printer.TreeStructure` instead of `HighlightedTreePrinter`)
            |
