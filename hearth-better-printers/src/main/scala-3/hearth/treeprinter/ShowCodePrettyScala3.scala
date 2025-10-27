@@ -45,6 +45,13 @@ trait ShowCodePrettyScala3 {
         .getOrElse(defaultValue)
     }
 
+    lazy val areWeInTests: Boolean = {
+      // workaround to contain @experimental from polluting the whole codebase
+      val info = quotes.reflect.CompilationInfo
+      val settings = info.getClass.getMethod("XmacroSettings").invoke(info).asInstanceOf[List[String]]
+      settings.exists(_.startsWith("hearth-tests."))
+    }
+
     // Exception thrown when the StringBuilder approaches its maximum length limit.
     // We catch it, to unwind the stack and return the truncated string.
     case class StringBuildingTerminated(sb: StringBuilder) extends scala.util.control.NoStackTrace
@@ -197,11 +204,12 @@ trait ShowCodePrettyScala3 {
         private def show(what: Any, indentLevel: Int, lastTree: Tree): Unit = what match {
           // To prevent "UTF8 string too large" errors, we limit the size of the StringBuilder.
           case _ if sb.length > stringBuilderSoftLimit =>
-            // To test the whole tree, uncomment the code below and comment out the throw.
-            // - it will not pass tests, but we could look for exceptions on unhandled cases.
-            // sb.clear()
-            // show(what, indentLevel, lastTree)
-            throw StringBuildingTerminated(sb)
+            // To test the whole tree, we can clear the StringBuilder and continue printing.
+            // The result makes no sense, but we can look for exceptions on unhandled cases.
+            if areWeInTests then {
+              sb.clear()
+              show(what, indentLevel, lastTree)
+            } else throw StringBuildingTerminated(sb)
 
           // Explicitly handled cases - reflection fails to deal with them correctly.
           // And we almost always print them as String literals anyway.
