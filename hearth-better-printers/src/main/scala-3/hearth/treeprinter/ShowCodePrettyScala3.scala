@@ -50,12 +50,14 @@ trait ShowCodePrettyScala3 {
           sb.show(tree, indentLevel = 0, lastTree = tree)
           sb.toString()
         } catch {
+          // $COVERAGE-OFF$
           case StringBuildingTerminated(sb) =>
             val warningLength = stringBuilderLimitWarning.length
             val truncated =
               if sb.length <= (stringBuilderHardLimit - warningLength) then sb
               else sb.take(stringBuilderHardLimit - warningLength)
             truncated.append(stringBuilderLimitWarning).toString
+          // $COVERAGE-ON$
         }
 
       // Workaround for the fact, that the Tree hierarchy would change betwen versions - but it should always work
@@ -185,10 +187,12 @@ trait ShowCodePrettyScala3 {
           case _ if sb.length > stringBuilderSoftLimit =>
             // To test the whole tree, we can clear the StringBuilder and continue printing.
             // The result makes no sense, but we can look for exceptions on unhandled cases.
+            // $COVERAGE-OFF$
             if areWeInTests then {
               sb.clear()
               show(what, indentLevel, lastTree)
             } else throw StringBuildingTerminated(sb)
+          // $COVERAGE-ON$
 
           // Explicitly handled cases - reflection fails to deal with them correctly.
           // And we almost always print them as String literals anyway.
@@ -355,6 +359,7 @@ trait ShowCodePrettyScala3 {
         }
       }
 
+      // $COVERAGE-OFF$should only be triggered by error we don't know about
       private def unsupportedTree(tree: Tree, what: Any): Nothing = throw new UnsupportedOperationException(
         s"""Unsupported tree for `showCodePretty`:
            |
@@ -373,6 +378,7 @@ trait ShowCodePrettyScala3 {
            |Please, report an issue at https://github.com/MateuszKubuszok/hearth/issues
            |""".stripMargin
       )
+      // $COVERAGE-ON$
     }
   }
 }

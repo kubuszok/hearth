@@ -115,12 +115,14 @@ trait ShowCodePrettyScala2 {
         writer.flush()
         buffer.impl.toString
       } catch {
+        // $COVERAGE-OFF$
         case StringBuildingTerminated(sb) =>
           val warningLength = stringBuilderLimitWarning.length
           val truncated =
             if (sb.length <= (stringBuilderHardLimit - warningLength)) sb
             else sb.take(stringBuilderHardLimit - warningLength)
           truncated.append(stringBuilderLimitWarning).toString
+        // $COVERAGE-ON$
       }
     }
 
@@ -356,10 +358,12 @@ trait ShowCodePrettyScala2 {
           case _ if sb.length > stringBuilderSoftLimit =>
             // To test the whole tree, we can clear the StringBuilder and continue printing.
             // The result makes no sense, but we can look for exceptions on unhandled cases.
+            // $COVERAGE-OFF$
             if (areWeInTests) {
               sb.clear()
               processTreePrinting(tree)
             } else throw StringBuildingTerminated(sb)
+          // $COVERAGE-ON$
 
           // don't remove synthetic ValDef/TypeDef
           case _ if syntheticToRemove(tree) =>
@@ -1035,6 +1039,7 @@ trait ShowCodePrettyScala2 {
         case arg => super.print(arg)
       }
 
+      // $COVERAGE-OFF$should only be triggered by error we don't know about
       private def codeForError(tree: Tree): String =
         Option(tree).map(showCode(_)).filter(_.nonEmpty).getOrElse("<no tree ?>")
 
@@ -1075,6 +1080,7 @@ trait ShowCodePrettyScala2 {
            |Please, report an issue at https://github.com/MateuszKubuszok/hearth/issues
            |""".stripMargin
       )
+      // $COVERAGE-ON$
     }
 
     /** Better implementation of [[scala.reflect.internal.Printers#RawTreePrinter]] that supports syntax highlighting
@@ -1114,10 +1120,12 @@ trait ShowCodePrettyScala2 {
           case arg if sb.length > stringBuilderSoftLimit =>
             // To test the whole tree, we can clear the StringBuilder and continue printing.
             // The result makes no sense, but we can look for exceptions on unhandled cases.
+            // $COVERAGE-OFF$
             if (areWeInTests) {
               sb.clear()
               print(arg)
             } else throw StringBuildingTerminated(sb)
+          // $COVERAGE-ON$
           case null          => print(highlightLiteral("null"))
           case expr: Expr[?] =>
             print(highlightTypeDef("Expr"))
@@ -1244,13 +1252,7 @@ trait ShowCodePrettyScala2 {
           case product: Product =>
             printProduct(product)
           case arg =>
-            try
-              out.print(arg.toString.replaceAll("\n", "\n" + "  " * indentLevel))
-            catch {
-              case e: Throwable =>
-                scala.Predef.println(s"Error printing argument of type ${arg.getClass.getName}: ${e.getMessage}")
-                throw e
-            }
+            out.print(arg.toString.replaceAll("\n", "\n" + "  " * indentLevel))
         }
         // depth -= 1
         /*
