@@ -8,6 +8,8 @@ Cross Quotes is a library that provides a unified way to write quoted expression
 
 [![Hearth Cross Quotes JVM versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth-cross-quotes/latest.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth-cross-quotes_3) <br>
 
+!!! warning "Cross Quotes are implemented as macros on Scala 2 (so they are automatically pulled in with the rest of the library), and as a compiler plugin on Scala 3 - so they have to be added **only** on Scala 3."
+
 !!! example "[sbt](https://www.scala-sbt.org/)"
 
     ```scala
@@ -23,11 +25,6 @@ Cross Quotes is a library that provides a unified way to write quoted expression
     //> using target.scala {{ scala.3 }}
     //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
     ```
-
-!!! warning
-
-    Cross Quotes are implemented as macros on Scala 2 (so they are automatically pulled in with the rest of the library),
-    and as a compiler plugin on Scala 3 - so they have to be added **only** on Scala 3.
 
 ## The Problem
 

@@ -81,6 +81,7 @@ class HearthExtendedRunner(runner: Runner)(
   export runner.{docsDir, filter, tmpDir}
 
   private val ignored = Map(
+    "better-printers.md#Installation[2]" -> "We don't want to run empty snippet, and this one only demonstrates adding deps",
     "cross-quotes.md#Installation[2]" -> "We don't want to run empty snippet, and this one only demonstrates adding deps",
     "cross-quotes.md#Debugging[2]" -> "It's just a part of the snippet containing configs for the build, not a real snippet",
     "cross-quotes.md#Debugging[3]" -> "It's just a part of the snippet containing configs for the build, not a real snippet"
