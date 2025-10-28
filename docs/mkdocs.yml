@@ -52,8 +52,9 @@ theme:
 nav:
   - 'Welcome': 'index.md'
   - 'Basic Utilities': 'basic-utilities.md'
-  - 'Micro FP': 'micro-fp.md'
+  - 'Better Printers': 'better-printers.md'
   - 'Cross Quotes': 'cross-quotes.md'
+  - 'Micro FP': 'micro-fp.md'
   - 'Best Practices': 'best-practices.md'
 markdown_extensions:
   - admonition
@@ -88,7 +89,7 @@ extra:
       link: https://twitter.com/@MateuszKubuszok
   scala:
     2_13: "2.13.16"
-    3:    "3.3.6"
+    3:    "3.3.7"
   libraries:
     kindProjector:    "0.13.4"
     munit:            "1.2.0"
