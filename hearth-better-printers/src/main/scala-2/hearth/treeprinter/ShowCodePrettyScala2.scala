@@ -1,7 +1,7 @@
 package hearth
 package treeprinter
 
-import java.io.{PrintWriter, StringWriter}
+import java.io.{PrintWriter, Writer}
 import scala.annotation.{nowarn, tailrec}
 import scala.reflect.internal.Chars
 import scala.reflect.internal.ModifierFlags.*
@@ -27,7 +27,7 @@ trait ShowCodePrettyScala2 {
     render(
       any,
       highlight,
-      new HighlighedCodePrinter(_, printRootPkg, _),
+      new HighlighedCodePrinter(_, printRootPkg, _, _),
       printTypes,
       printIds,
       printOwners,
@@ -52,7 +52,7 @@ trait ShowCodePrettyScala2 {
     render(
       any,
       highlight,
-      new HighlighedRawTreePrinter(_, _),
+      new HighlighedRawTreePrinter(_, _, _),
       printTypes,
       printIds,
       printOwners,
@@ -74,15 +74,8 @@ trait ShowCodePrettyScala2 {
     val st: scala.reflect.internal.SymbolTable = c.universe.asInstanceOf[scala.reflect.internal.SymbolTable]
     import st.{BooleanFlag as _, *}
 
-    lazy val failOnUnsupportedTree: Boolean = {
-      val settings = c.settings
-      val defaultValue = true
-      settings
-        .collectFirst { case s"hearth.betterPrintersShouldFailOnUnsupportedTree=${value}" =>
-          scala.util.Try(value.trim.toBoolean).getOrElse(defaultValue)
-        }
-        .getOrElse(defaultValue)
-    }
+    Constants.initSettings(c.settings)
+    import Constants.*
 
     // Copy-pasted from TypesScala2.scala because we need it here as well.
 
@@ -98,7 +91,7 @@ trait ShowCodePrettyScala2 {
     def render(
         what: Any,
         highlight: SyntaxHighlight,
-        mkPrinter: (PrintWriter, SyntaxHighlight) => InternalTreePrinter,
+        mkPrinter: (PrintWriter, SyntaxHighlight, StringBuilder) => InternalTreePrinter,
         printTypes: BooleanFlag = None,
         printIds: BooleanFlag = None,
         printOwners: BooleanFlag = None,
@@ -106,9 +99,9 @@ trait ShowCodePrettyScala2 {
         printMirrors: BooleanFlag = None,
         printPositions: BooleanFlag = None
     ): String = {
-      val buffer = new StringWriter()
+      val buffer = new StringBuilderWriter() // originally: StringWriter but we need to be able to trim
       val writer = new PrintWriter(buffer)
-      val printer = mkPrinter(writer, highlight)
+      val printer = mkPrinter(writer, highlight, buffer.impl)
 
       printTypes.value.foreach(if (_) printer.withTypes else printer.withoutTypes)
       printIds.value.foreach(if (_) printer.withIds else printer.withoutIds)
@@ -117,9 +110,26 @@ trait ShowCodePrettyScala2 {
       printMirrors.value.foreach(if (_) printer.withMirrors else printer.withoutMirrors)
       printPositions.value.foreach(if (_) printer.withPositions else printer.withoutPositions)
 
-      printer.print(what)
-      writer.flush()
-      buffer.toString
+      try {
+        printer.print(what)
+        writer.flush()
+        buffer.impl.toString
+      } catch {
+        case StringBuildingTerminated(sb) =>
+          val warningLength = stringBuilderLimitWarning.length
+          val truncated =
+            if (sb.length <= (stringBuilderHardLimit - warningLength)) sb
+            else sb.take(stringBuilderHardLimit - warningLength)
+          truncated.append(stringBuilderLimitWarning).toString
+      }
+    }
+
+    private class StringBuilderWriter extends Writer {
+      val impl: StringBuilder = new StringBuilder
+      override def write(cbuf: Array[Char], off: Int, len: Int): Unit = impl.appendAll(cbuf, off, len)
+      override def flush(): Unit = ()
+      override def close(): Unit = ()
+      override def toString(): String = impl.toString
     }
 
     private def symFn[T](tree: Tree, f: Symbol => T, orElse: => T): T = tree.symbol match {
@@ -129,8 +139,12 @@ trait ShowCodePrettyScala2 {
     private def ifSym(tree: Tree, p: Symbol => Boolean) = symFn(tree, p, false)
 
     /** Better implementation of [[scala.reflect.internal.Printers#CodePrinter]] that supports syntax highlighting. */
-    final class HighlighedCodePrinter(out: PrintWriter, printRootPkg: Boolean, syntaxHighlight: SyntaxHighlight)
-        extends CodePrinter(out, printRootPkg) {
+    final class HighlighedCodePrinter(
+        out: PrintWriter,
+        printRootPkg: Boolean,
+        syntaxHighlight: SyntaxHighlight,
+        sb: StringBuilder
+    ) extends CodePrinter(out, printRootPkg) {
       import syntaxHighlight.*
 
       // Overriden from CodePrinter:
@@ -159,7 +173,7 @@ trait ShowCodePrettyScala2 {
         case Select(qual, name) if name.isTypeName =>
           s"${resolveSelect(qual)}#${blankForOperatorName(name)}%${printedName(name)}"
         case Ident(name) => printedName(name)
-        case _           => render(t, syntaxHighlight, new HighlighedCodePrinter(_, printRootPkg, _))
+        case _           => render(t, syntaxHighlight, new HighlighedCodePrinter(_, printRootPkg, _, _))
       }
 
       override def printFlags(mods: Modifiers, primaryCtorParam: Boolean = false): Unit = {
@@ -338,6 +352,15 @@ trait ShowCodePrettyScala2 {
           *   - modified the code that would be printing invalid syntax
           */
         tree match {
+          // To prevent "UTF8 string too large" errors, we limit the size of the StringBuilder.
+          case _ if sb.length > stringBuilderSoftLimit =>
+            // To test the whole tree, we can clear the StringBuilder and continue printing.
+            // The result makes no sense, but we can look for exceptions on unhandled cases.
+            if (areWeInTests) {
+              sb.clear()
+              processTreePrinting(tree)
+            } else throw StringBuildingTerminated(sb)
+
           // don't remove synthetic ValDef/TypeDef
           case _ if syntheticToRemove(tree) =>
 
@@ -1013,7 +1036,7 @@ trait ShowCodePrettyScala2 {
       *
       * It skips printing type footnotes and mirrors.
       */
-    final class HighlighedRawTreePrinter(out: PrintWriter, syntaxHighlight: SyntaxHighlight)
+    final class HighlighedRawTreePrinter(out: PrintWriter, syntaxHighlight: SyntaxHighlight, sb: StringBuilder)
         extends InternalTreePrinter(out) {
       import syntaxHighlight.*
 
@@ -1041,6 +1064,15 @@ trait ShowCodePrettyScala2 {
 
         // depth += 1
         args foreach {
+          // To prevent "UTF8 string too large" errors, we limit the size of the StringBuilder.
+          case arg if sb.length > stringBuilderSoftLimit =>
+            // To test the whole tree, we can clear the StringBuilder and continue printing.
+            // The result makes no sense, but we can look for exceptions on unhandled cases.
+            if (areWeInTests) {
+              sb.clear()
+              print(arg)
+            } else throw StringBuildingTerminated(sb)
+          case null          => print(highlightLiteral("null"))
           case expr: Expr[?] =>
             print(highlightTypeDef("Expr"))
             if (printTypes) print(expr.staticType)
@@ -1166,7 +1198,13 @@ trait ShowCodePrettyScala2 {
           case product: Product =>
             printProduct(product)
           case arg =>
-            out.print(arg.toString.replaceAll("\n", "\n" + "  " * indentLevel))
+            try
+              out.print(arg.toString.replaceAll("\n", "\n" + "  " * indentLevel))
+            catch {
+              case e: Throwable =>
+                scala.Predef.println(s"Error printing argument of type ${arg.getClass.getName}: ${e.getMessage}")
+                throw e
+            }
         }
         // depth -= 1
         /*
