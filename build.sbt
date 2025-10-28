@@ -35,6 +35,7 @@ val versions = new {
   val munit = "1.2.1"
   val scalaCollectionCompat = "2.13.0"
   val scalacheck = "1.19.0"
+  val scalaXml = "2.4.0"
 
   // Explicitly handle Scala 2.13 and Scala 3 separately.
   def fold[A](scalaVersion: String)(for2_13: => Seq[A], for3: => Seq[A]): Seq[A] =
@@ -534,6 +535,18 @@ lazy val hearthTests = projectMatrix
     moduleName := "hearth-tests",
     name := "hearth-tests",
     description := "Tests for hearth utilities",
+    scalaVersion := {
+      scalaVersion.value match {
+        case versions.scala213 if isNewestScalaTests => versions.scala213Newest
+        case versions.scala3 if isNewestScalaTests   => versions.scala3Newest
+        case current                                 => current
+      }
+    },
+    // Required for Scala 2.13 to test parsing of Scala XML.
+    libraryDependencies ++= versions.fold(scalaVersion.value)(
+      for3 = Seq(),
+      for2_13 = Seq("org.scala-lang.modules" %% "scala-xml" % versions.scalaXml)
+    ),
     // Do not cover Fixtures and FixturesImpl, they are used to test the library, not a part of it.
     coverageExcludedFiles := ".*Fixtures;.*FixturesImpl",
     scalacOptions ++= Seq(
@@ -556,15 +569,7 @@ lazy val hearthTests = projectMatrix
   .settings(dependencies *)
   .settings(mimaSettings *)
   .dependsOn(hearth)
-  // update Scala version to the newest one if needed, but do it only at the end
   .settings(
-    scalaVersion := {
-      scalaVersion.value match {
-        case versions.scala213 if isNewestScalaTests => versions.scala213Newest
-        case versions.scala3 if isNewestScalaTests   => versions.scala3Newest
-        case current                                 => current
-      }
-    }
   )
 
 // Test cross compilation: 2.13x3

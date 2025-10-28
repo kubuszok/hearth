@@ -4,19 +4,19 @@ package treeprinter
 trait ShowCodePrettyFixturesImpl { this: MacroCommons =>
 
   def testExprPrettyPrint[A: Type](expr: Expr[A]): Expr[String] =
-    asExprOrError("Failed to pretty print expression")(removeAnsiColors(expr.prettyPrint))
+    asExprOrError("Failed to pretty print expression")(expr.prettyPrint)
 
   def testExprPlainPrint[A: Type](expr: Expr[A]): Expr[String] =
     asExprOrError("Failed to plain print expression")(expr.plainPrint)
 
   def testExprPrettyAST[A: Type](expr: Expr[A]): Expr[String] =
-    asExprOrError("Failed to pretty AST expression")(removeAnsiColors(expr.prettyAST))
+    asExprOrError("Failed to pretty AST expression")(expr.prettyAST)
 
   def testExprPlainAST[A: Type](expr: Expr[A]): Expr[String] =
     asExprOrError("Failed to plain AST expression")(expr.plainAST)
 
   def testTypePrettyPrint[A: Type]: Expr[String] =
-    asExprOrError("Failed to pretty print type")(removeAnsiColors(Type[A].prettyPrint))
+    asExprOrError("Failed to pretty print type")(Type[A].prettyPrint)
 
   def testTypePlainPrint[A: Type]: Expr[String] =
     asExprOrError("Failed to plain print type")(Type[A].plainPrint)

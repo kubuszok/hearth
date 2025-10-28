@@ -1,7 +1,7 @@
 package hearth
 package treeprinter
 
-final class ShowCodePrettySpec extends MacroSuite {
+final class ShowCodePrettyScala3Spec extends MacroSuite {
 
   test("Printer FormattedTreeStructureAnsi should support all known trees on Scala 3") {
 
@@ -275,6 +275,11 @@ final class ShowCodePrettySpec extends MacroSuite {
         val n: String | Null = null
         ()
         (multi, interp, tuple, arr, list, opt, n)
+      }
+
+      def larger[A: Ordering](a: A, b: A): A = {
+        import Ordering.Implicits.infixOrderingOps
+        if a > b then a else b
       }
 
       // example class using many features together
@@ -623,6 +628,11 @@ final class ShowCodePrettySpec extends MacroSuite {
         val n: String | Null = null
         ()
         (multi, interp, tuple, arr, list, opt, n)
+      }
+
+      def larger[A: Ordering](a: A, b: A): A = {
+        import Ordering.Implicits.infixOrderingOps
+        if a > b then a else b
       }
 
       // example class using many features together
