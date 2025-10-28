@@ -1470,4 +1470,216 @@ final class ShowCodePrettyScala2Spec extends MacroSuite {
     // Exact code might change between Scala versions, and we don't care about particular output - only that whole tree was handled.
     assert(printed.nonEmpty)
   }
+
+  test("showCodePretty(..., SyntaxHighlight.ANSI) should support all known types on Scala 2") {
+
+    @scala.annotation.nowarn
+    trait Animal { def name: String }
+    @scala.annotation.nowarn
+    trait Speak { def speak(): String }
+    @scala.annotation.nowarn
+    trait Closeable { def close(): Unit }
+
+    trait Outer {
+      type Inner <: Animal
+      val inner: Inner
+    }
+
+    @scala.annotation.nowarn
+    object MyOuter extends Outer {
+      final case class Pet(name: String) extends Animal
+      type Inner = Pet
+      val inner: Inner = Pet("Mittens")
+    }
+
+    // format: off
+    @scala.annotation.nowarn
+    val printed = ShowCodePrettyFixtures.testTypePrettyPrint[
+      ({
+        // Higher-kinded type lambda that we'll project:
+        // L[X] = Either[String, X]
+        type L[X] = Either[String, X]
+
+        // A dependent/compound/refined monster:
+        // T is:
+        //   (outer path-dependent type member MyOuter.Inner)
+        //   with (existential List[_ <: Animal])
+        //   with (structural refinement { def extra: Int })
+        //
+        // We wrap more stuff inside T so we can refer to it.
+        type T =
+          (MyOuter.Inner
+            with ({ type A0 <: Animal })#A0 // pull in a path-projected abstract upper-bounded member
+            with Speak
+            with Closeable) {
+            def extra: Int
+          }
+
+        // U existentializes a higher-kinded application of L,
+        // and mentions an annotated type.
+        //
+        // - `({ type L[X] = Either[String, X] })#L[_ <: Animal]`
+        //    => existential with upper bound, inside a type projection
+        // - `String @deprecated(...)`
+        //
+        type U =
+          ( ({ type K = String @deprecated("old","0.0") })#K,
+            ({ type Q = List[_ <: Animal] })#Q,
+            ({ type R = L[_ <: Animal] })#R
+          )
+
+        // V pulls in a refinement with a stable singleton type,
+        // an abstract type member, and uses Null / Nothing.
+        //
+        // - singleton type MyOuter.inner.type
+        // - abstract type member `type M >: Null <: AnyRef`
+        // - Nothing shows up as lower bound of NothingRef
+        //
+        type V = {
+          val pet: MyOuter.inner.type
+          type M >: Null <: AnyRef
+          type NothingRef >: Nothing <: Any
+        }
+
+      })#T
+        with (({
+          type L[X] = Either[String, X]
+          type T =
+            (MyOuter.Inner
+              with Speak
+              with Closeable) {
+              def extra: Int
+            }
+          type U =
+            ( ({ type K = String @deprecated("old","0.0") })#K,
+              ({ type Q = List[_ <: Animal] })#Q,
+              ({ type R = L[_ <: Animal] })#R
+            )
+          type V = {
+            val pet: MyOuter.inner.type
+            type M >: Null <: AnyRef
+            type NothingRef >: Nothing <: Any
+          }
+          // Expose them:
+          type All = (T, U, V)
+        })#All)
+        with ({
+          // pull in Outer#Inner (type projection independent of path)
+          type W = Outer#Inner
+        })#W
+    ]
+		// format: on
+
+    // Uncomment and print to preview results.
+    // printed.split("\n").foreach(println)
+
+    // Exact code might change between Scala versions, and we don't care about particular output - only that whole tree was handled.
+    assert(printed.nonEmpty)
+  }
+
+  test("showCodePretty(..., SyntaxHighlight.plain) should support all known types on Scala 2") {
+
+    @scala.annotation.nowarn
+    trait Animal { def name: String }
+    @scala.annotation.nowarn
+    trait Speak { def speak(): String }
+    @scala.annotation.nowarn
+    trait Closeable { def close(): Unit }
+
+    trait Outer {
+      type Inner <: Animal
+      val inner: Inner
+    }
+
+    @scala.annotation.nowarn
+    object MyOuter extends Outer {
+      final case class Pet(name: String) extends Animal
+      type Inner = Pet
+      val inner: Inner = Pet("Mittens")
+    }
+
+    // format: off
+    @scala.annotation.nowarn
+    val printed = ShowCodePrettyFixtures.testTypePlainPrint[
+      ({
+        // Higher-kinded type lambda that we'll project:
+        // L[X] = Either[String, X]
+        type L[X] = Either[String, X]
+
+        // A dependent/compound/refined monster:
+        // T is:
+        //   (outer path-dependent type member MyOuter.Inner)
+        //   with (existential List[_ <: Animal])
+        //   with (structural refinement { def extra: Int })
+        //
+        // We wrap more stuff inside T so we can refer to it.
+        type T =
+          (MyOuter.Inner
+            with ({ type A0 <: Animal })#A0 // pull in a path-projected abstract upper-bounded member
+            with Speak
+            with Closeable) {
+            def extra: Int
+          }
+
+        // U existentializes a higher-kinded application of L,
+        // and mentions an annotated type.
+        //
+        // - `({ type L[X] = Either[String, X] })#L[_ <: Animal]`
+        //    => existential with upper bound, inside a type projection
+        // - `String @deprecated(...)`
+        //
+        type U =
+          ( ({ type K = String @deprecated("old","0.0") })#K,
+            ({ type Q = List[_ <: Animal] })#Q,
+            ({ type R = L[_ <: Animal] })#R
+          )
+
+        // V pulls in a refinement with a stable singleton type,
+        // an abstract type member, and uses Null / Nothing.
+        //
+        // - singleton type MyOuter.inner.type
+        // - abstract type member `type M >: Null <: AnyRef`
+        // - Nothing shows up as lower bound of NothingRef
+        //
+        type V = {
+          val pet: MyOuter.inner.type
+          type M >: Null <: AnyRef
+          type NothingRef >: Nothing <: Any
+        }
+
+      })#T
+        with (({
+          type L[X] = Either[String, X]
+          type T =
+            (MyOuter.Inner
+              with Speak
+              with Closeable) {
+              def extra: Int
+            }
+          type U =
+            ( ({ type K = String @deprecated("old","0.0") })#K,
+              ({ type Q = List[_ <: Animal] })#Q,
+              ({ type R = L[_ <: Animal] })#R
+            )
+          type V = {
+            val pet: MyOuter.inner.type
+            type M >: Null <: AnyRef
+            type NothingRef >: Nothing <: Any
+          }
+          // Expose them:
+          type All = (T, U, V)
+        })#All)
+        with ({
+          // pull in Outer#Inner (type projection independent of path)
+          type W = Outer#Inner
+        })#W
+    ]
+		// format: on
+
+    // Uncomment and print to preview results.
+    // printed.split("\n").foreach(println)
+
+    // Exact code might change between Scala versions, and we don't care about particular output - only that whole tree was handled.
+    assert(printed.nonEmpty)
+  }
 }

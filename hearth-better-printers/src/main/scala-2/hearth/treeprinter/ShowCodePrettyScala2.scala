@@ -894,8 +894,15 @@ trait ShowCodePrettyScala2 {
             if (reconstructedPrefix.nonEmpty) print(reconstructedPrefix.mkString("."), ".")
           // normal case - just print the prefix
           case _ =>
+            val (wrapWithParens, useHash) = pre match {
+              case _: RefinedType => (true, true)
+              case _: TypeRef     => (false, sym.isAbstractType)
+              case _              => (false, false)
+            }
+            if (wrapWithParens) print("(")
             processTypePrinting(pre, isLastInChain = false)
-            print(".")
+            if (wrapWithParens) print(")")
+            if (useHash) print("#") else print(".")
         }
 
       private def printTypeNameFromSymbol(sym: Symbol, isLastInChain: Boolean): Unit = {
@@ -941,6 +948,40 @@ trait ShowCodePrettyScala2 {
               print(if (x.value.isInstanceOf[String]) highlightString(result) else highlightLiteral(result))
           }
 
+        case RefinedType(parents, decls) =>
+          val it = parents.iterator
+          while (it.hasNext) {
+            print(it.next())
+            if (it.hasNext) print(" " + highlightKeyword("with") + " ")
+          }
+          if (decls.nonEmpty) {
+            print(" {\n")
+            decls.foreach { symbol =>
+              print(
+                "  ",
+                highlightKeyword(symbol.keyString) + " " + highlightTypeDef(symbol.name.decoded),
+                highlightTypeDef(symbol.infoString(symbol.info)),
+                "\n"
+              )
+            }
+            print("}")
+          }
+
+        case AnnotatedType(annot, arg) =>
+          print(arg)
+          annot.foreach { a =>
+            // a.original looks better but starts with "@new annotation" instead of just "@annotation"
+            a.original match {
+              // best effort fix
+              case Apply(Select(New(tree), termNames.CONSTRUCTOR), args) =>
+                print(" @", Apply(tree, args))
+              case _ =>
+                // something that we know works always
+                // scala.Predef.println(showRaw(a.original))
+                print(" @", a)
+            }
+          }
+
         case TypeRef(pre, sym, args) =>
           printTypePrefix(pre, sym)
           printTypeNameFromSymbol(sym, isLastInChain)
@@ -961,6 +1002,11 @@ trait ShowCodePrettyScala2 {
         case ThisType(sym) =>
           printTypePrefix(NoType, sym) // we want to print the full name of the symbol
           printTypeNameFromSymbol(sym, isLastInChain)
+
+        case SuperType(thisType, superType) =>
+          // This one I am not sure about
+          printTypePrefix(thisType, superType.typeSymbol) // we want to print the full name of the symbol
+          printTypeNameFromSymbol(superType.typeSymbol, isLastInChain)
 
         case _ =>
           if (failOnUnsupportedTree) unsupportedType(tpe)
