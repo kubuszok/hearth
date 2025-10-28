@@ -19,8 +19,9 @@ private[treeprinter] object Constants {
   lazy val areWeInTests: Boolean =
     settings.exists(_.startsWith("hearth-tests."))
 
+  // Limits due to UTF8 encoding - 65536 is the maximum length of a string in UTF8 ("length is represented by 2 bytes").
   val stringBuilderLimitWarning =
     "... (StringBuilder approaches its maximum length limit, output truncated - use Printer.TreeStructure or try printing smaller tree instead)"
-  val stringBuilderHardLimit = 32000
+  val stringBuilderHardLimit = 65536
   val stringBuilderSoftLimit = stringBuilderHardLimit - 1000
 }
