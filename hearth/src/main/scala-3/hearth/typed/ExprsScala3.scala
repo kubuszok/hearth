@@ -85,12 +85,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     }
     import platformSpecific.*
 
-    override def prettyPrint[A](expr: Expr[A]): String = expr.asTerm
-      .show(using Printer.TreeAnsiCode)
-      // remove $macro$n from freshterms to make it easier to test and read
-      .replaceAll("\\$macro", "")
-      .replaceAll("\\$\\d+", "")
+    override def plainPrint[A](expr: Expr[A]): String = removeMacroSuffix(expr.asTerm.show(using Printer.TreeCode))
+    override def prettyPrint[A](expr: Expr[A]): String = removeMacroSuffix(expr.asTerm.show(using Printer.TreeAnsiCode))
 
+    override def plainAST[A](expr: Expr[A]): String = expr.asTerm.show(using FormattedTreeStructure)
     override def prettyAST[A](expr: Expr[A]): String = expr.asTerm.show(using FormattedTreeStructureAnsi)
 
     override def summonImplicit[A: Type]: Option[Expr[A]] = scala.quoted.Expr.summon[A]

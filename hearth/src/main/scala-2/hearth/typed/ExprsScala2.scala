@@ -3,6 +3,7 @@ package typed
 
 import hearth.fp.data.NonEmptyVector
 import hearth.fp.syntax.*
+import hearth.treeprinter.SyntaxHighlight
 
 trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
@@ -67,12 +68,15 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     import platformSpecific.*
 
-    override def prettyPrint[A](expr: Expr[A]): String = showCodePretty(expr.tree, treeprinter.SyntaxHighlight.ANSI)
-      // removes $macro$n from freshterms to make it easier to test and read
-      .replaceAll("\\$macro", "")
-      .replaceAll("\\$\\d+", "")
+    override def plainPrint[A](expr: Expr[A]): String = removeMacroSuffix(
+      showCodePretty(expr.tree, SyntaxHighlight.plain)
+    )
+    override def prettyPrint[A](expr: Expr[A]): String = removeMacroSuffix(
+      showCodePretty(expr.tree, SyntaxHighlight.ANSI)
+    )
 
-    override def prettyAST[A](expr: Expr[A]): String = showRawPretty(expr.tree, treeprinter.SyntaxHighlight.ANSI)
+    override def plainAST[A](expr: Expr[A]): String = showRawPretty(expr.tree, SyntaxHighlight.plain)
+    override def prettyAST[A](expr: Expr[A]): String = showRawPretty(expr.tree, SyntaxHighlight.ANSI)
 
     override def summonImplicit[A: Type]: Option[Expr[A]] =
       scala.util

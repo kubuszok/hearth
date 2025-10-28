@@ -35,9 +35,9 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     final def unapply[A: ExprCodec](expr: Expr[A]): Option[A] = ExprCodec[A].fromExpr(expr)
 
-    final def plainPrint[A](expr: Expr[A]): String = removeAnsiColors(prettyPrint(expr))
+    def plainPrint[A](expr: Expr[A]): String
     def prettyPrint[A](expr: Expr[A]): String
-    final def plainAST[A](expr: Expr[A]): String = removeAnsiColors(prettyAST(expr))
+    def plainAST[A](expr: Expr[A]): String
     def prettyAST[A](expr: Expr[A]): String
 
     def summonImplicit[A: Type]: Option[Expr[A]]

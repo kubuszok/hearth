@@ -2,6 +2,7 @@ package hearth
 package typed
 
 import hearth.fp.Id
+import hearth.treeprinter.SyntaxHighlight
 
 trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
 
@@ -55,7 +56,8 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
         case _                                                               => tpe.dealias.typeSymbol.name.toString
       }
     }
-    override def prettyPrint[A: Type]: String = showCodePretty(Type[A].tpe.dealias, treeprinter.SyntaxHighlight.ANSI)
+    override def plainPrint[A: Type]: String = showCodePretty(Type[A].tpe.dealias, SyntaxHighlight.plain)
+    override def prettyPrint[A: Type]: String = showCodePretty(Type[A].tpe.dealias, SyntaxHighlight.ANSI)
 
     override lazy val NullCodec: TypeCodec[Null] = new LiteralCodec[Null]
     override lazy val UnitCodec: TypeCodec[Unit] = new LiteralCodec[Unit]
