@@ -33,33 +33,12 @@ trait ShowCodePrettyScala3 {
     */
   private object implementationDetails {
 
-    lazy val failOnUnsupportedTree: Boolean = {
+    Constants.initSettings {
       // workaround to contain @experimental from polluting the whole codebase
       val info = quotes.reflect.CompilationInfo
-      val settings = info.getClass.getMethod("XmacroSettings").invoke(info).asInstanceOf[List[String]]
-      val defaultValue = true
-      settings
-        .collectFirst { case s"hearth.betterPrintersShouldFailOnUnsupportedTree=${value}" =>
-          scala.util.Try(value.trim.toBoolean).getOrElse(defaultValue)
-        }
-        .getOrElse(defaultValue)
+      info.getClass.getMethod("XmacroSettings").invoke(info).asInstanceOf[List[String]]
     }
-
-    lazy val areWeInTests: Boolean = {
-      // workaround to contain @experimental from polluting the whole codebase
-      val info = quotes.reflect.CompilationInfo
-      val settings = info.getClass.getMethod("XmacroSettings").invoke(info).asInstanceOf[List[String]]
-      settings.exists(_.startsWith("hearth-tests."))
-    }
-
-    // Exception thrown when the StringBuilder approaches its maximum length limit.
-    // We catch it, to unwind the stack and return the truncated string.
-    case class StringBuildingTerminated(sb: StringBuilder) extends scala.util.control.NoStackTrace
-
-    private val stringBuilderLimitWarning =
-      "... (StringBuilder approaches its maximum length limit, output truncated - use Printer.TreeStructure or try printing smaller tree instead)"
-    private val stringBuilderHardLimit = 32000
-    private val stringBuilderSoftLimit = stringBuilderHardLimit - 1000
+    import Constants.*
 
     final class HighlightedTreePrinter(syntaxHighlight: SyntaxHighlight) extends Printer[Tree] {
 
