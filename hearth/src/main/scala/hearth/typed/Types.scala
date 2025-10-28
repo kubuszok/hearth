@@ -39,7 +39,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
 
     def shortName[A: Type]: String
     final def fqcn[A: Type]: String = plainPrint[A].takeWhile(_ != '[')
-    final def plainPrint[A: Type]: String = removeAnsiColors(prettyPrint[A])
+    def plainPrint[A: Type]: String
     def prettyPrint[A: Type]: String
 
     /** This can only work if the type is available in the classpath, so it's not a good idea to use it for e.g. types

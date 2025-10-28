@@ -6,6 +6,11 @@ package object hearth {
   private[hearth] val AnsiControlCode = "\u001b\\[([0-9]+)m".r
   private[hearth] def removeAnsiColors(str: String): String = AnsiControlCode.replaceAllIn(str, "")
 
+  // removes $macro$n from freshterms to make it easier to test and read
+  private[hearth] def removeMacroSuffix(str: String): String = str
+    .replaceAll("\\$macro", "")
+    .replaceAll("\\$\\d+", "")
+
   implicit final private[hearth] class HearthChaining[A](private val a: A) extends AnyVal {
 
     def attemptPipe[B](attempt: A => B)(orElse: A => B): B = try
