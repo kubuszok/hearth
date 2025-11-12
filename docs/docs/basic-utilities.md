@@ -756,14 +756,15 @@ Build pattern-matching expressions programmatically.
 
 ### `FreshName`
 
-Strategies for generating fresh variable names to avoid clashes:
+Strategies for generating fresh variable names to avoid clashes, used e.g. by [`MatchCase`](#matchcase)es,
+[`Scoped`](#scoped) and [`LambdaBuilder`](#lambdabuilder)s.
 
-```scala
-FreshName.FromType            // derive from type name
-FreshName.FromExpr            // derive from expression
-FreshName.FromPrefix("temp")  // use specific prefix
-"myPrefix"                    // String implicitly converts to FromPrefix
-```
+| Syntax                 | Example        | Description                                                     |
+|------------------------|----------------|-----------------------------------------------------------------|
+| `FreshName.FromType`   | `string`       | use lowercased simple name of the type as a fresh name prefix   |
+| `FreshName.FromExpr`   | `sth.tostring` | use printed expr as a fresh name prefix                         |
+| `FreshName.FromPrefix` | `name`         | use provided name as a fresh name prefix                        |
+| `"name"`               | `name`         | when implicit conversions are enabled, turns string into prefix |
 
 ### `Scoped`
 
