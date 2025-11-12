@@ -21,8 +21,6 @@ Introduces among others:
  * macro-extension system allowing to extend your macros just by adding a dependency to the class path - without any additional imports!
  * and finally, macro API that has implementations for Scala 2 and Scala 3 macro systems - you can use it with either or both!
 
-!!! warning "Work in Progress - follow [hearth#56](https://github.com/MateuszKubuszok/hearth/issues/56) to see the progress of documenting Hearth."
-
 ## How to use the library for cross-compilable macros?
 
 As a showcase we will build cross-compilable `Show` derivation.

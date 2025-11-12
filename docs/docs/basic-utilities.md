@@ -3,8 +3,6 @@
 The Hearth API abstracts away from any particular macro system. It works with abstract types
 backed by abstract methods, and later we implement them for a particular macro system.
 
-!!! warning "Work in Progress - follow [hearth#56](https://github.com/MateuszKubuszok/hearth/issues/56) to see the progress of documenting Hearth."
-
 ## Installation
 
 [![Hearth JVM versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth/latest-by-scala-version.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_3) <br>

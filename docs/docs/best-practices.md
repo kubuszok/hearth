@@ -1,7 +1,5 @@
 # Best Practices
 
-!!! warning "Work in Progress - follow [hearth#56](https://github.com/MateuszKubuszok/hearth/issues/56) to see the progress of documenting Hearth."
-
 ## How to make a macro more user-friendly?
 
 I recommend working with a macro as if it was server endpoint, that you'd deploy to call remotely:
