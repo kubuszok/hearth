@@ -615,7 +615,7 @@ Cross-platform handling of variadic arguments (Scala 2 uses `Seq[Expr[A]]`, Scal
     class VarArgsMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with VarArgsMacro {
 
       def myMacroImpl[A: c.WeakTypeTag](args: c.Expr[A]*): c.Expr[Unit] =
-          myMacro[A](args)
+        myMacro[A](args)
     }
     ```
 
@@ -636,7 +636,7 @@ Cross-platform handling of variadic arguments (Scala 2 uses `Seq[Expr[A]]`, Scal
     object VarArgsMacroImpl {
 
       def myMacroImpl[A: Type](args: Expr[Seq[A]])(using q: Quotes): Expr[Unit] =
-          new VarArgsMacroImpl(q).myMacro[A](args)
+        new VarArgsMacroImpl(q).myMacro[A](args)
     }
     ```
 
@@ -654,15 +654,105 @@ Cross-platform handling of variadic arguments (Scala 2 uses `Seq[Expr[A]]`, Scal
 
 ### `MatchCase`
 
-Build pattern-matching expressions programmatically:
+Build pattern-matching expressions programmatically.
 
-```scala
-// Generate: expr match { case x: A => handleA(x); case y: B => handleB(y) }
-expr.matchOn(
-  MatchCase.typeMatch[A]("x").map { x: Expr[A] => handleA(x) },
-  MatchCase.typeMatch[B]("y").map { y: Expr[B] => handleB(y) }
-)
-```
+!!! example "How `MatchCase`es are used"
+
+    ```scala
+    // file: src/main/scala/example/MatchCaseMacro.scala - part of MatchCase example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    import hearth.fp.syntax.* // for map syntax on MatchCase
+
+    trait MatchCaseMacro { this: hearth.MacroCommons =>
+
+      val either = Type.Ctor2.of[Either]
+      val left   = Type.Ctor2.of[Left]
+      val right  = Type.Ctor2.of[Right]
+      val unit   = Type.of[Unit]
+
+      def makeMatch[L: Type, R: Type](either: Expr[Either[L, R]]): Expr[Unit] = {
+        // Types required to make .matchOn work
+        implicit val eitherType: Type[Either[L, R]] = this.either[L, R]
+        implicit val leftType: Type[Left[L, R]]     = left[L, R]
+        implicit val rightType: Type[Right[L, R]]   = right[L, R]
+        implicit val unitType: Type[Unit]           = unit
+        
+        // either match {
+        either.matchOn[Unit](
+          // case l: Left[L, R] =>
+          MatchCase.typeMatch[Left[L, R]]("l").map { l =>
+            Expr.quote { println(s"left value ${ Expr.splice(l) }") }
+          },
+          // case r: Right[L, R] =>
+          MatchCase.typeMatch[Right[L, R]]("l").map { r =>
+            Expr.quote { println(s"right value ${ Expr.splice(r) }") }
+          }
+        )
+        // }
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/MatchCaseMacroImpl.scala - part of MatchCase example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def makeMatch[L, R](either: Either[L, R]): Unit = macro MatchCaseMacroImpl.makeMatchImpl[L, R]
+    }
+
+    // Scala 2 adapter
+    class MatchCaseMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with MatchCaseMacro {
+
+      def makeMatchImpl[L: c.WeakTypeTag, R: c.WeakTypeTag](either: c.Expr[Either[L, R]]): c.Expr[Unit] =
+        makeMatch[L, R](either)
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/MatchCaseMacroImpl.scala - part of MatchCase example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      // Scala 3 inline def - A* becomes Expr[Seq[A]]
+      inline def makeMatch[L, R](inline either: Either[L, R]): Unit = ${ MatchCaseMacroImpl.makeMatchImpl('{ either }) }
+    }
+
+    // Scala 3 adapter
+    class MatchCaseMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), MatchCaseMacro
+    object MatchCaseMacroImpl {
+
+      def makeMatchImpl[L: Type, R: Type](either: Expr[Either[L, R]])(using q: Quotes): Expr[Unit] =
+        new MatchCaseMacroImpl(q).makeMatch[L, R](either)
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of MatchCase example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.method should work") {
+        Example.makeMatch(Left("string"): Either[String, Int])
+        // expected output:
+        // left value Left(string)
+
+        Example.makeMatch(Right(2586): Either[String, Int])
+        // expected output:
+        // right value Right(2586)
+      }
+    }
+    ```
 
 ### `FreshName`
 
