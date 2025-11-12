@@ -14,8 +14,6 @@ because it would be their almost-compile-time-only dependency... they they might
 Meanwhile, some FP functionalities are very useful for writing macros, so it would be a shame to give up on them
 completely.
 
-!!! warning "Work in Progress - follow [hearth#56](https://github.com/MateuszKubuszok/hearth/issues/56) to see the progress of documenting Hearth."
-
 ## Installation
 
 [![Hearth Micro FP versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth-micro-fp/latest-by-scala-version.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_3) <br>
