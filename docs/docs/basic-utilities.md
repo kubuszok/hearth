@@ -1,7 +1,7 @@
 # Basic Utilities
 
-Hearth API abstracts away from the particular macro system. It works with abstract types
-for which abstract methods are provided, and later on we implement them for a particular macro system.
+The Hearth API abstracts away from any particular macro system. It works with abstract types
+backed by abstract methods, and later we implement them for a particular macro system.
 
 !!! warning "Work in Progress - follow [hearth#56](https://github.com/MateuszKubuszok/hearth/issues/56) to see the progress of documenting Hearth."
 
@@ -47,27 +47,27 @@ for which abstract methods are provided, and later on we implement them for a pa
 
 !!! tip "Examples in this documentation"
 
-    Majority of the examples in this documentation is intended to be runnable.
+    Most examples in this documentation are intended to be runnable.
 
-    That's why most file names would follow convention from [sbt](https://www.scala-sbt.org/) + [projectmatrix](https://github.com/sbt/sbt-projectmatrix) conventions
+    That's why most file names follow the conventions from [sbt](https://www.scala-sbt.org/) + [projectmatrix](https://github.com/sbt/sbt-projectmatrix)
     (or sbt 2.0).
 
-    However, all runnable examples are tested using [Scala CLI](https://scala-cli.virtuslab.org/) and are containing directives needed to make it happy.
+    However, all runnable examples are tested using [Scala CLI](https://scala-cli.virtuslab.org/) and contain the directives needed to make it happy.
 
 ## Your first Hearth-based macro
 
-Once you added Hearth to your project you can start writing Hearth-powered macros.
+Once you add Hearth to your project you can start writing Hearth-powered macros.
 
 You can decide to either:
 
  - write cross-compilable macros (we suggest also using [cross-quotes](cross-quotes.md) in such case)
- - writing Scala-2-only or Scala-3-only macros
+ - write Scala-2-only or Scala-3-only macros
 
 This is how you can write a cross-compilable macro.
 
 !!! example "Cross-compilable API"
 
-    If you want to write cross-compilable macros, you'll see types and methods e.g.:
+    If you want to write cross-compilable macros, you'll work with types and methods such as:
 
     ```scala
     // file: src/main/scala/example/SharedMacroLogic.scala - part of shared macro logic example
@@ -84,7 +84,7 @@ This is how you can write a cross-compilable macro.
 
       // Expr[A] - represents an expression of type A
 
-      // These and other types becomes available to us in traits that extends from MacroCommons
+      // These and other types become available to us in traits that extend from MacroCommons
 
       def yourMacro[A: Type](expr: Expr[A]): Expr[String] = Expr {
         s"${expr.plainPrint} : ${Type[A].plainPrint}"
@@ -92,7 +92,7 @@ This is how you can write a cross-compilable macro.
     }
     ```
 
-    Then we use `MacroCommons` with adapters that we would write for Scala 2 and Scala 3.
+    Then we pair `MacroCommons` with adapters we write for Scala 2 and Scala 3.
 
     ```scala
     // file: src/main/scala-2/example/YourMacro.scala - part of shared macro logic example
@@ -110,12 +110,12 @@ This is how you can write a cross-compilable macro.
 
       // Expr[A] = c.Expr[A]
 
-      // Unfortunatelly, while compiler is clever enough to see that the types are the same when we apply them...
+      // Unfortunately, while compiler is clever enough to see that the types are the same when we apply them...
       def yourMacroImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] = yourMacro(expr)
     }
 
     object Example {
-      // ... it is not smart enough to see it, if we wanted to call YourMacro.yourMacro directly.
+      // ... it is not smart enough to see it if we want to call YourMacro.yourMacro directly.
       def callingMacro[A](expr: A): String = macro YourMacro.yourMacroImpl[A]
     }
     ```
@@ -134,8 +134,8 @@ This is how you can write a cross-compilable macro.
     object YourMacro {
 
       // Scala 3 requires all macros to be defined in objects or other stable locations.
-      // Since we define things in a mixin, we need to write an adapter that instantiate it
-      // in a method.
+      // Since we define things in a mixin, we need to write an adapter that instantiates it
+      // inside a method.
       def yourMacro[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
         new YourMacro(q).yourMacro(expr)
     }
@@ -162,8 +162,8 @@ These examples show how you can write Scala-specific macros with Hearth.
 
 !!! example "Scala 2 API"
 
-    If you want to write Scala 2-only macros, we can simplify the code - use `MacroCommonsScala2` directly,
-    use `c.WeakTypeTag` and `c.Expr` directly, etc, but also using extension methods and utilities from Hearth:
+    If you want to write Scala 2-only macros, you can simplify the code: use `MacroCommonsScala2` directly,
+    use `c.WeakTypeTag` and `c.Expr` directly, etc., while still using extension methods and utilities from Hearth:
 
     ```scala
     // file: src/main/scala/example/Example.scala - part of Scala-2-only macro example
@@ -207,8 +207,8 @@ These examples show how you can write Scala-specific macros with Hearth.
 
 !!! example "Scala 3 API"
 
-    If you want to write Scala 3-only macros, we can simplify the code - use `MacroCommonsScala3` directly,
-    use `quoted.Type` and `quoted.Expr` directly, etc, but also using extension methods and utilities from Hearth:
+    If you want to write Scala 3-only macros, you can simplify the code: use `MacroCommonsScala3` directly,
+    use `quoted.Type` and `quoted.Expr` directly, etc., while still using extension methods and utilities from Hearth:
 
     ```scala
     // file: src/main/scala/example/Example.scala - part of Scala-3-only macro example
@@ -233,8 +233,8 @@ These examples show how you can write Scala-specific macros with Hearth.
     object YourMacro {
 
       // Scala 3 requires all macros to be defined in objects or other stable locations.
-      // Since we define things in a mixin, we need to write an adapter that instantiate it
-      // in a method.
+      // Since we define things in a mixin, we need to write an adapter that instantiates it
+      // inside a method.
       def yourMacro[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
         new YourMacro(q).yourMacro(expr)
     }
@@ -257,9 +257,9 @@ These examples show how you can write Scala-specific macros with Hearth.
     }
     ```
 
-## Library's conventions
+## Library conventions
 
-Inside a shared-logic trait (`MacroCommons`) we are working on abstract types and abstract methods:
+Inside a shared-logic trait (`MacroCommons`) we work with abstract types and abstract methods:
 
 !!! example "`MacroCommons` API"
 
@@ -282,13 +282,13 @@ Inside a shared-logic trait (`MacroCommons`) we are working on abstract types an
     }
     ```
   
-Their implementations are being mix-in later (`MacroCommonsScala2`, `MacroCommonsScala3`).
+Their implementations are mixed in later (`MacroCommonsScala2`, `MacroCommonsScala3`).
    
-Hearth implements shared utilities from bottom up: `Type[A]` and `Expr[A]` build on top of `UntypedType` and `UntypedExpr`,
+Hearth implements shared utilities from the bottom up: `Type[A]` and `Expr[A]` build on top of `UntypedType` and `UntypedExpr`,
 then `Method[A]`s build on top of `Type[A]` and `Expr[A]`, then `CaseClass[A]`, `Enum[A]` and `JavaBean[A]` build on top of them.
-(The lower is the abstraction level, the less likely API is to change).
+(The lower the abstraction level is, the less likely the API is to change).
 
-Probably for most common use cases you want to use high-level things like:
+For most common use cases you probably want to use high-level utilities like:
 
 !!! example "High-level `Class[A]` API"
 
@@ -301,11 +301,11 @@ Probably for most common use cases you want to use high-level things like:
     }
     ```
 
-but they are work in progress, and when high level API is not sufficient, you can fall back on lower-lever.
+but they are a work in progress, and when the high-level API is not sufficient, you can fall back on lower-level ones.
 
 !!! tip
 
-    If there is no API for what you try to do, you can always define:
+    If there is no API for what you're trying to do, you can always define:
 
     ```scala
     // in some common trait in src/main/scala
@@ -315,7 +315,7 @@ but they are work in progress, and when high level API is not sufficient, you ca
     def mySharedAPI(): Result // abstract method
     ```
 
-    in the common part and implement the platform-specific logic in the traits where you are mixing-in:
+    in the common part and implement the platform-specific logic in the traits where you are mixing in:
 
     ```scala
     // in some trait/class in src/main/scala-2 (using MacroCommonsScala2 and Scala 2 types)
@@ -326,8 +326,8 @@ but they are work in progress, and when high level API is not sufficient, you ca
     override final def mySharedAPI(): Result = ... // method implementation
     ```
 
-    I suggest doing it as little as possible, and trying to separate _the intents_ (what you try to achieve) from _the means_
-    (how you are doing it). It makes code easier to reason and maintain.
+    I suggest doing this as little as possible and separating _the intent_ (what you're trying to achieve) from _the means_
+    (how you're doing it). That makes the code easier to reason about and maintain.
 
 ## `Type`, `UntypedType` and `??`
 
@@ -347,28 +347,28 @@ You can see 3 different representations of a type in Hearth codebase:
 
    Type[Param] // works!
    ```
-   which is useful, when we are e.g. receive a list of subtypes of some enum `E`: we get a `List[??<:[E]]` (list of existential types
+   which is useful when we, for example, receive a list of subtypes of some enum `E`: we get a `List[??<:[E]]` (list of existential types
    with `E` as upper bound).
 
 ### Obtaining `Type`
 
-You might see that some examples use `Type[A]`, somme `Type(value)` and some use `Type.of[A]`. What is the difference?
+You might see that some examples use `Type[A]`, some `Type(value)` and some use `Type.of[A]`. What is the difference?
 
-`Type[A]` (`Type.apply[A]`) is the same things as `implicitly[Type[A]]` - it summons a value of `Type[A]`
+`Type[A]` (`Type.apply[A]`) is the same thing as `implicitly[Type[A]]` - it summons a value of `Type[A]`
 if it's already in the implicit scope: passed as a type bound (`[A: Type]`), `import`ed or defined explicitly
 as `implicit`.
 
-`Type(value)` (`Type.apply(value)`) is the same things as `implicitly[TypeCodec[A]].apply(value)` -
-it summons a value of [`TypeCodec[A]`](#typecodec) end uses it to convert `A` into `Type[A]`.
+`Type(value)` (`Type.apply(value)`) is the same thing as `implicitly[TypeCodec[A]].apply(value)` -
+it summons a value of [`TypeCodec[A]`](#typecodec) and uses it to convert `A` into `Type[A]`.
 `TypeCodec[A]` has to be available in the implicit scope.
 
-`Type.of[A]` is a [cross-quotes](cross-quotes.md#typeofa) utility, that creates `Type[A]`. While on Scala 2, you can
+`Type.of[A]` is a [cross-quotes](cross-quotes.md#typeofa) utility that creates `Type[A]`. While on Scala 2 you can
 always summon `c.WeakTypeTag[A]` and on Scala 3 you can always call `scala.quoted.Type.of[A]`,
-in a cross-compiled code there are no such implicits. Either the `Type` was passed into the macro,
-or returned by some utility (often as `??`) - or you have to create an in instance yourself with `Type.of[A]`.
+in cross-compiled code there are no such implicits. Either the `Type` was passed into the macro,
+or returned by some utility (often as `??`), or you have to create an instance yourself with `Type.of[A]`.
 
 You should prefer `Type[A]` when `A: Type` is present, and only use `Type.of[A]` to construct the `Type[A]` for known types.
-`Type(value)` is only intended to convert values, that could be singleton types, into singleton types.
+`Type(value)` is only intended to convert values that could be singleton types into singleton types.
 
 ### `Type` Operations
 
@@ -379,9 +379,9 @@ You should prefer `Type[A]` when `A: Type` is present, and only use `Type.of[A]`
 | Companion method        | Extension method        | Example result | Description                                          |
 |-------------------------|-------------------------|----------------|------------------------------------------------------|
 | `Type.shortName[Int]`   | `Type[Int].shortName`   | `"Int"`        | no package, no type parameters                       |
-| `Type.fqcn[Int]`        | `Type[Int].fqcn`        | `"scala.Int"`  | fully-qualified class name, no type paremeters       |
-| `Type.plainPrint[Int]`  | `Type[Int].plainPrint`  | `"scala.Int"`  | with package name and type paremeters, no coloring   |
-| `Type.prettyPrint[Int]` | `Type[Int].prettyPrint` | `"scala.Int"`  | with package name and type paremeters, ANSI coloring |
+| `Type.fqcn[Int]`        | `Type[Int].fqcn`        | `"scala.Int"`  | fully-qualified class name, no type parameters       |
+| `Type.plainPrint[Int]`  | `Type[Int].plainPrint`  | `"scala.Int"`  | with package name and type parameters, no coloring   |
+| `Type.prettyPrint[Int]` | `Type[Int].prettyPrint` | `"scala.Int"`  | with package name and type parameters, ANSI coloring |
 
 **`Type` predicates**:
 
@@ -402,12 +402,12 @@ You should prefer `Type[A]` when `A: Type` is present, and only use `Type.of[A]`
 | `Type.isFinal[MyClass]`                | `Type[MyClass].isFinal`                | `true` for final class                                               |
 | `Type.isSealed[MyClass]`               | `Type[MyClass].isSealed`               | `true` for sealed trait/class                                        |
 | `Type.isObject[MyClass]`               | `Type[MyClass].isObject`               | `true` for object/module                                             |
-| `Type.isVal[MyClass]`                  | `Type[MyClass].isVal`                  | `true` for `someValue.type` (e.g. paremeterless `enum` `case`s)      |
+| `Type.isVal[MyClass]`                  | `Type[MyClass].isVal`                  | `true` for `someValue.type` (e.g. parameterless `enum` `case`s)      |
 |                                        |                                        | **Case classes and enums**                                           |
 | `Type.isCase[MyClass]`                 | `Type[MyClass].isCase`                 | `true` for case class, case object, or case val                      |
 | `Type.isCaseClass[MyClass]`            | `Type[MyClass].isCaseClass`            | `true` for case class specifically                                   |
 | `Type.isCaseObject[MyClass]`           | `Type[MyClass].isCaseObject`           | `true` for case object specifically                                  |
-| `Type.isCaseVal[MyClass]`              | `Type[MyClass].isCaseVal`              | `true` for paremeterless `enum` `case`s                              |
+| `Type.isCaseVal[MyClass]`              | `Type[MyClass].isCaseVal`              | `true` for parameterless `enum` `case`s                              |
 | `Type.isJavaEnum[MyClass]`             | `Type[MyClass].isJavaEnum`             | `true` for Java enum                                                 |
 | `Type.isJavaEnumValue[MyClass]`        | `Type[MyClass].isJavaEnumValue`        | `true` for Java enum value                                           |
 
@@ -429,7 +429,7 @@ You should prefer `Type[A]` when `A: Type` is present, and only use `Type.of[A]`
 | `Type.exhaustiveChildren[MyClass]`   | `Type[MyClass].exhaustiveChildren`   | `Option[NonEmptyMap[String, ??<:[MyClass]]]`      | all subtypes                     |
 
 
-**Visibility check**:
+**Visibility checks**:
 
 | Companion method                        | Extension method                        | Description                                                 |
 |-----------------------------------------|-----------------------------------------|-------------------------------------------------------------|
@@ -478,8 +478,8 @@ Existential types (`??`) allow working with types whose exact identity is unknow
 
     ```scala
     val subtypeOfFoo:   ??<:[Foo] = ...       // upper bound (subtypeOfFoo.Underlying <: Foo)
-    val supertypeOfBar: ??>:[Bar] = ...       // lower bound (supertypeOfBar.Underlying >: Foo)
-    val bounded:        Foo <:??<: Bar = ...  // both bounds (bounded.Underlying <: Foo >: Bar)
+    val supertypeOfBar: ??>:[Bar] = ...       // lower bound (supertypeOfBar.Underlying >: Bar)
+    val bounded:        Foo <:??<: Bar = ...  // both bounds (Foo <: bounded.Underlying <: Bar)
     ```
 
 ## `Expr`, `UntypedExpr` and `Expr_??`
@@ -490,7 +490,7 @@ You can see 3 different representations of expressions in Hearth codebase:
    is stored is reflected in the, well, type (e.g. `Expr[String]` vs `Expr[Int]`) we can use them in quotes and splices
  * `UntypedExpr` - corresponds to `c.universe.Tree` or `q.reflect.Term`. Because type for which information is stored
    is NOT reflected in the type, it's useful for working with AST directly (almost always in the platform-specific code)
- * `Expr_??` - existential expr. We know that it's a `Expr[A]` for some `A` but we don't know which. It differs from `UntypedExpr`, 
+ * `Expr_??` - existential expression. We know that it's a `Expr[A]` for some `A` but we don't know which. It differs from `UntypedExpr`, 
    because we can do this:
    ```scala
    val unknownExpr: Expr_??
@@ -498,23 +498,23 @@ You can see 3 different representations of expressions in Hearth codebase:
    Type[Param] // now, references to Param would resolve to unknownExpr.Underlying
    expr: Expr[Param] // and this is an Expr of Param type that we can use
    ```
-   which is useful, when we are e.g. trying to call some method or constructor.
+   which is useful when we, for example, try to call some method or constructor.
 
 ### Obtaining `Expr`
 
 You might see that some examples use `Expr(value)` and some use `Expr.quote(value)`. What is the difference?
 
-`Expr(value)` (`Expr.apply(value)`) is the same things as `implicitly[ExprCodec[A]].apply(value)` -
-it summons a value of [`ExprCodec[A]`](#exprcodec) end uses it to convert `A` into `Expr[A]`.
+`Expr(value)` (`Expr.apply(value)`) is the same thing as `implicitly[ExprCodec[A]].apply(value)` -
+it summons a value of [`ExprCodec[A]`](#exprcodec) and uses it to convert `A` into `Expr[A]`.
 `ExprCodec[A]` has to be available in the implicit scope.
 
-`Expr.quote(value)` is a [cross-quotes](cross-quotes.md#exprquote) utility, that creates `Expr[A]`.
+`Expr.quote(value)` is a [cross-quotes](cross-quotes.md#exprquote) utility that creates `Expr[A]`.
 On Scala 2 it would translate to `c.Expr(q"value")` and on Scala 3 to `'{ value }`.
 
-You should use `Expr(value)` only when there is a n`ExprCodec` that would lift a value available in the macro
-into an expression that would re-construct it (only the final result!).
+You should use `Expr(value)` only when there is an `ExprCodec` that can lift a value available in the macro
+into an expression that reconstructs it (only the final result!).
 
-You should prefer `Expr.quote(value)` to preserve the whole code that creates the value - it's possible more often,
+You should prefer `Expr.quote(value)` to preserve the whole code that creates the value, which is often possible,
 as long as you are not quoting something that's only computed in the macro (for that `Expr.apply` + `Expr.splice`
 might be necessary).
 
@@ -585,7 +585,7 @@ Cross-platform handling of variadic arguments (Scala 2 uses `Seq[Expr[A]]`, Scal
 
       def myMacro[A: Type](args: VarArgs[A]): Expr[Unit] = {
         // VarArgs allow converting to some collection of Expr[A], here: List[Expr[A]]
-        // no matter if it was Scala 2 or Scala 3 variadic argument representation.
+        // regardless of whether it was the Scala 2 or Scala 3 variadic argument representation.
         val exprs: List[Expr[A]] = args.toList
 
         Environment.reportInfo(
@@ -652,6 +652,8 @@ Cross-platform handling of variadic arguments (Scala 2 uses `Seq[Expr[A]]`, Scal
     }
     ```
 
+!!! tip "`VarArgs` only handles reading of variadic arguments passed into macro. It does not (yet) handle working with variadic arguments in AST."
+
 ### `MatchCase`
 
 Build pattern-matching expressions programmatically.
@@ -686,7 +688,7 @@ Build pattern-matching expressions programmatically.
             Expr.quote { println(s"left value ${ Expr.splice(l) }") }
           },
           // case r: Right[L, R] =>
-          MatchCase.typeMatch[Right[L, R]]("l").map { r =>
+          MatchCase.typeMatch[Right[L, R]]("r").map { r =>
             Expr.quote { println(s"right value ${ Expr.splice(r) }") }
           }
         )
@@ -754,9 +756,11 @@ Build pattern-matching expressions programmatically.
     }
     ```
 
+!!! tip "`matchOn` and `MatchCase` are not needed if you can make the whole `match` at once inside (cross) quotes. Only if you have to construct the `case`s (e.g. types are being resolved, they're not known during the compilation of a macro) you have to use it as a `match`-builder."
+
 ### `FreshName`
 
-Strategies for generating fresh variable names to avoid clashes, used e.g. by [`MatchCase`](#matchcase)es,
+Strategies for generating fresh variable names to avoid clashes, used, e.g., by [`MatchCase`](#matchcase)es,
 [`Scoped`](#scoped) and [`LambdaBuilder`](#lambdabuilder)s.
 
 | Syntax                 | Example        | Description                                                     |
@@ -789,6 +793,8 @@ Scoped.createLazy(expr).use { x => ??? }
 Scoped.createDef(expr).use { x => ??? }
 ```
 
+!!! tip "`Scoped` utilities are not needed if you can make `var`/`val`/`lazy val`/`def` inside (cross) quotes. Only if you need to use the fresh names they become necessary to avoid the name clashes."
+
 ### `LambdaBuilder`
 
 Build lambda expressions with unknown return types and error aggregation support:
@@ -804,13 +810,15 @@ LambdaBuilder.of2[A, B]("a", "b").buildWith { case (a, b) =>
   useAB(a, b): Expr[C]
 } // : Expr[(A, B) => C]
 
-// With error handling (using MIO or other effect)
+// With error handling (using MIO or another effect)
 LambdaBuilder.of1[A]("a").traverse[MIO, B] { a: Expr[A] =>
   validateAndUseA(a): MIO[Expr[B]]
 }.map(_.build) // : MIO[Expr[A => B]]
 ```
 
 Supports up to 22 parameters (`of1` through `of22`).
+
+!!! tip "`LambdaBuilder`s are not needed if you can make the lambda inside (cross) quotes. Only if the types and/or numer of the arguments is unknown during the complation of the macro and have to be resolved, you need to use a lambda builder to stay flexible."
 
 ## `Method`
 
@@ -826,7 +834,7 @@ Supports up to 22 parameters (`of1` through `of22`).
 
 ### Obtaining `Method`
 
-We should just call one of the methods on `Method` or `Type[A]`, depending on which kind of method do we need.
+We should just call one of the methods on `Method` or `Type[A]`, depending on which kind of method we need.
 
 | Companion method                     | Extension method                   | Result type                          | Description                           |
 |--------------------------------------|------------------------------------|--------------------------------------|---------------------------------------|
@@ -944,7 +952,7 @@ The recommended way to handle methods is through pattern matching:
     // )
     ```
 
-**Arguments** - values to pass to a method, order do not matter but names have to match!
+**Arguments** - values to pass to a method, order does not matter but names have to match!
 (we can skip arguments for params for which `param.hasDefault` is `true`):
 
 !!! example "Building `Arguments`' `Map`"
@@ -961,8 +969,8 @@ The recommended way to handle methods is through pattern matching:
 
 ### Calling `Method`s
 
-If we have `Method.Of[Instance]`, we should pattern-match it first, to know what kind
-of a method it is. Once we do, we need to apply the `Arguments`
+If we have `Method.Of[Instance]`, we should pattern-match it first to know what kind
+of method it is. Once we do, we need to apply the `Arguments`
 (and the instance, if it's `Method.OfInstance`):
 
 !!! example "Constructor or static method"
@@ -987,7 +995,7 @@ of a method it is. Once we do, we need to apply the `Arguments`
 
 The methods' `apply` validates that:
 
-- All required parameters are provided (it uses default values for not provided arguments if they exists)
+- All required parameters are provided (it uses default values for arguments that aren't provided if they exist)
 - Argument types match parameter types
 
 and returns `Right(expr)` on success or `Left(error)` on failure.
@@ -1010,7 +1018,7 @@ and returns `Right(expr)` on success or `Left(error)` on failure.
 | `cls.asEnum`      | `Option[Enum[MyClass]]`         | enum view if applicable       |
 | `cls.asJavaBean`  | `Option[JavaBean[MyClass]]`     | Java Bean view if applicable  |
 
-These utilities are built on top of `Type` and `Method` - you could implement similar functionality yourself, but these provide convenient shortcuts.
+These utilities are built on top of `Type` and `Method` - you could implement similar functionality yourself, but they provide convenient shortcuts.
 
 ### `CaseClass[A]`
 
@@ -1151,16 +1159,16 @@ positions.sorted  // sorts by file path, then offset
 
 !!! tip
 
-    When giving you `line` or `column`, Hearth adjust the values to show - apparently:
+    When returning `line` or `column`, Hearth adjusts the values because:
 
-     - Scala 2 macros Position is 1-indexed while
-     - Scala 3 macros Position is 0-indexed
+     - Scala 2 macro positions are 1-indexed while
+     - Scala 3 macro positions are 0-indexed
     
-    but when pointing to an actual file location the Scala 3 error printer adjust its.
+    but when pointing to an actual file location the Scala 3 error printer already adjusts them.
 
-    However another adjustment is needed for `Environment.currentPosition` since:
+    However, another adjustment is needed for `Environment.currentPosition` since:
 
-     - Scala 2 points to the beginning of `macroMethod` name
+     - Scala 2 points to the beginning of the `macroMethod` name
        ```scala
        someInstance.someMacroMethod
        //           ^ position of macro expansion on Scala 2
@@ -1173,9 +1181,9 @@ positions.sorted  // sorts by file path, then offset
        //                                   ^ position of macro expansion on Scala 3 when non-nullary
        ```
 
-    Hearth makes sure that the behavior is consistent and sane and alignes it to always point
-    to the first letter of the macro method name, when you use `.line` or `.column`,
-    so you can get predicatable behavior of e.g. `Environment.isExpandedAt`.
+    Hearth makes sure that the behavior is consistent and sane and aligns it to always point
+    to the first letter of the macro method name when you use `.line` or `.column`,
+    so you can get predictable behavior from e.g. `Environment.isExpandedAt`.
 
 ## `Environment`
 
@@ -1247,12 +1255,12 @@ Accepts formats:
 
 ### Macro Extensions
 
-Allow extensing macro functionality by adding dependencies, that will be picked up during compilation
+Allows you to extend macro functionality by adding dependencies that will be picked up during compilation
 from the classpath.
 
 !!! example
 
-    The type of the macro's `trait`/`class` has to be referred in extension's type:
+    The type of the macro's `trait`/`class` has to be referenced in the extension's type:
 
     ```scala
     package example
@@ -1265,14 +1273,14 @@ from the classpath.
     }
     ```
 
-    Similarly, in a macro `trait`/`class`, we ask to load all implementations of a macro extension by its type:
+    Similarly, in a macro `trait`/`class` we ask to load all implementations of a macro extension by its type:
 
     ```scala
     package example
 
     trait MyMacro { this: MacroCommons =>
 
-      // Loads all extensions, and passes itself to their `extends` method.
+      // Loads all extensions, and passes itself to their `extend` method.
       Environment.loadMacroExtensions[MyMacroExtension] match {
         case Right(()) => // all extensions loaded successfully
         case Left(errors) => // handle errors
@@ -1280,8 +1288,8 @@ from the classpath.
     }
     ```
 
-    It requires `META-INF/services/example.MyMacroExtension` resource to work, listing each extension's implementation
-    in a separate line as fully qualified class name, e.g.
+    It requires `META-INF/services/example.MyMacroExtension` resource to list each extension's implementation
+    on a separate line as a fully qualified class name, e.g.
 
     ```
     example.MyMacroExtensionFoo
@@ -1293,13 +1301,13 @@ allowing functionality to be added just by having the right JAR on the classpath
 
 ### `MIO` Termination Handling
 
-When using Hearth's `MIO` effect system, to handle Ctrl+C interruption:
+When using Hearth's `MIO` effect system, handle Ctrl+C interruptions with:
 
 !!! tip "Only needed if you run `MIO` yourself"
 
     ```scala
     Environment.handleMioTerminationException {
-      // Code that might be interrupted, while running MIO
+      // Code that might be interrupted while running MIO
       someMioComputation.unsafe.runToSync match ...
     }
     ```
