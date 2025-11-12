@@ -577,6 +577,10 @@ Cross-platform handling of variadic arguments (Scala 2 uses `Seq[Expr[A]]`, Scal
 !!! example "How `VarArgs` are used"
 
     ```scala
+    // file: src/main/scala/example/VarArgsMacro.scala - part of VarArgs example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
     trait VarArgsMacro { this: hearth.MacroCommons =>
 
       def myMacro[A: Type](args: VarArgs[A]): Expr[Unit] = {
@@ -584,34 +588,67 @@ Cross-platform handling of variadic arguments (Scala 2 uses `Seq[Expr[A]]`, Scal
         // no matter if it was Scala 2 or Scala 3 variadic argument representation.
         val exprs: List[Expr[A]] = args.toList
 
-        // work with individual expressions
-        ???
+        Environment.reportInfo(
+          // work with individual expressions
+          exprs.map(_.prettyPrint).mkString("\n")
+        )
+
+        Expr.quote { () }
       }
     }
     ```
 
     ```scala
-    // Scala 2 macro-method - A* becomes Seq[Expr[A]]
-    def method[A](args: A*): Unit = macro VarArgsMacroImpl.myMacroImpl[A]
+    // file: src/main/scala-2/example/VarArgsMacroImpl.scala - part of VarArgs example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      // Scala 2 macro-method - A* becomes Seq[Expr[A]]
+      def method[A](args: A*): Unit = macro VarArgsMacroImpl.myMacroImpl[A]
+    }
 
     // Scala 2 adapter
     class VarArgsMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with VarArgsMacro {
 
-      def myMacroImpl[A: c.WeakTypeTag](args: Seq[Expr[A]]): Expr[Unit] =
+      def myMacroImpl[A: c.WeakTypeTag](args: c.Expr[A]*): c.Expr[Unit] =
           myMacro[A](args)
     }
     ```
 
     ```scala
-    // Scala 3 inline def - A* becomes Expr[Seq[A]]
-    inline def method[A](args: A*): Unit = ${ myMacroImpl('{ args }) }
+    // file: src/main/scala-3/example/VarArgsMacroImpl.scala - part of VarArgs example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      // Scala 3 inline def - A* becomes Expr[Seq[A]]
+      inline def method[A](inline args: A*): Unit = ${ VarArgsMacroImpl.myMacroImpl('{ args }) }
+    }
 
     // Scala 3 adapter
     class VarArgsMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), VarArgsMacro
     object VarArgsMacroImpl {
 
-      def myMacroImpl[A: Type](args: Seq[Expr[A]])(using q: Quotes): Expr[Unit] =
+      def myMacroImpl[A: Type](args: Expr[Seq[A]])(using q: Quotes): Expr[Unit] =
           new VarArgsMacroImpl(q).myMacro[A](args)
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of VarArgs example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.method should work") {
+        Example.method("a", "b" + "c", s"d ${1}, ${2}, ${3}")
+      }
     }
     ```
 
