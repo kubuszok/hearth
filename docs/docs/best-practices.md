@@ -82,6 +82,18 @@ and aggregate their fallible results. If you don't like the provided types, you 
 
 Results for each `case class` fiels/`enum` subtype are perfect candidates for such result aggregation.
 
+### Store potential large/recursive logic as defs
+
+Instead of inlining the whole logic into single, giant expr, consider splitting it into
+several smaller `def`s. It would:
+
+ * allow reusing some logic you generated once, in another place that needs the same logic (e.g. during a type class derivation)
+    * it also allows generaing recursive code, without tricks with making the whole type class instance lazily initialized
+ * prevent issues with method's body exceeing the allowed size (compilation fails if bytecode would exceed 64kB)
+ * help JVM compile and optimize the code, since smaller methods are easier to analyze and profile
+
+TODO: `DefBuilder` when it's implemented.
+
 ### Allow previewing macro logic
 
 Macros allow us to show some information which is not an error:
@@ -177,6 +189,23 @@ an immutable collection, and have it updated (the `Writer` monad).
 To make sure that several projects won't accidentally use the same setting name for a different thing use some prefix
 e.g. `name-of-your-library.` before the actual setting. Such prefixes will also be friendly to [parsing settings
 as `hearth.data.Data` format](basic-utilities.md#macro-settings).
+
+### Suppress warnings
+
+It's bad UX if your users have to suppress the warnings for the code they haven't even written in the first place.
+
+Consider generating code looking more or less like:
+
+```scala
+{
+  @scala.annotation.nowarn // suppress the compiler's linters
+  @SuppressWarnings("org.wartremover.warts.All", "all") // suppress Wartremover and Scapegoat lints
+  val result = ...
+  result
+}
+```
+
+and testing your macros with a reasonably large number of compiler linters enabled.
 
 ## How to make a macro more maintainable?
 
