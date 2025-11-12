@@ -56,6 +56,7 @@ nav:
   - 'Cross Quotes': 'cross-quotes.md'
   - 'Micro FP': 'micro-fp.md'
   - 'Best Practices': 'best-practices.md'
+  - 'FAQ': 'faq.md'
 markdown_extensions:
   - admonition
   - pymdownx.details
