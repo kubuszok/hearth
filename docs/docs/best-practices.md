@@ -19,7 +19,13 @@ I recommend working with a macro as if it was server endpoint, that you'd deploy
    
 How it translates to macros?
 
-### Error aggregation
+### Use sanely-automatic type class derivation
+
+Details in [the blog post](https://kubuszok.com/2025/sanely-automatic-derivation/).
+
+TODO: `summonIgnoring` API in hearth + example here
+
+### Aggregate errors instead of failing fast
 
 While you can immediatelly fail with something like:
 
@@ -70,7 +76,13 @@ And we can always make:
       Left(NonEmptyVector(DerivationError.NotSupported("your msg")))
     ```
 
-### Previewing results
+Micro FP provides methods like [`.parTraverse`](micro-fp.md#parallel) to map collections
+and aggregate their fallible results. If you don't like the provided types, you can
+[implement your own](micro-fp.md#creating-type-class-instances).
+
+Results for each `case class` fiels/`enum` subtype are perfect candidates for such result aggregation.
+
+### Allow previewing macro logic
 
 Macros allow us to show some information which is not an error:
 
@@ -159,6 +171,14 @@ All the following will be no-ops, so we would have to aggregate the individual l
 One such approach would be to use a mutable collection to write to. Or passing around
 an immutable collection, and have it updated (the `Writer` monad).
 
+### Use namespaces in `Xmacro-settings`
+
+`-Xmacro-settings` is a global Scalac option intended to pass information to macros - but all macros see all the settings.
+
+To make sure that several projects won't accidentally use the same setting name for a different thing use some prefix
+e.g. `name-of-your-library.` before the actual setting. Such prefixes will also be friendly to [parsing settings
+as `hearth.data.Data` format](basic-utilities.md#macro-settings).
+
 ## How to make a macro more maintainable?
 
 I recommend working with a macro as if it was any other business logic, that you would have to maintain for a while:
@@ -174,7 +194,7 @@ I recommend working with a macro as if it was any other business logic, that you
    
 How it translates to macros?
 
-### Macro `IO`-monad
+### Use Macro `IO`-monad
 
 If one likes to works with Cats/Scalaz/ZIO, and would like to reuse ones' experience with these libraries,
 then there is an optional `MIO` (Macro `IO`) monad.
@@ -303,3 +323,24 @@ with:
 
 However, all of these are completely optional, if you are not fond of this style of programming,
 then you can simply not use it.
+
+### Use named scopes with `Log`s
+
+If you are computing some smaller part of a whole expression returned by a macro, it's worth
+wrapping it in its own named scope. When rendering the whole log the nesting will help
+telling the story of what actually happened, and what is related to what.
+
+!!! example "Nested logs with named scope"
+
+    ```scala
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+    //> using scala {{ scala.3 }}
+    import hearth.fp.effect.*
+
+    Log.namedScope("I want all logs here grouped and indented!") {
+      Log.info("log 1") >>
+        Log.info("log 2") >>
+        Log.info("log 3") >>
+        Log.info("log 4")
+    }
+    ```
