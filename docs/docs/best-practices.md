@@ -211,6 +211,12 @@ and testing your macros with a reasonably large number of compiler linters enabl
 
 I recommend working with a macro as if it was any other business logic, that you would have to maintain for a while:
 
+ - define ADT to errors instead of passing around only raw `String`s - you can tun them into an error message
+   at the end of the derivation
+ - define helper methods and types, split large chunks of logic into smaller ones, give them high-level names
+   that explain _what you are trying to achieve_
+ - write tests for your macros - while they are unit tests (expand macro, check its results), since you cannot
+   _mock_ inside of a macro, it might feel a bit like small integration tests
  - if you are used to conventions of Cats/Scalaz/ZIO, you might want to work with something like IO monad,
    to reuse your intuitions and habits
  - use `parTraverse` and `Parallel` when combining several independedn resuluts together, e.g. results fomputed for
