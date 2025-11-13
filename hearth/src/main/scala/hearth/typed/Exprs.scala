@@ -40,7 +40,8 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     def plainAST[A](expr: Expr[A]): String
     def prettyAST[A](expr: Expr[A]): String
 
-    def summonImplicit[A: Type]: Option[Expr[A]]
+    def summonImplicit[A: Type]: SummoningResult[A]
+    def summonImplicitIgnoring[A: Type](excluded: UntypedMethod*): SummoningResult[A]
 
     def upcast[A: Type, B: Type](expr: Expr[A]): Expr[B]
 
@@ -239,6 +240,52 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
       Expr.RightExprCodec[L, R]
 
     implicit lazy val DataCodec: ExprCodec[data.Data] = Expr.DataExprCodec
+  }
+
+  sealed trait SummoningResult[A] extends Product with Serializable {
+
+    final def isDefined: Boolean = this match {
+      case SummoningResult.Found(_) => true
+      case _                        => false
+    }
+    final def isEmpty: Boolean = !isDefined
+    final def nonEmpty: Boolean = isDefined
+
+    final def get: Expr[A] = toEither match {
+      case Right(expr) => expr
+      case Left(error) => throw new NoSuchElementException(error)
+    }
+
+    final def toOption: Option[Expr[A]] = this match {
+      case SummoningResult.Found(expr) => Some(expr)
+      case _                           => None
+    }
+
+    final def toEither: Either[String, Expr[A]] = this match {
+      case SummoningResult.Found(expr)    => Right(expr)
+      case SummoningResult.Ambiguous(tpe) => Left(s"Ambiguous implicit value of type ${tpe.prettyPrint}")
+      case SummoningResult.Diverging(tpe) => Left(s"Diverging implicit value of type ${tpe.prettyPrint}")
+      case SummoningResult.NotFound(tpe)  => Left(s"No implicit value of type ${tpe.prettyPrint} found")
+    }
+
+    final def fold[B](
+        found: Expr[A] => B,
+        ambiguous: Type[A] => B,
+        diverging: Type[A] => B,
+        notFound: Type[A] => B
+    ): B = this match {
+      case SummoningResult.Found(expr)    => found(expr)
+      case SummoningResult.Ambiguous(tpe) => ambiguous(tpe)
+      case SummoningResult.Diverging(tpe) => diverging(tpe)
+      case SummoningResult.NotFound(tpe)  => notFound(tpe)
+    }
+  }
+  object SummoningResult {
+
+    final case class Found[A](expr: Expr[A]) extends SummoningResult[A]
+    final case class Ambiguous[A](tpe: Type[A]) extends SummoningResult[A]
+    final case class Diverging[A](tpe: Type[A]) extends SummoningResult[A]
+    final case class NotFound[A](tpe: Type[A]) extends SummoningResult[A]
   }
 
   /** Allow us to convert VarArgs to various collection types.

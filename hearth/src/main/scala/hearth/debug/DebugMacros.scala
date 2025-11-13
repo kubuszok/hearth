@@ -15,13 +15,13 @@ private[debug] trait DebugMacros { this: MacroCommons =>
     expr
   }
 
-  def withGivenCodeInIDE[A: Type]: Expr[A] = Expr.summonImplicit[A] match {
-    case Some(expr) => withFinalCodeInIDE(expr)
-    case None       => Environment.reportErrorAndAbort(s"No implicit value of type ${Type.prettyPrint[A]} found")
+  def withGivenCodeInIDE[A: Type]: Expr[A] = Expr.summonImplicit[A].toEither match {
+    case Right(expr) => withFinalCodeInIDE(expr)
+    case Left(error) => Environment.reportErrorAndAbort(error)
   }
 
-  def withGivenASTInIDE[A: Type]: Expr[A] = Expr.summonImplicit[A] match {
-    case Some(expr) => withFinalASTInIDE(expr)
-    case None       => Environment.reportErrorAndAbort(s"No implicit value of type ${Type.prettyPrint[A]} found")
+  def withGivenASTInIDE[A: Type]: Expr[A] = Expr.summonImplicit[A].toEither match {
+    case Right(expr) => withFinalASTInIDE(expr)
+    case Left(error) => Environment.reportErrorAndAbort(error)
   }
 }

@@ -21,7 +21,12 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
 
   def testExprSummoning[A: Type]: Expr[Data] = Expr(
     Data.map(
-      "Expr.summonImplicit" -> Data(Expr.summonImplicit[A].fold("<failed to summon>")(_.plainPrint))
+      "Expr.summonImplicit" -> Data(
+        Expr
+          .summonImplicit[A]
+          .toEither
+          .fold(error => "<failed to summon: " + removeAnsiColors(error) + ">", _.plainPrint)
+      )
     )
   )
 
