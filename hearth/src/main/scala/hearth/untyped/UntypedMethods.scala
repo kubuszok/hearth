@@ -112,9 +112,12 @@ trait UntypedMethods { this: MacroCommons =>
             method.unsafeApply(instanceTpe)(instance, Map.empty)
           }
           arguments.get(paramName).orElse(defaultValue).getOrElse {
-            assertionFailed(
-              s"Expected that ${instanceTpe.prettyPrint}'s ${method.name} parameter `$paramName` would be provided or have default value"
+            // $COVERAGE-OFF$
+            hearthRequirementFailed(
+              s"""Expected that ${instanceTpe.prettyPrint}'s ${method.name} parameter `$paramName` would be provided or have a default value.
+                 |Ensure that all arguments are provided or have a default value.""".stripMargin
             )
+            // $COVERAGE-ON$
           }
         }.toList
       }
