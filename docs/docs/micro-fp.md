@@ -1269,7 +1269,7 @@ log and fail if necessary:
 
 ### Integration with `MacroCommons`
 
-When using withing [`MacroCommons`](basic-utilities.md#librarys-conventions) you don't need to use `mio.unsafe.runSync`.
+When using withing [`MacroCommons`](basic-utilities.md#library-conventions) you don't need to use `mio.unsafe.runSync`.
 
 There is a dedicated extension method for `MIO[Expr[A]]` that:
 
