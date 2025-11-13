@@ -55,13 +55,13 @@ Majority of the macros code would be shared, by putting it into a mix-in trait.
 !!! example "`src/main/scala/demo/Show.scala` - shared `Show` type class"
 
     ```scala
-    // file: src/main/scala/demo/Show.scala - part of Show example
-    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    // file: src/main/scala/demo_sanely_automatic/Show.scala - part of Show example
+    //> using scala {{ scala.newest_2_13 }} {{ scala.newest_3 }}
     //> using dep com.kubuszok::hearth:{{ hearth_version() }}
-    package demo
+    package demo_sanely_automatic
 
     /** toString as a type class - easy to understand what this type class want to do. */
-    trait Show[A] extends Show.AutoDerived[A] {
+    trait Show[A] {
 
       def show(value: A): String
     }
@@ -69,32 +69,23 @@ Majority of the macros code would be shared, by putting it into a mix-in trait.
     /** Companion will contain the derivation adapted specific to Scala language version. */
     object Show extends ShowCompanionCompat {
 
-      def apply[A](implicit show: Show.AutoDerived[A]): Show[A] = show match {
-        case show: Show[A] => show
-      }
-
-      /** 2.13.17+ and 3.7.0+ does not need this trick - before them it's handy,
-       * see "sanely-automatic derivation" */
-      sealed trait AutoDerived[A] {
-
-        def show(value: A): String
-      }
+      def apply[A](implicit show: Show[A]): Show[A] = show
 
       /** Special type - is its implicit is in scope then macros will log the derivation process.
         *
         * @see
-        *   [[hearth.demo.debug.logDerivation]] for details
+        *   [[hearth.demo_sanely_automatic.debug.logDerivation]] for details
         */
       sealed trait LogDerivation
       object LogDerivation extends LogDerivation
     }
     ```
 
-!!! example "`src/main/scala/demo/ShowMacrosImpl.scala` - shared macro logic using [cross-quotes](./cross-quotes.md)"
+!!! example "`src/main/scala/demo_sanely_automatic/ShowMacrosImpl.scala` - shared macro logic using [cross-quotes](cross-quotes.md)"
 
     ```scala
-    // file: src/main/scala/demo/ShowMacrosImpl.scala - part of Show example
-    package demo
+    // file: src/main/scala/demo_sanely_automatic/ShowMacrosImpl.scala - part of Show example
+    package demo_sanely_automatic
 
     import hearth.*
     import hearth.fp.effect.*
@@ -102,7 +93,7 @@ Majority of the macros code would be shared, by putting it into a mix-in trait.
     import hearth.fp.syntax.*
 
     /** Implementation of the [[Show]] macro, tested in [[ShowSpec]]. */
-    private[demo] trait ShowMacrosImpl { this: MacroCommons =>
+    private[demo_sanely_automatic] trait ShowMacrosImpl { this: MacroCommons =>
 
       /** Derives a `Show[A]` type class instance for a given type `A`. */
       def deriveTypeClass[A: Type]: Expr[Show[A]] = Expr.quote {
@@ -198,12 +189,23 @@ Majority of the macros code would be shared, by putting it into a mix-in trait.
           MIO.fail(DerivationError.UnsupportedType(Type.prettyPrint[A]))
         }
       }
+      
+      /** Show.derived will be ignored - so this macro will never summon itself! */
+      private lazy val ignoredImplicits: Seq[UntypedMethod] =
+        Type
+          .of[Show.type]
+          .asUntyped
+          .methods
+          .collect {
+            case method if method.name == "derived" => method
+          }
+          .toSeq
 
       /** Attempts to show `A` value using an implicit `Show[A]` value. */
       private def attemptUsingImplicit[A: Type](value: Expr[A]): Attempt[String] =
         Log.info(s"Attempting summoning implicit ${Types.Show[A].prettyPrint} to show value") >> MIO {
           implicit val showA: Type[Show[A]] = Types.Show[A]
-          Expr.summonImplicit[Show[A]].map { show =>
+          Expr.summonImplicitIgnoring[Show[A]](ignoredImplicits*).toOption.map { show =>
             Expr.quote {
               Expr.splice(show).show(Expr.splice(value))
             }
@@ -378,7 +380,7 @@ Majority of the macros code would be shared, by putting it into a mix-in trait.
         */
       private object Types {
 
-        val LogDerivation: Type[demo.Show.LogDerivation] = Type.of[demo.Show.LogDerivation]
+        val LogDerivation: Type[demo_sanely_automatic.Show.LogDerivation] = Type.of[demo_sanely_automatic.Show.LogDerivation]
         val String: Type[String] = Type.of[String]
         val Show: Type.Ctor1[Show] = Type.Ctor1.of[Show]
         val Iterable: Type.Ctor1[Iterable] = Type.Ctor1.of[Iterable]
@@ -388,8 +390,8 @@ Majority of the macros code would be shared, by putting it into a mix-in trait.
     /** We can define our own ADT for errors, they are better than bunch of strings when we want to build a single, nice
       * error message.
       */
-    sealed private[demo] trait DerivationError extends scala.util.control.NoStackTrace with Product with Serializable
-    private[demo] object DerivationError {
+    sealed private[demo_sanely_automatic] trait DerivationError extends scala.util.control.NoStackTrace with Product with Serializable
+    private[demo_sanely_automatic] object DerivationError {
       final case class UnsupportedType(typeName: String) extends DerivationError
       final case class UnsupportedMethod(typeName: String, field: String) extends DerivationError
       final case class AssertionFailed(message: String) extends DerivationError
@@ -398,74 +400,74 @@ Majority of the macros code would be shared, by putting it into a mix-in trait.
 
 Then in Scala 2 and Scala 3-specific code you would write only adapters.
 
-??? example "`src/main/scala-2/demo/ShowCompanionCompat.scala` - adapter for Scala 2"
+??? example "`src/main/scala-2/demo_sanely_automatic/ShowCompanionCompat.scala` - adapter for Scala 2"
 
     ```scala
-    // file: src/main/scala-2/demo/ShowCompanionCompat.scala - part of Show example
-    //> using target.scala {{ scala.2_13 }}
+    // file: src/main/scala-2/demo_sanely_automatic/ShowCompanionCompat.scala - part of Show example
+    //> using target.scala {{ scala.newest_2_13 }}
     //> using options -Xsource:3
-    package demo
+    package demo_sanely_automatic
 
     import scala.language.experimental.macros
     import scala.reflect.macros.blackbox
 
-    private[demo] trait ShowCompanionCompat { this: Show.type =>
+    private[demo_sanely_automatic] trait ShowCompanionCompat { this: Show.type =>
 
-      implicit def derived[A]: Show.AutoDerived[A] = macro ShowMacros.deriveTypeClassImpl[A]
+      implicit def derived[A]: Show[A] = macro ShowMacros.deriveTypeClassImpl[A]
 
       def show[A](value: A): String = macro ShowMacros.deriveShowStringImpl[A]
     }
 
     // I hope that one day most of it could be automated, but for now we have to bear.
-    private[demo] class ShowMacros(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ShowMacrosImpl {
+    private[demo_sanely_automatic] class ShowMacros(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ShowMacrosImpl {
 
-      def deriveTypeClassImpl[A: c.WeakTypeTag]: c.Expr[Show.AutoDerived[A]] = deriveTypeClass[A]
+      def deriveTypeClassImpl[A: c.WeakTypeTag]: c.Expr[Show[A]] = deriveTypeClass[A]
 
       def deriveShowStringImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[String] = deriveShowString[A](value)
     }
     ```
 
-??? example "`src/main/scala-3/demo/ShowCompanionCompat.scala` - adapter for Scala 3"
+??? example "`src/main/scala-3/demo_sanely_automatic/ShowCompanionCompat.scala` - adapter for Scala 3"
 
     ```scala
-    // file: src/main/scala-3/demo/ShowCompanionCompat.scala - part of Show example
-    //> using target.scala {{ scala.3 }}
+    // file: src/main/scala-3/demo_sanely_automatic/ShowCompanionCompat.scala - part of Show example
+    //> using target.scala {{ scala.newest_3 }}
     //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
-    package demo
+    package demo_sanely_automatic
 
     import scala.quoted.*
 
-    private[demo] trait ShowCompanionCompat { this: Show.type =>
+    private[demo_sanely_automatic] trait ShowCompanionCompat { this: Show.type =>
 
-      inline given derived[A]: Show.AutoDerived[A] = ${ ShowMacros.deriveTypeClass[A] }
+      inline given derived[A]: Show[A] = ${ ShowMacros.deriveTypeClass[A] }
 
       inline def show[A](value: A): String = ${ ShowMacros.deriveShowString[A]('{ value }) }
     }
 
     // I hope that one day most of it could be automated, but for now we have to bear.
-    private[demo] class ShowMacros(q: Quotes) extends hearth.MacroCommonsScala3(using q), ShowMacrosImpl
+    private[demo_sanely_automatic] class ShowMacros(q: Quotes) extends hearth.MacroCommonsScala3(using q), ShowMacrosImpl
 
-    private[demo] object ShowMacros {
+    private[demo_sanely_automatic] object ShowMacros {
 
-      def deriveTypeClass[A: Type](using q: Quotes): Expr[Show.AutoDerived[A]] = new ShowMacros(q).deriveTypeClass[A]
+      def deriveTypeClass[A: Type](using q: Quotes): Expr[Show[A]] = new ShowMacros(q).deriveTypeClass[A]
 
       def deriveShowString[A: Type](value: Expr[A])(using q: Quotes): Expr[String] =
         new ShowMacros(q).deriveShowString[A](value)
     }
     ```
 
-??? example "`src/test/scala/demo/ShowCompanionCompat.scala` - tests"
+??? example "`src/test/scala/demo_sanely_automatic/ShowCompanionCompat.scala` - tests"
 
     ```scala
-    // file: src/test/scala/demo/ShowSpec.scala - part of Show example
+    // file: src/test/scala/demo_sanely_automatic/ShowSpec.scala - part of Show example
     //> using test.dep org.scalameta::munit::{{ libraries.munit }}
-    package demo
+    package demo_sanely_automatic
 
     /** Macro implementation of [[Show]] is in [[ShowMacrosImpl]]. */
     final class ShowSpec extends munit.FunSuite {
 
       test("Show should be able to derive type class for values with built-in support") {
-        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
 
         assertEquals(Show.derived[Boolean].show(true), "true")
         assertEquals(Show.derived[Byte].show(1.toByte), "1.toByte")
@@ -479,20 +481,20 @@ Then in Scala 2 and Scala 3-specific code you would write only adapters.
       }
 
       test("Show should be able to derive type class for values with iterable support") {
-        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
 
         assertEquals(Show.derived[Iterable[Int]].show(List(1, 2, 3)), "List(1, 2, 3)")
       }
 
       test("Show should be able to derive type class for values with case class support") {
-        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
 
         case class Person(name: String, age: Int)
         assertEquals(Show.show(Person("John", 30)), "Person(name = \"John\", age = 30)")
       }
 
       test("Show should be able to derive type class for values with enum support") {
-        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
 
         sealed trait Color
         case object Red extends Color
@@ -506,7 +508,7 @@ Then in Scala 2 and Scala 3-specific code you would write only adapters.
       }
 
       test("Show should be able to inline showing for values with built-in support") {
-        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
 
         assertEquals(Show.show(true), "true")
         assertEquals(Show.show(1.toByte), "1.toByte")
@@ -520,20 +522,20 @@ Then in Scala 2 and Scala 3-specific code you would write only adapters.
       }
 
       test("Show should be able to inline showing for values with iterable support") {
-        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
 
         assertEquals(Show.show(List(1, 2, 3)), "List(1, 2, 3)")
       }
 
       test("Show should be able to inline showing for values with case class support") {
-        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
 
         case class Person(name: String, age: Int)
         assertEquals(Show.derived[Person].show(Person("John", 30)), "Person(name = \"John\", age = 30)")
       }
 
       test("Show should be able to inline showing for values with enum support") {
-        // import hearth.demo.debug.logDerivation // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
 
         sealed trait Color
         case object Red extends Color
