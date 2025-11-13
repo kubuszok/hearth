@@ -531,9 +531,14 @@ might be necessary).
 
 **Summoning implicits**:
 
-| Companion method                        | Extension method                    | Result type                      | Description                              |
-|-----------------------------------------|-------------------------------------|----------------------------------|------------------------------------------|
-| `Expr.summonImplicit[Ordering[String]]` | `Type[Ordering[String]].summonExpr` | `Option[Expr[Ordering[String]]]` | summon implicit value as expression      |
+| Companion method                                                                     | Extension method                                                                 | Result type                         | Description                                                     |
+|--------------------------------------------------------------------------------------|----------------------------------------------------------------------------------|-------------------------------------|-----------------------------------------------------------------|
+| `Expr.summonImplicit[Ordering[String]]`                                              | `Type[Ordering[String]].summonExpr`                                              | `SummoningResult[Ordering[String]]` | summon implicit value as expression, on failure give reason why |
+| `Expr.summonImplicitIgnoring[Ordering[String]](untypedMethod1, untypedMethod2, ...)` | `Type[Ordering[String]].summonExprIgnoring(untypedMethod1, untypedMethod2, ...)` | `SummoningResult[Ordering[String]]` | same as above, but ignores the symbols of provided methods      |
+
+`summonImplicitIgnoring`/`summonExprIgnoring` use functionalities, that on Scala 2.13 are available since 2.13.17 and on Scala 3 since 3.7.0 - it will throw if you use it on lower versions of Scala.
+
+It can be used to e.g. prevent macro from summoning itself, so that recursion will be handled within the same macro expansion by the macro.
 
 **`Expr` operations**:
 
