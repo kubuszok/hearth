@@ -6,7 +6,7 @@ import hearth.fp.instances.*
 import hearth.fp.syntax.*
 
 /** Fixtured for testing [[ExprsSpec]]. */
-trait ExprsFixturesImpl { this: MacroTypedCommons =>
+trait ExprsFixturesImpl { this: MacroTypedCommons & untyped.UntypedMethods =>
 
   // Expr methods
 
@@ -29,6 +29,25 @@ trait ExprsFixturesImpl { this: MacroTypedCommons =>
       )
     )
   )
+
+  def testExprSummoningIgnoring[A: Type, Companion: Type](ignoredNames: VarArgs[String]): Expr[Data] = {
+    val shouldBeIgnored = ignoredNames.toList.collect { case Expr(name) =>
+      name
+    }.toSet
+    val ignoredMethods = Type[Companion].methods.collect {
+      case method if shouldBeIgnored(method.value.name) => method.value.asUntyped
+    }.toSeq
+    Expr(
+      Data.map(
+        "Expr.summonImplicitIgnoring" -> Data(
+          Expr
+            .summonImplicitIgnoring[A](ignoredMethods*)
+            .toEither
+            .fold(error => "<failed to summon: " + removeAnsiColors(error) + ">", _.plainPrint)
+        )
+      )
+    )
+  }
 
   def testExprUpcasting[A: Type, B: Type](expr: Expr[A]): Expr[Data] = Expr(
     Data.map(

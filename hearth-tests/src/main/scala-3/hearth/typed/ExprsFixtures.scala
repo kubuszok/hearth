@@ -18,6 +18,14 @@ object ExprsFixtures {
   inline def testExprSummoning[A]: Data = ${ testExprSummoningImpl[A] }
   private def testExprSummoningImpl[A: Type](using q: Quotes): Expr[Data] = new ExprsFixtures(q).testExprSummoning[A]
 
+  inline def testExprSummoningIgnoring[A, Companion](inline ignoredNames: String*): Data = ${
+    testExprSummoningIgnoringImpl[A, Companion]('{ ignoredNames })
+  }
+  private def testExprSummoningIgnoringImpl[A: Type, Companion: Type](ignoredNames: Expr[Seq[String]])(using
+      q: Quotes
+  ): Expr[Data] =
+    new ExprsFixtures(q).testExprSummoningIgnoring[A, Companion](ignoredNames)
+
   inline def testExprUpcasting[A, B](inline expr: A): Data = ${ testExprUpcastingImpl[A, B]('{ expr }) }
   private def testExprUpcastingImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testExprUpcasting[A, B](expr)

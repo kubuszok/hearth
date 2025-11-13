@@ -14,6 +14,10 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
 
   def testExprSummoningImpl[A: c.WeakTypeTag]: c.Expr[Data] = testExprSummoning[A]
 
+  def testExprSummoningIgnoringImpl[A: c.WeakTypeTag, Companion: c.WeakTypeTag](
+      ignoredNames: c.Expr[String]*
+  ): c.Expr[Data] = testExprSummoningIgnoring[A, Companion](ignoredNames)
+
   def testExprUpcastingImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
     testExprUpcasting[A, B](expr)
 
@@ -55,6 +59,9 @@ object ExprsFixtures {
   def testExprPrinters[A](expr: A): Data = macro ExprsFixtures.testExprPrintersImpl[A]
 
   def testExprSummoning[A]: Data = macro ExprsFixtures.testExprSummoningImpl[A]
+
+  def testExprSummoningIgnoring[A, Companion](ignoredNames: String*): Data =
+    macro ExprsFixtures.testExprSummoningIgnoringImpl[A, Companion]
 
   def testExprUpcasting[A, B](expr: A): Data = macro ExprsFixtures.testExprUpcastingImpl[A, B]
 
