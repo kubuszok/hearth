@@ -252,6 +252,38 @@ val settings = Seq(
   Compile / console / scalacOptions --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
 )
 
+val scalaNewestSettings = Seq(
+  // Sets the Scala version to the newest supported version for the current platform.
+  scalaVersion := {
+      scalaVersion.value match {
+      case versions.scala213 if isNewestScalaTests => versions.scala213Newest
+      case versions.scala3 if isNewestScalaTests   => versions.scala3Newest
+      case current                                 => current
+    }
+  },
+  // Adds directories with sources that should only be tested with the newest Scala version.
+  Compile / unmanagedSourceDirectories ++= {
+    if (isNewestScalaTests) {
+      val srcDir = sourceDirectory.value.toPath
+      Seq(srcDir.resolve("main/scala-newest").toFile) ++
+        versions.fold(scalaVersion.value)(
+          for3 = Seq(srcDir.resolve("main/scala-3-newest").toFile),
+          for2_13 = Seq(srcDir.resolve("main/scala-2-newest").toFile)
+        )
+    } else Seq.empty
+  },
+  Test / unmanagedSourceDirectories ++= {
+    if (isNewestScalaTests) {
+      val srcDir = sourceDirectory.value.toPath
+      Seq(srcDir.resolve("test/scala-newest").toFile) ++
+        versions.fold(scalaVersion.value)(
+          for3 = Seq(srcDir.resolve("test/scala-3-newest").toFile),
+          for2_13 = Seq(srcDir.resolve("test/scala-2-newest").toFile)
+        )
+    } else Seq.empty
+  }
+)
+
 val dependencies = Seq(
   libraryDependencies ++= Seq(
     "org.scalameta" %%% "munit" % versions.munit % Test,
@@ -535,13 +567,6 @@ lazy val hearthTests = projectMatrix
     moduleName := "hearth-tests",
     name := "hearth-tests",
     description := "Tests for hearth utilities",
-    scalaVersion := {
-      scalaVersion.value match {
-        case versions.scala213 if isNewestScalaTests => versions.scala213Newest
-        case versions.scala3 if isNewestScalaTests   => versions.scala3Newest
-        case current                                 => current
-      }
-    },
     // Required for Scala 2.13 to test parsing of Scala XML.
     libraryDependencies ++= versions.fold(scalaVersion.value)(
       for3 = Seq(),
@@ -563,14 +588,13 @@ lazy val hearthTests = projectMatrix
     )
   )
   .settings(settings *)
+  .settings(scalaNewestSettings *)
   .settings(versionSchemeSettings *)
   .settings(publishSettings *)
   .settings(noPublishSettings *)
   .settings(dependencies *)
   .settings(mimaSettings *)
   .dependsOn(hearth)
-  .settings(
-  )
 
 // Test cross compilation: 2.13x3
 
