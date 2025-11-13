@@ -267,8 +267,8 @@ val scalaNewestSettings = Seq(
       val srcDir = sourceDirectory.value.toPath
       Seq(srcDir.resolve("main/scala-newest").toFile) ++
         versions.fold(scalaVersion.value)(
-          for3 = Seq(srcDir.resolve("main/scala-3-newest").toFile),
-          for2_13 = Seq(srcDir.resolve("main/scala-2-newest").toFile)
+          for3 = Seq(srcDir.resolve("main/scala-newest-3").toFile),
+          for2_13 = Seq(srcDir.resolve("main/scala-newest-2").toFile)
         )
     } else Seq.empty
   },
@@ -277,8 +277,8 @@ val scalaNewestSettings = Seq(
       val srcDir = sourceDirectory.value.toPath
       Seq(srcDir.resolve("test/scala-newest").toFile) ++
         versions.fold(scalaVersion.value)(
-          for3 = Seq(srcDir.resolve("test/scala-3-newest").toFile),
-          for2_13 = Seq(srcDir.resolve("test/scala-2-newest").toFile)
+          for3 = Seq(srcDir.resolve("test/scala-newest-3").toFile),
+          for2_13 = Seq(srcDir.resolve("test/scala-newest-2").toFile)
         )
     } else Seq.empty
   }

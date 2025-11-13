@@ -100,15 +100,17 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         hearthRequirementFailed(
           """Expr.summonImplicitIgnoring on Scala 3 relies on Implicits.searchIgnoring method, which is available since Scala 3.7.0.
             |Use Environment.currentScalaVersion to check if this method is available, or raise the minimum required Scala version for the library.""".stripMargin
-          )
+        )
         // $COVERAGE-ON$
       } { searchIgnoring =>
         parseImplicitSearchResult {
-          searchIgnoring.invoke(
-            Implicits,
-            /* tpe = */ TypeRepr.of[A],
-            /* ignored = */ excluded.map(_.symbol)
-          ).asInstanceOf[ImplicitSearchResult]
+          searchIgnoring
+            .invoke(
+              Implicits,
+              /* tpe = */ TypeRepr.of[A],
+              /* ignored = */ excluded.map(_.symbol)
+            )
+            .asInstanceOf[ImplicitSearchResult]
         }
       }
     private def parseImplicitSearchResult[A: Type](thunk: ImplicitSearchResult): SummoningResult[A] =
@@ -124,7 +126,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       }
     // $COVERAGE-OFF$
     private lazy val searchIgnoringOption =
-      quotes.reflect.Implicits.getClass.getDeclaredMethods.find(_.getName == "searchIgnoring")
+      quotes.reflect.Implicits.getClass.getMethods.find(_.getName == "searchIgnoring")
     // $COVERAGE-ON$
 
     override def upcast[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
