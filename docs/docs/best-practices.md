@@ -21,7 +21,7 @@ How it translates to macros?
 
 Details in [the blog post](https://kubuszok.com/2025/sanely-automatic-derivation/).
 
-TODO: `summonIgnoring` API in hearth + example here
+An example is shown on [the langing page](index.md).
 
 ### Aggregate errors instead of failing fast
 
