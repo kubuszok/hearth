@@ -83,10 +83,12 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def summonImplicitIgnoring[A: Type](excluded: UntypedMethod*): SummoningResult[A] =
       inferImplicitValueIgnoringOption.fold[SummoningResult[A]] {
+        // $COVERAGE-OFF$
         hearthRequirementFailed(
           """Expr.summonImplicitIgnoring on Scala 2 relies on c.inferImplicitValueIgnoring method, which is available since Scala 2.13.17.
-            |Use Environment.currentScalaVersion to check if method is available, or raise the minimum required Scala version for the library.""".stripMargin
+            |Use Environment.currentScalaVersion to check if this method is available, or raise the minimum required Scala version for the library.""".stripMargin
         )
+        // $COVERAGE-ON$
       } { inferImplicitValueIgnoring =>
         parseImplicitSearchResult {
           inferImplicitValueIgnoring
@@ -113,8 +115,10 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           SummoningResult.Diverging(Type[A])
         else SummoningResult.NotFound(Type[A])
     }
+    // $COVERAGE-OFF$
     private lazy val inferImplicitValueIgnoringOption =
       c.getClass.getDeclaredMethods.find(_.getName == "inferImplicitValueIgnoring")
+    // $COVERAGE-ON$
 
     override def upcast[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
       assert(

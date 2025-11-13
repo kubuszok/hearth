@@ -96,13 +96,19 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     }
     override def summonImplicitIgnoring[A: Type](excluded: UntypedMethod*): SummoningResult[A] =
       searchIgnoringOption.fold[SummoningResult[A]] {
+        // $COVERAGE-OFF$
         hearthRequirementFailed(
           """Expr.summonImplicitIgnoring on Scala 3 relies on Implicits.searchIgnoring method, which is available since Scala 3.7.0.
-            |Use Environment.currentScalaVersion to check if method is available, or raise the minimum required Scala version for the library.""".stripMargin
-        )
+            |Use Environment.currentScalaVersion to check if this method is available, or raise the minimum required Scala version for the library.""".stripMargin
+          )
+        // $COVERAGE-ON$
       } { searchIgnoring =>
         parseImplicitSearchResult {
-          searchIgnoring.invoke(Implicits, TypeRepr.of[A], excluded.map(_.symbol)).asInstanceOf[ImplicitSearchResult]
+          searchIgnoring.invoke(
+            Implicits,
+            /* tpe = */ TypeRepr.of[A],
+            /* ignored = */ excluded.map(_.symbol)
+          ).asInstanceOf[ImplicitSearchResult]
         }
       }
     private def parseImplicitSearchResult[A: Type](thunk: ImplicitSearchResult): SummoningResult[A] =
@@ -116,8 +122,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             case _                     => SummoningResult.NotFound(Type[A])
           }
       }
+    // $COVERAGE-OFF$
     private lazy val searchIgnoringOption =
       quotes.reflect.Implicits.getClass.getDeclaredMethods.find(_.getName == "searchIgnoring")
+    // $COVERAGE-ON$
 
     override def upcast[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
       Predef.assert(
