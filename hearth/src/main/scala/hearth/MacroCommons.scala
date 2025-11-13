@@ -39,6 +39,20 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
     jdkVersion = Environment.currentJDKVersion
   )
 
+  /** Throws an [[HearthRequirementError]] with the given description.
+    *
+    * Used to inform users that they are using Hearth in an invalid way, and should fix their code.
+    *
+    * @since 0.2.0
+    */
+  final private[hearth] def hearthRequirementFailed(description: String): Nothing = throw HearthRequirementError(
+    description,
+    hearthVersion = HearthVersion.byHearthLibrary,
+    scalaVersion = Environment.currentScalaVersion,
+    platform = Environment.currentPlatform,
+    jdkVersion = Environment.currentJDKVersion
+  )
+
   implicit final class MioExprOps[A](private val io: fp.effect.MIO[Expr[A]]) {
 
     /** Expand the final result of the MIO, or fail with a message.

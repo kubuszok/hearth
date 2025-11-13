@@ -271,7 +271,9 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
 
     def annotations: List[Expr_??] = Type.annotations(using tpe)
 
-    def summonExpr: Option[Expr[A]] = Expr.summonImplicit(using tpe)
+    def summonExpr: SummoningResult[A] = Expr.summonImplicit(using tpe)
+    def summonExprIgnoring(excluded: UntypedMethod*): SummoningResult[A] =
+      Expr.summonImplicitIgnoring(excluded*)(using tpe)
 
     def isPrimitive: Boolean = Type.isPrimitive(using tpe)
     def isArray: Boolean = Type.isArray(using tpe)

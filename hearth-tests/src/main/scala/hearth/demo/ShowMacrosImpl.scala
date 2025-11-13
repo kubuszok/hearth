@@ -111,7 +111,7 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
   private def attemptUsingImplicit[A: Type](value: Expr[A]): Attempt[String] =
     Log.info(s"Attempting summoning implicit ${Types.Show[A].prettyPrint} to show value") >> MIO {
       implicit val showA: Type[Show[A]] = Types.Show[A]
-      Expr.summonImplicit[Show[A]].map { show =>
+      Expr.summonImplicit[Show[A]].toOption.map { show =>
         Expr.quote {
           Expr.splice(show).show(Expr.splice(value))
         }

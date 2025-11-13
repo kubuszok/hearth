@@ -91,7 +91,33 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     override def plainAST[A](expr: Expr[A]): String = expr.asTerm.show(using FormattedTreeStructure)
     override def prettyAST[A](expr: Expr[A]): String = expr.asTerm.show(using FormattedTreeStructureAnsi)
 
-    override def summonImplicit[A: Type]: Option[Expr[A]] = scala.quoted.Expr.summon[A]
+    override def summonImplicit[A: Type]: SummoningResult[A] = parseImplicitSearchResult {
+      Implicits.search(TypeRepr.of[A])
+    }
+    override def summonImplicitIgnoring[A: Type](excluded: UntypedMethod*): SummoningResult[A] =
+      searchIgnoringOption.fold[SummoningResult[A]] {
+        hearthRequirementFailed(
+          """Expr.summonImplicitIgnoring on Scala 3 relies on Implicits.searchIgnoring method, which is available since Scala 3.7.0.
+            |Use Environment.currentScalaVersion to check if method is available, or raise the minimum required Scala version for the library.""".stripMargin
+        )
+      } { searchIgnoring =>
+        parseImplicitSearchResult {
+          searchIgnoring.invoke(Implicits, TypeRepr.of[A], excluded.map(_.symbol)).asInstanceOf[ImplicitSearchResult]
+        }
+      }
+    private def parseImplicitSearchResult[A: Type](thunk: ImplicitSearchResult): SummoningResult[A] =
+      thunk match {
+        case iss: ImplicitSearchSuccess => SummoningResult.Found(iss.tree.asExprOf[A])
+        case isf: ImplicitSearchFailure =>
+          // TODO: consider parsing the message to get the list of ambiguous implicit values
+          isf match {
+            case _: AmbiguousImplicits => SummoningResult.Ambiguous(Type[A])
+            case _: DivergingImplicit  => SummoningResult.Diverging(Type[A])
+            case _                     => SummoningResult.NotFound(Type[A])
+          }
+      }
+    private lazy val searchIgnoringOption =
+      quotes.reflect.Implicits.getClass.getDeclaredMethods.find(_.getName == "searchIgnoring")
 
     override def upcast[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
       Predef.assert(

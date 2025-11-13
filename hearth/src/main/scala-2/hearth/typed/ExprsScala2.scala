@@ -78,12 +78,43 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     override def plainAST[A](expr: Expr[A]): String = showRawPretty(expr.tree, SyntaxHighlight.plain)
     override def prettyAST[A](expr: Expr[A]): String = showRawPretty(expr.tree, SyntaxHighlight.ANSI)
 
-    override def summonImplicit[A: Type]: Option[Expr[A]] =
-      scala.util
-        .Try(c.inferImplicitValue(Type[A].tpe, silent = true, withMacrosDisabled = false))
-        .toOption
-        .filterNot(_ == EmptyTree)
-        .map(c.Expr[A](_))
+    override def summonImplicit[A: Type]: SummoningResult[A] = parseImplicitSearchResult {
+      c.inferImplicitValue(Type[A].tpe, silent = true, withMacrosDisabled = false)
+    }
+    override def summonImplicitIgnoring[A: Type](excluded: UntypedMethod*): SummoningResult[A] =
+      inferImplicitValueIgnoringOption.fold[SummoningResult[A]] {
+        hearthRequirementFailed(
+          """Expr.summonImplicitIgnoring on Scala 2 relies on c.inferImplicitValueIgnoring method, which is available since Scala 2.13.17.
+            |Use Environment.currentScalaVersion to check if method is available, or raise the minimum required Scala version for the library.""".stripMargin
+        )
+      } { inferImplicitValueIgnoring =>
+        parseImplicitSearchResult {
+          inferImplicitValueIgnoring
+            .invoke(
+              c,
+              /* tp = */ Type[A].tpe,
+              /* silent = */ true,
+              /* withMacrosDisabled = */ false,
+              /* position = */ c.enclosingPosition,
+              /* excluded = */ excluded.map(_.symbol)
+            )
+            .asInstanceOf[c.Tree]
+        }
+      }
+    private def parseImplicitSearchResult[A: Type](thunk: => c.Tree): SummoningResult[A] = try {
+      val result = thunk
+      if (result != EmptyTree) SummoningResult.Found(c.Expr[A](result))
+      else SummoningResult.NotFound(Type[A])
+    } catch {
+      case exception: scala.reflect.macros.TypecheckException =>
+        // TODO: consider parsing the message to get the list of ambiguous implicit values
+        if (exception.getMessage.startsWith("ambiguous implicit values:")) SummoningResult.Ambiguous(Type[A])
+        else if (exception.getMessage.startsWith("diverging implicit expansion for type"))
+          SummoningResult.Diverging(Type[A])
+        else SummoningResult.NotFound(Type[A])
+    }
+    private lazy val inferImplicitValueIgnoringOption =
+      c.getClass.getDeclaredMethods.find(_.getName == "inferImplicitValueIgnoring")
 
     override def upcast[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
       assert(

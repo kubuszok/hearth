@@ -51,7 +51,11 @@ final class ExprsSpec extends MacroSuite {
       import ExprsFixtures.testExprSummoning
 
       test("should summon implicit of available") {
-        testExprSummoning[List[Int]] <==> Data.map("Expr.summonImplicit" -> Data("<failed to summon>"))
+        testExprSummoning[List[Int]] <==> Data.map(
+          "Expr.summonImplicit" -> Data(
+            "<failed to summon: No implicit value of type scala.collection.immutable.List[scala.Int] found>"
+          )
+        )
         testExprSummoning[DummyImplicit] <==> Data.map(
           "Expr.summonImplicit" -> Data("scala.DummyImplicit.dummyImplicit")
         )
