@@ -117,7 +117,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     // $COVERAGE-OFF$
     private lazy val inferImplicitValueIgnoringOption =
-      c.getClass.getDeclaredMethods.find(_.getName == "inferImplicitValueIgnoring")
+      c.getClass.getMethods.find(_.getName == "inferImplicitValueIgnoring")
     // $COVERAGE-ON$
 
     override def upcast[A: Type, B: Type](expr: Expr[A]): Expr[B] = {

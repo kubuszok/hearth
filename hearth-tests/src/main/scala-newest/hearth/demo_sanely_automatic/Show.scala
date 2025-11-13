@@ -1,8 +1,8 @@
 // We've put things into a separate package and do not use:
 //   package hearth
-//   package demo
+//   package demo_sanely_automatic
 // here, because we want to show all the imports normal users would have to do.
-package hearth.demo
+package hearth.demo_sanely_automatic
 
 /** Example of Show type class with sanely-automatic derivation.
   *
@@ -15,28 +15,19 @@ package hearth.demo
   * @see
   *   [[https://www.youtube.com/watch?v=M54ux51H6Fo]] for video explaining the concept
   */
-trait Show[A] extends Show.AutoDerived[A] {
+trait Show[A] {
 
   def show(value: A): String
 }
 
 object Show extends ShowCompanionCompat {
 
-  def apply[A](implicit show: Show.AutoDerived[A]): Show[A] = show match {
-    case show: Show[A] => show
-  }
-
-  // Pre 2.13.17 and 3.7.0 we need this trick to avoid summoning the implicit value automatically.
-  // See hearth.demo_sanely_automatic for version which does not need this trick.
-  sealed trait AutoDerived[A] {
-
-    def show(value: A): String
-  }
+  def apply[A](implicit show: Show[A]): Show[A] = show
 
   /** Special type - is its implicit is in scope then macros will log the derivation process.
     *
     * @see
-    *   [[hearth.demo.debug.logDerivation]] for details
+    *   [[hearth.demo_sanely_automatic.debug.logDerivation]] for details
     */
   sealed trait LogDerivation
   object LogDerivation extends LogDerivation
