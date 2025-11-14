@@ -859,27 +859,27 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     ): DefBuilder[Expr[A] => Expr[Return], Return, (Expr[A] => Expr[Return], Expr[A])]
     // format: on
 
-    def build[Signature, Return](builder: DefBuilder[Signature, Return, Expr[Return]]): Scoped[Signature]
+    def build[Signature, Returned](builder: DefBuilder[Signature, Returned, Expr[Returned]]): Scoped[Signature]
 
-    def buildCached[Signature, Return](
+    def buildCached[Signature, Returned](
         cache: DefCache,
         key: String,
-        builder: DefBuilder[Signature, Return, Expr[Return]]
+        builder: DefBuilder[Signature, Returned, Expr[Returned]]
     ): DefCache
 
-    def forwardDeclare[Signature, Return, Value](
+    def forwardDeclare[Signature, Returned, Value](
         cache: DefCache,
         key: String,
-        builder: DefBuilder[Signature, Return, Value]
+        builder: DefBuilder[Signature, Returned, Value]
     ): DefCache
 
-    def partition[Signature, Return, A, B, C](builder: DefBuilder[Signature, Return, A])(
+    def partition[Signature, Returned, A, B, C](builder: DefBuilder[Signature, Returned, A])(
         f: A => Either[B, C]
-    ): Either[DefBuilder[Signature, Return, B], DefBuilder[Signature, Return, C]]
+    ): Either[DefBuilder[Signature, Returned, B], DefBuilder[Signature, Returned, C]]
 
-    def traverse[Signature, Return]: fp.Traverse[DefBuilder[Signature, Return, *]]
+    def traverse[Signature, Returned]: fp.Traverse[DefBuilder[Signature, Returned, *]]
   }
-  implicit final def DefBuilderTraverse[Signature, Return]: fp.Traverse[DefBuilder[Signature, Return, *]] =
+  implicit final def DefBuilderTraverse[Signature, Returned]: fp.Traverse[DefBuilder[Signature, Returned, *]] =
     DefBuilder.traverse
 
   implicit final class DefBuilderMethods[Signature, Returned, A](
@@ -935,19 +935,21 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     * {{{
     * // More complex case (where builder is needed to aggregate errors)
     *
-    * val cacheLocal = MIO.local(DefCache.empty)(identity)(DefCache.merge)
+    * val cacheLocal = DefCache.mlocal
     *
-    * def createExprBOrError(a): MIO[Return] = ... // using cacheLocal.get.map(_.get1[A, Return]("myMethod2"))
+    * def createExprBOrError(a): MIO[Return] = ... // using cacheLocal.get1[A, Return]("myMethod2")
     *
     * for {
-    *   cache <- cacheLocal.get
+    *   _ <- MIO.void
     *   myMethod2 = DefBuilder.of1[A, Return]("myMethod2", "a")
-    *   _ <- cacheLocal.set(myMethod2.forwardDeclare(cache, "myMethod2"))
-    *   result <- myMethod2.traverse[MIO, Return] { (self: Expr[A] => Expr[Return], a: Expr[A]) =>
-    *     // use a, cache would be handled as "global"
-    *     createExprBOrError(self, a): MIO[Expr[Return]]
-    *   }.map(_.build)
-    * } yield result // : MIO[Scoped[Expr[A] => Expr[Return]]]
+    *   // This will let us use cacheLocal.get1[A, Return]("myMethod") to call the method
+    *   // before it's actually built, e.g. inside of if.
+    *   _ <- cacheLocal.forwardDeclare(myMethod2, "myMethod2")
+    *   myMethod2WithBody <- myMethod2.traverse[MIO, Return] { (_, a: Expr[A]) =>
+    *     // use a, cache would be handled as a "global" variable
+    *     createExprBOrError(a): MIO[Expr[Return]]
+    *   }
+    * } yield myMethod2WithBody.build // : MIO[Scoped[Expr[A] => Expr[Return]]]
     * }}}
     *
     * @since 0.2.0
@@ -958,6 +960,8 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
   trait DefCacheModule { this: DefCache.type =>
 
     def empty: DefCache
+
+    def mlocal: fp.effect.MLocal[DefCache] = fp.effect.MLocal(empty)(identity)(merge)
 
     def merge(cache1: DefCache, cache2: DefCache): DefCache
 
