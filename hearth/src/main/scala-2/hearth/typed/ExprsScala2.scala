@@ -1194,8 +1194,14 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     private[typed] def forwardDeclare(key: DefCache.Key, signature: Any): DefCache =
       new DefCache(definitions.updated(key, new DefCache.Value(signature, None)))
 
-    private[typed] def set(key: DefCache.Key, signature: Any, definition: ValOrDefDef): DefCache =
+    private[typed] def set(key: DefCache.Key, signature: Any, definition: ValOrDefDef): DefCache = {
+      if (definitions.get(key).exists(_.signature != signature)) {
+        hearthRequirementFailed(
+          s"Def with key $key already exists with different signature, you probably created it twice in 2 branches, without noticing"
+        )
+      }
       new DefCache(definitions.updated(key, new DefCache.Value(signature, Some(definition))))
+    }
 
     private[typed] def get[Signature](key: DefCache.Key): Option[Signature] =
       definitions.get(key).map(_.signature.asInstanceOf[Signature])
@@ -1226,6 +1232,25 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     final private[typed] case class Value(signature: Any, definition: Option[ValOrDefDef])
 
     override def empty: DefCache = new DefCache(ListMap.empty)
+
+    override def merge(cache1: DefCache, cache2: DefCache): DefCache = {
+      val keys = scala.collection.immutable.ListSet.from(cache1.definitions.keys ++ cache2.definitions.keys)
+      val result = keys.view.map { key =>
+        (cache1.definitions.get(key), cache2.definitions.get(key)) match {
+          case (Some(value1), Some(value2)) =>
+            if (value1.signature != value2.signature) {
+              hearthRequirementFailed(
+                s"Def with key $key already exists with different signature, you probably created it twice in 2 branches, without noticing"
+              )
+            }
+            (key, value1)
+          case (Some(value), None) => (key, value)
+          case (None, Some(value)) => (key, value)
+          case (None, None)        => ??? // impossible
+        }
+      }
+      new DefCache(ListMap.from(result))
+    }
 
     override def get1[A: Type, Returned: Type](cache: DefCache, key: String): Option[Expr[A] => Expr[Returned]] =
       cache.get[Expr[A] => Expr[Returned]](new Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped))
