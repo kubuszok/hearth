@@ -5,6 +5,8 @@ import hearth.fp.data.NonEmptyVector
 import hearth.fp.syntax.*
 import hearth.treeprinter.SyntaxHighlight
 
+import scala.collection.immutable.ListMap
+
 trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
   import c.universe.*
@@ -296,7 +298,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
   }
 
-  final class Scoped[A] private (private val definitions: NonEmptyVector[ValOrDefDef], private val value: A)
+  final class Scoped[A] private[typed] (private val definitions: NonEmptyVector[ValOrDefDef], private val value: A)
 
   object Scoped extends ScopedModule {
 
@@ -1083,12 +1085,12 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     override def build[From[_], To: Type](builder: LambdaBuilder[From, Expr[To]]): Expr[From[To]] =
       builder.mk(builder.value)
 
-    override def partition[From[_], A, B, C](promise: LambdaBuilder[From, A])(
+    override def partition[From[_], A, B, C](builder: LambdaBuilder[From, A])(
         f: A => Either[B, C]
     ): Either[LambdaBuilder[From, B], LambdaBuilder[From, C]] =
-      f(promise.value) match {
-        case Left(value)  => Left(new LambdaBuilder[From, B](promise.mk, value))
-        case Right(value) => Right(new LambdaBuilder[From, C](promise.mk, value))
+      f(builder.value) match {
+        case Left(value)  => Left(new LambdaBuilder[From, B](builder.mk, value))
+        case Right(value) => Right(new LambdaBuilder[From, C](builder.mk, value))
       }
 
     override def traverse[From[_]]: fp.Traverse[LambdaBuilder[From, *]] = new fp.Traverse[LambdaBuilder[From, *]] {
@@ -1103,5 +1105,109 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       ): G[LambdaBuilder[From, B]] =
         f(fa.value).map(b => new LambdaBuilder[From, B](fa.mk, b))
     }
+  }
+
+  final class DefBuilder[Signature, Returned, Value] private (
+      private val mk: DefBuilder.Mk[Signature, Returned],
+      private val value: Value
+  )
+
+  object DefBuilder extends DefBuilderModule {
+
+    final private class Mk[Signature, Returned] private (
+        signature: Signature,
+        key: String => DefCache.Key,
+        buildValDef: Expr[Returned] => ValOrDefDef
+    ) {
+
+      def build(body: Expr[Returned]): Scoped[Signature] =
+        new Scoped[Signature](NonEmptyVector.one(buildValDef(body)), signature)
+
+      def buildCached(cache: DefCache, body: Expr[Returned]): DefCache =
+        new DefCache(cache.definitions.updated(key, buildValDef(body)))
+    }
+
+    override def of1[A: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType
+    ): DefBuilder[Expr[A] => Expr[Returned], Returned, (Expr[A] => Expr[Returned], Expr[A])] = {
+      val a1 = freshTerm[A](freshA, null)
+      val name = freshTerm[Returned](freshName, null)
+      val self = (a: Expr[A]) => c.Expr[Returned](q"$name($a)")
+      new DefBuilder[Expr[A] => Expr[Returned], Returned, (Expr[A] => Expr[Returned], Expr[A])](
+        new Mk[Expr[A] => Expr[Returned], Returned](
+          signature = self,
+          key = key => new DefCache.Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}): ${Type[Returned]} = $body"
+        ),
+        (self, c.Expr[A](q"$a1"))
+      )
+    }
+
+    override def build[Signature, Returned](
+        builder: DefBuilder[Signature, Returned, Expr[Returned]]
+    ): Scoped[Signature] =
+      builder.mk.build(builder.value)
+
+    override def buildCached[Signature, Returned](
+        cache: DefCache,
+        key: String,
+        builder: DefBuilder[Signature, Returned, Expr[Returned]]
+    ): DefCache =
+      builder.mk.buildCached(cache, key, builder.value)
+
+    override def partition[Signature, Returned, A, B, C](
+        builder: DefBuilder[Signature, Returned, A]
+    )(f: A => Either[B, C]): Either[DefBuilder[Signature, Returned, B], DefBuilder[Signature, Returned, C]] =
+      f(builder.value) match {
+        case Left(value)  => Left(new DefBuilder[Signature, Returned, B](builder.mk, value))
+        case Right(value) => Right(new DefBuilder[Signature, Returned, C](builder.mk, value))
+      }
+
+    override def traverse[Signature, Returned]: fp.Traverse[DefBuilder[Signature, Returned, *]] =
+      new fp.Traverse[DefBuilder[Signature, Returned, *]] {
+
+        override def traverse[G[_]: fp.Applicative, A, B](fa: DefBuilder[Signature, Returned, A])(
+            f: A => G[B]
+        ): G[DefBuilder[Signature, Returned, B]] =
+          f(fa.value).map(b => new DefBuilder[Signature, Returned, B](fa.mk, b))
+
+        override def parTraverse[G[_]: fp.Parallel, A, B](fa: DefBuilder[Signature, Returned, A])(
+            f: A => G[B]
+        ): G[DefBuilder[Signature, Returned, B]] =
+          f(fa.value).map(b => new DefBuilder[Signature, Returned, B](fa.mk, b))
+      }
+  }
+
+  final class DefCache private[typed] (private val definitions: ListMap[DefCache.Key, ValOrDefDef])
+
+  object DefCache extends DefCacheModule {
+
+    private class Key(val name: String, val args: Seq[UntypedType], val returned: UntypedType) {
+      override def hashCode(): Int = name.hashCode()
+
+      override def equals(other: Any): Boolean = other match {
+        case that: Key =>
+          name == that.name && args.length == that.args.length && {
+            val length = args.length
+            var i = 0
+            while (i < length && args(i) =:= that.args(i))
+              i += 1
+            i == length
+          } && returned =:= that.returned
+        case _ => false
+      }
+    }
+
+    override def empty: DefCache = new DefCache(ListMap.empty)
+
+    override def get1[A: Type, Returned: Type](cache: DefCache, key: String): Option[Expr[A] => Expr[Returned]] =
+      cache.definitions
+        .get(new Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped))
+        .map(_.asInstanceOf[Expr[A] => Expr[Returned]])
+
+    override def toScoped(cache: DefCache): Scoped[Unit] =
+      // TODO: handle case where NonEmptyVector.fromVector returns None
+      new Scoped[Unit](NonEmptyVector.fromVector(cache.definitions.values.toVector).get, ())
   }
 }
