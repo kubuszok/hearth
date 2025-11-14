@@ -790,7 +790,7 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     def build[From[_], To: Type](builder: LambdaBuilder[From, Expr[To]]): Expr[From[To]]
 
-    def partition[From[_], A, B, C](promise: LambdaBuilder[From, A])(
+    def partition[From[_], A, B, C](builder: LambdaBuilder[From, A])(
         f: A => Either[B, C]
     ): Either[LambdaBuilder[From, B], LambdaBuilder[From, C]]
 
@@ -806,5 +806,116 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     def buildWith[To: Type](f: A => Expr[To]): Expr[From[To]] = LambdaBuilder.build(builder.map(f))
 
     def build[To: Type](implicit ev: A <:< Expr[To]): Expr[From[To]] = buildWith(ev)
+  }
+
+  /** Allow us to build def, when we might need to call it recursively and we want to aggregate errors.
+    *
+    * One use case could be building some def, where:
+    *   - we want to construct the type class method's body
+    *   - we want to reuse the same transformation logic and "cache" it as a def
+    *   - we want it to take some arguments
+    *   - we want to handle recursive data types
+    *   - the whole computation is fallible, and we would like to aggregate "parallel" errors
+    *
+    * as such case requires us to know the return type at the time of building the def, but also having the reference to
+    * the def that will be build. It also becomes impossible to use: `Expr.quotes { def ... =  ... }` approach with
+    * direct style (it has no error aggregation and a def is a statement).
+    *
+    * {{{
+    * // Simple case (where builder is not actually needed)
+    * DefBuilder.of1[A, Return]("a").buildWith { (self: Expr[A] => Expr[Return], a: Expr[A]) =>
+    *   // use self and a
+    *   createExprB(self, a): Expr[B]
+    * } // : Scoped[Expr[A] => Expr[Return]]
+    *
+    * // More complex case (where builder is needed to aggregate errors)
+    * DefBuilder.of1[A, Return]("a").traverse[MIO, Return] { (self: Expr[A] => Expr[Return], a: Expr[A]) =>
+    *   // use a
+    *   createExprBOrError(self, a): MIO[Expr[Return]]
+    * }.map(_.build) // : MIO[Scoped[Expr[A] => Expr[Return]]]
+    * }}}
+    *
+    * If we are not taking arguments, do not need recursion nor error aggregation, we can use [[Scoped]] to create a
+    * def.
+    *
+    * @since 0.2.0
+    *
+    * @param Signature
+    *   def signature, as used by a macro, e.g. `Expr[A] => Expr[Return]`, `Expr[A], Expr[B] => Expr[Return]`, etc.
+    * @param Return
+    *   return type of the def, as used by a macro, e.g. `Return`, `Return`, etc.
+    * @param Value
+    *   current value of a builder - when it becomes Expr of Return, we can build the def returning this Expr
+    */
+  type DefBuilder[Signature, Return, Value]
+
+  val DefBuilder: DefBuilderModule
+  trait DefBuilderModule { this: DefBuilder.type =>
+
+    // format: off
+    def of1[A: Type, Return: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType
+    ): DefBuilder[Expr[A] => Expr[Return], Return, (Expr[A] => Expr[Return], Expr[A])]
+    // format: on
+
+    def build[Signature, Return](builder: DefBuilder[Signature, Return, Expr[Return]]): Scoped[Signature]
+
+    def buildCached[Signature, Return](
+        cache: DefCache,
+        key: String,
+        builder: DefBuilder[Signature, Return, Expr[Return]]
+    ): DefCache
+
+    def partition[Signature, Return, A, B, C](builder: DefBuilder[Signature, Return, A])(
+        f: A => Either[B, C]
+    ): Either[DefBuilder[Signature, Return, B], DefBuilder[Signature, Return, C]]
+
+    def traverse[Signature, Return]: fp.Traverse[DefBuilder[Signature, Return, *]]
+  }
+  implicit final def DefBuilderTraverse[Signature, Return]: fp.Traverse[DefBuilder[Signature, Return, *]] =
+    DefBuilder.traverse
+
+  implicit final class DefBuilderMethods[Signature, Returned, A](
+      private val builder: DefBuilder[Signature, Returned, A]
+  ) {
+
+    def partition[B, C](
+        f: A => Either[B, C]
+    ): Either[DefBuilder[Signature, Returned, B], DefBuilder[Signature, Returned, C]] =
+      DefBuilder.partition(builder)(f)
+
+    def buildWith(f: A => Expr[Returned]): Scoped[Signature] = DefBuilder.build(builder.map(f))
+
+    def build(implicit ev: A <:< Expr[Returned]): Scoped[Signature] = buildWith(ev)
+
+    def buildCachedWith(cache: DefCache, key: String)(f: A => Expr[Returned]): DefCache =
+      DefBuilder.buildCached(cache, key, builder.map(f))
+
+    def buildCached(cache: DefCache, key: String)(implicit ev: A <:< Expr[Returned]): DefCache =
+      buildCachedWith(cache, key)(ev)
+  }
+
+  /** Cache for defs, so that you can avoid computing everything inside nested [[Scoped]]s when you need to construct
+    * multiple defs.
+    *
+    * @since 0.2.0
+    */
+  type DefCache
+
+  val DefCache: DefCacheModule
+  trait DefCacheModule { this: DefCache.type =>
+
+    def empty: DefCache
+
+    def get1[A: Type, Returned: Type](cache: DefCache, key: String): Option[Expr[A] => Expr[Returned]]
+
+    def toScoped(cache: DefCache): Scoped[Unit]
+  }
+  implicit final class DefCacheMethods(private val cache: DefCache) {
+
+    def get1[A: Type, Returned: Type](key: String): Option[Expr[A] => Expr[Returned]] = DefCache.get1(cache, key)
+
+    def toScoped: Scoped[Unit] = DefCache.toScoped(cache)
   }
 }
