@@ -1114,17 +1114,17 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
   object DefBuilder extends DefBuilderModule {
 
-    final private class Mk[Signature, Returned] private (
+    final private[typed] class Mk[Signature, Returned] private[typed] (
         signature: Signature,
-        key: String => DefCache.Key,
+        mkKey: String => DefCache.Key,
         buildValDef: Expr[Returned] => ValOrDefDef
     ) {
 
       def build(body: Expr[Returned]): Scoped[Signature] =
         new Scoped[Signature](NonEmptyVector.one(buildValDef(body)), signature)
 
-      def buildCached(cache: DefCache, body: Expr[Returned]): DefCache =
-        new DefCache(cache.definitions.updated(key, buildValDef(body)))
+      def buildCached(cache: DefCache, key: String, body: Expr[Returned]): DefCache =
+        new DefCache(cache.definitions.updated(mkKey(key), buildValDef(body)))
     }
 
     override def of1[A: Type, Returned: Type](
@@ -1137,7 +1137,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       new DefBuilder[Expr[A] => Expr[Returned], Returned, (Expr[A] => Expr[Returned], Expr[A])](
         new Mk[Expr[A] => Expr[Returned], Returned](
           signature = self,
-          key = key => new DefCache.Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped),
+          mkKey = (key: String) => new DefCache.Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}): ${Type[Returned]} = $body"
         ),
         (self, c.Expr[A](q"$a1"))
@@ -1179,11 +1179,12 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       }
   }
 
-  final class DefCache private[typed] (private val definitions: ListMap[DefCache.Key, ValOrDefDef])
+  final class DefCache private[typed] (val definitions: ListMap[DefCache.Key, ValOrDefDef])
 
   object DefCache extends DefCacheModule {
 
-    private class Key(val name: String, val args: Seq[UntypedType], val returned: UntypedType) {
+    final private[typed] class Key(val name: String, val args: Seq[UntypedType], val returned: UntypedType) {
+
       override def hashCode(): Int = name.hashCode()
 
       override def equals(other: Any): Boolean = other match {

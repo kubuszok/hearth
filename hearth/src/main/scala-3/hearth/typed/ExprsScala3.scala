@@ -423,7 +423,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     }
   }
 
-  final class Scoped[A] private (private val definitions: NonEmptyVector[Statement], private val value: A)
+  final class Scoped[A] private[typed] (private val definitions: NonEmptyVector[Statement], private val value: A)
 
   object Scoped extends ScopedModule {
 
@@ -2086,17 +2086,17 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
   object DefBuilder extends DefBuilderModule {
 
-    final private class Mk[Signature, Returned] private (
+    final private[typed] class Mk[Signature, Returned] private[typed] (
         signature: Signature,
-        key: String => DefCache.Key,
+        mkKey: String => DefCache.Key,
         buildValDef: Expr[Returned] => Statement
     ) {
 
       def build(body: Expr[Returned]): Scoped[Signature] =
         new Scoped[Signature](NonEmptyVector.one(buildValDef(body)), signature)
 
-      def buildCached(cache: DefCache, body: Expr[Returned]): DefCache =
-        new DefCache(cache.definitions.updated(key, buildValDef(body)))
+      def buildCached(cache: DefCache, key: String, body: Expr[Returned]): DefCache =
+        new DefCache(cache.definitions.updated(mkKey(key), buildValDef(body)))
     }
 
     override def of1[A: Type, Returned: Type](
@@ -2115,20 +2115,25 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       new DefBuilder[Expr[A] => Expr[Returned], Returned, (Expr[A] => Expr[Returned], Expr[A])](
         new Mk[Expr[A] => Expr[Returned], Returned](
           signature = self,
-          key = key => new DefCache.Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped),
+          mkKey = (key: String) => new DefCache.Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
             DefDef(
               name,
-              { case List(List(a)) =>
-                Some {
-                  Block(
-                    List(
-                      ValDef(a1, Some(a)),
-                      '{ val _ = $aExpr }.asTerm
-                    ),
-                    body.asTerm.changeOwner(name)
-                  )
-                }
+              {
+                case List(List(a: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected a single Term argument, got:\n$preview")
               }
             )
         ),
@@ -2171,11 +2176,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       }
   }
 
-  final class DefCache private[typed] (private val definitions: ListMap[DefCache.Key, Statement])
+  final class DefCache private[typed] (val definitions: ListMap[DefCache.Key, Statement])
 
   object DefCache extends DefCacheModule {
 
-    private class Key(val name: String, val args: Seq[UntypedType], val returned: UntypedType) {
+    final private[typed] class Key(val name: String, val args: Seq[UntypedType], val returned: UntypedType) {
+
       override def hashCode(): Int = name.hashCode()
 
       override def equals(other: Any): Boolean = other match {
