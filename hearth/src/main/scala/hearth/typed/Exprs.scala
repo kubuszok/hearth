@@ -823,13 +823,13 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     *
     * {{{
     * // Simple case (where builder is not actually needed)
-    * DefBuilder.of1[A, Return]("a").buildWith { (self: Expr[A] => Expr[Return], a: Expr[A]) =>
+    * DefBuilder.of1[A, Return]("myMethod", "a").buildWith { (self: Expr[A] => Expr[Return], a: Expr[A]) =>
     *   // use self and a
     *   createExprB(self, a): Expr[B]
     * } // : Scoped[Expr[A] => Expr[Return]]
     *
     * // More complex case (where builder is needed to aggregate errors)
-    * DefBuilder.of1[A, Return]("a").traverse[MIO, Return] { (self: Expr[A] => Expr[Return], a: Expr[A]) =>
+    * DefBuilder.of1[A, Return]("myMethod2", "a").traverse[MIO, Return] { (self: Expr[A] => Expr[Return], a: Expr[A]) =>
     *   // use a
     *   createExprBOrError(self, a): MIO[Expr[Return]]
     * }.map(_.build) // : MIO[Scoped[Expr[A] => Expr[Return]]]
@@ -895,6 +895,8 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     def build(implicit ev: A <:< Expr[Returned]): Scoped[Signature] = buildWith(ev)
 
+    def forwardDeclare(cache: DefCache, key: String): DefCache = DefBuilder.forwardDeclare(cache, key, builder)
+
     def buildCachedWith(cache: DefCache, key: String)(f: A => Expr[Returned]): DefCache =
       DefBuilder.buildCached(cache, key, builder.map(f))
 
@@ -905,6 +907,49 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
   /** Cache for defs, so that you can avoid computing everything inside nested [[Scoped]]s when you need to construct
     * multiple defs.
     *
+    * Assumes that cached values are distinguished by:
+    *   - a key String
+    *   - a list of input parameters' types
+    *   - a return type
+    *
+    * We should provide the string key ourselves, to prevent e.g. accidentally creating the same def twice, in 2
+    * branches, without noticing (defs would use fresh names, so they would be different)
+    *
+    * {{{
+    * // Simple case (where builder is not actually needed)
+    *
+    * var cache = DefCache.empty
+    *
+    * val myMethod = DefBuilder.of1[A, Return]("myMethod", "a")
+    *
+    * // This will let us use cache.get1[A, Return]("myMethod") to call the method
+    * // before it's actually built, e.g. inside of if.
+    * cache = myMethod.forwardDeclare(cache, "myMethod")
+    *
+    * myMethod.buildWith { (_, a: Expr[A]) =>
+    *   // pass cache and a
+    *   createExprB(cache, a): Expr[B]
+    * } // : Scoped[Expr[A] => Expr[Return]]
+    * }}}
+    *
+    * {{{
+    * // More complex case (where builder is needed to aggregate errors)
+    *
+    * val cacheLocal = MIO.local(DefCache.empty)(identity)(DefCache.merge)
+    *
+    * def createExprBOrError(a): MIO[Return] = ... // using cacheLocal.get.map(_.get1[A, Return]("myMethod2"))
+    *
+    * for {
+    *   cache <- cacheLocal.get
+    *   myMethod2 = DefBuilder.of1[A, Return]("myMethod2", "a")
+    *   _ <- cacheLocal.set(myMethod2.forwardDeclare(cache, "myMethod2"))
+    *   result <- myMethod2.traverse[MIO, Return] { (self: Expr[A] => Expr[Return], a: Expr[A]) =>
+    *     // use a, cache would be handled as "global"
+    *     createExprBOrError(self, a): MIO[Expr[Return]]
+    *   }.map(_.build)
+    * } yield result // : MIO[Scoped[Expr[A] => Expr[Return]]]
+    * }}}
+    *
     * @since 0.2.0
     */
   type DefCache
@@ -913,6 +958,8 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
   trait DefCacheModule { this: DefCache.type =>
 
     def empty: DefCache
+
+    def merge(cache1: DefCache, cache2: DefCache): DefCache
 
     def get1[A: Type, Returned: Type](cache: DefCache, key: String): Option[Expr[A] => Expr[Returned]]
 
