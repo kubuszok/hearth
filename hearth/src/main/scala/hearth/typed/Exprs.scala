@@ -855,7 +855,7 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     // format: off
     def of1[A: Type, Return: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType
+        freshA: FreshName = FreshName.FromType,
     ): DefBuilder[Expr[A] => Expr[Return], Return, (Expr[A] => Expr[Return], Expr[A])]
     // format: on
 
@@ -865,6 +865,12 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         cache: DefCache,
         key: String,
         builder: DefBuilder[Signature, Return, Expr[Return]]
+    ): DefCache
+
+    def forwardDeclare[Signature, Return, Value](
+        cache: DefCache,
+        key: String,
+        builder: DefBuilder[Signature, Return, Value]
     ): DefCache
 
     def partition[Signature, Return, A, B, C](builder: DefBuilder[Signature, Return, A])(

@@ -1124,7 +1124,10 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         new Scoped[Signature](NonEmptyVector.one(buildValDef(body)), signature)
 
       def buildCached(cache: DefCache, key: String, body: Expr[Returned]): DefCache =
-        new DefCache(cache.definitions.updated(mkKey(key), buildValDef(body)))
+        cache.set(mkKey(key), signature, buildValDef(body))
+
+      def forwardDeclare(cache: DefCache, key: String): DefCache =
+        cache.forwardDeclare(mkKey(key), signature)
     }
 
     override def of1[A: Type, Returned: Type](
@@ -1156,6 +1159,13 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     ): DefCache =
       builder.mk.buildCached(cache, key, builder.value)
 
+    override def forwardDeclare[Signature, Returned, Value](
+        cache: DefCache,
+        key: String,
+        builder: DefBuilder[Signature, Returned, Value]
+    ): DefCache =
+      builder.mk.forwardDeclare(cache, key)
+
     override def partition[Signature, Returned, A, B, C](
         builder: DefBuilder[Signature, Returned, A]
     )(f: A => Either[B, C]): Either[DefBuilder[Signature, Returned, B], DefBuilder[Signature, Returned, C]] =
@@ -1179,11 +1189,21 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       }
   }
 
-  final class DefCache private[typed] (val definitions: ListMap[DefCache.Key, ValOrDefDef])
+  final class DefCache private[typed] (val definitions: ListMap[DefCache.Key, DefCache.Value]) {
+
+    private[typed] def forwardDeclare(key: DefCache.Key, signature: Any): DefCache =
+      new DefCache(definitions.updated(key, new DefCache.Value(signature, None)))
+
+    private[typed] def set(key: DefCache.Key, signature: Any, definition: ValOrDefDef): DefCache =
+      new DefCache(definitions.updated(key, new DefCache.Value(signature, Some(definition))))
+
+    private[typed] def get[Signature](key: DefCache.Key): Option[Signature] =
+      definitions.get(key).map(_.signature.asInstanceOf[Signature])
+  }
 
   object DefCache extends DefCacheModule {
 
-    final private[typed] class Key(val name: String, val args: Seq[UntypedType], val returned: UntypedType) {
+    final private[typed] case class Key(name: String, args: Seq[UntypedType], returned: UntypedType) {
 
       override def hashCode(): Int = name.hashCode()
 
@@ -1198,17 +1218,33 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           } && returned =:= that.returned
         case _ => false
       }
+
+      override def toString: String =
+        s"def $name(${args.view.map(_.prettyPrint).mkString(", ")}): ${returned.prettyPrint}"
     }
+
+    final private[typed] case class Value(signature: Any, definition: Option[ValOrDefDef])
 
     override def empty: DefCache = new DefCache(ListMap.empty)
 
     override def get1[A: Type, Returned: Type](cache: DefCache, key: String): Option[Expr[A] => Expr[Returned]] =
-      cache.definitions
-        .get(new Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped))
-        .map(_.asInstanceOf[Expr[A] => Expr[Returned]])
+      cache.get[Expr[A] => Expr[Returned]](new Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped))
 
-    override def toScoped(cache: DefCache): Scoped[Unit] =
-      // TODO: handle case where NonEmptyVector.fromVector returns None
-      new Scoped[Unit](NonEmptyVector.fromVector(cache.definitions.values.toVector).get, ())
+    override def toScoped(cache: DefCache): Scoped[Unit] = {
+      val (pending, definitions) = cache.definitions.partitionMap {
+        case (_, DefCache.Value(_, Some(definition))) => Right(definition)
+        case (key, DefCache.Value(_, None))           => Left(key)
+      }
+      if (pending.nonEmpty) {
+        hearthRequirementFailed(
+          s"Definitions were forward declared, but not built:\n${pending.map(_.toString).mkString("\n")}"
+        )
+      } else {
+        NonEmptyVector.fromVector(definitions.toVector) match {
+          case Some(definitions) => new Scoped[Unit](definitions, ())
+          case None              => hearthRequirementFailed(s"Scoped cannot have 0 definitions, DefCache is empty")
+        }
+      }
+    }
   }
 }
