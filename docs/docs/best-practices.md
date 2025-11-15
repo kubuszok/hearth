@@ -90,7 +90,7 @@ several smaller `def`s. It would:
  * prevent issues with method's body exceeing the allowed size (compilation fails if bytecode would exceed 64kB)
  * help JVM compile and optimize the code, since smaller methods are easier to analyze and profile
 
-TODO: `DefBuilder` when it's implemented.
+TODO: `ValDefBuilder` when it's implemented.
 
 ### Allow previewing macro logic
 

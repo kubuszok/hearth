@@ -764,7 +764,7 @@ Build pattern-matching expressions programmatically.
 ### `FreshName`
 
 Strategies for generating fresh variable names to avoid clashes, used, e.g., by [`MatchCase`](#matchcase)es,
-[`Scoped`](#scoped) and [`LambdaBuilder`](#lambdabuilder)s.
+[`ValDefs`](#scoped) and [`LambdaBuilder`](#lambdabuilder)s.
 
 | Syntax                 | Example        | Description                                                     |
 |------------------------|----------------|-----------------------------------------------------------------|
@@ -773,18 +773,18 @@ Strategies for generating fresh variable names to avoid clashes, used, e.g., by 
 | `FreshName.FromPrefix` | `name`         | use provided name as a fresh name prefix                        |
 | `"name"`               | `name`         | when implicit conversions are enabled, turns string into prefix |
 
-### `Scoped`
+### `ValDefs`
 
 Create scoped definitions (`val`, `var`, `lazy val`, `def`) with automatic scope management:
 
 ```scala
 // Generate: { val x = expr; useX(x) }
-Scoped.createVal(expr, "x").use { x: Expr[A] =>
+ValDefs.createVal(expr, "x").use { x: Expr[A] =>
   useX(x): Expr[B]
 } // : Expr[B]
 
 // Generate: { var x = initial; x = newValue; readX(x) }
-Scoped.createVar(initial, "x").use { case (getter, setter) =>
+ValDefs.createVar(initial, "x").use { case (getter, setter) =>
   Expr.quote {
     Expr.splice(setter(newValue))
     Expr.splice(readX(getter))
@@ -792,11 +792,11 @@ Scoped.createVar(initial, "x").use { case (getter, setter) =>
 }
 
 // Lazy and def work similarly
-Scoped.createLazy(expr).use { x => ??? }
-Scoped.createDef(expr).use { x => ??? }
+ValDefs.createLazy(expr).use { x => ??? }
+ValDefs.createDef(expr).use { x => ??? }
 ```
 
-!!! tip "`Scoped` utilities are not needed if you can make `var`/`val`/`lazy val`/`def` inside (cross) quotes. Only if you need to use the fresh names they become necessary to avoid the name clashes."
+!!! tip "`ValDefs` utilities are not needed if you can make `var`/`val`/`lazy val`/`def` inside (cross) quotes. Only if you need to use the fresh names they become necessary to avoid the name clashes."
 
 ### `LambdaBuilder`
 

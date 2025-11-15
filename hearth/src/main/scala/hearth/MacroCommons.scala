@@ -116,11 +116,11 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
     }
   }
 
-  implicit final class MLocalCacheOps(private val cache: fp.effect.MLocal[DefCache]) {
+  implicit final class MLocalCacheOps(private val cache: fp.effect.MLocal[ValDefsCache]) {
 
     def forwardDeclare[Signature, Returned, Value](
         key: String,
-        builder: DefBuilder[Signature, Returned, Value]
+        builder: ValDefBuilder[Signature, Returned, Value]
     ): fp.effect.MIO[Unit] = for {
       cache1 <- cache.get
       cache2 = builder.forwardDeclare(cache1, key)
