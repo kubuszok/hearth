@@ -298,49 +298,215 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
   }
 
-  final class Scoped[A] private[typed] (private val definitions: NonEmptyVector[ValOrDefDef], private val value: A)
+  final class ValDefs[A] private[typed] (private val definitions: NonEmptyVector[ValOrDefDef], private val value: A)
 
-  object Scoped extends ScopedModule {
+  object ValDefs extends ValDefsModule {
 
-    override def createVal[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): Scoped[Expr[A]] = {
+    override def createVal[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): ValDefs[Expr[A]] = {
       val name = freshTerm[A](freshName, value)
-      new Scoped[Expr[A]](NonEmptyVector(q"val $name = $value"), c.Expr[A](q"$name"))
+      new ValDefs[Expr[A]](NonEmptyVector(q"val $name = $value"), c.Expr[A](q"$name"))
     }
     override def createVar[A: Type](
         initialValue: Expr[A],
         freshName: FreshName = FreshName.FromType
-    ): Scoped[(Expr[A], Expr[A] => Expr[Unit])] = {
+    ): ValDefs[(Expr[A], Expr[A] => Expr[Unit])] = {
       val name = freshTerm[A](freshName, initialValue)
-      new Scoped[(Expr[A], Expr[A] => Expr[Unit])](
+      new ValDefs[(Expr[A], Expr[A] => Expr[Unit])](
         NonEmptyVector.one(q"var $name = $initialValue"),
         (c.Expr[A](q"$name"), (expr: Expr[A]) => c.Expr[Unit](q"$name = $expr"))
       )
     }
-    override def createLazy[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): Scoped[Expr[A]] = {
+    override def createLazy[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): ValDefs[Expr[A]] = {
       val name = freshTerm[A](freshName, value)
-      new Scoped[Expr[A]](NonEmptyVector.one(q"lazy val $name = $value"), c.Expr[A](q"$name"))
+      new ValDefs[Expr[A]](NonEmptyVector.one(q"lazy val $name = $value"), c.Expr[A](q"$name"))
     }
-    override def createDef[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): Scoped[Expr[A]] = {
+    override def createDef[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): ValDefs[Expr[A]] = {
       val name = freshTerm[A](freshName, value)
-      new Scoped[Expr[A]](NonEmptyVector.one(q"def $name = $value"), c.Expr[A](q"$name"))
+      new ValDefs[Expr[A]](NonEmptyVector.one(q"def $name = $value"), c.Expr[A](q"$name"))
     }
 
-    override def partition[A, B, C](scoped: Scoped[A])(f: A => Either[B, C]): Either[Scoped[B], Scoped[C]] =
+    override def partition[A, B, C](scoped: ValDefs[A])(f: A => Either[B, C]): Either[ValDefs[B], ValDefs[C]] =
       f(scoped.value) match {
-        case Left(value)  => Left(new Scoped[B](scoped.definitions, value))
-        case Right(value) => Right(new Scoped[C](scoped.definitions, value))
+        case Left(value)  => Left(new ValDefs[B](scoped.definitions, value))
+        case Right(value) => Right(new ValDefs[C](scoped.definitions, value))
       }
 
-    override def closeScope[A](scoped: Scoped[Expr[A]]): Expr[A] =
+    override def closeScope[A](scoped: ValDefs[Expr[A]]): Expr[A] =
       c.Expr[A](q"..${scoped.definitions.toVector}; ${scoped.value}")
 
-    override val traverse: fp.Traverse[Scoped] = new fp.Traverse[Scoped] {
+    override val traverse: fp.Traverse[ValDefs] = new fp.Traverse[ValDefs] {
 
-      override def traverse[G[_]: fp.Applicative, A, B](fa: Scoped[A])(f: A => G[B]): G[Scoped[B]] =
-        f(fa.value).map(b => new Scoped[B](fa.definitions, b))
+      override def traverse[G[_]: fp.Applicative, A, B](fa: ValDefs[A])(f: A => G[B]): G[ValDefs[B]] =
+        f(fa.value).map(b => new ValDefs[B](fa.definitions, b))
 
-      override def parTraverse[G[_]: fp.Parallel, A, B](fa: Scoped[A])(f: A => G[B]): G[Scoped[B]] =
-        f(fa.value).map(b => new Scoped[B](fa.definitions, b))
+      override def parTraverse[G[_]: fp.Parallel, A, B](fa: ValDefs[A])(f: A => G[B]): G[ValDefs[B]] =
+        f(fa.value).map(b => new ValDefs[B](fa.definitions, b))
+    }
+  }
+
+  final class ValDefBuilder[Signature, Returned, Value] private (
+      private val mk: ValDefBuilder.Mk[Signature, Returned],
+      private val value: Value
+  )
+
+  object ValDefBuilder extends ValDefBuilderModule {
+
+    final private[typed] class Mk[Signature, Returned] private[typed] (
+        signature: Signature,
+        mkKey: String => ValDefsCache.Key,
+        buildValDef: Expr[Returned] => ValOrDefDef
+    ) {
+
+      def build(body: Expr[Returned]): ValDefs[Signature] =
+        new ValDefs[Signature](NonEmptyVector.one(buildValDef(body)), signature)
+
+      def buildCached(cache: ValDefsCache, key: String, body: Expr[Returned]): ValDefsCache =
+        cache.set(mkKey(key), signature, buildValDef(body))
+
+      def forwardDeclare(cache: ValDefsCache, key: String): ValDefsCache =
+        cache.forwardDeclare(mkKey(key), signature)
+    }
+
+    override def ofDef1[A: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType
+    ): ValDefBuilder[Expr[A] => Expr[Returned], Returned, (Expr[A] => Expr[Returned], Expr[A])] = {
+      val a1 = freshTerm[A](freshA, null)
+      val name = freshTerm[Returned](freshName, null)
+      val self = (a: Expr[A]) => c.Expr[Returned](q"$name($a)")
+      new ValDefBuilder[Expr[A] => Expr[Returned], Returned, (Expr[A] => Expr[Returned], Expr[A])](
+        new Mk[Expr[A] => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}): ${Type[Returned]} = $body"
+        ),
+        (self, c.Expr[A](q"$a1"))
+      )
+    }
+
+    override def build[Signature, Returned](
+        builder: ValDefBuilder[Signature, Returned, Expr[Returned]]
+    ): ValDefs[Signature] =
+      builder.mk.build(builder.value)
+
+    override def buildCached[Signature, Returned](
+        cache: ValDefsCache,
+        key: String,
+        builder: ValDefBuilder[Signature, Returned, Expr[Returned]]
+    ): ValDefsCache =
+      builder.mk.buildCached(cache, key, builder.value)
+
+    override def forwardDeclare[Signature, Returned, Value](
+        cache: ValDefsCache,
+        key: String,
+        builder: ValDefBuilder[Signature, Returned, Value]
+    ): ValDefsCache =
+      builder.mk.forwardDeclare(cache, key)
+
+    override def partition[Signature, Returned, A, B, C](
+        builder: ValDefBuilder[Signature, Returned, A]
+    )(f: A => Either[B, C]): Either[ValDefBuilder[Signature, Returned, B], ValDefBuilder[Signature, Returned, C]] =
+      f(builder.value) match {
+        case Left(value)  => Left(new ValDefBuilder[Signature, Returned, B](builder.mk, value))
+        case Right(value) => Right(new ValDefBuilder[Signature, Returned, C](builder.mk, value))
+      }
+
+    override def traverse[Signature, Returned]: fp.Traverse[ValDefBuilder[Signature, Returned, *]] =
+      new fp.Traverse[ValDefBuilder[Signature, Returned, *]] {
+
+        override def traverse[G[_]: fp.Applicative, A, B](fa: ValDefBuilder[Signature, Returned, A])(
+            f: A => G[B]
+        ): G[ValDefBuilder[Signature, Returned, B]] =
+          f(fa.value).map(b => new ValDefBuilder[Signature, Returned, B](fa.mk, b))
+
+        override def parTraverse[G[_]: fp.Parallel, A, B](fa: ValDefBuilder[Signature, Returned, A])(
+            f: A => G[B]
+        ): G[ValDefBuilder[Signature, Returned, B]] =
+          f(fa.value).map(b => new ValDefBuilder[Signature, Returned, B](fa.mk, b))
+      }
+  }
+
+  final class ValDefsCache private[typed] (val definitions: ListMap[ValDefsCache.Key, ValDefsCache.Value]) {
+
+    private[typed] def forwardDeclare(key: ValDefsCache.Key, signature: Any): ValDefsCache =
+      new ValDefsCache(definitions.updated(key, new ValDefsCache.Value(signature, None)))
+
+    private[typed] def set(key: ValDefsCache.Key, signature: Any, definition: ValOrDefDef): ValDefsCache = {
+      if (definitions.get(key).exists(_.signature != signature)) {
+        hearthRequirementFailed(
+          s"Def with key $key already exists with different signature, you probably created it twice in 2 branches, without noticing"
+        )
+      }
+      new ValDefsCache(definitions.updated(key, new ValDefsCache.Value(signature, Some(definition))))
+    }
+
+    private[typed] def get[Signature](key: ValDefsCache.Key): Option[Signature] =
+      definitions.get(key).map(_.signature.asInstanceOf[Signature])
+  }
+
+  object ValDefsCache extends ValDefsCacheModule {
+
+    final private[typed] case class Key(name: String, args: Seq[UntypedType], returned: UntypedType) {
+
+      override def hashCode(): Int = name.hashCode()
+
+      override def equals(other: Any): Boolean = other match {
+        case that: Key =>
+          name == that.name && args.length == that.args.length && {
+            val length = args.length
+            var i = 0
+            while (i < length && args(i) =:= that.args(i))
+              i += 1
+            i == length
+          } && returned =:= that.returned
+        case _ => false
+      }
+
+      override def toString: String =
+        s"def $name(${args.view.map(_.prettyPrint).mkString(", ")}): ${returned.prettyPrint}"
+    }
+
+    final private[typed] case class Value(signature: Any, definition: Option[ValOrDefDef])
+
+    override def empty: ValDefsCache = new ValDefsCache(ListMap.empty)
+
+    override def merge(cache1: ValDefsCache, cache2: ValDefsCache): ValDefsCache = {
+      val keys = scala.collection.immutable.ListSet.from(cache1.definitions.keys ++ cache2.definitions.keys)
+      val result = keys.view.map { key =>
+        (cache1.definitions.get(key), cache2.definitions.get(key)) match {
+          case (Some(value1), Some(value2)) =>
+            if (value1.signature != value2.signature) {
+              hearthRequirementFailed(
+                s"Def with key $key already exists with different signature, you probably created it twice in 2 branches, without noticing"
+              )
+            }
+            (key, value1)
+          case (Some(value), None) => (key, value)
+          case (None, Some(value)) => (key, value)
+          case (None, None)        => ??? // impossible
+        }
+      }
+      new ValDefsCache(ListMap.from(result))
+    }
+
+    override def get1[A: Type, Returned: Type](cache: ValDefsCache, key: String): Option[Expr[A] => Expr[Returned]] =
+      cache.get[Expr[A] => Expr[Returned]](new Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped))
+
+    override def toValDefs(cache: ValDefsCache): ValDefs[Unit] = {
+      val (pending, definitions) = cache.definitions.partitionMap {
+        case (_, ValDefsCache.Value(_, Some(definition))) => Right(definition)
+        case (key, ValDefsCache.Value(_, None))           => Left(key)
+      }
+      if (pending.nonEmpty) {
+        hearthRequirementFailed(
+          s"Definitions were forward declared, but not built:\n${pending.map(_.toString).mkString("\n")}"
+        )
+      } else {
+        NonEmptyVector.fromVector(definitions.toVector) match {
+          case Some(definitions) => new ValDefs[Unit](definitions, ())
+          case None              => hearthRequirementFailed(s"ValDefs cannot have 0 definitions, ValDefsCache is empty")
+        }
+      }
     }
   }
 
@@ -1104,172 +1270,6 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           f: A => G[B]
       ): G[LambdaBuilder[From, B]] =
         f(fa.value).map(b => new LambdaBuilder[From, B](fa.mk, b))
-    }
-  }
-
-  final class DefBuilder[Signature, Returned, Value] private (
-      private val mk: DefBuilder.Mk[Signature, Returned],
-      private val value: Value
-  )
-
-  object DefBuilder extends DefBuilderModule {
-
-    final private[typed] class Mk[Signature, Returned] private[typed] (
-        signature: Signature,
-        mkKey: String => DefCache.Key,
-        buildValDef: Expr[Returned] => ValOrDefDef
-    ) {
-
-      def build(body: Expr[Returned]): Scoped[Signature] =
-        new Scoped[Signature](NonEmptyVector.one(buildValDef(body)), signature)
-
-      def buildCached(cache: DefCache, key: String, body: Expr[Returned]): DefCache =
-        cache.set(mkKey(key), signature, buildValDef(body))
-
-      def forwardDeclare(cache: DefCache, key: String): DefCache =
-        cache.forwardDeclare(mkKey(key), signature)
-    }
-
-    override def of1[A: Type, Returned: Type](
-        freshName: FreshName,
-        freshA: FreshName = FreshName.FromType
-    ): DefBuilder[Expr[A] => Expr[Returned], Returned, (Expr[A] => Expr[Returned], Expr[A])] = {
-      val a1 = freshTerm[A](freshA, null)
-      val name = freshTerm[Returned](freshName, null)
-      val self = (a: Expr[A]) => c.Expr[Returned](q"$name($a)")
-      new DefBuilder[Expr[A] => Expr[Returned], Returned, (Expr[A] => Expr[Returned], Expr[A])](
-        new Mk[Expr[A] => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new DefCache.Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}): ${Type[Returned]} = $body"
-        ),
-        (self, c.Expr[A](q"$a1"))
-      )
-    }
-
-    override def build[Signature, Returned](
-        builder: DefBuilder[Signature, Returned, Expr[Returned]]
-    ): Scoped[Signature] =
-      builder.mk.build(builder.value)
-
-    override def buildCached[Signature, Returned](
-        cache: DefCache,
-        key: String,
-        builder: DefBuilder[Signature, Returned, Expr[Returned]]
-    ): DefCache =
-      builder.mk.buildCached(cache, key, builder.value)
-
-    override def forwardDeclare[Signature, Returned, Value](
-        cache: DefCache,
-        key: String,
-        builder: DefBuilder[Signature, Returned, Value]
-    ): DefCache =
-      builder.mk.forwardDeclare(cache, key)
-
-    override def partition[Signature, Returned, A, B, C](
-        builder: DefBuilder[Signature, Returned, A]
-    )(f: A => Either[B, C]): Either[DefBuilder[Signature, Returned, B], DefBuilder[Signature, Returned, C]] =
-      f(builder.value) match {
-        case Left(value)  => Left(new DefBuilder[Signature, Returned, B](builder.mk, value))
-        case Right(value) => Right(new DefBuilder[Signature, Returned, C](builder.mk, value))
-      }
-
-    override def traverse[Signature, Returned]: fp.Traverse[DefBuilder[Signature, Returned, *]] =
-      new fp.Traverse[DefBuilder[Signature, Returned, *]] {
-
-        override def traverse[G[_]: fp.Applicative, A, B](fa: DefBuilder[Signature, Returned, A])(
-            f: A => G[B]
-        ): G[DefBuilder[Signature, Returned, B]] =
-          f(fa.value).map(b => new DefBuilder[Signature, Returned, B](fa.mk, b))
-
-        override def parTraverse[G[_]: fp.Parallel, A, B](fa: DefBuilder[Signature, Returned, A])(
-            f: A => G[B]
-        ): G[DefBuilder[Signature, Returned, B]] =
-          f(fa.value).map(b => new DefBuilder[Signature, Returned, B](fa.mk, b))
-      }
-  }
-
-  final class DefCache private[typed] (val definitions: ListMap[DefCache.Key, DefCache.Value]) {
-
-    private[typed] def forwardDeclare(key: DefCache.Key, signature: Any): DefCache =
-      new DefCache(definitions.updated(key, new DefCache.Value(signature, None)))
-
-    private[typed] def set(key: DefCache.Key, signature: Any, definition: ValOrDefDef): DefCache = {
-      if (definitions.get(key).exists(_.signature != signature)) {
-        hearthRequirementFailed(
-          s"Def with key $key already exists with different signature, you probably created it twice in 2 branches, without noticing"
-        )
-      }
-      new DefCache(definitions.updated(key, new DefCache.Value(signature, Some(definition))))
-    }
-
-    private[typed] def get[Signature](key: DefCache.Key): Option[Signature] =
-      definitions.get(key).map(_.signature.asInstanceOf[Signature])
-  }
-
-  object DefCache extends DefCacheModule {
-
-    final private[typed] case class Key(name: String, args: Seq[UntypedType], returned: UntypedType) {
-
-      override def hashCode(): Int = name.hashCode()
-
-      override def equals(other: Any): Boolean = other match {
-        case that: Key =>
-          name == that.name && args.length == that.args.length && {
-            val length = args.length
-            var i = 0
-            while (i < length && args(i) =:= that.args(i))
-              i += 1
-            i == length
-          } && returned =:= that.returned
-        case _ => false
-      }
-
-      override def toString: String =
-        s"def $name(${args.view.map(_.prettyPrint).mkString(", ")}): ${returned.prettyPrint}"
-    }
-
-    final private[typed] case class Value(signature: Any, definition: Option[ValOrDefDef])
-
-    override def empty: DefCache = new DefCache(ListMap.empty)
-
-    override def merge(cache1: DefCache, cache2: DefCache): DefCache = {
-      val keys = scala.collection.immutable.ListSet.from(cache1.definitions.keys ++ cache2.definitions.keys)
-      val result = keys.view.map { key =>
-        (cache1.definitions.get(key), cache2.definitions.get(key)) match {
-          case (Some(value1), Some(value2)) =>
-            if (value1.signature != value2.signature) {
-              hearthRequirementFailed(
-                s"Def with key $key already exists with different signature, you probably created it twice in 2 branches, without noticing"
-              )
-            }
-            (key, value1)
-          case (Some(value), None) => (key, value)
-          case (None, Some(value)) => (key, value)
-          case (None, None)        => ??? // impossible
-        }
-      }
-      new DefCache(ListMap.from(result))
-    }
-
-    override def get1[A: Type, Returned: Type](cache: DefCache, key: String): Option[Expr[A] => Expr[Returned]] =
-      cache.get[Expr[A] => Expr[Returned]](new Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped))
-
-    override def toScoped(cache: DefCache): Scoped[Unit] = {
-      val (pending, definitions) = cache.definitions.partitionMap {
-        case (_, DefCache.Value(_, Some(definition))) => Right(definition)
-        case (key, DefCache.Value(_, None))           => Left(key)
-      }
-      if (pending.nonEmpty) {
-        hearthRequirementFailed(
-          s"Definitions were forward declared, but not built:\n${pending.map(_.toString).mkString("\n")}"
-        )
-      } else {
-        NonEmptyVector.fromVector(definitions.toVector) match {
-          case Some(definitions) => new Scoped[Unit](definitions, ())
-          case None              => hearthRequirementFailed(s"Scoped cannot have 0 definitions, DefCache is empty")
-        }
-      }
     }
   }
 }

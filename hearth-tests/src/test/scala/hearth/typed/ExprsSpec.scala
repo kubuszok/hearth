@@ -124,10 +124,10 @@ final class ExprsSpec extends MacroSuite {
       }
     }
 
-    group("type Scoped") {
+    group("type ValDefs") {
 
       test(
-        "methods Scoped.{createVal, createVar, createLazy, createDef, use} should create a scoped block with a definition, and allow using it"
+        "methods ValDefs.{createVal, createVar, createLazy, createDef, use} should create a scoped block with a definition, and allow using it"
       ) {
         import ExprsFixtures.testScopeCreateAndUse
 
@@ -135,14 +135,14 @@ final class ExprsSpec extends MacroSuite {
         testScopeCreateAndUse ==> Data(2 + 20 + 300 + 4000)
       }
 
-      test("methods Scoped.{partition, close} should allow branching and closing a scoped block") {
+      test("methods ValDefs.{partition, close} should allow branching and closing a scoped block") {
         import ExprsFixtures.testScopePartitionAndClose
 
         // Tests whether the result build using these methods compiles and correct
         testScopePartitionAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
 
-      test("methods Scoped.{traverse, close} should allow traversing and closing a scoped block") {
+      test("methods ValDefs.{traverse, close} should allow traversing and closing a scoped block") {
         import ExprsFixtures.testScopeTraverseAndClose
 
         // Tests whether the result build using these methods compiles and correct

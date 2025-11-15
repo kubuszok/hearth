@@ -252,7 +252,7 @@ trait Classes { this: MacroCommons =>
 
     def constructWithSetters[F[_]: DirectStyle: Applicative](setField: JavaBean.SetField[F]): F[Option[Expr[A]]] =
       constructWithoutSetters.traverse[F, Expr[A]] { constructorExpr =>
-        Scoped
+        ValDefs
           .createVal(constructorExpr)
           .traverse { constructorResult =>
             beanSetters
@@ -268,7 +268,7 @@ trait Classes { this: MacroCommons =>
 
     def parConstructWithSetters[F[_]: DirectStyle: Parallel](setField: JavaBean.SetField[F]): F[Option[Expr[A]]] =
       constructWithoutSetters.traverse[F, Expr[A]] { constructorExpr =>
-        Scoped
+        ValDefs
           .createVal(constructorExpr)
           .parTraverse { constructorResult =>
             beanSetters

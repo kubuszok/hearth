@@ -104,23 +104,23 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & untyped.UntypedMethods =>
     }
   }
 
-  // Scoped methods
+  // ValDefs methods
 
   def testScopeCreateAndUse: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
-    val valValue = Scoped.createVal(Expr(1), "a").use { (a: Expr[Int]) =>
+    val valValue = ValDefs.createVal(Expr(1), "a").use { (a: Expr[Int]) =>
       Expr.quote(Expr.splice(a) + 1)
     }
-    val varValue = Scoped.createVar(Expr(1), "b").use { case (b, set) =>
+    val varValue = ValDefs.createVar(Expr(1), "b").use { case (b, set) =>
       Expr.quote {
         Expr.splice(set(Expr.quote(Expr.splice(b) + 1)))
         Expr.splice(b) * 10
       }
     }
-    val lazyValue = Scoped.createLazy(Expr(1), "c").use { (c: Expr[Int]) =>
+    val lazyValue = ValDefs.createLazy(Expr(1), "c").use { (c: Expr[Int]) =>
       Expr.quote((Expr.splice(c) + 2) * 100)
     }
-    val defValue = Scoped.createDef(Expr(1), "d").use { (a: Expr[Int]) =>
+    val defValue = ValDefs.createDef(Expr(1), "d").use { (a: Expr[Int]) =>
       Expr.quote((Expr.splice(a) + 3) * 1000)
     }
 
@@ -130,7 +130,7 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & untyped.UntypedMethods =>
   }
 
   def testScopePartitionAndClose[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
-    val either = Scoped.createDef(expr, "a").partition { a =>
+    val either = ValDefs.createDef(expr, "a").partition { a =>
       if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) Right {
         Expr.quote(Expr.splice(a).asInstanceOf[B])
       }
@@ -140,7 +140,7 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & untyped.UntypedMethods =>
   }
 
   def testScopeTraverseAndClose[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
-    val option = Scoped.createDef(expr, "a").traverse { a =>
+    val option = ValDefs.createDef(expr, "a").traverse { a =>
       if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) Some {
         Expr.quote(Expr.splice(a).asInstanceOf[B])
       }
