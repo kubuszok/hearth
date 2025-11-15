@@ -304,7 +304,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     override def createVal[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): ValDefs[Expr[A]] = {
       val name = freshTerm[A](freshName, value)
-      new ValDefs[Expr[A]](NonEmptyVector(q"val $name = $value"), c.Expr[A](q"$name"))
+      new ValDefs[Expr[A]](NonEmptyVector(q"val $name: ${Type[A]} = $value"), c.Expr[A](q"$name"))
     }
     override def createVar[A: Type](
         initialValue: Expr[A],
@@ -312,17 +312,17 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     ): ValDefs[(Expr[A], Expr[A] => Expr[Unit])] = {
       val name = freshTerm[A](freshName, initialValue)
       new ValDefs[(Expr[A], Expr[A] => Expr[Unit])](
-        NonEmptyVector.one(q"var $name = $initialValue"),
+        NonEmptyVector.one(q"var $name: ${Type[A]} = $initialValue"),
         (c.Expr[A](q"$name"), (expr: Expr[A]) => c.Expr[Unit](q"$name = $expr"))
       )
     }
     override def createLazy[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): ValDefs[Expr[A]] = {
       val name = freshTerm[A](freshName, value)
-      new ValDefs[Expr[A]](NonEmptyVector.one(q"lazy val $name = $value"), c.Expr[A](q"$name"))
+      new ValDefs[Expr[A]](NonEmptyVector.one(q"lazy val $name: ${Type[A]} = $value"), c.Expr[A](q"$name"))
     }
     override def createDef[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): ValDefs[Expr[A]] = {
       val name = freshTerm[A](freshName, value)
-      new ValDefs[Expr[A]](NonEmptyVector.one(q"def $name = $value"), c.Expr[A](q"$name"))
+      new ValDefs[Expr[A]](NonEmptyVector.one(q"def $name: ${Type[A]} = $value"), c.Expr[A](q"$name"))
     }
 
     override def partition[A, B, C](scoped: ValDefs[A])(f: A => Either[B, C]): Either[ValDefs[B], ValDefs[C]] =
@@ -376,7 +376,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         new Mk[Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) => q"val $name = $body"
+          buildValDef = (body: Expr[Returned]) => q"val $name: ${Type[Returned]} = $body"
         ),
         ()
       )
@@ -391,7 +391,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         new Mk[Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) => q"var $name = $body"
+          buildValDef = (body: Expr[Returned]) => q"var $name: ${Type[Returned]} = $body"
         ),
         setter
       )
@@ -405,12 +405,26 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         new Mk[Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) => q"lazy val $name = $body"
+          buildValDef = (body: Expr[Returned]) => q"lazy val $name: ${Type[Returned]} = $body"
         ),
         self
       )
     }
 
+    override def ofDef0[Returned: Type](
+        freshName: FreshName
+    ): ValDefBuilder[Expr[Returned], Returned, Expr[Returned]] = {
+      val name = freshTerm[Returned](freshName, null)
+      val self = c.Expr[Returned](q"$name")
+      new ValDefBuilder[Expr[Returned], Returned, Expr[Returned]](
+        new Mk[Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) => q"def $name: ${Type[Returned]} = $body"
+        ),
+        self
+      )
+    }
     override def ofDef1[A: Type, Returned: Type](
         freshName: FreshName,
         freshA: FreshName = FreshName.FromType

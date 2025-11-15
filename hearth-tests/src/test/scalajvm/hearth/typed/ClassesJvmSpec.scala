@@ -153,7 +153,7 @@ final class ClassesJvmSpec extends MacroSuite {
         (if (LanguageVersion.byHearth.isScala2_13)
            """sequential:
              |{
-             |  val examplejavaclass = new hearth.examples.classes.ExampleJavaClass();
+             |  val examplejavaclass: hearth.examples.classes.ExampleJavaClass = new hearth.examples.classes.ExampleJavaClass();
              |  {
              |    examplejavaclass.setBoolean(true);
              |    {
@@ -167,7 +167,7 @@ final class ClassesJvmSpec extends MacroSuite {
              |}
              |parallel:
              |{
-             |  val examplejavaclass = new hearth.examples.classes.ExampleJavaClass();
+             |  val examplejavaclass: hearth.examples.classes.ExampleJavaClass = new hearth.examples.classes.ExampleJavaClass();
              |  {
              |    examplejavaclass.setBoolean(true);
              |    {
