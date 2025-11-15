@@ -501,6 +501,50 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         cache.forwardDeclare(mkKey(key), signature)
     }
 
+    override def ofVal[Returned: Type](
+        freshName: FreshName
+    ): ValDefBuilder[Expr[Returned], Returned, Unit] = {
+      val name = freshTerm.valdef[Returned](freshName, null, Flags.EmptyFlags)
+      val self = Ref(name).asExprOf[Returned]
+      new ValDefBuilder[Expr[Returned], Returned, Unit](
+        new Mk[Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) => ValDef(name, Some(body.asTerm.changeOwner(name)))
+        ),
+        ()
+      )
+    }
+    override def ofVar[Returned: Type](
+        freshName: FreshName
+    ): ValDefBuilder[Expr[Returned], Returned, Expr[Returned] => Expr[Unit]] = {
+      val name = freshTerm.valdef[Returned](freshName, null, Flags.Mutable)
+      val self = Ref(name).asExprOf[Returned]
+      val setter = (body: Expr[Returned]) => Assign(Ref(name), body.asTerm).asExprOf[Unit]
+      new ValDefBuilder[Expr[Returned], Returned, Expr[Returned] => Expr[Unit]](
+        new Mk[Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) => ValDef(name, Some(body.asTerm.changeOwner(name)))
+        ),
+        setter
+      )
+    }
+    override def ofLazy[Returned: Type](
+        freshName: FreshName
+    ): ValDefBuilder[Expr[Returned], Returned, Expr[Returned]] = {
+      val name = freshTerm.valdef[Returned](freshName, null, Flags.Lazy)
+      val self = Ref(name).asExprOf[Returned]
+      new ValDefBuilder[Expr[Returned], Returned, Expr[Returned]](
+        new Mk[Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) => ValDef(name, Some(body.asTerm.changeOwner(name)))
+        ),
+        self
+      )
+    }
+
     override def ofDef1[A: Type, Returned: Type](
         freshName: FreshName,
         freshA: FreshName = FreshName.FromType
@@ -657,7 +701,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       }
       if pending.nonEmpty then {
         hearthRequirementFailed(
-          s"Definitions were forward declared, but not built:\n${pending.map(_.toString).mkString("\n")}"
+          s"""Definitions were forward declared, but not built:
+             |${pending.map(p => "  " + p.toString).mkString("\n")}
+             |Make sure, that you built all the forwarded definitions.
+             |Also, make sure, that you build forwrded definitions as a part of the ValDefsCache, not outside of it.definitions
+             |Otherwise you would leak some definition outside if the scope it is available in which this check prevents.
+             |""".stripMargin
         )
       } else {
         NonEmptyVector.fromVector(definitions.toVector) match {
