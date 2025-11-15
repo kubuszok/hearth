@@ -545,6 +545,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       )
     }
 
+    // format: off
     override def ofDef0[Returned: Type](
         freshName: FreshName
     ): ValDefBuilder[Expr[Returned], Returned, Expr[Returned]] = {
@@ -617,6 +618,2254 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         (self, aExpr)
       )
     }
+    override def ofDef2[A: Type, B: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B]) => Expr[Returned], Returned, ((Expr[A], Expr[B]) => Expr[Returned], (Expr[A], Expr[B]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0))(_ => List(TypeRepr.of[A], TypeRepr.of[B]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B]) => Expr[Returned], Returned, ((Expr[A], Expr[B]) => Expr[Returned], (Expr[A], Expr[B]))](
+        new Mk[(Expr[A], Expr[B]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 2 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr))
+      )
+    }
+    override def ofDef3[A: Type, B: Type, C: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C]) => Expr[Returned], (Expr[A], Expr[B], Expr[C]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C]) => Expr[Returned], (Expr[A], Expr[B], Expr[C]))](
+        new Mk[(Expr[A], Expr[B], Expr[C]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 3 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr))
+      )
+    }
+    override def ofDef4[A: Type, B: Type, C: Type, D: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 4 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr))
+      )
+    }
+    override def ofDef5[A: Type, B: Type, C: Type, D: Type, E: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 5 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr))
+      )
+    }
+    override def ofDef6[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 6 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr))
+      )
+    }
+    override def ofDef7[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 7 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr))
+      )
+    }
+    override def ofDef8[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 8 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr))
+      )
+    }
+    override def ofDef9[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val i0 = freshTerm[I](freshI, null)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val iExpr = Ref(i1).asExprOf[I]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0, i0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H], TypeRepr.of[I]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm, i.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm,
+                        ValDef(i1, Some(i)),
+                        '{ val _ = $iExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 9 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr))
+      )
+    }
+    override def ofDef10[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val i0 = freshTerm[I](freshI, null)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val iExpr = Ref(i1).asExprOf[I]
+      val j0 = freshTerm[J](freshJ, null)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val jExpr = Ref(j1).asExprOf[J]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0, i0, j0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H], TypeRepr.of[I], TypeRepr.of[J]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm, i.asTerm, j.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm,
+                        ValDef(i1, Some(i)),
+                        '{ val _ = $iExpr }.asTerm,
+                        ValDef(j1, Some(j)),
+                        '{ val _ = $jExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 10 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr))
+      )
+    }
+    override def ofDef11[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val i0 = freshTerm[I](freshI, null)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val iExpr = Ref(i1).asExprOf[I]
+      val j0 = freshTerm[J](freshJ, null)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val jExpr = Ref(j1).asExprOf[J]
+      val k0 = freshTerm[K](freshK, null)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val kExpr = Ref(k1).asExprOf[K]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0, i0, j0, k0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H], TypeRepr.of[I], TypeRepr.of[J], TypeRepr.of[K]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm, i.asTerm, j.asTerm, k.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm,
+                        ValDef(i1, Some(i)),
+                        '{ val _ = $iExpr }.asTerm,
+                        ValDef(j1, Some(j)),
+                        '{ val _ = $jExpr }.asTerm,
+                        ValDef(k1, Some(k)),
+                        '{ val _ = $kExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 11 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr))
+      )
+    }
+    override def ofDef12[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val i0 = freshTerm[I](freshI, null)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val iExpr = Ref(i1).asExprOf[I]
+      val j0 = freshTerm[J](freshJ, null)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val jExpr = Ref(j1).asExprOf[J]
+      val k0 = freshTerm[K](freshK, null)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val kExpr = Ref(k1).asExprOf[K]
+      val l0 = freshTerm[L](freshL, null)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val lExpr = Ref(l1).asExprOf[L]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0, i0, j0, k0, l0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H], TypeRepr.of[I], TypeRepr.of[J], TypeRepr.of[K], TypeRepr.of[L]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm, i.asTerm, j.asTerm, k.asTerm, l.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm,
+                        ValDef(i1, Some(i)),
+                        '{ val _ = $iExpr }.asTerm,
+                        ValDef(j1, Some(j)),
+                        '{ val _ = $jExpr }.asTerm,
+                        ValDef(k1, Some(k)),
+                        '{ val _ = $kExpr }.asTerm,
+                        ValDef(l1, Some(l)),
+                        '{ val _ = $lExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 12 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr))
+      )
+    }
+    override def ofDef13[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val i0 = freshTerm[I](freshI, null)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val iExpr = Ref(i1).asExprOf[I]
+      val j0 = freshTerm[J](freshJ, null)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val jExpr = Ref(j1).asExprOf[J]
+      val k0 = freshTerm[K](freshK, null)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val kExpr = Ref(k1).asExprOf[K]
+      val l0 = freshTerm[L](freshL, null)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val lExpr = Ref(l1).asExprOf[L]
+      val m0 = freshTerm[M](freshM, null)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val mExpr = Ref(m1).asExprOf[M]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0, i0, j0, k0, l0, m0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H], TypeRepr.of[I], TypeRepr.of[J], TypeRepr.of[K], TypeRepr.of[L], TypeRepr.of[M]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm, i.asTerm, j.asTerm, k.asTerm, l.asTerm, m.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm,
+                        ValDef(i1, Some(i)),
+                        '{ val _ = $iExpr }.asTerm,
+                        ValDef(j1, Some(j)),
+                        '{ val _ = $jExpr }.asTerm,
+                        ValDef(k1, Some(k)),
+                        '{ val _ = $kExpr }.asTerm,
+                        ValDef(l1, Some(l)),
+                        '{ val _ = $lExpr }.asTerm,
+                        ValDef(m1, Some(m)),
+                        '{ val _ = $mExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 13 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr))
+      )
+    }
+    override def ofDef14[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType,
+        freshN: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val i0 = freshTerm[I](freshI, null)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val iExpr = Ref(i1).asExprOf[I]
+      val j0 = freshTerm[J](freshJ, null)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val jExpr = Ref(j1).asExprOf[J]
+      val k0 = freshTerm[K](freshK, null)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val kExpr = Ref(k1).asExprOf[K]
+      val l0 = freshTerm[L](freshL, null)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val lExpr = Ref(l1).asExprOf[L]
+      val m0 = freshTerm[M](freshM, null)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val mExpr = Ref(m1).asExprOf[M]
+      val n0 = freshTerm[N](freshN, null)
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val nExpr = Ref(n1).asExprOf[N]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0, i0, j0, k0, l0, m0, n0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H], TypeRepr.of[I], TypeRepr.of[J], TypeRepr.of[K], TypeRepr.of[L], TypeRepr.of[M], TypeRepr.of[N]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm, i.asTerm, j.asTerm, k.asTerm, l.asTerm, m.asTerm, n.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm,
+                        ValDef(i1, Some(i)),
+                        '{ val _ = $iExpr }.asTerm,
+                        ValDef(j1, Some(j)),
+                        '{ val _ = $jExpr }.asTerm,
+                        ValDef(k1, Some(k)),
+                        '{ val _ = $kExpr }.asTerm,
+                        ValDef(l1, Some(l)),
+                        '{ val _ = $lExpr }.asTerm,
+                        ValDef(m1, Some(m)),
+                        '{ val _ = $mExpr }.asTerm,
+                        ValDef(n1, Some(n)),
+                        '{ val _ = $nExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 14 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr))
+      )
+    }
+    override def ofDef15[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType,
+        freshN: FreshName = FreshName.FromType,
+        freshO: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val i0 = freshTerm[I](freshI, null)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val iExpr = Ref(i1).asExprOf[I]
+      val j0 = freshTerm[J](freshJ, null)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val jExpr = Ref(j1).asExprOf[J]
+      val k0 = freshTerm[K](freshK, null)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val kExpr = Ref(k1).asExprOf[K]
+      val l0 = freshTerm[L](freshL, null)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val lExpr = Ref(l1).asExprOf[L]
+      val m0 = freshTerm[M](freshM, null)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val mExpr = Ref(m1).asExprOf[M]
+      val n0 = freshTerm[N](freshN, null)
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val nExpr = Ref(n1).asExprOf[N]
+      val o0 = freshTerm[O](freshO, null)
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val oExpr = Ref(o1).asExprOf[O]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0, i0, j0, k0, l0, m0, n0, o0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H], TypeRepr.of[I], TypeRepr.of[J], TypeRepr.of[K], TypeRepr.of[L], TypeRepr.of[M], TypeRepr.of[N], TypeRepr.of[O]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm, i.asTerm, j.asTerm, k.asTerm, l.asTerm, m.asTerm, n.asTerm, o.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm,
+                        ValDef(i1, Some(i)),
+                        '{ val _ = $iExpr }.asTerm,
+                        ValDef(j1, Some(j)),
+                        '{ val _ = $jExpr }.asTerm,
+                        ValDef(k1, Some(k)),
+                        '{ val _ = $kExpr }.asTerm,
+                        ValDef(l1, Some(l)),
+                        '{ val _ = $lExpr }.asTerm,
+                        ValDef(m1, Some(m)),
+                        '{ val _ = $mExpr }.asTerm,
+                        ValDef(n1, Some(n)),
+                        '{ val _ = $nExpr }.asTerm,
+                        ValDef(o1, Some(o)),
+                        '{ val _ = $oExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 15 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr))
+      )
+    }
+    override def ofDef16[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType,
+        freshN: FreshName = FreshName.FromType,
+        freshO: FreshName = FreshName.FromType,
+        freshP: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val i0 = freshTerm[I](freshI, null)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val iExpr = Ref(i1).asExprOf[I]
+      val j0 = freshTerm[J](freshJ, null)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val jExpr = Ref(j1).asExprOf[J]
+      val k0 = freshTerm[K](freshK, null)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val kExpr = Ref(k1).asExprOf[K]
+      val l0 = freshTerm[L](freshL, null)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val lExpr = Ref(l1).asExprOf[L]
+      val m0 = freshTerm[M](freshM, null)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val mExpr = Ref(m1).asExprOf[M]
+      val n0 = freshTerm[N](freshN, null)
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val nExpr = Ref(n1).asExprOf[N]
+      val o0 = freshTerm[O](freshO, null)
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val oExpr = Ref(o1).asExprOf[O]
+      val p0 = freshTerm[P](freshP, null)
+      val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags)
+      val pExpr = Ref(p1).asExprOf[P]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0, i0, j0, k0, l0, m0, n0, o0, p0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H], TypeRepr.of[I], TypeRepr.of[J], TypeRepr.of[K], TypeRepr.of[L], TypeRepr.of[M], TypeRepr.of[N], TypeRepr.of[O], TypeRepr.of[P]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm, i.asTerm, j.asTerm, k.asTerm, l.asTerm, m.asTerm, n.asTerm, o.asTerm, p.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm,
+                        ValDef(i1, Some(i)),
+                        '{ val _ = $iExpr }.asTerm,
+                        ValDef(j1, Some(j)),
+                        '{ val _ = $jExpr }.asTerm,
+                        ValDef(k1, Some(k)),
+                        '{ val _ = $kExpr }.asTerm,
+                        ValDef(l1, Some(l)),
+                        '{ val _ = $lExpr }.asTerm,
+                        ValDef(m1, Some(m)),
+                        '{ val _ = $mExpr }.asTerm,
+                        ValDef(n1, Some(n)),
+                        '{ val _ = $nExpr }.asTerm,
+                        ValDef(o1, Some(o)),
+                        '{ val _ = $oExpr }.asTerm,
+                        ValDef(p1, Some(p)),
+                        '{ val _ = $pExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 16 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr, pExpr))
+      )
+    }
+    override def ofDef17[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType,
+        freshN: FreshName = FreshName.FromType,
+        freshO: FreshName = FreshName.FromType,
+        freshP: FreshName = FreshName.FromType,
+        freshQ: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val i0 = freshTerm[I](freshI, null)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val iExpr = Ref(i1).asExprOf[I]
+      val j0 = freshTerm[J](freshJ, null)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val jExpr = Ref(j1).asExprOf[J]
+      val k0 = freshTerm[K](freshK, null)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val kExpr = Ref(k1).asExprOf[K]
+      val l0 = freshTerm[L](freshL, null)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val lExpr = Ref(l1).asExprOf[L]
+      val m0 = freshTerm[M](freshM, null)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val mExpr = Ref(m1).asExprOf[M]
+      val n0 = freshTerm[N](freshN, null)
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val nExpr = Ref(n1).asExprOf[N]
+      val o0 = freshTerm[O](freshO, null)
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val oExpr = Ref(o1).asExprOf[O]
+      val p0 = freshTerm[P](freshP, null)
+      val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags)
+      val pExpr = Ref(p1).asExprOf[P]
+      val q0 = freshTerm[Q](freshQ, null)
+      val q1 = freshTerm.valdef[Q](freshQ, null, Flags.EmptyFlags)
+      val qExpr = Ref(q1).asExprOf[Q]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0, i0, j0, k0, l0, m0, n0, o0, p0, q0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H], TypeRepr.of[I], TypeRepr.of[J], TypeRepr.of[K], TypeRepr.of[L], TypeRepr.of[M], TypeRepr.of[N], TypeRepr.of[O], TypeRepr.of[P], TypeRepr.of[Q]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm, i.asTerm, j.asTerm, k.asTerm, l.asTerm, m.asTerm, n.asTerm, o.asTerm, p.asTerm, q.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm,
+                        ValDef(i1, Some(i)),
+                        '{ val _ = $iExpr }.asTerm,
+                        ValDef(j1, Some(j)),
+                        '{ val _ = $jExpr }.asTerm,
+                        ValDef(k1, Some(k)),
+                        '{ val _ = $kExpr }.asTerm,
+                        ValDef(l1, Some(l)),
+                        '{ val _ = $lExpr }.asTerm,
+                        ValDef(m1, Some(m)),
+                        '{ val _ = $mExpr }.asTerm,
+                        ValDef(n1, Some(n)),
+                        '{ val _ = $nExpr }.asTerm,
+                        ValDef(o1, Some(o)),
+                        '{ val _ = $oExpr }.asTerm,
+                        ValDef(p1, Some(p)),
+                        '{ val _ = $pExpr }.asTerm,
+                        ValDef(q1, Some(q)),
+                        '{ val _ = $qExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 17 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr, pExpr, qExpr))
+      )
+    }
+    override def ofDef18[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType,
+        freshN: FreshName = FreshName.FromType,
+        freshO: FreshName = FreshName.FromType,
+        freshP: FreshName = FreshName.FromType,
+        freshQ: FreshName = FreshName.FromType,
+        freshR: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val i0 = freshTerm[I](freshI, null)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val iExpr = Ref(i1).asExprOf[I]
+      val j0 = freshTerm[J](freshJ, null)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val jExpr = Ref(j1).asExprOf[J]
+      val k0 = freshTerm[K](freshK, null)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val kExpr = Ref(k1).asExprOf[K]
+      val l0 = freshTerm[L](freshL, null)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val lExpr = Ref(l1).asExprOf[L]
+      val m0 = freshTerm[M](freshM, null)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val mExpr = Ref(m1).asExprOf[M]
+      val n0 = freshTerm[N](freshN, null)
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val nExpr = Ref(n1).asExprOf[N]
+      val o0 = freshTerm[O](freshO, null)
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val oExpr = Ref(o1).asExprOf[O]
+      val p0 = freshTerm[P](freshP, null)
+      val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags)
+      val pExpr = Ref(p1).asExprOf[P]
+      val q0 = freshTerm[Q](freshQ, null)
+      val q1 = freshTerm.valdef[Q](freshQ, null, Flags.EmptyFlags)
+      val qExpr = Ref(q1).asExprOf[Q]
+      val r0 = freshTerm[R](freshR, null)
+      val r1 = freshTerm.valdef[R](freshR, null, Flags.EmptyFlags)
+      val rExpr = Ref(r1).asExprOf[R]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0, i0, j0, k0, l0, m0, n0, o0, p0, q0, r0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H], TypeRepr.of[I], TypeRepr.of[J], TypeRepr.of[K], TypeRepr.of[L], TypeRepr.of[M], TypeRepr.of[N], TypeRepr.of[O], TypeRepr.of[P], TypeRepr.of[Q], TypeRepr.of[R]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm, i.asTerm, j.asTerm, k.asTerm, l.asTerm, m.asTerm, n.asTerm, o.asTerm, p.asTerm, q.asTerm, r.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm,
+                        ValDef(i1, Some(i)),
+                        '{ val _ = $iExpr }.asTerm,
+                        ValDef(j1, Some(j)),
+                        '{ val _ = $jExpr }.asTerm,
+                        ValDef(k1, Some(k)),
+                        '{ val _ = $kExpr }.asTerm,
+                        ValDef(l1, Some(l)),
+                        '{ val _ = $lExpr }.asTerm,
+                        ValDef(m1, Some(m)),
+                        '{ val _ = $mExpr }.asTerm,
+                        ValDef(n1, Some(n)),
+                        '{ val _ = $nExpr }.asTerm,
+                        ValDef(o1, Some(o)),
+                        '{ val _ = $oExpr }.asTerm,
+                        ValDef(p1, Some(p)),
+                        '{ val _ = $pExpr }.asTerm,
+                        ValDef(q1, Some(q)),
+                        '{ val _ = $qExpr }.asTerm,
+                        ValDef(r1, Some(r)),
+                        '{ val _ = $rExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 18 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr, pExpr, qExpr, rExpr))
+      )
+    }
+    override def ofDef19[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType,
+        freshN: FreshName = FreshName.FromType,
+        freshO: FreshName = FreshName.FromType,
+        freshP: FreshName = FreshName.FromType,
+        freshQ: FreshName = FreshName.FromType,
+        freshR: FreshName = FreshName.FromType,
+        freshS: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val i0 = freshTerm[I](freshI, null)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val iExpr = Ref(i1).asExprOf[I]
+      val j0 = freshTerm[J](freshJ, null)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val jExpr = Ref(j1).asExprOf[J]
+      val k0 = freshTerm[K](freshK, null)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val kExpr = Ref(k1).asExprOf[K]
+      val l0 = freshTerm[L](freshL, null)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val lExpr = Ref(l1).asExprOf[L]
+      val m0 = freshTerm[M](freshM, null)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val mExpr = Ref(m1).asExprOf[M]
+      val n0 = freshTerm[N](freshN, null)
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val nExpr = Ref(n1).asExprOf[N]
+      val o0 = freshTerm[O](freshO, null)
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val oExpr = Ref(o1).asExprOf[O]
+      val p0 = freshTerm[P](freshP, null)
+      val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags)
+      val pExpr = Ref(p1).asExprOf[P]
+      val q0 = freshTerm[Q](freshQ, null)
+      val q1 = freshTerm.valdef[Q](freshQ, null, Flags.EmptyFlags)
+      val qExpr = Ref(q1).asExprOf[Q]
+      val r0 = freshTerm[R](freshR, null)
+      val r1 = freshTerm.valdef[R](freshR, null, Flags.EmptyFlags)
+      val rExpr = Ref(r1).asExprOf[R]
+      val s0 = freshTerm[S](freshS, null)
+      val s1 = freshTerm.valdef[S](freshS, null, Flags.EmptyFlags)
+      val sExpr = Ref(s1).asExprOf[S]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0, i0, j0, k0, l0, m0, n0, o0, p0, q0, r0, s0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H], TypeRepr.of[I], TypeRepr.of[J], TypeRepr.of[K], TypeRepr.of[L], TypeRepr.of[M], TypeRepr.of[N], TypeRepr.of[O], TypeRepr.of[P], TypeRepr.of[Q], TypeRepr.of[R], TypeRepr.of[S]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm, i.asTerm, j.asTerm, k.asTerm, l.asTerm, m.asTerm, n.asTerm, o.asTerm, p.asTerm, q.asTerm, r.asTerm, s.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm,
+                        ValDef(i1, Some(i)),
+                        '{ val _ = $iExpr }.asTerm,
+                        ValDef(j1, Some(j)),
+                        '{ val _ = $jExpr }.asTerm,
+                        ValDef(k1, Some(k)),
+                        '{ val _ = $kExpr }.asTerm,
+                        ValDef(l1, Some(l)),
+                        '{ val _ = $lExpr }.asTerm,
+                        ValDef(m1, Some(m)),
+                        '{ val _ = $mExpr }.asTerm,
+                        ValDef(n1, Some(n)),
+                        '{ val _ = $nExpr }.asTerm,
+                        ValDef(o1, Some(o)),
+                        '{ val _ = $oExpr }.asTerm,
+                        ValDef(p1, Some(p)),
+                        '{ val _ = $pExpr }.asTerm,
+                        ValDef(q1, Some(q)),
+                        '{ val _ = $qExpr }.asTerm,
+                        ValDef(r1, Some(r)),
+                        '{ val _ = $rExpr }.asTerm,
+                        ValDef(s1, Some(s)),
+                        '{ val _ = $sExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 19 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr, pExpr, qExpr, rExpr, sExpr))
+      )
+    }
+    override def ofDef20[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType,
+        freshN: FreshName = FreshName.FromType,
+        freshO: FreshName = FreshName.FromType,
+        freshP: FreshName = FreshName.FromType,
+        freshQ: FreshName = FreshName.FromType,
+        freshR: FreshName = FreshName.FromType,
+        freshS: FreshName = FreshName.FromType,
+        freshT: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val i0 = freshTerm[I](freshI, null)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val iExpr = Ref(i1).asExprOf[I]
+      val j0 = freshTerm[J](freshJ, null)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val jExpr = Ref(j1).asExprOf[J]
+      val k0 = freshTerm[K](freshK, null)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val kExpr = Ref(k1).asExprOf[K]
+      val l0 = freshTerm[L](freshL, null)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val lExpr = Ref(l1).asExprOf[L]
+      val m0 = freshTerm[M](freshM, null)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val mExpr = Ref(m1).asExprOf[M]
+      val n0 = freshTerm[N](freshN, null)
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val nExpr = Ref(n1).asExprOf[N]
+      val o0 = freshTerm[O](freshO, null)
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val oExpr = Ref(o1).asExprOf[O]
+      val p0 = freshTerm[P](freshP, null)
+      val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags)
+      val pExpr = Ref(p1).asExprOf[P]
+      val q0 = freshTerm[Q](freshQ, null)
+      val q1 = freshTerm.valdef[Q](freshQ, null, Flags.EmptyFlags)
+      val qExpr = Ref(q1).asExprOf[Q]
+      val r0 = freshTerm[R](freshR, null)
+      val r1 = freshTerm.valdef[R](freshR, null, Flags.EmptyFlags)
+      val rExpr = Ref(r1).asExprOf[R]
+      val s0 = freshTerm[S](freshS, null)
+      val s1 = freshTerm.valdef[S](freshS, null, Flags.EmptyFlags)
+      val sExpr = Ref(s1).asExprOf[S]
+      val t0 = freshTerm[T](freshT, null)
+      val t1 = freshTerm.valdef[T](freshT, null, Flags.EmptyFlags)
+      val tExpr = Ref(t1).asExprOf[T]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0, i0, j0, k0, l0, m0, n0, o0, p0, q0, r0, s0, t0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H], TypeRepr.of[I], TypeRepr.of[J], TypeRepr.of[K], TypeRepr.of[L], TypeRepr.of[M], TypeRepr.of[N], TypeRepr.of[O], TypeRepr.of[P], TypeRepr.of[Q], TypeRepr.of[R], TypeRepr.of[S], TypeRepr.of[T]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm, i.asTerm, j.asTerm, k.asTerm, l.asTerm, m.asTerm, n.asTerm, o.asTerm, p.asTerm, q.asTerm, r.asTerm, s.asTerm, t.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped, Type[T].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term, t: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm,
+                        ValDef(i1, Some(i)),
+                        '{ val _ = $iExpr }.asTerm,
+                        ValDef(j1, Some(j)),
+                        '{ val _ = $jExpr }.asTerm,
+                        ValDef(k1, Some(k)),
+                        '{ val _ = $kExpr }.asTerm,
+                        ValDef(l1, Some(l)),
+                        '{ val _ = $lExpr }.asTerm,
+                        ValDef(m1, Some(m)),
+                        '{ val _ = $mExpr }.asTerm,
+                        ValDef(n1, Some(n)),
+                        '{ val _ = $nExpr }.asTerm,
+                        ValDef(o1, Some(o)),
+                        '{ val _ = $oExpr }.asTerm,
+                        ValDef(p1, Some(p)),
+                        '{ val _ = $pExpr }.asTerm,
+                        ValDef(q1, Some(q)),
+                        '{ val _ = $qExpr }.asTerm,
+                        ValDef(r1, Some(r)),
+                        '{ val _ = $rExpr }.asTerm,
+                        ValDef(s1, Some(s)),
+                        '{ val _ = $sExpr }.asTerm,
+                        ValDef(t1, Some(t)),
+                        '{ val _ = $tExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 20 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr, pExpr, qExpr, rExpr, sExpr, tExpr))
+      )
+    }
+    override def ofDef21[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType,
+        freshN: FreshName = FreshName.FromType,
+        freshO: FreshName = FreshName.FromType,
+        freshP: FreshName = FreshName.FromType,
+        freshQ: FreshName = FreshName.FromType,
+        freshR: FreshName = FreshName.FromType,
+        freshS: FreshName = FreshName.FromType,
+        freshT: FreshName = FreshName.FromType,
+        freshU: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val i0 = freshTerm[I](freshI, null)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val iExpr = Ref(i1).asExprOf[I]
+      val j0 = freshTerm[J](freshJ, null)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val jExpr = Ref(j1).asExprOf[J]
+      val k0 = freshTerm[K](freshK, null)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val kExpr = Ref(k1).asExprOf[K]
+      val l0 = freshTerm[L](freshL, null)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val lExpr = Ref(l1).asExprOf[L]
+      val m0 = freshTerm[M](freshM, null)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val mExpr = Ref(m1).asExprOf[M]
+      val n0 = freshTerm[N](freshN, null)
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val nExpr = Ref(n1).asExprOf[N]
+      val o0 = freshTerm[O](freshO, null)
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val oExpr = Ref(o1).asExprOf[O]
+      val p0 = freshTerm[P](freshP, null)
+      val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags)
+      val pExpr = Ref(p1).asExprOf[P]
+      val q0 = freshTerm[Q](freshQ, null)
+      val q1 = freshTerm.valdef[Q](freshQ, null, Flags.EmptyFlags)
+      val qExpr = Ref(q1).asExprOf[Q]
+      val r0 = freshTerm[R](freshR, null)
+      val r1 = freshTerm.valdef[R](freshR, null, Flags.EmptyFlags)
+      val rExpr = Ref(r1).asExprOf[R]
+      val s0 = freshTerm[S](freshS, null)
+      val s1 = freshTerm.valdef[S](freshS, null, Flags.EmptyFlags)
+      val sExpr = Ref(s1).asExprOf[S]
+      val t0 = freshTerm[T](freshT, null)
+      val t1 = freshTerm.valdef[T](freshT, null, Flags.EmptyFlags)
+      val tExpr = Ref(t1).asExprOf[T]
+      val u0 = freshTerm[U](freshU, null)
+      val u1 = freshTerm.valdef[U](freshU, null, Flags.EmptyFlags)
+      val uExpr = Ref(u1).asExprOf[U]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0, i0, j0, k0, l0, m0, n0, o0, p0, q0, r0, s0, t0, u0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H], TypeRepr.of[I], TypeRepr.of[J], TypeRepr.of[K], TypeRepr.of[L], TypeRepr.of[M], TypeRepr.of[N], TypeRepr.of[O], TypeRepr.of[P], TypeRepr.of[Q], TypeRepr.of[R], TypeRepr.of[S], TypeRepr.of[T], TypeRepr.of[U]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T], u: Expr[U]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm, i.asTerm, j.asTerm, k.asTerm, l.asTerm, m.asTerm, n.asTerm, o.asTerm, p.asTerm, q.asTerm, r.asTerm, s.asTerm, t.asTerm, u.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped, Type[T].asUntyped, Type[U].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term, t: Term, u: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm,
+                        ValDef(i1, Some(i)),
+                        '{ val _ = $iExpr }.asTerm,
+                        ValDef(j1, Some(j)),
+                        '{ val _ = $jExpr }.asTerm,
+                        ValDef(k1, Some(k)),
+                        '{ val _ = $kExpr }.asTerm,
+                        ValDef(l1, Some(l)),
+                        '{ val _ = $lExpr }.asTerm,
+                        ValDef(m1, Some(m)),
+                        '{ val _ = $mExpr }.asTerm,
+                        ValDef(n1, Some(n)),
+                        '{ val _ = $nExpr }.asTerm,
+                        ValDef(o1, Some(o)),
+                        '{ val _ = $oExpr }.asTerm,
+                        ValDef(p1, Some(p)),
+                        '{ val _ = $pExpr }.asTerm,
+                        ValDef(q1, Some(q)),
+                        '{ val _ = $qExpr }.asTerm,
+                        ValDef(r1, Some(r)),
+                        '{ val _ = $rExpr }.asTerm,
+                        ValDef(s1, Some(s)),
+                        '{ val _ = $sExpr }.asTerm,
+                        ValDef(t1, Some(t)),
+                        '{ val _ = $tExpr }.asTerm,
+                        ValDef(u1, Some(u)),
+                        '{ val _ = $uExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 21 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr, pExpr, qExpr, rExpr, sExpr, tExpr, uExpr))
+      )
+    }
+    override def ofDef22[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type, V: Type, Returned: Type](
+        freshName: FreshName,
+        freshA: FreshName = FreshName.FromType,
+        freshB: FreshName = FreshName.FromType,
+        freshC: FreshName = FreshName.FromType,
+        freshD: FreshName = FreshName.FromType,
+        freshE: FreshName = FreshName.FromType,
+        freshF: FreshName = FreshName.FromType,
+        freshG: FreshName = FreshName.FromType,
+        freshH: FreshName = FreshName.FromType,
+        freshI: FreshName = FreshName.FromType,
+        freshJ: FreshName = FreshName.FromType,
+        freshK: FreshName = FreshName.FromType,
+        freshL: FreshName = FreshName.FromType,
+        freshM: FreshName = FreshName.FromType,
+        freshN: FreshName = FreshName.FromType,
+        freshO: FreshName = FreshName.FromType,
+        freshP: FreshName = FreshName.FromType,
+        freshQ: FreshName = FreshName.FromType,
+        freshR: FreshName = FreshName.FromType,
+        freshS: FreshName = FreshName.FromType,
+        freshT: FreshName = FreshName.FromType,
+        freshU: FreshName = FreshName.FromType,
+        freshV: FreshName = FreshName.FromType
+    ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]))] = {
+      val a0 = freshTerm[A](freshA, null)
+      val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags)
+      val aExpr = Ref(a1).asExprOf[A]
+      val b0 = freshTerm[B](freshB, null)
+      val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags)
+      val bExpr = Ref(b1).asExprOf[B]
+      val c0 = freshTerm[C](freshC, null)
+      val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags)
+      val cExpr = Ref(c1).asExprOf[C]
+      val d0 = freshTerm[D](freshD, null)
+      val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags)
+      val dExpr = Ref(d1).asExprOf[D]
+      val e0 = freshTerm[E](freshE, null)
+      val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags)
+      val eExpr = Ref(e1).asExprOf[E]
+      val f0 = freshTerm[F](freshF, null)
+      val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags)
+      val fExpr = Ref(f1).asExprOf[F]
+      val g0 = freshTerm[G](freshG, null)
+      val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags)
+      val gExpr = Ref(g1).asExprOf[G]
+      val h0 = freshTerm[H](freshH, null)
+      val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags)
+      val hExpr = Ref(h1).asExprOf[H]
+      val i0 = freshTerm[I](freshI, null)
+      val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags)
+      val iExpr = Ref(i1).asExprOf[I]
+      val j0 = freshTerm[J](freshJ, null)
+      val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags)
+      val jExpr = Ref(j1).asExprOf[J]
+      val k0 = freshTerm[K](freshK, null)
+      val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags)
+      val kExpr = Ref(k1).asExprOf[K]
+      val l0 = freshTerm[L](freshL, null)
+      val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags)
+      val lExpr = Ref(l1).asExprOf[L]
+      val m0 = freshTerm[M](freshM, null)
+      val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags)
+      val mExpr = Ref(m1).asExprOf[M]
+      val n0 = freshTerm[N](freshN, null)
+      val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags)
+      val nExpr = Ref(n1).asExprOf[N]
+      val o0 = freshTerm[O](freshO, null)
+      val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags)
+      val oExpr = Ref(o1).asExprOf[O]
+      val p0 = freshTerm[P](freshP, null)
+      val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags)
+      val pExpr = Ref(p1).asExprOf[P]
+      val q0 = freshTerm[Q](freshQ, null)
+      val q1 = freshTerm.valdef[Q](freshQ, null, Flags.EmptyFlags)
+      val qExpr = Ref(q1).asExprOf[Q]
+      val r0 = freshTerm[R](freshR, null)
+      val r1 = freshTerm.valdef[R](freshR, null, Flags.EmptyFlags)
+      val rExpr = Ref(r1).asExprOf[R]
+      val s0 = freshTerm[S](freshS, null)
+      val s1 = freshTerm.valdef[S](freshS, null, Flags.EmptyFlags)
+      val sExpr = Ref(s1).asExprOf[S]
+      val t0 = freshTerm[T](freshT, null)
+      val t1 = freshTerm.valdef[T](freshT, null, Flags.EmptyFlags)
+      val tExpr = Ref(t1).asExprOf[T]
+      val u0 = freshTerm[U](freshU, null)
+      val u1 = freshTerm.valdef[U](freshU, null, Flags.EmptyFlags)
+      val uExpr = Ref(u1).asExprOf[U]
+      val v0 = freshTerm[V](freshV, null)
+      val v1 = freshTerm.valdef[V](freshV, null, Flags.EmptyFlags)
+      val vExpr = Ref(v1).asExprOf[V]
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List(a0, b0, c0, d0, e0, f0, g0, h0, i0, j0, k0, l0, m0, n0, o0, p0, q0, r0, s0, t0, u0, v0))(_ => List(TypeRepr.of[A], TypeRepr.of[B], TypeRepr.of[C], TypeRepr.of[D], TypeRepr.of[E], TypeRepr.of[F], TypeRepr.of[G], TypeRepr.of[H], TypeRepr.of[I], TypeRepr.of[J], TypeRepr.of[K], TypeRepr.of[L], TypeRepr.of[M], TypeRepr.of[N], TypeRepr.of[O], TypeRepr.of[P], TypeRepr.of[Q], TypeRepr.of[R], TypeRepr.of[S], TypeRepr.of[T], TypeRepr.of[U], TypeRepr.of[V]), _ => TypeRepr.of[Returned])
+      )
+      val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T], u: Expr[U], v: Expr[V]) => Ref(name).appliedToArgss(List(List(a.asTerm, b.asTerm, c.asTerm, d.asTerm, e.asTerm, f.asTerm, g.asTerm, h.asTerm, i.asTerm, j.asTerm, k.asTerm, l.asTerm, m.asTerm, n.asTerm, o.asTerm, p.asTerm, q.asTerm, r.asTerm, s.asTerm, t.asTerm, u.asTerm, v.asTerm))).asExprOf[Returned]
+      new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]))](
+        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped, Type[T].asUntyped, Type[U].asUntyped, Type[V].asUntyped), Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term, t: Term, u: Term, v: Term)) =>
+                  Some {
+                    Block(
+                      List(
+                        ValDef(a1, Some(a)),
+                        '{ val _ = $aExpr }.asTerm,
+                        ValDef(b1, Some(b)),
+                        '{ val _ = $bExpr }.asTerm,
+                        ValDef(c1, Some(c)),
+                        '{ val _ = $cExpr }.asTerm,
+                        ValDef(d1, Some(d)),
+                        '{ val _ = $dExpr }.asTerm,
+                        ValDef(e1, Some(e)),
+                        '{ val _ = $eExpr }.asTerm,
+                        ValDef(f1, Some(f)),
+                        '{ val _ = $fExpr }.asTerm,
+                        ValDef(g1, Some(g)),
+                        '{ val _ = $gExpr }.asTerm,
+                        ValDef(h1, Some(h)),
+                        '{ val _ = $hExpr }.asTerm,
+                        ValDef(i1, Some(i)),
+                        '{ val _ = $iExpr }.asTerm,
+                        ValDef(j1, Some(j)),
+                        '{ val _ = $jExpr }.asTerm,
+                        ValDef(k1, Some(k)),
+                        '{ val _ = $kExpr }.asTerm,
+                        ValDef(l1, Some(l)),
+                        '{ val _ = $lExpr }.asTerm,
+                        ValDef(m1, Some(m)),
+                        '{ val _ = $mExpr }.asTerm,
+                        ValDef(n1, Some(n)),
+                        '{ val _ = $nExpr }.asTerm,
+                        ValDef(o1, Some(o)),
+                        '{ val _ = $oExpr }.asTerm,
+                        ValDef(p1, Some(p)),
+                        '{ val _ = $pExpr }.asTerm,
+                        ValDef(q1, Some(q)),
+                        '{ val _ = $qExpr }.asTerm,
+                        ValDef(r1, Some(r)),
+                        '{ val _ = $rExpr }.asTerm,
+                        ValDef(s1, Some(s)),
+                        '{ val _ = $sExpr }.asTerm,
+                        ValDef(t1, Some(t)),
+                        '{ val _ = $tExpr }.asTerm,
+                        ValDef(u1, Some(u)),
+                        '{ val _ = $uExpr }.asTerm,
+                        ValDef(v1, Some(v)),
+                        '{ val _ = $vExpr }.asTerm
+                      ),
+                      body.asTerm.changeOwner(name)
+                    )
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 22 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr, pExpr, qExpr, rExpr, sExpr, tExpr, uExpr, vExpr))
+      )
+    }
+    // format: on
 
     override def build[Signature, Returned](
         builder: ValDefBuilder[Signature, Returned, Expr[Returned]]
