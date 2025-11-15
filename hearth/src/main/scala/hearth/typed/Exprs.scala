@@ -500,9 +500,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     def ofLazy[Returned: Type](
         freshName: FreshName
     ): ValDefBuilder[Expr[Returned], Returned, Expr[Returned]]
-    // TODO: def ofDef0
 
     // format: off
+    def ofDef0[Returned: Type](
+        freshName: FreshName
+    ): ValDefBuilder[Expr[Returned], Returned, Expr[Returned]]
     def ofDef1[A: Type, Return: Type](
         freshName: FreshName,
         freshA: FreshName = FreshName.FromType,

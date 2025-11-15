@@ -545,6 +545,37 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       )
     }
 
+    override def ofDef0[Returned: Type](
+        freshName: FreshName
+    ): ValDefBuilder[Expr[Returned], Returned, Expr[Returned]] = {
+      val name = Symbol.newMethod(
+        Symbol.spliceOwner,
+        freshTerm[Returned](freshName, null),
+        MethodType(List())(_ => List(), _ => TypeRepr.of[Returned])
+      )
+      val self = Ref(name).appliedToArgss(List(Nil)).asExprOf[Returned]
+      new ValDefBuilder[Expr[Returned], Returned, Expr[Returned]](
+        new Mk[Expr[Returned], Returned](
+          signature = self,
+          mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
+          buildValDef = (body: Expr[Returned]) =>
+            DefDef(
+              name,
+              {
+                case List(Nil) =>
+                  Some {
+                    body.asTerm.changeOwner(name)
+                  }
+                case args =>
+                  val preview =
+                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+                  hearthAssertionFailed(s"Expected 0 Term arguments, got:\n$preview")
+              }
+            )
+        ),
+        self
+      )
+    }
     override def ofDef1[A: Type, Returned: Type](
         freshName: FreshName,
         freshA: FreshName = FreshName.FromType
@@ -579,7 +610,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 case args =>
                   val preview =
                     args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected a single Term argument, got:\n$preview")
+                  hearthAssertionFailed(s"Expected 1 Term argument, got:\n$preview")
               }
             )
         ),

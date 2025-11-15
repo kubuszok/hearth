@@ -304,6 +304,7 @@ trait Classes { this: MacroCommons =>
     private def combineSetterResults[A0: Type](constructorResult: Expr[A0])(setterResults: List[Expr[Unit]]): Expr[A0] =
       setterResults.toVector
         .foldRight(constructorResult) { (setterResult, acc) =>
+          // TODO: on Scala 2, it looks ugly when printed, see ClassesJvmSpec
           Expr.quote {
             Expr.splice(setterResult)
             Expr.splice(acc)
