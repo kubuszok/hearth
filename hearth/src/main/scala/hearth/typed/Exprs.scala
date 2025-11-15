@@ -491,9 +491,15 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
   val ValDefBuilder: ValDefBuilderModule
   trait ValDefBuilderModule { this: ValDefBuilder.type =>
 
-    // TODO: def ofVal
-    // TODO: def ofVar
-    // TODO: def ofLazy
+    def ofVal[Returned: Type](
+        freshName: FreshName
+    ): ValDefBuilder[Expr[Returned], Returned, Unit]
+    def ofVar[Returned: Type](
+        freshName: FreshName
+    ): ValDefBuilder[Expr[Returned], Returned, Expr[Returned] => Expr[Unit]]
+    def ofLazy[Returned: Type](
+        freshName: FreshName
+    ): ValDefBuilder[Expr[Returned], Returned, Expr[Returned]]
     // TODO: def ofDef0
 
     // format: off
