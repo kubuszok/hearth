@@ -264,7 +264,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     final private case class TypeMatch[A](name: TermName, expr: Expr_??, result: A) extends MatchCase[A]
 
-    override def typeMatch[A: Type](freshName: FreshName = FreshName.FromType): MatchCase[Expr[A]] = {
+    override def typeMatch[A: Type](freshName: FreshName): MatchCase[Expr[A]] = {
       val name = freshTerm[A](freshName, null)
       val expr: Expr[A] = c.Expr[A](q"$name")
       TypeMatch(name, expr.as_??, expr)
@@ -305,13 +305,13 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
   object ValDefs extends ValDefsModule {
 
-    override def createVal[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): ValDefs[Expr[A]] = {
+    override def createVal[A: Type](value: Expr[A], freshName: FreshName): ValDefs[Expr[A]] = {
       val name = freshTerm[A](freshName, value)
       new ValDefs[Expr[A]](NonEmptyVector(q"val $name: ${Type[A]} = $value"), c.Expr[A](q"$name"))
     }
     override def createVar[A: Type](
         initialValue: Expr[A],
-        freshName: FreshName = FreshName.FromType
+        freshName: FreshName
     ): ValDefs[(Expr[A], Expr[A] => Expr[Unit])] = {
       val name = freshTerm[A](freshName, initialValue)
       new ValDefs[(Expr[A], Expr[A] => Expr[Unit])](
@@ -319,11 +319,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         (c.Expr[A](q"$name"), (expr: Expr[A]) => c.Expr[Unit](q"$name = $expr"))
       )
     }
-    override def createLazy[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): ValDefs[Expr[A]] = {
+    override def createLazy[A: Type](value: Expr[A], freshName: FreshName): ValDefs[Expr[A]] = {
       val name = freshTerm[A](freshName, value)
       new ValDefs[Expr[A]](NonEmptyVector.one(q"lazy val $name: ${Type[A]} = $value"), c.Expr[A](q"$name"))
     }
-    override def createDef[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): ValDefs[Expr[A]] = {
+    override def createDef[A: Type](value: Expr[A], freshName: FreshName): ValDefs[Expr[A]] = {
       val name = freshTerm[A](freshName, value)
       new ValDefs[Expr[A]](NonEmptyVector.one(q"def $name: ${Type[A]} = $value"), c.Expr[A](q"$name"))
     }
@@ -462,7 +462,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef1[A: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType
+        freshA: FreshName
     ): ValDefBuilder[Expr[A] => Expr[Returned], Returned, (Expr[A] => Expr[Returned], Expr[A])] = {
       val a1 = freshTerm[A](freshA, null)
       val name = freshTerm[Returned](freshName, null)
@@ -478,8 +478,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef2[A: Type, B: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B]) => Expr[Returned], Returned, ((Expr[A], Expr[B]) => Expr[Returned], (Expr[A], Expr[B]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -498,9 +498,9 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef3[A: Type, B: Type, C: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C]) => Expr[Returned], (Expr[A], Expr[B], Expr[C]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -521,10 +521,10 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef4[A: Type, B: Type, C: Type, D: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -547,11 +547,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef5[A: Type, B: Type, C: Type, D: Type, E: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -576,12 +576,12 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef6[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -608,13 +608,13 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef7[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -643,14 +643,14 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef8[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -681,15 +681,15 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef9[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -722,16 +722,16 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef10[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -766,17 +766,17 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef11[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -813,18 +813,18 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef12[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -863,19 +863,19 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef13[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -916,20 +916,20 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef14[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -972,21 +972,21 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef15[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -1031,22 +1031,22 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef16[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType,
-        freshP: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName,
+        freshP: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -1093,23 +1093,23 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef17[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType,
-        freshP: FreshName = FreshName.FromType,
-        freshQ: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName,
+        freshP: FreshName,
+        freshQ: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -1158,24 +1158,24 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef18[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType,
-        freshP: FreshName = FreshName.FromType,
-        freshQ: FreshName = FreshName.FromType,
-        freshR: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName,
+        freshP: FreshName,
+        freshQ: FreshName,
+        freshR: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -1226,25 +1226,25 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef19[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType,
-        freshP: FreshName = FreshName.FromType,
-        freshQ: FreshName = FreshName.FromType,
-        freshR: FreshName = FreshName.FromType,
-        freshS: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName,
+        freshP: FreshName,
+        freshQ: FreshName,
+        freshR: FreshName,
+        freshS: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -1297,26 +1297,26 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef20[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType,
-        freshP: FreshName = FreshName.FromType,
-        freshQ: FreshName = FreshName.FromType,
-        freshR: FreshName = FreshName.FromType,
-        freshS: FreshName = FreshName.FromType,
-        freshT: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName,
+        freshP: FreshName,
+        freshQ: FreshName,
+        freshR: FreshName,
+        freshS: FreshName,
+        freshT: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -1371,27 +1371,27 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef21[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType,
-        freshP: FreshName = FreshName.FromType,
-        freshQ: FreshName = FreshName.FromType,
-        freshR: FreshName = FreshName.FromType,
-        freshS: FreshName = FreshName.FromType,
-        freshT: FreshName = FreshName.FromType,
-        freshU: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName,
+        freshP: FreshName,
+        freshQ: FreshName,
+        freshR: FreshName,
+        freshS: FreshName,
+        freshT: FreshName,
+        freshU: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -1448,28 +1448,28 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     override def ofDef22[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type, V: Type, Returned: Type](
         freshName: FreshName,
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType,
-        freshP: FreshName = FreshName.FromType,
-        freshQ: FreshName = FreshName.FromType,
-        freshR: FreshName = FreshName.FromType,
-        freshS: FreshName = FreshName.FromType,
-        freshT: FreshName = FreshName.FromType,
-        freshU: FreshName = FreshName.FromType,
-        freshV: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName,
+        freshP: FreshName,
+        freshQ: FreshName,
+        freshR: FreshName,
+        freshS: FreshName,
+        freshT: FreshName,
+        freshU: FreshName,
+        freshV: FreshName
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]))] = {
       val a1 = freshTerm[A](freshA, null)
       val aExpr = c.Expr[A](q"$a1")
@@ -1727,7 +1727,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     // format: off
     override def of1[A: Type](
-        freshA: FreshName = FreshName.FromType
+        freshA: FreshName
     ): LambdaBuilder[A => *, Expr[A]] = {
       val a1 = freshTerm[A](freshA, null)
       new LambdaBuilder[A => *, Expr[A]](
@@ -1739,8 +1739,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of2[A: Type, B: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName
     ): LambdaBuilder[(A, B) => *, (Expr[A], Expr[B])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -1753,9 +1753,9 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of3[A: Type, B: Type, C: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName
     ): LambdaBuilder[(A, B, C) => *, (Expr[A], Expr[B], Expr[C])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -1769,10 +1769,10 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of4[A: Type, B: Type, C: Type, D: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName
     ): LambdaBuilder[(A, B, C, D) => *, (Expr[A], Expr[B], Expr[C], Expr[D])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -1787,11 +1787,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of5[A: Type, B: Type, C: Type, D: Type, E: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName
     ): LambdaBuilder[(A, B, C, D, E) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -1807,12 +1807,12 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of6[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -1829,13 +1829,13 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of7[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -1853,14 +1853,14 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of8[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -1879,15 +1879,15 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of9[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -1907,16 +1907,16 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of10[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -1937,17 +1937,17 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of11[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -1969,18 +1969,18 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of12[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -2003,19 +2003,19 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of13[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -2039,20 +2039,20 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of14[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -2077,21 +2077,21 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of15[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -2117,22 +2117,22 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of16[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType,
-        freshP: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName,
+        freshP: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -2159,23 +2159,23 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of17[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType,
-        freshP: FreshName = FreshName.FromType,
-        freshQ: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName,
+        freshP: FreshName,
+        freshQ: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -2203,24 +2203,24 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of18[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType,
-        freshP: FreshName = FreshName.FromType,
-        freshQ: FreshName = FreshName.FromType,
-        freshR: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName,
+        freshP: FreshName,
+        freshQ: FreshName,
+        freshR: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -2249,25 +2249,25 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of19[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType,
-        freshP: FreshName = FreshName.FromType,
-        freshQ: FreshName = FreshName.FromType,
-        freshR: FreshName = FreshName.FromType,
-        freshS: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName,
+        freshP: FreshName,
+        freshQ: FreshName,
+        freshR: FreshName,
+        freshS: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -2297,26 +2297,26 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of20[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType,
-        freshP: FreshName = FreshName.FromType,
-        freshQ: FreshName = FreshName.FromType,
-        freshR: FreshName = FreshName.FromType,
-        freshS: FreshName = FreshName.FromType,
-        freshT: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName,
+        freshP: FreshName,
+        freshQ: FreshName,
+        freshR: FreshName,
+        freshS: FreshName,
+        freshT: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -2347,27 +2347,27 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of21[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType,
-        freshP: FreshName = FreshName.FromType,
-        freshQ: FreshName = FreshName.FromType,
-        freshR: FreshName = FreshName.FromType,
-        freshS: FreshName = FreshName.FromType,
-        freshT: FreshName = FreshName.FromType,
-        freshU: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName,
+        freshP: FreshName,
+        freshQ: FreshName,
+        freshR: FreshName,
+        freshS: FreshName,
+        freshT: FreshName,
+        freshU: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
@@ -2399,28 +2399,28 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     }
     override def of22[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type, V: Type](
-        freshA: FreshName = FreshName.FromType,
-        freshB: FreshName = FreshName.FromType,
-        freshC: FreshName = FreshName.FromType,
-        freshD: FreshName = FreshName.FromType,
-        freshE: FreshName = FreshName.FromType,
-        freshF: FreshName = FreshName.FromType,
-        freshG: FreshName = FreshName.FromType,
-        freshH: FreshName = FreshName.FromType,
-        freshI: FreshName = FreshName.FromType,
-        freshJ: FreshName = FreshName.FromType,
-        freshK: FreshName = FreshName.FromType,
-        freshL: FreshName = FreshName.FromType,
-        freshM: FreshName = FreshName.FromType,
-        freshN: FreshName = FreshName.FromType,
-        freshO: FreshName = FreshName.FromType,
-        freshP: FreshName = FreshName.FromType,
-        freshQ: FreshName = FreshName.FromType,
-        freshR: FreshName = FreshName.FromType,
-        freshS: FreshName = FreshName.FromType,
-        freshT: FreshName = FreshName.FromType,
-        freshU: FreshName = FreshName.FromType,
-        freshV: FreshName = FreshName.FromType
+        freshA: FreshName,
+        freshB: FreshName,
+        freshC: FreshName,
+        freshD: FreshName,
+        freshE: FreshName,
+        freshF: FreshName,
+        freshG: FreshName,
+        freshH: FreshName,
+        freshI: FreshName,
+        freshJ: FreshName,
+        freshK: FreshName,
+        freshL: FreshName,
+        freshM: FreshName,
+        freshN: FreshName,
+        freshO: FreshName,
+        freshP: FreshName,
+        freshQ: FreshName,
+        freshR: FreshName,
+        freshS: FreshName,
+        freshT: FreshName,
+        freshU: FreshName,
+        freshV: FreshName
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V])] = {
       val a1 = freshTerm[A](freshA, null)
       val b1 = freshTerm[B](freshB, null)
