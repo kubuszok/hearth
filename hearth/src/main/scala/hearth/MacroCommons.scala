@@ -127,7 +127,53 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
       _ <- cache.set(cache2)
     } yield ()
 
-    def get1[A: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[Returned]]] =
-      cache.get.map(_.get1(key))
+    // format: off
+    def get0Ary[Returned: Type](key: String): fp.effect.MIO[Option[Expr[Returned]]] =
+      cache.get.map(_.get0Ary(key))
+    def get1Ary[A: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[Returned]]] =
+      cache.get.map(_.get1Ary(key))
+    def get2Ary[A: Type, B: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[Returned]]] =
+      cache.get.map(_.get2Ary(key))
+    def get3Ary[A: Type, B: Type, C: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[Returned]]] =
+      cache.get.map(_.get3Ary(key))
+    def get4Ary[A: Type, B: Type, C: Type, D: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[Returned]]] =
+      cache.get.map(_.get4Ary(key))
+    def get5Ary[A: Type, B: Type, C: Type, D: Type, E: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[Returned]]] =
+      cache.get.map(_.get5Ary(key))
+    def get6Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[Returned]]] =
+      cache.get.map(_.get6Ary(key))
+    def get7Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[Returned]]] =
+      cache.get.map(_.get7Ary(key))
+    def get8Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[Returned]]] =
+      cache.get.map(_.get8Ary(key))
+    def get9Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[I] => Expr[Returned]]] =
+      cache.get.map(_.get9Ary(key))
+    def get10Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[I] => Expr[J] => Expr[Returned]]] =
+      cache.get.map(_.get10Ary(key))
+    def get11Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[I] => Expr[J] => Expr[K] => Expr[Returned]]] =
+      cache.get.map(_.get11Ary(key))
+    def get12Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[I] => Expr[J] => Expr[K] => Expr[L] => Expr[Returned]]] =
+      cache.get.map(_.get12Ary(key))
+    def get13Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[I] => Expr[J] => Expr[K] => Expr[L] => Expr[M] => Expr[Returned]]] =
+      cache.get.map(_.get13Ary(key))
+    def get14Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[I] => Expr[J] => Expr[K] => Expr[L] => Expr[M] => Expr[N] => Expr[Returned]]] =
+      cache.get.map(_.get14Ary(key))
+    def get15Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[I] => Expr[J] => Expr[K] => Expr[L] => Expr[M] => Expr[N] => Expr[O] => Expr[Returned]]] =
+      cache.get.map(_.get15Ary(key))
+    def get16Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[I] => Expr[J] => Expr[K] => Expr[L] => Expr[M] => Expr[N] => Expr[O] => Expr[P] => Expr[Returned]]] =
+      cache.get.map(_.get16Ary(key))
+    def get17Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[I] => Expr[J] => Expr[K] => Expr[L] => Expr[M] => Expr[N] => Expr[O] => Expr[P] => Expr[Q] => Expr[R] => Expr[Returned]]] =
+      cache.get.map(_.get17Ary(key))
+    def get18Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[I] => Expr[J] => Expr[K] => Expr[L] => Expr[M] => Expr[N] => Expr[O] => Expr[P] => Expr[Q] => Expr[R] => Expr[S] => Expr[Returned]]] =
+      cache.get.map(_.get18Ary(key))
+    def get19Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[I] => Expr[J] => Expr[K] => Expr[L] => Expr[M] => Expr[N] => Expr[O] => Expr[P] => Expr[Q] => Expr[R] => Expr[S] => Expr[T] => Expr[Returned]]] =
+      cache.get.map(_.get19Ary(key))
+    def get20Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[I] => Expr[J] => Expr[K] => Expr[L] => Expr[M] => Expr[N] => Expr[O] => Expr[P] => Expr[Q] => Expr[R] => Expr[S] => Expr[T] => Expr[U] => Expr[Returned]]] =
+      cache.get.map(_.get20Ary(key))
+    def get21Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type, V: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[I] => Expr[J] => Expr[K] => Expr[L] => Expr[M] => Expr[N] => Expr[O] => Expr[P] => Expr[Q] => Expr[R] => Expr[S] => Expr[T] => Expr[U] => Expr[V] => Expr[Returned]]] =
+      cache.get.map(_.get21Ary(key))
+    def get22Ary[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type, V: Type, W: Type, Returned: Type](key: String): fp.effect.MIO[Option[Expr[A] => Expr[B] => Expr[C] => Expr[D] => Expr[E] => Expr[F] => Expr[G] => Expr[H] => Expr[I] => Expr[J] => Expr[K] => Expr[L] => Expr[M] => Expr[N] => Expr[O] => Expr[P] => Expr[Q] => Expr[R] => Expr[S] => Expr[T] => Expr[U] => Expr[V] => Expr[W] => Expr[Returned]]] =
+      cache.get.map(_.get22Ary(key))
+    // format: on
   }
 }
