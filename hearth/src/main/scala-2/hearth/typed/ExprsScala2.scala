@@ -354,11 +354,20 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
   object ValDefBuilder extends ValDefBuilderModule {
 
-    final private[typed] class Mk[Signature, Returned] private[typed] (
+    sealed private[typed] trait Mk[Signature, Returned] {
+
+      def build(body: Expr[Returned]): ValDefs[Signature]
+
+      def buildCached(cache: ValDefsCache, key: String, body: Expr[Returned]): ValDefsCache
+
+      def forwardDeclare(cache: ValDefsCache, key: String): ValDefsCache
+    }
+
+    final private[typed] class MkValDef[Signature, Returned] private[typed] (
         signature: Signature,
         mkKey: String => ValDefsCache.Key,
         buildValDef: Expr[Returned] => ValOrDefDef
-    ) {
+    ) extends Mk[Signature, Returned] {
 
       def build(body: Expr[Returned]): ValDefs[Signature] =
         new ValDefs[Signature](NonEmptyVector.one(buildValDef(body)), signature)
@@ -370,13 +379,33 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         cache.forwardDeclare(mkKey(key), signature)
     }
 
+    final private[typed] class MkVar[Signature, Returned] private[typed] (
+        getter: Signature,
+        setter: Expr[Returned] => Expr[Unit],
+        mkGetterKey: String => ValDefsCache.Key,
+        mkSetterKey: String => ValDefsCache.Key,
+        buildVar: Expr[Returned] => ValOrDefDef
+    ) extends Mk[Signature, Returned] {
+
+      def build(body: Expr[Returned]): ValDefs[Signature] =
+        new ValDefs[Signature](NonEmptyVector.one(buildVar(body)), getter)
+
+      def buildCached(cache: ValDefsCache, key: String, body: Expr[Returned]): ValDefsCache =
+        cache
+          .set(mkGetterKey(key), getter, buildVar(body))
+          .set(mkSetterKey(key), setter, null.asInstanceOf[ValOrDefDef])
+
+      def forwardDeclare(cache: ValDefsCache, key: String): ValDefsCache =
+        cache.forwardDeclare(mkGetterKey(key), getter).forwardDeclare(mkSetterKey(key), setter)
+    }
+
     override def ofVal[Returned: Type](
         freshName: FreshName
     ): ValDefBuilder[Expr[Returned], Returned, Unit] = {
       val name = freshTerm[Returned](freshName, null)
       val self = c.Expr[Returned](q"$name")
       new ValDefBuilder[Expr[Returned], Returned, Unit](
-        new Mk[Expr[Returned], Returned](
+        new MkValDef[Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"val $name: ${Type[Returned]} = $body"
@@ -391,10 +420,12 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val self = c.Expr[Returned](q"$name")
       val setter = (expr: Expr[Returned]) => c.Expr[Unit](q"$name = $expr")
       new ValDefBuilder[Expr[Returned], Returned, Expr[Returned] => Expr[Unit]](
-        new Mk[Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) => q"var $name: ${Type[Returned]} = $body"
+        new MkVar[Expr[Returned], Returned](
+          getter = self,
+          setter = setter,
+          mkGetterKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
+          mkSetterKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[Returned].asUntyped), Type[Unit].asUntyped),
+          buildVar = (body: Expr[Returned]) => q"var $name: ${Type[Returned]} = $body"
         ),
         setter
       )
@@ -405,7 +436,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = c.Expr[Returned](q"$name")
       new ValDefBuilder[Expr[Returned], Returned, Expr[Returned]](
-        new Mk[Expr[Returned], Returned](
+        new MkValDef[Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"lazy val $name: ${Type[Returned]} = $body"
@@ -421,7 +452,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = asExpr[Returned](q"$name")
       new ValDefBuilder[Expr[Returned], Returned, Expr[Returned]](
-        new Mk[Expr[Returned], Returned](
+        new MkValDef[Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name: ${Type[Returned]} = $body"
@@ -437,7 +468,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A]) => asExpr[Returned](q"$name($a)")
       new ValDefBuilder[Expr[A] => Expr[Returned], Returned, (Expr[A] => Expr[Returned], Expr[A])](
-        new Mk[Expr[A] => Expr[Returned], Returned](
+        new MkValDef[Expr[A] => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}): ${Type[Returned]} = $body"
@@ -457,7 +488,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B]) => asExpr[Returned](q"$name($a, $b)")
       new ValDefBuilder[(Expr[A], Expr[B]) => Expr[Returned], Returned, ((Expr[A], Expr[B]) => Expr[Returned], (Expr[A], Expr[B]))](
-        new Mk[(Expr[A], Expr[B]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}): ${Type[Returned]} = $body"
@@ -480,7 +511,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C]) => asExpr[Returned](q"$name($a, $b, $c)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C]) => Expr[Returned], (Expr[A], Expr[B], Expr[C]))](
-        new Mk[(Expr[A], Expr[B], Expr[C]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}): ${Type[Returned]} = $body"
@@ -506,7 +537,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D]) => asExpr[Returned](q"$name($a, $b, $c, $d)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}): ${Type[Returned]} = $body"
@@ -535,7 +566,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}): ${Type[Returned]} = $body"
@@ -567,7 +598,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}): ${Type[Returned]} = $body"
@@ -602,7 +633,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}): ${Type[Returned]} = $body"
@@ -640,7 +671,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}): ${Type[Returned]} = $body"
@@ -681,7 +712,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h, $i)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}, $i1: ${Type[I]}): ${Type[Returned]} = $body"
@@ -725,7 +756,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h, $i, $j)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}, $i1: ${Type[I]}, $j1: ${Type[J]}): ${Type[Returned]} = $body"
@@ -772,7 +803,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}, $i1: ${Type[I]}, $j1: ${Type[J]}, $k1: ${Type[K]}): ${Type[Returned]} = $body"
@@ -822,7 +853,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}, $i1: ${Type[I]}, $j1: ${Type[J]}, $k1: ${Type[K]}, $l1: ${Type[L]}): ${Type[Returned]} = $body"
@@ -875,7 +906,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}, $i1: ${Type[I]}, $j1: ${Type[J]}, $k1: ${Type[K]}, $l1: ${Type[L]}, $m1: ${Type[M]}): ${Type[Returned]} = $body"
@@ -931,7 +962,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m, $n)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}, $i1: ${Type[I]}, $j1: ${Type[J]}, $k1: ${Type[K]}, $l1: ${Type[L]}, $m1: ${Type[M]}, $n1: ${Type[N]}): ${Type[Returned]} = $body"
@@ -990,7 +1021,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m, $n, $o)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}, $i1: ${Type[I]}, $j1: ${Type[J]}, $k1: ${Type[K]}, $l1: ${Type[L]}, $m1: ${Type[M]}, $n1: ${Type[N]}, $o1: ${Type[O]}): ${Type[Returned]} = $body"
@@ -1052,7 +1083,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m, $n, $o, $p)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}, $i1: ${Type[I]}, $j1: ${Type[J]}, $k1: ${Type[K]}, $l1: ${Type[L]}, $m1: ${Type[M]}, $n1: ${Type[N]}, $o1: ${Type[O]}, $p1: ${Type[P]}): ${Type[Returned]} = $body"
@@ -1117,7 +1148,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m, $n, $o, $p, $q)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}, $i1: ${Type[I]}, $j1: ${Type[J]}, $k1: ${Type[K]}, $l1: ${Type[L]}, $m1: ${Type[M]}, $n1: ${Type[N]}, $o1: ${Type[O]}, $p1: ${Type[P]}, $q1: ${Type[Q]}): ${Type[Returned]} = $body"
@@ -1185,7 +1216,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m, $n, $o, $p, $q, $r)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}, $i1: ${Type[I]}, $j1: ${Type[J]}, $k1: ${Type[K]}, $l1: ${Type[L]}, $m1: ${Type[M]}, $n1: ${Type[N]}, $o1: ${Type[O]}, $p1: ${Type[P]}, $q1: ${Type[Q]}, $r1: ${Type[R]}): ${Type[Returned]} = $body"
@@ -1256,7 +1287,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m, $n, $o, $p, $q, $r, $s)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}, $i1: ${Type[I]}, $j1: ${Type[J]}, $k1: ${Type[K]}, $l1: ${Type[L]}, $m1: ${Type[M]}, $n1: ${Type[N]}, $o1: ${Type[O]}, $p1: ${Type[P]}, $q1: ${Type[Q]}, $r1: ${Type[R]}, $s1: ${Type[S]}): ${Type[Returned]} = $body"
@@ -1330,7 +1361,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m, $n, $o, $p, $q, $r, $s, $t)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped, Type[T].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}, $i1: ${Type[I]}, $j1: ${Type[J]}, $k1: ${Type[K]}, $l1: ${Type[L]}, $m1: ${Type[M]}, $n1: ${Type[N]}, $o1: ${Type[O]}, $p1: ${Type[P]}, $q1: ${Type[Q]}, $r1: ${Type[R]}, $s1: ${Type[S]}, $t1: ${Type[T]}): ${Type[Returned]} = $body"
@@ -1407,7 +1438,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T], u: Expr[U]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m, $n, $o, $p, $q, $r, $s, $t, $u)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped, Type[T].asUntyped, Type[U].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}, $i1: ${Type[I]}, $j1: ${Type[J]}, $k1: ${Type[K]}, $l1: ${Type[L]}, $m1: ${Type[M]}, $n1: ${Type[N]}, $o1: ${Type[O]}, $p1: ${Type[P]}, $q1: ${Type[Q]}, $r1: ${Type[R]}, $s1: ${Type[S]}, $t1: ${Type[T]}, $u1: ${Type[U]}): ${Type[Returned]} = $body"
@@ -1487,7 +1518,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val name = freshTerm[Returned](freshName, null)
       val self = (a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T], u: Expr[U], v: Expr[V]) => asExpr[Returned](q"$name($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m, $n, $o, $p, $q, $r, $s, $t, $u, $v)")
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped, Type[T].asUntyped, Type[U].asUntyped, Type[V].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => q"def $name($a1: ${Type[A]}, $b1: ${Type[B]}, $c1: ${Type[C]}, $d1: ${Type[D]}, $e1: ${Type[E]}, $f1: ${Type[F]}, $g1: ${Type[G]}, $h1: ${Type[H]}, $i1: ${Type[I]}, $j1: ${Type[J]}, $k1: ${Type[K]}, $l1: ${Type[L]}, $m1: ${Type[M]}, $n1: ${Type[N]}, $o1: ${Type[O]}, $p1: ${Type[P]}, $q1: ${Type[Q]}, $r1: ${Type[R]}, $s1: ${Type[S]}, $t1: ${Type[T]}, $u1: ${Type[U]}, $v1: ${Type[V]}): ${Type[Returned]} = $body"
@@ -1658,7 +1689,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     // format: on
 
     override def toValDefs(cache: ValDefsCache): ValDefs[Unit] = {
-      val (pending, definitions) = cache.definitions.partitionMap {
+      // filter out setters (we are forward declaring them, but they are built together with their setters)
+      val (pending, definitions) = cache.definitions.filter(_._2.definition != Some(null)).partitionMap {
         case (_, ValDefsCache.Value(_, Some(definition))) => Right(definition)
         case (key, ValDefsCache.Value(_, None))           => Left(key)
       }

@@ -492,11 +492,20 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
   object ValDefBuilder extends ValDefBuilderModule {
 
-    final private[typed] class Mk[Signature, Returned] private[typed] (
+    sealed private[typed] trait Mk[Signature, Returned] private[typed] {
+
+      def build(body: Expr[Returned]): ValDefs[Signature]
+
+      def buildCached(cache: ValDefsCache, key: String, body: Expr[Returned]): ValDefsCache
+
+      def forwardDeclare(cache: ValDefsCache, key: String): ValDefsCache
+    }
+
+    final private[typed] class MkValDef[Signature, Returned] private[typed] (
         signature: Signature,
         mkKey: String => ValDefsCache.Key,
         buildValDef: Expr[Returned] => Statement
-    ) {
+    ) extends Mk[Signature, Returned] {
 
       def build(body: Expr[Returned]): ValDefs[Signature] =
         new ValDefs[Signature](NonEmptyVector.one(buildValDef(body)), signature)
@@ -508,13 +517,31 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         cache.forwardDeclare(mkKey(key), signature)
     }
 
+    final private[typed] class MkVar[Signature, Returned] private[typed] (
+        getter: Signature,
+        setter: Expr[Returned] => Expr[Unit],
+        mkGetterKey: String => ValDefsCache.Key,
+        mkSetterKey: String => ValDefsCache.Key,
+        buildVar: Expr[Returned] => Statement
+    ) extends Mk[Signature, Returned] {
+
+      def build(body: Expr[Returned]): ValDefs[Signature] =
+        new ValDefs[Signature](NonEmptyVector.one(buildVar(body)), getter)
+
+      def buildCached(cache: ValDefsCache, key: String, body: Expr[Returned]): ValDefsCache =
+        cache.set(mkGetterKey(key), getter, buildVar(body)).set(mkSetterKey(key), setter, null.asInstanceOf[Statement])
+
+      def forwardDeclare(cache: ValDefsCache, key: String): ValDefsCache =
+        cache.forwardDeclare(mkGetterKey(key), getter).forwardDeclare(mkSetterKey(key), setter)
+    }
+
     override def ofVal[Returned: Type](
         freshName: FreshName
     ): ValDefBuilder[Expr[Returned], Returned, Unit] = {
       val name = freshTerm.valdef[Returned](freshName, null, Flags.EmptyFlags)
       val self = Ref(name).asExprOf[Returned]
       new ValDefBuilder[Expr[Returned], Returned, Unit](
-        new Mk[Expr[Returned], Returned](
+        new MkValDef[Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => ValDef(name, Some(body.asTerm.changeOwner(name)))
@@ -529,10 +556,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val self = Ref(name).asExprOf[Returned]
       val setter = (body: Expr[Returned]) => Assign(Ref(name), body.asTerm).asExprOf[Unit]
       new ValDefBuilder[Expr[Returned], Returned, Expr[Returned] => Expr[Unit]](
-        new Mk[Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) => ValDef(name, Some(body.asTerm.changeOwner(name)))
+        new MkVar[Expr[Returned], Returned](
+          getter = self,
+          setter = setter,
+          mkGetterKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
+          mkSetterKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[Returned].asUntyped), Type[Unit].asUntyped),
+          buildVar = (body: Expr[Returned]) => ValDef(name, Some(body.asTerm.changeOwner(name)))
         ),
         setter
       )
@@ -543,7 +572,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val name = freshTerm.valdef[Returned](freshName, null, Flags.Lazy)
       val self = Ref(name).asExprOf[Returned]
       new ValDefBuilder[Expr[Returned], Returned, Expr[Returned]](
-        new Mk[Expr[Returned], Returned](
+        new MkValDef[Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) => ValDef(name, Some(body.asTerm.changeOwner(name)))
@@ -563,7 +592,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       )
       val self = Ref(name).appliedToArgss(List(Nil)).asExprOf[Returned]
       new ValDefBuilder[Expr[Returned], Returned, Expr[Returned]](
-        new Mk[Expr[Returned], Returned](
+        new MkValDef[Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq.empty, Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -600,7 +629,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags, name)
       val aExpr = Ref(a1).asExprOf[A]
       new ValDefBuilder[Expr[A] => Expr[Returned], Returned, (Expr[A] => Expr[Returned], Expr[A])](
-        new Mk[Expr[A] => Expr[Returned], Returned](
+        new MkValDef[Expr[A] => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -647,7 +676,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags, name)
       val bExpr = Ref(b1).asExprOf[B]
       new ValDefBuilder[(Expr[A], Expr[B]) => Expr[Returned], Returned, ((Expr[A], Expr[B]) => Expr[Returned], (Expr[A], Expr[B]))](
-        new Mk[(Expr[A], Expr[B]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -700,7 +729,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags, name)
       val cExpr = Ref(c1).asExprOf[C]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C]) => Expr[Returned], (Expr[A], Expr[B], Expr[C]))](
-        new Mk[(Expr[A], Expr[B], Expr[C]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -759,7 +788,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags, name)
       val dExpr = Ref(d1).asExprOf[D]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -824,7 +853,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags, name)
       val eExpr = Ref(e1).asExprOf[E]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -895,7 +924,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags, name)
       val fExpr = Ref(f1).asExprOf[F]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -972,7 +1001,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags, name)
       val gExpr = Ref(g1).asExprOf[G]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -1055,7 +1084,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags, name)
       val hExpr = Ref(h1).asExprOf[H]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -1144,7 +1173,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags, name)
       val iExpr = Ref(i1).asExprOf[I]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -1239,7 +1268,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags, name)
       val jExpr = Ref(j1).asExprOf[J]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -1340,7 +1369,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags, name)
       val kExpr = Ref(k1).asExprOf[K]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -1447,7 +1476,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags, name)
       val lExpr = Ref(l1).asExprOf[L]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -1560,7 +1589,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags, name)
       val mExpr = Ref(m1).asExprOf[M]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -1679,7 +1708,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags, name)
       val nExpr = Ref(n1).asExprOf[N]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -1804,7 +1833,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags, name)
       val oExpr = Ref(o1).asExprOf[O]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -1935,7 +1964,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags, name)
       val pExpr = Ref(p1).asExprOf[P]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -2072,7 +2101,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val q1 = freshTerm.valdef[Q](freshQ, null, Flags.EmptyFlags, name)
       val qExpr = Ref(q1).asExprOf[Q]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -2215,7 +2244,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val r1 = freshTerm.valdef[R](freshR, null, Flags.EmptyFlags, name)
       val rExpr = Ref(r1).asExprOf[R]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -2364,7 +2393,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val s1 = freshTerm.valdef[S](freshS, null, Flags.EmptyFlags, name)
       val sExpr = Ref(s1).asExprOf[S]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -2519,7 +2548,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val t1 = freshTerm.valdef[T](freshT, null, Flags.EmptyFlags, name)
       val tExpr = Ref(t1).asExprOf[T]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped, Type[T].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -2680,7 +2709,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val u1 = freshTerm.valdef[U](freshU, null, Flags.EmptyFlags, name)
       val uExpr = Ref(u1).asExprOf[U]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped, Type[T].asUntyped, Type[U].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -2847,7 +2876,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val v1 = freshTerm.valdef[V](freshV, null, Flags.EmptyFlags, name)
       val vExpr = Ref(v1).asExprOf[V]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]))](
-        new Mk[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], Returned](
+        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], Returned](
           signature = self,
           mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped, Type[T].asUntyped, Type[U].asUntyped, Type[V].asUntyped), Type[Returned].asUntyped),
           buildValDef = (body: Expr[Returned]) =>
@@ -3078,7 +3107,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     // format: on
 
     override def toValDefs(cache: ValDefsCache): ValDefs[Unit] = {
-      val (pending, definitions) = cache.definitions.partitionMap {
+      // filter out setters (we are forward declaring them, but they are built together with their setters)
+      val (pending, definitions) = cache.definitions.filter(_._2.definition != Some(null)).partitionMap {
         case (_, ValDefsCache.Value(_, Some(definition))) => Right(definition)
         case (key, ValDefsCache.Value(_, None))           => Left(key)
       }
