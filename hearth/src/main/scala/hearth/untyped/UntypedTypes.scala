@@ -49,9 +49,11 @@ trait UntypedTypes { this: MacroCommons =>
         else if (untyped =:= Type.of[Null].asUntyped) Some(classOf[Null])
         else if (untyped =:= Type.of[Nothing].asInstanceOf[Type[Any]].asUntyped) Some(classOf[Nothing])
         else
+          // $COVERAGE-OFF$
           hearthAssertionFailed(
             s"${untyped.prettyPrint} is recognized as type-system-special type, but is not handled by a type-system-special branch"
           )
+        // $COVERAGE-ON$
       } else if (isJvmBuiltIn(untyped)) {
         // classOf[Unit].toString == "void" while possbleClassesOfType[Unit]....toString would resolve to "class scala.Unit"
         // If we want to be consistent, we have to fix this manually.
@@ -72,9 +74,11 @@ trait UntypedTypes { this: MacroCommons =>
                 scala.reflect.ClassTag(elementClass).newArray(0).getClass()
               }
             case _ =>
+              // $COVERAGE-OFF$
               hearthAssertionFailed(
                 s"${untyped.prettyPrint} is recognized as built-in type, but is not handled by a built-in branch"
               )
+            // $COVERAGE-ON$
           }
       } else
         Type.possibleClassesOfType(untyped.asTyped[Any]).collectFirst { case AvailableClass(value) =>

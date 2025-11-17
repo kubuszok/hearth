@@ -129,24 +129,90 @@ final class ExprsSpec extends MacroSuite {
       test(
         "methods ValDefs.{createVal, createVar, createLazy, createDef, use} should create a scoped block with a definition, and allow using it"
       ) {
-        import ExprsFixtures.testScopeCreateAndUse
+        import ExprsFixtures.testValDefsCreateAndUse
 
         // Tests whether the result build using these methods compiles and correct
-        testScopeCreateAndUse ==> Data(2 + 20 + 300 + 4000)
+        testValDefsCreateAndUse ==> Data.map(
+          "val" -> Data(1 + 1),
+          "var" -> Data((1 + 1) * 10),
+          "lazy" -> Data((1 + 2) * 100),
+          "def" -> Data((1 + 3) * 1000)
+        )
       }
 
       test("methods ValDefs.{partition, close} should allow branching and closing a scoped block") {
-        import ExprsFixtures.testScopePartitionAndClose
+        import ExprsFixtures.testValDefsPartitionAndClose
 
         // Tests whether the result build using these methods compiles and correct
-        testScopePartitionAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
+        testValDefsPartitionAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
 
       test("methods ValDefs.{traverse, close} should allow traversing and closing a scoped block") {
-        import ExprsFixtures.testScopeTraverseAndClose
+        import ExprsFixtures.testValDefsTraverseAndClose
 
         // Tests whether the result build using these methods compiles and correct
-        testScopeTraverseAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
+        testValDefsTraverseAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
+      }
+    }
+
+    group("type ValDefBuilder") {
+
+      test(
+        "methods ValDefBuilder.{ofVal, ofVar, ofLazy, ofDef0, ofDef1, ..., ofDef22, buildWith, build} should create a scoped block with a definition, and allow using it"
+      ) {
+        import ExprsFixtures.testValDefBuilderCreateAndUse
+
+        @scala.annotation.nowarn // suppres "local var varExample$macro$1 in value <local ExprsSpec> is never updated" error
+        val result = testValDefBuilderCreateAndUse
+        // Tests whether the result build using these methods compiles and correct
+        result ==> Data.map(
+          "val" -> Data(1),
+          "var" -> Data(2),
+          "lazy" -> Data(3),
+          "def0" -> Data(0),
+          "def1" -> Data(1 * 10),
+          "def2" -> Data((1 + 2) * 10),
+          "def3" -> Data((1 + 2 + 3) * 10),
+          "def4" -> Data((1 + 2 + 3 + 4) * 10),
+          "def5" -> Data((1 + 2 + 3 + 4 + 5) * 10),
+          "def6" -> Data((1 + 2 + 3 + 4 + 5 + 6) * 10),
+          "def7" -> Data((1 + 2 + 3 + 4 + 5 + 6 + 7) * 10),
+          "def8" -> Data((1 + 2 + 3 + 4 + 5 + 6 + 7 + 8) * 10),
+          "def9" -> Data((1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9) * 10),
+          "def10" -> Data((1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10) * 10),
+          "def11" -> Data((1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11) * 10),
+          "def12" -> Data((1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12) * 10),
+          "def13" -> Data((1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13) * 10),
+          "def14" -> Data((1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14) * 10),
+          "def15" -> Data((1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15) * 10),
+          "def16" -> Data((1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16) * 10),
+          "def17" -> Data((1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16 + 17) * 10),
+          "def18" -> Data((1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16 + 17 + 18) * 10),
+          "def19" -> Data((1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19) * 10),
+          "def20" -> Data(
+            (1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19 + 20) * 10
+          ),
+          "def21" -> Data(
+            (1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19 + 20 + 21) * 10
+          ),
+          "def22" -> Data(
+            (1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19 + 20 + 21 + 22) * 10
+          )
+        )
+      }
+
+      test("methods ValDefs.{partition, build} should allow branching and closing a scoped block") {
+        import ExprsFixtures.testValDefBuilderPartitionAndClose
+
+        // Tests whether the result build using these methods compiles and correct
+        testValDefBuilderPartitionAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
+      }
+
+      test("methods ValDefs.{traverse, build} should allow traversing and closing a scoped block") {
+        import ExprsFixtures.testValDefBuilderTraverseAndClose
+
+        // Tests whether the result build using these methods compiles and correct
+        testValDefBuilderTraverseAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
     }
 

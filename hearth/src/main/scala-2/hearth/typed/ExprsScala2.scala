@@ -1545,11 +1545,13 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       new ValDefsCache(definitions.updated(key, new ValDefsCache.Value(signature, None)))
 
     private[typed] def set(key: ValDefsCache.Key, signature: Any, definition: ValOrDefDef): ValDefsCache = {
+      // $COVERAGE-OFF$
       if (definitions.get(key).exists(_.signature != signature)) {
         hearthRequirementFailed(
           s"Def with key $key already exists with different signature, you probably created it twice in 2 branches, without noticing"
         )
       }
+      // $COVERAGE-ON$
       new ValDefsCache(definitions.updated(key, new ValDefsCache.Value(signature, Some(definition))))
     }
 
@@ -1588,15 +1590,19 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val result = keys.view.map { key =>
         (cache1.definitions.get(key), cache2.definitions.get(key)) match {
           case (Some(value1), Some(value2)) =>
+            // $COVERAGE-OFF$
             if (value1.signature != value2.signature) {
               hearthRequirementFailed(
                 s"Def with key $key already exists with different signature, you probably created it twice in 2 branches, without noticing"
               )
             }
+            // $COVERAGE-ON$
             (key, value1)
           case (Some(value), None) => (key, value)
           case (None, Some(value)) => (key, value)
-          case (None, None)        => ??? // impossible
+          // $COVERAGE-OFF$
+          case (None, None) => ??? // impossible
+          // $COVERAGE-ON$
         }
       }
       new ValDefsCache(ListMap.from(result))
@@ -1611,6 +1617,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         case (key, ValDefsCache.Value(_, None))           => Left(key)
       }
       if (pending.nonEmpty) {
+        // $COVERAGE-OFF$
         hearthRequirementFailed(
           s"""Definitions were forward declared, but not built:
              |${pending.map(p => "  " + p.toString).mkString("\n")}
@@ -1619,10 +1626,13 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
              |Otherwise you would leak some definition outside if the scope it is available in which this check prevents.
              |""".stripMargin
         )
+        // $COVERAGE-ON$
       } else {
         NonEmptyVector.fromVector(definitions.toVector) match {
           case Some(definitions) => new ValDefs[Unit](definitions, ())
-          case None              => hearthRequirementFailed(s"ValDefs cannot have 0 definitions, ValDefsCache is empty")
+          // $COVERAGE-OFF$
+          case None => hearthRequirementFailed(s"ValDefs cannot have 0 definitions, ValDefsCache is empty")
+          // $COVERAGE-ON$
         }
       }
     }

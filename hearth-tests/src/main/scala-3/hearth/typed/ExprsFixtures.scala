@@ -46,16 +46,36 @@ object ExprsFixtures {
   private def testMatchCaseTraverseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
     new ExprsFixtures(q).testMatchCaseTraverse[A, B](expr)
 
-  inline def testScopeCreateAndUse: Data = ${ testScopeCreateAndUseImpl }
-  private def testScopeCreateAndUseImpl(using q: Quotes): Expr[Data] = new ExprsFixtures(q).testScopeCreateAndUse
+  inline def testValDefsCreateAndUse: Data = ${ testValDefsCreateAndUseImpl }
+  private def testValDefsCreateAndUseImpl(using q: Quotes): Expr[Data] = new ExprsFixtures(q).testValDefsCreateAndUse
 
-  inline def testScopePartitionAndClose[A, B](inline expr: A): B = ${ testScopePartitionAndCloseImpl[A, B]('{ expr }) }
-  private def testScopePartitionAndCloseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
-    new ExprsFixtures(q).testScopePartitionAndClose[A, B](expr)
+  inline def testValDefsPartitionAndClose[A, B](inline expr: A): B = ${
+    testValDefsPartitionAndCloseImpl[A, B]('{ expr })
+  }
+  private def testValDefsPartitionAndCloseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
+    new ExprsFixtures(q).testValDefsPartitionAndClose[A, B](expr)
 
-  inline def testScopeTraverseAndClose[A, B](inline expr: A): B = ${ testScopeTraverseAndCloseImpl[A, B]('{ expr }) }
-  private def testScopeTraverseAndCloseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
-    new ExprsFixtures(q).testScopeTraverseAndClose[A, B](expr)
+  inline def testValDefsTraverseAndClose[A, B](inline expr: A): B = ${
+    testValDefsTraverseAndCloseImpl[A, B]('{ expr })
+  }
+  private def testValDefsTraverseAndCloseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
+    new ExprsFixtures(q).testValDefsTraverseAndClose[A, B](expr)
+
+  inline def testValDefBuilderCreateAndUse: Data = ${ testValDefBuilderCreateAndUseImpl }
+  private def testValDefBuilderCreateAndUseImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testValDefBuilderCreateAndUse
+
+  inline def testValDefBuilderPartitionAndClose[A, B](inline expr: A): B = ${
+    testValDefBuilderPartitionAndCloseImpl[A, B]('{ expr })
+  }
+  private def testValDefBuilderPartitionAndCloseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
+    new ExprsFixtures(q).testValDefBuilderPartitionAndClose[A, B](expr)
+
+  inline def testValDefBuilderTraverseAndClose[A, B](inline expr: A): B = ${
+    testValDefBuilderTraverseAndCloseImpl[A, B]('{ expr })
+  }
+  private def testValDefBuilderTraverseAndCloseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
+    new ExprsFixtures(q).testValDefBuilderTraverseAndClose[A, B](expr)
 
   inline def testLambdaBuilderOfNAndBuild: Data = ${ testLambdaBuilderOfNAndBuildImpl }
   private def testLambdaBuilderOfNAndBuildImpl(using q: Quotes): Expr[Data] =
