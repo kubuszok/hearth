@@ -31,13 +31,21 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
   def testMatchCaseTraverseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
     testMatchCaseTraverse[A, B](expr)
 
-  def testScopeCreateAndUseImpl: c.Expr[Data] = testScopeCreateAndUse
+  def testValDefsCreateAndUseImpl: c.Expr[Data] = testValDefsCreateAndUse
 
-  def testScopePartitionAndCloseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
-    testScopePartitionAndClose[A, B](expr)
+  def testValDefsPartitionAndCloseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
+    testValDefsPartitionAndClose[A, B](expr)
 
-  def testScopeTraverseAndCloseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
-    testScopeTraverseAndClose[A, B](expr)
+  def testValDefsTraverseAndCloseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
+    testValDefsTraverseAndClose[A, B](expr)
+
+  def testValDefBuilderCreateAndUseImpl: c.Expr[Data] = testValDefBuilderCreateAndUse
+
+  def testValDefBuilderPartitionAndCloseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
+    testValDefBuilderPartitionAndClose[A, B](expr)
+
+  def testValDefBuilderTraverseAndCloseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
+    testValDefBuilderTraverseAndClose[A, B](expr)
 
   def testLambdaBuilderOfNAndBuildImpl: c.Expr[Data] = testLambdaBuilderOfNAndBuild
 
@@ -73,11 +81,19 @@ object ExprsFixtures {
 
   def testMatchCaseTraverse[A, B](expr: A): B = macro ExprsFixtures.testMatchCaseTraverseImpl[A, B]
 
-  def testScopeCreateAndUse: Data = macro ExprsFixtures.testScopeCreateAndUseImpl
+  def testValDefsCreateAndUse: Data = macro ExprsFixtures.testValDefsCreateAndUseImpl
 
-  def testScopePartitionAndClose[A, B](expr: A): B = macro ExprsFixtures.testScopePartitionAndCloseImpl[A, B]
+  def testValDefsPartitionAndClose[A, B](expr: A): B = macro ExprsFixtures.testValDefsPartitionAndCloseImpl[A, B]
 
-  def testScopeTraverseAndClose[A, B](expr: A): B = macro ExprsFixtures.testScopeTraverseAndCloseImpl[A, B]
+  def testValDefsTraverseAndClose[A, B](expr: A): B = macro ExprsFixtures.testValDefsTraverseAndCloseImpl[A, B]
+
+  def testValDefBuilderCreateAndUse: Data = macro ExprsFixtures.testValDefBuilderCreateAndUseImpl
+
+  def testValDefBuilderPartitionAndClose[A, B](expr: A): B =
+    macro ExprsFixtures.testValDefBuilderPartitionAndCloseImpl[A, B]
+
+  def testValDefBuilderTraverseAndClose[A, B](expr: A): B =
+    macro ExprsFixtures.testValDefBuilderTraverseAndCloseImpl[A, B]
 
   def testLambdaBuilderOfNAndBuild: Data = macro ExprsFixtures.testLambdaBuilderOfNAndBuildImpl
 

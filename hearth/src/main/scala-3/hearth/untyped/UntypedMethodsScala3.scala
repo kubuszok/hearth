@@ -116,8 +116,10 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           tree.appliedToArgss(adaptedArguments)
         case Invocation.OnInstance =>
           instance match {
+            // $COVERAGE-OFF$
             case None =>
               hearthAssertionFailed(s"Expected an instance for method $name that is called on an instance")
+            // $COVERAGE-ON$
             case Some(instance) =>
               // instance.method, or instance.method(), or instance.method(b1, b2, ...)
               instance.select(symbol).appliedToArgss(adaptedArguments)
