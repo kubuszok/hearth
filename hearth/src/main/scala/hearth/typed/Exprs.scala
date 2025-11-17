@@ -422,13 +422,30 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
   val ValDefs: ValDefsModule
   trait ValDefsModule { this: ValDefs.type =>
 
-    def createVal[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): ValDefs[Expr[A]]
+    def createVal[A: Type](
+        value: Expr[A],
+        // $COVERAGE-OFF$
+        freshName: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
+    ): ValDefs[Expr[A]]
     def createVar[A: Type](
         initialValue: Expr[A],
+        // $COVERAGE-OFF$
         freshName: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): ValDefs[(Expr[A], Expr[A] => Expr[Unit])]
-    def createLazy[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): ValDefs[Expr[A]]
-    def createDef[A: Type](value: Expr[A], freshName: FreshName = FreshName.FromType): ValDefs[Expr[A]]
+    def createLazy[A: Type](
+        value: Expr[A],
+        // $COVERAGE-OFF$
+        freshName: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
+    ): ValDefs[Expr[A]]
+    def createDef[A: Type](
+        value: Expr[A],
+        // $COVERAGE-OFF$
+        freshName: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
+    ): ValDefs[Expr[A]]
 
     def partition[A, B, C](scoped: ValDefs[A])(f: A => Either[B, C]): Either[ValDefs[B], ValDefs[C]]
 
@@ -507,45 +524,58 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     ): ValDefBuilder[Expr[Returned], Returned, Expr[Returned]]
     def ofDef1[A: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[Expr[A] => Expr[Return], Return, (Expr[A] => Expr[Return], Expr[A])]
     def ofDef2[A: Type, B: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B]) => Expr[Return], Return, ((Expr[A], Expr[B]) => Expr[Return], (Expr[A], Expr[B]))]
     def ofDef3[A: Type, B: Type, C: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C]) => Expr[Return], (Expr[A], Expr[B], Expr[C]))]
     def ofDef4[A: Type, B: Type, C: Type, D: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
         freshD: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D]))]
     def ofDef5[A: Type, B: Type, C: Type, D: Type, E: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
         freshD: FreshName = FreshName.FromType,
         freshE: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]))]
     def ofDef6[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
         freshD: FreshName = FreshName.FromType,
         freshE: FreshName = FreshName.FromType,
         freshF: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]))]
     def ofDef7[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -553,9 +583,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshE: FreshName = FreshName.FromType,
         freshF: FreshName = FreshName.FromType,
         freshG: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]))]
     def ofDef8[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -564,9 +596,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshF: FreshName = FreshName.FromType,
         freshG: FreshName = FreshName.FromType,
         freshH: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]))]
     def ofDef9[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -576,9 +610,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshG: FreshName = FreshName.FromType,
         freshH: FreshName = FreshName.FromType,
         freshI: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]))]
     def ofDef10[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -589,9 +625,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshH: FreshName = FreshName.FromType,
         freshI: FreshName = FreshName.FromType,
         freshJ: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]))]
     def ofDef11[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -603,9 +641,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshI: FreshName = FreshName.FromType,
         freshJ: FreshName = FreshName.FromType,
         freshK: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]))]
     def ofDef12[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -618,9 +658,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshJ: FreshName = FreshName.FromType,
         freshK: FreshName = FreshName.FromType,
         freshL: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]))]
     def ofDef13[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -634,9 +676,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshK: FreshName = FreshName.FromType,
         freshL: FreshName = FreshName.FromType,
         freshM: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]))]
     def ofDef14[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -651,6 +695,7 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshL: FreshName = FreshName.FromType,
         freshM: FreshName = FreshName.FromType,
         freshN: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]))]
     def ofDef15[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, Return: Type](
         freshName: FreshName,
@@ -672,6 +717,7 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]))]
     def ofDef16[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -688,9 +734,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshN: FreshName = FreshName.FromType,
         freshO: FreshName = FreshName.FromType,
         freshP: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]))]
     def ofDef17[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -708,9 +756,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshO: FreshName = FreshName.FromType,
         freshP: FreshName = FreshName.FromType,
         freshQ: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]))]
     def ofDef18[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -729,9 +779,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshP: FreshName = FreshName.FromType,
         freshQ: FreshName = FreshName.FromType,
         freshR: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]))]
     def ofDef19[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -751,9 +803,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshQ: FreshName = FreshName.FromType,
         freshR: FreshName = FreshName.FromType,
         freshS: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]))]
     def ofDef20[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -774,9 +828,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshR: FreshName = FreshName.FromType,
         freshS: FreshName = FreshName.FromType,
         freshT: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]))]
     def ofDef21[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -798,9 +854,11 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshS: FreshName = FreshName.FromType,
         freshT: FreshName = FreshName.FromType,
         freshU: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]))]
     def ofDef22[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type, V: Type, Return: Type](
         freshName: FreshName,
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -823,6 +881,7 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshT: FreshName = FreshName.FromType,
         freshU: FreshName = FreshName.FromType,
         freshV: FreshName = FreshName.FromType,
+        // $COVERAGE-ON$
     ): ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Return], Return, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Return], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]))]
     // format: on
 
@@ -933,8 +992,6 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     def merge(cache1: ValDefsCache, cache2: ValDefsCache): ValDefsCache
 
-    // TODO: register BOTH getter AND setter for cached vars
-
     // format: off
     def get0Ary[Returned: Type](cache: ValDefsCache, key: String): Option[Expr[Returned]]
     def get1Ary[A: Type, Returned: Type](cache: ValDefsCache, key: String): Option[Expr[A] => Expr[Returned]]
@@ -1041,39 +1098,52 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     // format: off
     def of1[A: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[A => *, Expr[A]]
     def of2[A: Type, B: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B) => *, (Expr[A], Expr[B])]
     def of3[A: Type, B: Type, C: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C) => *, (Expr[A], Expr[B], Expr[C])]
     def of4[A: Type, B: Type, C: Type, D: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
         freshD: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D) => *, (Expr[A], Expr[B], Expr[C], Expr[D])]
     def of5[A: Type, B: Type, C: Type, D: Type, E: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
         freshD: FreshName = FreshName.FromType,
         freshE: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E])]
     def of6[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
         freshD: FreshName = FreshName.FromType,
         freshE: FreshName = FreshName.FromType,
         freshF: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F])]
     def of7[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1081,8 +1151,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshE: FreshName = FreshName.FromType,
         freshF: FreshName = FreshName.FromType,
         freshG: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G])]
     def of8[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1091,8 +1163,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshF: FreshName = FreshName.FromType,
         freshG: FreshName = FreshName.FromType,
         freshH: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H])]
     def of9[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1102,8 +1176,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshG: FreshName = FreshName.FromType,
         freshH: FreshName = FreshName.FromType,
         freshI: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I])]
     def of10[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1114,8 +1190,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshH: FreshName = FreshName.FromType,
         freshI: FreshName = FreshName.FromType,
         freshJ: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J])]
     def of11[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1127,8 +1205,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshI: FreshName = FreshName.FromType,
         freshJ: FreshName = FreshName.FromType,
         freshK: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K])]
     def of12[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1141,8 +1221,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshJ: FreshName = FreshName.FromType,
         freshK: FreshName = FreshName.FromType,
         freshL: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L])]
     def of13[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1156,8 +1238,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshK: FreshName = FreshName.FromType,
         freshL: FreshName = FreshName.FromType,
         freshM: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M])]
     def of14[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1172,8 +1256,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshL: FreshName = FreshName.FromType,
         freshM: FreshName = FreshName.FromType,
         freshN: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N])]
     def of15[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1189,8 +1275,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshM: FreshName = FreshName.FromType,
         freshN: FreshName = FreshName.FromType,
         freshO: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O])]
     def of16[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1207,8 +1295,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshN: FreshName = FreshName.FromType,
         freshO: FreshName = FreshName.FromType,
         freshP: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P])]
     def of17[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1226,8 +1316,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshO: FreshName = FreshName.FromType,
         freshP: FreshName = FreshName.FromType,
         freshQ: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q])]
     def of18[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1246,8 +1338,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshP: FreshName = FreshName.FromType,
         freshQ: FreshName = FreshName.FromType,
         freshR: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R])]
     def of19[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1267,8 +1361,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshQ: FreshName = FreshName.FromType,
         freshR: FreshName = FreshName.FromType,
         freshS: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S])]
     def of20[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1289,8 +1385,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshR: FreshName = FreshName.FromType,
         freshS: FreshName = FreshName.FromType,
         freshT: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T])]
     def of21[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1312,8 +1410,10 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshS: FreshName = FreshName.FromType,
         freshT: FreshName = FreshName.FromType,
         freshU: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U])]
     def of22[A: Type, B: Type, C: Type, D: Type, E: Type, F: Type, G: Type, H: Type, I: Type, J: Type, K: Type, L: Type, M: Type, N: Type, O: Type, P: Type, Q: Type, R: Type, S: Type, T: Type, U: Type, V: Type](
+        // $COVERAGE-OFF$
         freshA: FreshName = FreshName.FromType,
         freshB: FreshName = FreshName.FromType,
         freshC: FreshName = FreshName.FromType,
@@ -1336,6 +1436,7 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
         freshT: FreshName = FreshName.FromType,
         freshU: FreshName = FreshName.FromType,
         freshV: FreshName = FreshName.FromType
+        // $COVERAGE-ON$
     ): LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V])]
     // format: on
 

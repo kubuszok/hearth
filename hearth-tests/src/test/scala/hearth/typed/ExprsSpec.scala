@@ -131,7 +131,7 @@ final class ExprsSpec extends MacroSuite {
       ) {
         import ExprsFixtures.testValDefsCreateAndUse
 
-        // Tests whether the result build using these methods compiles and correct
+        // Tests whether the result build using these methods compiles and is correct
         testValDefsCreateAndUse ==> Data.map(
           "val" -> Data(1 + 1),
           "var" -> Data((1 + 1) * 10),
@@ -143,14 +143,14 @@ final class ExprsSpec extends MacroSuite {
       test("methods ValDefs.{partition, close} should allow branching and closing a scoped block") {
         import ExprsFixtures.testValDefsPartitionAndClose
 
-        // Tests whether the result build using these methods compiles and correct
+        // Tests whether the result build using these methods compiles and is correct
         testValDefsPartitionAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
 
       test("methods ValDefs.{traverse, close} should allow traversing and closing a scoped block") {
         import ExprsFixtures.testValDefsTraverseAndClose
 
-        // Tests whether the result build using these methods compiles and correct
+        // Tests whether the result build using these methods compiles and is correct
         testValDefsTraverseAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
     }
@@ -164,7 +164,7 @@ final class ExprsSpec extends MacroSuite {
 
         @scala.annotation.nowarn // suppres "local var varExample$macro$1 in value <local ExprsSpec> is never updated" error
         val result = testValDefBuilderCreateAndUse
-        // Tests whether the result build using these methods compiles and correct
+        // Tests whether the result built using these methods compiles and is correct
         result ==> Data.map(
           "val" -> Data(1),
           "var" -> Data(2),
@@ -204,14 +204,14 @@ final class ExprsSpec extends MacroSuite {
       test("methods ValDefs.{partition, build} should allow branching and closing a scoped block") {
         import ExprsFixtures.testValDefBuilderPartitionAndClose
 
-        // Tests whether the result build using these methods compiles and correct
+        // Tests whether the result build using these methods compiles and is correct
         testValDefBuilderPartitionAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
 
       test("methods ValDefs.{traverse, build} should allow traversing and closing a scoped block") {
         import ExprsFixtures.testValDefBuilderTraverseAndClose
 
-        // Tests whether the result build using these methods compiles and correct
+        // Tests whether the result build using these methods compiles and is correct
         testValDefBuilderTraverseAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
     }
