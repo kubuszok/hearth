@@ -131,6 +131,20 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
       _ <- cache.set(cache2)
     } yield ()
 
+    def buildCachedWith[Signature, Returned, Value](
+        key: String,
+        builder: ValDefBuilder[Signature, Returned, Value]
+    )(f: Value => Expr[Returned]): fp.effect.MIO[Unit] = for {
+      cache1 <- cache.get
+      cache2 = builder.buildCachedWith(cache1, key)(f)
+      _ <- cache.set(cache2)
+    } yield ()
+
+    def buildCached[Signature, Returned](
+        key: String,
+        builder: ValDefBuilder[Signature, Returned, Expr[Returned]]
+    ): fp.effect.MIO[Unit] = buildCachedWith(key, builder)(identity)
+
     // format: off
     def get0Ary[Returned: Type](key: String): fp.effect.MIO[Option[Expr[Returned]]] =
       cache.get.map(_.get0Ary(key))

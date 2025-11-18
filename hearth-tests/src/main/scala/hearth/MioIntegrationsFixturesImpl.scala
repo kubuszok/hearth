@@ -39,74 +39,50 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
     val result = for {
       // Test ofDef0 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def0Key", def0Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def0Builder.buildCachedWith(cache, "def0Key")(_ => Expr.quote(0))
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def0Key", def0Builder)(_ => Expr.quote(0))
       def0Value <- cacheLocal.get0Ary[Int]("def0Key").map(_.fold(runtimeFail[Int])(identity))
 
       // Test ofDef1 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def1Key", def1Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def1Builder.buildCachedWith(cache, "def1Key") { case (_, a) =>
-            Expr.quote(Expr.splice(a) * 10)
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def1Key", def1Builder) { case (_, a) =>
+        Expr.quote(Expr.splice(a) * 10)
+      }
       def1Value <- cacheLocal
         .get1Ary[Int, Int]("def1Key")
         .map(_.fold(runtimeFail[Int])(f => f(Expr.quote(1))))
 
       // Test ofDef2 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def2Key", def2Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def2Builder.buildCachedWith(cache, "def2Key") { case (_, (a, b)) =>
-            Expr.quote((Expr.splice(a) + Expr.splice(b)) * 10)
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def2Key", def2Builder) { case (_, (a, b)) =>
+        Expr.quote((Expr.splice(a) + Expr.splice(b)) * 10)
+      }
       def2Value <- cacheLocal
         .get2Ary[Int, Int, Int]("def2Key")
         .map(_.fold(runtimeFail[Int])(f => f(Expr.quote(1), Expr.quote(2))))
 
       // Test ofDef3 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def3Key", def3Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def3Builder.buildCachedWith(cache, "def3Key") { case (_, (a, b, c)) =>
-            Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c)) * 10)
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def3Key", def3Builder) { case (_, (a, b, c)) =>
+        Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c)) * 10)
+      }
       def3Value <- cacheLocal
         .get3Ary[Int, Int, Int, Int]("def3Key")
         .map(_.fold(runtimeFail[Int])(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3))))
 
       // Test ofDef4 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def4Key", def4Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def4Builder.buildCachedWith(cache, "def4Key") { case (_, (a, b, c, d)) =>
-            Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d)) * 10)
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def4Key", def4Builder) { case (_, (a, b, c, d)) =>
+        Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d)) * 10)
+      }
       def4Value <- cacheLocal
         .get4Ary[Int, Int, Int, Int, Int]("def4Key")
         .map(_.fold(runtimeFail[Int])(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4))))
 
       // Test ofDef5 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def5Key", def5Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def5Builder.buildCachedWith(cache, "def5Key") { case (_, (a, b, c, d, e)) =>
-            Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e)) * 10)
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def5Key", def5Builder) { case (_, (a, b, c, d, e)) =>
+        Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e)) * 10)
+      }
       def5Value <- cacheLocal
         .get5Ary[Int, Int, Int, Int, Int, Int]("def5Key")
         .map(
@@ -115,15 +91,11 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef6 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def6Key", def6Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def6Builder.buildCachedWith(cache, "def6Key") { case (_, (a, b, c, d, e, f)) =>
-            Expr.quote(
-              (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f)) * 10
-            )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def6Key", def6Builder) { case (_, (a, b, c, d, e, f)) =>
+        Expr.quote(
+          (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f)) * 10
+        )
+      }
       def6Value <- cacheLocal
         .get6Ary[Int, Int, Int, Int, Int, Int, Int]("def6Key")
         .map(
@@ -134,16 +106,12 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef7 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def7Key", def7Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def7Builder.buildCachedWith(cache, "def7Key") { case (_, (a, b, c, d, e, f, g)) =>
-            Expr.quote(
-              (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                .splice(f) + Expr.splice(g)) * 10
-            )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def7Key", def7Builder) { case (_, (a, b, c, d, e, f, g)) =>
+        Expr.quote(
+          (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+            .splice(f) + Expr.splice(g)) * 10
+        )
+      }
       def7Value <- cacheLocal
         .get7Ary[Int, Int, Int, Int, Int, Int, Int, Int]("def7Key")
         .map(
@@ -154,16 +122,12 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef8 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def8Key", def8Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def8Builder.buildCachedWith(cache, "def8Key") { case (_, (a, b, c, d, e, f, g, h)) =>
-            Expr.quote(
-              (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                .splice(f) + Expr.splice(g) + Expr.splice(h)) * 10
-            )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def8Key", def8Builder) { case (_, (a, b, c, d, e, f, g, h)) =>
+        Expr.quote(
+          (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+            .splice(f) + Expr.splice(g) + Expr.splice(h)) * 10
+        )
+      }
       def8Value <- cacheLocal
         .get8Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int]("def8Key")
         .map(
@@ -183,16 +147,12 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef9 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def9Key", def9Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def9Builder.buildCachedWith(cache, "def9Key") { case (_, (a, b, c, d, e, f, g, h, i)) =>
-            Expr.quote(
-              (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i)) * 10
-            )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def9Key", def9Builder) { case (_, (a, b, c, d, e, f, g, h, i)) =>
+        Expr.quote(
+          (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+            .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i)) * 10
+        )
+      }
       def9Value <- cacheLocal
         .get9Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def9Key")
         .map(
@@ -213,16 +173,12 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef10 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def10Key", def10Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def10Builder.buildCachedWith(cache, "def10Key") { case (_, (a, b, c, d, e, f, g, h, i, j)) =>
-            Expr.quote(
-              (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j)) * 10
-            )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def10Key", def10Builder) { case (_, (a, b, c, d, e, f, g, h, i, j)) =>
+        Expr.quote(
+          (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+            .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j)) * 10
+        )
+      }
       def10Value <- cacheLocal
         .get10Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def10Key")
         .map(
@@ -244,16 +200,12 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef11 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def11Key", def11Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def11Builder.buildCachedWith(cache, "def11Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k)) =>
-            Expr.quote(
-              (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k)) * 10
-            )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def11Key", def11Builder) { case (_, (a, b, c, d, e, f, g, h, i, j, k)) =>
+        Expr.quote(
+          (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+            .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k)) * 10
+        )
+      }
       def11Value <- cacheLocal
         .get11Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def11Key")
         .map(
@@ -276,17 +228,13 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef12 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def12Key", def12Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def12Builder.buildCachedWith(cache, "def12Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l)) =>
-            Expr.quote(
-              (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
-                .splice(l)) * 10
-            )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def12Key", def12Builder) { case (_, (a, b, c, d, e, f, g, h, i, j, k, l)) =>
+        Expr.quote(
+          (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+            .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
+            .splice(l)) * 10
+        )
+      }
       def12Value <- cacheLocal
         .get12Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def12Key")
         .map(
@@ -310,17 +258,13 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef13 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def13Key", def13Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def13Builder.buildCachedWith(cache, "def13Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m)) =>
-            Expr.quote(
-              (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
-                .splice(l) + Expr.splice(m)) * 10
-            )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def13Key", def13Builder) { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m)) =>
+        Expr.quote(
+          (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+            .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
+            .splice(l) + Expr.splice(m)) * 10
+        )
+      }
       def13Value <- cacheLocal
         .get13Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def13Key")
         .map(
@@ -345,17 +289,14 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef14 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def14Key", def14Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def14Builder.buildCachedWith(cache, "def14Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n)) =>
-            Expr.quote(
-              (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
-                .splice(l) + Expr.splice(m) + Expr.splice(n)) * 10
-            )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def14Key", def14Builder) {
+        case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n)) =>
+          Expr.quote(
+            (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+              .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
+              .splice(l) + Expr.splice(m) + Expr.splice(n)) * 10
+          )
+      }
       def14Value <- cacheLocal
         .get14Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def14Key")
         .map(
@@ -381,17 +322,14 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef15 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def15Key", def15Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def15Builder.buildCachedWith(cache, "def15Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)) =>
-            Expr.quote(
-              (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
-                .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o)) * 10
-            )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def15Key", def15Builder) {
+        case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)) =>
+          Expr.quote(
+            (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+              .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
+              .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o)) * 10
+          )
+      }
       def15Value <- cacheLocal
         .get15Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def15Key")
         .map(
@@ -418,18 +356,14 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef16 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def16Key", def16Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def16Builder.buildCachedWith(cache, "def16Key") {
-            case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)) =>
-              Expr.quote(
-                (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                  .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
-                  .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p)) * 10
-              )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def16Key", def16Builder) {
+        case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)) =>
+          Expr.quote(
+            (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+              .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
+              .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p)) * 10
+          )
+      }
       def16Value <- cacheLocal
         .get16Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def16Key")
         .map(
@@ -457,18 +391,14 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef17 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def17Key", def17Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def17Builder.buildCachedWith(cache, "def17Key") {
-            case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)) =>
-              Expr.quote(
-                (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                  .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
-                  .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q)) * 10
-              )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def17Key", def17Builder) {
+        case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)) =>
+          Expr.quote(
+            (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+              .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
+              .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q)) * 10
+          )
+      }
       def17Value <- cacheLocal
         .get17Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def17Key")
         .map(
@@ -497,19 +427,15 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef18 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def18Key", def18Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def18Builder.buildCachedWith(cache, "def18Key") {
-            case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)) =>
-              Expr.quote(
-                (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                  .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
-                  .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr
-                  .splice(r)) * 10
-              )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def18Key", def18Builder) {
+        case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)) =>
+          Expr.quote(
+            (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+              .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
+              .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr
+              .splice(r)) * 10
+          )
+      }
       def18Value <- cacheLocal
         .get18Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
           "def18Key"
@@ -541,19 +467,15 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef19 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def19Key", def19Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def19Builder.buildCachedWith(cache, "def19Key") {
-            case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)) =>
-              Expr.quote(
-                (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                  .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
-                  .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr
-                  .splice(r) + Expr.splice(s)) * 10
-              )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def19Key", def19Builder) {
+        case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)) =>
+          Expr.quote(
+            (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+              .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
+              .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr
+              .splice(r) + Expr.splice(s)) * 10
+          )
+      }
       def19Value <- cacheLocal
         .get19Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
           "def19Key"
@@ -586,19 +508,15 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef20 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def20Key", def20Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def20Builder.buildCachedWith(cache, "def20Key") {
-            case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)) =>
-              Expr.quote(
-                (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                  .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
-                  .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr
-                  .splice(r) + Expr.splice(s) + Expr.splice(t)) * 10
-              )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def20Key", def20Builder) {
+        case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)) =>
+          Expr.quote(
+            (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+              .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
+              .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr
+              .splice(r) + Expr.splice(s) + Expr.splice(t)) * 10
+          )
+      }
       def20Value <- cacheLocal
         .get20Ary[
           Int,
@@ -652,19 +570,15 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef21 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def21Key", def21Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def21Builder.buildCachedWith(cache, "def21Key") {
-            case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)) =>
-              Expr.quote(
-                (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                  .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
-                  .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr
-                  .splice(r) + Expr.splice(s) + Expr.splice(t) + Expr.splice(u)) * 10
-              )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def21Key", def21Builder) {
+        case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)) =>
+          Expr.quote(
+            (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+              .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
+              .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr
+              .splice(r) + Expr.splice(s) + Expr.splice(t) + Expr.splice(u)) * 10
+          )
+      }
       def21Value <- cacheLocal
         .get21Ary[
           Int,
@@ -720,19 +634,15 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
       // Test ofDef22 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def22Key", def22Builder)
-      _ <- cacheLocal.get
-        .map { cache =>
-          def22Builder.buildCachedWith(cache, "def22Key") {
-            case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v)) =>
-              Expr.quote(
-                (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
-                  .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
-                  .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr
-                  .splice(r) + Expr.splice(s) + Expr.splice(t) + Expr.splice(u) + Expr.splice(v)) * 10
-              )
-          }
-        }
-        .flatMap(cacheLocal.set)
+      _ <- cacheLocal.buildCachedWith("def22Key", def22Builder) {
+        case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v)) =>
+          Expr.quote(
+            (Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr
+              .splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr
+              .splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr
+              .splice(r) + Expr.splice(s) + Expr.splice(t) + Expr.splice(u) + Expr.splice(v)) * 10
+          )
+      }
       def22Value <- cacheLocal
         .get22Ary[
           Int,
