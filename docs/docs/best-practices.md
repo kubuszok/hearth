@@ -90,7 +90,7 @@ several smaller `def`s. It would:
  * prevent issues with method's body exceeing the allowed size (compilation fails if bytecode would exceed 64kB)
  * help JVM compile and optimize the code, since smaller methods are easier to analyze and profile
 
-TODO: `ValDefBuilder` when it's implemented.
+!!! tip "Use [`ValDefs`](basic-utilities.md#valdefs) and combine them with `.map2`/`.parMap2` and/or use [`ValDefsCache`](basic-utilities.md#valdefscache) to define multiple `def`s in scope, use them, and prepend before the final expression."
 
 ### Allow previewing macro logic
 

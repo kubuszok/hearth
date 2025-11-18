@@ -12,7 +12,7 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
 
     // format: off
     val def0Builder = ValDefBuilder.ofDef0[Int]("def0Example")
-    val def1Builder = ValDefBuilder.ofDef1[Int, Int]("def2Example", "a")
+    val def1Builder = ValDefBuilder.ofDef1[Int, Int]("def1Example", "a")
     val def2Builder = ValDefBuilder.ofDef2[Int, Int, Int]("def2Example", "a", "b")
     val def3Builder = ValDefBuilder.ofDef3[Int, Int, Int, Int]("def3Example", "a", "b", "c")
     val def4Builder = ValDefBuilder.ofDef4[Int, Int, Int, Int, Int]("def4Example", "a", "b", "c", "d")
