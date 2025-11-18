@@ -1377,17 +1377,103 @@ The recommended way to handle methods is through pattern matching:
 !!! example "How to handle a `Method.Of[Instance]`"
 
     ```scala
-    method match {
-      case m: Method.NoInstance[?] =>
-        import m.Returned
-        m(arguments) // Either[String, Expr[Returned]]
+    // file: src/main/scala/example/MethodPatternMatchingMacro.scala - part of Method pattern matching example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    trait MethodPatternMatchingMacro { this: hearth.MacroCommons =>
+
+      private val IntType = Type.of[Int]
+
+      def handleMethod[A: Type](methodName: Expr[String]): Expr[String] = {
+        implicit val intType: Type[Int] = IntType
+        val name = Expr
+          .unapply(methodName)
+          .getOrElse(
+            Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+          )
         
-      case m: Method.OfInstance[?, ?] =>
-        import m.{ Instance, Returned }
-        m(instance /* Expr[Instance] */, arguments) // Either[String, Expr[Returned]]
+        val method: Method[A, Int] = Type[A].methods.filter(_.value.name == name) match {
+          case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
+          case method :: Nil =>
+            import method.Underlying as Returned
+            if (!(Returned <:< Type.of[Int])) Environment.reportErrorAndAbort(s"Method $name returns not an Int")
+            else method.value.asInstanceOf[Method[A, Int]]
+          case _ => Environment.reportErrorAndAbort(s"Method $name is not unique")
+        }
         
-      case Method.Unsupported(_, _) =>
-        Left(method.reasonForUnsupported)
+        method match {
+          case noInstance: Method.NoInstance[Int] @unchecked =>
+            Expr.quote(s"Found no-instance method ${Expr.splice(methodName)}")
+            
+          case ofInstance: Method.OfInstance[A, Int] @unchecked =>
+            import ofInstance.{ Returned }
+            Expr.quote(s"Found instance method ${Expr.splice(methodName)} on ${Expr.splice(Expr(Type[A].plainPrint))}")
+            
+          case unsupported: Method.Unsupported[A, Int] @unchecked =>
+            Environment.reportErrorAndAbort(s"Method ${name} is unsupported: ${unsupported.reasonForUnsupported}")
+        }
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/MethodPatternMatchingMacroImpl.scala - part of Method pattern matching example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def handleMethod[A](methodName: String): String = macro MethodPatternMatchingMacroImpl.handleMethodImpl[A]
+    }
+
+    // Scala 2 adapter
+    class MethodPatternMatchingMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with MethodPatternMatchingMacro {
+
+      def handleMethodImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[String] =
+        handleMethod[A](methodName)
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/MethodPatternMatchingMacroImpl.scala - part of Method pattern matching example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      inline def handleMethod[A](inline methodName: String): String = ${ MethodPatternMatchingMacroImpl.handleMethodImpl[A]('{ methodName }) }
+    }
+
+    // Scala 3 adapter
+    class MethodPatternMatchingMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), MethodPatternMatchingMacro
+    object MethodPatternMatchingMacroImpl {
+
+      def handleMethodImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[String] =
+        new MethodPatternMatchingMacroImpl(q).handleMethod[A](methodName)
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of Method pattern matching example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.handleMethod should identify method types") {
+        class TestClass {
+          def instanceMethod(x: Int): Int = x + 1
+        }
+        object TestClass {
+          def staticMethod(x: Int): Int = x + 2
+        }
+        
+        assertEquals(Example.handleMethod[TestClass]("instanceMethod"), "Found instance method instanceMethod on ExampleSpec.TestClass")
+        assertEquals(Example.handleMethod[TestClass]("staticMethod"), "Found no-instance method staticMethod")
+      }
     }
     ```
 
@@ -1442,24 +1528,171 @@ If we have `Method.Of[Instance]`, we should pattern-match it first to know what 
 of method it is. Once we do, we need to apply the `Arguments`
 (and the instance, if it's `Method.OfInstance`):
 
-!!! example "Constructor or static method"
+!!! example "Calling constructors and instance methods"
 
     ```scala
-    val ctor: Method.NoInstance[MyClass] = Type[MyClass].primaryConstructor.get
-    ctor(
-      arguments = Map("param1" -> arg1, "param2" -> arg2) // Arguments
-    ) // Either[String, Expr[MyClass]]
+    // file: src/main/scala/example/CallingMethodsMacro.scala - part of calling Methods example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    trait CallingMethodsMacro { this: hearth.MacroCommons =>
+
+      private val IntType = Type.of[Int]
+
+      // Call a no-instance method (constructor or companion method)
+      def callNoInstanceMethod[A: Type](methodName: Expr[String])(params: VarArgs[Int]): Expr[Int] = {
+        implicit val intType: Type[Int] = IntType
+        val name = Expr
+          .unapply(methodName)
+          .getOrElse(
+            Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+          )
+        val method: Method[A, Int] = Type[A].methods.filter(_.value.name == name) match {
+          case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
+          case method :: Nil =>
+            import method.Underlying as Returned
+            if (!(Returned <:< Type.of[Int])) Environment.reportErrorAndAbort(s"Method $name returns not an Int")
+            else method.value.asInstanceOf[Method[A, Int]]
+          case _ => Environment.reportErrorAndAbort(s"Method $name is not unique")
+        }
+        method match {
+          case noInstance: Method.NoInstance[Int] @unchecked =>
+            val providedParams = params.toVector
+            val arguments = noInstance.parameters.flatten.zipWithIndex.flatMap { case ((name, param), index) =>
+              providedParams.lift(index) match {
+                case _ if !(param.tpe.Underlying <:< Type.of[Int]) =>
+                  Environment.reportErrorAndAbort(s"Parameter $name has wrong type: ${param.tpe.plainPrint} is not an Int")
+                case Some(value)              => Some(name -> value.as_??)
+                case None if param.hasDefault => None
+                case _ => Environment.reportErrorAndAbort(s"Missing parameter for $name (not default value as well)")
+              }
+            }.toMap
+            noInstance.apply(arguments) match {
+              case Right(result) => result
+              case Left(error)   => Environment.reportErrorAndAbort(s"Failed to call method $name: $error")
+            }
+          case _: Method.OfInstance[A, Int] @unchecked =>
+            Environment.reportErrorAndAbort(s"Method $name is not a no-instance method")
+          case unsupported: Method.Unsupported[A, Int] @unchecked =>
+            Environment.reportErrorAndAbort(s"Method $name is unsupported: ${unsupported.reasonForUnsupported}")
+        }
+      }
+
+      // Call an instance method
+      def callInstanceMethod[A: Type](instance: Expr[A])(methodName: Expr[String])(params: VarArgs[Int]): Expr[Int] = {
+        implicit val intType: Type[Int] = IntType
+        val name = Expr
+          .unapply(methodName)
+          .getOrElse(
+            Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+          )
+        val method: Method[A, Int] = Type[A].methods.filter(_.value.name == name) match {
+          case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
+          case method :: Nil =>
+            import method.Underlying as Returned
+            if (!(Returned <:< Type.of[Int])) Environment.reportErrorAndAbort(s"Method $name returns not an Int")
+            else method.value.asInstanceOf[Method[A, Int]]
+          case _ => Environment.reportErrorAndAbort(s"Method $name is not unique")
+        }
+        method match {
+          case _: Method.NoInstance[Int] @unchecked =>
+            Environment.reportErrorAndAbort(s"Method $name is not an instance method")
+          case ofInstance: Method.OfInstance[A, Int] @unchecked =>
+            val providedParams = params.toVector
+            val arguments = ofInstance.parameters.flatten.zipWithIndex.flatMap { case ((name, param), index) =>
+              providedParams.lift(index) match {
+                case _ if !(param.tpe.Underlying <:< Type.of[Int]) =>
+                  Environment.reportErrorAndAbort(s"Parameter $name has wrong type: ${param.tpe.plainPrint} is not an Int")
+                case Some(value)              => Some(name -> value.as_??)
+                case None if param.hasDefault => None
+                case _ => Environment.reportErrorAndAbort(s"Missing parameter for $name (not default value as well)")
+              }
+            }.toMap
+            ofInstance.apply(instance, arguments) match {
+              case Right(result) => result
+              case Left(error)   => Environment.reportErrorAndAbort(s"Failed to call method $name: $error")
+            }
+          case unsupported: Method.Unsupported[A, Int] @unchecked =>
+            Environment.reportErrorAndAbort(s"Method $name is unsupported: ${unsupported.reasonForUnsupported}")
+        }
+      }
+    }
     ```
 
-!!! example "Instance method"
+    ```scala
+    // file: src/main/scala-2/example/CallingMethodsMacroImpl.scala - part of calling Methods example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def callNoInstanceMethod[A](methodName: String)(params: Int*): Int = macro CallingMethodsMacroImpl.callNoInstanceMethodImpl[A]
+      def callInstanceMethod[A](instance: A)(methodName: String)(params: Int*): Int = macro CallingMethodsMacroImpl.callInstanceMethodImpl[A]
+    }
+
+    // Scala 2 adapter
+    class CallingMethodsMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with CallingMethodsMacro {
+
+      def callNoInstanceMethodImpl[A: c.WeakTypeTag](methodName: c.Expr[String])(params: c.Expr[Int]*): c.Expr[Int] =
+        callNoInstanceMethod[A](methodName)(params)
+      
+      def callInstanceMethodImpl[A: c.WeakTypeTag](instance: c.Expr[A])(methodName: c.Expr[String])(params: c.Expr[Int]*): c.Expr[Int] =
+        callInstanceMethod[A](instance)(methodName)(params)
+    }
+    ```
 
     ```scala
-    val method: Method.OfInstance[MyClass, String] = Type[MyClass].methods.find(_.name = "toString").get
-    import method.{ Instance, Returned }
-    method(
-      instance = myInstance, // Expr[Instance]
-      arguments = Map()      // Arguments
-    ) // Either[String, Expr[Returned]]
+    // file: src/main/scala-3/example/CallingMethodsMacroImpl.scala - part of calling Methods example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      inline def callNoInstanceMethod[A](inline methodName: String)(inline params: Int*): Int = ${ CallingMethodsMacroImpl.callNoInstanceMethodImpl[A]('{ methodName }, '{ params }) }
+      inline def callInstanceMethod[A](inline instance: A)(inline methodName: String)(inline params: Int*): Int = ${ CallingMethodsMacroImpl.callInstanceMethodImpl[A]('{ instance }, '{ methodName }, '{ params }) }
+    }
+
+    // Scala 3 adapter
+    class CallingMethodsMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), CallingMethodsMacro
+    object CallingMethodsMacroImpl {
+
+      def callNoInstanceMethodImpl[A: Type](methodName: Expr[String], params: Expr[Seq[Int]])(using q: Quotes): Expr[Int] =
+        new CallingMethodsMacroImpl(q).callNoInstanceMethod[A](methodName)(params)
+      
+      def callInstanceMethodImpl[A: Type](instance: Expr[A], methodName: Expr[String], params: Expr[Seq[Int]])(using q: Quotes): Expr[Int] =
+        new CallingMethodsMacroImpl(q).callInstanceMethod[A](instance)(methodName)(params)
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of calling Methods example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.callNoInstanceMethod should call companion methods") {
+        class TestClass(val value: Int) {
+          def add(x: Int): Int = value + x
+        }
+        object TestClass {
+          def create(x: Int, y: Int): Int = x + y
+        }
+        
+        assertEquals(Example.callNoInstanceMethod[TestClass]("create")(1, 2), 3)
+      }
+
+      test("Example.callInstanceMethod should call instance methods") {
+        class TestClass(val value: Int) {
+          def add(x: Int): Int = value + x
+        }
+        
+        val instance = new TestClass(10)
+        assertEquals(Example.callInstanceMethod(instance)("add")(5), 15)
+      }
+    }
     ```
 
 The methods' `apply` validates that:
@@ -1499,29 +1732,187 @@ Specialized view for case classes, providing access to primary constructor and c
 | `cc.nonPrimaryConstructors`| `List[Method.NoInstance[Person]]`    | other constructors            |
 | `cc.caseFields`            | `List[Method.Of[Person]]`            | case class fields             |
 
-**Constructing instances:**
+!!! example "Constructing case class instances"
 
-```scala
-// Sequential field construction
-cc.construct[MIO] { field: Parameter =>
-  import field.tpe.Underlying as FieldType
-  createExpr[FieldType]: MIO[Expr[FieldType]]
-}.map(_.get) // MIO[Expr[Person]]
+    ```scala
+    // file: src/main/scala/example/CaseClassConstructMacro.scala - part of CaseClass construct example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
 
-// Parallel field construction (for independent computations)
-cc.parConstruct[MIO] { field: Parameter =>
-  import field.tpe.Underlying as FieldType
-  createExprInParallel[FieldType]: MIO[Expr[FieldType]]
-}.map(_.get) // MIO[Expr[Person]]
-```
+    import hearth.fp.effect.MIO
+    import hearth.fp.instances.*
+    import hearth.fp.syntax.*
 
-**Deconstructing instances:**
+    trait CaseClassConstructMacro { this: hearth.MacroCommons =>
 
-```scala
-val person: Expr[Person] = ???
-val fieldValues: ListMap[String, Expr_??] = cc.caseFieldValuesAt(person)
-// Map("name" -> nameExpr, "age" -> ageExpr, ...)
-```
+      private val IntType = Type.of[Int]
+      private val StringType = Type.of[String]
+
+      def constructCaseClass[A: Type]: Expr[String] = Expr {
+        CaseClass.parse[A].fold("<no case class>") { caseClass =>
+          val makeArgument: Parameter => MIO[Expr_??] = field => {
+            import field.tpe.Underlying as FieldType
+            implicit val IntType: Type[Int] = this.IntType
+            implicit val StringType: Type[String] = this.StringType
+            if (FieldType <:< Type[Int]) MIO.pure(Expr(0).as_??)
+            else if (FieldType <:< Type[String]) MIO.pure(Expr(field.name).as_??)
+            else MIO.fail(new Exception(s"Field ${field.name} has wrong type: ${field.tpe.plainPrint}"))
+          }
+          val sequential = caseClass.construct(makeArgument).map { result =>
+            result.fold("<failed to construct sequential>")(_.plainPrint)
+          }
+          val parallel = caseClass.parConstruct(makeArgument).map { result =>
+            result.fold("<failed to construct parallel>")(_.plainPrint)
+          }
+          sequential
+            .parMap2(parallel) { (sequential, parallel) =>
+              s"sequential: $sequential, parallel: $parallel"
+            }
+            .unsafe
+            .runSync
+            ._2
+            .fold(errors => s"<failed to construct: ${errors.mkString(", ")}>", identity)
+        }
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/CaseClassConstructMacroImpl.scala - part of CaseClass construct example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def constructCaseClass[A]: String = macro CaseClassConstructMacroImpl.constructCaseClassImpl[A]
+    }
+
+    // Scala 2 adapter
+    class CaseClassConstructMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with CaseClassConstructMacro {
+
+      def constructCaseClassImpl[A: c.WeakTypeTag]: c.Expr[String] =
+        constructCaseClass[A]
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/CaseClassConstructMacroImpl.scala - part of CaseClass construct example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      inline def constructCaseClass[A]: String = ${ CaseClassConstructMacroImpl.constructCaseClassImpl[A] }
+    }
+
+    // Scala 3 adapter
+    class CaseClassConstructMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), CaseClassConstructMacro
+    object CaseClassConstructMacroImpl {
+
+      def constructCaseClassImpl[A: Type](using q: Quotes): Expr[String] =
+        new CaseClassConstructMacroImpl(q).constructCaseClass[A]
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of CaseClass construct example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.constructCaseClass should construct case class instances") {
+        case class Person(name: String, age: Int)
+
+        val result = Example.constructCaseClass[Person]
+        assert(result.contains("sequential: new Person(\"name\", 0)"))
+        assert(result.contains("parallel: new Person(\"name\", 0)"))
+      }
+    }
+    ```
+
+!!! example "Extracting case class field values"
+
+    ```scala
+    // file: src/main/scala/example/CaseClassDeconstructMacro.scala - part of CaseClass deconstruct example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    trait CaseClassDeconstructMacro { this: hearth.MacroCommons =>
+
+      def extractFields[A: Type](expr: Expr[A]): Expr[String] = Expr {
+        CaseClass.parse[A].fold("<no case class>") { caseClass =>
+          caseClass
+            .caseFieldValuesAt(expr)
+            .toList
+            .sortBy(_._1)
+            .map { case (name, value) =>
+              s"$name: ${value.plainPrint}"
+            }
+            .mkString("(", ", ", ")")
+        }
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/CaseClassDeconstructMacroImpl.scala - part of CaseClass deconstruct example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def extractFields[A](expr: A): String = macro CaseClassDeconstructMacroImpl.extractFieldsImpl[A]
+    }
+
+    // Scala 2 adapter
+    class CaseClassDeconstructMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with CaseClassDeconstructMacro {
+
+      def extractFieldsImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] =
+        extractFields[A](expr)
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/CaseClassDeconstructMacroImpl.scala - part of CaseClass deconstruct example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      inline def extractFields[A](inline expr: A): String = ${ CaseClassDeconstructMacroImpl.extractFieldsImpl[A]('{ expr }) }
+    }
+
+    // Scala 3 adapter
+    class CaseClassDeconstructMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), CaseClassDeconstructMacro
+    object CaseClassDeconstructMacroImpl {
+
+      def extractFieldsImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
+        new CaseClassDeconstructMacroImpl(q).extractFields[A](expr)
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of CaseClass deconstruct example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.extractFields should extract case class fields") {
+        case class Person(name: String, age: Int)
+        
+        val person = Person("Alice", 30)
+        val result = Example.extractFields(person)
+        assert(result.contains("age:"))
+        assert(result.contains("name:"))
+      }
+    }
+    ```
 
 ### `Enum[A]`
 
@@ -1532,24 +1923,109 @@ Specialized view for sealed traits, Scala 3 enums, or Java enums:
 | `enumm.directChildren`      | `ListMap[String, ??<:[Color]]`             | immediate subtypes         |
 | `enumm.exhaustiveChildren`  | `Option[NonEmptyMap[String, ??<:[Color]]]` | all subtypes               |
 
-**Pattern matching on enum values:**
+!!! example "Pattern matching on sealed trait/enum values"
 
-```scala
-val colorExpr: Expr[Color] = ???
+    ```scala
+    // file: src/main/scala/example/EnumMatchMacro.scala - part of Enum match example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
 
-// Sequential case handling
-enumm.matchOn[MIO, String](colorExpr) { child: Expr_??<:[Color] =>
-  import child.{Underlying as ChildType, value as childExpr}
-  // childExpr: Expr[ChildType] where ChildType <: Color
-  handleColor[ChildType](childExpr): MIO[Expr[String]]
-}.map(_.get) // MIO[Expr[String]]
+    import hearth.fp.effect.MIO
+    import hearth.fp.instances.*
+    import hearth.fp.syntax.*
 
-// Parallel case handling
-enumm.parMatchOn[MIO, String](colorExpr) { child =>
-  import child.{Underlying as ChildType, value as childExpr}
-  handleColorInParallel[ChildType](childExpr): MIO[Expr[String]]
-}.map(_.get) // MIO[Expr[String]]
-```
+    trait EnumMatchMacro { this: hearth.MacroCommons =>
+
+      private val StringType = Type.of[String]
+
+      def matchEnum[A: Type](expr: Expr[A]): Expr[String] =
+        Enum.parse[A].fold(Expr("<no enum>")) { enumm =>
+          implicit val StringType: Type[String] = this.StringType
+          val handle: Expr_??<:[A] => MIO[Expr[String]] = matched => {
+            import matched.{Underlying as Subtype, value as matchedExpr}
+            MIO.pure(Expr(s"subtype name: ${Subtype.plainPrint}, expr: ${matchedExpr.plainPrint}"))
+          }
+          val sequential = enumm
+            .matchOn(expr)(handle)
+            .map(_.getOrElse(Expr("<failed to perform exhaustive match>")))
+          val parallel = enumm
+            .parMatchOn(expr)(handle)
+            .map(_.getOrElse(Expr("<failed to perform exhaustive match>")))
+          sequential
+            .parMap2(parallel) { (sequential, parallel) =>
+              Expr.quote {
+                s"sequential: ${Expr.splice(sequential)}, parallel: ${Expr.splice(parallel)}"
+              }
+            }
+            .unsafe
+            .runSync
+            ._2
+            .fold(errors => Expr(s"<failed to construct: ${errors.mkString(", ")}>"), identity)
+        }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/EnumMatchMacroImpl.scala - part of Enum match example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def matchEnum[A](expr: A): String = macro EnumMatchMacroImpl.matchEnumImpl[A]
+    }
+
+    // Scala 2 adapter
+    class EnumMatchMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with EnumMatchMacro {
+
+      def matchEnumImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] =
+        matchEnum[A](expr)
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/EnumMatchMacroImpl.scala - part of Enum match example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      inline def matchEnum[A](inline expr: A): String = ${ EnumMatchMacroImpl.matchEnumImpl[A]('{ expr }) }
+    }
+
+    // Scala 3 adapter
+    class EnumMatchMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), EnumMatchMacro
+    object EnumMatchMacroImpl {
+
+      def matchEnumImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
+        new EnumMatchMacroImpl(q).matchEnum[A](expr)
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of Enum match example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    sealed trait Color
+    object Color {
+      case class Red(value: Int) extends Color
+      case object Blue extends Color
+    }
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.matchEnum should match on sealed trait values") {
+        
+        val red: Color = Color.Red(42)
+        val result = Example.matchEnum(red)
+        assert(result.contains("subtype name:"))
+        assert(result.contains("Red"))
+      }
+    }
+    ```
 
 This generates exhaustive pattern matching over all direct children:
 
@@ -1572,28 +2048,202 @@ Specialized view for Java Beans (POJOs with default constructor and setters):
 | `bean.beanGetters`          | `List[Existential[Method.OfInstance[PersonBean, *]]]` | getter methods         |
 | `bean.beanSetters`          | `List[Method.OfInstance[PersonBean, Unit]]`       | setter methods             |
 
-**Constructing without setters:**
+!!! example "Constructing JavaBean without setters"
 
-```scala
-val instance: Option[Expr[PersonBean]] = bean.constructWithoutSetters
-// Generates: new PersonBean()
-```
+    ```scala
+    // file: src/main/scala/example/JavaBeanConstructMacro.scala - part of JavaBean construct example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
 
-**Constructing with setters:**
+    trait JavaBeanConstructMacro { this: hearth.MacroCommons =>
 
-```scala
-// Sequential setter calls
-bean.constructWithSetters[MIO] { (name: String, param: Parameter) =>
-  import param.tpe.Underlying as FieldType
-  createValue[FieldType](name): MIO[Expr[FieldType]]
-}.map(_.get) // MIO[Expr[PersonBean]]
+      def constructJavaBean[A: Type]: Expr[String] = Expr {
+        JavaBean.parse[A].fold("<no java bean>") { javaBean =>
+          javaBean.constructWithoutSetters
+            .fold("<failed to construct>")(_.plainPrint)
+        }
+      }
+    }
+    ```
 
-// Parallel setter preparation (setters still called sequentially)
-bean.parConstructWithSetters[MIO] { (name, param) =>
-  import param.tpe.Underlying as FieldType
-  createValueInParallel[FieldType](name): MIO[Expr[FieldType]]
-}.map(_.get) // MIO[Expr[PersonBean]]
-```
+    ```scala
+    // file: src/main/scala-2/example/JavaBeanConstructMacroImpl.scala - part of JavaBean construct example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def constructJavaBean[A]: String = macro JavaBeanConstructMacroImpl.constructJavaBeanImpl[A]
+    }
+
+    // Scala 2 adapter
+    class JavaBeanConstructMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with JavaBeanConstructMacro {
+
+      def constructJavaBeanImpl[A: c.WeakTypeTag]: c.Expr[String] =
+        constructJavaBean[A]
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/JavaBeanConstructMacroImpl.scala - part of JavaBean construct example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      inline def constructJavaBean[A]: String = ${ JavaBeanConstructMacroImpl.constructJavaBeanImpl[A] }
+    }
+
+    // Scala 3 adapter
+    class JavaBeanConstructMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), JavaBeanConstructMacro
+    object JavaBeanConstructMacroImpl {
+
+      def constructJavaBeanImpl[A: Type](using q: Quotes): Expr[String] =
+        new JavaBeanConstructMacroImpl(q).constructJavaBean[A]
+    }
+    ```
+
+    ```java
+    // file: src/test/java/example/PersonBean.java - part of JavaBean construct example
+    //> using target.scope test
+
+    class PersonBean {
+      public PersonBean() { }
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of JavaBean construct example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.constructJavaBean should construct JavaBean without setters") {
+        val result = Example.constructJavaBean[PersonBean]
+        assert(result.contains("new"))
+      }
+    }
+    ```
+
+!!! example "Constructing JavaBean with setters"
+
+    ```scala
+    // file: src/main/scala/example/JavaBeanSettersMacro.scala - part of JavaBean setters example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    import hearth.fp.effect.MIO
+    import hearth.fp.instances.*
+    import hearth.fp.syntax.*
+
+    trait JavaBeanSettersMacro { this: hearth.MacroCommons =>
+
+      private val booleanType: Type[Boolean] = Type.of[Boolean]
+      private val intType: Type[Int] = Type.of[Int]
+      private val stringType: Type[String] = Type.of[String]
+
+      def constructWithSetters[A: Type]: Expr[String] = Expr {
+        JavaBean.parse[A].fold("<no java bean>") { javaBean =>
+          val setField: (String, Parameter) => MIO[Expr_??] = (name, input) => {
+            import input.tpe.Underlying as FieldType
+            implicit val BooleanType: Type[Boolean] = booleanType
+            implicit val IntType: Type[Int] = intType
+            implicit val StringType: Type[String] = stringType
+            if (FieldType <:< Type[Boolean]) MIO.pure(Expr(true).as_??)
+            else if (FieldType <:< Type[Int]) MIO.pure(Expr(0).as_??)
+            else if (FieldType <:< Type[String]) MIO.pure(Expr(name).as_??)
+            else MIO.fail(new Exception(s"Field $name has wrong type: ${input.tpe.plainPrint}"))
+          }
+          val sequential = javaBean.constructWithSetters(setField).map { result =>
+            result.fold("<failed to construct with setters>")(_.plainPrint)
+          }
+          val parallel = javaBean.parConstructWithSetters(setField).map { result =>
+            result.fold("<failed to construct with setters>")(_.plainPrint)
+          }
+          sequential
+            .parMap2(parallel) { (sequential, parallel) =>
+              s"sequential:\n$sequential\nparallel:\n$parallel"
+            }
+            .unsafe
+            .runSync
+            ._2
+            .fold(errors => s"<failed to construct: ${errors.mkString(", ")}>", identity)
+        }
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/JavaBeanSettersMacroImpl.scala - part of JavaBean setters example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def constructWithSetters[A]: String = macro JavaBeanSettersMacroImpl.constructWithSettersImpl[A]
+    }
+
+    // Scala 2 adapter
+    class JavaBeanSettersMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with JavaBeanSettersMacro {
+
+      def constructWithSettersImpl[A: c.WeakTypeTag]: c.Expr[String] =
+        constructWithSetters[A]
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/JavaBeanSettersMacroImpl.scala - part of JavaBean setters example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      inline def constructWithSetters[A]: String = ${ JavaBeanSettersMacroImpl.constructWithSettersImpl[A] }
+    }
+
+    // Scala 3 adapter
+    class JavaBeanSettersMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), JavaBeanSettersMacro
+    object JavaBeanSettersMacroImpl {
+
+      def constructWithSettersImpl[A: Type](using q: Quotes): Expr[String] =
+        new JavaBeanSettersMacroImpl(q).constructWithSetters[A]
+    }
+    ```
+
+    ```java
+    // file: src/test/java/example/PersonBean.java - part of JavaBean setters example
+    //> using target.scope test
+
+    class PersonBean {
+      public PersonBean() { }
+
+      private String name;
+      public void setName(String name) { this.name = name; }
+
+      private int age;
+      public void setAge(int age) { this.age = age; }
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of JavaBean setters example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.constructWithSetters should construct JavaBean with setters") {
+        val result = Example.constructWithSetters[PersonBean]
+        assert(result.contains("setName"))
+        assert(result.contains("setAge"))
+      }
+    }
+    ```
 
 This generates code like:
 
