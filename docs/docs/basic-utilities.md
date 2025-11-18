@@ -777,26 +777,408 @@ Strategies for generating fresh variable names to avoid clashes, used, e.g., by 
 
 Create scoped definitions (`val`, `var`, `lazy val`, `def`) with automatic scope management:
 
-```scala
-// Generate: { val x = expr; useX(x) }
-ValDefs.createVal(expr, "x").use { x: Expr[A] =>
-  useX(x): Expr[B]
-} // : Expr[B]
+!!! example "How `ValDefs` are used"
 
-// Generate: { var x = initial; x = newValue; readX(x) }
-ValDefs.createVar(initial, "x").use { case (getter, setter) =>
-  Expr.quote {
-    Expr.splice(setter(newValue))
-    Expr.splice(readX(getter))
-  }
-}
+    ```scala
+    // file: src/main/scala/example/ValDefsMacro.scala - part of ValDefs example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
 
-// Lazy and def work similarly
-ValDefs.createLazy(expr).use { x => ??? }
-ValDefs.createDef(expr).use { x => ??? }
-```
+    trait ValDefsMacro { this: hearth.MacroCommons =>
+
+      private val IntType = Type.of[Int]
+
+      def createScoped(value: Expr[Int]): Expr[Int] = {
+        implicit val intType: Type[Int] = IntType
+
+        // Create a val: { val a = value; a + 1 }
+        val valResult = ValDefs.createVal(value, "a").use { (a: Expr[Int]) =>
+          Expr.quote(Expr.splice(a) + 1)
+        }
+
+        // Create a var: { var b = value; b = b + 1; b * 10 }
+        val varResult = ValDefs.createVar(value, "b").use { case (b, set) =>
+          Expr.quote {
+            Expr.splice(set(Expr.quote(Expr.splice(b) + 1)))
+            Expr.splice(b) * 10
+          }
+        }
+
+        // Create a lazy val: { lazy val c = value; (c + 2) * 100 }
+        val lazyResult = ValDefs.createLazy(value, "c").use { (c: Expr[Int]) =>
+          Expr.quote((Expr.splice(c) + 2) * 100)
+        }
+
+        // Create a def: { def d = value; (d + 3) * 1000 }
+        val defResult = ValDefs.createDef(value, "d").use { (d: Expr[Int]) =>
+          Expr.quote((Expr.splice(d) + 3) * 1000)
+        }
+
+        Expr.quote {
+          Expr.splice(valResult) + Expr.splice(varResult) + 
+          Expr.splice(lazyResult) + Expr.splice(defResult)
+        }
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/ValDefsMacroImpl.scala - part of ValDefs example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def createScoped(value: Int): Int = macro ValDefsMacroImpl.createScopedImpl
+    }
+
+    // Scala 2 adapter
+    class ValDefsMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ValDefsMacro {
+
+      def createScopedImpl(value: c.Expr[Int]): c.Expr[Int] =
+        createScoped(value)
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/ValDefsMacroImpl.scala - part of ValDefs example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      inline def createScoped(inline value: Int): Int = ${ ValDefsMacroImpl.createScopedImpl('value) }
+    }
+
+    // Scala 3 adapter
+    class ValDefsMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), ValDefsMacro
+    object ValDefsMacroImpl {
+
+      def createScopedImpl(value: Expr[Int])(using q: Quotes): Expr[Int] =
+        new ValDefsMacroImpl(q).createScoped(value)
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of ValDefs example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.createScoped should work") {
+        val result = Example.createScoped(1)
+        // val: 1 + 1 = 2
+        // var: (1 + 1) * 10 = 20
+        // lazy: (1 + 2) * 100 = 300
+        // def: (1 + 3) * 1000 = 4000
+        assertEquals(result, 2 + 20 + 300 + 4000)
+      }
+    }
+    ```
 
 !!! tip "`ValDefs` utilities are not needed if you can make `var`/`val`/`lazy val`/`def` inside (cross) quotes. Only if you need to use the fresh names they become necessary to avoid the name clashes."
+
+### `ValDefBuilder`
+
+Build definitions (`val`, `var`, `lazy val`, `def`) programmatically with support for error aggregation and recursive definitions:
+
+!!! example "How `ValDefBuilder` is used"
+
+    ```scala
+    // file: src/main/scala/example/ValDefBuilderMacro.scala - part of ValDefBuilder example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    import hearth.fp.syntax.*
+
+    trait ValDefBuilderMacro { this: hearth.MacroCommons =>
+
+      private val IntType = Type.of[Int]
+
+      def buildDefinitions: Expr[Int] = {
+        implicit val intType: Type[Int] = IntType
+
+        // Build a val: val x = 1
+        val valDef = ValDefBuilder.ofVal[Int]("x").map(_ => Expr.quote(1)).build.close
+
+        // Build a var: var x = 2
+        val varDef = ValDefBuilder.ofVar[Int]("x").map(_ => Expr.quote(2)).build.close
+
+        // Build a lazy val: lazy val x = 3
+        val lazyDef = ValDefBuilder.ofLazy[Int]("x").map(_ => Expr.quote(3)).build.close
+
+        // Build a def with no parameters: def x() = 0
+        val def0 = ValDefBuilder.ofDef0[Int]("x").buildWith(_ => Expr.quote(0)).close
+
+        // Build a def with one parameter: def x(a: Int) = a * 10
+        val def1 = ValDefBuilder
+          .ofDef1[Int, Int]("x", "a")
+          .buildWith { case (_, a) =>
+            Expr.quote(Expr.splice(a) * 10)
+          }
+          .use(_(Expr.quote(1)))
+
+        // Build a def with two parameters: def x(a: Int, b: Int) = (a + b) * 10
+        val def2 = ValDefBuilder
+          .ofDef2[Int, Int, Int]("x", "a", "b")
+          .buildWith { case (_, (a, b)) =>
+            Expr.quote((Expr.splice(a) + Expr.splice(b)) * 10)
+          }
+          .use(_(Expr.quote(1), Expr.quote(2)))
+
+        Expr.quote {
+          Expr.splice(valDef) + Expr.splice(varDef) + Expr.splice(lazyDef) +
+          Expr.splice(def0) + Expr.splice(def1) + Expr.splice(def2)
+        }
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/ValDefBuilderMacroImpl.scala - part of ValDefBuilder example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def buildDefinitions: Int = macro ValDefBuilderMacroImpl.buildDefinitionsImpl
+    }
+
+    // Scala 2 adapter
+    class ValDefBuilderMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ValDefBuilderMacro {
+
+      def buildDefinitionsImpl: c.Expr[Int] = buildDefinitions
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/ValDefBuilderMacroImpl.scala - part of ValDefBuilder example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      inline def buildDefinitions: Int = ${ ValDefBuilderMacroImpl.buildDefinitionsImpl }
+    }
+
+    // Scala 3 adapter
+    class ValDefBuilderMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), ValDefBuilderMacro
+    object ValDefBuilderMacroImpl {
+
+      def buildDefinitionsImpl(using q: Quotes): Expr[Int] =
+        new ValDefBuilderMacroImpl(q).buildDefinitions
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of ValDefBuilder example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.buildDefinitions should work") {
+        val result = Example.buildDefinitions
+        assertEquals(result, 1 + 2 + 3 + 0 + 10 + 30)
+      }
+    }
+    ```
+
+Supports up to 22 parameters (`ofDef1` through `ofDef22`).
+
+!!! tip "`ValDefBuilder` is useful when you need to build definitions programmatically, especially when you need recursive definitions or error aggregation with effects like `MIO`."
+
+### `ValDefsCache`
+
+Cache definitions to avoid recomputing them and enable forward references:
+
+!!! example "How `ValDefsCache` is used"
+
+    ```scala
+    // file: src/main/scala/example/ValDefsCacheMacro.scala - part of ValDefsCache example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    trait ValDefsCacheMacro { this: hearth.MacroCommons =>
+
+      private val IntType = Type.of[Int]
+
+      def buildCached: Expr[Int] = {
+        implicit val intType: Type[Int] = IntType
+        var cache = ValDefsCache.empty
+
+        // Build and cache a val
+        val valBuilder = ValDefBuilder.ofVal[Int]("x")
+        cache = valBuilder.buildCachedWith(cache, "valKey")(_ => Expr.quote(1))
+        val valValue = cache.get0Ary[Int]("valKey").fold(Expr.quote(0))(identity)
+
+        // Build and cache a def with one parameter
+        val defBuilder = ValDefBuilder.ofDef1[Int, Int]("x", "a")
+        cache = defBuilder.buildCachedWith(cache, "defKey") { case (_, a) =>
+          Expr.quote(Expr.splice(a) * 10)
+        }
+        val defValue = cache.get1Ary[Int, Int]("defKey").fold(Expr.quote(0))(_(Expr.quote(2)))
+
+        // Convert cache to ValDefs and use it
+        cache.toValDefs.use { _ =>
+          Expr.quote {
+            Expr.splice(valValue) + Expr.splice(defValue)
+          }
+        }
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/ValDefsCacheMacroImpl.scala - part of ValDefsCache example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def buildCached: Int = macro ValDefsCacheMacroImpl.buildCachedImpl
+    }
+
+    // Scala 2 adapter
+    class ValDefsCacheMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ValDefsCacheMacro {
+
+      def buildCachedImpl: c.Expr[Int] = buildCached
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/ValDefsCacheMacroImpl.scala - part of ValDefsCache example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      inline def buildCached: Int = ${ ValDefsCacheMacroImpl.buildCachedImpl }
+    }
+
+    // Scala 3 adapter
+    class ValDefsCacheMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), ValDefsCacheMacro
+    object ValDefsCacheMacroImpl {
+
+      def buildCachedImpl(using q: Quotes): Expr[Int] =
+        new ValDefsCacheMacroImpl(q).buildCached
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of ValDefsCache example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.buildCached should work") {
+        val result = Example.buildCached
+        assertEquals(result, 1 + 20)
+      }
+    }
+    ```
+
+!!! example "Using `ValDefsCache` with `MIO` for forward declarations"
+
+    ```scala
+    // file: src/main/scala/example/ValDefsCacheMioMacro.scala - part of ValDefsCache MIO example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    import hearth.fp.syntax.*
+    import hearth.fp.instances.*
+
+    trait ValDefsCacheMioMacro { this: hearth.MacroCommons =>
+
+      private val IntType = Type.of[Int]
+
+      def buildWithForwardDeclare: Expr[Int] = {
+        implicit val intType: Type[Int] = IntType
+        val cacheLocal = ValDefsCache.mlocal
+
+        val defBuilder = ValDefBuilder.ofDef1[Int, Int]("x", "a")
+        
+        val result = for {
+          // Forward declare a def before building it
+          _ <- cacheLocal.forwardDeclare("defKey", defBuilder)
+          
+          // Now we can use it before it's built (e.g., in recursive calls)
+          _ <- cacheLocal.buildCachedWith("defKey", defBuilder) { case (_, a) =>
+            Expr.quote(Expr.splice(a) * 10)
+          }
+          
+          defValue <- cacheLocal.get1Ary[Int, Int]("defKey").map(_.fold(Expr.quote(0))(_(Expr.quote(2))))
+          cache <- cacheLocal.get
+        } yield cache.toValDefs.use { _ =>
+          defValue
+        }
+
+        result.runToExprOrFail("buildWithForwardDeclare")((_, _) => "")
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/ValDefsCacheMioMacroImpl.scala - part of ValDefsCache MIO example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def buildWithForwardDeclare: Int = macro ValDefsCacheMioMacroImpl.buildWithForwardDeclareImpl
+    }
+
+    // Scala 2 adapter
+    class ValDefsCacheMioMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ValDefsCacheMioMacro {
+
+      def buildWithForwardDeclareImpl: c.Expr[Int] = buildWithForwardDeclare
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/ValDefsCacheMioMacroImpl.scala - part of ValDefsCache MIO example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      inline def buildWithForwardDeclare: Int = ${ ValDefsCacheMioMacroImpl.buildWithForwardDeclareImpl }
+    }
+
+    // Scala 3 adapter
+    class ValDefsCacheMioMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), ValDefsCacheMioMacro
+    object ValDefsCacheMioMacroImpl {
+
+      def buildWithForwardDeclareImpl(using q: Quotes): Expr[Int] =
+        new ValDefsCacheMioMacroImpl(q).buildWithForwardDeclare
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of ValDefsCache MIO example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.buildWithForwardDeclare should work") {
+        val result = Example.buildWithForwardDeclare
+        assertEquals(result, 20)
+      }
+    }
+    ```
+
+!!! tip "`ValDefsCache` is essential when building recursive definitions or when you need to reference definitions before they're fully constructed. Use `ValDefsCache.mlocal` with `MIO` for effectful computations."
 
 ### `LambdaBuilder`
 
