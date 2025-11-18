@@ -1184,26 +1184,110 @@ Cache definitions to avoid recomputing them and enable forward references:
 
 Build lambda expressions with unknown return types and error aggregation support:
 
-```scala
-// Simple lambda: (a: A) => useA(a)
-LambdaBuilder.of1[A]("a").buildWith { a: Expr[A] =>
-  useA(a): Expr[B]
-} // : Expr[A => B]
+!!! example "How `LambdaBuilder` is used"
 
-// Two arguments: (a: A, b: B) => useAB(a, b)
-LambdaBuilder.of2[A, B]("a", "b").buildWith { case (a, b) =>
-  useAB(a, b): Expr[C]
-} // : Expr[(A, B) => C]
+    ```scala
+    // file: src/main/scala/example/LambdaBuilderMacro.scala - part of LambdaBuilder example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
 
-// With error handling (using MIO or another effect)
-LambdaBuilder.of1[A]("a").traverse[MIO, B] { a: Expr[A] =>
-  validateAndUseA(a): MIO[Expr[B]]
-}.map(_.build) // : MIO[Expr[A => B]]
-```
+    import hearth.fp.syntax.*
+
+    trait LambdaBuilderMacro { this: hearth.MacroCommons =>
+
+      private val IntType = Type.of[Int]
+
+      def buildLambdas: Expr[Int] = {
+        implicit val intType: Type[Int] = IntType
+
+        // Build a lambda with one parameter: (a: Int) => a + 1
+        val lambda1 = LambdaBuilder
+          .of1[Int]("a")
+          .map { case (a) =>
+            Expr.quote(Expr.splice(a) + 1)
+          }
+          .build
+
+        // Build a lambda with two parameters: (a: Int, b: Int) => a * b + 1
+        val lambda2 = LambdaBuilder
+          .of2[Int, Int]("a", "b")
+          .map { case ((a, b)) =>
+            Expr.quote(Expr.splice(a) * Expr.splice(b) + 1)
+          }
+          .build
+
+        // Build a lambda using buildWith: (a: Int) => a + 1
+        val lambda3 = LambdaBuilder
+          .of1[Int]("a")
+          .buildWith { case (a) =>
+            Expr.quote(Expr.splice(a) + 1)
+          }
+
+        Expr.quote {
+          Expr.splice(lambda1)(2) + Expr.splice(lambda2)(2, 3) + Expr.splice(lambda3)(2)
+        }
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/LambdaBuilderMacroImpl.scala - part of LambdaBuilder example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def buildLambdas: Int = macro LambdaBuilderMacroImpl.buildLambdasImpl
+    }
+
+    // Scala 2 adapter
+    class LambdaBuilderMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with LambdaBuilderMacro {
+
+      def buildLambdasImpl: c.Expr[Int] = buildLambdas
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/LambdaBuilderMacroImpl.scala - part of LambdaBuilder example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      inline def buildLambdas: Int = ${ LambdaBuilderMacroImpl.buildLambdasImpl }
+    }
+
+    // Scala 3 adapter
+    class LambdaBuilderMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), LambdaBuilderMacro
+    object LambdaBuilderMacroImpl {
+
+      def buildLambdasImpl(using q: Quotes): Expr[Int] =
+        new LambdaBuilderMacroImpl(q).buildLambdas
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of LambdaBuilder example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.buildLambdas should work") {
+        val result = Example.buildLambdas
+        // lambda1(2) = 2 + 1 = 3
+        // lambda2(2, 3) = 2 * 3 + 1 = 7
+        // lambda3(2) = 2 + 1 = 3
+        assertEquals(result, 3 + 7 + 3)
+      }
+    }
+    ```
 
 Supports up to 22 parameters (`of1` through `of22`).
 
-!!! tip "`LambdaBuilder`s are not needed if you can make the lambda inside (cross) quotes. Only if the types and/or numer of the arguments is unknown during the complation of the macro and have to be resolved, you need to use a lambda builder to stay flexible."
+!!! tip "`LambdaBuilder`s are not needed if you can make the lambda inside (cross) quotes. Only if the types and/or number of the arguments is unknown during the compilation of the macro and have to be resolved, you need to use a lambda builder to stay flexible."
 
 ## `Method`
 
