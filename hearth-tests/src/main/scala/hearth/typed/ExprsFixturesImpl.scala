@@ -6,7 +6,7 @@ import hearth.fp.instances.*
 import hearth.fp.syntax.*
 
 /** Fixtured for testing [[ExprsSpec]]. */
-trait ExprsFixturesImpl { this: MacroTypedCommons & untyped.UntypedMethods =>
+trait ExprsFixturesImpl { this: hearth.MacroCommons =>
 
   // Expr methods
 
@@ -354,6 +354,244 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & untyped.UntypedMethods =>
     option.fold[Expr[B]](runtimeFail)(_.build.close)
   }
 
+  // ValDefsCache methods
+
+  def testValDefBuilderBuildCachedAndUse: Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+    var cache = ValDefsCache.empty
+
+    // Test ofVal
+    val valBuilder = ValDefBuilder.ofVal[Int]("valExample")
+    cache = valBuilder.buildCachedWith(cache, "valKey")(_ => Expr.quote(1))
+    val valValue = cache.get0Ary[Int]("valKey").fold(Expr.quote(0))(identity)
+
+    // Test ofVar - getter and setter
+    val varBuilder = ValDefBuilder.ofVar[Int]("varExample")
+    cache = varBuilder.buildCachedWith(cache, "varKey")(_ => Expr.quote(2))
+    val varGetter = cache.get0Ary[Int]("varKey").fold(Expr.quote(0))(identity)
+    val varValue = varGetter // Just use getter value, setter existence is verified separately
+
+    // Test ofLazy
+    val lazyBuilder = ValDefBuilder.ofLazy[Int]("lazyExample")
+    cache = lazyBuilder.buildCachedWith(cache, "lazyKey")(_ => Expr.quote(3))
+    val lazyValue = cache.get0Ary[Int]("lazyKey").fold(Expr.quote(0))(identity)
+
+    // Test ofDef0
+    val def0Builder = ValDefBuilder.ofDef0[Int]("def0Example")
+    cache = def0Builder.buildCachedWith(cache, "def0Key")(_ => Expr.quote(0))
+    val def0Value = cache.get0Ary[Int]("def0Key").fold(Expr.quote(0))(identity)
+
+    // Test ofDef1 through ofDef22
+    // format: off
+    val def1Builder = ValDefBuilder.ofDef1[Int, Int]("def1Example", "a")
+    cache = def1Builder.buildCachedWith(cache, "def1Key") { case (_, a) => Expr.quote(Expr.splice(a) * 10) }
+    val def1Value = cache.get1Ary[Int, Int]("def1Key").fold(Expr.quote(0))(_(Expr.quote(1)))
+
+    val def2Builder = ValDefBuilder.ofDef2[Int, Int, Int]("def2Example", "a", "b")
+    cache = def2Builder.buildCachedWith(cache, "def2Key") { case (_, (a, b)) => Expr.quote((Expr.splice(a) + Expr.splice(b)) * 10) }
+    val def2Value = cache.get2Ary[Int, Int, Int]("def2Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2)))
+
+    val def3Builder = ValDefBuilder.ofDef3[Int, Int, Int, Int]("def3Example", "a", "b", "c")
+    cache = def3Builder.buildCachedWith(cache, "def3Key") { case (_, (a, b, c)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c)) * 10) }
+    val def3Value = cache.get3Ary[Int, Int, Int, Int]("def3Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3)))
+
+    val def4Builder = ValDefBuilder.ofDef4[Int, Int, Int, Int, Int]("def4Example", "a", "b", "c", "d")
+    cache = def4Builder.buildCachedWith(cache, "def4Key") { case (_, (a, b, c, d)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d)) * 10) }
+    val def4Value = cache.get4Ary[Int, Int, Int, Int, Int]("def4Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4)))
+
+    val def5Builder = ValDefBuilder.ofDef5[Int, Int, Int, Int, Int, Int]("def5Example", "a", "b", "c", "d", "e")
+    cache = def5Builder.buildCachedWith(cache, "def5Key") { case (_, (a, b, c, d, e)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e)) * 10) }
+    val def5Value = cache.get5Ary[Int, Int, Int, Int, Int, Int]("def5Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5)))
+
+    val def6Builder = ValDefBuilder.ofDef6[Int, Int, Int, Int, Int, Int, Int]("def6Example", "a", "b", "c", "d", "e", "f")
+    cache = def6Builder.buildCachedWith(cache, "def6Key") { case (_, (a, b, c, d, e, f)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f)) * 10) }
+    val def6Value = cache.get6Ary[Int, Int, Int, Int, Int, Int, Int]("def6Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6)))
+
+    val def7Builder = ValDefBuilder.ofDef7[Int, Int, Int, Int, Int, Int, Int, Int]("def7Example", "a", "b", "c", "d", "e", "f", "g")
+    cache = def7Builder.buildCachedWith(cache, "def7Key") { case (_, (a, b, c, d, e, f, g)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g)) * 10) }
+    val def7Value = cache.get7Ary[Int, Int, Int, Int, Int, Int, Int, Int]("def7Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7)))
+
+    val def8Builder = ValDefBuilder.ofDef8[Int, Int, Int, Int, Int, Int, Int, Int, Int]("def8Example", "a", "b", "c", "d", "e", "f", "g", "h")
+    cache = def8Builder.buildCachedWith(cache, "def8Key") { case (_, (a, b, c, d, e, f, g, h)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h)) * 10) }
+    val def8Value = cache.get8Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int]("def8Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8)))
+
+    val def9Builder = ValDefBuilder.ofDef9[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def9Example", "a", "b", "c", "d", "e", "f", "g", "h", "i")
+    cache = def9Builder.buildCachedWith(cache, "def9Key") { case (_, (a, b, c, d, e, f, g, h, i)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i)) * 10) }
+    val def9Value = cache.get9Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def9Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8), Expr.quote(9)))
+
+    val def10Builder = ValDefBuilder.ofDef10[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def10Example", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j")
+    cache = def10Builder.buildCachedWith(cache, "def10Key") { case (_, (a, b, c, d, e, f, g, h, i, j)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j)) * 10) }
+    val def10Value = cache.get10Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def10Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8), Expr.quote(9), Expr.quote(10)))
+
+    val def11Builder = ValDefBuilder.ofDef11[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def11Example", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k")
+    cache = def11Builder.buildCachedWith(cache, "def11Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k)) * 10) }
+    val def11Value = cache.get11Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def11Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8), Expr.quote(9), Expr.quote(10), Expr.quote(11)))
+
+    val def12Builder = ValDefBuilder.ofDef12[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def12Example", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l")
+    cache = def12Builder.buildCachedWith(cache, "def12Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr.splice(l)) * 10) }
+    val def12Value = cache.get12Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def12Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8), Expr.quote(9), Expr.quote(10), Expr.quote(11), Expr.quote(12)))
+
+    val def13Builder = ValDefBuilder.ofDef13[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def13Example", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m")
+    cache = def13Builder.buildCachedWith(cache, "def13Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr.splice(l) + Expr.splice(m)) * 10) }
+    val def13Value = cache.get13Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def13Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8), Expr.quote(9), Expr.quote(10), Expr.quote(11), Expr.quote(12), Expr.quote(13)))
+
+    val def14Builder = ValDefBuilder.ofDef14[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def14Example", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n")
+    cache = def14Builder.buildCachedWith(cache, "def14Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr.splice(l) + Expr.splice(m) + Expr.splice(n)) * 10) }
+    val def14Value = cache.get14Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def14Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8), Expr.quote(9), Expr.quote(10), Expr.quote(11), Expr.quote(12), Expr.quote(13), Expr.quote(14)))
+
+    val def15Builder = ValDefBuilder.ofDef15[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def15Example", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o")
+    cache = def15Builder.buildCachedWith(cache, "def15Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr.splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o)) * 10) }
+    val def15Value = cache.get15Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def15Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8), Expr.quote(9), Expr.quote(10), Expr.quote(11), Expr.quote(12), Expr.quote(13), Expr.quote(14), Expr.quote(15)))
+
+    val def16Builder = ValDefBuilder.ofDef16[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def16Example", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p")
+    cache = def16Builder.buildCachedWith(cache, "def16Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr.splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p)) * 10) }
+    val def16Value = cache.get16Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def16Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8), Expr.quote(9), Expr.quote(10), Expr.quote(11), Expr.quote(12), Expr.quote(13), Expr.quote(14), Expr.quote(15), Expr.quote(16)))
+
+    val def17Builder = ValDefBuilder.ofDef17[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def17Example", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q")
+    cache = def17Builder.buildCachedWith(cache, "def17Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr.splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q)) * 10) }
+    val def17Value = cache.get17Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def17Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8), Expr.quote(9), Expr.quote(10), Expr.quote(11), Expr.quote(12), Expr.quote(13), Expr.quote(14), Expr.quote(15), Expr.quote(16), Expr.quote(17)))
+
+    val def18Builder = ValDefBuilder.ofDef18[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def18Example", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r")
+    cache = def18Builder.buildCachedWith(cache, "def18Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr.splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr.splice(r)) * 10) }
+    val def18Value = cache.get18Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def18Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8), Expr.quote(9), Expr.quote(10), Expr.quote(11), Expr.quote(12), Expr.quote(13), Expr.quote(14), Expr.quote(15), Expr.quote(16), Expr.quote(17), Expr.quote(18)))
+
+    val def19Builder = ValDefBuilder.ofDef19[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def19Example", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s")
+    cache = def19Builder.buildCachedWith(cache, "def19Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr.splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr.splice(r) + Expr.splice(s)) * 10) }
+    val def19Value = cache.get19Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def19Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8), Expr.quote(9), Expr.quote(10), Expr.quote(11), Expr.quote(12), Expr.quote(13), Expr.quote(14), Expr.quote(15), Expr.quote(16), Expr.quote(17), Expr.quote(18), Expr.quote(19)))
+
+    val def20Builder = ValDefBuilder.ofDef20[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def20Example", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t")
+    cache = def20Builder.buildCachedWith(cache, "def20Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr.splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr.splice(r) + Expr.splice(s) + Expr.splice(t)) * 10) }
+    val def20Value = cache.get20Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def20Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8), Expr.quote(9), Expr.quote(10), Expr.quote(11), Expr.quote(12), Expr.quote(13), Expr.quote(14), Expr.quote(15), Expr.quote(16), Expr.quote(17), Expr.quote(18), Expr.quote(19), Expr.quote(20)))
+
+    val def21Builder = ValDefBuilder.ofDef21[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def21Example", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u")
+    cache = def21Builder.buildCachedWith(cache, "def21Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr.splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr.splice(r) + Expr.splice(s) + Expr.splice(t) + Expr.splice(u)) * 10) }
+    val def21Value = cache.get21Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def21Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8), Expr.quote(9), Expr.quote(10), Expr.quote(11), Expr.quote(12), Expr.quote(13), Expr.quote(14), Expr.quote(15), Expr.quote(16), Expr.quote(17), Expr.quote(18), Expr.quote(19), Expr.quote(20), Expr.quote(21)))
+
+    val def22Builder = ValDefBuilder.ofDef22[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def22Example", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v")
+    cache = def22Builder.buildCachedWith(cache, "def22Key") { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v)) => Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e) + Expr.splice(f) + Expr.splice(g) + Expr.splice(h) + Expr.splice(i) + Expr.splice(j) + Expr.splice(k) + Expr.splice(l) + Expr.splice(m) + Expr.splice(n) + Expr.splice(o) + Expr.splice(p) + Expr.splice(q) + Expr.splice(r) + Expr.splice(s) + Expr.splice(t) + Expr.splice(u) + Expr.splice(v)) * 10) }
+    val def22Value = cache.get22Ary[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("def22Key").fold(Expr.quote(0))(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5), Expr.quote(6), Expr.quote(7), Expr.quote(8), Expr.quote(9), Expr.quote(10), Expr.quote(11), Expr.quote(12), Expr.quote(13), Expr.quote(14), Expr.quote(15), Expr.quote(16), Expr.quote(17), Expr.quote(18), Expr.quote(19), Expr.quote(20), Expr.quote(21), Expr.quote(22)))
+    // format: on
+
+    cache.toValDefs.use { _ =>
+      Expr.quote {
+        Data.map(
+          "val" -> Data(Expr.splice(valValue)),
+          "var" -> Data(Expr.splice(varValue)),
+          "lazy" -> Data(Expr.splice(lazyValue)),
+          "def0" -> Data(Expr.splice(def0Value)),
+          "def1" -> Data(Expr.splice(def1Value)),
+          "def2" -> Data(Expr.splice(def2Value)),
+          "def3" -> Data(Expr.splice(def3Value)),
+          "def4" -> Data(Expr.splice(def4Value)),
+          "def5" -> Data(Expr.splice(def5Value)),
+          "def6" -> Data(Expr.splice(def6Value)),
+          "def7" -> Data(Expr.splice(def7Value)),
+          "def8" -> Data(Expr.splice(def8Value)),
+          "def9" -> Data(Expr.splice(def9Value)),
+          "def10" -> Data(Expr.splice(def10Value)),
+          "def11" -> Data(Expr.splice(def11Value)),
+          "def12" -> Data(Expr.splice(def12Value)),
+          "def13" -> Data(Expr.splice(def13Value)),
+          "def14" -> Data(Expr.splice(def14Value)),
+          "def15" -> Data(Expr.splice(def15Value)),
+          "def16" -> Data(Expr.splice(def16Value)),
+          "def17" -> Data(Expr.splice(def17Value)),
+          "def18" -> Data(Expr.splice(def18Value)),
+          "def19" -> Data(Expr.splice(def19Value)),
+          "def20" -> Data(Expr.splice(def20Value)),
+          "def21" -> Data(Expr.splice(def21Value)),
+          "def22" -> Data(Expr.splice(def22Value))
+        )
+      }
+    }
+  }
+
+  def testValDefBuilderBuildCachedWithMIO: Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+    implicit val unitType: Type[Unit] = UnitType
+    val cacheLocal = ValDefsCache.mlocal
+
+    val valBuilder = ValDefBuilder.ofVal[Int]("valExample")
+    val varBuilder = ValDefBuilder.ofVar[Int]("varExample")
+    val lazyBuilder = ValDefBuilder.ofLazy[Int]("lazyExample")
+    val def1Builder = ValDefBuilder.ofDef1[Int, Int]("def1Example", "a")
+
+    val result = (for {
+      // Test ofVal with MIO
+      _ <- cacheLocal.get
+        .map { cache =>
+          valBuilder.buildCachedWith(cache, "valKey")(_ => Expr.quote(1))
+        }
+        .flatMap(cacheLocal.set)
+      valValue <- cacheLocal.get0Ary[Int]("valKey").map(_.fold(Expr.quote(0))(identity))
+
+      // Test ofVar with MIO
+      _ <- cacheLocal.get
+        .map { cache =>
+          varBuilder.buildCachedWith(cache, "varKey")(_ => Expr.quote(2))
+        }
+        .flatMap(cacheLocal.set)
+      varGetter <- cacheLocal.get0Ary[Int]("varKey").map(_.fold(Expr.quote(0))(identity))
+      _ <- cacheLocal.get1Ary[Int, Unit]("varKey") // Verify setter exists
+
+      // Test ofLazy with MIO
+      _ <- cacheLocal.get
+        .map { cache =>
+          lazyBuilder.buildCachedWith(cache, "lazyKey")(_ => Expr.quote(3))
+        }
+        .flatMap(cacheLocal.set)
+      lazyValue <- cacheLocal.get0Ary[Int]("lazyKey").map(_.fold(Expr.quote(0))(identity))
+
+      // Test ofDef1 with MIO
+      _ <- cacheLocal.get
+        .map { cache =>
+          def1Builder.buildCachedWith(cache, "def1Key") { case (_, a) => Expr.quote(Expr.splice(a) * 10) }
+        }
+        .flatMap(cacheLocal.set)
+      def1Value <- cacheLocal.get1Ary[Int, Int]("def1Key").map(_.fold(Expr.quote(0))(_(Expr.quote(1))))
+
+      cache <- cacheLocal.get
+    } yield cache.toValDefs.use { _ =>
+      Expr.quote {
+        Data.map(
+          "val" -> Data(Expr.splice(valValue)),
+          "var" -> Data(Expr.splice(varGetter)),
+          "lazy" -> Data(Expr.splice(lazyValue)),
+          "def1" -> Data(Expr.splice(def1Value))
+        )
+      }
+    }).runToExprOrFail("testValDefBuilderBuildCachedWithMIO")((msg, _) => msg)
+
+    result
+  }
+
+  def testValDefBuilderBuildCachedVarGetterSetter: Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+    implicit val unitType: Type[Unit] = UnitType
+    var cache = ValDefsCache.empty
+
+    // Create var builder and build cached
+    val varBuilder = ValDefBuilder.ofVar[Int]("varExample")
+    cache = varBuilder.buildCachedWith(cache, "varKey")(_ => Expr.quote(100))
+
+    // Retrieve getter
+    val getterOpt = cache.get0Ary[Int]("varKey")
+    val getterValue = getterOpt.fold(Expr.quote(0))(identity)
+
+    // Retrieve setter
+    val setterOpt = cache.get1Ary[Int, Unit]("varKey")
+
+    cache.toValDefs.use { _ =>
+      Expr.quote {
+        Data.map(
+          "getterValue" -> Data(Expr.splice(getterValue)),
+          "getterExists" -> Data(Expr.splice(Expr(getterOpt.isDefined))),
+          "setterExists" -> Data(Expr.splice(Expr(setterOpt.isDefined)))
+        )
+      }
+    }
+  }
+
   // LambdaBuilder methods
 
   def testLambdaBuilderOfNAndBuild: Expr[Data] = {
@@ -634,6 +872,7 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & untyped.UntypedMethods =>
   // types using in fixtures
 
   private val IntType = Type.of[Int]
+  private val UnitType = Type.of[Unit]
   private val DataType = Type.of[Data]
   private val IntFunctionType = Type.of[Int => Int]
 

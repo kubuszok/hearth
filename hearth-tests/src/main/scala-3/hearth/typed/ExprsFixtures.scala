@@ -77,6 +77,18 @@ object ExprsFixtures {
   private def testValDefBuilderTraverseAndCloseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
     new ExprsFixtures(q).testValDefBuilderTraverseAndClose[A, B](expr)
 
+  inline def testValDefBuilderBuildCachedAndUse: Data = ${ testValDefBuilderBuildCachedAndUseImpl }
+  private def testValDefBuilderBuildCachedAndUseImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testValDefBuilderBuildCachedAndUse
+
+  inline def testValDefBuilderBuildCachedWithMIO: Data = ${ testValDefBuilderBuildCachedWithMIOImpl }
+  private def testValDefBuilderBuildCachedWithMIOImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testValDefBuilderBuildCachedWithMIO
+
+  inline def testValDefBuilderBuildCachedVarGetterSetter: Data = ${ testValDefBuilderBuildCachedVarGetterSetterImpl }
+  private def testValDefBuilderBuildCachedVarGetterSetterImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testValDefBuilderBuildCachedVarGetterSetter
+
   inline def testLambdaBuilderOfNAndBuild: Data = ${ testLambdaBuilderOfNAndBuildImpl }
   private def testLambdaBuilderOfNAndBuildImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testLambdaBuilderOfNAndBuild

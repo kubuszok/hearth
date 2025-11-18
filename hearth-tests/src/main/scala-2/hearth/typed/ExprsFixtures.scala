@@ -47,6 +47,12 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
   def testValDefBuilderTraverseAndCloseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
     testValDefBuilderTraverseAndClose[A, B](expr)
 
+  def testValDefBuilderBuildCachedAndUseImpl: c.Expr[Data] = testValDefBuilderBuildCachedAndUse
+
+  def testValDefBuilderBuildCachedWithMIOImpl: c.Expr[Data] = testValDefBuilderBuildCachedWithMIO
+
+  def testValDefBuilderBuildCachedVarGetterSetterImpl: c.Expr[Data] = testValDefBuilderBuildCachedVarGetterSetter
+
   def testLambdaBuilderOfNAndBuildImpl: c.Expr[Data] = testLambdaBuilderOfNAndBuild
 
   def testLambdaBuilderBuildWithImpl: c.Expr[Data] = testLambdaBuilderBuildWith
@@ -94,6 +100,13 @@ object ExprsFixtures {
 
   def testValDefBuilderTraverseAndClose[A, B](expr: A): B =
     macro ExprsFixtures.testValDefBuilderTraverseAndCloseImpl[A, B]
+
+  def testValDefBuilderBuildCachedAndUse: Data = macro ExprsFixtures.testValDefBuilderBuildCachedAndUseImpl
+
+  def testValDefBuilderBuildCachedWithMIO: Data = macro ExprsFixtures.testValDefBuilderBuildCachedWithMIOImpl
+
+  def testValDefBuilderBuildCachedVarGetterSetter: Data =
+    macro ExprsFixtures.testValDefBuilderBuildCachedVarGetterSetterImpl
 
   def testLambdaBuilderOfNAndBuild: Data = macro ExprsFixtures.testLambdaBuilderOfNAndBuildImpl
 
