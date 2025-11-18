@@ -81,10 +81,6 @@ object ExprsFixtures {
   private def testValDefBuilderBuildCachedAndUseImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testValDefBuilderBuildCachedAndUse
 
-  inline def testValDefBuilderBuildCachedWithMIO: Data = ${ testValDefBuilderBuildCachedWithMIOImpl }
-  private def testValDefBuilderBuildCachedWithMIOImpl(using q: Quotes): Expr[Data] =
-    new ExprsFixtures(q).testValDefBuilderBuildCachedWithMIO
-
   inline def testValDefBuilderBuildCachedVarGetterSetter: Data = ${ testValDefBuilderBuildCachedVarGetterSetterImpl }
   private def testValDefBuilderBuildCachedVarGetterSetterImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testValDefBuilderBuildCachedVarGetterSetter
