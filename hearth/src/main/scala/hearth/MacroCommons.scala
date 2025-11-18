@@ -103,15 +103,19 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
             .foreach(Environment.reportErrorAndAbort)
           expr
         case Left(errors) =>
-          Environment.reportErrorAndAbort(
-            state.logs
-              .render(macroName, infoRendering)
-              .map(renderFailure(_, errors))
-              .orElse(state.logs.render(macroName, warnRendering).map(renderFailure(_, errors)))
-              .orElse(state.logs.render(macroName, errorRendering).map(renderFailure(_, errors)))
-              .filter(_.trim.count(_ == '\n') > 0)
-              .getOrElse("")
-          )
+          def infoLogs = state.logs.render(macroName, infoRendering)
+          def warnLogs = state.logs.render(macroName, warnRendering)
+          def errorLogs = state.logs.render(macroName, errorRendering)
+
+          val logs = infoLogs.orElse(warnLogs).orElse(errorLogs).filter(_.trim.count(_ == '\n') > 0)
+          val msg = logs.map(renderFailure(_, errors)).getOrElse(renderFailure("", errors))
+
+          def fallbackMessage =
+            errors
+              .map(e => e.getMessage.split("\n").map("  " + _).mkString("\n"))
+              .mkString("Macro failed with NonEmptyVector(\n", ",\n", "\n)")
+
+          Environment.reportErrorAndAbort(if (msg.nonEmpty) msg else fallbackMessage)
       }
     }
   }
