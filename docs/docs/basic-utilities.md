@@ -657,6 +657,18 @@ Cross-platform handling of variadic arguments (Scala 2 uses `Seq[Expr[A]]`, Scal
 
 !!! tip "`VarArgs` only handles reading of variadic arguments passed into macro. It does not (yet) handle working with variadic arguments in AST."
 
+### `FreshName`
+
+Strategies for generating fresh variable names to avoid clashes, used, e.g., by [`MatchCase`](#matchcase)es,
+[`ValDefs`](#valdefs), [`ValDefBuilder`](#valdefbuilder)s, [`ValDefsCache`](#valdefscache) and [`LambdaBuilder`](#lambdabuilder)s.
+
+| Syntax                 | Example        | Description                                                     |
+|------------------------|----------------|-----------------------------------------------------------------|
+| `FreshName.FromType`   | `string`       | use lowercased simple name of the type as a fresh name prefix   |
+| `FreshName.FromExpr`   | `sth.tostring` | use printed expr as a fresh name prefix                         |
+| `FreshName.FromPrefix` | `name`         | use provided name as a fresh name prefix                        |
+| `"name"`               | `name`         | when implicit conversions are enabled, turns string into prefix |
+
 ### `MatchCase`
 
 Build pattern-matching expressions programmatically.
@@ -760,18 +772,6 @@ Build pattern-matching expressions programmatically.
     ```
 
 !!! tip "`matchOn` and `MatchCase` are not needed if you can make the whole `match` at once inside (cross) quotes. Only if you have to construct the `case`s (e.g. types are being resolved, they're not known during the compilation of a macro) you have to use it as a `match`-builder."
-
-### `FreshName`
-
-Strategies for generating fresh variable names to avoid clashes, used, e.g., by [`MatchCase`](#matchcase)es,
-[`ValDefs`](#scoped) and [`LambdaBuilder`](#lambdabuilder)s.
-
-| Syntax                 | Example        | Description                                                     |
-|------------------------|----------------|-----------------------------------------------------------------|
-| `FreshName.FromType`   | `string`       | use lowercased simple name of the type as a fresh name prefix   |
-| `FreshName.FromExpr`   | `sth.tostring` | use printed expr as a fresh name prefix                         |
-| `FreshName.FromPrefix` | `name`         | use provided name as a fresh name prefix                        |
-| `"name"`               | `name`         | when implicit conversions are enabled, turns string into prefix |
 
 ### `ValDefs`
 
