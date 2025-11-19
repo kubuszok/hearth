@@ -14,6 +14,67 @@ Hearth is possible, because:
  - it's resorting to some "unprincipled" (but well thought out and tested) hacks under the hood, which will fail in some cases - it might
   be seen as a "non-elegant" solution that occasionally requires a workaround - but by not promising perfection it immediately unblocks people
 
+## Do I need this library if I don't want to cross-compile?
+
+**You don't _need_ it, but it is _still_ useful.**
+
+There are manu gotchas when developing a macro, even for common cases:
+
+ - type parameters aren't automatically applied, if class has type parameters they need to be
+   reapplied to its method's and child subtypes
+ - constructing pattern-matching on Scala 3 require building AST from scratch
+ - quasi-quoting expressions on Scala 2 offers no help from IDE since all IDE sees is
+   an interpolated `String`
+ - constructing names for `val`s, `var`s, `lazy val`s, `def`s, bindings in pattern-matching...
+   requires "fresh name generation" to avoid accidental name conflicts
+ - providing some healthy architecture of a macro - with an error handling, a user-friendly debugging,
+   composing code with FP patterns known from other ecosystems - would feel discouraged if one had to reimplement
+   all the utilities from scratch for each new macro
+
+All of above and more contribute to bad UX for macro maintainers, and discourage keeping the same good practices that we
+use in other Scala projects. Providing a set of ready to use utilities helps making the macro development sane.
+
+## Do I need to use all of the utilities?
+
+**No. You can use only the ones that you need.**
+
+The depenendencies between the modules are:
+
+```
+              Core (Basic Utilities)
+                        ┃
+       ┏━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━┓
+       ┃                ┃                ┃
+Better Printers      Micro FP      Cross Quotes
+```
+
+This modular design allows picking only what you want to use:
+
+ * you can use [Better Printers](better-printers.md) without using the rest of the utilities, if you only want to
+   better outputs
+ * you can use [Micro FP](micro-fp.md) if you only want to use a few type classes and/or Macro IO
+ * you can use [Basic Utilities](basic-utilities.md) without explicitly depending on Better Printers or Micro FP
+    * while core tries to not force you into FP-style, many utilties provice type class instances allowing
+      e.g. `.map`, `.traverse`, `.parTraverse`, but also type classes provide instances for: `Id`, `Either`, `Option`, ...
+      to allow you working with them without any new collection types
+    * [Cross Quotes](cross-quotes.md) are competely optional, they are ancouraged if you want to build for both Scala 2 and Scala 3,
+      but if you only want to target one of them, you can work with quasi-quotes/quotes/ASTs directly
+
+Utilities would work best if used together, but it's easier to learn one tool at a time, and reach for the next one
+only once we stumbled opon the problem that a new tool would solve.
+
+## Does this library completely eliminates the need to learn macros?
+
+**No. It's goal is handle the most common cases with a sane API. But it's impossible to cover all cases.**
+
+However, it should be able to provide enough utilities, that many macros could be implemented using only
+the Hearth's APIs. And for remaining cases it could allow using a sane API for the majority of the time,
+reaching for low-level (native) ASTs in one place, and keeping everything high-level everywhere else.
+
+To implement these use-case-specific utilities you would have to know the macro API for the Scala version,
+that you are working with, but since there should be only a small portion of the whole codebase, it would be easier
+to test them (since you should be able to trust the behavior of the existing utilities).
+
 ## Is Cross-Building a macro supported?
 
 **No.**
@@ -45,7 +106,7 @@ In practice it makes it virtually impossible to use when you need to provide a t
 
  1. the companion object would have to provide both `def macro` and `inline def`
  2. that means two non-abstract, stable definitions must exist, one with the compiled macro for Scala 2.13 and one for Scala 3
- 3. if quasiquotes are necessary (most of the time they are), the Scala 2.13 macro code would have to be moved to another module
+ 3. if quasi-quotes are necessary (most of the time they are), the Scala 2.13 macro code would have to be moved to another module
  4. inside the macro you almost certainly need a `c.Type` definition of the type class
  5. that has to be defined in the same file as its companion object, which would live in the module that depends on the module containing the macro
  6. even if you find a creative workaround, the 2.13-only module with quasiquotes and the Scala 3 module with quotes would have to depend on
@@ -54,10 +115,10 @@ In practice it makes it virtually impossible to use when you need to provide a t
 It already creates something like:
 
 ```
-Scala 2.13 OR 3 <---- Scala 2.13 ONLY <---- Scala 3 ONLY
-- runtime code        - quasiquotes         - quotes
-                                            - def macro using quasiquotes
-                                            - inline def using quotes
+Scala 2.13 OR 3 <──── Scala 2.13 ONLY <──── Scala 3 ONLY
+└ runtime code        └ quasiquotes         ├ quotes
+                                            ├ def macro using quasiquotes
+                                            └ inline def using quotes
 ```
 
 so even if we don't want a type class derivation defined in a companion object, it's a rather complex multimodule setup. If you want derivation (even the semi-automatic one),
@@ -81,7 +142,8 @@ with **JDK 11** bytecode.
 
 The features introduced by later versions of Scala/JDK (when already supported) are handled via runtime reflection and feature discovery.
 
-These requirements might change, but we'll **try to stay on the lowest version** of Scala/JDK possible, **while testing against the newest**.
+These requirements might change, but we'll **try to stay on the lowest version** of Scala/JDK possible, **while testing against the newest**
+(currently {{ scala.newest_2_13 }}, {{ scala.newest_3 }}).
 
 ## Can I use micro-FP/MIO in the production code?
 
@@ -103,3 +165,41 @@ So if you only use it within macros, it works for all versions of Scala: JVM, JS
 it might not link correctly on Scala.js/Scala Native.
 
 Also, its MIO is _not_ truly parallel - such functionality is not needed for macros.
+
+## How to fix `forward reference to value ... defined on line ... extends over definition of value ...`?
+
+It happend when you write:
+
+```scala
+// With Cross-Quotes
+implicit val someType: Type[A] = Type.of[A]
+```
+
+Depends on the platform it translates to:
+
+```scala
+// Scala 2
+implicit val someType: Type[A] = c.weakTypeTag[A]
+```
+
+or
+
+```scala
+// Scala 3
+implicit val someType: Type[A] = scala.quoted.Type.of[A]
+```
+
+In both cases the native macro utility summons `Type[A]` - since we are just declaring `implicit`/`given` of that type
+we are creating a circular dependency. We have to prevent the utility from summoning its own result by:
+
+```scala
+// In one scope, that does not define implicit Type[A]:
+private val SomeType = Type.of[A]
+
+locally {
+  // In another scope, where we can expose a computer result as an implicit:
+  implicit val someType: Type[A] = SomeType
+}
+```
+
+While it's a bit mundate, it makes it rather explicit which types are we using or not, and where.
