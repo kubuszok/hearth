@@ -37,7 +37,8 @@ A clear and concise description of what you expected to happen.
 
 **Actual behavior**
 
-A description showing what happened: ideally a copy of compiler error, example of wrong value generated, stack trace and message of thrown exception.
+A description showing what happened: ideally a copy of a compiler error, an example of a wrong value generated, the stack trace
+and the message of a thrown exception.
 
 **Which Hearth version do you use**
 
