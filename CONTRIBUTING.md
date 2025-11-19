@@ -2,11 +2,11 @@
 
 First off, thanks for taking the time to contribute! ❤️
 
-Currently the best way oh helping is contributing to [help us improve a few remaining utilities](https://github.com/MateuszKubuszok/hearth/issues/85) to deliver the solid 0.2.0! This includes testing Hearth, providing us with reproduction for bugs and maybe even fixes!
+Currently the best way oh helping is contributing to [help us tackle some tasks from the Roadmap](https://github.com/MateuszKubuszok/hearth/issues/10) to deliver the solid 0.2.0! This includes testing Hearth, providing us with reproduction for bugs and maybe even fixes!
 
 The second best, is raising awareness about the project ☺️
 
-Once that is done, we have a lot more opportunities to contribute (e.g. implementing new features).
+Once that is done, we have a lot more opportunities to contribute (e.g. suggesting new features).
 
 ----
 
@@ -22,25 +22,10 @@ Once that is done, we have a lot more opportunities to contribute (e.g. implemen
     4. [FP-module](#fp-module)
  5. [How to test changes?](#how-to-test-changes)
  6. [How to debug macros?](#how-to-debug-macros)
-
-## Issue or discussion?
-
-As long as the library is on its Proof-of-Concept stage - that is until [these tasks are done](https://github.com/MateuszKubuszok/hearth/issues/36) -
-thers is no point in creating bug reports (we already know that these are not yet reliable) or creating new feature requests.
-
-For the time being we suggest to discuss:
-
- - in the existing issues (when asking about them),
- - in pull requests (when when discussion is about addressing the issue)
- - creating a [new discussion](https://github.com/MateuszKubuszok/hearth/discussions), when it's none of the above
-   (asking about what is the purpose of something, how something can be done, it is currently possible, etc)
-
-Once the library is released as 0.1.0, with _some_ features provided, we would start using bugs and feature requests.
+ 7. [How to run snippets locally?](#how-to-run-snippets-locally)
 
 ## General coding guidelines
 
- 0. This library is currently a Proof-of-Concept - we are focusing on delivering the minimal initial functionality to make it useful
-    and prove, that the community could benfit from it, and that contributors would find worth their time to help it grow.
  1. This library aims to follow the [Pareto-principle](https://en.wikipedia.org/wiki/Pareto_principle) - 80% of use cases
     should be able to implement with 20% of effort. Simple things should be easy, but for complex we don't necessarily need to provide
     a solution if it would complicate the API for everyone that does not have a complex use case (fallback to normal macros or lowel abstraction levels is always possible).
@@ -572,3 +557,64 @@ would have a column:
  - `2` on Scala 2 (`Foo.` would also be counted towards current position)
 
 so if you are filtering by column you have to adapt the value after changing which version of Scala you work on currently!
+
+## How to run snippets locally?
+
+[ScalaCLI.md Spec](https://github.com/MateuszKubuszok/scala-cli-md-spec) requires [Scala CLI](https://scala-cli.virtuslab.org/) installed.
+It also requires that all snippets are implemented as Scala CLI snippets.
+
+Our documentation uses dependencies like:
+
+```scala
+//> using dep com.kubuszok::hearth:{{ hearth_version() }}
+```
+
+It will require us to provide the Hearth version to use in snippets, both for rendering the documentation - then
+it's just substituted and rendered - and for running the snippets - then we need to also make sure that
+either it's a published Hearth version, or that we published it locally.
+
+We can publish the current artifacts for local testing with:
+
+```bash
+sbt publish-local-for-tests
+```
+
+then, we should also copy the `version` that is generated for the current commit.
+
+When it's installed, you can run:
+
+```bash
+# --list-only acts like a dry-run
+scala-cli run scripts/test-snippets.scala -- --extra "hearth-version=$hearth_version_that_we_coped" "$PWD/docs/docs" --list-only
+```
+
+It will show us all snippets that can be run as tests. If we skip the `--list-only`, we will run them:
+
+```bash
+scala-cli run scripts/test-snippets.scala -- --extra "hearth-version=$hearth_version_that_we_coped" "$PWD/docs/docs"
+```
+
+Since it takes a while to test all snippets, we can use filtering:
+
+```bash
+# --test-only filters, we can use * as a wildcard, but we have to use single quotes to make sure it's not interpretes by the shell
+# --list-only would let us test if we filtered what we want before actually running the tests
+scala-cli run scripts/test-snippets.scala -- --extra "hearth-version=$hearth_version_that_we_coped" "$PWD/docs/docs" --test-only  "basic-utilities.md#\`JavaBean"'*' --list-only
+```
+
+Once we are sure, that we would run the snippets that we want, we can finally do:
+
+```bash
+scala-cli run scripts/test-snippets.scala -- --extra "hearth-version=$hearth_version_that_we_coped" "$PWD/docs/docs" --test-only  "basic-utilities.md#\`JavaBean"'*'
+```
+
+When writing snippets:
+
+ * snippets with no `//>` nor `file:` are skipped by default as pseudocode
+ * snippets can be grouped together a multiple files of the same test by `file: [name of the file] - part of [name of the group]`
+   within the same section
+    * when the same file name appears across several snippets within the same section they are concatenated into 1 file
+ * `{{ hearth_version() }}` is replaced by value passed via `--extra "hearth-version=..."`
+ * `docs/docs/mkdocs.yml`'s `extra` section can be passed and interpolated as well to e.g. provide a Scala 2 version
+   with `{{ scala.2_13 }}` or a dependency version with `{{ libraries.munit }}`
+ * the rules of passing/failing tests are provided in [the ScalaCLI.md Spec README](github.com/MateuszKubuszok/scala-cli-md-spec)
