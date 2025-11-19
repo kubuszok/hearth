@@ -217,7 +217,7 @@ I recommend working with a macro as if it was any other business logic, that you
    _mock_ inside of a macro, it might feel a bit like small integration tests
  - if you are used to conventions of Cats/Scalaz/ZIO, you might want to work with something like IO monad,
    to reuse your intuitions and habits
- - use `parTraverse` and `Parallel` when combining several independedn resuluts together, e.g. results fomputed for
+ - use `parTraverse` and `Parallel` when combining several independedn results together, e.g. results computed for
    each field of a `case class` or each subtype of an `enum`
  - cache intermediate results, by generating internally `def`s instead of multiple type class instances - a bunch
    of local `def`s do not require additional allocations, and might potentially allow your type class to be recursive

@@ -54,6 +54,10 @@ completely.
 
     You only need to add it if you want to use type classes/macro IO without the rest of Hearth goodies.
 
+!!! warning
+
+    These utilities are intended for macro-only usage. [Using them in the production code is highly discouraged](faq.md#can-i-use-micro-fpmio-in-the-production-code).
+
 !!! tip "Examples in this documentation"
 
     Majority of the examples in this documentation is intended to be runnable.

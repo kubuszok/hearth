@@ -348,6 +348,28 @@ You can see 3 different representations of a type in Hearth codebase:
    which is useful when we, for example, receive a list of subtypes of some enum `E`: we get a `List[??<:[E]]` (list of existential types
    with `E` as upper bound).
 
+### Why so many types exists?
+
+All 3 are necessary:
+
+ * `Type[A]` represents the typed representation of a proper type, if a method is type parametris this format is how
+   the information will be passed into the macro. (While Scala 3 would allow it to handle any kindness, on Scala 2 only
+   the proper types can be passed with typed representation). It's also required for creating typed expressions on Scala 3.
+   For other purposes it might not be _required_, but it's _easier to reason_ about the code if we keep things typed
+   as much as possible
+ * `UntypedType` represents the untyped representation about a type. This allows handling the type of any kindness on Scala 2,
+   but also pass around a "work in progress" kind of types, e.g. something that is not a type constructor, but needs to be modified
+   somehow. They are more powerful, but it's a low-level API, so **we are avoiding it as much as possible** in Hearth API
+ * `Expr_??` exists, because on Scala 3 we cannot use something like `Expr[?]` or `Expr[_]`, aspecially if we had to pass
+   `Expr[_]` and `Type[_]` together, and be able to prove that they are both using the same existential type.
+   Meanwhile, we need to somehow represents e.g. list of annotations (we don't know their types ahead of time).
+   `UntypedExpr`s would be overkill - we know their type, we could splice them or return from the macro - but we have to somehow
+   "forget" their actual type to e.g. fit a bunch of them into some collection. And we can easily name their type and make it available
+   as an `implicit`/`given`
+
+So we should prefer typed `Expr` when actually working with it, `Expr_??` when we have to pass around some collection of types,
+and only use `UntypedExpr` if we need to design some low-lever API ourselves handling cases, that the typed type would not.
+
 ### Obtaining `Type`
 
 You might see that some examples use `Type[A]`, some `Type(value)` and some use `Type.of[A]`. What is the difference?
@@ -497,6 +519,24 @@ You can see 3 different representations of expressions in Hearth codebase:
    expr: Expr[Param] // and this is an Expr of Param type that we can use
    ```
    which is useful when we, for example, try to call some method or constructor.
+
+### Why some many exprs exists?
+
+All 3 are necessary:
+
+ * `Expr[A]` represents the typed expression. This is what Scala 3's quotes create, and what Scala 2 quasi-quotes are aligned to by Hearth.
+   Only the typed expression allow us to quote and splice in both Scala 2 and Scala 3, which is why this is the preferred representation.
+   For other purposes it might not be required, but it's easier to reason about the code if we keep things typed as much as possible
+ * `UntypedExpr` represents the AST tree. This representation allows to use the expression while constructing other AST nodes,
+   which aren't necessary representable as standalone expressions.
+   They are more powerful, but it's a low-level API, so **we are avoiding it as much as possible** in Hearth
+ * `??` exists, because on Scala 3 we cannot always use something like `Type[?]` or `Type[_]`. Meanwhile, we need to somehow
+   represents e.g. list of types of some method arguments, or a list of children of some `enum`. `UntypedType`s would be overkill - we
+   know that they are proper types, ready to use - but we have to somehow "forget" their actual type to e.g. fit a bunch of them
+   into some collection. And we can easily make any of them available as an `implicit`/`given` while giving them a name
+
+So we should prefer typed `Type` when actually working with it, `??` when we have to pass around some collection of types,
+and only use `UntypedType` if we need to design some low-lever API ourselves handling cases, that the typed type would not.
 
 ### Obtaining `Expr`
 
