@@ -1374,7 +1374,23 @@ It would be handy to:
 
 ### `LambdaBuilder`
 
-Build lambda expressions with unknown return types and error aggregation support:
+If you know the types and number of parameters upfront, things are simple:
+
+```scala
+Expr.quote {
+  val lambda1 = (a: Int) => Expr.splice { ... }
+  val lambda2 = (a: Int, b: String) => Expr.splice { ... }
+  ... // the code that uses the lambdas defined above
+}
+```
+
+But what, if:
+
+  - the types are only resolved during the macro expansion?
+  - you don't know how many parameters you would need?
+  - maybe you have to compute them with some error handling (`Either[Error, Expr[Result]]`), and you would like to aggregate them (then direct-style won't be enough)?
+
+Then we would have to create these lambdas programmatically using `LambdaBuilder`:
 
 !!! example "How `LambdaBuilder` is used"
 
