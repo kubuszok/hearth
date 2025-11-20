@@ -25,10 +25,37 @@ Debug utilities help you inspect macro expansions during compilation. They allow
 !!! tip
     Start with `withFinalCodeInIDE` or `withGivenCodeInIDE` for most debugging scenarios. Use the AST variants (`withFinalASTInIDE`, `withGivenASTInIDE`) when you need to understand the internal tree structure, such as when debugging macro implementations.
 
+!!! example "`Debug` utilities - Scala 2"
+
+    ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth::{{ hearth_version() }}
+    import hearth.debug.Debug
+
+    // Preview final expanded code
+    Debug.withFinalCodeInIDE {
+      val a = 10
+      s"Some example: $a"
+    }
+    // Hover over the code above in your IDE to see the expanded version
+
+    // Preview AST structure
+    Debug.withFinalASTInIDE {
+      val a = 10
+      s"Another example: $a"
+    }
+
+    // Preview implicit/given resolution
+    Debug.withGivenCodeInIDE[scala.collection.Factory[Int, List[Int]]]
+
+    Debug.withGivenASTInIDE[scala.collection.Factory[Int, List[Int]]]
+    ```
+
+
 !!! example "`Debug` utilities - Scala 3"
 
     ```scala
-    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using scala {{ scala.3 }}
     //> using dep com.kubuszok::hearth::{{ hearth_version() }}
     import hearth.debug.Debug
 
@@ -64,7 +91,6 @@ Debug utilities help you inspect macro expansions during compilation. They allow
 
     Debug.withGivenASTInIDE[scala.collection.Factory[Int, List[Int]]]
     ```
-
 
 ## How It Works
 

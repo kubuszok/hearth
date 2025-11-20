@@ -139,6 +139,9 @@ Both provide indentation and formatting improvements over the built-in printers.
 
       inline def previewAST[A](inline expr: A): String = ${ previewASTImpl('{ expr }) }
       def previewASTImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] = (new Printers).previewAST(expr)
+
+      inline def previewCode[A](inline expr: A): String = ${ previewCodeImpl('{ expr }) }
+      def previewCodeImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] = (new Printers).previewCode(expr)
     }
     ```
 
