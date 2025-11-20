@@ -6,7 +6,7 @@ Cross Quotes is a library that provides a unified way to write quoted expression
 
 [![Hearth Cross Quotes JVM versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth-cross-quotes/latest.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth-cross-quotes_3) <br>
 
-!!! warning "Cross Quotes are implemented as macros on Scala 2 (so they are automatically pulled in with the rest of the library), and as a compiler plugin on Scala 3 - so they have to be added **only** on Scala 3."
+!!! warning "Cross Quotes is implemented as macros on Scala 2 (so it is automatically pulled in with the rest of the library) and as a compiler plugin on Scala 3 — so it has to be added **only** on Scala 3."
 
 !!! example "[sbt](https://www.scala-sbt.org/)"
 
@@ -82,7 +82,7 @@ If there are some type parameters:
     def OptionType[A: Type] = Type.of[Option[A]]
     ```
 
-then it would also handle converting them as well:
+then it will also handle converting them:
 
 !!! example "Scala 2 macro expansion result"
 
@@ -104,7 +104,7 @@ then it would also handle converting them as well:
 
 !!! warning
 
-    Both `weakTypeTag[A]` and `scala.quoted.Type.of[A]` would pick up implicit if it was in the scope.
+    Both `weakTypeTag[A]` and `scala.quoted.Type.of[A]` pick up an implicit if it is in scope.
 
     So writing code like this:
 
@@ -118,9 +118,9 @@ then it would also handle converting them as well:
     implicit val A: Type[A] = A // infinite recursion
     ```
 
-    Therefore I **strongly** recommend to run `Type.of` in the scope where its results are **not** being pulled in as `implicit`s/`given`s.
+    Therefore I **strongly** recommend running `Type.of` in the scope where its results are **not** being pulled in as `implicit`s/`given`s.
 
-    It will be necessary as there are no ad-hoc available instances for types, that were not passed e.g. via implicits
+    This is necessary because there are no ad-hoc available instances for types that were not passed, e.g. via implicits.
 
 #### Type Constructor Operations
 
@@ -178,7 +178,7 @@ You can also specify bounds:
 
 #### `Expr.quote`
 
-As the name suggest, it _quotes_ an expression to create its typed AST representation:
+As the name suggests, it _quotes_ an expression to create its typed AST representation:
 
 !!! example "Quotation of an expression"
 
@@ -194,7 +194,7 @@ As the name suggest, it _quotes_ an expression to create its typed AST represent
     }
     ```
 
-These gets transformed to:
+These get transformed to:
 
 !!! example "Scala 2 macro expansion result"
 
@@ -224,12 +224,12 @@ These gets transformed to:
     }.asInstanceOf[Expr[Int]]
     ```
 
-which means that we are writing the code we want to finally get, IDE can provide all intellisense, syntax highlighting etc,
-but what is actually being generated, is an expression's AST. 
+This means that we are writing the code we ultimately want to produce, so the IDE can provide all IntelliSense, syntax highlighting, etc.,
+while what actually gets generated is the expression's AST. 
 
 #### `Expr.splice`
 
-As its name suggest it, _splices_ (or _unquotes_) an AST of an expression back into the code:
+As its name suggests, it _splices_ (or _unquotes_) an AST of an expression back into the code:
 
 !!! example "Splicing of an expression"
 
@@ -275,7 +275,7 @@ This gets transformed to:
     }
     ```
 
-As we can see, if we want to weave-in some quoted expression, we only can do it inside an _another_ quoted expression.
+As we can see, if we want to weave in a quoted expression, we can only do it inside another quoted expression.
 
 Therefore `Expr.splice` can be used **only directly inside** an `Expr.quote`, and **only** on an `Expr`.
 
@@ -297,7 +297,7 @@ The `[A: Type]` context bound gets automatically converted to the appropriate sy
 
 ### Pattern Matching on Types
 
-You can pattern match on types using the type constructor operations, or using if with `=:=` clause:
+You can pattern match on types using the type constructor operations, or by using an `if` with an `=:=` clause:
 
 !!! example "Pattern matching on types"
 
@@ -326,8 +326,8 @@ You can pattern match on types using the type constructor operations, or using i
 
     Scala 3's `Type`s **do not** override `def equals` to behave the same as `=:=` on `TypeRepr` while Scala 2 `WeakTypeTag`s do.
 
-    As a result, a pattern matching like ``case `stringType` =>`` would misleadingly give the expected results on Scala 2,
-    and virtually always fail on Scala 3. Unfortunatelly, we cannot fix that in Hearth.
+    As a result, a pattern like ``case `stringType` =>`` would misleadingly give the expected results on Scala 2
+    and virtually always fail on Scala 3. Unfortunately, we cannot fix that in Hearth.
 
 ### Nested Expressions
 

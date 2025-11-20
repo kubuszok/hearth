@@ -38,7 +38,7 @@ Source utilities expose the following information as `implicit`/`given` values:
     ```scala
     //> using scala {{ scala.2_13 }}
     //> using dep com.kubuszok::hearth::{{ hearth_version() }}
-    import hearth.source.*
+    import hearth.source._
 
     def exampleMethod(): Unit = {
       println(implicitly[MethodName])  // Prints: exampleMethod

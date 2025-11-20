@@ -18,7 +18,7 @@ This module addresses these shortcomings by providing improved printers with syn
 
 ## Basic Utilities integrations
 
-If you are using `MacroCommons` and their:
+If you are using `MacroCommons` and its:
 
  - `Expr.prettyPrint(expr)`/`expr.prettyPrint`
  - `Expr.plainPrint(expr)`/`expr.plainPrint`
@@ -27,13 +27,13 @@ If you are using `MacroCommons` and their:
  - `Type.prettyPrint[A]`/`Type[A].prettyPrint`
  - `Type.plainPrint[A]`/`Type[A].plainPrint`
 
-then, you are using Better Printers already. You don't need to additionally add them to your project.
+then you are using Better Printers already. You don't need to additionally add them to your project.
 
 ## Installation
 
 [![Hearth Better Printers JVM versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth-better-printers/latest.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth-better-printers_3) <br>
 
-!!! notice "Installation is only necessary if you want to use Better Printers without the core Hearth."
+!!! notice "Installation is only necessary if you want to use Better Printers without the core Hearth library."
 
 !!! example "[sbt](https://www.scala-sbt.org/)"
 

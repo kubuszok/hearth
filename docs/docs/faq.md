@@ -18,27 +18,27 @@ Hearth is possible, because:
 
 **You don't _need_ it, but it is _still_ useful.**
 
-There are manu gotchas when developing a macro, even for common cases:
+There are many gotchas when developing a macro, even for common cases:
 
- - type parameters aren't automatically applied, if class has type parameters they need to be
-   reapplied to its method's and child subtypes
- - constructing pattern-matching on Scala 3 require building AST from scratch
- - quasi-quoting expressions on Scala 2 offers no help from IDE since all IDE sees is
+ - type parameters aren't automatically applied; if a class has type parameters they need to be
+   reapplied to its methods and child subtypes
+ - constructing pattern-matching on Scala 3 requires building the AST from scratch
+ - quasi-quoting expressions on Scala 2 offers no help from the IDE since all it sees is
    an interpolated `String`
  - constructing names for `val`s, `var`s, `lazy val`s, `def`s, bindings in pattern-matching...
    requires "fresh name generation" to avoid accidental name conflicts
- - providing some healthy architecture of a macro - with an error handling, a user-friendly debugging,
-   composing code with FP patterns known from other ecosystems - would feel discouraged if one had to reimplement
+ - providing a healthy architecture of a macro - with error handling, user-friendly debugging,
+   composing code with FP patterns known from other ecosystems - would feel discouraging if one had to reimplement
    all the utilities from scratch for each new macro
 
-All of above and more contribute to bad UX for macro maintainers, and discourage keeping the same good practices that we
-use in other Scala projects. Providing a set of ready to use utilities helps making the macro development sane.
+All of the above and more contribute to bad UX for macro maintainers and discourage keeping the same good practices that we
+use in other Scala projects. Providing a set of ready-to-use utilities helps make macro development sane.
 
 ## Do I need to use all of the utilities?
 
 **No. You can use only the ones that you need.**
 
-The depenendencies between the modules are:
+The dependencies between the modules are:
 
 ```
               Core (Basic Utilities)
@@ -50,22 +50,22 @@ Better Printers      Micro FP      Cross Quotes
 
 This modular design allows picking only what you want to use:
 
- * you can use [Better Printers](better-printers.md) without using the rest of the utilities, if you only want to
-   better outputs
+ * you can use [Better Printers](better-printers.md) without using the rest of the utilities if you only want
+   better output
  * you can use [Micro FP](micro-fp.md) if you only want to use a few type classes and/or Macro IO
  * you can use [Basic Utilities](basic-utilities.md) without explicitly depending on Better Printers or Micro FP
-    * while core tries to not force you into FP-style, many utilties provice type class instances allowing
+    * while core tries to not force you into FP-style, many utilities provide type class instances allowing
       e.g. `.map`, `.traverse`, `.parTraverse`, but also type classes provide instances for: `Id`, `Either`, `Option`, ...
       to allow you working with them without any new collection types
-    * [Cross Quotes](cross-quotes.md) are competely optional, they are ancouraged if you want to build for both Scala 2 and Scala 3,
+    * [Cross Quotes](cross-quotes.md) are completely optional; they are encouraged if you want to build for both Scala 2 and Scala 3,
       but if you only want to target one of them, you can work with quasi-quotes/quotes/ASTs directly
 
-Utilities would work best if used together, but it's easier to learn one tool at a time, and reach for the next one
-only once we stumbled opon the problem that a new tool would solve.
+Utilities work best if used together, but it's easier to learn one tool at a time and reach for the next one
+only once we stumble upon the problem that a new tool would solve.
 
-## Does this library completely eliminates the need to learn macros?
+## Does this library completely eliminate the need to learn macros?
 
-**No. It's goal is handle the most common cases with a sane API. But it's impossible to cover all cases.**
+**No. Its goal is to handle the most common cases with a sane API, but it's impossible to cover all cases.**
 
 However, it should be able to provide enough utilities, that many macros could be implemented using only
 the Hearth's APIs. And for remaining cases it could allow using a sane API for the majority of the time,

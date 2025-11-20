@@ -9,21 +9,21 @@ hide:
 <h1 style="margin-bottom:0">Hearth</h1>
 <h2 style="margin-top:0">The first Scala macros' standard library.</h2>
 
-The first library that focuses on helping you write robust and easy to maintain macros, that you can make cross-compilable between Scala 2 and Scala 3 macro systems.
+This is the first library focused on helping you write robust, easy-to-maintain macros that you can make cross-compilable between the Scala 2 and Scala 3 macro systems.
 
 Introduces among others:
 
  * reliable extension methods that make checking properties of types, expressions and methods easier
  * Magnolia-like utilities for creating and decomposing data types
  * improvements over built-in types and expression printing utilities
- * small FP library that let you reuse your Cats experience in macros (including Macro IO/MIO monad)
- * direct style utilities for working with cases that are hard to handle with monad and combinators (or even impossible to handle with them)
- * macro-extension system allowing to extend your macros just by adding a dependency to the class path - without any additional imports!
- * and finally, macro API that has implementations for Scala 2 and Scala 3 macro systems - you can use it with either or both!
+ * small FP library that lets you reuse your Cats experience in macros (including Macro IO/MIO monad)
+ * direct style utilities for working with cases that are hard to handle with monads and combinators (or even impossible to handle with them)
+ * macro-extension system that allows you to extend your macros just by adding a dependency to the class path - without any additional imports!
+ * and finally, a macro API that has implementations for Scala 2 and Scala 3 macro systems - you can use it with either or both!
 
 ## How to use the library for cross-compilable macros?
 
-As a showcase we will build cross-compilable `Show` derivation.
+As a showcase, we will build a cross-compilable `Show` derivation.
 
 ??? example "`build.sbt` (assumes [sbt-crossproject](https://github.com/portable-scala/sbt-crossproject) or [sbt-projectmatrix](https://github.com/sbt/sbt-projectmatrix)/sbt 2)"
 
@@ -50,7 +50,7 @@ As a showcase we will build cross-compilable `Show` derivation.
     }
     ```
 
-Majority of the macros code would be shared, by putting it into a mix-in trait.
+The majority of the macro code is shared by putting it into a mix-in trait.
 
 !!! example "`src/main/scala/demo/Show.scala` - shared `Show` type class"
 
