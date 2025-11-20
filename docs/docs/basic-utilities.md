@@ -1,7 +1,7 @@
 # Basic Utilities
 
 The Hearth API abstracts away from any particular macro system. It works with abstract types
-backed by abstract methods, and later we implement them for a particular macro system.
+backed by abstract methods that we later implement for a particular macro system.
 
 ## Installation
 
@@ -54,14 +54,14 @@ backed by abstract methods, and later we implement them for a particular macro s
 
 ## Your first Hearth-based macro
 
-Once you add Hearth to your project you can start writing Hearth-powered macros.
+Once you add Hearth to your project, you can start writing Hearth-powered macros.
 
-You can decide to either:
+You can either:
 
- - write cross-compilable macros (we suggest also using [cross-quotes](cross-quotes.md) in such case)
+ - write cross-compilable macros (we suggest also using [cross-quotes](cross-quotes.md) in that case)
  - write Scala-2-only or Scala-3-only macros
 
-This is how you can write a cross-compilable macro.
+Here is how you can write a cross-compilable macro.
 
 !!! example "Cross-compilable API"
 
@@ -156,7 +156,7 @@ This is how you can write a cross-compilable macro.
     }
     ```
 
-These examples show how you can write Scala-specific macros with Hearth.
+These examples show how to write Scala-specific macros with Hearth.
 
 !!! example "Scala 2 API"
 
@@ -286,7 +286,7 @@ Hearth implements shared utilities from the bottom up: `Type[A]` and `Expr[A]` b
 then `Method[A]`s build on top of `Type[A]` and `Expr[A]`, then `CaseClass[A]`, `Enum[A]` and `JavaBean[A]` build on top of them.
 (The lower the abstraction level is, the less likely the API is to change).
 
-For most common use cases you probably want to use high-level utilities like:
+For most common use cases, you probably want to use high-level utilities like:
 
 !!! example "High-level `Class[A]` API"
 
@@ -299,7 +299,7 @@ For most common use cases you probably want to use high-level utilities like:
     }
     ```
 
-but they are a work in progress, and when the high-level API is not sufficient, you can fall back on lower-level ones.
+They are a work in progress, and when the high-level API is not sufficient you can fall back on lower-level ones.
 
 !!! tip
 
@@ -329,13 +329,13 @@ but they are a work in progress, and when the high-level API is not sufficient, 
 
 ## `Type`, `UntypedType` and `??`
 
-You can see 3 different representations of a type in Hearth codebase:
+You can see 3 different representations of a type in the Hearth codebase:
 
  * `Type[A]` - corresponds to `c.WeakTypeTag[A]` or `scala.quoted.Type[A]`. Because the type for which information
-   is stored is reflected in the, well, type (e.g. `Type[String]` vs `Type[Int]`) we can use them in type bounds, implicits
-   etc
- * `UntypedType` - corresponds to `c.Type` or `q.reflect.TypeRepr`. Because type for which information is stored
-   is NOT reflected in the type, it's useful for working with the types of unknown kindness (e.g. `A` vs `F[_]` vs `G[_[_]]`, etc)
+   is stored is reflected in the, well, type (e.g. `Type[String]` vs `Type[Int]`), we can use them in type bounds, implicits,
+   etc.
+ * `UntypedType` - corresponds to `c.Type` or `q.reflect.TypeRepr`. Because the type for which information is stored
+   is NOT reflected in the type, it's useful for working with the types of unknown kind (e.g. `A` vs `F[_]` vs `G[_[_]]`, etc)
  * `??` - an existential type. We know that it's a `Type[A]` for some `A` but we don't know which. It differs from `UntypedType`, 
    because we can do this:
    ```scala
@@ -348,27 +348,27 @@ You can see 3 different representations of a type in Hearth codebase:
    which is useful when we, for example, receive a list of subtypes of some enum `E`: we get a `List[??<:[E]]` (list of existential types
    with `E` as upper bound).
 
-### Why so many types exists?
+### Why do so many types exist?
 
 All 3 are necessary:
 
- * `Type[A]` represents the typed representation of a proper type, if a method is type parametric this format is how
-   the information will be passed into the macro. (While Scala 3 would allow it to handle any kindness, on Scala 2 only
-   the proper types can be passed with typed representation). It's also required for creating typed expressions on Scala 3.
+ * `Type[A]` represents the typed form of a proper type. If a method is type parametric, this is how
+   the information is passed into the macro. (While Scala 3 allows handling any kind, on Scala 2 only
+   proper types can be passed with typed representation.) It's also required for creating typed expressions on Scala 3.
    For other purposes it might not be _required_, but it's _easier to reason_ about the code if we keep things typed
-   as much as possible
- * `UntypedType` represents the untyped representation about a type. This allows handling the type of any kindness on Scala 2,
-   but also pass around a "work in progress" kind of types, e.g. something that is not a type constructor, but needs to be modified
-   somehow. They are more powerful, but it's a low-level API, so **we are avoiding it as much as possible** in Hearth API
- * `Expr_??` exists, because on Scala 3 we cannot use something like `Expr[?]` or `Expr[_]`, aspecially if we had to pass
-   `Expr[_]` and `Type[_]` together, and be able to prove that they are both using the same existential type.
-   Meanwhile, we need to somehow represents e.g. list of annotations (we don't know their types ahead of time).
-   `UntypedExpr`s would be overkill - we know their type, we could splice them or return from the macro - but we have to somehow
-   "forget" their actual type to e.g. fit a bunch of them into some collection. And we can easily name their type and make it available
-   as an `implicit`/`given`
+   as much as possible.
+ * `UntypedType` represents the untyped representation of a type. This allows handling types of any kind on Scala 2
+   and also passing around "work in progress" kinds of types, e.g. something that is not yet a type constructor but needs to be modified.
+   They are more powerful, but it's a low-level API, so **we avoid it as much as possible** in the Hearth API.
+ * `Expr_??` exists because on Scala 3 we cannot use something like `Expr[?]` or `Expr[_]`, especially if we have to pass
+   `Expr[_]` and `Type[_]` together and be able to prove that they both use the same existential type.
+   Meanwhile, we need to represent, e.g., a list of annotations (we don't know their types ahead of time).
+   `UntypedExpr`s would be overkill—we know their type, we could splice them or return from the macro—but we have to
+   "forget" their actual type to, e.g., fit a bunch of them into some collection. We can still name their type and make it available
+   as an `implicit`/`given`.
 
-So we should prefer typed `Expr` when actually working with it, `Expr_??` when we have to pass around some collection of types,
-and only use `UntypedExpr` if we need to design some low-lever API ourselves handling cases, that the typed type would not.
+So we should prefer typed `Expr` when actually working with it, `Expr_??` when we have to pass around a collection of types,
+and only use `UntypedExpr` if we need to design some low-level API ourselves to handle cases that the typed API would not.
 
 ### Obtaining `Type`
 
@@ -504,7 +504,7 @@ Existential types (`??`) allow working with types whose exact identity is unknow
 
 ## `Expr`, `UntypedExpr` and `Expr_??`
 
-You can see 3 different representations of expressions in Hearth codebase:
+You can see 3 different representations of expressions in the Hearth codebase:
 
  * `Expr[A]` - corresponds to `c.Expr[A]` or `scala.quoted.Expr[A]`. Because the type for which information
    is stored is reflected in the, well, type (e.g. `Expr[String]` vs `Expr[Int]`) we can use them in quotes and splices
@@ -520,24 +520,24 @@ You can see 3 different representations of expressions in Hearth codebase:
    ```
    which is useful when we, for example, try to call some method or constructor.
 
-### Why some many exprs exists?
+### Why do so many expr representations exist?
 
 All 3 are necessary:
 
- * `Expr[A]` represents the typed expression, if a method takes arguments this is how the body of an argument is passed into the macro.
+ * `Expr[A]` represents the typed expression. If a method takes arguments, this is how the body of an argument is passed into the macro.
    This is what Scala 3's quotes create, and what Scala 2 quasi-quotes are aligned to by Hearth.
-   Only the typed expression allow us to quote and splice in both Scala 2 and Scala 3, which is why this is the preferred representation.
-   For other purposes it might not be required, but it's easier to reason about the code if we keep things typed as much as possible
- * `UntypedExpr` represents the AST tree. This representation allows to use the expression while constructing other AST nodes,
-   which aren't necessary representable as standalone expressions.
-   They are more powerful, but it's a low-level API, so **we are avoiding it as much as possible** in Hearth
- * `??` exists, because on Scala 3 we cannot always use something like `Type[?]` or `Type[_]`. Meanwhile, we need to somehow
-   represents e.g. list of types of some method arguments, or a list of children of some `enum`. `UntypedType`s would be overkill - we
-   know that they are proper types, ready to use - but we have to somehow "forget" their actual type to e.g. fit a bunch of them
-   into some collection. And we can easily make any of them available as an `implicit`/`given` while giving them a name
+   Only typed expressions allow us to quote and splice in both Scala 2 and Scala 3, which is why this is the preferred representation.
+   For other purposes it might not be required, but it's easier to reason about the code if we keep things typed as much as possible.
+ * `UntypedExpr` represents the AST tree. This representation allows us to use the expression while constructing other AST nodes,
+   which aren't necessarily representable as standalone expressions.
+   They are more powerful, but it's a low-level API, so **we avoid it as much as possible** in Hearth.
+ * `Expr_??` exists because on Scala 3 we cannot always use something like `Type[?]` or `Type[_]`. Meanwhile, we need to
+   represent, e.g., a list of types of some method arguments or a list of children of some `enum`. `UntypedType`s would be overkill—we
+   know that they are proper types, ready to use—but we have to "forget" their actual type to, e.g., fit a bunch of them
+   into some collection. And we can easily make any of them available as an `implicit`/`given` while giving them a name.
 
-So we should prefer typed `Type` when actually working with it, `??` when we have to pass around some collection of types,
-and only use `UntypedType` if we need to design some low-lever API ourselves handling cases, that the typed type would not.
+So we should prefer typed `Expr` when actually working with it, `Expr_??` when we have to pass around a collection of expressions,
+and only use `UntypedExpr` if we need to design some low-level API ourselves to handle cases that the typed API would not.
 
 ### Obtaining `Expr`
 
@@ -577,9 +577,9 @@ might be necessary).
 | `Expr.summonImplicit[Ordering[String]]`                                              | `Type[Ordering[String]].summonExpr`                                              | `SummoningResult[Ordering[String]]` | summon implicit value as expression, on failure give reason why |
 | `Expr.summonImplicitIgnoring[Ordering[String]](untypedMethod1, untypedMethod2, ...)` | `Type[Ordering[String]].summonExprIgnoring(untypedMethod1, untypedMethod2, ...)` | `SummoningResult[Ordering[String]]` | same as above, but ignores the symbols of provided methods      |
 
-`summonImplicitIgnoring`/`summonExprIgnoring` use functionalities, that on Scala 2.13 are available since 2.13.17 and on Scala 3 since 3.7.0 - it will throw if you use it on lower versions of Scala.
+`summonImplicitIgnoring`/`summonExprIgnoring` rely on functionality that, on Scala 2.13, is available since 2.13.17 and on Scala 3 since 3.7.0 - it will throw if you use it on lower versions of Scala.
 
-It can be used to e.g. prevent macro from summoning itself, so that recursion will be handled within the same macro expansion by the macro.
+It can be used to e.g. prevent the macro from summoning itself, so that recursion will be handled within the same macro expansion by the macro.
 
 **`Expr` operations**:
 
@@ -616,19 +616,19 @@ Built-in codecs exist for:
 
 ### `VarArgs`
 
-Imagine you need to implement macro with the following signature:
+Imagine you need to implement a macro with the following signature:
 
 ```scala
 def someMethod(args: String*): Unit
 ```
 
-Once you started to implement it, you would find out that:
+Once you start implementing it, you will find out that:
 
  * on Scala 2 you would have to expect `Seq[Expr[String]]`
  * but on Scala 3 you would have to pass `Expr[Seq[String]]`
 
-If you wanted to have one version of code for both implementations, you would have to add adapters
-that would convert variadic arguments into the same representation.
+If you want to keep one version of the code for both implementations, you have to add adapters
+that convert variadic arguments into the same representation.
 
 `VarArgs` allows cross-platform handling of variadic arguments (Scala 2 uses `Seq[Expr[A]]`, Scala 3 uses `Expr[Seq[A]]`):
 
@@ -714,12 +714,12 @@ that would convert variadic arguments into the same representation.
 
 ### `FreshName`
 
-`FreshName` describes strategy for generating fresh variable names to avoid clashes, used, e.g., by [`MatchCase`](#matchcase)es,
+`FreshName` describes a strategy for generating fresh variable names to avoid clashes, used, e.g., by [`MatchCase`](#matchcase)es,
 [`ValDefs`](#valdefs), [`ValDefBuilder`](#valdefbuilder)s, [`ValDefsCache`](#valdefscache) and [`LambdaBuilder`](#lambdabuilder)s.
 
-When we need to generate a new `val`/`var`/`lazy val`/`def`/`case` binding, we cannot safely use just some string as a name,
-we have to make sure, that there would be no name conflict. With `FreshName` we can tell the utilities that would
-create them, which strategy we prefer:
+When we need to generate a new `val`/`var`/`lazy val`/`def`/`case` binding, we cannot safely use just any string as a name;
+we have to make sure there will be no name conflict. With `FreshName` we can tell the utilities
+that create them which strategy we prefer:
 
 | Syntax                         | Example               | Description                                                     |
 |--------------------------------|-----------------------|-----------------------------------------------------------------|
@@ -746,12 +746,12 @@ Expr.quote {
 }
 ```
 
-But what, if:
+But what if:
 
  - the type is only resolved during the macro expansion?
- - and cases are figures out during the macro expansion as well?
+ - and cases are figured out during the macro expansion as well?
  - maybe with some error handling (`Either[Error, Expr[Result]]`), where you would like to aggregate them
-   (then direct-style won't be enough)?
+   (then direct style won't be enough)?
 
 Then we would have to build that expression programmatically with `MatchCase`.
 
@@ -869,11 +869,11 @@ Expr.quote {
 }
 ```
 
-But what, if:
+But what if:
 
-  - the types are only resolved during the macro expansion?
-  - you don't know how many you would need?
-  - maybe you have to compute them with some error handling (Either[Error, Expr[Result]]), and you would like to aggregate them (then direct-style won't be enough)?
+ - the types are only resolved during the macro expansion?
+ - you don't know how many you will need?
+ - maybe you have to compute them with some error handling (`Either[Error, Expr[Result]]`), and you would like to aggregate them (then direct style won't be enough)?
 
 Then we would have to create these definitions programmatically with automatic scope management using `ValDefs`:
 
@@ -890,7 +890,7 @@ Then we would have to create these definitions programmatically with automatic s
 
       private val IntType = Type.of[Int]
 
-      // Use each definition immediatelly:
+      // Use each definition immediately:
       def createAndUse(value: Expr[Int]): Expr[Int] = {
         implicit val intType: Type[Int] = IntType
 
@@ -1060,9 +1060,9 @@ Then we would have to create these definitions programmatically with automatic s
 
 ### `ValDefBuilder`
 
-If your use case looks similar to [`ValDefs`](#valdefs), but you cannot provide the initial value immediatelly,
+If your use case looks similar to [`ValDefs`](#valdefs) but you cannot provide the initial value immediately,
 or your `def` has an arity larger than 0, you may need to use a builder to construct the `ValDefs` before you
-would be able to use it.
+can use it.
 
 `ValDefBuilder` allows building definitions (`val`, `var`, `lazy val`, `def`) programmatically with
 a support for error aggregation and recursive definitions:
@@ -1384,11 +1384,11 @@ Expr.quote {
 }
 ```
 
-But what, if:
+But what if:
 
-  - the types are only resolved during the macro expansion?
-  - you don't know how many parameters you would need?
-  - maybe you have to compute them with some error handling (`Either[Error, Expr[Result]]`), and you would like to aggregate them (then direct-style won't be enough)?
+ - the types are only resolved during the macro expansion?
+ - you don't know how many parameters you will need?
+ - maybe you have to compute them with some error handling (`Either[Error, Expr[Result]]`), and you would like to aggregate them (then direct style won't be enough)?
 
 Then we would have to create these lambdas programmatically using `LambdaBuilder`:
 
@@ -1509,12 +1509,12 @@ Expr.quote {
 }
 ```
 
-But what, if:
+But what if:
 
-  - you need to find a method by name dynamically (e.g., from a string literal)?
-  - you need to introspect method parameters, annotations, or other metadata?
-  - you need to handle different method types (instance methods vs static methods vs constructors)?
-  - you need to validate arguments and handle errors before calling?
+ - you need to find a method by name dynamically (e.g., from a string literal)?
+ - you need to introspect method parameters, annotations, or other metadata?
+ - you need to handle different method types (instance methods vs static methods vs constructors)?
+ - you need to validate arguments and handle errors before calling?
 
 Then we would have to work with `Method` representations that provide introspection and programmatic method invocation.
 
@@ -1941,12 +1941,12 @@ Expr.quote {
 }
 ```
 
-But what, if:
+But what if:
 
-  - you need to introspect a type to find its constructors or methods?
-  - you need to work with specialized views (case classes, enums, Java Beans)?
-  - you need to discover available methods or constructors dynamically?
-  - you need to aggregate type information for code generation?
+ - you need to introspect a type to find its constructors or methods?
+ - you need to work with specialized views (case classes, enums, Java Beans)?
+ - you need to discover available methods or constructors dynamically?
+ - you need to aggregate type information for code generation?
 
 Then we would have to work with `Class[A]`, a convenient utility that aggregates information about a type:
 

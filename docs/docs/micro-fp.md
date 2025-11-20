@@ -1,15 +1,15 @@
 # Micro FP Library
 
-Usually, in macros, we would see on the JVM class path both libraries that we would only need for the compilation,
-and libraries that are needed in the runtime.
+Usually, in macros, we have both libraries that are only needed for compilation
+and libraries that are needed at runtime on the JVM class path.
 
-If our library relied on e.g. Cats in macros, it would not be an issue if macros would use Cats types and methods
-in generated code. As a matter of the fact, the dependency would be obvious and required.
+If our library relied on, e.g., Cats in macros, it would not be an issue if the macros used Cats types and methods
+in generated code. As a matter of fact, the dependency would be obvious and required.
 
-But if macros relied on Cats/Scalaz/ZIO/some other big ecosystem, and users would not use it in their code,
-that would introduce an unnecessary friction. If they decided to add it, but needed a different major version
-(binary incompatibly version) they would be blocked to do so, not due to code that they are controlling, but
-because it would be their almost-compile-time-only dependency... they they might not be safe to remove.
+But if macros relied on Cats/Scalaz/ZIO/some other big ecosystem, and users did not use it in their code,
+that would introduce unnecessary friction. If they decided to add it but needed a different major
+binary-incompatible version, they would be blocked from doing so—not due to code that they control, but
+because it would be their almost-compile-time-only dependency that they might not be able to remove safely.
 
 Meanwhile, some FP functionalities are very useful for writing macros, so it would be a shame to give up on them
 completely.
@@ -60,18 +60,18 @@ completely.
 
 !!! tip "Examples in this documentation"
 
-    Majority of the examples in this documentation is intended to be runnable.
+    The majority of the examples in this documentation are intended to be runnable.
 
-    That's why most file names would follow convention from [sbt](https://www.scala-sbt.org/) + [projectmatrix](https://github.com/sbt/sbt-projectmatrix) conventions
+    That's why most file names follow the conventions from [sbt](https://www.scala-sbt.org/) + [projectmatrix](https://github.com/sbt/sbt-projectmatrix)
     (or sbt 2.0).
 
-    However, all runnable examples are tested using [Scala CLI](https://scala-cli.virtuslab.org/) and are containing directives needed to make it happy.
+    However, all runnable examples are tested using [Scala CLI](https://scala-cli.virtuslab.org/) and contain the directives needed to make it happy.
 
 ## Library's Scope
 
 From my experience, when writing macros you may need to:
 
- 1. **aggregate errors**, so that users would be informed about all the issues preventing from compilation at once
+ 1. **aggregate errors**, so that users are informed about all the issues preventing compilation at once
  2. occasionally **handle some combinator-hostile cases** like this:
 
     !!! example "You cannot always `.traverse`"
@@ -89,17 +89,17 @@ From my experience, when writing macros you may need to:
  3. **provide some way of debugging the code** - normally, people have logs for that, but when it comes to macros,
     they somehow forget about providing them.
 
-Usually **the first issue** would be solved by Cats users with something like `.parTraverse` and some data type
+Usually **the first issue** is solved by Cats users with something like `.parTraverse` and some data type
  that allows error aggregation. `.parTraverse` implies `Traverse` and `Parallel` type classes.
  
-Occasionally, one might prefer `.traverse` which adds `Applicative` and all 3 imply `Functor` type class.
+Occasionally, one might prefer `.traverse`, which adds `Applicative`, and all three imply the `Functor` type class.
 
-And... that's it. That's all Cats-like type classes that the rest of the library rely on. You might add your own,
-but the libray aims to stay micro, to **not** encourage using it to replace some full-blown FP library. No `Monad`s,
-no effect type classes, no dependency injections patterns - the bare miminum to let folks write slightly
+And... that's it. That's all the Cats-like type classes that the rest of the library relies on. You might add your own,
+but the library aims to stay micro, to **not** encourage using it to replace some full-blown FP library. No `Monad`s,
+no effect type classes, no dependency-injection patterns - the bare minimum to let folks write slightly
 saner code in macros, but without jumping into enterprise, type-level FP.
 
-The only additional type class is needed to handle **the second case**:
+The only additional type class needed handles **the second case**:
 
 !!! example "Generic `DirectStyle` type class"
 
@@ -119,8 +119,8 @@ The only additional type class is needed to handle **the second case**:
 
 All of these are opt-in. You don't have to use extension methods if you don't want to. You don't have to use `MIO` and `Log`.
 
-The rest of the library does not require you to write code with IO or type classes. However, it assumes in a few utilities, that
-whatever type you would be using for handling errors, would have these type classes provided (and e.g. for `Option`/`Either` they are).
+The rest of the library does not require you to write code with IO or type classes. However, it assumes in a few utilities that
+whatever type you use for handling errors has these type classes provided (and e.g. for `Option`/`Either` they are).
 
 ## Type classes
 

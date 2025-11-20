@@ -2,30 +2,30 @@
 
 ## How to make a macro more user-friendly?
 
-I recommend working with a macro as if it was server endpoint, that you'd deploy to call remotely:
+I recommend working with a macro as if it were a server endpoint that you'd deploy to call remotely:
 
- - you'd either receive a successful result or an error, if it's an error, it should **provide enough information for the user
+ - you'd either receive a successful result or an error; if it's an error, it should **provide enough information for the user
    to correct all the issues at once** (so inner errors should be aggregated when possible)
- - errors should be informative, so it's good to create a dedicated algebraic data type for it - it's easier to record all
-   information that caused some issue into a `case class` and then at before exiting from a macro combine a non-empty collection
-   of errors, perhaps using their structure for grouping issues together, than turning a bunch of strings into something decent
- - if you need to investigate, assume you couldn't always just put random `println`s - if there is some log of what **actually**
+ - errors should be informative, so it's good to create a dedicated algebraic data type for them - it's easier to record all
+   information that caused an issue into a `case class` and then, before exiting from a macro, combine a non-empty collection
+   of errors, perhaps using their structure for grouping issues together, than to turn a bunch of strings into something decent
+ - if you need to investigate, assume you can't always just add random `println`s - if there is some log of what **actually**
    **happened**, then you or your user **can investigate without having to edit and redeploy the code**
- - if you need to provide a config to a macro, the global configs should be provided via dedicated `-Xmacro-settings` parameter
-   (much more reliable than using some jvm `-D` option!), and local configs should be handled by macro's DSL or e.g. implicits
- - macros should not generate warnings, that users of `-Xfatal-errors` would have to manually suppress
+ - if you need to provide a config to a macro, the global configs should be provided via a dedicated `-Xmacro-settings` parameter
+   (much more reliable than using some JVM `-D` option!), and local configs should be handled by the macro's DSL or, e.g., implicits
+ - macros should not generate warnings that users of `-Xfatal-errors` would have to manually suppress
    
-How it translates to macros?
+How does it translate to macros?
 
 ### Use sanely-automatic type class derivation
 
 Details in [the blog post](https://kubuszok.com/2025/sanely-automatic-derivation/).
 
-An example is shown on [the langing page](index.md).
+An example is shown on [the landing page](index.md).
 
 ### Aggregate errors instead of failing fast
 
-While you can immediatelly fail with something like:
+While you can immediately fail with something like:
 
 !!! example "Immediate abortion"
 
@@ -52,7 +52,7 @@ you might want instead to use something like:
       Left(NonEmptyVector(new Exception("your error")))
     ```
 
-We could gether errors in a collection and only right before exiting from the macro we would
+We could gather errors in a collection and only right before exiting from the macro we would
 combine all the errors into a single `String`.
 
 And we can always make:
@@ -78,17 +78,17 @@ Micro FP provides methods like [`.parTraverse`](micro-fp.md#parallel) to map col
 and aggregate their fallible results. If you don't like the provided types, you can
 [implement your own](micro-fp.md#creating-type-class-instances).
 
-Results for each `case class` fiels/`enum` subtype are perfect candidates for such result aggregation.
+Results for each `case class` field/`enum` subtype are perfect candidates for such result aggregation.
 
-### Store potential large/recursive logic as defs
+### Store potentially large/recursive logic as defs
 
-Instead of inlining the whole logic into single, giant expr, consider splitting it into
-several smaller `def`s. It would:
+Instead of inlining the whole logic into a single, giant expression, consider splitting it into
+several smaller `def`s. This approach:
 
- * allow reusing some logic you generated once, in another place that needs the same logic (e.g. during a type class derivation)
-    * it also allows generaing recursive code, without tricks with making the whole type class instance lazily initialized
- * prevent issues with method's body exceeing the allowed size (compilation fails if bytecode would exceed 64kB)
- * help JVM compile and optimize the code, since smaller methods are easier to analyze and profile
+ * allows reusing some logic you generated once in another place that needs the same logic (e.g. during a type class derivation)
+    * it also allows generating recursive code without tricks that make the whole type class instance lazily initialized
+ * prevents issues with a method's body exceeding the allowed size (compilation fails if bytecode would exceed 64kB)
+ * helps the JVM compile and optimize the code, since smaller methods are easier to analyze and profile
 
 !!! tip "Use [`ValDefs`](basic-utilities.md#valdefs) and combine them with `.map2`/`.parMap2` and/or use [`ValDefsCache`](basic-utilities.md#valdefscache) to define multiple `def`s in scope, use them, and prepend before the final expression."
 
@@ -105,9 +105,9 @@ Macros allow us to show some information which is not an error:
     trait YourMacros { this: MacroCommons =>
 
       def macroImpl: Expr[String] = {
-        // This will produce into message during compilation/in IDE/in Scastie
+        // This will produce an info message during compilation/in IDE/in Scastie
         Environment.reportInfo("Some information")
-        // This will produce warn message during compilation/in IDE/in Scastie
+        // This will produce a warning message during compilation/in IDE/in Scastie
         Environment.reportWarn("Some warning")
 
         Expr.quote { "result" }
@@ -121,10 +121,10 @@ It would be visible:
  - as a hint in IDE ([Metals](https://scalameta.org/metals/) with e.g. VS Code, IntelliJ)
  - as a hint in [Scastie](https://scastie.scala-lang.org/)
 
-which isn't always true about `println`s (which would dissapear if users compile using some compilation server).
+which isn't always true about `println`s (which would disappear if users compile using some compilation server).
 
-To decide whether we want the logs shown we could, e.g. provide a `scalac` option that would turn it on globally,
-or an implicit which would enable this hints whenever it's imported into the scope:
+To decide whether we want the logs shown, we could, e.g., provide a `scalac` option that would turn it on globally,
+or an implicit which would enable these hints whenever it's imported into the scope:
 
 !!! example "Dedicated type to enable showing logs"
 
@@ -135,7 +135,7 @@ or an implicit which would enable this hints whenever it's imported into the sco
       */
     implicit val logDerivation: LogDerivation = LogDerivation()
 
-    /** Special type - is its implicit is in scope then macros will log the derivation process.
+    /** Special type - if its implicit is in scope then macros will log the derivation process.
       * 
       * Let's say it's in the `example` package.
       */
@@ -174,7 +174,7 @@ or an implicit which would enable this hints whenever it's imported into the sco
     }
     ```
 
-Unfortunatelly, on both Scala 2 and Scala 3, only the first such call provides a hint.
+Unfortunately, on both Scala 2 and Scala 3, only the first such call provides a hint.
 All the following will be no-ops, so we would have to aggregate the individual logs somehow.
 
 One such approach would be to use a mutable collection to write to. Or passing around
@@ -207,17 +207,17 @@ and testing your macros with a reasonably large number of compiler linters enabl
 
 ## How to make a macro more maintainable?
 
-I recommend working with a macro as if it was any other business logic, that you would have to maintain for a while:
+I recommend working with a macro as if it were any other business logic that you would have to maintain for a while:
 
- - define ADT to errors instead of passing around only raw `String`s - you can tun them into an error message
+ - define an ADT for errors instead of passing around only raw `String`s - you can turn them into an error message
    at the end of the derivation
  - define helper methods and types, split large chunks of logic into smaller ones, give them high-level names
    that explain _what you are trying to achieve_
  - write tests for your macros - while they are unit tests (expand macro, check its results), since you cannot
    _mock_ inside of a macro, it might feel a bit like small integration tests
- - if you are used to conventions of Cats/Scalaz/ZIO, you might want to work with something like IO monad,
+ - if you are used to conventions of Cats/Scalaz/ZIO, you might want to work with something like an IO monad
    to reuse your intuitions and habits
- - use `parTraverse` and `Parallel` when combining several independedn results together, e.g. results computed for
+ - use `parTraverse` and `Parallel` when combining several independent results, e.g. results computed for
    each field of a `case class` or each subtype of an `enum`
  - cache intermediate results, by generating internally `def`s instead of multiple type class instances - a bunch
    of local `def`s do not require additional allocations, and might potentially allow your type class to be recursive
@@ -226,13 +226,13 @@ I recommend working with a macro as if it was any other business logic, that you
    
 How it translates to macros?
 
-### Use Macro `IO`-monad
+### Use the Macro `IO` monad
 
-If one likes to works with Cats/Scalaz/ZIO, and would like to reuse ones' experience with these libraries,
+If you like to work with Cats/Scalaz/ZIO and would like to reuse your experience with these libraries,
 then there is an optional `MIO` (Macro `IO`) monad.
 
 The name only refers to how similar it is in usage to IO monads from established ecosystems, since there is little
-need to use an actual IO in macros. However:
+need to use actual IO in macros. However:
 
  - it is lazy, non-memoized, and catches `NonFatal` exceptions
 
