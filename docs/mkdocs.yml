@@ -93,8 +93,8 @@ extra:
   scala:
     2_13: "2.13.16"
     3:    "3.3.7"
-    newest_2_13: "2.13.17"
-    newest_3:    "3.7.3"
+    newest_2_13: "2.13.18"
+    newest_3:    "3.7.4"
   libraries:
     kindProjector:    "0.13.4"
     munit:            "1.2.0"
