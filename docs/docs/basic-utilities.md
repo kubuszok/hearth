@@ -1499,6 +1499,25 @@ Supports up to 22 parameters (`of1` through `of22`).
 
 ## `Method`
 
+If you know the method name and its signature upfront, things are simple:
+
+```scala
+Expr.quote {
+  instance.someMethod(arg1, arg2)
+  Companion.staticMethod(arg)
+  new MyClass(arg1, arg2)
+}
+```
+
+But what, if:
+
+  - you need to find a method by name dynamically (e.g., from a string literal)?
+  - you need to introspect method parameters, annotations, or other metadata?
+  - you need to handle different method types (instance methods vs static methods vs constructors)?
+  - you need to validate arguments and handle errors before calling?
+
+Then we would have to work with `Method` representations that provide introspection and programmatic method invocation.
+
 `Method` represents a method that can be called. Methods come in different flavors depending on how they're invoked:
 
  * `Method.NoInstance[Out]` - constructors, static methods, or stable object methods: `Companion.method(args)` 
@@ -1912,7 +1931,24 @@ and returns `Right(expr)` on success or `Left(error)` on failure.
 
 ## `Class`
 
-`Class[A]` is a convenient utility that aggregates information about a type:
+If you know the type structure upfront, things are simple:
+
+```scala
+Expr.quote {
+  new MyClass(arg1, arg2)
+  instance.someMethod()
+  caseClass.field
+}
+```
+
+But what, if:
+
+  - you need to introspect a type to find its constructors or methods?
+  - you need to work with specialized views (case classes, enums, Java Beans)?
+  - you need to discover available methods or constructors dynamically?
+  - you need to aggregate type information for code generation?
+
+Then we would have to work with `Class[A]`, a convenient utility that aggregates information about a type:
 
 | Method              | Result type                        | Description                         |
 |---------------------|------------------------------------|-------------------------------------|
