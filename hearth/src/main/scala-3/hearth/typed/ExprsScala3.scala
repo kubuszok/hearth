@@ -430,14 +430,14 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     }
   }
 
-  final class ValDefs[A] private[typed] (private val definitions: NonEmptyVector[Statement], private val value: A)
+  final class ValDefs[A] private[typed] (private val definitions: Vector[Statement], private val value: A)
 
   object ValDefs extends ValDefsModule {
 
     override def createVal[A: Type](value: Expr[A], freshName: FreshName): ValDefs[Expr[A]] = {
       val name = freshTerm.valdef[A](freshName, value, Flags.EmptyFlags)
       new ValDefs[Expr[A]](
-        NonEmptyVector.one(ValDef(name, Some(value.asTerm.changeOwner(name)))),
+        Vector(ValDef(name, Some(value.asTerm.changeOwner(name)))),
         Ref(name).asExprOf[A]
       )
     }
@@ -447,21 +447,21 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     ): ValDefs[(Expr[A], Expr[A] => Expr[Unit])] = {
       val name = freshTerm.valdef[A](freshName, initialValue, Flags.Mutable)
       new ValDefs[(Expr[A], Expr[A] => Expr[Unit])](
-        NonEmptyVector.one(ValDef(name, Some(initialValue.asTerm.changeOwner(name)))),
+        Vector(ValDef(name, Some(initialValue.asTerm.changeOwner(name)))),
         (Ref(name).asExprOf[A], expr => Assign(Ref(name), expr.asTerm).asExprOf[Unit])
       )
     }
     override def createLazy[A: Type](value: Expr[A], freshName: FreshName): ValDefs[Expr[A]] = {
       val name = freshTerm.valdef[A](freshName, value, Flags.Lazy)
       new ValDefs[Expr[A]](
-        NonEmptyVector.one(ValDef(name, Some(value.asTerm.changeOwner(name)))),
+        Vector(ValDef(name, Some(value.asTerm.changeOwner(name)))),
         Ref(name).asExprOf[A]
       )
     }
     override def createDef[A: Type](value: Expr[A], freshName: FreshName): ValDefs[Expr[A]] = {
       val name = freshTerm.defdef[A](freshName, value)
       new ValDefs[Expr[A]](
-        NonEmptyVector.one(DefDef(name, _ => Some(value.asTerm.changeOwner(name)))),
+        Vector(DefDef(name, _ => Some(value.asTerm.changeOwner(name)))),
         Ref(name).appliedToArgss(List(Nil)).asExprOf[A]
       )
     }
@@ -473,9 +473,16 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       }
 
     override def closeScope[A](scoped: ValDefs[Expr[A]]): Expr[A] =
-      Block(scoped.definitions.toVector.toList, scoped.value.asTerm).asExpr.asInstanceOf[Expr[A]]
+      if scoped.definitions.isEmpty then scoped.value
+      else
+        Block(scoped.definitions.toList, scoped.value.asTerm).asExpr.asInstanceOf[Expr[A]]
 
-    override val traverse: fp.Traverse[ValDefs] = new fp.Traverse[ValDefs] {
+    override val traverse: fp.ApplicativeTraverse[ValDefs] = new fp.ApplicativeTraverse[ValDefs] {
+
+      override def pure[A](a: A): ValDefs[A] = new ValDefs[A](Vector.empty, a)
+
+      override def map2[A, B, C](fa: ValDefs[A], fb: => ValDefs[B])(f: (A, B) => C): ValDefs[C] =
+        new ValDefs[C](fa.definitions ++ fb.definitions, f(fa.value, fb.value))
 
       override def traverse[G[_]: fp.Applicative, A, B](fa: ValDefs[A])(f: A => G[B]): G[ValDefs[B]] =
         f(fa.value).map(b => new ValDefs[B](fa.definitions, b))
@@ -508,7 +515,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     ) extends Mk[Signature, Returned] {
 
       def build(body: Expr[Returned]): ValDefs[Signature] =
-        new ValDefs[Signature](NonEmptyVector.one(buildValDef(body)), signature)
+        new ValDefs[Signature](Vector(buildValDef(body)), signature)
 
       def buildCached(cache: ValDefsCache, key: String, body: Expr[Returned]): ValDefsCache =
         cache.set(mkKey(key), signature, buildValDef(body))
@@ -526,7 +533,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     ) extends Mk[Signature, Returned] {
 
       def build(body: Expr[Returned]): ValDefs[Signature] =
-        new ValDefs[Signature](NonEmptyVector.one(buildVar(body)), getter)
+        new ValDefs[Signature](Vector(buildVar(body)), getter)
 
       def buildCached(cache: ValDefsCache, key: String, body: Expr[Returned]): ValDefsCache =
         cache.set(mkGetterKey(key), getter, buildVar(body)).set(mkSetterKey(key), setter, null.asInstanceOf[Statement])
@@ -3122,12 +3129,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
              |""".stripMargin
         )
       } else {
-        NonEmptyVector.fromVector(definitions.toVector) match {
-          case Some(definitions) => new ValDefs[Unit](definitions, ())
-          // $COVERAGE-OFF$
-          case None => hearthRequirementFailed(s"ValDefs cannot have 0 definitions, ValDefsCache is empty")
-          // $COVERAGE-ON$
-        }
+        new ValDefs[Unit](definitions.toVector, ())
       }
     }
   }

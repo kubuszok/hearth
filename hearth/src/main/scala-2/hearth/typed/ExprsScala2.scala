@@ -301,13 +301,13 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
   }
 
-  final class ValDefs[A] private[typed] (private val definitions: NonEmptyVector[ValOrDefDef], private val value: A)
+  final class ValDefs[A] private[typed] (private val definitions: Vector[ValOrDefDef], private val value: A)
 
   object ValDefs extends ValDefsModule {
 
     override def createVal[A: Type](value: Expr[A], freshName: FreshName): ValDefs[Expr[A]] = {
       val name = freshTerm[A](freshName, value)
-      new ValDefs[Expr[A]](NonEmptyVector(q"val $name: ${Type[A]} = $value"), c.Expr[A](q"$name"))
+      new ValDefs[Expr[A]](Vector(q"val $name: ${Type[A]} = $value"), c.Expr[A](q"$name"))
     }
     override def createVar[A: Type](
         initialValue: Expr[A],
@@ -315,17 +315,17 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     ): ValDefs[(Expr[A], Expr[A] => Expr[Unit])] = {
       val name = freshTerm[A](freshName, initialValue)
       new ValDefs[(Expr[A], Expr[A] => Expr[Unit])](
-        NonEmptyVector.one(q"var $name: ${Type[A]} = $initialValue"),
+        Vector(q"var $name: ${Type[A]} = $initialValue"),
         (c.Expr[A](q"$name"), (expr: Expr[A]) => c.Expr[Unit](q"$name = $expr"))
       )
     }
     override def createLazy[A: Type](value: Expr[A], freshName: FreshName): ValDefs[Expr[A]] = {
       val name = freshTerm[A](freshName, value)
-      new ValDefs[Expr[A]](NonEmptyVector.one(q"lazy val $name: ${Type[A]} = $value"), c.Expr[A](q"$name"))
+      new ValDefs[Expr[A]](Vector(q"lazy val $name: ${Type[A]} = $value"), c.Expr[A](q"$name"))
     }
     override def createDef[A: Type](value: Expr[A], freshName: FreshName): ValDefs[Expr[A]] = {
       val name = freshTerm[A](freshName, value)
-      new ValDefs[Expr[A]](NonEmptyVector.one(q"def $name: ${Type[A]} = $value"), c.Expr[A](q"$name"))
+      new ValDefs[Expr[A]](Vector(q"def $name: ${Type[A]} = $value"), c.Expr[A](q"$name"))
     }
 
     override def partition[A, B, C](scoped: ValDefs[A])(f: A => Either[B, C]): Either[ValDefs[B], ValDefs[C]] =
@@ -335,9 +335,16 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       }
 
     override def closeScope[A](scoped: ValDefs[Expr[A]]): Expr[A] =
-      c.Expr[A](q"..${scoped.definitions.toVector}; ${scoped.value}")
+      if (scoped.definitions.isEmpty) scoped.value
+      else
+        c.Expr[A](q"..${scoped.definitions}; ${scoped.value}")
 
-    override val traverse: fp.Traverse[ValDefs] = new fp.Traverse[ValDefs] {
+    override val traverse: fp.ApplicativeTraverse[ValDefs] = new fp.ApplicativeTraverse[ValDefs] {
+
+      override def pure[A](a: A): ValDefs[A] = new ValDefs[A](Vector.empty, a)
+
+      override def map2[A, B, C](fa: ValDefs[A], fb: => ValDefs[B])(f: (A, B) => C): ValDefs[C] =
+        new ValDefs[C](fa.definitions ++ fb.definitions, f(fa.value, fb.value))
 
       override def traverse[G[_]: fp.Applicative, A, B](fa: ValDefs[A])(f: A => G[B]): G[ValDefs[B]] =
         f(fa.value).map(b => new ValDefs[B](fa.definitions, b))
@@ -370,7 +377,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     ) extends Mk[Signature, Returned] {
 
       def build(body: Expr[Returned]): ValDefs[Signature] =
-        new ValDefs[Signature](NonEmptyVector.one(buildValDef(body)), signature)
+        new ValDefs[Signature](Vector(buildValDef(body)), signature)
 
       def buildCached(cache: ValDefsCache, key: String, body: Expr[Returned]): ValDefsCache =
         cache.set(mkKey(key), signature, buildValDef(body))
@@ -388,7 +395,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     ) extends Mk[Signature, Returned] {
 
       def build(body: Expr[Returned]): ValDefs[Signature] =
-        new ValDefs[Signature](NonEmptyVector.one(buildVar(body)), getter)
+        new ValDefs[Signature](Vector(buildVar(body)), getter)
 
       def buildCached(cache: ValDefsCache, key: String, body: Expr[Returned]): ValDefsCache =
         cache
@@ -1706,12 +1713,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         )
         // $COVERAGE-ON$
       } else {
-        NonEmptyVector.fromVector(definitions.toVector) match {
-          case Some(definitions) => new ValDefs[Unit](definitions, ())
-          // $COVERAGE-OFF$
-          case None => hearthRequirementFailed(s"ValDefs cannot have 0 definitions, ValDefsCache is empty")
-          // $COVERAGE-ON$
-        }
+        new ValDefs[Unit](definitions.toVector, ())
       }
     }
   }

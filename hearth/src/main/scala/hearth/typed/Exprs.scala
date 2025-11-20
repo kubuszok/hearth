@@ -451,9 +451,9 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     def closeScope[A](scoped: ValDefs[Expr[A]]): Expr[A]
 
-    def traverse: fp.Traverse[ValDefs]
+    def traverse: fp.ApplicativeTraverse[ValDefs]
   }
-  implicit final val ValDefsTraverse: fp.Traverse[ValDefs] = ValDefs.traverse
+  implicit final val ValDefsTraverse: fp.ApplicativeTraverse[ValDefs] = ValDefs.traverse
 
   implicit final class ValDefsMethods[A](private val scoped: ValDefs[A]) {
 
