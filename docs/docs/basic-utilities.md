@@ -352,7 +352,7 @@ You can see 3 different representations of a type in Hearth codebase:
 
 All 3 are necessary:
 
- * `Type[A]` represents the typed representation of a proper type, if a method is type parametris this format is how
+ * `Type[A]` represents the typed representation of a proper type, if a method is type parametric this format is how
    the information will be passed into the macro. (While Scala 3 would allow it to handle any kindness, on Scala 2 only
    the proper types can be passed with typed representation). It's also required for creating typed expressions on Scala 3.
    For other purposes it might not be _required_, but it's _easier to reason_ about the code if we keep things typed
@@ -524,7 +524,8 @@ You can see 3 different representations of expressions in Hearth codebase:
 
 All 3 are necessary:
 
- * `Expr[A]` represents the typed expression. This is what Scala 3's quotes create, and what Scala 2 quasi-quotes are aligned to by Hearth.
+ * `Expr[A]` represents the typed expression, if a method takes arguments this is how the body of an argument is passed into the macro.
+   This is what Scala 3's quotes create, and what Scala 2 quasi-quotes are aligned to by Hearth.
    Only the typed expression allow us to quote and splice in both Scala 2 and Scala 3, which is why this is the preferred representation.
    For other purposes it might not be required, but it's easier to reason about the code if we keep things typed as much as possible
  * `UntypedExpr` represents the AST tree. This representation allows to use the expression while constructing other AST nodes,
@@ -615,7 +616,21 @@ Built-in codecs exist for:
 
 ### `VarArgs`
 
-Cross-platform handling of variadic arguments (Scala 2 uses `Seq[Expr[A]]`, Scala 3 uses `Expr[Seq[A]]`):
+Imagine you need to implement macro with the following signature:
+
+```scala
+def someMethod(args: String*): Unit
+```
+
+Once you started to implement it, you would find out that:
+
+ * on Scala 2 you would have to expect `Seq[Expr[String]]`
+ * but on Scala 3 you would have to pass `Expr[Seq[String]]`
+
+If you wanted to have one version of code for both implementations, you would have to add adapters
+that would convert variadic arguments into the same representation.
+
+`VarArgs` allows cross-platform handling of variadic arguments (Scala 2 uses `Seq[Expr[A]]`, Scala 3 uses `Expr[Seq[A]]`):
 
 !!! example "How `VarArgs` are used"
 
@@ -699,19 +714,46 @@ Cross-platform handling of variadic arguments (Scala 2 uses `Seq[Expr[A]]`, Scal
 
 ### `FreshName`
 
-Strategies for generating fresh variable names to avoid clashes, used, e.g., by [`MatchCase`](#matchcase)es,
+`FreshName` describes strategy for generating fresh variable names to avoid clashes, used, e.g., by [`MatchCase`](#matchcase)es,
 [`ValDefs`](#valdefs), [`ValDefBuilder`](#valdefbuilder)s, [`ValDefsCache`](#valdefscache) and [`LambdaBuilder`](#lambdabuilder)s.
 
-| Syntax                 | Example        | Description                                                     |
-|------------------------|----------------|-----------------------------------------------------------------|
-| `FreshName.FromType`   | `string`       | use lowercased simple name of the type as a fresh name prefix   |
-| `FreshName.FromExpr`   | `sth.tostring` | use printed expr as a fresh name prefix                         |
-| `FreshName.FromPrefix` | `name`         | use provided name as a fresh name prefix                        |
-| `"name"`               | `name`         | when implicit conversions are enabled, turns string into prefix |
+When we need to generate a new `val`/`var`/`lazy val`/`def`/`case` binding, we cannot safely use just some string as a name,
+we have to make sure, that there would be no name conflict. With `FreshName` we can tell the utilities that would
+create them, which strategy we prefer:
+
+| Syntax                         | Example               | Description                                                     |
+|--------------------------------|-----------------------|-----------------------------------------------------------------|
+| `FreshName.FromType`           | `string$macro$1`      | use lowercased simple name of the type as a fresh name prefix   |
+| `FreshName.FromExpr`           | `sthtostring$macro$1` | use printed expr as a fresh name prefix (if available)          |
+| `FreshName.FromPrefix("name")` | `name$macro$1`        | use provided name as a fresh name prefix                        |
+| `"name"`                       | `name$macro$1`        | when implicit conversions are enabled, turns string into prefix |
 
 ### `MatchCase`
 
-Build pattern-matching expressions programmatically.
+If you know the type of the expression that you would pattern match on, and all the cases upfront, things are simple:
+
+```scala
+val eitherExpr: Expr[Either[String, Int]] = ...
+
+def rightCase(right: Expr[String]): Expr[Result]
+def leftCase(left: Expr[Int]): Expr[Result]
+
+Expr.quote {
+  Expr.splice(eitherExpr) match {
+    case Right(int) => Expr.splice { rightCase(Expr.quote(int)) }
+    case Left(string) => Expr.splice { leftCase(Expr.quote(string)) }
+  }
+}
+```
+
+But what, if:
+
+ - the type is only resolved during the macro expansion?
+ - and cases are figures out during the macro expansion as well?
+ - maybe with some error handling (`Either[Error, Expr[Result]]`), where you would like to aggregate them
+   (then direct-style won't be enough)?
+
+Then we would have to build that expression programmatically with `MatchCase`.
 
 !!! example "How `MatchCase`es are used"
 
@@ -815,7 +857,25 @@ Build pattern-matching expressions programmatically.
 
 ### `ValDefs`
 
-Create scoped definitions (`val`, `var`, `lazy val`, `def`) with automatic scope management:
+If you know the types and number of `val`/`var`/`lazy val`/`def` upfront, things are simple:
+
+```scala
+Expr.quote {
+  val definition1 = Expr.splice { ... }
+  var definition2 = Expr.splice { ... }
+  lazy val definition2 = Expr.splice { ... }
+  def definition2 = { ... }
+  ... // the code that uses the definitions defined above
+}
+```
+
+But what, if:
+
+  - the types are only resolved during the macro expansion?
+  - you don't know how many you would need?
+  - maybe you have to compute them with some error handling (Either[Error, Expr[Result]]), and you would like to aggregate them (then direct-style won't be enough)?
+
+Then we would have to create these definitions programmatically with automatic scope management using `ValDefs`:
 
 !!! example "How `ValDefs` are used"
 
@@ -824,11 +884,14 @@ Create scoped definitions (`val`, `var`, `lazy val`, `def`) with automatic scope
     //> using scala {{ scala.2_13 }} {{ scala.3 }}
     //> using dep com.kubuszok::hearth:{{ hearth_version() }}
 
+    import hearth.fp.syntax.*
+
     trait ValDefsMacro { this: hearth.MacroCommons =>
 
       private val IntType = Type.of[Int]
 
-      def createScoped(value: Expr[Int]): Expr[Int] = {
+      // Use each definition immediatelly:
+      def createAndUse(value: Expr[Int]): Expr[Int] = {
         implicit val intType: Type[Int] = IntType
 
         // Create a val: { val a = value; a + 1 }
@@ -854,9 +917,65 @@ Create scoped definitions (`val`, `var`, `lazy val`, `def`) with automatic scope
           Expr.quote((Expr.splice(d) + 3) * 1000)
         }
 
+        // Create:
+        // { val a = value; a + 1 } +
+        //   { var b = value; b = b + 1; b * 10 } +
+        //   { lazy val c = value; (c + 2) * 100 } +
+        //   { def d = value; (d + 3) * 1000 }
         Expr.quote {
           Expr.splice(valResult) + Expr.splice(varResult) + 
           Expr.splice(lazyResult) + Expr.splice(defResult)
+        }
+      }
+
+      // Combine definitions into a single scope before using them
+      def createCombineThenUse(value: Expr[Int]): Expr[Int] = {
+        implicit val intType: Type[Int] = IntType
+
+        // Create a val: val a = value
+        // AND create an expr: a + 1
+        val valResult = ValDefs.createVal(value, "a").map { (a: Expr[Int]) =>
+          Expr.quote(Expr.splice(a) + 1)
+        }
+
+        // Create a var: var b = value
+        // AND create an expr: b = b + 1; b * 10
+        val varResult = ValDefs.createVar(value, "b").map { case (b, set) =>
+          Expr.quote {
+            Expr.splice(set(Expr.quote(Expr.splice(b) + 1)))
+            Expr.splice(b) * 10
+          }
+        }
+
+        // Create a lazy val: lazy val c = value
+        // AND create an expr: (c + 2) * 100
+        val lazyResult = ValDefs.createLazy(value, "c").map { (c: Expr[Int]) =>
+          Expr.quote((Expr.splice(c) + 2) * 100)
+        }
+
+        // Create a def: def d = value
+        // AND create an expr: (d + 3) * 1000
+        val defResult = ValDefs.createDef(value, "d").map { (d: Expr[Int]) =>
+          Expr.quote((Expr.splice(d) + 3) * 1000)
+        }
+
+        // Create:
+        // {
+        //   val a = value
+        //   var b = value
+        //   lazy val c = value
+        //   def d = value
+        //   { a + 1 } +
+        //     { b = b + 1; b * 10 } +
+        //     { (c + 2) * 100 } +
+        //     { (d + 3) * 1000 }
+        // }
+        valResult.tuple(varResult.tuple(lazyResult.tuple(defResult))).use {
+          case (valExpr, (varExpr, (lazyExpr, defExpr))) =>
+            Expr.quote {
+              Expr.splice(valExpr) + Expr.splice(varExpr) + 
+              Expr.splice(lazyExpr) + Expr.splice(defExpr)
+            }
         }
       }
     }
@@ -871,14 +990,18 @@ Create scoped definitions (`val`, `var`, `lazy val`, `def`) with automatic scope
     import scala.reflect.macros.blackbox
 
     object Example {
-      def createScoped(value: Int): Int = macro ValDefsMacroImpl.createScopedImpl
+      def createAndUse(value: Int): Int = macro ValDefsMacroImpl.createAndUseImpl
+      def createCombineThenUse(value: Int): Int = macro ValDefsMacroImpl.createCombineThenUseImpl
     }
 
     // Scala 2 adapter
     class ValDefsMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ValDefsMacro {
 
-      def createScopedImpl(value: c.Expr[Int]): c.Expr[Int] =
-        createScoped(value)
+      def createAndUseImpl(value: c.Expr[Int]): c.Expr[Int] =
+        createAndUse(value)
+
+      def createCombineThenUseImpl(value: c.Expr[Int]): c.Expr[Int] =
+        createCombineThenUse(value)
     }
     ```
 
@@ -890,15 +1013,18 @@ Create scoped definitions (`val`, `var`, `lazy val`, `def`) with automatic scope
     import scala.quoted.*
 
     object Example {
-      inline def createScoped(inline value: Int): Int = ${ ValDefsMacroImpl.createScopedImpl('value) }
+      inline def createAndUse(inline value: Int): Int = ${ ValDefsMacroImpl.createAndUseImpl('value) }
+      inline def createCombineThenUse(inline value: Int): Int = ${ ValDefsMacroImpl.createCombineThenUseImpl('value) }
     }
 
     // Scala 3 adapter
     class ValDefsMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), ValDefsMacro
     object ValDefsMacroImpl {
 
-      def createScopedImpl(value: Expr[Int])(using q: Quotes): Expr[Int] =
-        new ValDefsMacroImpl(q).createScoped(value)
+      def createAndUseImpl(value: Expr[Int])(using q: Quotes): Expr[Int] =
+        new ValDefsMacroImpl(q).createAndUse(value)
+      def createCombineThenUseImpl(value: Expr[Int])(using q: Quotes): Expr[Int] =
+        new ValDefsMacroImpl(q).createCombineThenUse(value)
     }
     ```
 
@@ -908,8 +1034,17 @@ Create scoped definitions (`val`, `var`, `lazy val`, `def`) with automatic scope
 
     final class ExampleSpec extends munit.FunSuite {
 
-      test("Example.createScoped should work") {
-        val result = Example.createScoped(1)
+      test("Example.createAndUse should work") {
+        val result = Example.createAndUse(1)
+        // val: 1 + 1 = 2
+        // var: (1 + 1) * 10 = 20
+        // lazy: (1 + 2) * 100 = 300
+        // def: (1 + 3) * 1000 = 4000
+        assertEquals(result, 2 + 20 + 300 + 4000)
+      }
+
+      test("Example.createCombineThenUse should work") {
+        val result = Example.createCombineThenUse(1)
         // val: 1 + 1 = 2
         // var: (1 + 1) * 10 = 20
         // lazy: (1 + 2) * 100 = 300
@@ -921,9 +1056,16 @@ Create scoped definitions (`val`, `var`, `lazy val`, `def`) with automatic scope
 
 !!! tip "`ValDefs` utilities are not needed if you can make `var`/`val`/`lazy val`/`def` inside (cross) quotes. Only if you need to use the fresh names they become necessary to avoid the name clashes."
 
+!!! tip "`ValDefs` creates `var`/`val`/`lazy val`/`def` when you know their (initial) value upfront. If you need to construct it, use [`ValDefBuilder`](#valdefbuilder)."
+
 ### `ValDefBuilder`
 
-Build definitions (`val`, `var`, `lazy val`, `def`) programmatically with support for error aggregation and recursive definitions:
+If your use case looks similar to [`ValDefs`](#valdefs), but you cannot provide the initial value immediatelly,
+or your `def` has an arity larger than 0, you may need to use a builder to construct the `ValDefs` before you
+would be able to use it.
+
+`ValDefBuilder` allows building definitions (`val`, `var`, `lazy val`, `def`) programmatically with
+a support for error aggregation and recursive definitions:
 
 !!! example "How `ValDefBuilder` is used"
 
@@ -1029,13 +1171,23 @@ Build definitions (`val`, `var`, `lazy val`, `def`) programmatically with suppor
     }
     ```
 
-Supports up to 22 parameters (`ofDef1` through `ofDef22`).
+`def`s are supported up to 22 parameters (`ofDef0` through `ofDef22`).
 
 !!! tip "`ValDefBuilder` is useful when you need to build definitions programmatically, especially when you need recursive definitions or error aggregation with effects like `MIO`."
 
 ### `ValDefsCache`
 
-Cache definitions to avoid recomputing them and enable forward references:
+Let's say you need to construct a lot of definitions in the same scope. They might also call each other,
+e.g. if you are deriving a type class and want to reuse some subroutines.
+
+It would be handy to:
+
+ * create some storage of all definitions created in this scope to pass around only 1 value
+ * tracking which of them are still constructed and which are already done
+ * but allowing us e.g. to call the `def`s whose bodies we are still computing
+   but whose signature is already known (we could just "forward declare them")
+
+`ValDefsCache` is exactly such an utility:
 
 !!! example "How `ValDefsCache` is used"
 
