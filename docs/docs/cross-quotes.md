@@ -34,6 +34,8 @@ Scala 2 and Scala 3 have fundamentally different metaprogramming systems:
 
 This means that code using metaprogramming features cannot be shared between Scala 2 and Scala 3 without significant duplication or complex abstractions.
 
+!!! tip "If you only need to work with Scala 2/Scala 3, you might be fine just sticking to quasi-quotes/quotes."
+
 ## The Solution
 
 Cross Quotes provides a unified API that gets transformed into the appropriate native syntax for each Scala version:
