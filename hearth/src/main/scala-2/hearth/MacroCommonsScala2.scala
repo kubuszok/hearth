@@ -17,7 +17,8 @@ trait MacroCommonsScala2
     with EnvironmentsScala2
     with MacroUntypedCommonsScala2
     with MacroTypedCommonsScala2
-    with treeprinter.ShowCodePrettyScala2 {
+    with treeprinter.ShowCodePrettyScala2
+    with std.StdExtensions {
 
   val c: scala.reflect.macros.blackbox.Context
 }
