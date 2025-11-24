@@ -1,6 +1,8 @@
 package hearth
 package std
 
+import hearth.fp.data.NonEmptyVector
+
 trait StdExtensions { this: MacroCommons =>
 
   /** Represents a possible smart constructor for the given input and output types.
@@ -243,5 +245,15 @@ trait StdExtensions { this: MacroCommons =>
       providers.view.map(_.unapply(tpe)).collectFirst { case Some(wrapper) => wrapper }
 
     // TODO: provide a support for any-vals (and opaque types?)
+  }
+
+  implicit final class EnvironmentStdExtensionsOps(private val environment: Environment.type) {
+
+    /** Loads all standard extensions.
+      *
+      * @since 0.3.0
+      */
+    def loadStandardExtensions(): Either[NonEmptyVector[Throwable], Unit] =
+      environment.loadMacroExtensions[StandardMacroExtension]
   }
 }

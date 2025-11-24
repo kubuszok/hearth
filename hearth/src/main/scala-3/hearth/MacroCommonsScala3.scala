@@ -30,6 +30,7 @@ class MacroCommonsScala3(using val quotes: scala.quoted.Quotes)
     with MacroUntypedCommonsScala3
     with MacroTypedCommonsScala3
     with treeprinter.ShowCodePrettyScala3
+    with std.StdExtensions
 
 object MacroCommonsScala3 {
 
