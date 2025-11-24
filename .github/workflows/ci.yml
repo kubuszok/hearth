@@ -17,7 +17,7 @@ jobs:
     name: Check formatting
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: coursier/setup-action@v1.3.9
@@ -34,7 +34,7 @@ jobs:
     name: Check Scala CLI snippets from documentation
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: extractions/setup-just@v3
@@ -71,7 +71,7 @@ jobs:
     name: "Scala: ${{ matrix.scala == '2_13' && '2.13' || '3' }} / Platform: ${{ matrix.platform }} / JVM: ${{ matrix.jvm }} / Test: ${{ matrix.test-lastest-scala == 'true' && 'Latest' || 'Oldest Supported' }}"
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: coursier/cache-action@v7
