@@ -255,7 +255,7 @@ val settings = Seq(
 val scalaNewestSettings = Seq(
   // Sets the Scala version to the newest supported version for the current platform.
   scalaVersion := {
-      scalaVersion.value match {
+    scalaVersion.value match {
       case versions.scala213 if isNewestScalaTests => versions.scala213Newest
       case versions.scala3 if isNewestScalaTests   => versions.scala3Newest
       case current                                 => current
