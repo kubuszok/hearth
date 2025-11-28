@@ -72,6 +72,9 @@ jobs:
           - scala: '3'
             test-lastest-scala: 'true'
             jvm: 'temurin:1.11.0.28' # Scala 3.8+ requires JDK 17+
+          - scala: '3'
+            test-lastest-scala: 'false'
+            jvm: 'temurin:1.17.0.15' # JDK 17 only needed for newest Scala 3
       fail-fast: false
 
     name: "Scala: ${{ matrix.scala == '2_13' && '2.13' || '3' }} / Platform: ${{ matrix.platform }} / JVM: ${{ matrix.jvm }} / Test: ${{ matrix.test-lastest-scala == 'true' && 'Latest' || 'Oldest Supported' }}"
