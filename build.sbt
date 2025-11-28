@@ -195,7 +195,7 @@ val settings = Seq(
       "-Wunused:implicits",
       "-Wunused:params",
       "-Wvalue-discard",
-      "-Xfatal-warnings",
+      "-Werror",
       "-Xcheck-macros"
     ) ++ (if (scalaVersion.value == versions.scala3Newest) Seq("-Xkind-projector:underscores")
           else Seq("-Ykind-projector:underscores")),
