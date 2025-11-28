@@ -174,7 +174,7 @@ val settings = Seq(
     for3 = Seq(
       // format: off
       "-encoding", "UTF-8",
-      "-release", "11",
+      "-release", if (scalaVersion.value == versions.scala3Newest) "17" else "11", // Scala 3.8+ requires JDK 17+
       "-rewrite",
       "-source", "3.3-migration",
       // format: on
