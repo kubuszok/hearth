@@ -159,13 +159,20 @@ object ScalaVersion {
     catch {
       case parent: Throwable =>
         scala.util.Properties.versionNumberString match {
-          case s"$major.$minor.$patch" => ScalaVersion(major.toInt, minor.toInt, patch.toInt)
-          case versionString           =>
+          case s"$major.$minor.$patch" => ScalaVersion(major.toInt, minor.toInt, patchVersion(patch))
+          case versionString =>
             throw new RuntimeException(s"Cannot resolve Scala version from version string: $versionString", parent)
         }
     }
 
   implicit val ordering: Ordering[ScalaVersion] = Ordering.by((v: ScalaVersion) => (v.major, v.minor, v.patch))
+
+  // Strip suffixes like "-RC2", "-M1", "-NIGHTLY", etc. from version strings
+  private def patchVersion(patch: String): Int = {
+    val digits = patch.takeWhile(_.isDigit)
+    require(digits.nonEmpty, s"Invalid patch version: $patch")
+    digits.toInt
+  }
 
   private def libraryJarName(ctx: Any): String = {
     val library = ctx.getClass.getProtectionDomain.getCodeSource.getLocation.toString
@@ -174,17 +181,17 @@ object ScalaVersion {
 
   private val matchScala2Library: PartialFunction[String, ScalaVersion] = {
     // when using e.g. blackbox.Context
-    case s"scala-compiler-$major.$minor.$patch.jar" => ScalaVersion(major.toInt, minor.toInt, patch.toInt)
-    case s"scala-reflect-$major.$minor.$patch.jar"  => ScalaVersion(major.toInt, minor.toInt, patch.toInt)
+    case s"scala-compiler-$major.$minor.$patch.jar" => ScalaVersion(major.toInt, minor.toInt, patchVersion(patch))
+    case s"scala-reflect-$major.$minor.$patch.jar"  => ScalaVersion(major.toInt, minor.toInt, patchVersion(patch))
     // when it's something from regular Scala 2 library
-    case s"scala-library-$major.$minor.$patch.jar" => ScalaVersion(major.toInt, minor.toInt, patch.toInt)
+    case s"scala-library-$major.$minor.$patch.jar" => ScalaVersion(major.toInt, minor.toInt, patchVersion(patch))
   }
 
   private val matchScala3Library: PartialFunction[String, ScalaVersion] = {
     // when using e.g. scala.quotes.runtime.impl.QuotesImpl
-    case s"scala3-compiler_3-$major.$minor.$patch.jar" => ScalaVersion(major.toInt, minor.toInt, patch.toInt)
+    case s"scala3-compiler_3-$major.$minor.$patch.jar" => ScalaVersion(major.toInt, minor.toInt, patchVersion(patch))
     // when passing something Scala-3 specific that is NOT a part of 2.13 stdlib
-    case s"scala3-library_3-$major.$minor.$patch.jar" => ScalaVersion(major.toInt, minor.toInt, patch.toInt)
+    case s"scala3-library_3-$major.$minor.$patch.jar" => ScalaVersion(major.toInt, minor.toInt, patchVersion(patch))
   }
 }
 
