@@ -122,6 +122,48 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
       )
       def fromExpr(expr: Expr[data.Data]): Option[data.Data] = None // TODO
     }
+
+    def HearthVersionExprCodec: ExprCodec[HearthVersion] = new ExprCodec[HearthVersion] {
+      def toExpr(value: HearthVersion): Expr[HearthVersion] = Expr.quote {
+        HearthVersion(
+          Expr.splice(Expr(value.version)),
+          Expr.splice(Expr(value.languageVersion)),
+          Expr.splice(Expr(value.platform))
+        )
+      }
+      def fromExpr(expr: Expr[HearthVersion]): Option[HearthVersion] = None // TODO
+    }
+
+    def JDKVersionExprCodec: ExprCodec[JDKVersion] = new ExprCodec[JDKVersion] {
+      def toExpr(value: JDKVersion): Expr[JDKVersion] = Expr.quote {
+        JDKVersion(Expr.splice(Expr(value.major)), Expr.splice(Expr(value.minor)))
+      }
+      def fromExpr(expr: Expr[JDKVersion]): Option[JDKVersion] = None // TODO
+    }
+
+    def ScalaVersionExprCodec: ExprCodec[ScalaVersion] = new ExprCodec[ScalaVersion] {
+      def toExpr(value: ScalaVersion): Expr[ScalaVersion] = Expr.quote {
+        ScalaVersion(Expr.splice(Expr(value.major)), Expr.splice(Expr(value.minor)), Expr.splice(Expr(value.patch)))
+      }
+      def fromExpr(expr: Expr[ScalaVersion]): Option[ScalaVersion] = None // TODO
+    }
+
+    def LanguageVersionExprCodec: ExprCodec[LanguageVersion] = new ExprCodec[LanguageVersion] {
+      def toExpr(value: LanguageVersion): Expr[LanguageVersion] = value match {
+        case LanguageVersion.Scala2_13 => Expr.quote(LanguageVersion.Scala2_13: LanguageVersion)
+        case LanguageVersion.Scala3    => Expr.quote(LanguageVersion.Scala3: LanguageVersion)
+      }
+      def fromExpr(expr: Expr[LanguageVersion]): Option[LanguageVersion] = None // TODO
+    }
+
+    def PlatformExprCodec: ExprCodec[Platform] = new ExprCodec[Platform] {
+      def toExpr(value: Platform): Expr[Platform] = value match {
+        case Platform.Jvm    => Expr.quote(Platform.Jvm: Platform)
+        case Platform.Js     => Expr.quote(Platform.Js: Platform)
+        case Platform.Native => Expr.quote(Platform.Native: Platform)
+      }
+      def fromExpr(expr: Expr[Platform]): Option[Platform] = None // TODO
+    }
   }
 
   implicit final class ExprMethods[A](private val expr: Expr[A]) {
@@ -240,6 +282,12 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
       Expr.RightExprCodec[L, R]
 
     implicit lazy val DataCodec: ExprCodec[data.Data] = Expr.DataExprCodec
+
+    implicit lazy val HearthVersionCodec: ExprCodec[HearthVersion] = Expr.HearthVersionExprCodec
+    implicit lazy val JDKVersionCodec: ExprCodec[JDKVersion] = Expr.JDKVersionExprCodec
+    implicit lazy val ScalaVersionCodec: ExprCodec[ScalaVersion] = Expr.ScalaVersionExprCodec
+    implicit lazy val LanguageVersionCodec: ExprCodec[LanguageVersion] = Expr.LanguageVersionExprCodec
+    implicit lazy val PlatformCodec: ExprCodec[Platform] = Expr.PlatformExprCodec
   }
 
   sealed trait SummoningResult[A] extends Product with Serializable {
