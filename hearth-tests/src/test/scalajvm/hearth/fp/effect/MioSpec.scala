@@ -288,10 +288,10 @@ final class MioSpec extends ScalaCheckSuite with Laws {
         else runSafe(countdown(n - 1))
       }
 
-      // Before JDK 17, virtual threads are not available, we're falling back to normal threads and deep nesting is stack-safe
+      // Before JDK 21, virtual threads are not available, we're falling back to normal threads and deep nesting is stack-safe
       // but can cause OutOfMemoryError.
       val n =
-        if (JDKVersion.runtimeJDKVersion < JDKVersion(1, 17)) 1000
+        if (JDKVersion.runtimeJDKVersion < JDKVersion(1, 21)) 1000
         else 100000
 
       countdown(n) === MIO.void
