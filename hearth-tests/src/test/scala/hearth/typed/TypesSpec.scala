@@ -338,7 +338,7 @@ final class TypesSpec extends MacroSuite {
     group("methods: Type.{position} expected behavior") {
       import TypesFixtures.testPosition
       val isScala3 = LanguageVersion.byHearth.isScala3
-      val isScala3_8plus = isScala3 && ScalaVersion.byJVMRuntime >= ScalaVersion(3, 8, 0)
+      val isScala3_8plus = isScala3 && ScalaVersion.byCompileTime >= ScalaVersion(3, 8, 0)
 
       test("for primitive types") {
         testPosition[Boolean] <==> Data.map(

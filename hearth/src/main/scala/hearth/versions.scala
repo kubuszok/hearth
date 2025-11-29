@@ -47,7 +47,7 @@ final case class JDKVersion(major: Int, minor: Int) {
   *
   * @since 0.1.0
   */
-object JDKVersion {
+object JDKVersion extends JDKVersionsCompanionCompat {
 
   lazy val runtimeJDKVersion: JDKVersion = {
     val major = 1
@@ -131,7 +131,7 @@ final case class ScalaVersion(major: Int, minor: Int, patch: Int) {
   *
   * @since 0.1.0
   */
-object ScalaVersion {
+object ScalaVersion extends ScalaVersionsCompanionCompat {
 
   /** Pass blackbox.Context or Quotes to resolve the version from the library. */
   def byScalaLibrary(ctx: Any): ScalaVersion =
@@ -160,7 +160,7 @@ object ScalaVersion {
       case parent: Throwable =>
         scala.util.Properties.versionNumberString match {
           case s"$major.$minor.$patch" => ScalaVersion(major.toInt, minor.toInt, patchVersion(patch))
-          case versionString =>
+          case versionString           =>
             throw new RuntimeException(s"Cannot resolve Scala version from version string: $versionString", parent)
         }
     }
@@ -261,4 +261,13 @@ object Platform extends PlatformCompanionCompat {
 
   /** Scala Native platform. */
   case object Native extends Platform
+}
+
+private[hearth] trait VersionsMacrosImpl { this: MacroCommons =>
+
+  def scalaVersionByJVMCompileTime: Expr[ScalaVersion] =
+    Expr(Environment.currentScalaVersion)
+
+  def jdkVersionByJVMCompileTime: Expr[JDKVersion] =
+    Expr(Environment.currentJDKVersion)
 }
