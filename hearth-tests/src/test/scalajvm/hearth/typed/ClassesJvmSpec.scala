@@ -114,7 +114,8 @@ final class ClassesJvmSpec extends MacroSuite {
           "!=",
           "eq",
           "ne",
-          "##"
+          "##",
+          "describeConstable" // JDK 12+ but it started popping out in JDK 17+(?)
         ) <==> Data.map(
           "commons" -> Data.map(
             "constructors" -> constructors,
