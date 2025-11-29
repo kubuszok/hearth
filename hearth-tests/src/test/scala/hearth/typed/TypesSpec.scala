@@ -5,6 +5,7 @@ import hearth.data.Data
 
 import scala.annotation.unused
 import scala.annotation.nowarn
+import scala.math.Ordering.Implicits.infixOrderingOps
 
 /** Macro implementation is in [[TypesFixturesImpl]] */
 final class TypesSpec extends MacroSuite {
@@ -336,31 +337,56 @@ final class TypesSpec extends MacroSuite {
 
     group("methods: Type.{position} expected behavior") {
       import TypesFixtures.testPosition
+      val isScala3 = LanguageVersion.byHearth.isScala3
+      val isScala3_8plus = isScala3 && ScalaVersion.byJVMRuntime >= ScalaVersion(3, 8, 0)
 
       test("for primitive types") {
-        testPosition[Boolean] <==> Data.map("Type.position" -> Data("<no position>"))
-        testPosition[Byte] <==> Data.map("Type.position" -> Data("<no position>"))
-        testPosition[Short] <==> Data.map("Type.position" -> Data("<no position>"))
-        testPosition[Int] <==> Data.map("Type.position" -> Data("<no position>"))
-        testPosition[Long] <==> Data.map("Type.position" -> Data("<no position>"))
-        testPosition[Float] <==> Data.map("Type.position" -> Data("<no position>"))
-        testPosition[Double] <==> Data.map("Type.position" -> Data("<no position>"))
-        testPosition[Char] <==> Data.map("Type.position" -> Data("<no position>"))
+        testPosition[Boolean] <==> Data.map(
+          "Type.position" -> Data(if (isScala3_8plus) "Boolean.scala:1:1" else "<no position>")
+        )
+        testPosition[Byte] <==> Data.map(
+          "Type.position" -> Data(if (isScala3_8plus) "Byte.scala:1:1" else "<no position>")
+        )
+        testPosition[Short] <==> Data.map(
+          "Type.position" -> Data(if (isScala3_8plus) "Short.scala:1:1" else "<no position>")
+        )
+        testPosition[Int] <==> Data.map(
+          "Type.position" -> Data(if (isScala3_8plus) "Int.scala:1:1" else "<no position>")
+        )
+        testPosition[Long] <==> Data.map(
+          "Type.position" -> Data(if (isScala3_8plus) "Long.scala:1:1" else "<no position>")
+        )
+        testPosition[Float] <==> Data.map(
+          "Type.position" -> Data(if (isScala3_8plus) "Float.scala:1:1" else "<no position>")
+        )
+        testPosition[Double] <==> Data.map(
+          "Type.position" -> Data(if (isScala3_8plus) "Double.scala:1:1" else "<no position>")
+        )
+        testPosition[Char] <==> Data.map(
+          "Type.position" -> Data(if (isScala3_8plus) "Char.scala:1:1" else "<no position>")
+        )
       }
 
       test("for built-in types".tag(Tags.langVerMismatch)) {
         // Apparently: Scala 2 does not store position for for types from previous compilation unit,
         // Scala 3 does store... something? Filename?
-        val position = if (LanguageVersion.byHearth.isScala3) "Predef.scala:1:1" else "<no position>"
-        testPosition[Unit] <==> Data.map("Type.position" -> Data("<no position>"))
-        testPosition[String] <==> Data.map("Type.position" -> Data(position))
-        testPosition[Array[Int]] <==> Data.map("Type.position" -> Data("<no position>"))
+        testPosition[Unit] <==> Data.map(
+          "Type.position" -> Data(if (isScala3_8plus) "Unit.scala:1:1" else "<no position>")
+        )
+        testPosition[String] <==> Data.map(
+          "Type.position" -> Data(if (isScala3) "Predef.scala:1:1" else "<no position>")
+        )
+        testPosition[Array[Int]] <==> Data.map(
+          "Type.position" -> Data(if (isScala3_8plus) "Array.scala:1:1" else "<no position>")
+        )
       }
 
       test("for type-system-special types".tag(Tags.langVerMismatch)) {
         testPosition[Any] <==> Data.map("Type.position" -> Data("<no position>"))
         testPosition[AnyRef] <==> Data.map("Type.position" -> Data("<no position>"))
-        testPosition[AnyVal] <==> Data.map("Type.position" -> Data("<no position>"))
+        testPosition[AnyVal] <==> Data.map(
+          "Type.position" -> Data(if (isScala3_8plus) "AnyVal.scala:1:1" else "<no position>")
+        )
         testPosition[Null] <==> Data.map("Type.position" -> Data("<no position>"))
         testPosition[Nothing] <==> Data.map("Type.position" -> Data("<no position>"))
       }
@@ -435,9 +461,13 @@ final class TypesSpec extends MacroSuite {
         // Scala 3 does store... something? Filename?
         val position = if (LanguageVersion.byHearth.isScala3) "enums.scala:1:1" else "<no position>"
         testPosition[examples.enums.WeekDay.type] <==> Data.map("Type.position" -> Data(position))
-        testPosition[examples.enums.WeekDay.Value] <==> Data.map("Type.position" -> Data("<no position>"))
+        testPosition[examples.enums.WeekDay.Value] <==> Data.map(
+          "Type.position" -> Data(if (isScala3_8plus) "Enumeration.scala:1:1" else "<no position>")
+        )
         testPosition[examples.enums.Planet.type] <==> Data.map("Type.position" -> Data(position))
-        testPosition[examples.enums.Planet.Value] <==> Data.map("Type.position" -> Data("<no position>"))
+        testPosition[examples.enums.Planet.Value] <==> Data.map(
+          "Type.position" -> Data(if (isScala3_8plus) "Enumeration.scala:1:1" else "<no position>")
+        )
         testPosition[examples.enums.ExampleSealedTrait] <==> Data.map("Type.position" -> Data(position))
         testPosition[examples.enums.ExampleSealedTraitWithTypeParam[Int]] <==> Data.map(
           "Type.position" -> Data(position)
