@@ -33,7 +33,6 @@ val versions = new {
   // Dependencies.
   val kindProjector = "0.13.4"
   val munit = "1.2.1"
-  val scalaCollectionCompat = "2.13.0"
   val scalacheck = "1.19.0"
   val scalaXml = "2.4.0"
 
