@@ -8,6 +8,8 @@ import scala.reflect.macros.blackbox
 
 final private class CrossTypesFixtures(val c: blackbox.Context) extends MacroCommonsScala2 with CrossTypesFixturesImpl {
 
+  def testTypeOfImpl[A: c.WeakTypeTag]: c.Expr[Data] = testTypeOf[A]
+
   def testTypeCtor1Impl[A: c.WeakTypeTag]: c.Expr[Data] = testTypeCtor1[A]
 
   def testTypeCtor2Impl[A: c.WeakTypeTag]: c.Expr[Data] = testTypeCtor2[A]
@@ -54,6 +56,8 @@ final private class CrossTypesFixtures(val c: blackbox.Context) extends MacroCom
 }
 
 object CrossTypesFixtures {
+
+  def testTypeOf[A]: Data = macro CrossTypesFixtures.testTypeOfImpl[A]
 
   def testTypeCtor1[A]: Data = macro CrossTypesFixtures.testTypeCtor1Impl[A]
 

@@ -11,6 +11,9 @@ object CrossTypesFixtures {
 
   // TODO: create macro annotation which would allow to do the following
 
+  inline def testTypeOf[A]: Data = ${ testTypeOfImpl[A] }
+  private def testTypeOfImpl[A: Type](using q: Quotes): Expr[Data] = new CrossTypesFixtures(q).testTypeOf[A]
+
   inline def testTypeCtor1[A]: Data = ${ testTypeCtor1Impl[A] }
   private def testTypeCtor1Impl[A: Type](using q: Quotes): Expr[Data] = new CrossTypesFixtures(q).testTypeCtor1[A]
 
