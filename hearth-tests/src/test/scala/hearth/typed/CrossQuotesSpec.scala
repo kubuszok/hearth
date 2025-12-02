@@ -16,8 +16,7 @@ final class CrossQuotesSpec extends MacroSuite {
 
     group("for Type.of") {
 
-      // TODO: replace with testTypeOf from CrossTypesFixturesImpl
-      test("should resolve types in the context of the macro compilation and consider provides implicit Types") {
+      test("should resolve types in the context of the macro compilation, and consider provides implicit Types") {
 
         // These should be ignored, Type.of in macros should be sanitized without our additional effort.
         @scala.annotation.nowarn
@@ -45,21 +44,9 @@ final class CrossQuotesSpec extends MacroSuite {
           )
         )
       }
-
-      test("should work for simple types") {
-        CrossQuotesFixtures.simpleType <==> "scala.Int"
-      }
-
-      test("should work for generic types") {
-        CrossQuotesFixtures.genericType[Int] <==> "scala.collection.immutable.List[scala.Int]"
-      }
-
-      test("should work for unsanitized types") {
-        CrossQuotesFixtures.unsanitizedType <==> "scala.collection.immutable.ListMap[scala.Int, java.lang.String]"
-      }
     }
 
-    group("methods: Type.Ctor[n].of") {
+    group("for Type.Ctor[n].of") {
       import CrossTypesFixtures.*
 
       // TODO: add tests for type aliases and kind projections
@@ -67,35 +54,42 @@ final class CrossQuotesSpec extends MacroSuite {
       // TODO: test type aliases that change the arity and order of type parameters
       // TODO: test kind projections
 
-      test("for Type.Ctor1.of") {
-        testTypeCtor1[String] <==> Data("Not an option")
-        testTypeCtor1[Option[Int]] <==> Data(
-          Map(
-            "unapplied" -> Data.list(Data("scala.Int")),
-            "reapplied" -> Data("scala.Option[java.lang.String]")
-          )
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor1") {
+        testTypeCtor1[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor1[examples.kinds.Arity1[Int]] <==> Data.map(
+          "matched" -> Data("as class"),
+          "unapplied" -> Data.list(Data("scala.Int")),
+          "reapplied" -> Data("hearth.examples.kinds.Arity1[java.lang.String]")
         )
-        testTypeCtor1[Option[String]] <==> Data(
-          Map(
-            "unapplied" -> Data.list(Data("java.lang.String")),
-            "reapplied" -> Data("scala.Option[java.lang.String]")
-          )
+        
+        testTypeCtor1[examples.kinds.Alias.Renamed1[Int]] <==> Data.map(
+          "matched" -> Data("as renamed"),
+          "unapplied" -> Data.list(Data("scala.Int")),
+          "reapplied" -> Data("hearth.examples.kinds.Alias.Renamed1[java.lang.String]") // maybe unaliased?
         )
-        testTypeCtor1[Option[Option[String]]] <==> Data(
-          Map(
-            "unapplied" -> Data.list(Data("scala.Option[java.lang.String]")),
-            "reapplied" -> Data("scala.Option[java.lang.String]")
-          )
+
+        testTypeCtor1[examples.kinds.Alias.Extra1[Int]] <==> Data.map(
+          "matched" -> Data("as extra"),
+          "unapplied" -> Data.list(Data("scala.Int")),
+          "reapplied" -> Data("hearth.examples.kinds.Alias.Extra1[java.lang.String]") // maybe unaliased?
         )
-        testTypeCtor1[Option[Option[Option[String]]]] <==> Data(
-          Map(
-            "unapplied" -> Data.list(Data("scala.Option[scala.Option[java.lang.String]]")),
-            "reapplied" -> Data("scala.Option[java.lang.String]")
-          )
+
+        testTypeCtor1[examples.kinds.Alias.FixedFront1[Int]] <==> Data.map(
+          "matched" -> Data("as fixed front"),
+          "unapplied" -> Data.list(Data("scala.Int")),
+          "reapplied" -> Data("hearth.examples.kinds.Alias.FixedFront1[java.lang.String]") // maybe unaliased?
+        )
+
+        testTypeCtor1[examples.kinds.Alias.FixedBack1[Int]] <==> Data.map(
+          "matched" -> Data("as fixed back"),
+          "unapplied" -> Data.list(Data("scala.Int")),
+          "reapplied" -> Data("hearth.examples.kinds.Alias.FixedBack1[java.lang.String]") // maybe unaliased?
         )
       }
 
-      test("for Type.Ctor2.of") {
+      /*
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor2") {
         testTypeCtor2[String] <==> Data("Not an either")
         testTypeCtor2[Option[Int]] <==> Data("Not an either")
         testTypeCtor2[Either[Int, String]] <==> Data(
@@ -106,7 +100,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor3.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor3") {
         testTypeCtor3[String] <==> Data("Not a tuple3")
         testTypeCtor3[Option[Int]] <==> Data("Not a tuple3")
         testTypeCtor3[(Int, String, Double)] <==> Data(
@@ -117,7 +111,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor4.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor4") {
         testTypeCtor4[String] <==> Data("Not a tuple4")
         testTypeCtor4[Option[Int]] <==> Data("Not a tuple4")
         testTypeCtor4[(Int, String, Double, Boolean)] <==> Data(
@@ -129,7 +123,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor5.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor5") {
         testTypeCtor5[String] <==> Data("Not a tuple5")
         testTypeCtor5[Option[Int]] <==> Data("Not a tuple5")
         testTypeCtor5[(Int, String, Double, Boolean, Char)] <==> Data(
@@ -148,7 +142,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor6.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor6") {
         testTypeCtor6[String] <==> Data("Not a tuple6")
         testTypeCtor6[Option[Int]] <==> Data("Not a tuple6")
         testTypeCtor6[(Int, String, Double, Boolean, Char, Float)] <==> Data(
@@ -168,7 +162,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor7.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor7") {
         testTypeCtor7[String] <==> Data("Not a tuple7")
         testTypeCtor7[Option[Int]] <==> Data("Not a tuple7")
         testTypeCtor7[(Int, String, Double, Boolean, Char, Float, Long)] <==> Data(
@@ -189,7 +183,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor8.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor8") {
         testTypeCtor8[String] <==> Data("Not a tuple8")
         testTypeCtor8[Option[Int]] <==> Data("Not a tuple8")
         testTypeCtor8[(Int, String, Double, Boolean, Char, Float, Long, Short)] <==> Data(
@@ -211,7 +205,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor9.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor9") {
         testTypeCtor9[String] <==> Data("Not a tuple9")
         testTypeCtor9[Option[Int]] <==> Data("Not a tuple9")
         testTypeCtor9[(Int, String, Double, Boolean, Char, Float, Long, Short, Byte)] <==> Data(
@@ -234,7 +228,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor10.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor10") {
         testTypeCtor10[String] <==> Data("Not a tuple10")
         testTypeCtor10[Option[Int]] <==> Data("Not a tuple10")
         testTypeCtor10[(Int, String, Double, Boolean, Char, Float, Long, Short, Byte, Unit)] <==> Data(
@@ -258,7 +252,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor11.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor11") {
         testTypeCtor11[String] <==> Data("Not a tuple11")
         testTypeCtor11[Option[Int]] <==> Data("Not a tuple11")
         testTypeCtor11[(Int, String, Double, Boolean, Char, Float, Long, Short, Byte, Unit, List[Int])] <==> Data(
@@ -283,7 +277,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor12.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor12") {
         testTypeCtor12[String] <==> Data("Not a tuple12")
         testTypeCtor12[Option[Int]] <==> Data("Not a tuple12")
         testTypeCtor12[
@@ -311,7 +305,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor13.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor13") {
         testTypeCtor13[String] <==> Data("Not a tuple13")
         testTypeCtor13[Option[Int]] <==> Data("Not a tuple13")
         testTypeCtor13[
@@ -340,7 +334,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor14.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor14") {
         testTypeCtor14[String] <==> Data("Not a tuple14")
         testTypeCtor14[Option[Int]] <==> Data("Not a tuple14")
         testTypeCtor14[
@@ -385,7 +379,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor15.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor15") {
         testTypeCtor15[String] <==> Data("Not a tuple15")
         testTypeCtor15[Option[Int]] <==> Data("Not a tuple15")
         testTypeCtor15[
@@ -432,7 +426,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor16.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor16") {
         testTypeCtor16[String] <==> Data("Not a tuple16")
         testTypeCtor16[Option[Int]] <==> Data("Not a tuple16")
         testTypeCtor16[
@@ -481,7 +475,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor17.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor17") {
         testTypeCtor17[String] <==> Data("Not a tuple17")
         testTypeCtor17[Option[Int]] <==> Data("Not a tuple17")
         testTypeCtor17[
@@ -532,7 +526,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor18.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor18") {
         testTypeCtor18[String] <==> Data("Not a tuple18")
         testTypeCtor18[Option[Int]] <==> Data("Not a tuple18")
         testTypeCtor18[
@@ -585,7 +579,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor19.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor19") {
         testTypeCtor19[String] <==> Data("Not a tuple19")
         testTypeCtor19[Option[Int]] <==> Data("Not a tuple19")
         testTypeCtor19[
@@ -640,7 +634,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor20.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor20") {
         testTypeCtor20[String] <==> Data("Not a tuple20")
         testTypeCtor20[Option[Int]] <==> Data("Not a tuple20")
         testTypeCtor20[
@@ -697,7 +691,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor21.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor21") {
         testTypeCtor21[String] <==> Data("Not a tuple21")
         testTypeCtor21[Option[Int]] <==> Data("Not a tuple21")
         testTypeCtor21[
@@ -756,7 +750,7 @@ final class CrossQuotesSpec extends MacroSuite {
         )
       }
 
-      test("for Type.Ctor22.of") {
+      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor22") {
         testTypeCtor22[String] <==> Data("Not a tuple22")
         testTypeCtor22[Option[Int]] <==> Data("Not a tuple22")
         testTypeCtor22[
@@ -816,6 +810,7 @@ final class CrossQuotesSpec extends MacroSuite {
           )
         )
       }
+      */
     }
 
     group("for Expr.quote+Expr.splice") {

@@ -4,17 +4,6 @@ package typed
 /** Fixtured for testing [[CrossQuotesSpec]]. */
 trait CrossQuotesFixturesImpl { this: MacroTypedCommons =>
 
-  // TODO: replace by testTypeOf from CrossTypesFixturesImpl
-
-  def simpleType: Expr[String] = Expr(Type.of[Int].prettyPrint)
-
-  def genericType[A: Type]: Expr[String] = Expr(Type.of[scala.collection.immutable.List[A]].prettyPrint)
-
-  def unsanitizedType: Expr[String] = {
-    import scala.collection.immutable.ListMap
-    Expr(Type.of[ListMap[Int, String]].prettyPrint)
-  }
-
   // TODO: replicate test cases from testTypeOf from CrossTypesFixturesImpl
 
   def unsanitizedExpr: Expr[String] = {

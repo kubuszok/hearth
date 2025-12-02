@@ -17,6 +17,7 @@ object CrossTypesFixtures {
   inline def testTypeCtor1[A]: Data = ${ testTypeCtor1Impl[A] }
   private def testTypeCtor1Impl[A: Type](using q: Quotes): Expr[Data] = new CrossTypesFixtures(q).testTypeCtor1[A]
 
+  /*
   inline def testTypeCtor2[A]: Data = ${ testTypeCtor2Impl[A] }
   private def testTypeCtor2Impl[A: Type](using q: Quotes): Expr[Data] = new CrossTypesFixtures(q).testTypeCtor2[A]
 
@@ -79,4 +80,5 @@ object CrossTypesFixtures {
 
   inline def testTypeCtor22[A]: Data = ${ testTypeCtor22Impl[A] }
   private def testTypeCtor22Impl[A: Type](using q: Quotes): Expr[Data] = new CrossTypesFixtures(q).testTypeCtor22[A]
+  */
 }

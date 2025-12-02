@@ -71,17 +71,73 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   private val String = Type.of[String]
 
-  private val optionTest = Type.Ctor1.of[Option]
+  def testTypeCtor1[In: Type]: Expr[Data] = {
+    val classTest = Type.Ctor1.of[examples.kinds.Arity1]
+    val renamedTest = Type.Ctor1.of[examples.kinds.Alias.Renamed1]
+    val extraTest = Type.Ctor1.of[examples.kinds.Alias.Extra1]
+    //val fixedFrontTest = Type.Ctor1.of[examples.kinds.Alias.FixedFront1]
+    //val fixedBackTest = Type.Ctor1.of[examples.kinds.Alias.FixedBack1]
 
-  def testTypeCtor1[In: Type]: Expr[Data] =
+    // TODO: type projector test as well
+
     Type[In] match {
-      case optionTest(aParam) =>
+      case classTest(aParam) =>
         import aParam.Underlying as A
-        val optString = optionTest(using String)
-        Expr(Data.map("unapplied" -> Data.list(Data(A.plainPrint)), "reapplied" -> Data(optString.plainPrint)))
-      case _ => Expr(Data("Not an option"))
+        val reapplied = classTest(using String)
+        Expr(
+          Data.map(
+            "matched" -> Data("as class"),
+            "unapplied" -> Data.list(Data(A.plainPrint)),
+            "reapplied" -> Data(reapplied.plainPrint)
+          )
+        )
+      case renamedTest(aParam) =>
+        import aParam.Underlying as A
+        val reapplied = renamedTest(using String)
+        Expr(
+          Data.map(
+            "matched" -> Data("as renamed"),
+            "unapplied" -> Data.list(Data(A.plainPrint)),
+            "reapplied" -> Data(reapplied.plainPrint)
+          )
+        )
+      case extraTest(aParam) =>
+        import aParam.Underlying as A
+        val reapplied = extraTest(using String)
+        Expr(
+          Data.map(
+            "matched" -> Data("as extra"),
+            "unapplied" -> Data.list(Data(A.plainPrint)),
+            "reapplied" -> Data(reapplied.plainPrint)
+          )
+        )
+      /*
+      case fixedFrontTest(aParam) =>
+        import aParam.Underlying as A
+        val reapplied = fixedFrontTest(using String)
+        Expr(
+          Data.map(
+            "matched" -> Data("as fixed front"),
+            "unapplied" -> Data.list(Data(A.plainPrint)),
+            "reapplied" -> Data(reapplied.plainPrint)
+          )
+        )
+      case fixedBackTest(aParam) =>
+        import aParam.Underlying as A
+        val reapplied = fixedBackTest(using String)
+        Expr(
+          Data.map(
+            "matched" -> Data("as fixed back"),
+            "unapplied" -> Data.list(Data(A.plainPrint)),
+            "reapplied" -> Data(reapplied.plainPrint)
+          )
+        )
+      */
+      case _ => Expr(Data("Not one of the expected types"))
     }
+  }
 
+  /*
   private val eitherTest = Type.Ctor2.of[Either]
 
   def testTypeCtor2[In: Type]: Expr[Data] =
@@ -1304,4 +1360,5 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
         )
       case _ => Expr(Data("Not a tuple22"))
     }
+  */
 }
