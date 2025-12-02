@@ -12,9 +12,39 @@ import scala.collection.immutable.Queue
   */
 final class CrossQuotesSpec extends MacroSuite {
 
-  group("CrossQuotes macro/plugin") {
+  group("Cross-Quotes macro/plugin") {
 
     group("for Type.of") {
+
+      // TODO: replace with testTypeOf from CrossTypesFixturesImpl
+      test("should resolve types in the context of the macro compilation and consider provides implicit Types") {
+
+        // These should be ignored, Type.of in macros should be sanitized without our additional effort.
+        @scala.annotation.nowarn
+        @scala.annotation.unused
+        trait ExampleTrait
+        @scala.annotation.nowarn
+        @scala.annotation.unused
+        trait ExampleTraitWithTypeParam[A]
+
+        CrossTypesFixtures.testTypeOf[Int] <==> Data.map(
+          "resolvingType" -> Data.map(
+            "ofImportedType" -> Data("hearth.examples.classes.ExampleTrait"),
+            "ofImportedTypeWithTypeParam" -> Data("hearth.examples.classes.ExampleTraitWithTypeParam[scala.Int]"),
+            "ofRelativePathType" -> Data("hearth.examples.classes.ExampleClass"),
+            "ofRelativePathWithTypeParamType" -> Data("hearth.examples.classes.ExampleClassWithTypeParam[scala.Int]"),
+            "ofFqcnType" -> Data("hearth.examples.classes.ExampleClass"),
+            "ofFqcnWithTypeParamType" -> Data("hearth.examples.classes.ExampleClassWithTypeParam[scala.Int]")
+          ),
+          "resolvingImplicitType" -> Data.map(
+            "viaTypeBound" -> Data("scala.Option[scala.Int]"),
+            "viaImport" -> Data("scala.Option[scala.Int]"),
+            "viaDeclaredVal" -> Data("scala.Option[scala.Int]"),
+            "viaDeclaredDef" -> Data("scala.Option[scala.Int]"),
+            "viaInheritance" -> Data("scala.Option[scala.Int]")
+          )
+        )
+      }
 
       test("should work for simple types") {
         CrossQuotesFixtures.simpleType <==> "scala.Int"
@@ -31,6 +61,11 @@ final class CrossQuotesSpec extends MacroSuite {
 
     group("methods: Type.Ctor[n].of") {
       import CrossTypesFixtures.*
+
+      // TODO: add tests for type aliases and kind projections
+      // TODO: test type aliased that just renames
+      // TODO: test type aliases that change the arity and order of type parameters
+      // TODO: test kind projections
 
       test("for Type.Ctor1.of") {
         testTypeCtor1[String] <==> Data("Not an option")

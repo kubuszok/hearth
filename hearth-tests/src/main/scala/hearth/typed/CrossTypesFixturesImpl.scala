@@ -6,6 +6,69 @@ import hearth.data.Data
 /** Fixtured for testing [[CrossTypesSpec]]. */
 trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
+  def testTypeOf[A: Type]: Expr[Data] = {
+    import hearth.examples.classes.{ExampleTrait, ExampleTraitWithTypeParam}
+    Expr(
+      Data.map(
+        // Scala 2 types in quasiquotes required fcqn or their resolution would fail, or resolve to
+        // some local definition ofershading the intended one. We should make sure that if the type is
+        // unambiguosuly resolved during the macro compilation, it would be resolved to the same type during its expansion.
+        "resolvingType" -> Data.map(
+          "ofImportedType" -> Data(Type.of[ExampleTrait].plainPrint),
+          "ofImportedTypeWithTypeParam" -> Data(Type.of[ExampleTraitWithTypeParam[A]].plainPrint),
+          "ofRelativePathType" -> Data(Type.of[examples.classes.ExampleClass].plainPrint),
+          "ofRelativePathWithTypeParamType" -> Data(Type.of[examples.classes.ExampleClassWithTypeParam[A]].plainPrint),
+          "ofFqcnType" -> Data(Type.of[hearth.examples.classes.ExampleClass].plainPrint),
+          "ofFqcnWithTypeParamType" -> Data(Type.of[hearth.examples.classes.ExampleClassWithTypeParam[A]].plainPrint)
+        ),
+        // We should make sure that:
+        //  - type bound: [A: Type]
+        //  - import: import a.Underlying as Name
+        //  - declared val A: Type[A] = someType (declared locally or inherited)
+        // all would be considered when building a type that uses A.
+        "resolvingImplicitType" -> Data.map(
+          "viaTypeBound" -> Data {
+            Type.of[Option[A]].plainPrint
+          },
+          "viaImport" -> Data {
+            val b = Type[A].as_??
+            import b.Underlying as B
+            Type.of[Option[B]].plainPrint
+          },
+          "viaDeclaredVal" -> Data {
+            def body[B](tpe: Type[B]) = {
+              implicit val B: Type[B] = tpe
+              Type.of[Option[B]].plainPrint
+            }
+            body(Type[A])
+          },
+          "viaDeclaredDef" -> Data {
+            case class Ctx[B](tpe: Type[B])
+            implicit def fromCtx[B](implicit ctx: Ctx[B]): Type[B] = ctx.tpe
+            def body[B: Ctx] =
+              Type.of[Option[B]].plainPrint
+            body(using Ctx(Type[A]))
+          },
+          "viaInheritance" -> Data {
+            val a = Type[A]
+            trait HelperA {
+              type B
+              implicit val B: Type[B]
+            }
+            trait HelperB extends HelperA {
+              def result = Type.of[Option[B]].plainPrint
+            }
+            class HelperC extends HelperB {
+              type B = A
+              implicit val B: Type[B] = a
+            }
+            (new HelperC).result
+          }
+        )
+      )
+    )
+  }
+
   private val String = Type.of[String]
 
   private val optionTest = Type.Ctor1.of[Option]
