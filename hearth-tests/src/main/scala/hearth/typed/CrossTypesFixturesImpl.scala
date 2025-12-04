@@ -71,16 +71,18 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   private val String = Type.of[String]
 
+  @scala.annotation.nowarn
   def testTypeCtor1[In: Type]: Expr[Data] = {
     val classTest = Type.Ctor1.of[examples.kinds.Arity1]
     val renamedTest = Type.Ctor1.of[examples.kinds.Alias.Renamed1]
     val extraTest = Type.Ctor1.of[examples.kinds.Alias.Extra1]
-    //val fixedFrontTest = Type.Ctor1.of[examples.kinds.Alias.FixedFront1]
-    //val fixedBackTest = Type.Ctor1.of[examples.kinds.Alias.FixedBack1]
+    val fixedFrontTest = Type.Ctor1.of[examples.kinds.Alias.FixedFront1]
+    val fixedBackTest = Type.Ctor1.of[examples.kinds.Alias.FixedBack1]
 
     // TODO: type projector test as well
 
     Type[In] match {
+      /*
       case classTest(aParam) =>
         import aParam.Underlying as A
         val reapplied = classTest(using String)
@@ -111,7 +113,6 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
             "reapplied" -> Data(reapplied.plainPrint)
           )
         )
-      /*
       case fixedFrontTest(aParam) =>
         import aParam.Underlying as A
         val reapplied = fixedFrontTest(using String)
@@ -132,7 +133,7 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
             "reapplied" -> Data(reapplied.plainPrint)
           )
         )
-      */
+       */
       case _ => Expr(Data("Not one of the expected types"))
     }
   }
@@ -1360,5 +1361,5 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
         )
       case _ => Expr(Data("Not a tuple22"))
     }
-  */
+   */
 }

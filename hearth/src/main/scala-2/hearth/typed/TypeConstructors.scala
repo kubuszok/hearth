@@ -71,6 +71,9 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, HKT[_ <: U1]]: UpperBounded[U1, HKT] = macro CrossQuotesMacros.typeCtor1Impl[Nothing, U1, HKT]
       }
+
+      type Apply[L1, U1 >: L1, HKT[_ >: L1 <: U1], A >: L1 <: U1] = HKT[A]
+      type Stub[L1, U1 >: L1, HKT[_ >: L1 <: U1]] = HKT[?]
     }
 
     final type Ctor2[HKT[_, _]] = Ctor2.Bounded[Nothing, Any, Nothing, Any, HKT]
