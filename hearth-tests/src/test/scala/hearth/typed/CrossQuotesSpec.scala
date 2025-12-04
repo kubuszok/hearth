@@ -2,9 +2,6 @@ package hearth
 package typed
 
 import hearth.data.Data
-import scala.util.Try
-import scala.concurrent.Future
-import scala.collection.immutable.Queue
 
 /** Macro implementation is in [[hearth.cq.CrossQuotesMacros]] (Scala 2) and [[hearth.cq.CrossQuotesPlugin]] (Scala 3).
   *
@@ -54,7 +51,9 @@ final class CrossQuotesSpec extends MacroSuite {
       // TODO: test type aliases that change the arity and order of type parameters
       // TODO: test kind projections
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor1") {
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor1"
+      ) {
         testTypeCtor1[String] <==> Data("Not one of the expected types")
 
         testTypeCtor1[examples.kinds.Arity1[Int]] <==> Data.map(
@@ -62,7 +61,7 @@ final class CrossQuotesSpec extends MacroSuite {
           "unapplied" -> Data.list(Data("scala.Int")),
           "reapplied" -> Data("hearth.examples.kinds.Arity1[java.lang.String]")
         )
-        
+
         testTypeCtor1[examples.kinds.Alias.Renamed1[Int]] <==> Data.map(
           "matched" -> Data("as renamed"),
           "unapplied" -> Data.list(Data("scala.Int")),
@@ -810,7 +809,7 @@ final class CrossQuotesSpec extends MacroSuite {
           )
         )
       }
-      */
+       */
     }
 
     group("for Expr.quote+Expr.splice") {
