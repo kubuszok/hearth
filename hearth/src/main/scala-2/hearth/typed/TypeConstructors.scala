@@ -72,6 +72,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
         def of[U1, HKT[_ <: U1]]: UpperBounded[U1, HKT] = macro CrossQuotesMacros.typeCtor1Impl[Nothing, U1, HKT]
       }
 
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
       type Apply[L1, U1 >: L1, HKT[_ >: L1 <: U1], A >: L1 <: U1] = HKT[A]
       type Stub[L1, U1 >: L1, HKT[_ >: L1 <: U1]] = HKT[?]
     }

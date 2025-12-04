@@ -183,72 +183,40 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
     val HKT = HKTE.tpe.typeConstructor
     val A = freshTypeName("A") // 1
+    val appliedHKT = tq"Type.Ctor1.Apply[$L1, $U1, $HKT, $A]"
 
     val ctx = freshName("ctx")
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
 
-    def attempt(appliedHKT: c.Tree, hktBody: c.Tree): scala.util.Try[c.Tree] = scala.util.Try {
+    val unchecked = q"""
+    new Type.Ctor1.Bounded[$L1, $U1, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{Type => _, internal => _, _}
 
-      val unchecked = q"""
-      new Type.Ctor1.Bounded[$L1, $U1, $HKT] {
-        private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
-        private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
-          $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-        import $ctx.universe.{Type => _, internal => _, _}
+      private val HKT = $ctx.weakTypeTag[Type.Ctor1.Stub[$L1, $U1, $HKT]].tpe.typeArgs.last.typeSymbol
 
-        private val HKT = $hktBody
+      def apply[$A >: $L1 <: $U1: Type]: Type[$appliedHKT] =
+        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
 
-        def apply[$A >: $L1 <: $U1: Type]: Type[$appliedHKT] =
-          $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
-
-        def unapply[$A](A: Type[$A]): Option[$L1 <:??<: $U1] =
-          A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.baseType(HKT) match {
-            case TypeRef(_, _, List(tp1)) =>
-              Some($ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1])
-            case els =>
-              println(Type.prettyPrint[A] + "unapply against " + HKT.toString + " failed: " + els)
-              None
-          }
-      }
-      """
-
-      log(
-        s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor1.of")} expansion:
-           |From: ${paintExclDot(Console.BLUE)("Type.Ctor1.of")}[${L1.tpe}, ${U1.tpe}, $HKT]
-           |To: ${indent(showCodePretty(unchecked, SyntaxHighlight.ANSI))}""".stripMargin
-      )
-
-      suppressWarnings(c.typecheck(unchecked))
+      def unapply[$A](A: Type[$A]): Option[$L1 <:??<: $U1] =
+        A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe.baseType(HKT) match {
+          case TypeRef(_, _, List(tp1)) =>
+            Some($ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1])
+          case els =>
+            println(A.prettyPrint + "unapply against " + HKT.toString + " failed: " + els)
+            None
+        }
     }
+    """
 
-    // lazy val appliedHKTDefault = applyToCtor(HKT, A)
-    lazy val appliedHKTWorkaround = tq"Type.Ctor1.Apply[$L1, $U1, $HKT, $A]"
-    lazy val symbolFromTypeTag = q"$ctx.weakTypeTag[Type.Ctor1.Stub[$L1, $U1, $HKT]].tpe.typeArgs.last.typeSymbol"
-    // lazy val symbolFromMirror = q"$ctx.mirror.staticClass(${HKT.typeSymbol.fullName})"
-
-    val result =
-      //
-      // if (canUseMirrorStaticClass(HKT)) {
-      //   attempt(appliedHKTDefault, symbolFromMirror)
-      // } else {
-      //   attempt(appliedHKTWorkaround, symbolFromTypeTag)
-      // }
-      attempt(appliedHKTWorkaround, symbolFromTypeTag)
-        // .orElse(attempt(appliedHKTDefault, symbolFromTypeTag))
-        // .orElse(attempt(appliedHKTDefault, symbolFromMirror))
-        .fold(throw _, identity)
-
-    type Stub[L, U >: L, F[_ >: L <: U]] = F[?]
-    val example = c.weakTypeTag[Stub[Nothing, Any, scala.collection.Iterable]].tpe.typeArgs.last
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor1.of")} expansion:
-         |Example2 ${showCodePretty(example, SyntaxHighlight.ANSI)}
-         |         ${example.typeSymbol}
-         |         ${example.typeSymbol.fullName}
-         |         ${example.typeParams.size}
          |From: ${paintExclDot(Console.BLUE)("Type.Ctor1.of")}[${L1.tpe}, ${U1.tpe}, $HKT]
          |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
     )

@@ -82,7 +82,6 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
     // TODO: type projector test as well
 
     Type[In] match {
-      /*
       case classTest(aParam) =>
         import aParam.Underlying as A
         val reapplied = classTest(using String)
@@ -133,7 +132,6 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
             "reapplied" -> Data(reapplied.plainPrint)
           )
         )
-       */
       case _ => Expr(Data("Not one of the expected types"))
     }
   }
