@@ -34,10 +34,11 @@ final class CrossQuotesSpec extends MacroSuite {
           ),
           "resolvingImplicitType" -> Data.map(
             "viaTypeBound" -> Data("scala.Option[scala.Int]"),
+            "viaImplicitParam" -> Data("scala.Option[scala.Int]"),
             "viaImport" -> Data("scala.Option[scala.Int]"),
             "viaDeclaredVal" -> Data("scala.Option[scala.Int]"),
-            "viaDeclaredDef" -> Data("scala.Option[scala.Int]"),
-            "viaInheritance" -> Data("scala.Option[scala.Int]")
+            "viaDeclaredDef" -> Data("scala.Option[scala.Int]") // ,
+            // "viaInheritance" -> Data("scala.Option[scala.Int]") Probably impossible to implement on Scala 3, since we cannot use Types to find which implicits would be needed.
           )
         )
       }

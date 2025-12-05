@@ -224,6 +224,15 @@ final class CrossQuotesPhase(loggingEnabledFor: Option[JFile] => Boolean) extend
         }
       }
 
+      // Helper to extract Type[A] from AppliedTypeTree
+      private object TypeAppliedTypeTree {
+        def unapply(tree: untpd.Tree): Option[untpd.Tree] = tree match {
+          case AppliedTypeTree(Ident(tpeName), List(innerType)) if tpeName.show == "Type" =>
+            Some(innerType)
+          case _ => None
+        }
+      }
+
       // given casted$name: scala.quoted.Type[$tpe] = Type[$tpe].asInstanceOf[scala.quoted.Type[$tpe]]
       private def makeGiven(name: String, tpe: untpd.Tree): untpd.ValDef =
         untpd
@@ -522,16 +531,26 @@ final class CrossQuotesPhase(loggingEnabledFor: Option[JFile] => Boolean) extend
 
           result
 
-        /* Looking for blocks with imports that contain Underlying.
+        /* Looking for blocks with imports that contain Underlying, or implicit val/def/given returning Type[A].
          * For each such import we inject:
          *   given castedUnderlying: scala.quoted.Type[Underlying] =
          *     Type[Underlying].asInstanceOf[scala.quoted.Type[Underlying]]
+         * For each implicit val/def/given returning Type[A] we inject:
+         *   given casted$name: scala.quoted.Type[A] = Type[A].asInstanceOf[scala.quoted.Type[A]]
          */
-        case Block(stats, expr) if stats.collectFirst {
-              case Import(_, selectors) if selectors.exists(_.imported.show == "Underlying") => ()
-            }.isDefined =>
+        case Block(stats, expr) if stats.exists {
+              case Import(_, selectors) => selectors.exists(_.imported.show == "Underlying")
+              case vd: untpd.ValDef if (vd.mods.flags.is(Flags.Implicit) || vd.mods.flags.is(Flags.Given)) =>
+                TypeAppliedTypeTree.unapply(vd.tpt).isDefined
+              case dd @ untpd.DefDef(_, paramss, returnTpe, _)
+                  if (dd.mods.flags.is(Flags.Implicit) || dd.mods.flags.is(Flags.Given)) &&
+                    paramss.flatten.isEmpty =>
+                TypeAppliedTypeTree.unapply(returnTpe).isDefined
+              case _ => false
+            } =>
 
           val newGivenCandidates = stats.collect {
+            // Handle imports with Underlying
             case Import(expr, selectors) if selectors.exists(_.imported.show == "Underlying") =>
               selectors.collect {
                 case untpd.ImportSelector(Ident(underlying), rename, _) if underlying.show.contains("Underlying") =>
@@ -545,6 +564,22 @@ final class CrossQuotesPhase(loggingEnabledFor: Option[JFile] => Boolean) extend
                   }
 
                   makeGiven(name, tpe)
+              }
+
+            // Handle implicit val someName: Type[SomeType] = ... or given someName: Type[SomeType] = ...
+            case vd: untpd.ValDef if (vd.mods.flags.is(Flags.Implicit) || vd.mods.flags.is(Flags.Given)) =>
+              TypeAppliedTypeTree.unapply(vd.tpt).map { innerType =>
+                val name = vd.name.show
+                makeGiven(name, innerType)
+              }
+
+            // Handle implicit def someName2: Type[SomeType2] = ... (no type parameters) or given someName2: Type[SomeType2] = ...
+            case dd @ untpd.DefDef(methodName, paramss, returnTpe, _)
+                if (dd.mods.flags.is(Flags.Implicit) || dd.mods.flags.is(Flags.Given)) &&
+                  paramss.flatten.isEmpty =>
+              TypeAppliedTypeTree.unapply(returnTpe).map { innerType =>
+                val name = methodName.show
+                makeGiven(name, innerType)
               }
           }.flatten
 
@@ -570,16 +605,34 @@ final class CrossQuotesPhase(loggingEnabledFor: Option[JFile] => Boolean) extend
 
           val newGivenCandidates = paramss
             .flatten[Any]
-            .collect {
+            .flatMap {
               /* If parameters is
                *   [A: Type]
+               * or
+               *   [A: Ctx] // maybe there is some Ctx[A] => Type[A]
                * then the name of the parameter is A and the type inside Type[_] type is also A, which we can use to distinguish such bound.
                * Then we can injects a given for A:
                *   given castedA: scala.quoted.Type[A] = Type[A].asInstanceOf[scala.quoted.Type[A]]
                */
-              case TypeDef(name, untpd.ContextBounds(_, List(CtxBoundsTypeTree(tpe, name2))))
-                  if tpe.show == "Type" && name.show == name2.show =>
-                makeGiven(name.mangledString, untpd.Ident(name))
+              case TypeDef(name, untpd.ContextBounds(_, List(CtxBoundsTypeTree(_ /*tpe*/, name2))))
+                  if /* tpe.show == "Type" && */ name.show == name2.show =>
+                Some(makeGiven(name.mangledString, untpd.Ident(name)))
+
+              /* If parameters is
+               *   [A](implicit a: Type[A])
+               * or
+               *   [A](using a: Type[A])
+               * then we extract the inner type A from Type[A] and inject a given for it:
+               *   given castedA: scala.quoted.Type[A] = Type[A].asInstanceOf[scala.quoted.Type[A]]
+               */
+              case vd: untpd.ValDef if (vd.mods.flags.is(Flags.Implicit) || vd.mods.flags.is(Flags.Given)) =>
+                TypeAppliedTypeTree.unapply(vd.tpt).map { innerType =>
+                  // Use the parameter name for the given name, but reference the inner type
+                  val paramName = vd.name.show
+                  makeGiven(paramName, innerType)
+                }
+
+              case _ => None
             }
 
           // Uncomment to debug missing givens:
