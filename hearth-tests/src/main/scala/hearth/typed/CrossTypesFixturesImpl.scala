@@ -33,12 +33,12 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
           "viaImport" -> Data {
             val b = Type[A].as_??
             import b.Underlying as B
-            Type.of[Option[B]].plainPrint
+            Type.of[Option[B]].plainPrint // compiles on Scala 2 but with the wrong result (implicit is ignored, and compiler creates Type[b.Underlying])
           },
           "viaDeclaredVal" -> Data {
             def body[B](tpe: Type[B]) = {
               implicit val B: Type[B] = tpe
-              Type.of[Option[B]].plainPrint
+              Type.of[Option[B]].plainPrint // fails to compile on Scala 3 (we aren't picking up the implicit Type[B])
             }
             body(Type[A])
           },
@@ -46,7 +46,7 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
             case class Ctx[B](tpe: Type[B])
             implicit def fromCtx[B](implicit ctx: Ctx[B]): Type[B] = ctx.tpe
             def body[B: Ctx] =
-              Type.of[Option[B]].plainPrint
+              Type.of[Option[B]].plainPrint // fails to compile on Scala 3 (we only special-case A: Type)
             body(using Ctx(Type[A]))
           },
           "viaInheritance" -> Data {
@@ -56,7 +56,7 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
               implicit val B: Type[B]
             }
             trait HelperB extends HelperA {
-              def result = Type.of[Option[B]].plainPrint
+              def result = Type.of[Option[B]].plainPrint // fails to compile on Scala 3 (we aren't picking up the implicit Type[B])
             }
             class HelperC extends HelperB {
               type B = A
