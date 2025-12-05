@@ -12,7 +12,6 @@ final private class CrossTypesFixtures(val c: blackbox.Context) extends MacroCom
 
   def testTypeCtor1Impl[A: c.WeakTypeTag]: c.Expr[Data] = testTypeCtor1[A]
 
-  /*
   def testTypeCtor2Impl[A: c.WeakTypeTag]: c.Expr[Data] = testTypeCtor2[A]
 
   def testTypeCtor3Impl[A: c.WeakTypeTag]: c.Expr[Data] = testTypeCtor3[A]
@@ -54,7 +53,6 @@ final private class CrossTypesFixtures(val c: blackbox.Context) extends MacroCom
   def testTypeCtor21Impl[A: c.WeakTypeTag]: c.Expr[Data] = testTypeCtor21[A]
 
   def testTypeCtor22Impl[A: c.WeakTypeTag]: c.Expr[Data] = testTypeCtor22[A]
-   */
 }
 
 object CrossTypesFixtures {
@@ -63,7 +61,6 @@ object CrossTypesFixtures {
 
   def testTypeCtor1[A]: Data = macro CrossTypesFixtures.testTypeCtor1Impl[A]
 
-  /*
   def testTypeCtor2[A]: Data = macro CrossTypesFixtures.testTypeCtor2Impl[A]
 
   def testTypeCtor3[A]: Data = macro CrossTypesFixtures.testTypeCtor3Impl[A]
@@ -105,5 +102,4 @@ object CrossTypesFixtures {
   def testTypeCtor21[A]: Data = macro CrossTypesFixtures.testTypeCtor21Impl[A]
 
   def testTypeCtor22[A]: Data = macro CrossTypesFixtures.testTypeCtor22Impl[A]
-   */
 }

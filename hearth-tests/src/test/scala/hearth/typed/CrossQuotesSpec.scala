@@ -46,9 +46,6 @@ final class CrossQuotesSpec extends MacroSuite {
     group("for Type.Ctor[n].of") {
       import CrossTypesFixtures.*
 
-      // TODO: add tests for type aliases and kind projections
-      // TODO: test type aliased that just renames
-      // TODO: test type aliases that change the arity and order of type parameters
       // TODO: test kind projections
 
       test(
@@ -57,759 +54,3243 @@ final class CrossQuotesSpec extends MacroSuite {
         testTypeCtor1[String] <==> Data("Not one of the expected types")
 
         testTypeCtor1[examples.kinds.Arity1[Int]] <==> Data.map(
-          "matched" -> Data("as class"),
-          "unapplied" -> Data.list(Data("scala.Int")),
-          "reapplied" -> Data("hearth.examples.kinds.Arity1[java.lang.String]")
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity1[java.lang.String]")
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity1[java.lang.String]")
+          )
         )
 
         testTypeCtor1[examples.kinds.Alias.Renamed1[Int]] <==> Data.map(
-          "matched" -> Data("as renamed"),
-          "unapplied" -> Data.list(Data("scala.Int")),
-          "reapplied" -> Data("hearth.examples.kinds.Alias.Renamed1[java.lang.String]") // maybe unaliased?
-        )
-
-        testTypeCtor1[examples.kinds.Alias.Extra1[Int]] <==> Data.map(
-          "matched" -> Data("as extra"),
-          "unapplied" -> Data.list(Data("scala.Int")),
-          "reapplied" -> Data("hearth.examples.kinds.Alias.Extra1[java.lang.String]") // maybe unaliased?
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity1[java.lang.String]")
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity1[java.lang.String]")
+          )
         )
 
         testTypeCtor1[examples.kinds.Alias.FixedFront1[Int]] <==> Data.map(
-          "matched" -> Data("as fixed front"),
-          "unapplied" -> Data.list(Data("scala.Int")),
-          "reapplied" -> Data("hearth.examples.kinds.Alias.FixedFront1[java.lang.String]") // maybe unaliased?
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity2[scala.Unit, java.lang.String]")
+          )
         )
 
         testTypeCtor1[examples.kinds.Alias.FixedBack1[Int]] <==> Data.map(
-          "matched" -> Data("as fixed back"),
-          "unapplied" -> Data.list(Data("scala.Int")),
-          "reapplied" -> Data("hearth.examples.kinds.Alias.FixedBack1[java.lang.String]") // maybe unaliased?
-        )
-      }
-
-      /*
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor2") {
-        testTypeCtor2[String] <==> Data("Not an either")
-        testTypeCtor2[Option[Int]] <==> Data("Not an either")
-        testTypeCtor2[Either[Int, String]] <==> Data(
-          Map(
-            "unapplied" -> Data.list(Data("scala.Int"), Data("java.lang.String")),
-            "reapplied" -> Data("scala.util.Either[java.lang.String, java.lang.String]")
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity2[java.lang.String, scala.Unit]")
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor3") {
-        testTypeCtor3[String] <==> Data("Not a tuple3")
-        testTypeCtor3[Option[Int]] <==> Data("Not a tuple3")
-        testTypeCtor3[(Int, String, Double)] <==> Data(
-          Map(
-            "unapplied" -> Data.list(Data("scala.Int"), Data("java.lang.String"), Data("scala.Double")),
-            "reapplied" -> Data("scala.Tuple3[java.lang.String, java.lang.String, java.lang.String]")
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor2"
+      ) {
+        testTypeCtor2[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor2[examples.kinds.Arity2[Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity2[java.lang.String, java.lang.String]")
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity2[java.lang.String, java.lang.String]")
+          )
+        )
+
+        testTypeCtor2[examples.kinds.Alias.Renamed2[Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity2[java.lang.String, java.lang.String]")
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity2[java.lang.String, java.lang.String]")
+          )
+        )
+
+        testTypeCtor2[examples.kinds.Alias.FixedFront2[Int, Int]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity3[scala.Unit, java.lang.String, java.lang.String]")
+          )
+        )
+
+        testTypeCtor2[examples.kinds.Alias.FixedBack2[Int, Int]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity3[java.lang.String, java.lang.String, scala.Unit]")
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor4") {
-        testTypeCtor4[String] <==> Data("Not a tuple4")
-        testTypeCtor4[Option[Int]] <==> Data("Not a tuple4")
-        testTypeCtor4[(Int, String, Double, Boolean)] <==> Data(
-          Map(
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor3"
+      ) {
+        testTypeCtor3[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor3[examples.kinds.Arity3[Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity3[java.lang.String, java.lang.String, java.lang.String]")
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity3[java.lang.String, java.lang.String, java.lang.String]")
+          )
+        )
+
+        testTypeCtor3[examples.kinds.Alias.Renamed3[Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity3[java.lang.String, java.lang.String, java.lang.String]")
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data("hearth.examples.kinds.Arity3[java.lang.String, java.lang.String, java.lang.String]")
+          )
+        )
+
+        testTypeCtor3[examples.kinds.Alias.FixedFront3[Int, Int, Int]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity4[scala.Unit, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor3[examples.kinds.Alias.FixedBack3[Int, Int, Int]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity4[java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
+            )
+          )
+        )
+      }
+
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor4"
+      ) {
+        testTypeCtor4[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor4[examples.kinds.Arity4[Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity4[java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity4[java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor4[examples.kinds.Alias.Renamed4[Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity4[java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity4[java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor4[examples.kinds.Alias.FixedFront4[Int, Int, Int, Int]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity5[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor4[examples.kinds.Alias.FixedBack4[Int, Int, Int, Int]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity5[java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
+            )
+          )
+        )
+      }
+
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor5"
+      ) {
+        testTypeCtor5[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor5[examples.kinds.Arity5[Int, Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data
-              .list(Data("scala.Int"), Data("java.lang.String"), Data("scala.Double"), Data("scala.Boolean")),
-            "reapplied" -> Data("scala.Tuple4[java.lang.String, java.lang.String, java.lang.String, java.lang.String]")
+              .list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity5[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data
+              .list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity5[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
           )
         )
-      }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor5") {
-        testTypeCtor5[String] <==> Data("Not a tuple5")
-        testTypeCtor5[Option[Int]] <==> Data("Not a tuple5")
-        testTypeCtor5[(Int, String, Double, Boolean, Char)] <==> Data(
-          Map(
-            "unapplied" -> Data.list(
-              Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char")
-            ),
+        testTypeCtor5[examples.kinds.Alias.Renamed5[Int, Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data
+              .list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
             "reapplied" -> Data(
-              "scala.Tuple5[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity5[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data
+              .list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity5[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor5[examples.kinds.Alias.FixedFront5[Int, Int, Int, Int, Int]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data
+              .list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity6[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor5[examples.kinds.Alias.FixedBack5[Int, Int, Int, Int, Int]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data
+              .list(Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int"), Data("scala.Int")),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity6[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor6") {
-        testTypeCtor6[String] <==> Data("Not a tuple6")
-        testTypeCtor6[Option[Int]] <==> Data("Not a tuple6")
-        testTypeCtor6[(Int, String, Double, Boolean, Char, Float)] <==> Data(
-          Map(
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor6"
+      ) {
+        testTypeCtor6[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor6[examples.kinds.Arity6[Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple6[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity6[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity6[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor6[examples.kinds.Alias.Renamed6[Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity6[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity6[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor6[examples.kinds.Alias.FixedFront6[Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity7[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor6[examples.kinds.Alias.FixedBack6[Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity7[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor7") {
-        testTypeCtor7[String] <==> Data("Not a tuple7")
-        testTypeCtor7[Option[Int]] <==> Data("Not a tuple7")
-        testTypeCtor7[(Int, String, Double, Boolean, Char, Float, Long)] <==> Data(
-          Map(
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor7"
+      ) {
+        testTypeCtor7[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor7[examples.kinds.Arity7[Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple7[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity7[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity7[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor7[examples.kinds.Alias.Renamed7[Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity7[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity7[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor7[examples.kinds.Alias.FixedFront7[Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity8[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor7[examples.kinds.Alias.FixedBack7[Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity8[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor8") {
-        testTypeCtor8[String] <==> Data("Not a tuple8")
-        testTypeCtor8[Option[Int]] <==> Data("Not a tuple8")
-        testTypeCtor8[(Int, String, Double, Boolean, Char, Float, Long, Short)] <==> Data(
-          Map(
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor8"
+      ) {
+        testTypeCtor8[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor8[examples.kinds.Arity8[Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple8[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity8[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity8[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor8[examples.kinds.Alias.Renamed8[Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity8[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity8[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor8[examples.kinds.Alias.FixedFront8[Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity9[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor8[examples.kinds.Alias.FixedBack8[Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity9[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor9") {
-        testTypeCtor9[String] <==> Data("Not a tuple9")
-        testTypeCtor9[Option[Int]] <==> Data("Not a tuple9")
-        testTypeCtor9[(Int, String, Double, Boolean, Char, Float, Long, Short, Byte)] <==> Data(
-          Map(
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor9"
+      ) {
+        testTypeCtor9[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor9[examples.kinds.Arity9[Int, Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short"),
-              Data("scala.Byte")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple9[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity9[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity9[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor9[examples.kinds.Alias.Renamed9[Int, Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity9[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity9[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor9[examples.kinds.Alias.FixedFront9[Int, Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity10[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor9[examples.kinds.Alias.FixedBack9[Int, Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity10[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor10") {
-        testTypeCtor10[String] <==> Data("Not a tuple10")
-        testTypeCtor10[Option[Int]] <==> Data("Not a tuple10")
-        testTypeCtor10[(Int, String, Double, Boolean, Char, Float, Long, Short, Byte, Unit)] <==> Data(
-          Map(
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor10"
+      ) {
+        testTypeCtor10[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor10[examples.kinds.Arity10[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short"),
-              Data("scala.Byte"),
-              Data("scala.Unit")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple10[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity10[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity10[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor10[examples.kinds.Alias.Renamed10[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity10[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity10[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor10[examples.kinds.Alias.FixedFront10[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data
+          .map(
+            "as fixed front" -> Data.map(
+              "unapplied" -> Data.list(
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int")
+              ),
+              "reapplied" -> Data(
+                "hearth.examples.kinds.Arity11[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              )
+            )
+          )
+
+        testTypeCtor10[examples.kinds.Alias.FixedBack10[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data
+          .map(
+            "as fixed back" -> Data.map(
+              "unapplied" -> Data.list(
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int")
+              ),
+              "reapplied" -> Data(
+                "hearth.examples.kinds.Arity11[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
+              )
+            )
+          )
+      }
+
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor11"
+      ) {
+        testTypeCtor11[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor11[examples.kinds.Arity11[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity11[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity11[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor11[examples.kinds.Alias.Renamed11[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data
+          .map(
+            "as class" -> Data.map(
+              "unapplied" -> Data.list(
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int")
+              ),
+              "reapplied" -> Data(
+                "hearth.examples.kinds.Arity11[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              )
+            ),
+            "as renamed" -> Data.map(
+              "unapplied" -> Data.list(
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int")
+              ),
+              "reapplied" -> Data(
+                "hearth.examples.kinds.Arity11[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              )
+            )
+          )
+
+        testTypeCtor11[
+          examples.kinds.Alias.FixedFront11[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity12[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor11[
+          examples.kinds.Alias.FixedBack11[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity12[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor11") {
-        testTypeCtor11[String] <==> Data("Not a tuple11")
-        testTypeCtor11[Option[Int]] <==> Data("Not a tuple11")
-        testTypeCtor11[(Int, String, Double, Boolean, Char, Float, Long, Short, Byte, Unit, List[Int])] <==> Data(
-          Map(
-            "unapplied" -> Data.list(
-              Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short"),
-              Data("scala.Byte"),
-              Data("scala.Unit"),
-              Data("scala.collection.immutable.List[scala.Int]")
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor12"
+      ) {
+        testTypeCtor12[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor12[examples.kinds.Arity12[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]] <==> Data
+          .map(
+            "as class" -> Data.map(
+              "unapplied" -> Data.list(
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int")
+              ),
+              "reapplied" -> Data(
+                "hearth.examples.kinds.Arity12[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              )
             ),
-            "reapplied" -> Data(
-              "scala.Tuple11[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            "as renamed" -> Data.map(
+              "unapplied" -> Data.list(
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int"),
+                Data("scala.Int")
+              ),
+              "reapplied" -> Data(
+                "hearth.examples.kinds.Arity12[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              )
             )
           )
-        )
-      }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor12") {
-        testTypeCtor12[String] <==> Data("Not a tuple12")
-        testTypeCtor12[Option[Int]] <==> Data("Not a tuple12")
         testTypeCtor12[
-          (Int, String, Double, Boolean, Char, Float, Long, Short, Byte, Unit, List[Int], Set[String])
-        ] <==> Data(
-          Map(
+          examples.kinds.Alias.Renamed12[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short"),
-              Data("scala.Byte"),
-              Data("scala.Unit"),
-              Data("scala.collection.immutable.List[scala.Int]"),
-              Data("scala.collection.immutable.Set[java.lang.String]")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple12[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity12[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity12[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor12[
+          examples.kinds.Alias.FixedFront12[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity13[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor12[
+          examples.kinds.Alias.FixedBack12[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity13[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor13") {
-        testTypeCtor13[String] <==> Data("Not a tuple13")
-        testTypeCtor13[Option[Int]] <==> Data("Not a tuple13")
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor13"
+      ) {
+        testTypeCtor13[String] <==> Data("Not one of the expected types")
+
         testTypeCtor13[
-          (Int, String, Double, Boolean, Char, Float, Long, Short, Byte, Unit, List[Int], Set[String], Map[Int, String])
-        ] <==> Data(
-          Map(
+          examples.kinds.Arity13[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short"),
-              Data("scala.Byte"),
-              Data("scala.Unit"),
-              Data("scala.collection.immutable.List[scala.Int]"),
-              Data("scala.collection.immutable.Set[java.lang.String]"),
-              Data("scala.collection.immutable.Map[scala.Int, java.lang.String]")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple13[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity13[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity13[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor13[
+          examples.kinds.Alias.Renamed13[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity13[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity13[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor13[
+          examples.kinds.Alias.FixedFront13[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity14[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor13[
+          examples.kinds.Alias.FixedBack13[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity14[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor14") {
-        testTypeCtor14[String] <==> Data("Not a tuple14")
-        testTypeCtor14[Option[Int]] <==> Data("Not a tuple14")
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor14"
+      ) {
+        testTypeCtor14[String] <==> Data("Not one of the expected types")
+
         testTypeCtor14[
-          (
-              Int,
-              String,
-              Double,
-              Boolean,
-              Char,
-              Float,
-              Long,
-              Short,
-              Byte,
-              Unit,
-              List[Int],
-              Set[String],
-              Map[Int, String],
-              Vector[Double]
-          )
-        ] <==> Data(
-          Map(
+          examples.kinds.Arity14[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short"),
-              Data("scala.Byte"),
-              Data("scala.Unit"),
-              Data("scala.collection.immutable.List[scala.Int]"),
-              Data("scala.collection.immutable.Set[java.lang.String]"),
-              Data("scala.collection.immutable.Map[scala.Int, java.lang.String]"),
-              Data("scala.collection.immutable.Vector[scala.Double]")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple14[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity14[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity14[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor14[
+          examples.kinds.Alias.Renamed14[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity14[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity14[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor14[
+          examples.kinds.Alias.FixedFront14[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity15[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor14[
+          examples.kinds.Alias.FixedBack14[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity15[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor15") {
-        testTypeCtor15[String] <==> Data("Not a tuple15")
-        testTypeCtor15[Option[Int]] <==> Data("Not a tuple15")
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor15"
+      ) {
+        testTypeCtor15[String] <==> Data("Not one of the expected types")
+
         testTypeCtor15[
-          (
-              Int,
-              String,
-              Double,
-              Boolean,
-              Char,
-              Float,
-              Long,
-              Short,
-              Byte,
-              Unit,
-              List[Int],
-              Set[String],
-              Map[Int, String],
-              Vector[Double],
-              Array[Boolean]
-          )
-        ] <==> Data(
-          Map(
+          examples.kinds.Arity15[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short"),
-              Data("scala.Byte"),
-              Data("scala.Unit"),
-              Data("scala.collection.immutable.List[scala.Int]"),
-              Data("scala.collection.immutable.Set[java.lang.String]"),
-              Data("scala.collection.immutable.Map[scala.Int, java.lang.String]"),
-              Data("scala.collection.immutable.Vector[scala.Double]"),
-              Data("scala.Array[scala.Boolean]")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple15[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity15[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity15[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor15[
+          examples.kinds.Alias.Renamed15[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity15[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity15[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor15[
+          examples.kinds.Alias.FixedFront15[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity16[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor15[
+          examples.kinds.Alias.FixedBack15[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity16[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor16") {
-        testTypeCtor16[String] <==> Data("Not a tuple16")
-        testTypeCtor16[Option[Int]] <==> Data("Not a tuple16")
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor16"
+      ) {
+        testTypeCtor16[String] <==> Data("Not one of the expected types")
+
         testTypeCtor16[
-          (
-              Int,
-              String,
-              Double,
-              Boolean,
-              Char,
-              Float,
-              Long,
-              Short,
-              Byte,
-              Unit,
-              List[Int],
-              Set[String],
-              Map[Int, String],
-              Vector[Double],
-              Array[Boolean],
-              Option[Char]
-          )
-        ] <==> Data(
-          Map(
+          examples.kinds.Arity16[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short"),
-              Data("scala.Byte"),
-              Data("scala.Unit"),
-              Data("scala.collection.immutable.List[scala.Int]"),
-              Data("scala.collection.immutable.Set[java.lang.String]"),
-              Data("scala.collection.immutable.Map[scala.Int, java.lang.String]"),
-              Data("scala.collection.immutable.Vector[scala.Double]"),
-              Data("scala.Array[scala.Boolean]"),
-              Data("scala.Option[scala.Char]")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple16[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity16[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity16[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor16[
+          examples.kinds.Alias.Renamed16[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity16[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity16[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor16[examples.kinds.Alias.FixedFront16[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity17[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor16[examples.kinds.Alias.FixedBack16[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity17[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor17") {
-        testTypeCtor17[String] <==> Data("Not a tuple17")
-        testTypeCtor17[Option[Int]] <==> Data("Not a tuple17")
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor17"
+      ) {
+        testTypeCtor17[String] <==> Data("Not one of the expected types")
+
         testTypeCtor17[
-          (
-              Int,
-              String,
-              Double,
-              Boolean,
-              Char,
-              Float,
-              Long,
-              Short,
-              Byte,
-              Unit,
-              List[Int],
-              Set[String],
-              Map[Int, String],
-              Vector[Double],
-              Array[Boolean],
-              Option[Char],
-              Either[Int, String]
-          )
-        ] <==> Data(
-          Map(
+          examples.kinds.Arity17[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+        ] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short"),
-              Data("scala.Byte"),
-              Data("scala.Unit"),
-              Data("scala.collection.immutable.List[scala.Int]"),
-              Data("scala.collection.immutable.Set[java.lang.String]"),
-              Data("scala.collection.immutable.Map[scala.Int, java.lang.String]"),
-              Data("scala.collection.immutable.Vector[scala.Double]"),
-              Data("scala.Array[scala.Boolean]"),
-              Data("scala.Option[scala.Char]"),
-              Data("scala.util.Either[scala.Int, java.lang.String]")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple17[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity17[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity17[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor17[examples.kinds.Alias.Renamed17[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity17[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity17[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor17[examples.kinds.Alias.FixedFront17[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity18[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor17[examples.kinds.Alias.FixedBack17[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity18[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor18") {
-        testTypeCtor18[String] <==> Data("Not a tuple18")
-        testTypeCtor18[Option[Int]] <==> Data("Not a tuple18")
-        testTypeCtor18[
-          (
-              Int,
-              String,
-              Double,
-              Boolean,
-              Char,
-              Float,
-              Long,
-              Short,
-              Byte,
-              Unit,
-              List[Int],
-              Set[String],
-              Map[Int, String],
-              Vector[Double],
-              Array[Boolean],
-              Option[Char],
-              Either[Int, String],
-              Try[Double]
-          )
-        ] <==> Data(
-          Map(
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor18"
+      ) {
+        testTypeCtor18[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor18[examples.kinds.Arity18[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short"),
-              Data("scala.Byte"),
-              Data("scala.Unit"),
-              Data("scala.collection.immutable.List[scala.Int]"),
-              Data("scala.collection.immutable.Set[java.lang.String]"),
-              Data("scala.collection.immutable.Map[scala.Int, java.lang.String]"),
-              Data("scala.collection.immutable.Vector[scala.Double]"),
-              Data("scala.Array[scala.Boolean]"),
-              Data("scala.Option[scala.Char]"),
-              Data("scala.util.Either[scala.Int, java.lang.String]"),
-              Data("scala.util.Try[scala.Double]")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple18[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity18[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity18[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor18[examples.kinds.Alias.Renamed18[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity18[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity18[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor18[examples.kinds.Alias.FixedFront18[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity19[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor18[examples.kinds.Alias.FixedBack18[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity19[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor19") {
-        testTypeCtor19[String] <==> Data("Not a tuple19")
-        testTypeCtor19[Option[Int]] <==> Data("Not a tuple19")
-        testTypeCtor19[
-          (
-              Int,
-              String,
-              Double,
-              Boolean,
-              Char,
-              Float,
-              Long,
-              Short,
-              Byte,
-              Unit,
-              List[Int],
-              Set[String],
-              Map[Int, String],
-              Vector[Double],
-              Array[Boolean],
-              Option[Char],
-              Either[Int, String],
-              Try[Double],
-              Future[String]
-          )
-        ] <==> Data(
-          Map(
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor19"
+      ) {
+        testTypeCtor19[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor19[examples.kinds.Arity19[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short"),
-              Data("scala.Byte"),
-              Data("scala.Unit"),
-              Data("scala.collection.immutable.List[scala.Int]"),
-              Data("scala.collection.immutable.Set[java.lang.String]"),
-              Data("scala.collection.immutable.Map[scala.Int, java.lang.String]"),
-              Data("scala.collection.immutable.Vector[scala.Double]"),
-              Data("scala.Array[scala.Boolean]"),
-              Data("scala.Option[scala.Char]"),
-              Data("scala.util.Either[scala.Int, java.lang.String]"),
-              Data("scala.util.Try[scala.Double]"),
-              Data("scala.concurrent.Future[java.lang.String]")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple19[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity19[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity19[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor19[examples.kinds.Alias.Renamed19[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity19[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity19[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor19[examples.kinds.Alias.FixedFront19[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity20[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor19[examples.kinds.Alias.FixedBack19[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity20[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor20") {
-        testTypeCtor20[String] <==> Data("Not a tuple20")
-        testTypeCtor20[Option[Int]] <==> Data("Not a tuple20")
-        testTypeCtor20[
-          (
-              Int,
-              String,
-              Double,
-              Boolean,
-              Char,
-              Float,
-              Long,
-              Short,
-              Byte,
-              Unit,
-              List[Int],
-              Set[String],
-              Map[Int, String],
-              Vector[Double],
-              Array[Boolean],
-              Option[Char],
-              Either[Int, String],
-              Try[Double],
-              Future[String],
-              Stream[Int]
-          )
-        ] <==> Data(
-          Map(
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor20"
+      ) {
+        testTypeCtor20[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor20[examples.kinds.Arity20[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short"),
-              Data("scala.Byte"),
-              Data("scala.Unit"),
-              Data("scala.collection.immutable.List[scala.Int]"),
-              Data("scala.collection.immutable.Set[java.lang.String]"),
-              Data("scala.collection.immutable.Map[scala.Int, java.lang.String]"),
-              Data("scala.collection.immutable.Vector[scala.Double]"),
-              Data("scala.Array[scala.Boolean]"),
-              Data("scala.Option[scala.Char]"),
-              Data("scala.util.Either[scala.Int, java.lang.String]"),
-              Data("scala.util.Try[scala.Double]"),
-              Data("scala.concurrent.Future[java.lang.String]"),
-              Data("scala.collection.immutable.Stream[scala.Int]")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple20[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity20[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity20[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor20[examples.kinds.Alias.Renamed20[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity20[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity20[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor20[examples.kinds.Alias.FixedFront20[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity21[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor20[examples.kinds.Alias.FixedBack20[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity21[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor21") {
-        testTypeCtor21[String] <==> Data("Not a tuple21")
-        testTypeCtor21[Option[Int]] <==> Data("Not a tuple21")
-        testTypeCtor21[
-          (
-              Int,
-              String,
-              Double,
-              Boolean,
-              Char,
-              Float,
-              Long,
-              Short,
-              Byte,
-              Unit,
-              List[Int],
-              Set[String],
-              Map[Int, String],
-              Vector[Double],
-              Array[Boolean],
-              Option[Char],
-              Either[Int, String],
-              Try[Double],
-              Future[String],
-              Stream[Int],
-              Queue[String]
-          )
-        ] <==> Data(
-          Map(
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor21"
+      ) {
+        testTypeCtor21[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor21[examples.kinds.Arity21[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short"),
-              Data("scala.Byte"),
-              Data("scala.Unit"),
-              Data("scala.collection.immutable.List[scala.Int]"),
-              Data("scala.collection.immutable.Set[java.lang.String]"),
-              Data("scala.collection.immutable.Map[scala.Int, java.lang.String]"),
-              Data("scala.collection.immutable.Vector[scala.Double]"),
-              Data("scala.Array[scala.Boolean]"),
-              Data("scala.Option[scala.Char]"),
-              Data("scala.util.Either[scala.Int, java.lang.String]"),
-              Data("scala.util.Try[scala.Double]"),
-              Data("scala.concurrent.Future[java.lang.String]"),
-              Data("scala.collection.immutable.Stream[scala.Int]"),
-              Data("scala.collection.immutable.Queue[java.lang.String]")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple21[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity21[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity21[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor21[examples.kinds.Alias.Renamed21[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity21[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity21[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor21[examples.kinds.Alias.FixedFront21[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity22[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor21[examples.kinds.Alias.FixedBack21[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity22[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
 
-      test("should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor22") {
-        testTypeCtor22[String] <==> Data("Not a tuple22")
-        testTypeCtor22[Option[Int]] <==> Data("Not a tuple22")
-        testTypeCtor22[
-          (
-              Int,
-              String,
-              Double,
-              Boolean,
-              Char,
-              Float,
-              Long,
-              Short,
-              Byte,
-              Unit,
-              List[Int],
-              Set[String],
-              Map[Int, String],
-              Vector[Double],
-              Array[Boolean],
-              Option[Char],
-              Either[Int, String],
-              Try[Double],
-              Future[String],
-              Stream[Int],
-              Queue[String],
-              Seq[Double]
-          )
-        ] <==> Data(
-          Map(
+      test(
+        "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor22"
+      ) {
+        testTypeCtor22[String] <==> Data("Not one of the expected types")
+
+        testTypeCtor22[examples.kinds.Arity22[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as class" -> Data.map(
             "unapplied" -> Data.list(
               Data("scala.Int"),
-              Data("java.lang.String"),
-              Data("scala.Double"),
-              Data("scala.Boolean"),
-              Data("scala.Char"),
-              Data("scala.Float"),
-              Data("scala.Long"),
-              Data("scala.Short"),
-              Data("scala.Byte"),
-              Data("scala.Unit"),
-              Data("scala.collection.immutable.List[scala.Int]"),
-              Data("scala.collection.immutable.Set[java.lang.String]"),
-              Data("scala.collection.immutable.Map[scala.Int, java.lang.String]"),
-              Data("scala.collection.immutable.Vector[scala.Double]"),
-              Data("scala.Array[scala.Boolean]"),
-              Data("scala.Option[scala.Char]"),
-              Data("scala.util.Either[scala.Int, java.lang.String]"),
-              Data("scala.util.Try[scala.Double]"),
-              Data("scala.concurrent.Future[java.lang.String]"),
-              Data("scala.collection.immutable.Stream[scala.Int]"),
-              Data("scala.collection.immutable.Queue[java.lang.String]"),
-              Data("scala.collection.immutable.Seq[scala.Double]")
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
             ),
             "reapplied" -> Data(
-              "scala.Tuple22[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+              "hearth.examples.kinds.Arity22[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity22[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor22[examples.kinds.Alias.Renamed22[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as class" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity22[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          ),
+          "as renamed" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity22[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor22[examples.kinds.Alias.FixedFront22[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as fixed front" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity23[scala.Unit, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String]"
+            )
+          )
+        )
+
+        testTypeCtor22[examples.kinds.Alias.FixedBack22[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]] <==> Data.map(
+          "as fixed back" -> Data.map(
+            "unapplied" -> Data.list(
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int"),
+              Data("scala.Int")
+            ),
+            "reapplied" -> Data(
+              "hearth.examples.kinds.Arity23[java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, scala.Unit]"
             )
           )
         )
       }
-       */
     }
 
     group("for Expr.quote+Expr.splice") {

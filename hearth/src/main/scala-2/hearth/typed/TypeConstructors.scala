@@ -99,6 +99,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, HKT[_ <: U1, _ <: U2]]: UpperBounded[U1, U2, HKT] = macro CrossQuotesMacros.typeCtor2Impl[Nothing, U1, Nothing, U2, HKT]
       }
+
+			// Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+			// But using a type alias and applying values to it finished without c.typecheck errors.
+			type Apply[L1, U1 >: L1, L2, U2 >: L2, HKT[_ >: L1 <: U1, _ >: L2 <: U2], A >: L1 <: U1, B >: L2 <: U2] = HKT[A, B]
+			type Stub[L1, U1 >: L1, L2, U2 >: L2, HKT[_ >: L1 <: U1, _ >: L2 <: U2]] = HKT[?, ?]
     }
 
     final type Ctor3[HKT[_, _, _]] = Ctor3.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -122,6 +127,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, HKT[_ <: U1, _ <: U2, _ <: U3]]: UpperBounded[U1, U2, U3, HKT] = macro CrossQuotesMacros.typeCtor3Impl[Nothing, U1, Nothing, U2, Nothing, U3, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3] = HKT[A, B, C]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3]] = HKT[?, ?, ?]
     }
 
     final type Ctor4[HKT[_, _, _, _]] = Ctor4.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -145,6 +155,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4]]: UpperBounded[U1, U2, U3, U4, HKT] = macro CrossQuotesMacros.typeCtor4Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4] = HKT[A, B, C, D]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4]] = HKT[?, ?, ?, ?]
     }
 
     final type Ctor5[HKT[_, _, _, _, _]] = Ctor5.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -168,6 +183,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5]]: UpperBounded[U1, U2, U3, U4, U5, HKT] = macro CrossQuotesMacros.typeCtor5Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5] = HKT[A, B, C, D, E]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5]] = HKT[?, ?, ?, ?, ?]
     }
 
     final type Ctor6[HKT[_, _, _, _, _, _]] = Ctor6.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -191,6 +211,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6]]: UpperBounded[U1, U2, U3, U4, U5, U6, HKT] = macro CrossQuotesMacros.typeCtor6Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6] = HKT[A, B, C, D, E, F]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6]] = HKT[?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor7[HKT[_, _, _, _, _, _, _]] = Ctor7.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -214,6 +239,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, HKT] = macro CrossQuotesMacros.typeCtor7Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7] = HKT[A, B, C, D, E, F, G]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7]] = HKT[?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor8[HKT[_, _, _, _, _, _, _, _]] = Ctor8.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -237,6 +267,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, HKT] = macro CrossQuotesMacros.typeCtor8Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8] = HKT[A, B, C, D, E, F, G, H]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8]] = HKT[?, ?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor9[HKT[_, _, _, _, _, _, _, _, _]] = Ctor9.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -260,6 +295,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, U9, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8, _ <: U9]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, U9, HKT] = macro CrossQuotesMacros.typeCtor9Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, Nothing, U9, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9] = HKT[A, B, C, D, E, F, G, H, I]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor10[HKT[_, _, _, _, _, _, _, _, _, _]] = Ctor10.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -283,6 +323,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8, _ <: U9, _ <: U10]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, HKT] = macro CrossQuotesMacros.typeCtor10Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, Nothing, U9, Nothing, U10, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9, J >: L10 <: U10] = HKT[A, B, C, D, E, F, G, H, I, J]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor11[HKT[_, _, _, _, _, _, _, _, _, _, _]] = Ctor11.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -306,6 +351,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8, _ <: U9, _ <: U10, _ <: U11]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, HKT] = macro CrossQuotesMacros.typeCtor11Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, Nothing, U9, Nothing, U10, Nothing, U11, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9, J >: L10 <: U10, K >: L11 <: U11] = HKT[A, B, C, D, E, F, G, H, I, J, K]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor12[HKT[_, _, _, _, _, _, _, _, _, _, _, _]] = Ctor12.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -329,6 +379,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8, _ <: U9, _ <: U10, _ <: U11, _ <: U12]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, HKT] = macro CrossQuotesMacros.typeCtor12Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, Nothing, U9, Nothing, U10, Nothing, U11, Nothing, U12, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9, J >: L10 <: U10, K >: L11 <: U11, L >: L12 <: U12] = HKT[A, B, C, D, E, F, G, H, I, J, K, L]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor13[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _]] = Ctor13.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -352,6 +407,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8, _ <: U9, _ <: U10, _ <: U11, _ <: U12, _ <: U13]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, HKT] = macro CrossQuotesMacros.typeCtor13Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, Nothing, U9, Nothing, U10, Nothing, U11, Nothing, U12, Nothing, U13, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9, J >: L10 <: U10, K >: L11 <: U11, L >: L12 <: U12, M >: L13 <: U13] = HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor14[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _]] = Ctor14.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -375,6 +435,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8, _ <: U9, _ <: U10, _ <: U11, _ <: U12, _ <: U13, _ <: U14]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, HKT] = macro CrossQuotesMacros.typeCtor14Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, Nothing, U9, Nothing, U10, Nothing, U11, Nothing, U12, Nothing, U13, Nothing, U14, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9, J >: L10 <: U10, K >: L11 <: U11, L >: L12 <: U12, M >: L13 <: U13, N >: L14 <: U14] = HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor15[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _]] = Ctor15.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -398,6 +463,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8, _ <: U9, _ <: U10, _ <: U11, _ <: U12, _ <: U13, _ <: U14, _ <: U15]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, HKT] = macro CrossQuotesMacros.typeCtor15Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, Nothing, U9, Nothing, U10, Nothing, U11, Nothing, U12, Nothing, U13, Nothing, U14, Nothing, U15, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9, J >: L10 <: U10, K >: L11 <: U11, L >: L12 <: U12, M >: L13 <: U13, N >: L14 <: U14, O >: L15 <: U15] = HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor16[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]] = Ctor16.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -421,6 +491,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8, _ <: U9, _ <: U10, _ <: U11, _ <: U12, _ <: U13, _ <: U14, _ <: U15, _ <: U16]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, HKT] = macro CrossQuotesMacros.typeCtor16Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, Nothing, U9, Nothing, U10, Nothing, U11, Nothing, U12, Nothing, U13, Nothing, U14, Nothing, U15, Nothing, U16, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9, J >: L10 <: U10, K >: L11 <: U11, L >: L12 <: U12, M >: L13 <: U13, N >: L14 <: U14, O >: L15 <: U15, P >: L16 <: U16] = HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor17[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]] = Ctor17.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -444,6 +519,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8, _ <: U9, _ <: U10, _ <: U11, _ <: U12, _ <: U13, _ <: U14, _ <: U15, _ <: U16, _ <: U17]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, HKT] = macro CrossQuotesMacros.typeCtor17Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, Nothing, U9, Nothing, U10, Nothing, U11, Nothing, U12, Nothing, U13, Nothing, U14, Nothing, U15, Nothing, U16, Nothing, U17, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9, J >: L10 <: U10, K >: L11 <: U11, L >: L12 <: U12, M >: L13 <: U13, N >: L14 <: U14, O >: L15 <: U15, P >: L16 <: U16, Q >: L17 <: U17] = HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor18[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]] = Ctor18.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -467,6 +547,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8, _ <: U9, _ <: U10, _ <: U11, _ <: U12, _ <: U13, _ <: U14, _ <: U15, _ <: U16, _ <: U17, _ <: U18]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, HKT] = macro CrossQuotesMacros.typeCtor18Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, Nothing, U9, Nothing, U10, Nothing, U11, Nothing, U12, Nothing, U13, Nothing, U14, Nothing, U15, Nothing, U16, Nothing, U17, Nothing, U18, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9, J >: L10 <: U10, K >: L11 <: U11, L >: L12 <: U12, M >: L13 <: U13, N >: L14 <: U14, O >: L15 <: U15, P >: L16 <: U16, Q >: L17 <: U17, R >: L18 <: U18] = HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor19[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]] = Ctor19.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -490,6 +575,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, U19, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8, _ <: U9, _ <: U10, _ <: U11, _ <: U12, _ <: U13, _ <: U14, _ <: U15, _ <: U16, _ <: U17, _ <: U18, _ <: U19]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, U19, HKT] = macro CrossQuotesMacros.typeCtor19Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, Nothing, U9, Nothing, U10, Nothing, U11, Nothing, U12, Nothing, U13, Nothing, U14, Nothing, U15, Nothing, U16, Nothing, U17, Nothing, U18, Nothing, U19, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9, J >: L10 <: U10, K >: L11 <: U11, L >: L12 <: U12, M >: L13 <: U13, N >: L14 <: U14, O >: L15 <: U15, P >: L16 <: U16, Q >: L17 <: U17, R >: L18 <: U18, S >: L19 <: U19] = HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor20[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]] = Ctor20.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -513,6 +603,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, U19, U20, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8, _ <: U9, _ <: U10, _ <: U11, _ <: U12, _ <: U13, _ <: U14, _ <: U15, _ <: U16, _ <: U17, _ <: U18, _ <: U19, _ <: U20]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, U19, U20, HKT] = macro CrossQuotesMacros.typeCtor20Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, Nothing, U9, Nothing, U10, Nothing, U11, Nothing, U12, Nothing, U13, Nothing, U14, Nothing, U15, Nothing, U16, Nothing, U17, Nothing, U18, Nothing, U19, Nothing, U20, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9, J >: L10 <: U10, K >: L11 <: U11, L >: L12 <: U12, M >: L13 <: U13, N >: L14 <: U14, O >: L15 <: U15, P >: L16 <: U16, Q >: L17 <: U17, R >: L18 <: U18, S >: L19 <: U19, T >: L20 <: U20] = HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor21[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]] = Ctor21.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -536,6 +631,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, U19, U20, U21, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8, _ <: U9, _ <: U10, _ <: U11, _ <: U12, _ <: U13, _ <: U14, _ <: U15, _ <: U16, _ <: U17, _ <: U18, _ <: U19, _ <: U20, _ <: U21]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, U19, U20, U21, HKT] = macro CrossQuotesMacros.typeCtor21Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, Nothing, U9, Nothing, U10, Nothing, U11, Nothing, U12, Nothing, U13, Nothing, U14, Nothing, U15, Nothing, U16, Nothing, U17, Nothing, U18, Nothing, U19, Nothing, U20, Nothing, U21, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, L21, U21 >: L21, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20, _ >: L21 <: U21], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9, J >: L10 <: U10, K >: L11 <: U11, L >: L12 <: U12, M >: L13 <: U13, N >: L14 <: U14, O >: L15 <: U15, P >: L16 <: U16, Q >: L17 <: U17, R >: L18 <: U18, S >: L19 <: U19, T >: L20 <: U20, U >: L21 <: U21] = HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, L21, U21 >: L21, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20, _ >: L21 <: U21]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]
     }
 
     final type Ctor22[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]] = Ctor22.Bounded[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
@@ -559,6 +659,11 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def of[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, U19, U20, U21, U22, HKT[_ <: U1, _ <: U2, _ <: U3, _ <: U4, _ <: U5, _ <: U6, _ <: U7, _ <: U8, _ <: U9, _ <: U10, _ <: U11, _ <: U12, _ <: U13, _ <: U14, _ <: U15, _ <: U16, _ <: U17, _ <: U18, _ <: U19, _ <: U20, _ <: U21, _ <: U22]]: UpperBounded[U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, U19, U20, U21, U22, HKT] = macro CrossQuotesMacros.typeCtor22Impl[Nothing, U1, Nothing, U2, Nothing, U3, Nothing, U4, Nothing, U5, Nothing, U6, Nothing, U7, Nothing, U8, Nothing, U9, Nothing, U10, Nothing, U11, Nothing, U12, Nothing, U13, Nothing, U14, Nothing, U15, Nothing, U16, Nothing, U17, Nothing, U18, Nothing, U19, Nothing, U20, Nothing, U21, Nothing, U22, HKT]
       }
+
+      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.
+      // But using a type alias and applying values to it finished without c.typecheck errors.
+      type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, L21, U21 >: L21, L22, U22 >: L22, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20, _ >: L21 <: U21, _ >: L22 <: U22], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9, J >: L10 <: U10, K >: L11 <: U11, L >: L12 <: U12, M >: L13 <: U13, N >: L14 <: U14, O >: L15 <: U15, P >: L16 <: U16, Q >: L17 <: U17, R >: L18 <: U18, S >: L19 <: U19, T >: L20 <: U20, U >: L21 <: U21, V >: L22 <: U22] = HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
+      type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, L21, U21 >: L21, L22, U22 >: L22, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20, _ >: L21 <: U21, _ >: L22 <: U22]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]
     }
   }
 }
