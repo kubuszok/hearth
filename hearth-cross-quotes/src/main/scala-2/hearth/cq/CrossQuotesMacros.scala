@@ -93,10 +93,11 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
          |""".stripMargin
     )
 
-  private val loggingEnabled =
-    CrossQuotesSettings.parseLoggingSettingsForScala2(c.settings)(
-      scala.util.Try(c.enclosingPosition.source.file.file).toOption
-    )
+  private val loggingEnabled = CrossQuotesSettings.parseLoggingSettingsForScala2(c.settings)(
+    scala.util.Try(c.enclosingPosition.source.file.file).toOption,
+    c.enclosingPosition.line,
+    c.enclosingPosition.column
+  )
 
   private def log(message: => String): Unit =
     if (loggingEnabled) {
@@ -129,20 +130,21 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
    */
   def typeOfImpl[A: c.WeakTypeTag]: c.Tree = try {
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = freshTypeName("Inner")
 
-    val result = suppressWarnings(
-      q"""
-      val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
-      import $ctx.universe.{Type => _, internal => _, _}
-      implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
-        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      _root_.hearth.fp.ignore($convertProvidedTypesForCrossQuotes[Any](_: Type[Any]))
-      $ctx.weakTypeTag[${weakTypeOf[A]}].asInstanceOf[Type[${weakTypeOf[A]}]]
-      """
-    )
+    val unchecked = q"""
+    val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+    import $ctx.universe.{Type => _, internal => _, _}
+    implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+      $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+    _root_.hearth.fp.ignore($convertProvidedTypesForCrossQuotes[Any](_: Type[Any]))
+    ${inject(q"$ctx.weakTypeTag[${weakTypeOf[A]}].asInstanceOf[Type[${weakTypeOf[A]}]]")}
+    """
+
+    val result = suppressWarnings(unchecked)
 
     log(
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.of")} expansion:
@@ -174,6 +176,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     val appliedHKT = tq"Type.Ctor1.Apply[$L1, $U1, $HKT, $A]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -188,7 +191,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor1.Stub[$L1, $U1, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type]: Type[$appliedHKT] =
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[$L1 <:??<: $U1] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -241,6 +244,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     val appliedHKT = tq"Type.Ctor2.Apply[$L1, $U1, $L2, $U2, $HKT, $A, $B]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -255,7 +259,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor2.Stub[$L1, $U1, $L2, $U2, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -319,6 +323,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     val appliedHKT = tq"Type.Ctor3.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $HKT, $A, $B, $C]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -333,7 +338,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor3.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}  
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -406,6 +411,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     val appliedHKT = tq"Type.Ctor4.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $HKT, $A, $B, $C, $D]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -420,7 +426,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor4.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -498,6 +504,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     val appliedHKT = tq"Type.Ctor5.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $HKT, $A, $B, $C, $D, $E]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -512,7 +519,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor5.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -596,6 +603,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor6.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $HKT, $A, $B, $C, $D, $E, $F]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -610,7 +618,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor6.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -699,6 +707,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor7.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $HKT, $A, $B, $C, $D, $E, $F, $G]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -713,7 +722,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor7.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -807,6 +816,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor8.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $HKT, $A, $B, $C, $D, $E, $F, $G, $H]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -821,7 +831,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor8.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -920,6 +930,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor9.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H, I)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -934,7 +945,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor9.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -1038,6 +1049,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor10.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H, I, J)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -1052,7 +1064,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor10.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -1161,6 +1173,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor11.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H, I, J, K)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -1175,7 +1188,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor11.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -1289,6 +1302,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor12.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H, I, J, K, L)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -1303,7 +1317,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor12.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -1422,6 +1436,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor13.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H, I, J, K, L, M)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -1436,7 +1451,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor13.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -1557,6 +1572,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor14.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H, I, J, K, L, M, N)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -1571,7 +1587,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor14.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -1696,6 +1712,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor15.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -1710,7 +1727,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor15.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -1840,6 +1857,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor16.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -1854,7 +1872,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor16.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -1989,6 +2007,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor17.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -2003,7 +2022,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor17.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -2143,6 +2162,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor18.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -2157,7 +2177,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor18.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -2302,6 +2322,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor19.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R, $S]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -2316,7 +2337,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor19.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -2466,6 +2487,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor20.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R, $S, $T]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -2480,7 +2502,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor20.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type, $T >: $L20 <: $U20: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -2635,6 +2657,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor21.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $L21, $U21, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R, $S, $T, $U]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -2649,7 +2672,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor21.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $L21, $U21, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type, $T >: $L20 <: $U20: Type, $U >: $L21 <: $U21: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20, $L21 <:??<: $U21)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -2809,6 +2832,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       tq"Type.Ctor22.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $L21, $U21, $L22, $U22, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R, $S, $T, $U, $V]"
 
     val ctx = freshName("ctx")
+    val inject = injectUnderlyingTypes(ctx, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V)
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
@@ -2823,7 +2847,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val HKT = $ctx.weakTypeTag[Type.Ctor22.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $L21, $U21, $L22, $U22, $HKT]].tpe.typeArgs.last
 
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type, $T >: $L20 <: $U20: Type, $U >: $L21 <: $U21: Type, $V >: $L22 <: $U22: Type]: Type[$appliedHKT] = 
-        $ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]
+        ${inject(q"$ctx.weakTypeTag[$appliedHKT].asInstanceOf[Type[$appliedHKT]]")}
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20, $L21 <:??<: $U21, $L22 <:??<: $U22)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
@@ -2915,15 +2939,19 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
 
-    val result = suppressWarnings(q"""
-      val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
-      import $ctx.universe.Quasiquote
-      @_root_.scala.annotation.nowarn
-      implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
-        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      _root_.hearth.fp.ignore($convertProvidedTypesForCrossQuotes[Any](_: Type[Any]))
-      $ctx.Expr[${weakTypeOf[A]}](${convert(ctx)(expr.tree)}).asInstanceOf[Expr[${weakTypeOf[A]}]]
-      """)
+    val unchecked = q"""
+    val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+    import $ctx.universe.Quasiquote
+    @_root_.scala.annotation.nowarn
+    implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+      $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+    _root_.hearth.fp.ignore($convertProvidedTypesForCrossQuotes[Any](_: Type[Any]))
+    $ctx.Expr[${weakTypeOf[A]}](${convert(ctx)(expr.tree)}).asInstanceOf[Expr[${weakTypeOf[A]}]]
+    """
+
+    val result = suppressWarnings(
+      unchecked
+    ) // purposfeullty not typechecking, because it would fail with: unexpected error: Position.point on NoPosition
 
     log(
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Expr.quote")} expansion:
@@ -2933,6 +2961,134 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
     result
   } catch { case e: Throwable => reportIssue(e) }
+
+  // Type utilities
+
+  /* If implicit was imported from tpe.Underlying or defined as implicit val/def/given,
+   * it will be ignored by the c.weakTypeTag - only type parameters' WeakTypeTags are considered.
+   */
+  private def injectUnderlyingTypes(ctx: TermName, excluding: TypeName*)(body: c.Tree): c.Tree = {
+    val candidates = importedUnderlyingTypes
+    val excludingSet = excluding.view.map(_.decodedName.toString).toSet
+    val importedUnderlying = candidates.view
+      .filterNot(excludingSet)
+      .flatMap { name =>
+        try {
+          val tpeName = TypeName(name)
+
+          val paramTpe = TypeDef(Modifiers(), tpeName, List(), TypeBoundsTree(EmptyTree, EmptyTree))
+          val paramVal = q"val ${freshName(name)}: $ctx.WeakTypeTag[$tpeName]"
+          val applyTpe = tpeName
+
+          val foundImplicit =
+            c.inferImplicitValue(c.typecheck(tq"Type[$applyTpe]", mode = c.TYPEmode).tpe, silent = true)
+          if (foundImplicit == EmptyTree) Iterable.empty
+          else {
+            val applyVal = q"$foundImplicit.asInstanceOf[$ctx.WeakTypeTag[$applyTpe]]"
+            Iterable((paramTpe, paramVal, applyTpe, applyVal))
+          }
+        } catch { case _: Throwable => Iterable.empty }
+      }
+      .toSeq
+    if (importedUnderlying.isEmpty) {
+      body
+    } else {
+      val workaround = freshName("workaround")
+      val paramTpes = importedUnderlying.map(_._1)
+      val paramVals = importedUnderlying.map(_._2)
+      val applyTpes = importedUnderlying.map(_._3)
+      val applyVals = importedUnderlying.map(_._4)
+
+      // TODO:
+      // body would contains types like x.Underlying instead of X
+      // we need to replace them by transforming the body tree
+      // to be able to do this we have to collect the trees to find and replace in importedUnderlyingCandidates
+      // FML
+
+      val result = q"""
+      def $workaround[..$paramTpes](implicit ..$paramVals) = $body
+      $workaround[..$applyTpes](..$applyVals)
+      """
+
+      // TODO: remove
+      println(showCodePretty(result, SyntaxHighlight.ANSI))
+
+      result
+    }
+  }
+
+  /** Collects names imported from *.Underlying patterns in the macro expansion's enclosings.
+    *
+    * Looks for imports like:
+    *   - import someName.Underlying
+    *   - import someName.{Underlying => SomeName}
+    *   - import a.{Underlying => A}, b.{Underlying => B}
+    *
+    * Traverses the enclosing method/class trees to find import statements that come before the macro expansion point.
+    */
+  @scala.annotation.nowarn // TODO: remove no warn
+  private def importedUnderlyingTypes: List[String] = try {
+    val importedNames = scala.collection.mutable.ListBuffer[String]()
+    val expansionPos = c.enclosingPosition
+
+    // Helper to extract names from import selectors that match *.Underlying pattern
+    def extractNamesFromImport(importTree: Import): Unit =
+      // Check if import comes before macro expansion
+      if (importTree.pos != NoPosition && importTree.pos.end <= expansionPos.point) {
+        // Check if the import expression is something.Underlying
+        val found = importTree.selectors.collect {
+          case ImportSelector(name, _, rename, _) if name.decodedName.toString == "Underlying" =>
+            // TODO: collect Underlying or name.Underlying
+            Option(rename).getOrElse(name).decodedName.toString
+        }
+
+        val shouldFind = importTree.toString.contains("Underlying")
+
+        // TODO: remove
+        if (shouldFind && found.isEmpty) {
+          println(s"""Checking import ${importTree.pos.source.path}:${importTree.pos.line}:
+                     |code:${showCodePretty(importTree, SyntaxHighlight.ANSI)}
+                     |tree:${showRawPretty(importTree, SyntaxHighlight.ANSI)}
+                     |found: ${found.mkString(", ")}""".stripMargin)
+        }
+
+        importedNames ++= found
+      }
+
+    // Traverse tree to find Import statements
+    val finder = new Traverser {
+      override def traverse(tree: Tree): Unit = tree match {
+        case importTree: Import =>
+          extractNamesFromImport(importTree)
+          super.traverse(tree)
+        case _ =>
+          super.traverse(tree)
+      }
+    }
+
+    // Check enclosing method
+    val enclosingMethod = c.enclosingMethod
+    if (enclosingMethod != EmptyTree) {
+      finder.traverse(enclosingMethod)
+    }
+
+    // Check enclosing class
+    val enclosingClass = c.enclosingClass
+    if (enclosingClass != EmptyTree) {
+      finder.traverse(enclosingClass)
+    }
+
+    if (loggingEnabled) {
+      println(
+        s"""Looked for injected implicits in ${c.enclosingPosition.source.path}:${c.enclosingPosition.line}:${c.enclosingPosition.column}
+           |found: ${importedNames.mkString(", ")}""".stripMargin
+      )
+    }
+
+    importedNames.toList.distinct
+  } catch { case _: Throwable => Nil }
+
+  // Expr utilities
 
   private def convert(ctx: TermName)(tree: c.Tree): c.Tree = {
     // 1. Replace certain trees with stubs,
