@@ -35,8 +35,8 @@ final class CrossQuotesPlugin extends StandardPlugin {
   val description = "Rewrites Expr.quote/splice into native quotes"
 
   override def init(options: List[String]): List[PluginPhase] = {
-    val loggingEnabledFor = CrossQuotesSettings.parseLoggingSettingsForScala3(options)
-    List(new CrossQuotesPhase(loggingEnabledFor))
+    val loggingEnabled = CrossQuotesSettings.parseLoggingSettingsForScala3(options)
+    List(new CrossQuotesPhase(loggingEnabled))
   }
 }
 
@@ -146,7 +146,7 @@ final class CrossQuotesPlugin extends StandardPlugin {
   * }
   * }}}
   */
-final class CrossQuotesPhase(loggingEnabledFor: Option[JFile] => Boolean) extends PluginPhase {
+final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolean) extends PluginPhase {
   override def runsAfter: Set[String] = Set(Parser.name)
   override def runsBefore: Set[String] = Set("typer")
   override def phaseName: String = "hearth:cross-quotes"
@@ -154,12 +154,12 @@ final class CrossQuotesPhase(loggingEnabledFor: Option[JFile] => Boolean) extend
   override def changesMembers: Boolean = true
 
   override def run(using Context): Unit = {
-    val loggingEnabled = loggingEnabledFor(ctx.compilationUnit.source.jfile.toScala)
 
-    inline def log(inline message: String, inline src: SourcePosition): Unit = if loggingEnabled then {
-      // println(s"Logging: $message at ${src.source.path}:${src.line}")
-      ctx.reporter.report(new Diagnostic.Info(message, src))
-    }
+    inline def log(inline message: String, inline src: SourcePosition): Unit =
+      if loggingEnabled(Option(new JFile(src.source.path)), src.startLine + 1, src.startColumn + 1) then {
+        // println(s"Logging: $message at ${src.source.path}:${src.startLine + 1}:${src.startColumn + 1}")
+        ctx.reporter.report(new Diagnostic.Info(message, src))
+      }
 
     ctx.compilationUnit.untpdTree = new UntypedTreeMap {
 
