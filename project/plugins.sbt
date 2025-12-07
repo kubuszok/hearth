@@ -15,7 +15,7 @@ addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "1.1.4")
 // benchmarks
 addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.4.8")
 // disabling projects in IDE
-addSbtPlugin("org.jetbrains" % "sbt-ide-settings" % "1.1.0")
+// addSbtPlugin("org.jetbrains" % "sbt-ide-settings" % "1.1.0") // plugin not available, using manual key definition
 // documentation
 addSbtPlugin("com.github.reibitto" % "sbt-welcome" % "0.5.0")
 

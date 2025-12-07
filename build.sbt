@@ -5,6 +5,9 @@ import commandmatrix.extra.*
 import sbt.ThisBuild
 import org.scalafmt.sbt.ScalafmtPlugin.autoImport.scalafmtOnCompile
 
+// Define ideSkipProject key since sbt-ide-settings plugin is not available
+lazy val ideSkipProject = settingKey[Boolean]("Skip project in IDE")
+
 // Used to configure the build so that it would format+compile during development but not on CI.
 lazy val isCI = sys.env.get("CI").contains("true")
 ThisBuild / scalafmtOnCompile := !isCI
