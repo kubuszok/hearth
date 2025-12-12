@@ -1130,9 +1130,9 @@ trait ShowCodePrettyScala2 {
           case expr: Expr[?] =>
             print(highlightTypeDef("Expr"))
             if (printTypes) print(expr.staticType)
-            print("(", '\n')
+            print("(")
             indented {
-              print(expr.tree)
+              print('\n', expr.tree)
             }
             print('\n', ")")
           case EmptyTree =>
@@ -1143,6 +1143,12 @@ trait ShowCodePrettyScala2 {
             print(highlightValDef("pendingSuperCall"))
           case name: Name =>
             print(show(name))
+          case typeTree: TypeTree if typeTree.tpe != null =>
+            print(highlightTypeDef("TypeTree"), "(")
+            indented {
+              print('\n', typeTree.tpe)
+            }
+            print('\n', ")")
           case tree: Tree =>
             def hasSymbolField = tree.hasSymbolField && tree.symbol != NoSymbol
             val isError = hasSymbolField && (tree.symbol.name string_== nme.ERROR)
