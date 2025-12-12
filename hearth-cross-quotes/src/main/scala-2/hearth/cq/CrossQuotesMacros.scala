@@ -2949,9 +2949,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     $ctx.Expr[${weakTypeOf[A]}](${convert(ctx)(expr.tree)}).asInstanceOf[Expr[${weakTypeOf[A]}]]
     """
 
-    val result = suppressWarnings(
-      unchecked
-    ) // purposfeullty not typechecking, because it would fail with: unexpected error: Position.point on NoPosition
+    // purposfeullty not typechecking, because it would fail with: unexpected error: Position.point on NoPosition
+    val result = suppressWarnings(unchecked)
 
     log(
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Expr.quote")} expansion:
@@ -2967,17 +2966,20 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
   /* If implicit was imported from tpe.Underlying or defined as implicit val/def/given,
    * it will be ignored by the c.weakTypeTag - only type parameters' WeakTypeTags are considered.
    */
+  @scala.annotation.nowarn // TODO: remove no warn
   private def injectUnderlyingTypes(ctx: TermName, excluding: TypeName*)(body: c.Tree): c.Tree = {
     val candidates = importedUnderlyingTypes
     val excludingSet = excluding.view.map(_.decodedName.toString).toSet
     val importedUnderlying = candidates.view
-      .filterNot(excludingSet)
-      .flatMap { name =>
+      .filterNot { case (_, renamed) => excludingSet(renamed) }
+      .flatMap { case (toReplace, renamed) =>
         try {
-          val tpeName = TypeName(name)
+          val tpeName = TypeName(renamed)
 
-          val paramTpe = TypeDef(Modifiers(), tpeName, List(), TypeBoundsTree(EmptyTree, EmptyTree))
-          val paramVal = q"val ${freshName(name)}: $ctx.WeakTypeTag[$tpeName]"
+          // typecheck so that paramTpe has a symbol
+          val paramTpe =
+            c.typecheck(TypeDef(Modifiers(), tpeName, List(), TypeBoundsTree(TypeTree(toReplace), TypeTree(toReplace))))
+          val paramVal = q"val ${freshName(renamed)}: $ctx.WeakTypeTag[$tpeName]"
           val applyTpe = tpeName
 
           val foundImplicit =
@@ -2985,7 +2987,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           if (foundImplicit == EmptyTree) Iterable.empty
           else {
             val applyVal = q"$foundImplicit.asInstanceOf[$ctx.WeakTypeTag[$applyTpe]]"
-            Iterable((paramTpe, paramVal, applyTpe, applyVal))
+            Iterable((paramTpe, paramVal, applyTpe, applyVal, toReplace))
           }
         } catch { case _: Throwable => Iterable.empty }
       }
@@ -2998,20 +3000,75 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       val paramVals = importedUnderlying.map(_._2)
       val applyTpes = importedUnderlying.map(_._3)
       val applyVals = importedUnderlying.map(_._4)
+      val toReplace = importedUnderlying.map(_._5)
 
-      // TODO:
-      // body would contains types like x.Underlying instead of X
-      // we need to replace them by transforming the body tree
-      // to be able to do this we have to collect the trees to find and replace in importedUnderlyingCandidates
-      // FML
+      // TODO: remove
+      val ourCase = showCodePretty(body, SyntaxHighlight.ANSI).contains("Underlying")
+
+      val transformer = new Transformer {
+
+        // private val from = toReplace.view.map(_.typeSymbol).toList
+        // private val into = paramTpes.view.map(_.symbol).toList
+
+        // private def replaceTpe(tpe: Type): Type = tpe.substituteSymbols(from, into)
+
+        // private def replaceTpe(tpe: Type): Type = tpe.substituteTypes(toReplace, paramTpes.map(_.symbol.toType))
+        // private def replaceTpe(tpe: Type): Type = tpe.substituteTypes(from, paramTpes.map(_.symbol.asType.toType).toList)
+
+        private def replaceTpe(tpe: Type): Type = tpe.map { oldType =>
+          val index = toReplace.indexWhere(oldType =:= _)
+          if (ourCase) {
+            println(s"Replacing $oldType (index: $index)")
+          }
+          if (index != -1) {
+            paramTpes(index).symbol.asType.toType
+          } else oldType
+        }
+
+        override def transform(tree: Tree): Tree = tree match {
+          case tpeTree: TypeTree if tpeTree.tpe != null =>
+            if (ourCase) {
+              println(s"Into ${showCodePretty(tpeTree, SyntaxHighlight.ANSI)} type tree")
+            }
+
+            val fixed = replaceTpe(tpeTree.tpe)
+
+            if (ourCase) {
+              println(
+                s"Replacing ${tpeTree.tpe} with $fixed (the same? ${tpeTree.tpe =:= fixed})"
+              )
+            }
+
+            // tpeTree.tpe.for
+            // TypeTree(tpeTree.tpe.map { oldTpe =>
+            //   println(s"Replacing ${showCodePretty(oldTpe, SyntaxHighlight.ANSI)}")
+            //   val index = typecheckedTpes.indexWhere(oldTpe =:= _)
+            //   if (index != -1) {
+            //     println(s"  with ${showCodePretty(applyTpes(index), SyntaxHighlight.ANSI)}")
+            //     Ident(applyTpes(index)).tpe
+            //   } else oldTpe
+            // })
+            if (fixed =:= tpeTree.tpe) tpeTree else TypeTree(fixed)
+          // tpeTree
+          case _ => super.transform(tree)
+        }
+      }
+      val patchedBody = transformer.transform(body)
 
       val result = q"""
-      def $workaround[..$paramTpes](implicit ..$paramVals) = $body
+      def $workaround[..$paramTpes](implicit ..$paramVals) = $patchedBody
       $workaround[..$applyTpes](..$applyVals)
       """
 
-      // TODO: remove
-      println(showCodePretty(result, SyntaxHighlight.ANSI))
+      lazy val x = showCodePretty(result, SyntaxHighlight.ANSI)
+      lazy val y = showRawPretty(result, SyntaxHighlight.ANSI)
+      if (ourCase) {
+        paramTpes.map { param =>
+          println(s"Param: ${param.tpe} ${param.symbol} ${param.symbol.asType.toType}")
+        }
+        println(x)
+        println(y)
+      }
 
       result
     }
@@ -3027,8 +3084,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     * Traverses the enclosing method/class trees to find import statements that come before the macro expansion point.
     */
   @scala.annotation.nowarn // TODO: remove no warn
-  private def importedUnderlyingTypes: List[String] = try {
-    val importedNames = scala.collection.mutable.ListBuffer[String]()
+  private def importedUnderlyingTypes: List[(Type, String)] = try {
+    val importedNames = scala.collection.mutable.ListBuffer[(Type, String)]()
     val expansionPos = c.enclosingPosition
 
     // Helper to extract names from import selectors that match *.Underlying pattern
@@ -3038,8 +3095,12 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         // Check if the import expression is something.Underlying
         val found = importTree.selectors.collect {
           case ImportSelector(name, _, rename, _) if name.decodedName.toString == "Underlying" =>
-            // TODO: collect Underlying or name.Underlying
-            Option(rename).getOrElse(name).decodedName.toString
+            val toReplace = scala.util.Try {
+              c.typecheck(tq"${importTree.expr}.${name.toTypeName}", mode = c.TYPEmode).tpe
+            }.toOption
+            toReplace -> Option(rename).getOrElse(name).decodedName.toString
+        }.collect {
+          case (Some(toReplace), name) => (toReplace, name)
         }
 
         val shouldFind = importTree.toString.contains("Underlying")
@@ -3085,7 +3146,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       )
     }
 
-    importedNames.toList.distinct
+    importedNames.toList.distinctBy(_._2) // perhaps we should use _._1 instead?
   } catch { case _: Throwable => Nil }
 
   // Expr utilities
