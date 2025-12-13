@@ -3022,33 +3022,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         try {
           val typeValue: Tree =
             c.inferImplicitValue(c.typecheck(tq"Type[$tpeToReplace]", mode = c.TYPEmode).tpe, silent = false)
-
-          // val (lo, hi) = tpeToReplace.typeSymbol.info match {
-          //   // case c.universe.TypeBounds(lo, hi) => (lo, hi)
-          //   case _ => (weakTypeOf[Nothing], weakTypeOf[Any])
-          // }
-          // Without bounds, we're getting:
-          // type arguments [B1] do not conform to type WeakTypeTag's type parameter bounds [T]
-          // [info] Nothing <: B1?
-          // [info] false
-          // [info] B1 <: Any?
-          // [info] true
-          // val weakTypeTagValue = q"$typeValue.asInstanceOf[$ctx.WeakTypeTag[$hi]]"
-          // but when whe add them, we're getting:
-          // B1 does not conform to >: L <: U
-          // so as a wrokaround we're creating some ad hoc crappy type
-          // val weakTypeTagValue = q"""
-          // $typeValue.asInstanceOf[$ctx.WeakTypeTag[_ >: $lo <: $hi]]
-          // """
           val weakTypeTagValue = q"""$typeValue.asInstanceOf[$ctx.WeakTypeTag[$tpeToReplace]]"""
-
-          // val paramSym: TypeSymbol = c.internal.newTypeSymbol(
-          //   owner = c.internal.enclosingOwner,
-          //   name = freshTypeName(renamed),
-          //   flags = Flag.PARAM
-          // )
-          // Without this, we're getting AssertionError from Symbols
-          // c.internal.setInfo(paramSym, c.internal.typeBounds(lo, hi))
 
           val paramName = freshTypeName(renamed)
           val paramDef: TypeDef = q"type $paramName"
@@ -3086,10 +3060,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       $workaround(..$weakTypeTagValues)
       """
       val Block(List(_, unpatchedDef: DefDef), unpatchedResult) = c.typecheck(uncheckedResultPrototype)
-      // val unpatchedResult = q"""
-      // $workaround(..$weakTypeTagValues)
-      // """
-      // val unpatchedResult = q"""???""" // to check if it's application or definition
 
       object typePatcher extends Transformer {
 
@@ -3118,17 +3088,18 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       // Without c.untypecheck, we're getting error like:
       // [error] ## Exception when compiling 32 sources to hearth/hearth-tests/target/jvm-2.13/classes
       // [error] java.lang.NullPointerException: Cannot invoke "scala.reflect.internal.Types$Type.typeParams()" because the return value of "scala.reflect.internal.Trees$Tree.tpe()" is null
-      val patchedDef = // c.untypecheck(
+      val patchedDef = {
+        val tmp = c.untypecheck(unpatchedDef).asInstanceOf[DefDef]
         treeCopy.DefDef(
-          unpatchedDef, // patched DefDef
-          unpatchedDef.mods,
-          unpatchedDef.name,
-          unpatchedDef.tparams,
-          unpatchedDef.vparamss,
+          tmp, // patched DefDef
+          tmp.mods,
+          tmp.name,
+          tmp.tparams,
+          tmp.vparamss,
           patchedTpt, // result type might also need to be patched
           patchedBody // the thing we want to patch
         )
-      // )
+      }
       val patchedResult = c.untypecheck(unpatchedResult)
 
       // This would have been just:
@@ -3141,12 +3112,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       //  - type patcher needs some type to replace the old one, and there is no way to obtain either Type or Symbol from type parameters
       //    without running the c.typecheck
       val result = Block(List(patchedDef), patchedResult)
-
-      // TODO: remove
-      // if (loggingEnabled) {
-      //   println(showCodePretty(result, SyntaxHighlight.ANSI))
-      //   println(showRawPretty(result, SyntaxHighlight.ANSI))
-      // }
 
       result
     }
