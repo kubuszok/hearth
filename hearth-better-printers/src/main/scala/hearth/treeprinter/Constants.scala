@@ -7,7 +7,7 @@ private[treeprinter] object Constants {
   def initSettings(settings: => List[String]): Unit =
     if (settings != null) this.settings = settings
 
-  // $COVERAGE-OFF$should only be triggered by error we don't know about
+  // $COVERAGE-OFF$ Should only be triggered by error we don't know about
   lazy val failOnUnsupportedTree: Boolean = {
     val defaultValue = true
     settings

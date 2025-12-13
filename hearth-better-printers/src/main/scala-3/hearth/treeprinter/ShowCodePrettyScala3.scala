@@ -359,7 +359,7 @@ trait ShowCodePrettyScala3 {
         }
       }
 
-      // $COVERAGE-OFF$should only be triggered by error we don't know about
+      // $COVERAGE-OFF$ Should only be triggered by error we don't know about
       private def unsupportedTree(tree: Tree, what: Any): Nothing = throw new UnsupportedOperationException(
         s"""Unsupported tree for `showCodePretty`:
            |

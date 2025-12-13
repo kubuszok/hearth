@@ -1039,7 +1039,7 @@ trait ShowCodePrettyScala2 {
         case arg => super.print(arg)
       }
 
-      // $COVERAGE-OFF$should only be triggered by error we don't know about
+      // $COVERAGE-OFF$ Should only be triggered by error we don't know about
       private def codeForError(tree: Tree): String =
         Option(tree).map(showCode(_)).filter(_.nonEmpty).getOrElse("<no tree ?>")
 
