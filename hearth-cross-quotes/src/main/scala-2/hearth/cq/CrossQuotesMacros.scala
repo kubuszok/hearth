@@ -3006,7 +3006,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         }
       }
       .toSeq
-    
+
     if (importedUnderlying.isEmpty) {
       noInjectResult
     } else {
@@ -3020,7 +3020,9 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
       // If macros were sane, this would be almost enough.
       //
-      // We would just need to apply the fix to `weakTypeTagOf` in `$ctx2.weakTypeTag[$weakTypeTagOf]`...
+      // We would just need to apply the fix to `weakTypeTagOf` in `$ctx2.weakTypeTag[$weakTypeTagOf].asInstanceOf[Type[$weakTypeTagOf]]`.
+      //
+      // So, why I put `null` instead of `$ctx2.weakTypeTag[$weakTypeTagOf]`? As a matter of the fact, why I created new $ctx2?
       val uncheckedResultPrototype = q"""
       val $ctx2 = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       import $ctx2.universe.{Type => _, internal => _, _}
@@ -3028,8 +3030,11 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       $workaround[..$tpesToReplace](..$weakTypeTagValues)
       """
 
-      // ...however, to fix the tree, we have to have c.Type or Symbol or each type parameter, and this requires typechecking.
-      // So, we have to create a stub, that we will modify later on.
+      // To fix the `weakTypeTagOf` tree, we have to have c.Type or Symbol or each type parameter, so that we could replace params with them.
+      //
+      // And this requires typechecking.
+      //
+      // So, we have to create a stub, that typechecks (ctx would not, since it's defined outside of that snippet), that we will modify later on.
       def fixWorkaroundBody(patchBody: DefDef => c.Tree): c.Tree = {
         val Block(List(ctxVal, ctxImport, unpatchedDef: DefDef), callDef) = c.typecheck(uncheckedResultPrototype)
         val patchedDef = treeCopy.DefDef(
@@ -3042,11 +3047,16 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           patchBody(unpatchedDef)
         )
         if (skipWorkaround) noInjectResult
-        // Untypecheck the result, because otherwise we're getting errors from mixing typed and untyped trees.
+        // We also have to c.untypecheck the result, because otherwise we're getting errors from mixing typed and untyped trees.
+        // Literally, NullPoinerExceptions, from Symbols on typechecking:
+        //   Cannot invoke "scala.reflect.internal.Types$Type.typeSymbol()" because "tp" is null
+        // So we have to untypecheck the result, to avoid this problem.
         else c.untypecheck(Block(List(ctxVal, ctxImport, patchedDef), callDef))
       }
 
       fixWorkaroundBody { unpatchedDef =>
+        // Replaces the Tree with the Type representation that could miss some value.Underlying,
+        // with Tree using Types from type parameters - because they would get picked up. SMH.
         object typePatcher extends Transformer {
 
           // To obtain these we had to typecheck the Tree above, because we need them to be able to recursively replace
@@ -3064,6 +3074,14 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
           // We need to reify the type as a Tree, because otherwise it won't survive the c.untypecheck(result)
           // (and we need to untypecheck the result, because otherwise we're getting errors from mixing typed and untyped trees).
+          //
+          // If we skipped this... then e.g.:
+          //   weakTypeTag[Option[B1]] // B1 is type paremeter
+          // on c.untypecheck becomes
+          //   weakTypeTag
+          // which on later (re)typechecking becomes
+          //   weakTypeTag[B1] // ??
+          // which is not what we want. We need to preserve the type during untypechecking... which requires reifying it as a Tree.
           private def pkgRef(sym: Symbol): Tree = {
             // sym is a package *class* symbol
             val parts = sym.fullName.split('.')
@@ -3087,14 +3105,14 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
             case SingleType(pre, sym) =>
               pre match {
                 case ThisType(pkg) if pkg.isPackageClass => Select(pkgRef(pkg), sym.name.toTermName)
-                case _ => Select(typeToTree(pre), sym.name.toTermName)
+                case _                                   => Select(typeToTree(pre), sym.name.toTermName)
               }
             case ThisType(sym) if sym.isPackageClass => pkgRef(sym)
-            case ThisType(sym) => This(sym.name.toTypeName)
-            case ConstantType(c) => Literal(c)
-            case AnnotatedType(_, underlying) => typeToTree(underlying)
-            case ExistentialType(_, underlying) => typeToTree(underlying)
-            case other => TypeTree(other) // fallback
+            case ThisType(sym)                       => This(sym.name.toTypeName)
+            case ConstantType(c)                     => Literal(c)
+            case AnnotatedType(_, underlying)        => typeToTree(underlying)
+            case ExistentialType(_, underlying)      => typeToTree(underlying)
+            case other                               => TypeTree(other) // fallback
           }
 
           override def transform(tree: Tree): Tree = tree match {

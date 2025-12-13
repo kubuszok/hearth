@@ -1623,8 +1623,7 @@ The recommended way to handle methods is through pattern matching:
         val method: Method[A, Int] = Type[A].methods.filter(_.value.name == name) match {
           case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
           case method :: Nil =>
-            import method.Underlying as Returned
-            if (!(Returned <:< Type.of[Int])) Environment.reportErrorAndAbort(s"Method $name returns not an Int")
+            if (!(method.Underlying <:< Type.of[Int])) Environment.reportErrorAndAbort(s"Method $name returns not an Int")
             else method.value.asInstanceOf[Method[A, Int]]
           case _ => Environment.reportErrorAndAbort(s"Method $name is not unique")
         }
@@ -1634,7 +1633,6 @@ The recommended way to handle methods is through pattern matching:
             Expr.quote(s"Found no-instance method ${Expr.splice(methodName)}")
             
           case ofInstance: Method.OfInstance[A, Int] @unchecked =>
-            import ofInstance.{ Returned }
             Expr.quote(s"Found instance method ${Expr.splice(methodName)} on ${Expr.splice(Expr(Type[A].plainPrint))}")
             
           case unsupported: Method.Unsupported[A, Int] @unchecked =>
