@@ -506,30 +506,96 @@ Nested expressions are also correctly handled by Cross Quotes:
 
 ## Limitations
 
-1. **Early Version**: Cross Quotes is still in an early development, so some complex expressions may fail with cryptic errors:
+Since Cross-Quotes rewrites some code into the native macro representations of each Scala version, their limitations are a direct result of those representations.
 
-    Scala 2 implementation relies on custom tree printers ([hearth#66](https://github.com/MateuszKubuszok/hearth/issues/66)).
-    It should solve Scala 2 issues, but it's still a new solution, that would require testing in the field.
+ 1. **Scala 2's `WeakTypeTag` implicit resolution**
 
-    Scala 3 implementation works with untyped trees. That means modifies the code before we can reliably tell, whether something is actually
-    declared within `MacroCommons` mix-in.
-
-    Both implementations might ommit some implicit `Type[A]` when constructing `Expr`s and `Type`s, especially if they are not passed as
-    parameters, resulting in code that _should_ compile, but isn't.
-
-2. **MicroCommons Dependency**: Can only be used inside traits that depend on `MacroCommons`/`MacroTypedCommons`:
+    When constructing a new value with `c.weakTypeTag[SomeType]`, Scala 2 ignores:
 
     ```scala
-    trait MyMacros { this: MacroTypedCommons => // or just this: MacroCommons =>
-      // Your Cross Quotes code here
+    type X
+    implicit val X: WeakTypeTag[X] = ...
+
+    object someType {
+      type Y = ...
+      implicit val Y: WeakTypeTag[Y] = ...
     }
+    import someType.Y
     ```
 
-3. **Type Constructor Limits**: Type constructors are limited to 22 type parameters, and none of them can be a hifger-kinded type:
+    As a result, if you need `Type[Either[X, Y]]`, it generates `WeakTypeTag[Either[X, Y]]` for local, abstract types,
+    not the types represented by the implicits!
 
-    You can implement support for some type constructor with higher-kinded type parameters, but it cannot be available out-of-the-box:
-    Scala 2's `WeakTypeTag[A]` can store **only a proper type**, while Scala 3's `Type` defines `A <: AnyKind` which can store all kinds,
-    but which is not available on Scala 2, so any common interface has to be implemented anew for each supported type kindness.
+    However, it does not ignore type parameters and their implicits:
+
+    ```scala
+    def someMethod[A: WeakTypeTag] = weakTypeTag[Option[A]]
+
+    def anotherMethod[B](implicit val B: WeakTypeTag[B]) = weakTypeTag[Either[String, B]]
+    ```
+
+    So Cross-Quotes tries to detect such situations and rewrites `Type.of[...]` to use that workaround under the hood.
+    But it's a **best-effort approach**; passing `Type[A]` as a type bound is much more bulletproof.
+
+ 2. **Scala 2's `WeakTypeTag` lacks kind support**
+
+    Scala 3's `Type[A]` uses the new `A <: AnyKind` type bound, so it can contain `String` (proper type), `List[_]`, `Either[_, _]`.
+
+    Scala 2's `WeakTypeTag[A]` has to store a proper type `A`, because there is no `AnyKind` in Scala 2. So obtaining a type constructor requires manual intervention.
+
+    That forced us to create `Type.CtorN` to have a structure allowing us to `apply` and `unapply` `Type`s. They have to be maintained manually,
+    so we only support `Type.Ctor1` to `Type.Ctor22`, each accepting only proper types as type parameters.
+
+    However, Scala 2 is also much worse than Scala 3 at figuring out which types have to be applied to a type constructor
+    [to match a type alias](https://scastie.scala-lang.org/MateuszKubuszok/eGoFqkeUSGarPvoeo3OZow/7).
+
+    This means that `Type.Ctor2.of[TypeAliasSwappingParams]` would `apply` the value, but it won't figure out the parameters that have to be passed.
+    (There is a best-effort approach that matches a `Type` against a type alias only when it's using that exact alias, with no unaliasing, widening, etc).
+
+    For the same reason, using [kind-projector](https://github.com/typelevel/kind-projector) on Scala 2 cannot be supported.
+
+    Some best-effort workarounds are [in the making](https://github.com/MateuszKubuszok/hearth/issues/139), but
+    **full support for arbitrary type aliases and kind projections will probably never be possible**.
+
+ 3. **Scala 2's `Expr`s**
+
+    Quasiquotes do not resolve implicit `WeakTypeTag`s out of the box. You have to interpolate them yourself:
+
+    ```scala
+    q"""$expr.asInstanceOf[${weakTypeTag[A]}]"""
+    ```
+
+    And all of the types defined in the interpolated `String` should be fully qualified type names. Even if some type is imported,
+    the macro would only see the types that are available in the scope during the expansion.
+
+    For that reason the Scala 2 implementation relies on custom tree printers ([hearth#66](https://github.com/MateuszKubuszok/hearth/issues/66)).
+    It takes a well-typed `Expr`, prints it as something preserving all these (imported/global) types, and injects `weakTypeTag`s where necessary.
+
+    Since it's quite a complex process, there might still be issues with it, so **we recommend keeping quoted expressions as simple as possible**.
+
+ 4. **Scala 3's `Type.of[A]` implicit resolution**
+
+    Scala 3's `Type.of[A]` and `'{ ... }: Expr[A]` have no issues picking up the local implicit `Type`s, like Scala 2 does.
+
+    However, they require that each such implicit is defined as an `implicit val`/parameterless `given`. If obtaining such
+    `Type` would involve any sort of implicit resolution, it would be ignored.
+
+    For that reason Cross-Quotes uses a best-effort approach to detect such cases and create local `given`s to store resolved values.
+    But, just like on Scala 2, **it's more reliable to use a `def` with type bounds**, where implicits are resolved before being passed
+    into it, and the `Type.of` inside just picks the resolved values.
+
+ 5. **Scala 3's compiler-plugin tree-rewriting**
+
+    `Type.of`, `Expr.quote` and `Expr.splice` can only be rewritten by the compiler plugin before the trees are typed.
+
+    That means we cannot rely on resolved symbols or make sure that tree rewriting happens only for targeted methods.
+
+    Cross-Quotes has to assume that types like `Type[A]`, `Expr[A]`, `CrossQuotes`, ... are present and represent the types defined
+    in `MacroCommons`/`MacroTypedCommons`.
+
+    **Using Cross-Quotes with code that, e.g., uses `scala.quoted.Type.of` directly is undefined behavior (and the compiler will probably crash)**.
+
+While all of these are inconvenient, they can usually be worked around. The issues they cause typically occur when we are compiling the macro code, not when the user expands it, so they shouldn't be a problem for end users.
 
 ### Known Issues
 
