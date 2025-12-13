@@ -56,7 +56,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
             .dropWhile { case (x, y) => x == y }
             .takeWhile(_._1 != NoSymbol)
             .map(_._1.name.toTermName)
-          // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
+          // $COVERAGE-OFF$ Should never happen unless someone mess around with type-level representation
           scala.util.Try {
             if (path.isEmpty) hearthAssertionFailed(s"Cannot find a companion for ${untyped.prettyPrint}")
             else c.typecheck(path.foldLeft[Tree](Ident(path.next()))(Select(_, _)), silent = true).symbol

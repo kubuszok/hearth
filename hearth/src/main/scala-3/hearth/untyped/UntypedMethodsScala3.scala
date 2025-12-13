@@ -73,7 +73,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
               .toMap
           typeArgumentByName
         // Unknown type - should never happen unless we messed up.
-        // $COVERAGE-OFF$should never happen unless we messed up
+        // $COVERAGE-OFF$ Should never happen unless we messed up
         case out =>
           val methodName = if method.isConstructor then "Constructor" else s"Method ${method.name}"
           val typeName = instanceTpe.prettyPrint
@@ -321,7 +321,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         val (names, invocation, decls) = param.method.invocation match {
           case Invocation.Constructor =>
             val (companionTpe, companionRef) = instanceTpe.companionObject.getOrElse {
-              // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
+              // $COVERAGE-OFF$ Should never happen unless someone mess around with type-level representation
               hearthAssertionFailed(s"Expected that ${instanceTpe.prettyPrint} would have a companion object")
               // $COVERAGE-ON$
             }
@@ -343,7 +343,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
         val possibleDefaultNames = names.map(defaultValueMethodName(_, param.index + 1))
         val defaultMethod = possibleDefaultNames.flatMap(decls.declaredMethod).headOption.getOrElse {
-          // $COVERAGE-OFF$should never happen unless someone mess around with type-level representation
+          // $COVERAGE-OFF$ Should never happen unless someone mess around with type-level representation
           hearthAssertionFailed(
             s"Expected that ${instanceTpe.prettyPrint}'s constructor parameter `${param.name}` would have default value: attempted `${possibleDefaultNames.mkString(", ")}`, found: ${decls.declarations.mkString(", ")}"
           )
