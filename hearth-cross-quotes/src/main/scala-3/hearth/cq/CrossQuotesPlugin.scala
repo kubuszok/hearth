@@ -156,7 +156,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
   override def run(using Context): Unit = {
 
     inline def log(inline message: String, inline src: SourcePosition): Unit =
-      if loggingEnabled(Option(new JFile(src.source.path)), src.startLine + 1, src.startColumn + 1) then {
+      if loggingEnabled(src.source.jfile.toScala, src.startLine + 1, src.startColumn + 1) then {
         // println(s"Logging: $message at ${src.source.path}:${src.startLine + 1}:${src.startColumn + 1}")
         ctx.reporter.report(new Diagnostic.Info(message, src))
       }

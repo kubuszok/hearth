@@ -20,6 +20,8 @@ object CrossQuotesSettings {
   /** Name of the logging setting. */
   val loggingSettingName = "logging"
 
+  // $$COVERAGE-OFF$$
+
   private def parse(settings: List[String]): (Option[JFile], Int, Int) => Boolean = {
     val checks = settings
       .collect[(List[((Option[JFile], Int, Int) => Boolean)])] {
@@ -59,4 +61,6 @@ object CrossQuotesSettings {
     }
   private val fileLineRegex = """^(.+):(\d+)$""".r
   private val fileLineColumnRegex = """^(.+):(\d+):(\d+)$""".r
+
+  // $$COVERAGE-ON$$
 }
