@@ -113,7 +113,7 @@ ide.scala = 3
 # Allowed: jvm, js, native
 ide.platform = jvm
 
-# Allowed: true, false
+# Allowed: true, false, |-separated list of file names
 log.cross-quotes = false
 ```
 
