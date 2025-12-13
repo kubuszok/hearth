@@ -3000,60 +3000,105 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
   // Type utilities
 
   /* If implicit was imported from tpe.Underlying or defined as implicit val/def/given,
-   * it will be ignored by the c.weakTypeTag - only type parameters' WeakTypeTags are considered.
+   * it will be ignored by the c.weakTypeTag[Tpe] - so tpe.Underlying that appears inside Tpe will be resolved
+   * to WeakTypeTag of the local variable, not of the type represented by tpe.Underlying.
+   * 
+   * Only WeakTypeTags corresponding to type parameters' of encloding def are considered, which is why we need to rewrite the tree into:
+
+   * {{{
+   * def $workaround[A1, B, ...](implicit A1: $ctx.WeakTypeTag[A1], B: $ctx.WeakTypeTag[B], ...) = $ctx.weakTypeTag[...] // use A1, B2, ...
+   * $workaround[A, B, ...](A.asInstanceOf[$ctx.WeakTypeTag[A]], B.asInstanceOf[$ctx.WeakTypeTag[B]], ...)
+   * }}}
+   * 
+   * and only then WeakTypeTag could be correctly resolved.
    */
   @scala.annotation.nowarn // TODO: remove no warn
   private def injectUnderlyingTypes(ctx: TermName, resultType: c.Tree, excluding: TypeName*)(body: c.Tree): c.Tree = {
-    val candidates = importedUnderlyingTypes
-    val excludingSet = excluding.view.map(_.decodedName.toString).toSet
+    val candidates: List[(Type, String)] = importedUnderlyingTypes
+    val excludingSet: Set[String] = excluding.view.map(_.decodedName.toString).toSet
     val importedUnderlying = candidates.view
       .filterNot { case (_, renamed) => excludingSet(renamed) }
-      .flatMap { case (toReplace, renamed) =>
+      .flatMap { case (tpeToReplace, renamed) =>
         try {
-          val tpeName = freshTypeName(renamed)
+          val typeValue: Tree =
+            c.inferImplicitValue(c.typecheck(tq"Type[$tpeToReplace]", mode = c.TYPEmode).tpe, silent = false)
 
-          val paramSym = c.internal.newTypeSymbol(
-            owner = c.internal.enclosingOwner,
-            name = tpeName,
-            flags = Flag.PARAM
-          )
-          c.internal.setInfo(paramSym, c.internal.typeBounds(weakTypeOf[Nothing], weakTypeOf[Any]))
-          val paramDef = c.internal.typeDef(paramSym)
-          val paramTpe = paramSym.asType.toType
-          val paramVal = q"val ${freshName(renamed)}: $ctx.WeakTypeTag[$paramTpe]"
-          val applyTpe = TypeName(renamed)
+          // val (lo, hi) = tpeToReplace.typeSymbol.info match {
+          //   // case c.universe.TypeBounds(lo, hi) => (lo, hi)
+          //   case _ => (weakTypeOf[Nothing], weakTypeOf[Any])
+          // }
+          // Without bounds, we're getting:
+          // type arguments [B1] do not conform to type WeakTypeTag's type parameter bounds [T]
+          // [info] Nothing <: B1?
+          // [info] false
+          // [info] B1 <: Any?
+          // [info] true
+          // val weakTypeTagValue = q"$typeValue.asInstanceOf[$ctx.WeakTypeTag[$hi]]"
+          // but when whe add them, we're getting:
+          // B1 does not conform to >: L <: U
+          // so as a wrokaround we're creating some ad hoc crappy type
+          // val weakTypeTagValue = q"""
+          // $typeValue.asInstanceOf[$ctx.WeakTypeTag[_ >: $lo <: $hi]]
+          // """
+          val weakTypeTagValue = q"""$typeValue.asInstanceOf[$ctx.WeakTypeTag[$tpeToReplace]]"""
 
-          val foundImplicit =
-            c.inferImplicitValue(c.typecheck(tq"Type[$applyTpe]", mode = c.TYPEmode).tpe, silent = true)
-          if (foundImplicit == EmptyTree) Iterable.empty
-          else {
-            val applyVal = q"$foundImplicit.asInstanceOf[$ctx.WeakTypeTag[$applyTpe]]"
-            Iterable((paramDef, paramVal, applyTpe, applyVal, toReplace))
-          }
-        } catch { case _: Throwable => Iterable.empty }
+          // val paramSym: TypeSymbol = c.internal.newTypeSymbol(
+          //   owner = c.internal.enclosingOwner,
+          //   name = freshTypeName(renamed),
+          //   flags = Flag.PARAM
+          // )
+          // Without this, we're getting AssertionError from Symbols
+          // c.internal.setInfo(paramSym, c.internal.typeBounds(lo, hi))
+
+          val paramName = freshTypeName(renamed)
+          val paramDef: TypeDef = q"type $paramName"
+          val paramVal: ValDef = q"val ${freshName(renamed)}: $ctx.WeakTypeTag[$paramName]"
+
+          Iterable((paramDef, paramVal, tpeToReplace, weakTypeTagValue))
+        } catch {
+          // If there is no such implicit, we aren't creating a workaround for it.
+          case e: Throwable if e.getClass.getName == "scala.reflect.macros.TypecheckException" => Iterable.empty
+          // If there are other errors, we should probably report them.
+        }
       }
       .toSeq
+    if (loggingEnabled) {
+      println(s"candidates: $candidates")
+      println(s"importedUnderlying: $importedUnderlying")
+    }
     if (importedUnderlying.isEmpty) {
       body
     } else {
-      val workaround = freshName("workaround")
-      val paramDefs = importedUnderlying.map(_._1)
-      val paramVals = importedUnderlying.map(_._2)
-      val applyTpes = importedUnderlying.map(_._3)
-      val applyVals = importedUnderlying.map(_._4)
-      val toReplace = importedUnderlying.map(_._5)
+      val workaround: TermName = freshName("workaround")
+      val paramDefs: Seq[TypeDef] = importedUnderlying.map(_._1)
+      val paramVals: Seq[ValDef] = importedUnderlying.map(_._2)
+      val tpesToReplace: Seq[Type] = importedUnderlying.map(_._3)
+      val weakTypeTagValues: Seq[Tree] = importedUnderlying.map(_._4)
 
-      val uncheckedDefPrototype = q"""
+      // We need to create a prototype of the final Block, so that we could typecheck it,
+      // and make sure all the symbols are initialized and types resolved.
+      //
+      // $ctx is defined in the snippet that calls this method, but we have to pit it here to make the code type check.
+      // After that, we have to remove it since it would be declared in the outer snipped that will be embedding this one.
+      val uncheckedResultPrototype = q"""
       val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       def $workaround[..$paramDefs](implicit ..$paramVals): $resultType = ???
+      $workaround(..$weakTypeTagValues)
       """
-      val defPrototype = c.typecheck(uncheckedDefPrototype).asInstanceOf[Block].stats.last.asInstanceOf[DefDef]
+      val Block(List(_, unpatchedDef: DefDef), unpatchedResult) = c.typecheck(uncheckedResultPrototype)
+      // val unpatchedResult = q"""
+      // $workaround(..$weakTypeTagValues)
+      // """
+      // val unpatchedResult = q"""???""" // to check if it's application or definition
 
       object typePatcher extends Transformer {
 
-        private val paramTpes = defPrototype.symbol.asMethod.typeParams.map(_.asType.toType)
+        // To obtain these we had to typecheck the Tree above, because we need them to be able to recursively replace
+        // e.g. somevalue.Underlying with SomeValueTypeParameter (substituteTypes and substituteSymbols seem to not work
+        // and only replacing the top level Type in TypeTree is not enough)
+        private val paramTpes = unpatchedDef.symbol.asMethod.typeParams.map(_.asType.toType)
         def patchTpe(tpe: Type): Type = tpe.map { oldType =>
-          val index = toReplace.indexWhere(oldType =:= _)
+          val index = tpesToReplace.indexWhere(oldType =:= _)
           if (index < 0) oldType
           else paramTpes(index)
         }
@@ -3067,31 +3112,41 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         }
       }
 
-      val patchedDef = treeCopy.DefDef(
-        defPrototype, // patched DefDef
-        defPrototype.mods,
-        defPrototype.name,
-        defPrototype.tparams,
-        defPrototype.vparamss,
-        typePatcher.transform(defPrototype.tpt), // result type might also need to be patched
-        typePatcher.transform(body) // the thing we want to patch
-      )
+      val patchedTpt = typePatcher.transform(unpatchedDef.tpt)
+      val patchedBody = typePatcher.transform(body)
 
-      val result = q"""
-      $patchedDef
-      ${patchedDef.name}[..$applyTpes](..$applyVals)
-      """
+      // Without c.untypecheck, we're getting error like:
+      // [error] ## Exception when compiling 32 sources to hearth/hearth-tests/target/jvm-2.13/classes
+      // [error] java.lang.NullPointerException: Cannot invoke "scala.reflect.internal.Types$Type.typeParams()" because the return value of "scala.reflect.internal.Trees$Tree.tpe()" is null
+      val patchedDef = // c.untypecheck(
+        treeCopy.DefDef(
+          unpatchedDef, // patched DefDef
+          unpatchedDef.mods,
+          unpatchedDef.name,
+          unpatchedDef.tparams,
+          unpatchedDef.vparamss,
+          patchedTpt, // result type might also need to be patched
+          patchedBody // the thing we want to patch
+        )
+      // )
+      val patchedResult = c.untypecheck(unpatchedResult)
+
+      // This would have been just:
+      // q"""
+      // def $workaround[..$paramDefs](implicit ..$paramVals): ${typePatcher.transform(resultType)} = ${typePatcher.transform(body)}
+      // $workaround[..$applyTpes](..$applyVals)
+      // """
+      // if macros were sane, but I've got error like:
+      //  - type arguments [Underlying1] do not conform to type WeakTypeTag's type parameter bounds [T]
+      //  - type patcher needs some type to replace the old one, and there is no way to obtain either Type or Symbol from type parameters
+      //    without running the c.typecheck
+      val result = Block(List(patchedDef), patchedResult)
 
       // TODO: remove
-      lazy val x = showCodePretty(result, SyntaxHighlight.ANSI)
-      lazy val y = showRawPretty(result, SyntaxHighlight.ANSI)
-      if (loggingEnabled) {
-        // paramTpes.map { param =>
-        //   println(s"Param: $param ${param.typeSymbol}")
-        // }
-        println(x)
-        println(y)
-      }
+      // if (loggingEnabled) {
+      //   println(showCodePretty(result, SyntaxHighlight.ANSI))
+      //   println(showRawPretty(result, SyntaxHighlight.ANSI))
+      // }
 
       result
     }
@@ -3132,7 +3187,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       }
 
     // Traverse tree to find Import statements
-    val finder = new Traverser {
+    object finder extends Traverser {
       override def traverse(tree: Tree): Unit = tree match {
         case importTree: Import =>
           extractNamesFromImport(importTree)

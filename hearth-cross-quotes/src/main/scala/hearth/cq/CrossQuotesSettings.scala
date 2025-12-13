@@ -20,19 +20,20 @@ object CrossQuotesSettings {
   /** Name of the logging setting. */
   val loggingSettingName = "logging"
 
-  private def parse(settings: List[String]): (Option[JFile], Int, Int) => Boolean = settings
-    .collectFirst[((Option[JFile], Int, Int) => Boolean)] {
-      case setting if setting.startsWith(loggingSettingName + "=") =>
-        val value = setting.stripPrefix(loggingSettingName + "=").trim
-        if (value == "true") (_, _, _) => true
-        else if (value == "false") (_, _, _) => false
-        else {
-          val checks = value.split(',').map(_.trim).map(isExpandedAt)
-          (currentPositionFile, currentPositionLine, currentPositionColumn) =>
-            checks.exists(_(currentPositionFile, currentPositionLine, currentPositionColumn))
-        }
-    }
-    .getOrElse((_, _, _) => false)
+  private def parse(settings: List[String]): (Option[JFile], Int, Int) => Boolean = {
+    val checks = settings
+      .collect[(List[((Option[JFile], Int, Int) => Boolean)])] {
+        case setting if setting.startsWith(loggingSettingName + "=") =>
+          // We're splitting by '|' because compiler treats ',' as a separator for settings (which looses the prefix).
+          val value = setting.stripPrefix(loggingSettingName + "=").trim
+          if (value == "true") List((_, _, _) => true)
+          else if (value == "false") List((_, _, _) => false)
+          else value.split('|').map(_.trim).map(isExpandedAt).toList
+      }
+      .flatten
+    (currentPositionFile, currentPositionLine, currentPositionColumn) =>
+      checks.exists(_(currentPositionFile, currentPositionLine, currentPositionColumn))
+  }
 
   /** Copy of Environments.isExpandedAt, but for Cross-Quotes. */
   private def isExpandedAt(compilationLogPosition: String): (Option[JFile], Int, Int) => Boolean =
