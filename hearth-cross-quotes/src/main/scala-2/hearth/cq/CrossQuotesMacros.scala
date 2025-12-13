@@ -144,15 +144,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     $typeValue
     """
 
-    // purposefuly not typechecking, because it would fail with: not found value workaroundN
-    val result =
-      try
-        suppressWarnings(c.typecheck(unchecked))
-      catch {
-        case e: Throwable =>
-          println(showCodePretty(unchecked, SyntaxHighlight.ANSI))
-          throw e
-      }
+    val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.of")} expansion:
@@ -2988,7 +2980,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
    * 
    * and only then WeakTypeTag could be correctly resolved.
    */
-  @scala.annotation.nowarn // TODO: remove no warn
   private def TypeWithUnderlyingInjected(ctx: TermName, weakTypeTagOf: c.Tree, excluding: TypeName*): c.Tree = {
     lazy val noInjectResult = q"""$ctx.weakTypeTag[$weakTypeTagOf].asInstanceOf[Type[$weakTypeTagOf]]"""
     lazy val ctx2 = freshName("ctx2")
@@ -3015,10 +3006,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         }
       }
       .toSeq
-    if (loggingEnabled) {
-      println(s"candidates: $candidates")
-      println(s"importedUnderlying: $importedUnderlying")
-    }
+    
     if (importedUnderlying.isEmpty) {
       noInjectResult
     } else {
@@ -3043,33 +3031,19 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       // ...however, to fix the tree, we have to have c.Type or Symbol or each type parameter, and this requires typechecking.
       // So, we have to create a stub, that we will modify later on.
       def fixWorkaroundBody(patchBody: DefDef => c.Tree): c.Tree = {
-        // val Block(List(ctxVal, ctxImport, hmm), uncheckedCall) = uncheckedResultPrototype
         val Block(List(ctxVal, ctxImport, unpatchedDef: DefDef), callDef) = c.typecheck(uncheckedResultPrototype)
-        // val Block(List(_, _, unpatchedDef: DefDef), _) = c.typecheck(uncheckedResultPrototype)
-        val tmp = unpatchedDef
         val patchedDef = treeCopy.DefDef(
-          tmp,
-          tmp.mods,
-          tmp.name,
-          tmp.tparams,
-          tmp.vparamss,
-          tmp.tpt,
+          unpatchedDef,
+          unpatchedDef.mods,
+          unpatchedDef.name,
+          unpatchedDef.tparams,
+          unpatchedDef.vparamss,
+          unpatchedDef.tpt,
           patchBody(unpatchedDef)
         )
         if (skipWorkaround) noInjectResult
-        else {
-          val result = Block(List(ctxVal, ctxImport, patchedDef), callDef)
-          val untypedResult = c.untypecheck(result)
-          // val retypechecked = c.typecheck(untypedResult)
-          // val reset = c.resetLocalAttrs(result)
-          if (loggingEnabled) {
-            println(s"""result: ${showCodePretty(result, SyntaxHighlight.ANSI)}""")
-            // println(s"""untpd:  ${showCodePretty(untypedResult, SyntaxHighlight.ANSI)}""")
-            // println(s"""retpd:  ${showCodePretty(retypechecked, SyntaxHighlight.ANSI)}""")
-            // println(s"""reset:  ${showCodePretty(reset, SyntaxHighlight.ANSI)}""")
-          }
-          untypedResult
-        }
+        // Untypecheck the result, because otherwise we're getting errors from mixing typed and untyped trees.
+        else c.untypecheck(Block(List(ctxVal, ctxImport, patchedDef), callDef))
       }
 
       fixWorkaroundBody { unpatchedDef =>
@@ -3101,48 +3075,26 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
             case TypeRef(pre, sym, args) =>
               val base: Tree = pre match {
                 // unqualified simple type (e.g. List, MyType)
-                case NoPrefix =>
-                  Ident(sym.name.toTypeName)
-
+                case NoPrefix => Ident(sym.name.toTypeName)
                 // *** THIS IS THE IMPORTANT BIT ***
                 // Option[B1] often has pre = ThisType(scala.package)
-                case ThisType(pkg) if pkg.isPackageClass =>
-                  val qual = pkgRef(pkg) // _root_.scala
-                  Select(qual, sym.name.toTypeName) // _root_.scala.Option
-
+                case ThisType(pkg) if pkg.isPackageClass => Select(pkgRef(pkg), sym.name.toTypeName)
                 // other prefixes (path-dependent types etc.)
-                case _ =>
-                  Select(typeToTree(pre), sym.name.toTypeName)
+                case _ => Select(typeToTree(pre), sym.name.toTypeName)
               }
-
               if (args.isEmpty) base
               else AppliedTypeTree(base, args.map(typeToTree))
-
             case SingleType(pre, sym) =>
               pre match {
-                case ThisType(pkg) if pkg.isPackageClass =>
-                  Select(pkgRef(pkg), sym.name.toTermName)
-                case _ =>
-                  Select(typeToTree(pre), sym.name.toTermName)
+                case ThisType(pkg) if pkg.isPackageClass => Select(pkgRef(pkg), sym.name.toTermName)
+                case _ => Select(typeToTree(pre), sym.name.toTermName)
               }
-
-            case ThisType(sym) if sym.isPackageClass =>
-              pkgRef(sym)
-
-            case ThisType(sym) =>
-              This(sym.name.toTypeName)
-
-            case ConstantType(c) =>
-              Literal(c)
-
-            case AnnotatedType(_, underlying) =>
-              typeToTree(underlying)
-
-            case ExistentialType(_, underlying) =>
-              typeToTree(underlying)
-
-            case other =>
-              TypeTree(other) // fallback
+            case ThisType(sym) if sym.isPackageClass => pkgRef(sym)
+            case ThisType(sym) => This(sym.name.toTypeName)
+            case ConstantType(c) => Literal(c)
+            case AnnotatedType(_, underlying) => typeToTree(underlying)
+            case ExistentialType(_, underlying) => typeToTree(underlying)
+            case other => TypeTree(other) // fallback
           }
 
           override def transform(tree: Tree): Tree = tree match {
