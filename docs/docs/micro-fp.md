@@ -1130,7 +1130,7 @@ log and fail if necessary:
 
     ```scala
     // See our Show derivation demo in
-    // https://github.com/MateuszKubuszok/hearth/blob/{{ git.raw }}/hearth-tests/src/main/scala/hearth/demo/ShowMacrosImpl.scala
+    // https://github.com/MateuszKubuszok/hearth/blob/{{ git.commit }}/hearth-tests/src/main/scala/hearth/demo/ShowMacrosImpl.scala
     def deriveOrFail[A: Type](value: Expr[A], name: String): Expr[String] = Log
       .namedScope(s"Derivation for $name") {
         attemptAllRules[A](value)
