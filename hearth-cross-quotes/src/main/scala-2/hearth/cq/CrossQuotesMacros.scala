@@ -3221,12 +3221,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
   // Expr utilities
 
-  private def printTreeForQuotes(tree: c.Tree): String =
-    showCodePretty(tree, SyntaxHighlight.plain).view.map {
-      case '$' => "$$"
-      case c   => c
-    }.mkString
-
   private def convert(ctx: TermName)(tree: c.Tree): c.Tree = {
     // 1. Replace certain trees with stubs,
     // 2. then print the tree,
