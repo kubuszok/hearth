@@ -22,7 +22,9 @@ final class CrossExprsSpec extends MacroSuite {
             "generics" -> Data("4"),
             "nestedQuotesAndSplices" -> Data("42")
           ),
-          "edgeCases" -> Data.map()
+          "edgeCases" -> Data.map(
+            "chainingOnSplice" -> Data("<name>")
+          )
         )
       }
     }

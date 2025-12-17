@@ -82,7 +82,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
   private def reportIssue(throwable: Throwable): Nothing =
     c.abort(
       c.enclosingPosition,
-      s"""Unexpected error ${throwable.getClass.getName}:
+      s"""Unexpected error ${throwable.getClass.getName} at ${c.enclosingPosition.source.path}:${c.enclosingPosition.line}:${c.enclosingPosition.column}:
          |
          |${indent(throwable.getMessage)}
          |
@@ -135,9 +135,13 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     val termInner = freshName("Inner")
     val typeInner = freshTypeName("Inner")
 
+    // TODO: This: import _root_.scala.reflect.api.{Mirror, TypeCreator, Universe}
+    // is kind of a hack, because apparently these types were not sanitized during printing.
+    // We should fix the printing, so that we don't have to introduce this import.
     val unchecked = q"""
     val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
-    import $ctx.universe.{Type => _, internal => _, _}
+    import _root_.scala.reflect.api.{Mirror, TypeCreator, Universe}
+    import $ctx.universe.{Mirror => _,Type => _, internal => _, _}
     implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
       $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
     _root_.hearth.fp.ignore($convertProvidedTypesForCrossQuotes[Any](_: Type[Any]))
@@ -2942,15 +2946,39 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
+    val wtt = freshName("wtt")
+
+    val A = weakTypeOf[A]
+    val typeA =
+      try
+        c.inferImplicitValue(
+          pt = c.typecheck(tq"Type[$A]", mode = c.TYPEmode).tpe,
+          silent = false,
+          withMacrosDisabled = true
+        )
+      catch {
+        // If there is no such implicit, we have to create it.
+        case e: Throwable if e.getClass.getName == "scala.reflect.macros.TypecheckException" =>
+          if (loggingEnabled) {
+            println(s"""No implicit Type[$A] found in the scope, creating one with Type.of[$A]""")
+          }
+          val resolved = typeOfImpl[A]
+          if (loggingEnabled) {
+            println(s"""Created Type[$A] with: ${showCodePretty(resolved, SyntaxHighlight.ANSI)}""")
+          }
+          resolved
+      }
+    val quasiquote = convert(ctx)(expr.tree)
 
     val unchecked = q"""
+    val $wtt = $typeA
     val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
     import $ctx.universe.Quasiquote
     @_root_.scala.annotation.nowarn
     implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
       $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
     _root_.hearth.fp.ignore($convertProvidedTypesForCrossQuotes[Any](_: Type[Any]))
-    $ctx.Expr[${weakTypeOf[A]}](${convert(ctx)(expr.tree)}).asInstanceOf[Expr[${weakTypeOf[A]}]]
+    $ctx.Expr[$A]($quasiquote)($wtt.asInstanceOf[$ctx.WeakTypeTag[$A]]).asInstanceOf[Expr[$A]]
     """
 
     // purposefuly not typechecking, because it would fail with: unexpected error: Position.point on NoPosition
@@ -3138,7 +3166,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     *
     * Traverses the enclosing method/class trees to find import statements that come before the macro expansion point.
     */
-  @scala.annotation.nowarn // TODO: remove no warn
   private def importedUnderlyingTypes: List[(Type, String)] = try {
     val importedNames = scala.collection.mutable.ListBuffer[(Type, String)]()
     val expansionPos = c.enclosingPosition
@@ -3175,12 +3202,14 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     }
 
     // Check enclosing method
+    @scala.annotation.nowarn // No replacement and it's not going anywhere
     val enclosingMethod = c.enclosingMethod
     if (enclosingMethod != EmptyTree) {
       finder.traverse(enclosingMethod)
     }
 
     // Check enclosing class
+    @scala.annotation.nowarn // No replacement and it's not going anywhere
     val enclosingClass = c.enclosingClass
     if (enclosingClass != EmptyTree) {
       finder.traverse(enclosingClass)
@@ -3190,6 +3219,12 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
   } catch { case _: Throwable => Nil }
 
   // Expr utilities
+
+  private def printTreeForQuotes(tree: c.Tree): String =
+    showCodePretty(tree, SyntaxHighlight.plain).view.map {
+      case '$' => "$$"
+      case c   => c
+    }.mkString
 
   private def convert(ctx: TermName)(tree: c.Tree): c.Tree = {
     // 1. Replace certain trees with stubs,
@@ -3211,7 +3246,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       .pipe(spliceReplacer.transform)
       .pipe(abstractTypeReferenceReplacer.transform)
       // Convert to String
-      .pipe(showCodePretty(_, SyntaxHighlight.plain))
       .tap { source =>
         if (loggingEnabled) {
           println(
@@ -3221,6 +3255,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           )
         }
       }
+      .pipe(showCodePretty(_, SyntaxHighlight.plain))
       // Put into quasiquote - we have to do it before replacing stubs, because we might have accidentaly removed some actual string interpolation
       .pipe(putIntoQuasiquote)
       // Replace stubs with their values
@@ -3230,6 +3265,15 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       .pipe(abstractTypeReferenceReplacer.validateNoStubsLeft)
       .pipe(spliceReplacer.validateNoStubsLeft)
       // Parse back to Tree
+      .tap { source =>
+        if (loggingEnabled) {
+          println(
+            s"""Parsed source:
+               |${indent(paint(Console.BLUE)(source))}
+               |""".stripMargin
+          )
+        }
+      }
       .pipe(c.parse(_))
   }
 
@@ -3342,7 +3386,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
     def replaceStubsInSource(source: String): String = abstractTypes.view.values.flatten.foldLeft(source) {
       case (result, Cache(stub, _, weakTypeTag)) =>
-        result.replaceAll(Pattern.quote(stub.toString), Matcher.quoteReplacement(s"$${ $weakTypeTag }"))
+        val printedWeakTypeTag = showCodePretty(weakTypeTag, SyntaxHighlight.plain)
+        result.replaceAll(Pattern.quote(stub.toString), Matcher.quoteReplacement(s"$${ $printedWeakTypeTag }"))
     }
 
     def validateNoStubsLeft(source: String): String = {
@@ -3373,22 +3418,22 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
             ),
             List(expr)
           ) =>
+        // This code can contain $ which has to be escaped before printing, also we should use better printers for all such things.
+        val printedExpr = showCodePretty(expr, SyntaxHighlight.plain)
+        val printedTpe = showCodePretty(tpe, SyntaxHighlight.plain)
         val result = convert(ctx)(expr) match {
           case Ident(_) =>
-            toReplace += (expr.toString() -> s"$${ {$expr}.asInstanceOf[$ctx.Expr[$tpe]] }")
+            toReplace += (expr.toString() -> s"$${ {$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]] }")
             expr
           case _ =>
             val stub = Ident(freshName("expressionStub"))
-            toReplace += (stub.toString() -> s"$${ {$expr}.asInstanceOf[$ctx.Expr[$tpe]] }")
+            toReplace += (stub.toString() -> s"$${ {$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]] }")
             stub
         }
 
         log(
           s"""Cross-quotes ${paintExclDot(Console.BLUE)("Expr.splice")} expansion:
-             |From: ${paintExclDot(Console.BLUE)("Expr")}.${paintExclDot(Console.BLUE)("splice")}(${showCodePretty(
-              expr,
-              SyntaxHighlight.ANSI
-            )})
+             |From: ${paintExclDot(Console.BLUE)("Expr.splice")}(${showCodePretty(expr, SyntaxHighlight.ANSI)})
              |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
         )
 

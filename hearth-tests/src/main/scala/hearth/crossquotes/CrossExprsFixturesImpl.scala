@@ -47,6 +47,20 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
 
     // TODO: edge cases
 
+    @scala.annotation.nowarn
+    def chainingOnSplice(sb: Expr[StringBuilder], name: Expr[String]): Expr[Data] =
+      Expr.quote {
+        val value = Expr.splice(sb).append("<").append(Expr.splice(name)).append(">")
+        Data(value.toString)
+      }
+    @scala.annotation.nowarn
+    val sbt = Type.of[StringBuilder]
+    @scala.annotation.nowarn
+    val sb = {
+      implicit val sb: Type[StringBuilder] = sbt
+      Expr.quote(new StringBuilder)
+    }
+
     Expr.quote {
       Data.map(
         "features" -> Data.map(
@@ -55,7 +69,10 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
           "generics" -> Expr.splice(generics(example)),
           "nestedQuotesAndSplices" -> Expr.splice(nestedSplices)
         ),
-        "edgeCases" -> Data.map()
+        "edgeCases" -> Data.map(
+          // "chainingOnSplice" -> Data("<name>")
+          "chainingOnSplice" -> Expr.splice(chainingOnSplice(Expr.quote(new StringBuilder), Expr("name")))
+        )
       )
     }
   }
