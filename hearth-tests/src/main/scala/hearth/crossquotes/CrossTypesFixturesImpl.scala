@@ -83,72 +83,45 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor1[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor1.of[examples.kinds.Arity1]
-    val classResult = Type[In] match {
-      case classTest(aParam) =>
-        import aParam.Underlying as A
-        Seq(
-          "as class" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint)),
-            "reapplied" -> Data(classTest(using String).plainPrint)
+    def test[Tested, Ctor[_]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor1[Ctor]
+    ) = Tested match {
+      case Ctor(a) =>
+        val Z = String
+        Some(
+          Data.map(
+            "unapplied" -> Data.list(
+              Data(a.Underlying.plainPrint)
+            ),
+            "reapplied" -> Data(
+              Ctor(using Z).plainPrint
+            )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
 
-    val renamedTest = Type.Ctor1.of[examples.kinds.Alias.Renamed1]
-    val renamedResult = Type[In] match {
-      case renamedTest(aParam) =>
-        import aParam.Underlying as A
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint)),
-            "reapplied" -> Data(renamedTest(using String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor1.of[examples.kinds.Arity1]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor1.of[examples.kinds.Alias.Extra1]
-    val extraResult = Type[In] match {
-      case extraTest(aParam) =>
-        import aParam.Underlying as A
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint)),
-            "reapplied" -> Data(extraTest(using String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor1.of[examples.kinds.Alias.Renamed1]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor1.of[examples.kinds.Alias.FixedFront1]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(aParam) =>
-        import aParam.Underlying as A
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint)),
-            "reapplied" -> Data(fixedFrontTest(using String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor1.of[examples.kinds.Alias.Extra1]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor1.of[examples.kinds.Alias.FixedBack1]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(aParam) =>
-        import aParam.Underlying as A
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint)),
-            "reapplied" -> Data(fixedBackTest(using String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor1.of[examples.kinds.Alias.FixedFront1]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor1.of[examples.kinds.Alias.FixedBack1]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -156,77 +129,46 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor2[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor2.of[examples.kinds.Arity2]
-    val classResult = Type[In] match {
-      case classTest(aParam, bParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        Seq(
-          "as class" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint)),
-            "reapplied" -> Data(classTest(using String, String).plainPrint)
+    def test[Tested, Ctor[_, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor2[Ctor]
+    ) = Tested match {
+      case Ctor(a, b) =>
+        val Z = String
+        Some(
+          Data.map(
+            "unapplied" -> Data.list(
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint)
+            ),
+            "reapplied" -> Data(
+              Ctor(using Z, Z).plainPrint
+            )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
 
-    val renamedTest = Type.Ctor2.of[examples.kinds.Alias.Renamed2]
-    val renamedResult = Type[In] match {
-      case renamedTest(aParam, bParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint)),
-            "reapplied" -> Data(renamedTest(using String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor2.of[examples.kinds.Arity2]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor2.of[examples.kinds.Alias.Extra2]
-    val extraResult = Type[In] match {
-      case extraTest(aParam, bParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint)),
-            "reapplied" -> Data(extraTest(using String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor2.of[examples.kinds.Alias.Renamed2]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor2.of[examples.kinds.Alias.FixedFront2]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(aParam, bParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint)),
-            "reapplied" -> Data(fixedFrontTest(using String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor2.of[examples.kinds.Alias.Extra2]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor2.of[examples.kinds.Alias.FixedBack2]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(aParam, bParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint)),
-            "reapplied" -> Data(fixedBackTest(using String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor2.of[examples.kinds.Alias.FixedFront2]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor2.of[examples.kinds.Alias.FixedBack2]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -234,82 +176,47 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor3[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor3.of[examples.kinds.Arity3]
-    val classResult = Type[In] match {
-      case classTest(aParam, bParam, cParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        Seq(
-          "as class" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint)),
-            "reapplied" -> Data(classTest(using String, String, String).plainPrint)
+    def test[Tested, Ctor[_, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor3[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c) =>
+        val Z = String
+        Some(
+          Data.map(
+            "unapplied" -> Data.list(
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint)
+            ),
+            "reapplied" -> Data(
+              Ctor(using Z, Z, Z).plainPrint
+            )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
 
-    val renamedTest = Type.Ctor3.of[examples.kinds.Alias.Renamed3]
-    val renamedResult = Type[In] match {
-      case renamedTest(aParam, bParam, cParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint)),
-            "reapplied" -> Data(renamedTest(using String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor3.of[examples.kinds.Arity3]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor3.of[examples.kinds.Alias.Extra3]
-    val extraResult = Type[In] match {
-      case extraTest(aParam, bParam, cParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint)),
-            "reapplied" -> Data(extraTest(using String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor3.of[examples.kinds.Alias.Renamed3]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor3.of[examples.kinds.Alias.FixedFront3]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(aParam, bParam, cParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint)),
-            "reapplied" -> Data(fixedFrontTest(using String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor3.of[examples.kinds.Alias.Extra3]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor3.of[examples.kinds.Alias.FixedBack3]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(aParam, bParam, cParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint)),
-            "reapplied" -> Data(fixedBackTest(using String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor3.of[examples.kinds.Alias.FixedFront3]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor3.of[examples.kinds.Alias.FixedBack3]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -317,85 +224,47 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor4[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor4.of[examples.kinds.Arity4]
-    val classResult = Type[In] match {
-      case classTest(aParam, bParam, cParam, dParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        Seq(
-          "as class" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint), Data(D.plainPrint)),
-            "reapplied" -> Data(classTest(using String, String, String, String).plainPrint)
+    def test[Tested, Ctor[_, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor4[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d) =>
+        val Z = String
+        Some(
+          Data.map(
+            "unapplied" -> Data.list(
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint)
+            ),
+            "reapplied" -> Data(
+              Ctor(using Z, Z, Z, Z).plainPrint
+            )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
 
-    val renamedTest = Type.Ctor4.of[examples.kinds.Alias.Renamed4]
-    val renamedResult = Type[In] match {
-      case renamedTest(aParam, bParam, cParam, dParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint), Data(D.plainPrint)),
-            "reapplied" -> Data(renamedTest(using String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor4.of[examples.kinds.Arity4]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor4.of[examples.kinds.Alias.Extra4]
-    val extraResult = Type[In] match {
-      case extraTest(aParam, bParam, cParam, dParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint), Data(D.plainPrint)),
-            "reapplied" -> Data(extraTest(using String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor4.of[examples.kinds.Alias.Renamed4]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor4.of[examples.kinds.Alias.FixedFront4]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(aParam, bParam, cParam, dParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint), Data(D.plainPrint)),
-            "reapplied" -> Data(fixedFrontTest(using String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor4.of[examples.kinds.Alias.Extra4]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor4.of[examples.kinds.Alias.FixedBack4]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(aParam, bParam, cParam, dParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint), Data(D.plainPrint)),
-            "reapplied" -> Data(fixedBackTest(using String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor4.of[examples.kinds.Alias.FixedFront4]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
+    }
+    val fixedBackResult = test(Type[In], Type.Ctor4.of[examples.kinds.Alias.FixedBack4]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
     }
 
     val result =
@@ -405,97 +274,49 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor5[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor5.of[examples.kinds.Arity5]
-    val classResult = Type[In] match {
-      case classTest(aParam, bParam, cParam, dParam, eParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        Seq(
-          "as class" -> Data.map(
-            "unapplied" -> Data
-              .list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint), Data(D.plainPrint), Data(E.plainPrint)),
-            "reapplied" -> Data(classTest(using String, String, String, String, String).plainPrint)
+    def test[Tested, Ctor[_, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor5[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e) =>
+        val Z = String
+        Some(
+          Data.map(
+            "unapplied" -> Data.list(
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint)
+            ),
+            "reapplied" -> Data(
+              Ctor(using Z, Z, Z, Z, Z).plainPrint
+            )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
 
-    val renamedTest = Type.Ctor5.of[examples.kinds.Alias.Renamed5]
-    val renamedResult = Type[In] match {
-      case renamedTest(aParam, bParam, cParam, dParam, eParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data
-              .list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint), Data(D.plainPrint), Data(E.plainPrint)),
-            "reapplied" -> Data(renamedTest(using String, String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor5.of[examples.kinds.Arity5]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor5.of[examples.kinds.Alias.Extra5]
-    val extraResult = Type[In] match {
-      case extraTest(aParam, bParam, cParam, dParam, eParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data
-              .list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint), Data(D.plainPrint), Data(E.plainPrint)),
-            "reapplied" -> Data(extraTest(using String, String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor5.of[examples.kinds.Alias.Renamed5]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor5.of[examples.kinds.Alias.FixedFront5]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(aParam, bParam, cParam, dParam, eParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data
-              .list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint), Data(D.plainPrint), Data(E.plainPrint)),
-            "reapplied" -> Data(fixedFrontTest(using String, String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor5.of[examples.kinds.Alias.Extra5]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor5.of[examples.kinds.Alias.FixedBack5]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(aParam, bParam, cParam, dParam, eParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data
-              .list(Data(A.plainPrint), Data(B.plainPrint), Data(C.plainPrint), Data(D.plainPrint), Data(E.plainPrint)),
-            "reapplied" -> Data(fixedBackTest(using String, String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor5.of[examples.kinds.Alias.FixedFront5]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor5.of[examples.kinds.Alias.FixedBack5]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -503,132 +324,50 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor6[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor6.of[examples.kinds.Arity6]
-    val classResult = Type[In] match {
-      case classTest(aParam, bParam, cParam, dParam, eParam, fParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor6[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint)
             ),
-            "reapplied" -> Data(classTest(using String, String, String, String, String, String).plainPrint)
+            "reapplied" -> Data(
+              Ctor(using Z, Z, Z, Z, Z, Z).plainPrint
+            )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
 
-    val renamedTest = Type.Ctor6.of[examples.kinds.Alias.Renamed6]
-    val renamedResult = Type[In] match {
-      case renamedTest(aParam, bParam, cParam, dParam, eParam, fParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint)
-            ),
-            "reapplied" -> Data(renamedTest(using String, String, String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor6.of[examples.kinds.Arity6]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor6.of[examples.kinds.Alias.Extra6]
-    val extraResult = Type[In] match {
-      case extraTest(aParam, bParam, cParam, dParam, eParam, fParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint)
-            ),
-            "reapplied" -> Data(extraTest(using String, String, String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor6.of[examples.kinds.Alias.Renamed6]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor6.of[examples.kinds.Alias.FixedFront6]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(aParam, bParam, cParam, dParam, eParam, fParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint)
-            ),
-            "reapplied" -> Data(fixedFrontTest(using String, String, String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor6.of[examples.kinds.Alias.Extra6]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor6.of[examples.kinds.Alias.FixedBack6]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(aParam, bParam, cParam, dParam, eParam, fParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint)
-            ),
-            "reapplied" -> Data(fixedBackTest(using String, String, String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor6.of[examples.kinds.Alias.FixedFront6]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor6.of[examples.kinds.Alias.FixedBack6]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -636,142 +375,51 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor7[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor7.of[examples.kinds.Arity7]
-    val classResult = Type[In] match {
-      case classTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor7[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint)
             ),
-            "reapplied" -> Data(classTest(using String, String, String, String, String, String, String).plainPrint)
+            "reapplied" -> Data(
+              Ctor(using Z, Z, Z, Z, Z, Z, Z).plainPrint
+            )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
 
-    val renamedTest = Type.Ctor7.of[examples.kinds.Alias.Renamed7]
-    val renamedResult = Type[In] match {
-      case renamedTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint)
-            ),
-            "reapplied" -> Data(renamedTest(using String, String, String, String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor7.of[examples.kinds.Arity7]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor7.of[examples.kinds.Alias.Extra7]
-    val extraResult = Type[In] match {
-      case extraTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint)
-            ),
-            "reapplied" -> Data(extraTest(using String, String, String, String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor7.of[examples.kinds.Alias.Renamed7]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor7.of[examples.kinds.Alias.FixedFront7]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint)
-            ),
-            "reapplied" -> Data(fixedFrontTest(using String, String, String, String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor7.of[examples.kinds.Alias.Extra7]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor7.of[examples.kinds.Alias.FixedBack7]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint)
-            ),
-            "reapplied" -> Data(fixedBackTest(using String, String, String, String, String, String, String).plainPrint)
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor7.of[examples.kinds.Alias.FixedFront7]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor7.of[examples.kinds.Alias.FixedBack7]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -779,162 +427,52 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor8[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor8.of[examples.kinds.Arity8]
-    val classResult = Type[In] match {
-      case classTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor8[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(using String, String, String, String, String, String, String, String).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
 
-    val renamedTest = Type.Ctor8.of[examples.kinds.Alias.Renamed8]
-    val renamedResult = Type[In] match {
-      case renamedTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(using String, String, String, String, String, String, String, String).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor8.of[examples.kinds.Arity8]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor8.of[examples.kinds.Alias.Extra8]
-    val extraResult = Type[In] match {
-      case extraTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(using String, String, String, String, String, String, String, String).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor8.of[examples.kinds.Alias.Renamed8]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor8.of[examples.kinds.Alias.FixedFront8]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(using String, String, String, String, String, String, String, String).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor8.of[examples.kinds.Alias.Extra8]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor8.of[examples.kinds.Alias.FixedBack8]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(using String, String, String, String, String, String, String, String).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor8.of[examples.kinds.Alias.FixedFront8]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor8.of[examples.kinds.Alias.FixedBack8]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -942,172 +480,53 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor9[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor9.of[examples.kinds.Arity9]
-    val classResult = Type[In] match {
-      case classTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor9[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h, i) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint),
+              Data(i.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(using String, String, String, String, String, String, String, String, String).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
 
-    val renamedTest = Type.Ctor9.of[examples.kinds.Alias.Renamed9]
-    val renamedResult = Type[In] match {
-      case renamedTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(using String, String, String, String, String, String, String, String, String).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor9.of[examples.kinds.Arity9]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor9.of[examples.kinds.Alias.Extra9]
-    val extraResult = Type[In] match {
-      case extraTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(using String, String, String, String, String, String, String, String, String).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor9.of[examples.kinds.Alias.Renamed9]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor9.of[examples.kinds.Alias.FixedFront9]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(using String, String, String, String, String, String, String, String, String).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor9.of[examples.kinds.Alias.Extra9]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor9.of[examples.kinds.Alias.FixedBack9]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(using String, String, String, String, String, String, String, String, String).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor9.of[examples.kinds.Alias.FixedFront9]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor9.of[examples.kinds.Alias.FixedBack9]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -1115,215 +534,54 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor10[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor10.of[examples.kinds.Arity10]
-    val classResult = Type[In] match {
-      case classTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam, jParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor10[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h, i, j) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint),
+              Data(i.Underlying.plainPrint),
+              Data(j.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(using String, String, String, String, String, String, String, String, String, String).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
 
-    val renamedTest = Type.Ctor10.of[examples.kinds.Alias.Renamed10]
-    val renamedResult = Type[In] match {
-      case renamedTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam, jParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor10.of[examples.kinds.Arity10]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor10.of[examples.kinds.Alias.Extra10]
-    val extraResult = Type[In] match {
-      case extraTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam, jParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(using String, String, String, String, String, String, String, String, String, String).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor10.of[examples.kinds.Alias.Renamed10]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor10.of[examples.kinds.Alias.FixedFront10]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam, jParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor10.of[examples.kinds.Alias.Extra10]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor10.of[examples.kinds.Alias.FixedBack10]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam, jParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor10.of[examples.kinds.Alias.FixedFront10]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor10.of[examples.kinds.Alias.FixedBack10]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -1331,252 +589,55 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor11[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor11.of[examples.kinds.Arity11]
-    val classResult = Type[In] match {
-      case classTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam, jParam, kParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor11[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h, i, j, k) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint),
+              Data(i.Underlying.plainPrint),
+              Data(j.Underlying.plainPrint),
+              Data(k.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
 
-    val renamedTest = Type.Ctor11.of[examples.kinds.Alias.Renamed11]
-    val renamedResult = Type[In] match {
-      case renamedTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam, jParam, kParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor11.of[examples.kinds.Arity11]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor11.of[examples.kinds.Alias.Extra11]
-    val extraResult = Type[In] match {
-      case extraTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam, jParam, kParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor11.of[examples.kinds.Alias.Renamed11]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor11.of[examples.kinds.Alias.FixedFront11]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam, jParam, kParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor11.of[examples.kinds.Alias.Extra11]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor11.of[examples.kinds.Alias.FixedBack11]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam, jParam, kParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor11.of[examples.kinds.Alias.FixedFront11]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor11.of[examples.kinds.Alias.FixedBack11]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -1584,306 +645,56 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor12[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor12.of[examples.kinds.Arity12]
-    val classResult = Type[In] match {
-      case classTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam, jParam, kParam, lParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor12[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint),
+              Data(i.Underlying.plainPrint),
+              Data(j.Underlying.plainPrint),
+              Data(k.Underlying.plainPrint),
+              Data(l.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
 
-    val renamedTest = Type.Ctor12.of[examples.kinds.Alias.Renamed12]
-    val renamedResult = Type[In] match {
-      case renamedTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor12.of[examples.kinds.Arity12]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor12.of[examples.kinds.Alias.Extra12]
-    val extraResult = Type[In] match {
-      case extraTest(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam, jParam, kParam, lParam) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor12.of[examples.kinds.Alias.Renamed12]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor12.of[examples.kinds.Alias.FixedFront12]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor12.of[examples.kinds.Alias.Extra12]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor12.of[examples.kinds.Alias.FixedBack12]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor12.of[examples.kinds.Alias.FixedFront12]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor12.of[examples.kinds.Alias.FixedBack12]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -1891,352 +702,56 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor13[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor13.of[examples.kinds.Arity13]
-    val classResult = Type[In] match {
-      case classTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor13[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint),
+              Data(i.Underlying.plainPrint),
+              Data(j.Underlying.plainPrint),
+              Data(k.Underlying.plainPrint),
+              Data(l.Underlying.plainPrint),
+              Data(m.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
-
-    val renamedTest = Type.Ctor13.of[examples.kinds.Alias.Renamed13]
-    val renamedResult = Type[In] match {
-      case renamedTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor13.of[examples.kinds.Arity13]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor13.of[examples.kinds.Alias.Extra13]
-    val extraResult = Type[In] match {
-      case extraTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor13.of[examples.kinds.Alias.Renamed13]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor13.of[examples.kinds.Alias.FixedFront13]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor13.of[examples.kinds.Alias.Extra13]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor13.of[examples.kinds.Alias.FixedBack13]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor13.of[examples.kinds.Alias.FixedFront13]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor13.of[examples.kinds.Alias.FixedBack13]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -2244,372 +759,57 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor14[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor14.of[examples.kinds.Arity14]
-    val classResult = Type[In] match {
-      case classTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor14[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint),
+              Data(i.Underlying.plainPrint),
+              Data(j.Underlying.plainPrint),
+              Data(k.Underlying.plainPrint),
+              Data(l.Underlying.plainPrint),
+              Data(m.Underlying.plainPrint),
+              Data(n.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
-
-    val renamedTest = Type.Ctor14.of[examples.kinds.Alias.Renamed14]
-    val renamedResult = Type[In] match {
-      case renamedTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor14.of[examples.kinds.Arity14]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor14.of[examples.kinds.Alias.Extra14]
-    val extraResult = Type[In] match {
-      case extraTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor14.of[examples.kinds.Alias.Renamed14]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor14.of[examples.kinds.Alias.FixedFront14]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor14.of[examples.kinds.Alias.Extra14]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor14.of[examples.kinds.Alias.FixedBack14]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor14.of[examples.kinds.Alias.FixedFront14]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor14.of[examples.kinds.Alias.FixedBack14]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -2617,392 +817,58 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor15[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor15.of[examples.kinds.Arity15]
-    val classResult = Type[In] match {
-      case classTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor15[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint),
+              Data(i.Underlying.plainPrint),
+              Data(j.Underlying.plainPrint),
+              Data(k.Underlying.plainPrint),
+              Data(l.Underlying.plainPrint),
+              Data(m.Underlying.plainPrint),
+              Data(n.Underlying.plainPrint),
+              Data(o.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
-
-    val renamedTest = Type.Ctor15.of[examples.kinds.Alias.Renamed15]
-    val renamedResult = Type[In] match {
-      case renamedTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor15.of[examples.kinds.Arity15]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor15.of[examples.kinds.Alias.Extra15]
-    val extraResult = Type[In] match {
-      case extraTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor15.of[examples.kinds.Alias.Renamed15]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor15.of[examples.kinds.Alias.FixedFront15]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor15.of[examples.kinds.Alias.Extra15]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor15.of[examples.kinds.Alias.FixedBack15]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor15.of[examples.kinds.Alias.FixedFront15]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor15.of[examples.kinds.Alias.FixedBack15]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -3010,412 +876,59 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor16[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor16.of[examples.kinds.Arity16]
-    val classResult = Type[In] match {
-      case classTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor16[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint),
+              Data(i.Underlying.plainPrint),
+              Data(j.Underlying.plainPrint),
+              Data(k.Underlying.plainPrint),
+              Data(l.Underlying.plainPrint),
+              Data(m.Underlying.plainPrint),
+              Data(n.Underlying.plainPrint),
+              Data(o.Underlying.plainPrint),
+              Data(p.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
-
-    val renamedTest = Type.Ctor16.of[examples.kinds.Alias.Renamed16]
-    val renamedResult = Type[In] match {
-      case renamedTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor16.of[examples.kinds.Arity16]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor16.of[examples.kinds.Alias.Extra16]
-    val extraResult = Type[In] match {
-      case extraTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor16.of[examples.kinds.Alias.Renamed16]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor16.of[examples.kinds.Alias.FixedFront16]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor16.of[examples.kinds.Alias.Extra16]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor16.of[examples.kinds.Alias.FixedBack16]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor16.of[examples.kinds.Alias.FixedFront16]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor16.of[examples.kinds.Alias.FixedBack16]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -3423,432 +936,60 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor17[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor17.of[examples.kinds.Arity17]
-    val classResult = Type[In] match {
-      case classTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor17[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint),
+              Data(i.Underlying.plainPrint),
+              Data(j.Underlying.plainPrint),
+              Data(k.Underlying.plainPrint),
+              Data(l.Underlying.plainPrint),
+              Data(m.Underlying.plainPrint),
+              Data(n.Underlying.plainPrint),
+              Data(o.Underlying.plainPrint),
+              Data(p.Underlying.plainPrint),
+              Data(q.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
-
-    val renamedTest = Type.Ctor17.of[examples.kinds.Alias.Renamed17]
-    val renamedResult = Type[In] match {
-      case renamedTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor17.of[examples.kinds.Arity17]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor17.of[examples.kinds.Alias.Extra17]
-    val extraResult = Type[In] match {
-      case extraTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor17.of[examples.kinds.Alias.Renamed17]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor17.of[examples.kinds.Alias.FixedFront17]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor17.of[examples.kinds.Alias.Extra17]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor17.of[examples.kinds.Alias.FixedBack17]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor17.of[examples.kinds.Alias.FixedFront17]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor17.of[examples.kinds.Alias.FixedBack17]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -3856,452 +997,61 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor18[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor18.of[examples.kinds.Arity18]
-    val classResult = Type[In] match {
-      case classTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor18[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint),
+              Data(i.Underlying.plainPrint),
+              Data(j.Underlying.plainPrint),
+              Data(k.Underlying.plainPrint),
+              Data(l.Underlying.plainPrint),
+              Data(m.Underlying.plainPrint),
+              Data(n.Underlying.plainPrint),
+              Data(o.Underlying.plainPrint),
+              Data(p.Underlying.plainPrint),
+              Data(q.Underlying.plainPrint),
+              Data(r.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
-
-    val renamedTest = Type.Ctor18.of[examples.kinds.Alias.Renamed18]
-    val renamedResult = Type[In] match {
-      case renamedTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor18.of[examples.kinds.Arity18]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor18.of[examples.kinds.Alias.Extra18]
-    val extraResult = Type[In] match {
-      case extraTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor18.of[examples.kinds.Alias.Renamed18]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor18.of[examples.kinds.Alias.FixedFront18]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor18.of[examples.kinds.Alias.Extra18]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor18.of[examples.kinds.Alias.FixedBack18]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor18.of[examples.kinds.Alias.FixedFront18]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor18.of[examples.kinds.Alias.FixedBack18]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -4309,472 +1059,62 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor19[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor19.of[examples.kinds.Arity19]
-    val classResult = Type[In] match {
-      case classTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor19[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint),
+              Data(i.Underlying.plainPrint),
+              Data(j.Underlying.plainPrint),
+              Data(k.Underlying.plainPrint),
+              Data(l.Underlying.plainPrint),
+              Data(m.Underlying.plainPrint),
+              Data(n.Underlying.plainPrint),
+              Data(o.Underlying.plainPrint),
+              Data(p.Underlying.plainPrint),
+              Data(q.Underlying.plainPrint),
+              Data(r.Underlying.plainPrint),
+              Data(s.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
-
-    val renamedTest = Type.Ctor19.of[examples.kinds.Alias.Renamed19]
-    val renamedResult = Type[In] match {
-      case renamedTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor19.of[examples.kinds.Arity19]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor19.of[examples.kinds.Alias.Extra19]
-    val extraResult = Type[In] match {
-      case extraTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor19.of[examples.kinds.Alias.Renamed19]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor19.of[examples.kinds.Alias.FixedFront19]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor19.of[examples.kinds.Alias.Extra19]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor19.of[examples.kinds.Alias.FixedBack19]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor19.of[examples.kinds.Alias.FixedFront19]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor19.of[examples.kinds.Alias.FixedBack19]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -4782,492 +1122,63 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor20[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor20.of[examples.kinds.Arity20]
-    val classResult = Type[In] match {
-      case classTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor20[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint),
+              Data(i.Underlying.plainPrint),
+              Data(j.Underlying.plainPrint),
+              Data(k.Underlying.plainPrint),
+              Data(l.Underlying.plainPrint),
+              Data(m.Underlying.plainPrint),
+              Data(n.Underlying.plainPrint),
+              Data(o.Underlying.plainPrint),
+              Data(p.Underlying.plainPrint),
+              Data(q.Underlying.plainPrint),
+              Data(r.Underlying.plainPrint),
+              Data(s.Underlying.plainPrint),
+              Data(t.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
-
-    val renamedTest = Type.Ctor20.of[examples.kinds.Alias.Renamed20]
-    val renamedResult = Type[In] match {
-      case renamedTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor20.of[examples.kinds.Arity20]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor20.of[examples.kinds.Alias.Extra20]
-    val extraResult = Type[In] match {
-      case extraTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor20.of[examples.kinds.Alias.Renamed20]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor20.of[examples.kinds.Alias.FixedFront20]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor20.of[examples.kinds.Alias.Extra20]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor20.of[examples.kinds.Alias.FixedBack20]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor20.of[examples.kinds.Alias.FixedFront20]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor20.of[examples.kinds.Alias.FixedBack20]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -5275,517 +1186,64 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor21[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor21.of[examples.kinds.Arity21]
-    val classResult = Type[In] match {
-      case classTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam,
-            uParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        import uParam.Underlying as U
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor21[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint),
-              Data(U.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint),
+              Data(i.Underlying.plainPrint),
+              Data(j.Underlying.plainPrint),
+              Data(k.Underlying.plainPrint),
+              Data(l.Underlying.plainPrint),
+              Data(m.Underlying.plainPrint),
+              Data(n.Underlying.plainPrint),
+              Data(o.Underlying.plainPrint),
+              Data(p.Underlying.plainPrint),
+              Data(q.Underlying.plainPrint),
+              Data(r.Underlying.plainPrint),
+              Data(s.Underlying.plainPrint),
+              Data(t.Underlying.plainPrint),
+              Data(u.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(
-                using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
-
-    val renamedTest = Type.Ctor21.of[examples.kinds.Alias.Renamed21]
-    val renamedResult = Type[In] match {
-      case renamedTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam,
-            uParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        import uParam.Underlying as U
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint),
-              Data(U.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(
-                using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor21.of[examples.kinds.Arity21]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor21.of[examples.kinds.Alias.Extra21]
-    val extraResult = Type[In] match {
-      case extraTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam,
-            uParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        import uParam.Underlying as U
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint),
-              Data(U.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(
-                using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor21.of[examples.kinds.Alias.Renamed21]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor21.of[examples.kinds.Alias.FixedFront21]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam,
-            uParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        import uParam.Underlying as U
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint),
-              Data(U.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(
-                using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor21.of[examples.kinds.Alias.Extra21]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor21.of[examples.kinds.Alias.FixedBack21]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam,
-            uParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        import uParam.Underlying as U
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint),
-              Data(U.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(
-                using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor21.of[examples.kinds.Alias.FixedFront21]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor21.of[examples.kinds.Alias.FixedBack21]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
@@ -5793,537 +1251,66 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeCtor22[In: Type]: Expr[Data] = {
     // TODO: type projector test as well
-
-    val classTest = Type.Ctor22.of[examples.kinds.Arity22]
-    val classResult = Type[In] match {
-      case classTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam,
-            uParam,
-            vParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        import uParam.Underlying as U
-        import vParam.Underlying as V
-        Seq(
-          "as class" -> Data.map(
+    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+        Tested: Type[Tested],
+        Ctor: Type.Ctor22[Ctor]
+    ) = Tested match {
+      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) =>
+        val Z = String
+        Some(
+          Data.map(
             "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint),
-              Data(U.plainPrint),
-              Data(V.plainPrint)
+              Data(a.Underlying.plainPrint),
+              Data(b.Underlying.plainPrint),
+              Data(c.Underlying.plainPrint),
+              Data(d.Underlying.plainPrint),
+              Data(e.Underlying.plainPrint),
+              Data(f.Underlying.plainPrint),
+              Data(g.Underlying.plainPrint),
+              Data(h.Underlying.plainPrint),
+              Data(i.Underlying.plainPrint),
+              Data(j.Underlying.plainPrint),
+              Data(k.Underlying.plainPrint),
+              Data(l.Underlying.plainPrint),
+              Data(m.Underlying.plainPrint),
+              Data(n.Underlying.plainPrint),
+              Data(o.Underlying.plainPrint),
+              Data(p.Underlying.plainPrint),
+              Data(q.Underlying.plainPrint),
+              Data(r.Underlying.plainPrint),
+              Data(s.Underlying.plainPrint),
+              Data(t.Underlying.plainPrint),
+              Data(u.Underlying.plainPrint),
+              Data(v.Underlying.plainPrint)
             ),
             "reapplied" -> Data(
-              classTest(
-                using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
+              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
             )
           )
         )
-      case _ => Seq.empty
+      case _ => None
     }
 
-    val renamedTest = Type.Ctor22.of[examples.kinds.Alias.Renamed22]
-    val renamedResult = Type[In] match {
-      case renamedTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam,
-            uParam,
-            vParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        import uParam.Underlying as U
-        import vParam.Underlying as V
-        Seq(
-          "as renamed" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint),
-              Data(U.plainPrint),
-              Data(V.plainPrint)
-            ),
-            "reapplied" -> Data(
-              renamedTest(
-                using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val classResult = test(Type[In], Type.Ctor22.of[examples.kinds.Arity22]) match {
+      case Some(data) => Seq("as class" -> data)
+      case None       => Seq.empty
     }
-
-    val extraTest = Type.Ctor22.of[examples.kinds.Alias.Extra22]
-    val extraResult = Type[In] match {
-      case extraTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam,
-            uParam,
-            vParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        import uParam.Underlying as U
-        import vParam.Underlying as V
-        Seq(
-          "as extra" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint),
-              Data(U.plainPrint),
-              Data(V.plainPrint)
-            ),
-            "reapplied" -> Data(
-              extraTest(
-                using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val renamedResult = test(Type[In], Type.Ctor22.of[examples.kinds.Alias.Renamed22]) match {
+      case Some(data) => Seq("as renamed" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedFrontTest = Type.Ctor22.of[examples.kinds.Alias.FixedFront22]
-    val fixedFrontResult = Type[In] match {
-      case fixedFrontTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam,
-            uParam,
-            vParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        import uParam.Underlying as U
-        import vParam.Underlying as V
-        Seq(
-          "as fixed front" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint),
-              Data(U.plainPrint),
-              Data(V.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedFrontTest(
-                using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val extraResult = test(Type[In], Type.Ctor22.of[examples.kinds.Alias.Extra22]) match {
+      case Some(data) => Seq("as extra" -> data)
+      case None       => Seq.empty
     }
-
-    val fixedBackTest = Type.Ctor22.of[examples.kinds.Alias.FixedBack22]
-    val fixedBackResult = Type[In] match {
-      case fixedBackTest(
-            aParam,
-            bParam,
-            cParam,
-            dParam,
-            eParam,
-            fParam,
-            gParam,
-            hParam,
-            iParam,
-            jParam,
-            kParam,
-            lParam,
-            mParam,
-            nParam,
-            oParam,
-            pParam,
-            qParam,
-            rParam,
-            sParam,
-            tParam,
-            uParam,
-            vParam
-          ) =>
-        import aParam.Underlying as A
-        import bParam.Underlying as B
-        import cParam.Underlying as C
-        import dParam.Underlying as D
-        import eParam.Underlying as E
-        import fParam.Underlying as F
-        import gParam.Underlying as G
-        import hParam.Underlying as H
-        import iParam.Underlying as I
-        import jParam.Underlying as J
-        import kParam.Underlying as K
-        import lParam.Underlying as L
-        import mParam.Underlying as M
-        import nParam.Underlying as N
-        import oParam.Underlying as O
-        import pParam.Underlying as P
-        import qParam.Underlying as Q
-        import rParam.Underlying as R
-        import sParam.Underlying as S
-        import tParam.Underlying as T
-        import uParam.Underlying as U
-        import vParam.Underlying as V
-        Seq(
-          "as fixed back" -> Data.map(
-            "unapplied" -> Data.list(
-              Data(A.plainPrint),
-              Data(B.plainPrint),
-              Data(C.plainPrint),
-              Data(D.plainPrint),
-              Data(E.plainPrint),
-              Data(F.plainPrint),
-              Data(G.plainPrint),
-              Data(H.plainPrint),
-              Data(I.plainPrint),
-              Data(J.plainPrint),
-              Data(K.plainPrint),
-              Data(L.plainPrint),
-              Data(M.plainPrint),
-              Data(N.plainPrint),
-              Data(O.plainPrint),
-              Data(P.plainPrint),
-              Data(Q.plainPrint),
-              Data(R.plainPrint),
-              Data(S.plainPrint),
-              Data(T.plainPrint),
-              Data(U.plainPrint),
-              Data(V.plainPrint)
-            ),
-            "reapplied" -> Data(
-              fixedBackTest(
-                using
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String,
-                String
-              ).plainPrint
-            )
-          )
-        )
-      case _ => Seq.empty
+    val fixedFrontResult = test(Type[In], Type.Ctor22.of[examples.kinds.Alias.FixedFront22]) match {
+      case Some(data) => Seq("as fixed front" -> data)
+      case None       => Seq.empty
     }
-
+    val fixedBackResult = test(Type[In], Type.Ctor22.of[examples.kinds.Alias.FixedBack22]) match {
+      case Some(data) => Seq("as fixed back" -> data)
+      case None       => Seq.empty
+    }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
