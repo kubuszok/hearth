@@ -19,7 +19,12 @@ final class CrossExprsSpec extends MacroSuite {
           "features" -> Data.map(
             "unsanitizedBlocks" -> Data("ListMap(1 -> 2)"),
             "multipleSplices" -> Data("3"),
-            "generics" -> Data("4"),
+            "generics" -> Data.map(
+              "viaTypeBound" -> Data("4"),
+              "viaImplicitParam" -> Data("4"),
+              "viaImport" -> Data("4"),
+              "viaDeclaredVal" -> Data("4")
+            ),
             "nestedQuotesAndSplices" -> Data("42")
           ),
           "edgeCases" -> Data.map(

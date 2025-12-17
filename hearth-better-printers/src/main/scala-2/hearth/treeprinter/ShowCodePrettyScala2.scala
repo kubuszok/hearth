@@ -352,6 +352,7 @@ trait ShowCodePrettyScala2 {
           *     easier to maintain
           *   - added syntax highlighting
           *   - modified the code that would be printing invalid syntax
+          *   - added handling for imported
           */
         tree match {
           // To prevent "UTF8 string too large" errors, we limit the size of the StringBuilder.
@@ -369,6 +370,11 @@ trait ShowCodePrettyScala2 {
           case _ if syntheticToRemove(tree) =>
 
           case EmptyTree =>
+
+          // without this `import ee.{value as expr}` would print `ee.expr` instead of `expr`
+          case Select(Ident(_), name)
+              if tree.hasSymbolField && tree.symbol != NoSymbol && tree.symbol.name.decoded != name.decoded =>
+            print(name)
 
           case cl @ ClassDef(mods, name, tparams, impl) =>
             if (mods.isJavaDefined) super.printTree(cl)
