@@ -1,5 +1,5 @@
 package hearth
-package typed
+package crossquotes
 
 import hearth.data.Data
 

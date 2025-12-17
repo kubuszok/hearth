@@ -1,8 +1,8 @@
 package hearth
-package typed
+package crossquotes
 
-/** Fixtured for testing [[CrossQuotesSpec]]. */
-trait CrossQuotesFixturesImpl { this: MacroTypedCommons =>
+/** Fixtured for testing [[CrossExprsSpec]]. */
+trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
 
   // TODO: replicate test cases from testTypeOf from CrossTypesFixturesImpl
 
