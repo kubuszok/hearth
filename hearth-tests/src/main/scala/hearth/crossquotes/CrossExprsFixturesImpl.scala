@@ -1,40 +1,62 @@
 package hearth
 package crossquotes
 
+import hearth.data.Data
+
 /** Fixtured for testing [[CrossExprsSpec]]. */
 trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
 
   // TODO: replicate test cases from testTypeOf from CrossTypesFixturesImpl
 
-  def unsanitizedExpr: Expr[String] = {
-    import scala.collection.immutable.ListMap
-    Expr.quote {
-      ListMap(1 -> "2").toString
-    }
-  }
-
-  def simpleExpr: Expr[String] = {
-    val e1 = Expr.quote(1)
-    val e2 = Expr.quote(2)
-
-    Expr.quote {
-      val a = Expr.splice(e1) + Expr.splice(e2)
-      a.toString
-    }
-  }
-
-  def genericExpr[A: Type](e: Expr[A]): Expr[String] = Expr.quote {
-    Expr.splice(e).toString
-  }
-
-  def nestedExpr: Expr[String] = {
-    def intToString(i: Expr[Int]): Expr[String] = Expr.quote {
-      Expr.splice(i).toString
+  def testExprOf[ExampleType: Type](example: Expr[ExampleType]): Expr[Data] = {
+    // no FCQN using _root_.package.name.Class, etc
+    def unsanitized: Expr[Data] = {
+      import scala.collection.immutable.ListMap
+      Expr.quote {
+        Data(ListMap(1 -> "2").toString)
+      }
     }
 
+    // we can use multiple splices in a single Expr.quote block
+    def multipleSplices: Expr[Data] = {
+      val e1 = Expr.quote(1)
+      val e2 = Expr.quote(2)
+
+      Expr.quote {
+        val a = Expr.splice(e1) + Expr.splice(e2)
+        Data(a.toString)
+      }
+    }
+
+    // TODO: test with multiple approaches to passing A like in Types spec
+    // we can use generic expressions in a single Expr.quote as long as there is an implicit Type[A] in the scope
+    def generics[A: Type](e: Expr[A]): Expr[Data] = Expr.quote {
+      Data(Expr.splice(e).toString)
+    }
+
+    def nestedSplices: Expr[Data] = {
+      def intToString(i: Expr[Int]): Expr[String] = Expr.quote {
+        Expr.splice(i).toString
+      }
+
+      Expr.quote {
+        def localMethod(i: Int): String = Expr.splice(intToString(Expr.quote(i)))
+        Data(localMethod(42))
+      }
+    }
+
+    // TODO: edge cases
+
     Expr.quote {
-      def localMethod(i: Int): String = Expr.splice(intToString(Expr.quote(i)))
-      localMethod(42)
+      Data.map(
+        "features" -> Data.map(
+          "unsanitizedBlocks" -> Expr.splice(unsanitized),
+          "multipleSplices" -> Expr.splice(multipleSplices),
+          "generics" -> Expr.splice(generics(example)),
+          "nestedQuotesAndSplices" -> Expr.splice(nestedSplices)
+        ),
+        "edgeCases" -> Data.map()
+      )
     }
   }
 }
