@@ -1,6 +1,8 @@
 package hearth
 package crossquotes
 
+import hearth.data.Data
+
 /** Macro implementation is in [[hearth.cq.CrossQuotesMacros]] (Scala 2) and [[hearth.cq.CrossQuotesPlugin]] (Scala 3).
   *
   * Fixtures are in [[CrossExprsFixturesImpl]].
@@ -11,20 +13,17 @@ final class CrossExprsSpec extends MacroSuite {
 
     group("for Expr.quote+Expr.splice") {
 
-      test("should work for simple expressions") {
-        CrossExprsFixtures.simpleExpr <==> "3"
-      }
+      test("should handle all supported features and edge cases") {
 
-      test("should work for generic expressions") {
-        CrossExprsFixtures.genericExpr(4) <==> "4"
-      }
-
-      test("should work for unsanitized expressions") {
-        CrossExprsFixtures.unsanitizedExpr <==> "ListMap(1 -> 2)"
-      }
-
-      test("should work for nested expressions") {
-        CrossExprsFixtures.nestedExpr <==> "42"
+        CrossExprsFixtures.testExprOf(4) <==> Data.map(
+          "features" -> Data.map(
+            "unsanitizedBlocks" -> Data("ListMap(1 -> 2)"),
+            "multipleSplices" -> Data("3"),
+            "generics" -> Data("4"),
+            "nestedQuotesAndSplices" -> Data("42")
+          ),
+          "edgeCases" -> Data.map()
+        )
       }
     }
   }

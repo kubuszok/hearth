@@ -14,7 +14,7 @@ final class CrossTypesSpec extends MacroSuite {
 
     group("for Type.of") {
 
-      test("should resolve types in the context of the macro compilation, and consider provides implicit Types") {
+      test("should resolve types in the context of the macro compilation, and consider implicit Types") {
 
         // These should be ignored, Type.of in macros should be sanitized without our additional effort.
         @scala.annotation.nowarn
