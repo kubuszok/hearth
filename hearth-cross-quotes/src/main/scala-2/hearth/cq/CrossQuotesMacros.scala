@@ -3177,6 +3177,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         // Check if the import expression is something.Underlying
         val found = importTree.selectors
           .collect {
+            // TODO: potentially handle also Method's e.g. method.Returned etc
             case ImportSelector(name, _, rename, _) if name.decodedName.toString == "Underlying" =>
               val toReplace = scala.util.Try {
                 c.typecheck(tq"${importTree.expr}.${name.toTypeName}", mode = c.TYPEmode).tpe

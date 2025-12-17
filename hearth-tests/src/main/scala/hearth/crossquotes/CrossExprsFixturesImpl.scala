@@ -28,10 +28,48 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
       }
     }
 
-    // TODO: test with multiple approaches to passing A like in Types spec
     // we can use generic expressions in a single Expr.quote as long as there is an implicit Type[A] in the scope
-    def generics[A: Type](e: Expr[A]): Expr[Data] = Expr.quote {
-      Data(Expr.splice(e).toString)
+    @scala.annotation.nowarn
+    def generics[A: Type](e: Expr[A]): Expr[Data] = {
+      val viaTypeBound = {
+        def body[B: Type](expr: Expr[B]) = Expr.quote {
+          Data(Expr.splice(expr).toString)
+        }
+        body[A](e)
+      }
+      val viaImplicitParam = {
+        def body[B](expr: Expr[B])(implicit B: Type[B]) = Expr.quote {
+          Data(Expr.splice(expr).toString)
+        }
+        body[A](e)
+      }
+      val viaImport = {
+        def body(b: Expr_??) = {
+          import b.{Underlying as B, value as expr}
+          Expr.quote {
+            Data(Expr.splice(expr).toString)
+          }
+        }
+        body(e.as_??)
+      }
+      val viaDeclaredVal = {
+        def body[B](tpe: Type[B], expr: Expr[B]) = {
+          implicit val B: Type[B] = tpe
+          Expr.quote {
+            Data(Expr.splice(expr).toString)
+          }
+        }
+        body(Type[A], e)
+      }
+
+      Expr.quote {
+        Data.map(
+          "viaTypeBound" -> Expr.splice(viaTypeBound),
+          "viaImplicitParam" -> Expr.splice(viaImplicitParam),
+          "viaImport" -> Expr.splice(viaImport),
+          "viaDeclaredVal" -> Expr.splice(viaDeclaredVal)
+        )
+      }
     }
 
     def nestedSplices: Expr[Data] = {
@@ -47,19 +85,11 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
 
     // TODO: edge cases
 
-    @scala.annotation.nowarn
     def chainingOnSplice(sb: Expr[StringBuilder], name: Expr[String]): Expr[Data] =
       Expr.quote {
         val value = Expr.splice(sb).append("<").append(Expr.splice(name)).append(">")
         Data(value.toString)
       }
-    @scala.annotation.nowarn
-    val sbt = Type.of[StringBuilder]
-    @scala.annotation.nowarn
-    val sb = {
-      implicit val sb: Type[StringBuilder] = sbt
-      Expr.quote(new StringBuilder)
-    }
 
     Expr.quote {
       Data.map(
@@ -70,7 +100,6 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
           "nestedQuotesAndSplices" -> Expr.splice(nestedSplices)
         ),
         "edgeCases" -> Data.map(
-          // "chainingOnSplice" -> Data("<name>")
           "chainingOnSplice" -> Expr.splice(chainingOnSplice(Expr.quote(new StringBuilder), Expr("name")))
         )
       )
