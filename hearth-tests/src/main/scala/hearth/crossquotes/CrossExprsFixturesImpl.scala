@@ -6,8 +6,6 @@ import hearth.data.Data
 /** Fixtured for testing [[CrossExprsSpec]]. */
 trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
 
-  // TODO: replicate test cases from testTypeOf from CrossTypesFixturesImpl
-
   def testExprOf[ExampleType: Type](example: Expr[ExampleType]): Expr[Data] = {
     // no FCQN using _root_.package.name.Class, etc
     def unsanitized: Expr[Data] = {
@@ -96,7 +94,7 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
         "features" -> Data.map(
           "unsanitizedBlocks" -> Expr.splice(unsanitized),
           "multipleSplices" -> Expr.splice(multipleSplices),
-          "generics" -> Expr.splice(generics(example)),
+          "genericsAndImplicitlyPassedTypes" -> Expr.splice(generics(example)),
           "nestedQuotesAndSplices" -> Expr.splice(nestedSplices)
         ),
         "edgeCases" -> Data.map(
