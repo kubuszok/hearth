@@ -1,1 +1,2 @@
-hearth.std.extensions.ScalaCollectionsMacroExtension
+hearth.std.extensions.ScalaCollectionIsCollectionProvider
+hearth.std.extensions.ArrayIsCollectionProvider

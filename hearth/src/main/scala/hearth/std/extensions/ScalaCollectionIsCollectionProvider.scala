@@ -9,14 +9,14 @@ package extensions
   *
   * @since 0.3.0
   */
-final class ScalaCollectionsMacroExtension extends StandardMacroExtension {
+final class ScalaCollectionIsCollectionProvider extends StandardMacroExtension {
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsCollection.registerProvider(new IsCollection.Provider {
 
-      private val Iterable = Type.Ctor1.of[Iterable]
+      private lazy val Iterable = Type.Ctor1.of[Iterable]
 
       private def isCollection[A, Item: Type](
           A: Type[A],
@@ -27,7 +27,7 @@ final class ScalaCollectionsMacroExtension extends StandardMacroExtension {
           // We're just upcasting the collection to Iterable, to avoid things like type constructor extraction from generic F[A].
           override type Coll[A0] = Iterable[A0]
           override val Coll: Type.Ctor1[Coll] = Iterable
-          override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = value.upcast(using A, Iterable[Item])
+          override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = value.asInstanceOf[Expr[Iterable[Item]]]
           // Standard scala collections have no smart constructors, so we just return the collection itself.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
