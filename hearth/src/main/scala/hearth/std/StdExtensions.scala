@@ -48,14 +48,13 @@ trait StdExtensions { this: MacroCommons =>
       override def toString: String = "PlainValue"
     }
 
-    // TODO: fix these macros on Scala 2
-
     final case class EitherStringOrValue[Input, Output](
         ctor: Expr[Input] => Expr[Either[String, Output]]
     ) extends PossibleSmartCtor[Input, Output] {
 
       override type Result[A] = Either[String, A]
-      override val Result: Type.Ctor1[Result] = Type.Ctor1.of[Either[String, *]]
+      override val Result: Type.Ctor1[Result] =
+        Type.Ctor2.of[Either].setA[String](using Type.of[String])
 
       override def toString: String = "EitherStringOrValue"
     }
@@ -65,7 +64,8 @@ trait StdExtensions { this: MacroCommons =>
     ) extends PossibleSmartCtor[Input, Output] {
 
       override type Result[A] = Either[Iterable[String], A]
-      override val Result: Type.Ctor1[Result] = Type.Ctor1.of[Either[Iterable[String], *]]
+      override val Result: Type.Ctor1[Result] =
+        Type.Ctor2.of[Either].setA[Iterable[String]](using Type.of[Iterable[String]])
     }
 
     final case class EitherThrowableOrValue[Input, Output](
@@ -73,7 +73,8 @@ trait StdExtensions { this: MacroCommons =>
     ) extends PossibleSmartCtor[Input, Output] {
 
       override type Result[A] = Either[Throwable, A]
-      override val Result: Type.Ctor1[Result] = Type.Ctor1.of[Either[Throwable, *]]
+      override val Result: Type.Ctor1[Result] =
+        Type.Ctor2.of[Either].setA[Throwable](using Type.of[Throwable])
     }
 
     final case class EitherIterableThrowableOrValue[Input, Output](
@@ -81,7 +82,8 @@ trait StdExtensions { this: MacroCommons =>
     ) extends PossibleSmartCtor[Input, Output] {
 
       override type Result[A] = Either[Iterable[Throwable], A]
-      override val Result: Type.Ctor1[Result] = Type.Ctor1.of[Either[Iterable[Throwable], *]]
+      override val Result: Type.Ctor1[Result] =
+        Type.Ctor2.of[Either].setA[Iterable[Throwable]](using Type.of[Iterable[Throwable]])
     }
   }
 
@@ -116,7 +118,7 @@ trait StdExtensions { this: MacroCommons =>
 
     def factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]]
 
-    def build: PossibleSmartCtor[scala.collection.Factory[Item, PossibleSmartResult], CollA]
+    def build: PossibleSmartCtor[scala.collection.mutable.Builder[Item, PossibleSmartResult], CollA]
   }
 
   /** An alias indicating the the type is a collection of some item type, but the exact item type is an existential
