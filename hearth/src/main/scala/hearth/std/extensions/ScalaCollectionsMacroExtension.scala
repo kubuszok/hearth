@@ -4,8 +4,8 @@ package extensions
 
 /** Macro extension providing support for Scala collections.
   *
-  * Supports all Scala built-in collections, by upcasting them to Iterable and using the factory to build the
-  * collection.
+  * Supports all Scala built-in collections, turns them into [[scala.collection.Iterable]] by upcasting, and using the
+  * summoned [[scala.collection.Factory]] as Factory implementation. Treats them as types without smart constructors.
   *
   * @since 0.3.0
   */
