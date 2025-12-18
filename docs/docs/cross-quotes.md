@@ -554,8 +554,28 @@ Since Cross-Quotes rewrites some code into the native macro representations of e
 
     For the same reason, using [kind-projector](https://github.com/typelevel/kind-projector) on Scala 2 cannot be supported.
 
-    Some best-effort workarounds are [in the making](https://github.com/MateuszKubuszok/hearth/issues/139), but
+    We might improve the support for type constructors in the future but
     **full support for arbitrary type aliases and kind projections will probably never be possible**.
+
+    However, quite often it can be workarounded by using unaliased full type constructor, and then partially applying some types to it:
+
+    ```scala
+    // Assuming given Type[String]
+    Type.Ctor2.of[Either].setA[String] // =:= Type.Ctor1[Either[String, *]]
+    // Assuming given Type[Int]
+    Type.Ctor2.of[Either].setB[Int] // =:= Type.Ctor1[Either[*, Int]]
+    ```
+
+    Names `setA`, `setB`, `setC` etc assumes convention where type parameters of each type constructor are named: `A`, `B`, `C`, ...
+
+    Since:
+    
+     - we are fixing 1 type parameter at a time
+     - fixing the type paramter returns a type constructor if arity 1 smaller
+     - type parameters would be reindexed
+
+    to apply multiple type parameters we recommend applying them from the back - this way their names (positions) will stay unchanged
+    over the whole proces of partial application (e.g. use `ctor.setP[P].setM[M].setA[A]` but not `ctor.setA[A].setM[M].setP[P]`).
 
  3. **Scala 2's `Expr`s**
 
