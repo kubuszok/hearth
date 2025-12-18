@@ -2546,6 +2546,86 @@ positions.sorted  // sorts by file path, then offset
     to the first letter of the macro method name when you use `.line` or `.column`,
     so you can get predictable behavior from e.g. `Environment.isExpandedAt`.
 
+## Versions
+
+Sometimes it helps to be able tell what kind of Scala or JDK version are we using, and display/compare it in the runtime:
+e.g. for some feature discoverability. Hearth offers several utilities for that.
+
+### `JDKVersion`
+
+Determines what is the JDK version in which the current macro expansion happens.
+
+!!! example
+
+    ```scala
+    hearth.JDKVersion.runtimeJDKVersion // e.g. JDKVersion(major = 1, minor = 21)
+    hearth.JDKVersion.compiletimeJDKVersion
+    ```
+
+For obvious reasons, we do not recomment using it for production code in multiplatform projects.
+
+### `ScalaVersion`
+
+Determines the Scala version (major, minor, patch) used in the current macro expansion.
+
+!!! example
+
+    ```scala
+    hearth.ScalaVersion.byJVMRuntime // ScalaVersion(major = 2, minor = 13, patch = 16)
+    hearth.ScalaVersion.byCompileTime
+    ```
+
+### `LanguageVersion`
+
+Determines whether we have Scala 2.13 or Scala 3 in the current macro expansion.
+
+!!! example
+
+    ```scala
+    hearth.ScalaVersion.byJVMRuntime.toLanguageVersion // LanguageVersion.Scala2_13 or LanguageVersion.Scala3
+    hearth.LanguageVersion.byHearth
+    ```
+
+It's convenient to have a dedicated enum for that instead of comparing numbers of `ScalaVersion` by hand.
+
+### `Platform`
+
+Determines whether we have Scala/Scala.js/Scala Native during the macro expansion.
+
+!!! example
+
+    ```scala
+    hearth.Platform.byHearth
+    ```
+
+While we can use separare sources for each of them, sometimes it's good enough to make a check in the runtime.
+
+### `HearthVersion`
+
+Determines Hearth's version number, [`LanguageVersion`](#languageversion) and [`Platform`](#platform) at once.
+
+!!! example
+
+    ```scala
+    HearthVersion.byHearthLibrary // HearthVersion(version = "{{ hearth_version() }}", languageVersion = LanguageVersion.Scala2_13, Platform.JVM)
+    ```
+
+Useful for e.g. error reporting.
+
+## `data.Data`
+
+Sometimes it's convenient to pass several values as one. It's useful to e.g. parse inputs into one value, or return
+multiple values from a macro fixture to check several assumptions without extra macro-creation overhead.
+
+`hearth.data.Data` is a JSON-like data structure that behaves like a `Map[String, Data] | List[Data] | Boolean | Int | Long | Float | Double | String | null`.
+
+It has utilities:
+
+ - for parsing `List[String]` into it (e.g. [`-Xmacro-settings`](#macro-settings)) - which is useful for introducing namespaces, and grouping settings together,
+   because in the macro we can obtain them as `Map`s and `List`s of values
+ - and turning `Data` into `Expr[Data]` in the macro (e.g. `Expr(Data.map("key" -> Data("value")))`) - which we heavily use to test macro utilities and return mutiple results for different edge cases as single values
+
+
 ## `Environment`
 
 `Environment` provides utilities for introspecting the compilation environment and reporting messages:
@@ -2569,15 +2649,17 @@ positions.sorted  // sorts by file path, then offset
 
 Pass settings to macros via `-Xmacro-settings:key=value`:
 
-```scala
-// scalacOptions += "-Xmacro-settings:myMacro.debug=true"
-// scalacOptions += "-Xmacro-settings:myMacro.threshold=42"
+!!! example
 
-Environment.XMacroSettings  // List[String] - all settings as strings
+    ```scala
+    // scalacOptions += "-Xmacro-settings:myMacro.debug=true"
+    // scalacOptions += "-Xmacro-settings:myMacro.threshold=42"
 
-Environment.typedSettings   // Either[String, data.Data] - parsed as JSON-like structure
-Environment.typedSettings.toOption.flatMap(_.get("myMacro")).flatMap(_.get("debug"))
-```
+    Environment.XMacroSettings  // List[String] - all settings as strings
+
+    Environment.typedSettings   // Either[String, hearth.data.Data] - parsed as JSON-like structure
+    Environment.typedSettings.toOption.flatMap(_.get("myMacro")).flatMap(_.get("debug"))
+    ```
 
 ### Reporting
 
