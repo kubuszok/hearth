@@ -81,188 +81,184 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   private val String = Type.of[String]
 
-  def testTypeCtor1[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor1[Ctor]
-    ) = Tested match {
-      case Ctor(a) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z).plainPrint
-            )
+  private def try1[Tested, Ctor[_]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor1[Ctor]
+  ) = Tested match {
+    case Ctor(a) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z).plainPrint
           )
         )
-      case _ => None
-    }
+      )
+    case _ => None
+  }
 
-    val classResult = test(Type[In], Type.Ctor1.of[examples.kinds.Arity1]) match {
+  def testTypeCtor1[In: Type]: Expr[Data] = {
+    val classResult = try1(Type[In], Type.Ctor1.of[examples.kinds.Arity1]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor1.of[examples.kinds.Alias.Renamed1]) match {
+    val renamedResult = try1(Type[In], Type.Ctor1.of[examples.kinds.Alias.Renamed1]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor1.of[examples.kinds.Alias.Extra1]) match {
+    val extraResult = try1(Type[In], Type.Ctor1.of[examples.kinds.Alias.Extra1]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor1.of[examples.kinds.Alias.FixedFront1]) match {
+    val fixedFrontResult = try1(Type[In], Type.Ctor1.of[examples.kinds.Alias.FixedFront1]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor1.of[examples.kinds.Alias.FixedBack1]) match {
+    val fixedBackResult = try1(Type[In], Type.Ctor1.of[examples.kinds.Alias.FixedBack1]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try2[Tested, Ctor[_, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor2[Ctor]
+  ) = Tested match {
+    case Ctor(a, b) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor2[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor2[Ctor]
-    ) = Tested match {
-      case Ctor(a, b) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-
-    val classResult = test(Type[In], Type.Ctor2.of[examples.kinds.Arity2]) match {
+    val classResult = try2(Type[In], Type.Ctor2.of[examples.kinds.Arity2]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor2.of[examples.kinds.Alias.Renamed2]) match {
+    val renamedResult = try2(Type[In], Type.Ctor2.of[examples.kinds.Alias.Renamed2]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor2.of[examples.kinds.Alias.Extra2]) match {
+    val extraResult = try2(Type[In], Type.Ctor2.of[examples.kinds.Alias.Extra2]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor2.of[examples.kinds.Alias.FixedFront2]) match {
+    val fixedFrontResult = try2(Type[In], Type.Ctor2.of[examples.kinds.Alias.FixedFront2]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor2.of[examples.kinds.Alias.FixedBack2]) match {
+    val fixedBackResult = try2(Type[In], Type.Ctor2.of[examples.kinds.Alias.FixedBack2]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try3[Tested, Ctor[_, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor3[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor3[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor3[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-
-    val classResult = test(Type[In], Type.Ctor3.of[examples.kinds.Arity3]) match {
+    val classResult = try3(Type[In], Type.Ctor3.of[examples.kinds.Arity3]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor3.of[examples.kinds.Alias.Renamed3]) match {
+    val renamedResult = try3(Type[In], Type.Ctor3.of[examples.kinds.Alias.Renamed3]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor3.of[examples.kinds.Alias.Extra3]) match {
+    val extraResult = try3(Type[In], Type.Ctor3.of[examples.kinds.Alias.Extra3]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor3.of[examples.kinds.Alias.FixedFront3]) match {
+    val fixedFrontResult = try3(Type[In], Type.Ctor3.of[examples.kinds.Alias.FixedFront3]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor3.of[examples.kinds.Alias.FixedBack3]) match {
+    val fixedBackResult = try3(Type[In], Type.Ctor3.of[examples.kinds.Alias.FixedBack3]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try4[Tested, Ctor[_, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor4[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor4[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor4[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-
-    val classResult = test(Type[In], Type.Ctor4.of[examples.kinds.Arity4]) match {
+    val classResult = try4(Type[In], Type.Ctor4.of[examples.kinds.Arity4]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor4.of[examples.kinds.Alias.Renamed4]) match {
+    val renamedResult = try4(Type[In], Type.Ctor4.of[examples.kinds.Alias.Renamed4]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor4.of[examples.kinds.Alias.Extra4]) match {
+    val extraResult = try4(Type[In], Type.Ctor4.of[examples.kinds.Alias.Extra4]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor4.of[examples.kinds.Alias.FixedFront4]) match {
+    val fixedFrontResult = try4(Type[In], Type.Ctor4.of[examples.kinds.Alias.FixedFront4]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor4.of[examples.kinds.Alias.FixedBack4]) match {
+    val fixedBackResult = try4(Type[In], Type.Ctor4.of[examples.kinds.Alias.FixedBack4]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
@@ -270,977 +266,969 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try5[Tested, Ctor[_, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor5[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor5[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor5[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-
-    val classResult = test(Type[In], Type.Ctor5.of[examples.kinds.Arity5]) match {
+    val classResult = try5(Type[In], Type.Ctor5.of[examples.kinds.Arity5]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor5.of[examples.kinds.Alias.Renamed5]) match {
+    val renamedResult = try5(Type[In], Type.Ctor5.of[examples.kinds.Alias.Renamed5]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor5.of[examples.kinds.Alias.Extra5]) match {
+    val extraResult = try5(Type[In], Type.Ctor5.of[examples.kinds.Alias.Extra5]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor5.of[examples.kinds.Alias.FixedFront5]) match {
+    val fixedFrontResult = try5(Type[In], Type.Ctor5.of[examples.kinds.Alias.FixedFront5]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor5.of[examples.kinds.Alias.FixedBack5]) match {
+    val fixedBackResult = try5(Type[In], Type.Ctor5.of[examples.kinds.Alias.FixedBack5]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try6[Tested, Ctor[_, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor6[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor6[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor6[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-
-    val classResult = test(Type[In], Type.Ctor6.of[examples.kinds.Arity6]) match {
+    val classResult = try6(Type[In], Type.Ctor6.of[examples.kinds.Arity6]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor6.of[examples.kinds.Alias.Renamed6]) match {
+    val renamedResult = try6(Type[In], Type.Ctor6.of[examples.kinds.Alias.Renamed6]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor6.of[examples.kinds.Alias.Extra6]) match {
+    val extraResult = try6(Type[In], Type.Ctor6.of[examples.kinds.Alias.Extra6]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor6.of[examples.kinds.Alias.FixedFront6]) match {
+    val fixedFrontResult = try6(Type[In], Type.Ctor6.of[examples.kinds.Alias.FixedFront6]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor6.of[examples.kinds.Alias.FixedBack6]) match {
+    val fixedBackResult = try6(Type[In], Type.Ctor6.of[examples.kinds.Alias.FixedBack6]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try7[Tested, Ctor[_, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor7[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor7[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor7[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-
-    val classResult = test(Type[In], Type.Ctor7.of[examples.kinds.Arity7]) match {
+    val classResult = try7(Type[In], Type.Ctor7.of[examples.kinds.Arity7]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor7.of[examples.kinds.Alias.Renamed7]) match {
+    val renamedResult = try7(Type[In], Type.Ctor7.of[examples.kinds.Alias.Renamed7]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor7.of[examples.kinds.Alias.Extra7]) match {
+    val extraResult = try7(Type[In], Type.Ctor7.of[examples.kinds.Alias.Extra7]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor7.of[examples.kinds.Alias.FixedFront7]) match {
+    val fixedFrontResult = try7(Type[In], Type.Ctor7.of[examples.kinds.Alias.FixedFront7]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor7.of[examples.kinds.Alias.FixedBack7]) match {
+    val fixedBackResult = try7(Type[In], Type.Ctor7.of[examples.kinds.Alias.FixedBack7]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try8[Tested, Ctor[_, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor8[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor8[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor8[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-
-    val classResult = test(Type[In], Type.Ctor8.of[examples.kinds.Arity8]) match {
+    val classResult = try8(Type[In], Type.Ctor8.of[examples.kinds.Arity8]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor8.of[examples.kinds.Alias.Renamed8]) match {
+    val renamedResult = try8(Type[In], Type.Ctor8.of[examples.kinds.Alias.Renamed8]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor8.of[examples.kinds.Alias.Extra8]) match {
+    val extraResult = try8(Type[In], Type.Ctor8.of[examples.kinds.Alias.Extra8]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor8.of[examples.kinds.Alias.FixedFront8]) match {
+    val fixedFrontResult = try8(Type[In], Type.Ctor8.of[examples.kinds.Alias.FixedFront8]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor8.of[examples.kinds.Alias.FixedBack8]) match {
+    val fixedBackResult = try8(Type[In], Type.Ctor8.of[examples.kinds.Alias.FixedBack8]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try9[Tested, Ctor[_, _, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor9[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h, i) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint),
+            Data(i.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor9[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor9[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h, i) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint),
-              Data(i.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-
-    val classResult = test(Type[In], Type.Ctor9.of[examples.kinds.Arity9]) match {
+    val classResult = try9(Type[In], Type.Ctor9.of[examples.kinds.Arity9]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor9.of[examples.kinds.Alias.Renamed9]) match {
+    val renamedResult = try9(Type[In], Type.Ctor9.of[examples.kinds.Alias.Renamed9]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor9.of[examples.kinds.Alias.Extra9]) match {
+    val extraResult = try9(Type[In], Type.Ctor9.of[examples.kinds.Alias.Extra9]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor9.of[examples.kinds.Alias.FixedFront9]) match {
+    val fixedFrontResult = try9(Type[In], Type.Ctor9.of[examples.kinds.Alias.FixedFront9]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor9.of[examples.kinds.Alias.FixedBack9]) match {
+    val fixedBackResult = try9(Type[In], Type.Ctor9.of[examples.kinds.Alias.FixedBack9]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try10[Tested, Ctor[_, _, _, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor10[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h, i, j) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint),
+            Data(i.Underlying.plainPrint),
+            Data(j.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor10[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor10[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h, i, j) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint),
-              Data(i.Underlying.plainPrint),
-              Data(j.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-
-    val classResult = test(Type[In], Type.Ctor10.of[examples.kinds.Arity10]) match {
+    val classResult = try10(Type[In], Type.Ctor10.of[examples.kinds.Arity10]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor10.of[examples.kinds.Alias.Renamed10]) match {
+    val renamedResult = try10(Type[In], Type.Ctor10.of[examples.kinds.Alias.Renamed10]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor10.of[examples.kinds.Alias.Extra10]) match {
+    val extraResult = try10(Type[In], Type.Ctor10.of[examples.kinds.Alias.Extra10]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor10.of[examples.kinds.Alias.FixedFront10]) match {
+    val fixedFrontResult = try10(Type[In], Type.Ctor10.of[examples.kinds.Alias.FixedFront10]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor10.of[examples.kinds.Alias.FixedBack10]) match {
+    val fixedBackResult = try10(Type[In], Type.Ctor10.of[examples.kinds.Alias.FixedBack10]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try11[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor11[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h, i, j, k) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint),
+            Data(i.Underlying.plainPrint),
+            Data(j.Underlying.plainPrint),
+            Data(k.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor11[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor11[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h, i, j, k) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint),
-              Data(i.Underlying.plainPrint),
-              Data(j.Underlying.plainPrint),
-              Data(k.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-
-    val classResult = test(Type[In], Type.Ctor11.of[examples.kinds.Arity11]) match {
+    val classResult = try11(Type[In], Type.Ctor11.of[examples.kinds.Arity11]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor11.of[examples.kinds.Alias.Renamed11]) match {
+    val renamedResult = try11(Type[In], Type.Ctor11.of[examples.kinds.Alias.Renamed11]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor11.of[examples.kinds.Alias.Extra11]) match {
+    val extraResult = try11(Type[In], Type.Ctor11.of[examples.kinds.Alias.Extra11]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor11.of[examples.kinds.Alias.FixedFront11]) match {
+    val fixedFrontResult = try11(Type[In], Type.Ctor11.of[examples.kinds.Alias.FixedFront11]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor11.of[examples.kinds.Alias.FixedBack11]) match {
+    val fixedBackResult = try11(Type[In], Type.Ctor11.of[examples.kinds.Alias.FixedBack11]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try12[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor12[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h, i, j, k, l) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint),
+            Data(i.Underlying.plainPrint),
+            Data(j.Underlying.plainPrint),
+            Data(k.Underlying.plainPrint),
+            Data(l.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor12[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor12[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint),
-              Data(i.Underlying.plainPrint),
-              Data(j.Underlying.plainPrint),
-              Data(k.Underlying.plainPrint),
-              Data(l.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-
-    val classResult = test(Type[In], Type.Ctor12.of[examples.kinds.Arity12]) match {
+    val classResult = try12(Type[In], Type.Ctor12.of[examples.kinds.Arity12]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor12.of[examples.kinds.Alias.Renamed12]) match {
+    val renamedResult = try12(Type[In], Type.Ctor12.of[examples.kinds.Alias.Renamed12]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor12.of[examples.kinds.Alias.Extra12]) match {
+    val extraResult = try12(Type[In], Type.Ctor12.of[examples.kinds.Alias.Extra12]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor12.of[examples.kinds.Alias.FixedFront12]) match {
+    val fixedFrontResult = try12(Type[In], Type.Ctor12.of[examples.kinds.Alias.FixedFront12]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor12.of[examples.kinds.Alias.FixedBack12]) match {
+    val fixedBackResult = try12(Type[In], Type.Ctor12.of[examples.kinds.Alias.FixedBack12]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try13[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor13[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint),
+            Data(i.Underlying.plainPrint),
+            Data(j.Underlying.plainPrint),
+            Data(k.Underlying.plainPrint),
+            Data(l.Underlying.plainPrint),
+            Data(m.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor13[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor13[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint),
-              Data(i.Underlying.plainPrint),
-              Data(j.Underlying.plainPrint),
-              Data(k.Underlying.plainPrint),
-              Data(l.Underlying.plainPrint),
-              Data(m.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-    val classResult = test(Type[In], Type.Ctor13.of[examples.kinds.Arity13]) match {
+    val classResult = try13(Type[In], Type.Ctor13.of[examples.kinds.Arity13]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor13.of[examples.kinds.Alias.Renamed13]) match {
+    val renamedResult = try13(Type[In], Type.Ctor13.of[examples.kinds.Alias.Renamed13]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor13.of[examples.kinds.Alias.Extra13]) match {
+    val extraResult = try13(Type[In], Type.Ctor13.of[examples.kinds.Alias.Extra13]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor13.of[examples.kinds.Alias.FixedFront13]) match {
+    val fixedFrontResult = try13(Type[In], Type.Ctor13.of[examples.kinds.Alias.FixedFront13]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor13.of[examples.kinds.Alias.FixedBack13]) match {
+    val fixedBackResult = try13(Type[In], Type.Ctor13.of[examples.kinds.Alias.FixedBack13]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try14[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor14[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint),
+            Data(i.Underlying.plainPrint),
+            Data(j.Underlying.plainPrint),
+            Data(k.Underlying.plainPrint),
+            Data(l.Underlying.plainPrint),
+            Data(m.Underlying.plainPrint),
+            Data(n.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor14[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor14[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint),
-              Data(i.Underlying.plainPrint),
-              Data(j.Underlying.plainPrint),
-              Data(k.Underlying.plainPrint),
-              Data(l.Underlying.plainPrint),
-              Data(m.Underlying.plainPrint),
-              Data(n.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-    val classResult = test(Type[In], Type.Ctor14.of[examples.kinds.Arity14]) match {
+    val classResult = try14(Type[In], Type.Ctor14.of[examples.kinds.Arity14]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor14.of[examples.kinds.Alias.Renamed14]) match {
+    val renamedResult = try14(Type[In], Type.Ctor14.of[examples.kinds.Alias.Renamed14]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor14.of[examples.kinds.Alias.Extra14]) match {
+    val extraResult = try14(Type[In], Type.Ctor14.of[examples.kinds.Alias.Extra14]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor14.of[examples.kinds.Alias.FixedFront14]) match {
+    val fixedFrontResult = try14(Type[In], Type.Ctor14.of[examples.kinds.Alias.FixedFront14]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor14.of[examples.kinds.Alias.FixedBack14]) match {
+    val fixedBackResult = try14(Type[In], Type.Ctor14.of[examples.kinds.Alias.FixedBack14]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try15[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor15[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint),
+            Data(i.Underlying.plainPrint),
+            Data(j.Underlying.plainPrint),
+            Data(k.Underlying.plainPrint),
+            Data(l.Underlying.plainPrint),
+            Data(m.Underlying.plainPrint),
+            Data(n.Underlying.plainPrint),
+            Data(o.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor15[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor15[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint),
-              Data(i.Underlying.plainPrint),
-              Data(j.Underlying.plainPrint),
-              Data(k.Underlying.plainPrint),
-              Data(l.Underlying.plainPrint),
-              Data(m.Underlying.plainPrint),
-              Data(n.Underlying.plainPrint),
-              Data(o.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-    val classResult = test(Type[In], Type.Ctor15.of[examples.kinds.Arity15]) match {
+    val classResult = try15(Type[In], Type.Ctor15.of[examples.kinds.Arity15]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor15.of[examples.kinds.Alias.Renamed15]) match {
+    val renamedResult = try15(Type[In], Type.Ctor15.of[examples.kinds.Alias.Renamed15]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor15.of[examples.kinds.Alias.Extra15]) match {
+    val extraResult = try15(Type[In], Type.Ctor15.of[examples.kinds.Alias.Extra15]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor15.of[examples.kinds.Alias.FixedFront15]) match {
+    val fixedFrontResult = try15(Type[In], Type.Ctor15.of[examples.kinds.Alias.FixedFront15]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor15.of[examples.kinds.Alias.FixedBack15]) match {
+    val fixedBackResult = try15(Type[In], Type.Ctor15.of[examples.kinds.Alias.FixedBack15]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try16[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor16[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint),
+            Data(i.Underlying.plainPrint),
+            Data(j.Underlying.plainPrint),
+            Data(k.Underlying.plainPrint),
+            Data(l.Underlying.plainPrint),
+            Data(m.Underlying.plainPrint),
+            Data(n.Underlying.plainPrint),
+            Data(o.Underlying.plainPrint),
+            Data(p.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor16[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor16[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint),
-              Data(i.Underlying.plainPrint),
-              Data(j.Underlying.plainPrint),
-              Data(k.Underlying.plainPrint),
-              Data(l.Underlying.plainPrint),
-              Data(m.Underlying.plainPrint),
-              Data(n.Underlying.plainPrint),
-              Data(o.Underlying.plainPrint),
-              Data(p.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-    val classResult = test(Type[In], Type.Ctor16.of[examples.kinds.Arity16]) match {
+    val classResult = try16(Type[In], Type.Ctor16.of[examples.kinds.Arity16]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor16.of[examples.kinds.Alias.Renamed16]) match {
+    val renamedResult = try16(Type[In], Type.Ctor16.of[examples.kinds.Alias.Renamed16]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor16.of[examples.kinds.Alias.Extra16]) match {
+    val extraResult = try16(Type[In], Type.Ctor16.of[examples.kinds.Alias.Extra16]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor16.of[examples.kinds.Alias.FixedFront16]) match {
+    val fixedFrontResult = try16(Type[In], Type.Ctor16.of[examples.kinds.Alias.FixedFront16]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor16.of[examples.kinds.Alias.FixedBack16]) match {
+    val fixedBackResult = try16(Type[In], Type.Ctor16.of[examples.kinds.Alias.FixedBack16]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try17[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor17[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint),
+            Data(i.Underlying.plainPrint),
+            Data(j.Underlying.plainPrint),
+            Data(k.Underlying.plainPrint),
+            Data(l.Underlying.plainPrint),
+            Data(m.Underlying.plainPrint),
+            Data(n.Underlying.plainPrint),
+            Data(o.Underlying.plainPrint),
+            Data(p.Underlying.plainPrint),
+            Data(q.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor17[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor17[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint),
-              Data(i.Underlying.plainPrint),
-              Data(j.Underlying.plainPrint),
-              Data(k.Underlying.plainPrint),
-              Data(l.Underlying.plainPrint),
-              Data(m.Underlying.plainPrint),
-              Data(n.Underlying.plainPrint),
-              Data(o.Underlying.plainPrint),
-              Data(p.Underlying.plainPrint),
-              Data(q.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-    val classResult = test(Type[In], Type.Ctor17.of[examples.kinds.Arity17]) match {
+    val classResult = try17(Type[In], Type.Ctor17.of[examples.kinds.Arity17]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor17.of[examples.kinds.Alias.Renamed17]) match {
+    val renamedResult = try17(Type[In], Type.Ctor17.of[examples.kinds.Alias.Renamed17]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor17.of[examples.kinds.Alias.Extra17]) match {
+    val extraResult = try17(Type[In], Type.Ctor17.of[examples.kinds.Alias.Extra17]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor17.of[examples.kinds.Alias.FixedFront17]) match {
+    val fixedFrontResult = try17(Type[In], Type.Ctor17.of[examples.kinds.Alias.FixedFront17]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor17.of[examples.kinds.Alias.FixedBack17]) match {
+    val fixedBackResult = try17(Type[In], Type.Ctor17.of[examples.kinds.Alias.FixedBack17]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try18[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor18[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint),
+            Data(i.Underlying.plainPrint),
+            Data(j.Underlying.plainPrint),
+            Data(k.Underlying.plainPrint),
+            Data(l.Underlying.plainPrint),
+            Data(m.Underlying.plainPrint),
+            Data(n.Underlying.plainPrint),
+            Data(o.Underlying.plainPrint),
+            Data(p.Underlying.plainPrint),
+            Data(q.Underlying.plainPrint),
+            Data(r.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor18[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor18[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint),
-              Data(i.Underlying.plainPrint),
-              Data(j.Underlying.plainPrint),
-              Data(k.Underlying.plainPrint),
-              Data(l.Underlying.plainPrint),
-              Data(m.Underlying.plainPrint),
-              Data(n.Underlying.plainPrint),
-              Data(o.Underlying.plainPrint),
-              Data(p.Underlying.plainPrint),
-              Data(q.Underlying.plainPrint),
-              Data(r.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-    val classResult = test(Type[In], Type.Ctor18.of[examples.kinds.Arity18]) match {
+    val classResult = try18(Type[In], Type.Ctor18.of[examples.kinds.Arity18]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor18.of[examples.kinds.Alias.Renamed18]) match {
+    val renamedResult = try18(Type[In], Type.Ctor18.of[examples.kinds.Alias.Renamed18]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor18.of[examples.kinds.Alias.Extra18]) match {
+    val extraResult = try18(Type[In], Type.Ctor18.of[examples.kinds.Alias.Extra18]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor18.of[examples.kinds.Alias.FixedFront18]) match {
+    val fixedFrontResult = try18(Type[In], Type.Ctor18.of[examples.kinds.Alias.FixedFront18]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor18.of[examples.kinds.Alias.FixedBack18]) match {
+    val fixedBackResult = try18(Type[In], Type.Ctor18.of[examples.kinds.Alias.FixedBack18]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try19[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor19[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint),
+            Data(i.Underlying.plainPrint),
+            Data(j.Underlying.plainPrint),
+            Data(k.Underlying.plainPrint),
+            Data(l.Underlying.plainPrint),
+            Data(m.Underlying.plainPrint),
+            Data(n.Underlying.plainPrint),
+            Data(o.Underlying.plainPrint),
+            Data(p.Underlying.plainPrint),
+            Data(q.Underlying.plainPrint),
+            Data(r.Underlying.plainPrint),
+            Data(s.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor19[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor19[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint),
-              Data(i.Underlying.plainPrint),
-              Data(j.Underlying.plainPrint),
-              Data(k.Underlying.plainPrint),
-              Data(l.Underlying.plainPrint),
-              Data(m.Underlying.plainPrint),
-              Data(n.Underlying.plainPrint),
-              Data(o.Underlying.plainPrint),
-              Data(p.Underlying.plainPrint),
-              Data(q.Underlying.plainPrint),
-              Data(r.Underlying.plainPrint),
-              Data(s.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-    val classResult = test(Type[In], Type.Ctor19.of[examples.kinds.Arity19]) match {
+    val classResult = try19(Type[In], Type.Ctor19.of[examples.kinds.Arity19]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor19.of[examples.kinds.Alias.Renamed19]) match {
+    val renamedResult = try19(Type[In], Type.Ctor19.of[examples.kinds.Alias.Renamed19]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor19.of[examples.kinds.Alias.Extra19]) match {
+    val extraResult = try19(Type[In], Type.Ctor19.of[examples.kinds.Alias.Extra19]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor19.of[examples.kinds.Alias.FixedFront19]) match {
+    val fixedFrontResult = try19(Type[In], Type.Ctor19.of[examples.kinds.Alias.FixedFront19]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor19.of[examples.kinds.Alias.FixedBack19]) match {
+    val fixedBackResult = try19(Type[In], Type.Ctor19.of[examples.kinds.Alias.FixedBack19]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try20[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor20[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint),
+            Data(i.Underlying.plainPrint),
+            Data(j.Underlying.plainPrint),
+            Data(k.Underlying.plainPrint),
+            Data(l.Underlying.plainPrint),
+            Data(m.Underlying.plainPrint),
+            Data(n.Underlying.plainPrint),
+            Data(o.Underlying.plainPrint),
+            Data(p.Underlying.plainPrint),
+            Data(q.Underlying.plainPrint),
+            Data(r.Underlying.plainPrint),
+            Data(s.Underlying.plainPrint),
+            Data(t.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor20[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor20[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint),
-              Data(i.Underlying.plainPrint),
-              Data(j.Underlying.plainPrint),
-              Data(k.Underlying.plainPrint),
-              Data(l.Underlying.plainPrint),
-              Data(m.Underlying.plainPrint),
-              Data(n.Underlying.plainPrint),
-              Data(o.Underlying.plainPrint),
-              Data(p.Underlying.plainPrint),
-              Data(q.Underlying.plainPrint),
-              Data(r.Underlying.plainPrint),
-              Data(s.Underlying.plainPrint),
-              Data(t.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-    val classResult = test(Type[In], Type.Ctor20.of[examples.kinds.Arity20]) match {
+    val classResult = try20(Type[In], Type.Ctor20.of[examples.kinds.Arity20]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor20.of[examples.kinds.Alias.Renamed20]) match {
+    val renamedResult = try20(Type[In], Type.Ctor20.of[examples.kinds.Alias.Renamed20]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor20.of[examples.kinds.Alias.Extra20]) match {
+    val extraResult = try20(Type[In], Type.Ctor20.of[examples.kinds.Alias.Extra20]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor20.of[examples.kinds.Alias.FixedFront20]) match {
+    val fixedFrontResult = try20(Type[In], Type.Ctor20.of[examples.kinds.Alias.FixedFront20]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor20.of[examples.kinds.Alias.FixedBack20]) match {
+    val fixedBackResult = try20(Type[In], Type.Ctor20.of[examples.kinds.Alias.FixedBack20]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
     val result =
       (classResult.view ++ renamedResult.view ++ extraResult.view ++ fixedFrontResult.view ++ fixedBackResult.view).toSeq
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
+  }
+
+  private def try21[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor21[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint),
+            Data(i.Underlying.plainPrint),
+            Data(j.Underlying.plainPrint),
+            Data(k.Underlying.plainPrint),
+            Data(l.Underlying.plainPrint),
+            Data(m.Underlying.plainPrint),
+            Data(n.Underlying.plainPrint),
+            Data(o.Underlying.plainPrint),
+            Data(p.Underlying.plainPrint),
+            Data(q.Underlying.plainPrint),
+            Data(r.Underlying.plainPrint),
+            Data(s.Underlying.plainPrint),
+            Data(t.Underlying.plainPrint),
+            Data(u.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
+          )
+        )
+      )
+    case _ => None
   }
 
   def testTypeCtor21[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor21[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint),
-              Data(i.Underlying.plainPrint),
-              Data(j.Underlying.plainPrint),
-              Data(k.Underlying.plainPrint),
-              Data(l.Underlying.plainPrint),
-              Data(m.Underlying.plainPrint),
-              Data(n.Underlying.plainPrint),
-              Data(o.Underlying.plainPrint),
-              Data(p.Underlying.plainPrint),
-              Data(q.Underlying.plainPrint),
-              Data(r.Underlying.plainPrint),
-              Data(s.Underlying.plainPrint),
-              Data(t.Underlying.plainPrint),
-              Data(u.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
-          )
-        )
-      case _ => None
-    }
-    val classResult = test(Type[In], Type.Ctor21.of[examples.kinds.Arity21]) match {
+    val classResult = try21(Type[In], Type.Ctor21.of[examples.kinds.Arity21]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor21.of[examples.kinds.Alias.Renamed21]) match {
+    val renamedResult = try21(Type[In], Type.Ctor21.of[examples.kinds.Alias.Renamed21]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor21.of[examples.kinds.Alias.Extra21]) match {
+    val extraResult = try21(Type[In], Type.Ctor21.of[examples.kinds.Alias.Extra21]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor21.of[examples.kinds.Alias.FixedFront21]) match {
+    val fixedFrontResult = try21(Type[In], Type.Ctor21.of[examples.kinds.Alias.FixedFront21]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor21.of[examples.kinds.Alias.FixedBack21]) match {
+    val fixedBackResult = try21(Type[In], Type.Ctor21.of[examples.kinds.Alias.FixedBack21]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
@@ -1249,65 +1237,64 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
     if (result.isEmpty) Expr(Data("Not one of the expected types")) else Expr(Data.map(result*))
   }
 
-  def testTypeCtor22[In: Type]: Expr[Data] = {
-    // TODO: type projector test as well
-    def test[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
-        Tested: Type[Tested],
-        Ctor: Type.Ctor22[Ctor]
-    ) = Tested match {
-      case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) =>
-        val Z = String
-        Some(
-          Data.map(
-            "unapplied" -> Data.list(
-              Data(a.Underlying.plainPrint),
-              Data(b.Underlying.plainPrint),
-              Data(c.Underlying.plainPrint),
-              Data(d.Underlying.plainPrint),
-              Data(e.Underlying.plainPrint),
-              Data(f.Underlying.plainPrint),
-              Data(g.Underlying.plainPrint),
-              Data(h.Underlying.plainPrint),
-              Data(i.Underlying.plainPrint),
-              Data(j.Underlying.plainPrint),
-              Data(k.Underlying.plainPrint),
-              Data(l.Underlying.plainPrint),
-              Data(m.Underlying.plainPrint),
-              Data(n.Underlying.plainPrint),
-              Data(o.Underlying.plainPrint),
-              Data(p.Underlying.plainPrint),
-              Data(q.Underlying.plainPrint),
-              Data(r.Underlying.plainPrint),
-              Data(s.Underlying.plainPrint),
-              Data(t.Underlying.plainPrint),
-              Data(u.Underlying.plainPrint),
-              Data(v.Underlying.plainPrint)
-            ),
-            "reapplied" -> Data(
-              Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
-            )
+  private def try22[Tested, Ctor[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](
+      Tested: Type[Tested],
+      Ctor: Type.Ctor22[Ctor]
+  ) = Tested match {
+    case Ctor(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) =>
+      val Z = String
+      Some(
+        Data.map(
+          "unapplied" -> Data.list(
+            Data(a.Underlying.plainPrint),
+            Data(b.Underlying.plainPrint),
+            Data(c.Underlying.plainPrint),
+            Data(d.Underlying.plainPrint),
+            Data(e.Underlying.plainPrint),
+            Data(f.Underlying.plainPrint),
+            Data(g.Underlying.plainPrint),
+            Data(h.Underlying.plainPrint),
+            Data(i.Underlying.plainPrint),
+            Data(j.Underlying.plainPrint),
+            Data(k.Underlying.plainPrint),
+            Data(l.Underlying.plainPrint),
+            Data(m.Underlying.plainPrint),
+            Data(n.Underlying.plainPrint),
+            Data(o.Underlying.plainPrint),
+            Data(p.Underlying.plainPrint),
+            Data(q.Underlying.plainPrint),
+            Data(r.Underlying.plainPrint),
+            Data(s.Underlying.plainPrint),
+            Data(t.Underlying.plainPrint),
+            Data(u.Underlying.plainPrint),
+            Data(v.Underlying.plainPrint)
+          ),
+          "reapplied" -> Data(
+            Ctor(using Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z).plainPrint
           )
         )
-      case _ => None
-    }
+      )
+    case _ => None
+  }
 
-    val classResult = test(Type[In], Type.Ctor22.of[examples.kinds.Arity22]) match {
+  def testTypeCtor22[In: Type]: Expr[Data] = {
+    val classResult = try22(Type[In], Type.Ctor22.of[examples.kinds.Arity22]) match {
       case Some(data) => Seq("as class" -> data)
       case None       => Seq.empty
     }
-    val renamedResult = test(Type[In], Type.Ctor22.of[examples.kinds.Alias.Renamed22]) match {
+    val renamedResult = try22(Type[In], Type.Ctor22.of[examples.kinds.Alias.Renamed22]) match {
       case Some(data) => Seq("as renamed" -> data)
       case None       => Seq.empty
     }
-    val extraResult = test(Type[In], Type.Ctor22.of[examples.kinds.Alias.Extra22]) match {
+    val extraResult = try22(Type[In], Type.Ctor22.of[examples.kinds.Alias.Extra22]) match {
       case Some(data) => Seq("as extra" -> data)
       case None       => Seq.empty
     }
-    val fixedFrontResult = test(Type[In], Type.Ctor22.of[examples.kinds.Alias.FixedFront22]) match {
+    val fixedFrontResult = try22(Type[In], Type.Ctor22.of[examples.kinds.Alias.FixedFront22]) match {
       case Some(data) => Seq("as fixed front" -> data)
       case None       => Seq.empty
     }
-    val fixedBackResult = test(Type[In], Type.Ctor22.of[examples.kinds.Alias.FixedBack22]) match {
+    val fixedBackResult = try22(Type[In], Type.Ctor22.of[examples.kinds.Alias.FixedBack22]) match {
       case Some(data) => Seq("as fixed back" -> data)
       case None       => Seq.empty
     }
