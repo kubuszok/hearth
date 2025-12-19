@@ -1,2 +1,3 @@
 hearth.std.extensions.ScalaCollectionIsCollectionProvider
 hearth.std.extensions.ArrayIsCollectionProvider
+hearth.std.extensions.AnyValIsWrapperProvider
