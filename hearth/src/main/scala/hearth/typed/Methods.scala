@@ -239,6 +239,15 @@ trait Methods { this: MacroCommons =>
       }
       override def hashCode: Int = asUntyped.hashCode
     }
+    object NoInstance {
+
+      /** Nice utiltiy to extract the no-instance method from the existential method. */
+      @scala.annotation.nowarn
+      def unapply[A](method: Method.Of[A]): Option[Method.NoInstance[A]] = method.value match {
+        case method: Method.NoInstance[A] => Some(method)
+        case _                            => None
+      }
+    }
 
     /** Instance method.
       *
@@ -299,6 +308,27 @@ trait Methods { this: MacroCommons =>
         case _ => false
       }
       override def hashCode: Int = asUntyped.hashCode
+    }
+    object OfInstance {
+
+      /** Nice type alias [[Method.OfInstance]] taking some type `A` that can be of any type.
+        *
+        * @since 0.3.0
+        */
+      type Of[A] = Existential[Method.OfInstance[A, *]]
+      object Of {
+
+        /** Nice utiltiy to extract the instance method from the existential method. */
+        @scala.annotation.nowarn
+        def unapply[A](method: Method.Of[A]): Option[Method.OfInstance.Of[A]] = {
+          import method.Underlying as Returned
+          method.value match {
+            case method: Method.OfInstance[A, Returned] =>
+              Some(Existential[Method.OfInstance[A, *], Returned](method))
+            case _ => None
+          }
+        }
+      }
     }
 
     /** Everything that we cannot handle with the above (e.g. polymorphic methods).
