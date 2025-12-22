@@ -241,7 +241,7 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     def toExpr(value: A): Expr[A]
     def fromExpr(expr: Expr[A]): Option[A]
   }
-  object ExprCodec {
+  object ExprCodec extends ExprCodecImplicits0 {
 
     def apply[A](implicit codec: ExprCodec[A]): ExprCodec[A] = codec
 
@@ -266,17 +266,9 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     implicit def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]] = Expr.ClassTagExprCodec[A]
 
     implicit def ArrayExprCodec[A: ExprCodec: Type]: ExprCodec[Array[A]] = Expr.ArrayExprCodec[A]
-    implicit def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = Expr.SeqExprCodec[A]
-    implicit def ListExprCodec[A: ExprCodec: Type]: ExprCodec[List[A]] = Expr.ListExprCodec[A]
     implicit lazy val NilExprCodec: ExprCodec[Nil.type] = Expr.NilExprCodec
-    implicit def VectorExprCodec[A: ExprCodec: Type]: ExprCodec[Vector[A]] = Expr.VectorExprCodec[A]
-    implicit def MapExprCodec[K: ExprCodec: Type, V: ExprCodec: Type]: ExprCodec[Map[K, V]] = Expr.MapExprCodec[K, V]
-    implicit def SetExprCodec[A: ExprCodec: Type]: ExprCodec[Set[A]] = Expr.SetExprCodec[A]
-    implicit def OptionExprCodec[A: ExprCodec: Type]: ExprCodec[Option[A]] = Expr.OptionExprCodec[A]
     implicit def SomeExprCodec[A: ExprCodec: Type]: ExprCodec[Some[A]] = Expr.SomeExprCodec[A]
     implicit lazy val NoneExprCodec: ExprCodec[None.type] = Expr.NoneExprCodec
-    implicit def EitherExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Either[L, R]] =
-      Expr.EitherExprCodec[L, R]
     implicit def LeftExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Left[L, R]] = Expr.LeftExprCodec[L, R]
     implicit def RightExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Right[L, R]] =
       Expr.RightExprCodec[L, R]
@@ -288,6 +280,20 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     implicit lazy val ScalaVersionCodec: ExprCodec[ScalaVersion] = Expr.ScalaVersionExprCodec
     implicit lazy val LanguageVersionCodec: ExprCodec[LanguageVersion] = Expr.LanguageVersionExprCodec
     implicit lazy val PlatformCodec: ExprCodec[Platform] = Expr.PlatformExprCodec
+  }
+  private[hearth] trait ExprCodecImplicits0 extends ExprCodecImplicits1 { this: ExprCodec.type =>
+
+    implicit def ListExprCodec[A: ExprCodec: Type]: ExprCodec[List[A]] = Expr.ListExprCodec[A]
+    implicit def VectorExprCodec[A: ExprCodec: Type]: ExprCodec[Vector[A]] = Expr.VectorExprCodec[A]
+    implicit def MapExprCodec[K: ExprCodec: Type, V: ExprCodec: Type]: ExprCodec[Map[K, V]] = Expr.MapExprCodec[K, V]
+    implicit def SetExprCodec[A: ExprCodec: Type]: ExprCodec[Set[A]] = Expr.SetExprCodec[A]
+    implicit def OptionExprCodec[A: ExprCodec: Type]: ExprCodec[Option[A]] = Expr.OptionExprCodec[A]
+    implicit def EitherExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Either[L, R]] =
+      Expr.EitherExprCodec[L, R]
+  }
+  private[hearth] trait ExprCodecImplicits1 { this: ExprCodec.type =>
+
+    implicit def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = Expr.SeqExprCodec[A]
   }
 
   sealed trait SummoningResult[A] extends Product with Serializable {

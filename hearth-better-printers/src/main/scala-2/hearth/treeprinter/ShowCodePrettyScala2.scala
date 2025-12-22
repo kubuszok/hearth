@@ -153,10 +153,14 @@ trait ShowCodePrettyScala2 {
 
       // Colors printed name
       // If symbol name ends with "$" it is an object, and we replace it with ".type".
+      // Exception: if it contains "β$[digit]$" it is a parameter of a type lambda, and we do not want to print .type.
+      private val lambdaParamPattern = raw"β\$$\d+\$$".r
       override protected def printedName(name: Name, decoded: Boolean = true) = {
         val (result, dotType) = {
           val x = super.printedName(name, decoded)
-          if (x.endsWith("$")) (x.dropRight("$".length), true) else (x, false)
+          if (lambdaParamPattern.matches(x)) (x, false)
+          else if (x.endsWith("$")) (x.dropRight("$".length), true)
+          else (x, false)
         }
         val hl = if (name.isTypeName) highlightTypeDef(result) else highlightValDef(result)
         if (dotType) hl + ".type" else hl
@@ -817,7 +821,24 @@ trait ShowCodePrettyScala2 {
               } else if ((tree.tpe.typeSymbol ne null) && tree.tpe.typeSymbol.isAnonymousClass) {
                 print(highlightTypeDef(tree.tpe.typeSymbol.toString)) // TODO: check if we can do better
               } else {
-                print(highlightTypeDef(tree.tpe.toString)) // TODO: check if we can do better
+                val attempt = tree.tpe.toString
+
+                // The above prints incorrectly type lambdas, e.g.
+                //   [β$2$]Item => β$2$
+                // instead of
+                //   {type λ[β$2$] = Item => β$2$}#λ
+                // but we cannot always use this workaround, because it gets incorrect values for local types, e.g.
+                //   hearth.std.extensions.ScalaOptionIsOptionProvider.$anon.Item
+                // instead of
+                //   Item
+                // TODO: We would have to understand why processTypePrinting cannot always be safely used and fix it.
+                val typeLambdaWorkaround = attempt.startsWith("[")
+
+                if (!typeLambdaWorkaround) {
+                  print(highlightTypeDef(attempt))
+                } else {
+                  processTypePrinting(tree.tpe, isLastInChain = true)
+                }
               }
             }
 
@@ -925,6 +946,16 @@ trait ShowCodePrettyScala2 {
           isLastInChain && (sym.isTerm || sym.isModuleOrModuleClass || isEnumValue) && !name.endsWith(".type")
         if (needsDotType) print(".type")
         // print(">>")
+        if (name.contains("β$2")) {
+          scala.Predef.println(s"name: $name")
+          scala.Predef.println(s"sym: $sym")
+          scala.Predef.println(s"isLastInChain: $isLastInChain")
+          scala.Predef.println(s"isTerm: ${sym.isTerm}")
+          scala.Predef.println(s"isModuleOrModuleClass: ${sym.isModuleOrModuleClass}")
+          scala.Predef.println(s"isEnumValue: $isEnumValue")
+          scala.Predef.println(s"name.endsWith(\".type\"): ${name.endsWith(".type")}")
+          scala.Predef.println(s"needsDotType: $needsDotType")
+        }
       }
 
       private def processTypePrinting(tpe: Type, isLastInChain: Boolean): Unit = tpe match {
@@ -1017,6 +1048,21 @@ trait ShowCodePrettyScala2 {
           // This one I am not sure about
           printTypePrefix(thisType, superType.typeSymbol) // we want to print the full name of the symbol
           printTypeNameFromSymbol(superType.typeSymbol, isLastInChain)
+
+        case PolyType(typeParams, resultType) if tpe.toString.startsWith("[") =>
+          // Handle type lambdas in Scala 2 (structural type syntax)
+          print("({type λ[")
+          val it = typeParams.iterator
+          while (it.hasNext) {
+            val sym = it.next()
+            printTypeNameFromSymbol(sym, isLastInChain = false) // We do not want to print .type here
+            if (it.hasNext) print(", ")
+          }
+          print("] = ")
+          print(
+            resultType.toString
+          ) // It works, at least good enough for now, for Cross-Quotes, we need to fix(?) it later.
+          print("})#λ")
 
         case _ =>
           if (failOnUnsupportedTree) unsupportedType(tpe)
