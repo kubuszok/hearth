@@ -3248,6 +3248,13 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
                |${showCodePretty(source, SyntaxHighlight.ANSI)}
                |""".stripMargin
           )
+          if (showCodePretty(source, SyntaxHighlight.plain).contains("ctx.LambdaBuilderMethods")) {
+            println(
+              s"""Stubbed source code:
+                 |${showRawPretty(source, SyntaxHighlight.ANSI)}
+                 |""".stripMargin
+            )
+          }
         }
       }
       .pipe(showCodePretty(_, SyntaxHighlight.plain))
@@ -3408,7 +3415,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
        */
       case Apply(
             TypeApply(
-              Select(Select(This(_), TermName("Expr")), TermName("splice")),
+              Select(Select(This(_) | Ident(_), TermName("Expr")), TermName("splice")),
               List(tpe)
             ),
             List(expr)

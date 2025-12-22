@@ -169,7 +169,7 @@ trait StdExtensions { this: MacroCommons =>
 
     def of(value: Expr[Item]): Expr[OptionA]
 
-    def fold[A](option: Expr[OptionA])(onEmpty: => Expr[A], onSome: Expr[Item] => Expr[A]): Expr[A]
+    def fold[A: Type](option: Expr[OptionA])(onEmpty: Expr[A], onSome: Expr[Item] => Expr[A]): Expr[A]
 
     def getOrElse(option: Expr[OptionA])(default: Expr[Item]): Expr[Item]
 
