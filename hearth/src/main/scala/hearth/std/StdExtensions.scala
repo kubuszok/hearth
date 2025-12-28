@@ -1,6 +1,7 @@
 package hearth
 package std
 
+import hearth.typed.ImportedCrossTypeImplicit
 import hearth.fp.data.NonEmptyVector
 
 trait StdExtensions { this: MacroCommons =>
@@ -27,6 +28,7 @@ trait StdExtensions { this: MacroCommons =>
   trait PossibleSmartCtor[Input, Output] {
 
     type Result[A]
+    @ImportedCrossTypeImplicit
     val Result: Type.Ctor1[Result]
 
     val ctor: Expr[Input] => Expr[Result[Output]]
@@ -114,6 +116,7 @@ trait StdExtensions { this: MacroCommons =>
     def asIterable(value: Expr[CollA]): Expr[Iterable[Item]]
 
     type PossibleSmartResult
+    @ImportedCrossTypeImplicit
     implicit val PossibleSmartResult: Type[PossibleSmartResult]
 
     def factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]]
@@ -166,9 +169,11 @@ trait StdExtensions { this: MacroCommons =>
   trait IsMapOf[MapKV, Pair] extends IsCollectionOf[MapKV, Pair] {
 
     type Key
+    @ImportedCrossTypeImplicit
     implicit val Key: Type[Key]
 
     type Value
+    @ImportedCrossTypeImplicit
     implicit val Value: Type[Value]
 
     def key(pair: Expr[Pair]): Expr[Key]
@@ -270,9 +275,11 @@ trait StdExtensions { this: MacroCommons =>
   trait IsEither[EitherLR] {
 
     type LeftValue
+    @ImportedCrossTypeImplicit
     implicit val LeftValue: Type[LeftValue]
 
     type RightValue
+    @ImportedCrossTypeImplicit
     implicit val RightValue: Type[RightValue]
 
     def left(either: Expr[EitherLR]): Expr[LeftValue]
