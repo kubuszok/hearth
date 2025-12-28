@@ -147,6 +147,55 @@ trait StdExtensions { this: MacroCommons =>
     // TODO: provide a support for built-in collections, Arrays, IArrays, etc
   }
 
+  /** Proof that the type is a map of the given key and value types.
+    *
+    * Proof needs to provide a way to build the map from its pairs of keys and values, and to iterate over its pairs.
+    *
+    * Intended to both:
+    *   - handle all built-in Maps with a single interface
+    *   - make it possible to extend the support for custom maps coming from other libraries just by providing a std
+    *     extension for macro, that would be loaded from the classpath
+    *
+    * @tparam MapKV
+    *   the type of the map with applied key and value type
+    * @tparam Pair
+    *   the type of the pair of key and value
+    *
+    * @since 0.3.0
+    */
+  trait IsMapOf[MapKV, Pair] extends IsCollectionOf[MapKV, Pair] {
+
+    type Key
+    implicit val Key: Type[Key]
+
+    type Value
+    implicit val Value: Type[Value]
+
+    def key(pair: Expr[Pair]): Expr[Key]
+    def value(pair: Expr[Pair]): Expr[Value]
+    def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair]
+  }
+
+  /** An alias indicating the the type is a map of some key and value types, but the exact key and value types are an
+    * existential type.
+    *
+    * @tparam A
+    *   the type of the map
+    *
+    * @since 0.3.0
+    */
+  type IsMap[A] = Existential[IsMapOf[A, *]]
+  object IsMap {
+
+    def unapply[A](tpe: Type[A]): Option[IsMap[A]] =
+      IsCollection.unapply(tpe).collect {
+        case isCollection if isCollection.value.isInstanceOf[IsMapOf[?, ?]] =>
+          isCollection.asInstanceOf[IsMap[A]]
+      }
+
+    // TODO: provide a support for built-in maps, java's Map, etc
+  }
+
   /** Proof that the type is an option of the given item type.
     *
     * Proof needs to provide a way to build the option from its item, and to fold over it.
@@ -201,9 +250,63 @@ trait StdExtensions { this: MacroCommons =>
     // TODO: provide a support for built-in options, java's Optional, etc
   }
 
-  /** Proof that the type is a wrapper of the given inner type.
+  /** Proof that the type is an either of the given left and right types.
     *
-    * Proof needs to provide a way to unwrap the wrapper to its inner type, and to wrap it back from its inner type.
+    * Proof needs to provide a way to build the either from its left or right, and to fold over it.
+    *
+    * Intended to both:
+    *   - handle all built-in Eithers, Try, etc with a single interface
+    *   - make it possible to extend the support for custom eithers coming from other libraries just by providing a std
+    *     extension for macro, that would be loaded from the classpath
+    *
+    * IsEither has no corresponding IsEitherOf, because it is not possible to express the left and right types as a
+    * single existential type.
+    *
+    * @tparam EitherLR
+    *   the type of the either with applied left and right type
+    *
+    * @since 0.3.0
+    */
+  trait IsEither[EitherLR] {
+
+    type LeftValue
+    implicit val LeftValue: Type[LeftValue]
+
+    type RightValue
+    implicit val RightValue: Type[RightValue]
+
+    def left(either: Expr[EitherLR]): Expr[LeftValue]
+
+    def right(either: Expr[EitherLR]): Expr[RightValue]
+
+    def fold[A: Type](
+        either: Expr[EitherLR]
+    )(onLeft: Expr[LeftValue] => Expr[A], onRight: Expr[RightValue] => Expr[A]): Expr[A]
+
+    def getOrElse(either: Expr[EitherLR])(default: Expr[RightValue]): Expr[RightValue]
+
+    def orElse(either: Expr[EitherLR])(default: Expr[EitherLR]): Expr[EitherLR]
+  }
+  object IsEither {
+    private val providers = scala.collection.mutable.ListBuffer[Provider]()
+
+    trait Provider {
+
+      def unapply[A](tpe: Type[A]): Option[IsEither[A]]
+    }
+
+    def registerProvider(provider: Provider): Unit =
+      providers += provider
+
+    def unapply[A](tpe: Type[A]): Option[IsEither[A]] =
+      providers.view.map(_.unapply(tpe)).collectFirst { case Some(either) => either }
+
+    // TODO: provide a support for built-in Eithers, Try, etc
+  }
+
+  /** Proof that the type is a value type of the given inner type.
+    *
+    * Proof needs to provide a way to unwrap the value type to its inner type, and to wrap it back from its inner type.
     *
     * Intended to both:
     *   - handle all proper AnyVals (opaque types?) etc with a single interface
@@ -211,40 +314,41 @@ trait StdExtensions { this: MacroCommons =>
     *     std extension for macro, that would be loaded from the classpath
     *
     * @tparam Outer
-    *   the type of the wrapper
+    *   the type of the value type
     * @tparam Inner
     *   the type of the inner type
     *
     * @since 0.3.0
     */
-  trait IsWrapperOf[Outer, Inner] {
+  trait IsValueTypeOf[Outer, Inner] {
 
     val unwrap: Expr[Outer] => Expr[Inner]
 
     val wrap: PossibleSmartCtor[Inner, Outer]
   }
 
-  /** An alias indicating the the type is a wrapper of some inner type, but the exact inner type is an existential type.
+  /** An alias indicating the the type is a value type of some inner type, but the exact inner type is an existential
+    * type.
     *
     * @tparam A
-    *   the type of the wrapper
+    *   the type of the value type
     *
     * @since 0.3.0
     */
-  type IsWrapper[A] = Existential[IsWrapperOf[A, *]]
-  object IsWrapper {
+  type IsValueType[A] = Existential[IsValueTypeOf[A, *]]
+  object IsValueType {
     private val providers = scala.collection.mutable.ListBuffer[Provider]()
 
     trait Provider {
 
-      def unapply[A](tpe: Type[A]): Option[IsWrapper[A]]
+      def unapply[A](tpe: Type[A]): Option[IsValueType[A]]
     }
 
     def registerProvider(provider: Provider): Unit =
       providers += provider
 
-    def unapply[A](tpe: Type[A]): Option[IsWrapper[A]] =
-      providers.view.map(_.unapply(tpe)).collectFirst { case Some(wrapper) => wrapper }
+    def unapply[A](tpe: Type[A]): Option[IsValueType[A]] =
+      providers.view.map(_.unapply(tpe)).collectFirst { case Some(valueType) => valueType }
 
     // TODO: provide a support for any-vals (and opaque types?)
   }
