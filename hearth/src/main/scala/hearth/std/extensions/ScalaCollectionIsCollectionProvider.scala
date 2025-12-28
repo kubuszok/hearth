@@ -17,6 +17,8 @@ final class ScalaCollectionIsCollectionProvider extends StandardMacroExtension {
     IsCollection.registerProvider(new IsCollection.Provider {
 
       private lazy val Iterable = Type.Ctor1.of[Iterable]
+      private lazy val Map = Type.Ctor2.of[scala.collection.Map]
+      private lazy val Tuple2 = Type.Ctor2.of[Tuple2]
 
       private def isCollection[A, Item: Type](
           A: Type[A],
@@ -36,6 +38,38 @@ final class ScalaCollectionIsCollectionProvider extends StandardMacroExtension {
             PossibleSmartCtor.PlainValue(buildExpr)
         })
 
+      private def isMap[A, Pair: Type, Key0, Value0](
+          A: Type[A],
+          factoryExpr: Expr[scala.collection.Factory[Pair, A]],
+          buildExpr: Expr[scala.collection.mutable.Builder[Pair, A]] => Expr[A],
+          keyType: Type[Key0],
+          valueType: Type[Value0],
+          keyExpr: Expr[Pair] => Expr[Key0],
+          valueExpr: Expr[Pair] => Expr[Value0],
+          pairExpr: (Expr[Key0], Expr[Value0]) => Expr[Pair]
+      ): IsCollection[A] =
+        Existential[IsCollectionOf[A, *], Pair](new IsMapOf[A, Pair] {
+          // We're just upcasting the collection to Iterable, to avoid things like type constructor extraction from generic F[A].
+          override type Coll[A0] = Iterable[A0]
+          override val Coll: Type.Ctor1[Coll] = Iterable
+          override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] = value.asInstanceOf[Expr[Iterable[Pair]]]
+          // Standard scala collections have no smart constructors, so we just return the collection itself.
+          override type PossibleSmartResult = A
+          implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
+          override val factory: Expr[scala.collection.Factory[Pair, PossibleSmartResult]] = factoryExpr
+          override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Pair, PossibleSmartResult], A] =
+            PossibleSmartCtor.PlainValue(buildExpr)
+          // Key and Value expressions are provided from the outside
+          override type Key = Key0
+          implicit override val Key: Type[Key] = keyType
+          override type Value = Value0
+          implicit override val Value: Type[Value] = valueType
+          override def key(pair: Expr[Pair]): Expr[Key] = keyExpr(pair)
+          override def value(pair: Expr[Pair]): Expr[Value] = valueExpr(pair)
+          override def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair] = pairExpr(key, value)
+        })
+
+      @scala.annotation.nowarn
       override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {
         // Scala collections are Iterables with Factories, we're start by finding the item type...
         case Iterable(item) =>
@@ -50,7 +84,24 @@ final class ScalaCollectionIsCollectionProvider extends StandardMacroExtension {
               // ...and use it to build the collection.
               val buildExpr: Expr[scala.collection.mutable.Builder[Item, A]] => Expr[A] =
                 builder => Expr.quote(Expr.splice(builder).result())
-              isCollection(A, factoryExpr, buildExpr)
+
+              tpe match {
+                case Map(key, value) =>
+                  import key.Underlying as Key
+                  import value.Underlying as Value
+                  assert(Item =:= Tuple2[Key, Value])
+
+                  val keyExpr: Expr[Item] => Expr[Key] =
+                    pair => Expr.quote(Expr.splice(pair.asInstanceOf[Expr[(Key, Value)]])._1)
+                  val valueExpr: Expr[Item] => Expr[Value] =
+                    pair => Expr.quote(Expr.splice(pair.asInstanceOf[Expr[(Key, Value)]])._2)
+                  val pairExpr: (Expr[Key], Expr[Value]) => Expr[Item] =
+                    (k, v) => Expr.quote((Expr.splice(k), Expr.splice(v))).asInstanceOf[Expr[Item]]
+
+                  isMap(A, factoryExpr, buildExpr, Key, Value, keyExpr, valueExpr, pairExpr)
+                case _ =>
+                  isCollection(A, factoryExpr, buildExpr)
+              }
             }
 
         // Other types are not (Scala built-in) collections - if they should be supported, another extension can take care of it.
