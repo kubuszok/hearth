@@ -282,9 +282,9 @@ trait StdExtensions { this: MacroCommons =>
     @ImportedCrossTypeImplicit
     implicit val RightValue: Type[RightValue]
 
-    def left(either: Expr[EitherLR]): Expr[LeftValue]
+    def left(leftValue: Expr[LeftValue]): Expr[EitherLR]
 
-    def right(either: Expr[EitherLR]): Expr[RightValue]
+    def right(rightValue: Expr[RightValue]): Expr[EitherLR]
 
     def fold[A: Type](
         either: Expr[EitherLR]
