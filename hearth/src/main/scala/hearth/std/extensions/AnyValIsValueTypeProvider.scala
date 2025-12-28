@@ -9,25 +9,25 @@ package extensions
   *
   * @since 0.3.0
   */
-final class AnyValIsWrapperProvider extends StandardMacroExtension {
+final class AnyValIsValueTypeProvider extends StandardMacroExtension {
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
-    IsWrapper.registerProvider(new IsWrapper.Provider {
+    IsValueType.registerProvider(new IsValueType.Provider {
 
       private lazy val AnyVal = Type.of[AnyVal]
 
-      private def isWrapper[A, Inner: Type](
+      private def isValueType[A, Inner: Type](
           unwrapExpr: Expr[A] => Expr[Inner],
           wrapExpr: Expr[Inner] => Expr[A]
-      ): IsWrapper[A] =
-        Existential[IsWrapperOf[A, *], Inner](new IsWrapperOf[A, Inner] {
+      ): IsValueType[A] =
+        Existential[IsValueTypeOf[A, *], Inner](new IsValueTypeOf[A, Inner] {
           override val unwrap: Expr[A] => Expr[Inner] = unwrapExpr
           override val wrap: PossibleSmartCtor[Inner, A] = PossibleSmartCtor.PlainValue(wrapExpr)
         })
 
-      override def unapply[A](tpe: Type[A]): Option[IsWrapper[A]] = if (tpe <:< AnyVal) {
+      override def unapply[A](tpe: Type[A]): Option[IsValueType[A]] = if (tpe <:< AnyVal) {
         for {
           // Since we've already checked that the type is an AnyVal, let's see if we can wrap/unwrap it here.
           // We're looking for a primary constructor that is available at call site and has exactly one parameter.
@@ -57,7 +57,7 @@ final class AnyValIsWrapperProvider extends StandardMacroExtension {
               case Right(wrapped) => wrapped
               case Left(error)    => hearthAssertionFailed("AnyVal wrapping failed: " + error)
             }
-          isWrapper[A, Inner](unwrapExpr, wrapExpr)
+          isValueType[A, Inner](unwrapExpr, wrapExpr)
         }
       } else None
     })
