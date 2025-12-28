@@ -41,6 +41,7 @@ trait Existentials { this: MacroCommons =>
     sealed trait Bounded[L, U >: L, F[_ >: L <: U]] {
 
       type Underlying >: L <: U
+      @ImportedCrossTypeImplicit
       implicit val Underlying: Type[Underlying]
 
       val value: F[Underlying]

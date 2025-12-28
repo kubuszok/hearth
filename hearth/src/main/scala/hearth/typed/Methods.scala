@@ -206,8 +206,10 @@ trait Methods { this: MacroCommons =>
     final case class NoInstance[Returned0](
         asUntyped: UntypedMethod,
         untypedInstanceType: UntypedType
-    )(implicit val Returned: Type[Returned0])
-        extends Method[Nothing, Returned0] {
+    )(
+        @ImportedCrossTypeImplicit
+        implicit val Returned: Type[Returned0]
+    ) extends Method[Nothing, Returned0] {
 
       final type Returned = Returned0
 
@@ -273,12 +275,15 @@ trait Methods { this: MacroCommons =>
     final case class OfInstance[Instance0, Returned0](
         asUntyped: UntypedMethod,
         untypedInstanceType: UntypedType
-    )(implicit val Returned: Type[Returned0])
-        extends Method[Instance0, Returned0] {
+    )(
+        @ImportedCrossTypeImplicit
+        implicit val Returned: Type[Returned0]
+    ) extends Method[Instance0, Returned0] {
 
       final type Returned = Returned0
 
       final type Instance = Instance0
+      @ImportedCrossTypeImplicit
       implicit val Instance: Type[Instance] = untypedInstanceType.asTyped[Instance]
 
       lazy val parameters: Parameters = asUntyped.parameters.asTyped[Instance]
