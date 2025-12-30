@@ -4,47 +4,48 @@ package extensions
 
 /** Macro extension providing support for Scala options.
   *
-  * Supports all Scala [[scala.Option]]. Treats them as types without smart constructors.
+  * Supports all Java [[java.util.Optional]]. Treats them as types without smart constructors.
   *
   * @since 0.3.0
   */
-final class ScalaOptionIsOptionProvider extends StandardMacroExtension {
+final class JavaOptionalIsOptionProvider extends StandardMacroExtension {
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsOption.registerProvider(new IsOption.Provider {
 
-      private lazy val Option = Type.Ctor1.of[Option]
+      private lazy val Optional = Type.Ctor1.of[java.util.Optional]
 
       private def isOption[A: Type, Item: Type](
-          toOption: Expr[A] => Expr[Option[Item]],
-          fromOption: Expr[Option[Item]] => Expr[A]
+          toOptional: Expr[A] => Expr[java.util.Optional[Item]],
+          fromOptional: Expr[java.util.Optional[Item]] => Expr[A]
       ): IsOption[A] =
         Existential[IsOptionOf[A, *], Item](new IsOptionOf[A, Item] {
           override val empty: Expr[A] =
-            fromOption(Expr.quote(scala.Option.empty[Item])) // TODO: Expr(None) is not compiling
+            fromOptional(Expr.quote(java.util.Optional.empty[Item]))
           override def of(value: Expr[Item]): Expr[A] =
-            fromOption(Expr.quote(Some(Expr.splice(value))))
+            fromOptional(Expr.quote(java.util.Optional.of(Expr.splice(value))))
           override def fold[B: Type](option: Expr[A])(onEmpty: Expr[B], onSome: Expr[Item] => Expr[B]): Expr[B] =
             Expr.quote {
               Expr
-                .splice(toOption(option))
-                .fold[B](Expr.splice(onEmpty))(Expr.splice(LambdaBuilder.of1[Item]("item").buildWith(onSome)))
+                .splice(toOptional(option))
+                .map(item => Expr.splice(onSome(Expr.quote(item))))
+                .orElse(Expr.splice(onEmpty))
             }
           override def getOrElse(option: Expr[A])(default: Expr[Item]): Expr[Item] =
-            Expr.quote(Expr.splice(toOption(option)).getOrElse(Expr.splice(default)))
+            Expr.quote(Expr.splice(toOptional(option)).orElse(Expr.splice(default)))
           override def orElse(option: Expr[A])(default: Expr[A]): Expr[A] =
-            fromOption(Expr.quote(Expr.splice(toOption(option)).orElse(Expr.splice(toOption(default)))))
+            fromOptional(Expr.quote(Expr.splice(toOptional(option)).or(() => Expr.splice(toOptional(default)))))
         })
 
       @scala.annotation.nowarn
       override def unapply[A](tpe: Type[A]): Option[IsOption[A]] = tpe match {
-        case Option(item) =>
+        case Optional(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
-          implicit val OptionItem: Type[Option[Item]] = Option[Item]
-          Some(isOption[A, Item](_.upcast[Option[Item]], _.upcast[A]))
+          implicit val OptionalItem: Type[java.util.Optional[Item]] = Optional[Item]
+          Some(isOption[A, Item](_.upcast[java.util.Optional[Item]], _.upcast[A]))
         case _ => None
       }
     })
