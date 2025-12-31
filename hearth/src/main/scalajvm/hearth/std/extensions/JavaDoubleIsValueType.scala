@@ -26,7 +26,9 @@ final class JavaDoubleIsValueType extends StandardMacroExtension {
           override val unwrap: Expr[java.lang.Double] => Expr[Double] =
             expr => Expr.quote(Expr.splice(expr).doubleValue())
           override val wrap: PossibleSmartCtor[Double, java.lang.Double] =
-            PossibleSmartCtor.PlainValue[Double, java.lang.Double](expr => Expr.quote(java.lang.Double.valueOf(Expr.splice(expr))))
+            PossibleSmartCtor.PlainValue[Double, java.lang.Double](expr =>
+              Expr.quote(java.lang.Double.valueOf(Expr.splice(expr)))
+            )
         })
       }
 

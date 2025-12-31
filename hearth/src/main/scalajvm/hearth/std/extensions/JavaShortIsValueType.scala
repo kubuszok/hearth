@@ -26,7 +26,9 @@ final class JavaShortIsValueType extends StandardMacroExtension {
           override val unwrap: Expr[java.lang.Short] => Expr[Short] =
             expr => Expr.quote(Expr.splice(expr).shortValue())
           override val wrap: PossibleSmartCtor[Short, java.lang.Short] =
-            PossibleSmartCtor.PlainValue[Short, java.lang.Short](expr => Expr.quote(java.lang.Short.valueOf(Expr.splice(expr))))
+            PossibleSmartCtor.PlainValue[Short, java.lang.Short](expr =>
+              Expr.quote(java.lang.Short.valueOf(Expr.splice(expr)))
+            )
         })
       }
 

@@ -26,7 +26,9 @@ final class JavaFloatIsValueType extends StandardMacroExtension {
           override val unwrap: Expr[java.lang.Float] => Expr[Float] =
             expr => Expr.quote(Expr.splice(expr).floatValue())
           override val wrap: PossibleSmartCtor[Float, java.lang.Float] =
-            PossibleSmartCtor.PlainValue[Float, java.lang.Float](expr => Expr.quote(java.lang.Float.valueOf(Expr.splice(expr))))
+            PossibleSmartCtor.PlainValue[Float, java.lang.Float](expr =>
+              Expr.quote(java.lang.Float.valueOf(Expr.splice(expr)))
+            )
         })
       }
 

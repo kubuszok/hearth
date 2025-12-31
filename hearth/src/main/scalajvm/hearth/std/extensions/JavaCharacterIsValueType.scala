@@ -26,7 +26,9 @@ final class JavaCharacterIsValueType extends StandardMacroExtension {
           override val unwrap: Expr[java.lang.Character] => Expr[Char] =
             expr => Expr.quote(Expr.splice(expr).charValue())
           override val wrap: PossibleSmartCtor[Char, java.lang.Character] =
-            PossibleSmartCtor.PlainValue[Char, java.lang.Character](expr => Expr.quote(java.lang.Character.valueOf(Expr.splice(expr))))
+            PossibleSmartCtor.PlainValue[Char, java.lang.Character](expr =>
+              Expr.quote(java.lang.Character.valueOf(Expr.splice(expr)))
+            )
         })
       }
 

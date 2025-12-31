@@ -26,7 +26,9 @@ final class JavaByteIsValueType extends StandardMacroExtension {
           override val unwrap: Expr[java.lang.Byte] => Expr[Byte] =
             expr => Expr.quote(Expr.splice(expr).byteValue())
           override val wrap: PossibleSmartCtor[Byte, java.lang.Byte] =
-            PossibleSmartCtor.PlainValue[Byte, java.lang.Byte](expr => Expr.quote(java.lang.Byte.valueOf(Expr.splice(expr))))
+            PossibleSmartCtor.PlainValue[Byte, java.lang.Byte](expr =>
+              Expr.quote(java.lang.Byte.valueOf(Expr.splice(expr)))
+            )
         })
       }
 
