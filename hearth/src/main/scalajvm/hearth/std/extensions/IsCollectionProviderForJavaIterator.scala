@@ -10,7 +10,7 @@ package extensions
   *
   * @since 0.3.0
   */
-final class JavaIteratorIsCollection extends StandardMacroExtension {
+final class IsCollectionProviderForJavaIterator extends StandardMacroExtension {
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*

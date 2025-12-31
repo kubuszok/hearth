@@ -8,7 +8,7 @@ package extensions
   *
   * @since 0.3.0
   */
-final class JavaShortIsValueType extends StandardMacroExtension {
+final class IsValueTypeProviderForJavaShort extends StandardMacroExtension {
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*

@@ -9,7 +9,7 @@ package extensions
   *
   * @since 0.3.0
   */
-final class ScalaEitherIsEitherProvider extends StandardMacroExtension {
+final class IsEitherProviderForScalaEither extends StandardMacroExtension {
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*

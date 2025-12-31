@@ -8,7 +8,7 @@ package extensions
   *
   * @since 0.3.0
   */
-final class JavaOptionalIsOptionProvider extends StandardMacroExtension {
+final class IsOptionProviderForJavaOptional extends StandardMacroExtension {
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
