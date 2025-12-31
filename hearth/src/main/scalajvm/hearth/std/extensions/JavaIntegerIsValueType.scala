@@ -26,7 +26,9 @@ final class JavaIntegerIsValueType extends StandardMacroExtension {
           override val unwrap: Expr[java.lang.Integer] => Expr[Int] =
             expr => Expr.quote(Expr.splice(expr).intValue())
           override val wrap: PossibleSmartCtor[Int, java.lang.Integer] =
-            PossibleSmartCtor.PlainValue[Int, java.lang.Integer](expr => Expr.quote(java.lang.Integer.valueOf(Expr.splice(expr))))
+            PossibleSmartCtor.PlainValue[Int, java.lang.Integer](expr =>
+              Expr.quote(java.lang.Integer.valueOf(Expr.splice(expr)))
+            )
         })
       }
 

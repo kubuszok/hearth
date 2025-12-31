@@ -26,7 +26,9 @@ final class JavaLongIsValueType extends StandardMacroExtension {
           override val unwrap: Expr[java.lang.Long] => Expr[Long] =
             expr => Expr.quote(Expr.splice(expr).longValue())
           override val wrap: PossibleSmartCtor[Long, java.lang.Long] =
-            PossibleSmartCtor.PlainValue[Long, java.lang.Long](expr => Expr.quote(java.lang.Long.valueOf(Expr.splice(expr))))
+            PossibleSmartCtor.PlainValue[Long, java.lang.Long](expr =>
+              Expr.quote(java.lang.Long.valueOf(Expr.splice(expr)))
+            )
         })
       }
 
