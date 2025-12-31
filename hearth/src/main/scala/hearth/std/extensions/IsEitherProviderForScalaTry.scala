@@ -11,7 +11,7 @@ import scala.util.{Failure, Success, Try}
   *
   * @since 0.3.0
   */
-final class ScalaTryIsEitherProvider extends StandardMacroExtension {
+final class IsEitherProviderForScalaTry extends StandardMacroExtension {
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*

@@ -9,7 +9,7 @@ package extensions
   *
   * @since 0.3.0
   */
-final class ScalaCollectionIsCollectionProvider extends StandardMacroExtension {
+final class IsCollectionProviderForScalaCollection extends StandardMacroExtension {
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*

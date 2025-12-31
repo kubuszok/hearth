@@ -8,7 +8,7 @@ package extensions
   *
   * @since 0.3.0
   */
-final class JavaBooleanIsValueType extends StandardMacroExtension {
+final class IsValueTypeProviderForJavaBoolean extends StandardMacroExtension {
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*

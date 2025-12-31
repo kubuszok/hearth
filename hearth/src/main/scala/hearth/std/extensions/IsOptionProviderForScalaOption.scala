@@ -8,7 +8,7 @@ package extensions
   *
   * @since 0.3.0
   */
-final class ScalaOptionIsOptionProvider extends StandardMacroExtension {
+final class IsOptionProviderForScalaOption extends StandardMacroExtension {
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*

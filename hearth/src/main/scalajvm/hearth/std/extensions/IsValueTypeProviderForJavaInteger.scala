@@ -8,7 +8,7 @@ package extensions
   *
   * @since 0.3.0
   */
-final class JavaIntegerIsValueType extends StandardMacroExtension {
+final class IsValueTypeProviderForJavaInteger extends StandardMacroExtension {
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
