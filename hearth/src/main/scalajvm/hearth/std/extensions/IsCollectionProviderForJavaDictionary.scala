@@ -2,6 +2,14 @@ package hearth
 package std
 package extensions
 
+/** Macro extension providing support for Java dictionaries.
+  *
+  * Supports all Java [[java.util.Dictionary]]. Converts them to [[scala.collection.Iterable]] using
+  * [[scala.jdk.javaapi.CollectionConverters.asScala]], and providing as [[scala.collection.Factory]] implementation.
+  * Treats them as types without smart constructors.
+  *
+  * @since 0.3.0
+  */
 final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension {
 
   @scala.annotation.nowarn
