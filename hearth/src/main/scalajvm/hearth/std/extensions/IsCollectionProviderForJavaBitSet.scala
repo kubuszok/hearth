@@ -23,8 +23,7 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension {
 
       private def isBitSet[A](A: Type[A]): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Int](new IsCollectionOf[A, Int] {
-          override type Coll[A0] = Iterable[A0]
-          override val Coll: Type.Ctor1[Coll] = Type.Ctor1.of[Iterable]
+          // We will use Iterable.unfold to iterate over the set bit indices.
           override def asIterable(value: Expr[A]): Expr[Iterable[Int]] = Expr.quote {
             val bitSet = Expr.splice(value).asInstanceOf[java.util.BitSet]
             Iterable.unfold(bitSet.nextSetBit(0)) { currentValue =>
@@ -32,6 +31,7 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension {
               else Some(currentValue, bitSet.nextSetBit(currentValue + 1))
             }
           }
+          // Java BitSet has no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
           override val factory: Expr[scala.collection.Factory[Int, PossibleSmartResult]] = Expr.quote {

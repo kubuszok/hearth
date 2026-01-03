@@ -38,8 +38,6 @@ final class IsCollectionProviderForIArray extends StandardMacroExtension {
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
           // We will use Array as the collection type, we need to adjust how we convert the collection to Iterable.
-          override type Coll[A0] = IArray[A0]
-          override val Coll: Type.Ctor1[Coll] = IArray
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = toIterableExpr(value)
           // Arrays have no smart constructors, so we just return the array itself.
           override type PossibleSmartResult = A

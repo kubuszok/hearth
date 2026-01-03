@@ -26,8 +26,6 @@ final class IsCollectionProviderForJavaEnumeration extends StandardMacroExtensio
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
           // To convert Enumeration to Iterable we will use scala.jdk converters.
-          override type Coll[A0] = java.util.Enumeration[A0]
-          override val Coll: Type.Ctor1[Coll] = Enumeration
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(toEnumeration(value))).to(Iterable)
           }

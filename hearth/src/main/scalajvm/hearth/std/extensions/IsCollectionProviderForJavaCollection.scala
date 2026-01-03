@@ -53,11 +53,11 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
           emptyCollExpr: Expr[A]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
-          override type Coll[A0] = Coll0[A0]
-          override val Coll: Type.Ctor1[Coll] = Coll0
+          // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the collection to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(value).iterator()).to(Iterable)
           }
+          // Java collections have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
           override val factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = Expr.quote {

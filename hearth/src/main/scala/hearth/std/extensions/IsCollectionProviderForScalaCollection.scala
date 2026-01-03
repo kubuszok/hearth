@@ -27,8 +27,6 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
           // We're just upcasting the collection to Iterable, to avoid things like type constructor extraction from generic F[A].
-          override type Coll[A0] = Iterable[A0]
-          override val Coll: Type.Ctor1[Coll] = Iterable
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = value.asInstanceOf[Expr[Iterable[Item]]]
           // Standard scala collections have no smart constructors, so we just return the collection itself.
           override type PossibleSmartResult = A
@@ -50,8 +48,6 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Pair](new IsMapOf[A, Pair] {
           // We're just upcasting the collection to Iterable, to avoid things like type constructor extraction from generic F[A].
-          override type Coll[A0] = Iterable[A0]
-          override val Coll: Type.Ctor1[Coll] = Iterable
           override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] = value.asInstanceOf[Expr[Iterable[Pair]]]
           // Standard scala collections have no smart constructors, so we just return the collection itself.
           override type PossibleSmartResult = A
