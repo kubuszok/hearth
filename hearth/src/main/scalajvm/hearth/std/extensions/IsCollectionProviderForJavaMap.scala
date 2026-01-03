@@ -46,11 +46,11 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
         implicit val Pair: Type[Pair] = Entry[Key0, Value0](keyType, valueType)
 
         Existential[IsCollectionOf[A, *], Pair](new IsMapOf[A, Pair] {
-          override type Coll[A0] = Iterable[A0]
-          override val Coll: Type.Ctor1[Coll] = Type.Ctor1.of[Iterable]
+          // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the map to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] = Expr.quote {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(value).entrySet().iterator()).to(Iterable)
           }
+          // Java maps have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
           override val factory: Expr[scala.collection.Factory[Pair, PossibleSmartResult]] = Expr.quote {

@@ -34,11 +34,11 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
           toStreamExpr: Expr[A] => Expr[java.util.stream.Stream[Item]]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
-          override type Coll[A0] = Iterable[A0]
-          override val Coll: Type.Ctor1[Coll] = Type.Ctor1.of[Iterable]
+          // We will use scala.jdk.StreamConverters.StreamHasToScala to convert the stream to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
             new scala.jdk.StreamConverters.StreamHasToScala(Expr.splice(toStreamExpr(value))).toScala(Iterable)
           }
+          // Java streams have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
           override val factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = Expr.quote {
@@ -64,11 +64,11 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
           toIntStreamExpr: Expr[A] => Expr[java.util.stream.IntStream]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Int](new IsCollectionOf[A, Int] {
-          override type Coll[A0] = Iterable[A0]
-          override val Coll: Type.Ctor1[Coll] = Type.Ctor1.of[Iterable]
+          // We will use scala.jdk.StreamConverters.IntStreamHasToScala to convert the stream to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Int]] = Expr.quote {
             new scala.jdk.StreamConverters.IntStreamHasToScala(Expr.splice(toIntStreamExpr(value))).toScala(Iterable)
           }
+          // Java int streams have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
           override val factory: Expr[scala.collection.Factory[Int, PossibleSmartResult]] = Expr.quote {
@@ -94,11 +94,11 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
           toLongStreamExpr: Expr[A] => Expr[java.util.stream.LongStream]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Long](new IsCollectionOf[A, Long] {
-          override type Coll[A0] = Iterable[A0]
-          override val Coll: Type.Ctor1[Coll] = Type.Ctor1.of[Iterable]
+          // We will use scala.jdk.StreamConverters.LongStreamHasToScala to convert the stream to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Long]] = Expr.quote {
             new scala.jdk.StreamConverters.LongStreamHasToScala(Expr.splice(toLongStreamExpr(value))).toScala(Iterable)
           }
+          // Java long streams have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
           override val factory: Expr[scala.collection.Factory[Long, PossibleSmartResult]] = Expr.quote {
@@ -124,12 +124,12 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
           toDoubleStreamExpr: Expr[A] => Expr[java.util.stream.DoubleStream]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Double](new IsCollectionOf[A, Double] {
-          override type Coll[A0] = Iterable[A0]
-          override val Coll: Type.Ctor1[Coll] = Type.Ctor1.of[Iterable]
+          // We will use scala.jdk.StreamConverters.DoubleStreamHasToScala to convert the stream to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Double]] = Expr.quote {
             new scala.jdk.StreamConverters.DoubleStreamHasToScala(Expr.splice(toDoubleStreamExpr(value)))
               .toScala(Iterable)
           }
+          // Java double streams have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
           override val factory: Expr[scala.collection.Factory[Double, PossibleSmartResult]] = Expr.quote {

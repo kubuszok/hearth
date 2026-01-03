@@ -22,7 +22,7 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
       private lazy val juHashtable = Type.Ctor2.of[java.util.Hashtable]
       private lazy val juProperties = Type.of[java.util.Properties]
 
-      private lazy val Entry = Type.Ctor2.of[java.util.Map.Entry]
+      private lazy val Tuple2 = Type.Ctor2.of[Tuple2]
 
       private lazy val String = Type.of[String]
 
@@ -33,21 +33,16 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
           keyType: Type[Key0],
           valueType: Type[Value0]
       ): IsCollection[A] = {
-        type Pair = java.util.Map.Entry[Key0, Value0]
-        implicit val Pair: Type[Pair] = Entry[Key0, Value0](keyType, valueType)
+        type Pair = Tuple2[Key0, Value0]
+        implicit val Pair: Type[Pair] = Tuple2[Key0, Value0](keyType, valueType)
 
         Existential[IsCollectionOf[A, *], Pair](new IsMapOf[A, Pair] {
-          override type Coll[A0] = Iterable[A0]
-          override val Coll: Type.Ctor1[Coll] = Type.Ctor1.of[Iterable]
+          // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the dictionary to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] = Expr.quote {
-            scala.jdk.javaapi.CollectionConverters
-              .asScala(Expr.splice(value).keys())
-              .map { key =>
-                val dict = Expr.splice(value)
-                java.util.Map.entry(key, dict.get(key))
-              }
-              .to(Iterable)
+            val dict = Expr.splice(value.asInstanceOf[Expr[java.util.Dictionary[Key, Value]]])
+            scala.jdk.javaapi.CollectionConverters.asScala(dict.keys()).map(key => (key, dict.get(key))).to(Iterable)
           }
+          // Java dictionaries have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
 
@@ -69,7 +64,7 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
                       }
                   }
                   override def result(): A = this.impl
-                  override def addOne(elem: Pair): this.type = { this.impl.put(elem.getKey(), elem.getValue()); this }
+                  override def addOne(elem: Pair): this.type = { this.impl.put(elem._1, elem._2); this }
                 }
               override def fromSpecific(it: IterableOnce[Pair]): A = this.newBuilder.addAll(it).result()
             }
@@ -78,10 +73,10 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
             PossibleSmartCtor.PlainValue { (expr: Expr[scala.collection.mutable.Builder[Pair, PossibleSmartResult]]) =>
               Expr.quote(Expr.splice(expr).result())
             }
-          override def key(pair: Expr[Pair]): Expr[Key] = Expr.quote(Expr.splice(pair).getKey())
-          override def value(pair: Expr[Pair]): Expr[Value] = Expr.quote(Expr.splice(pair).getValue())
+          override def key(pair: Expr[Pair]): Expr[Key] = Expr.quote(Expr.splice(pair)._1)
+          override def value(pair: Expr[Pair]): Expr[Value] = Expr.quote(Expr.splice(pair)._2)
           override def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair] =
-            Expr.quote(java.util.Map.entry(Expr.splice(key), Expr.splice(value)))
+            Expr.quote((Expr.splice(key), Expr.splice(value)))
         })
       }
 

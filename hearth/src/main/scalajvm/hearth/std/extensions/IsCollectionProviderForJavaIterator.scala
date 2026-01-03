@@ -26,8 +26,6 @@ final class IsCollectionProviderForJavaIterator extends StandardMacroExtension {
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
           // To convert Iterator to Iterable we will use scala.jdk converters.
-          override type Coll[A0] = java.util.Iterator[A0]
-          override val Coll: Type.Ctor1[Coll] = Iterator
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(toIterator(value))).to(Iterable)
           }

@@ -110,9 +110,6 @@ trait StdExtensions { this: MacroCommons =>
     */
   trait IsCollectionOf[CollA, Item] {
 
-    type Coll[A0]
-    val Coll: Type.Ctor1[Coll]
-
     def asIterable(value: Expr[CollA]): Expr[Iterable[Item]]
 
     type PossibleSmartResult
