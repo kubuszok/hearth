@@ -3,12 +3,13 @@ package std
 package extensions
 
 /** Macro extension providing support for Java collections.
-	*
-	* Supports all Java built-in collections, turns them into [[scala.collection.Iterable]] using [[scala.jdk.javaapi.CollectionConverters.asScala]],
-	* and providing as [[scala.collection.Factory]] implementation. Treats them as types without smart constructors.
-	*
-	* @since 0.3.0
-	*/
+  *
+  * Supports all Java built-in collections, turns them into [[scala.collection.Iterable]] using
+  * [[scala.jdk.javaapi.CollectionConverters.asScala]], and providing as [[scala.collection.Factory]] implementation.
+  * Treats them as types without smart constructors.
+  *
+  * @since 0.3.0
+  */
 final class IsCollectionProviderForJavaCollection extends StandardMacroExtension {
 
   @scala.annotation.nowarn

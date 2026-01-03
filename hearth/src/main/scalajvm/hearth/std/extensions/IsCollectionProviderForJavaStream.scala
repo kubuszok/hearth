@@ -89,8 +89,9 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
             }
         })(using Int)
 
-      private def isLongStream[A](A: Type[A],
-        toLongStreamExpr: Expr[A] => Expr[java.util.stream.LongStream]
+      private def isLongStream[A](
+          A: Type[A],
+          toLongStreamExpr: Expr[A] => Expr[java.util.stream.LongStream]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Long](new IsCollectionOf[A, Long] {
           override type Coll[A0] = Iterable[A0]
@@ -118,14 +119,16 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
             }
         })(using Long)
 
-      private def isDoubleStream[A](A: Type[A],
-        toDoubleStreamExpr: Expr[A] => Expr[java.util.stream.DoubleStream]
+      private def isDoubleStream[A](
+          A: Type[A],
+          toDoubleStreamExpr: Expr[A] => Expr[java.util.stream.DoubleStream]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Double](new IsCollectionOf[A, Double] {
           override type Coll[A0] = Iterable[A0]
           override val Coll: Type.Ctor1[Coll] = Type.Ctor1.of[Iterable]
           override def asIterable(value: Expr[A]): Expr[Iterable[Double]] = Expr.quote {
-            new scala.jdk.StreamConverters.DoubleStreamHasToScala(Expr.splice(toDoubleStreamExpr(value))).toScala(Iterable)
+            new scala.jdk.StreamConverters.DoubleStreamHasToScala(Expr.splice(toDoubleStreamExpr(value)))
+              .toScala(Iterable)
           }
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
