@@ -3248,13 +3248,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
                |${showCodePretty(source, SyntaxHighlight.ANSI)}
                |""".stripMargin
           )
-          if (showCodePretty(source, SyntaxHighlight.plain).contains("ctx.LambdaBuilderMethods")) {
-            println(
-              s"""Stubbed source code:
-                 |${showRawPretty(source, SyntaxHighlight.ANSI)}
-                 |""".stripMargin
-            )
-          }
         }
       }
       .pipe(showCodePretty(_, SyntaxHighlight.plain))
@@ -3266,9 +3259,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       // Validate that there are no stubs left
       .pipe(abstractTypeReferenceReplacer.validateNoStubsLeft)
       .pipe(spliceReplacer.validateNoStubsLeft)
-      // FIXME: temporary workaround to test if this-types are the reason for failing compilation of IsEither providers
-      .replace("$anon.this .", "")
-      .replace("this.", "")
       // Parse back to Tree
       .tap { source =>
         if (loggingEnabled) {
