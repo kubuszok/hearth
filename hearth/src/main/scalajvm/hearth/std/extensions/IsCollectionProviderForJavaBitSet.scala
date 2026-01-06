@@ -39,11 +39,11 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension {
               override def newBuilder: scala.collection.mutable.Builder[Int, A] =
                 new scala.collection.mutable.Builder[Int, A] {
                   private val impl = new java.util.BitSet()
-                  override def clear(): Unit = this.impl.clear()
-                  override def result(): A = this.impl.asInstanceOf[A]
-                  override def addOne(elem: Int): this.type = { this.impl.set(elem); this }
+                  override def clear(): Unit = impl.clear()
+                  override def result(): A = impl.asInstanceOf[A]
+                  override def addOne(elem: Int): this.type = { impl.set(elem); this }
                 }
-              override def fromSpecific(it: IterableOnce[Int]): A = this.newBuilder.addAll(it).result()
+              override def fromSpecific(it: IterableOnce[Int]): A = newBuilder.addAll(it).result()
             }
           }
           override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Int, PossibleSmartResult], A] =

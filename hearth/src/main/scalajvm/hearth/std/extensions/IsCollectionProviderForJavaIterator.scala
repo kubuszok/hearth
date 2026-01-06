@@ -42,11 +42,11 @@ final class IsCollectionProviderForJavaIterator extends StandardMacroExtension {
                   private val impl = new java.util.ArrayList[Item]
                   private def cast(iterator: java.util.Iterator[Item]): A =
                     Expr.splice(fromIterator(Expr.quote(iterator)))
-                  override def clear(): Unit = this.impl.clear()
-                  override def result(): A = this.cast(this.impl.iterator())
-                  override def add(elem: Item): Unit = { this.impl.add(elem); () }
+                  override def clear(): Unit = impl.clear()
+                  override def result(): A = cast(impl.iterator())
+                  override def add(elem: Item): Unit = { impl.add(elem); () }
                 }
-              override def fromSpecific(it: IterableOnce[Item]): A = this.newBuilder.addAll(it).result()
+              override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()
             }
           }
           override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =

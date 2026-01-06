@@ -58,11 +58,11 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
               override def newBuilder: scala.collection.mutable.Builder[Pair, A] =
                 new scala.collection.mutable.Builder[Pair, A] {
                   private val impl = Expr.splice(emptyMapExpr)
-                  override def clear(): Unit = this.impl.clear()
-                  override def result(): A = this.impl
-                  override def addOne(elem: Pair): this.type = { this.impl.put(elem.getKey(), elem.getValue()); this }
+                  override def clear(): Unit = impl.clear()
+                  override def result(): A = impl
+                  override def addOne(elem: Pair): this.type = { impl.put(elem.getKey(), elem.getValue()); this }
                 }
-              override def fromSpecific(it: IterableOnce[Pair]): A = this.newBuilder.addAll(it).result()
+              override def fromSpecific(it: IterableOnce[Pair]): A = newBuilder.addAll(it).result()
             }
           }
           override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Pair, PossibleSmartResult], A] =
