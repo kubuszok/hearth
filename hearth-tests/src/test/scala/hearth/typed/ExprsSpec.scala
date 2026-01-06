@@ -70,7 +70,7 @@ final class ExprsSpec extends MacroSuite {
         testExprUpcasting[List[Int], Seq[Any]](List(1, 2, 3)) <==> Data.map(
           "Expr.upcast" -> Data(
             if (LanguageVersion.byHearth.isScala3) "scala.List.apply[scala.Int](1, 2, 3)"
-            else "(scala.`package`.List.apply[Int](1, 2, 3): Seq[Any])"
+            else "(scala.List.apply[scala.Int](1, 2, 3): scala.Seq[scala.Any])"
           )
         )
       }
@@ -385,14 +385,14 @@ final class ExprsSpec extends MacroSuite {
         ),
         "Class" -> Data.map(
           "encoded" -> Data(
-            if (LanguageVersion.byHearth.isScala2_13) "scala.Predef.classOf[Int]"
+            if (LanguageVersion.byHearth.isScala2_13) "scala.Predef.classOf[scala.Int]"
             else "scala.Predef.classOf[scala.Int]"
           ),
           "decoded" -> Data("int") // TODO: 3
         ),
         "ClassTag" -> Data.map(
           "encoded" -> Data(
-            if (LanguageVersion.byHearth.isScala2_13) "scala.reflect.classTag[Int]"
+            if (LanguageVersion.byHearth.isScala2_13) "scala.reflect.classTag[scala.Int]"
             else "scala.reflect.ClassTag.apply[scala.Int](scala.Predef.classOf[scala.Int])"
           ),
           "decoded" -> Data("Int")

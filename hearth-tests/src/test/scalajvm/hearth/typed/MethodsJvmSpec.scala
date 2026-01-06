@@ -55,9 +55,9 @@ final class MethodsJvmSpec extends MacroSuite {
             "hasTypeParameters" -> Data(false),
             "position" -> Data("None"),
             "annotations" -> envDependentAnnotations(
-              "new throws[CloneNotSupportedException](classOf[java.lang.CloneNotSupportedException])",
+              "new scala.throws[java.lang.CloneNotSupportedException](classOf[java.lang.CloneNotSupportedException])",
               intrinsicCandidate,
-              "new native()"
+              "new scala.native()"
             ),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -126,8 +126,8 @@ final class MethodsJvmSpec extends MacroSuite {
             "hasTypeParameters" -> Data(false),
             "position" -> Data("None"),
             "annotations" -> envDependentAnnotations(
-              "new throws[Throwable](classOf[java.lang.Throwable])",
-              "new Deprecated(since = \"9\")"
+              "new scala.throws[java.lang.Throwable](classOf[java.lang.Throwable])",
+              "new java.lang.Deprecated(since = \"9\")"
             ),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -165,7 +165,7 @@ final class MethodsJvmSpec extends MacroSuite {
                 !LanguageVersion.byHearth.isScala2_13
               ), // On Scala 3 it _has_ type parameter...
               "position" -> Data("None"),
-              "annotations" -> envDependentAnnotations(intrinsicCandidate, "new native()"),
+              "annotations" -> envDependentAnnotations(intrinsicCandidate, "new scala.native()"),
               "isConstructor" -> Data(false),
               "isVal" -> Data(false),
               "isVar" -> Data(false),
@@ -202,7 +202,7 @@ final class MethodsJvmSpec extends MacroSuite {
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
             "position" -> Data("None"),
-            "annotations" -> envDependentAnnotations(intrinsicCandidate, "new native()"),
+            "annotations" -> envDependentAnnotations(intrinsicCandidate, "new scala.native()"),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
             "isVar" -> Data(false),
@@ -235,7 +235,7 @@ final class MethodsJvmSpec extends MacroSuite {
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
             "position" -> Data("None"),
-            "annotations" -> envDependentAnnotations(intrinsicCandidate, "new native()"),
+            "annotations" -> envDependentAnnotations(intrinsicCandidate, "new scala.native()"),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
             "isVar" -> Data(false),
@@ -268,7 +268,7 @@ final class MethodsJvmSpec extends MacroSuite {
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
             "position" -> Data("None"),
-            "annotations" -> envDependentAnnotations(intrinsicCandidate, "new native()"),
+            "annotations" -> envDependentAnnotations(intrinsicCandidate, "new scala.native()"),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
             "isVar" -> Data(false),
@@ -336,7 +336,7 @@ final class MethodsJvmSpec extends MacroSuite {
               "hasTypeParameters" -> Data(false),
               "position" -> Data("None"),
               "annotations" -> envDependentAnnotations(
-                "new throws[InterruptedException](classOf[java.lang.InterruptedException])"
+                "new scala.throws[java.lang.InterruptedException](classOf[java.lang.InterruptedException])"
               ),
               "isConstructor" -> Data(false),
               "isVal" -> Data(false),
@@ -371,8 +371,8 @@ final class MethodsJvmSpec extends MacroSuite {
               "hasTypeParameters" -> Data(false),
               "position" -> Data("None"),
               "annotations" -> envDependentAnnotations(
-                "new throws[InterruptedException](classOf[java.lang.InterruptedException])",
-                "new native()"
+                "new scala.throws[java.lang.InterruptedException](classOf[java.lang.InterruptedException])",
+                "new scala.native()"
               ),
               "isConstructor" -> Data(false),
               "isVal" -> Data(false),
@@ -407,7 +407,7 @@ final class MethodsJvmSpec extends MacroSuite {
               "hasTypeParameters" -> Data(false),
               "position" -> Data("None"),
               "annotations" -> envDependentAnnotations(
-                "new throws[InterruptedException](classOf[java.lang.InterruptedException])"
+                "new scala.throws[java.lang.InterruptedException](classOf[java.lang.InterruptedException])"
               ),
               "isConstructor" -> Data(false),
               "isVal" -> Data(false),
