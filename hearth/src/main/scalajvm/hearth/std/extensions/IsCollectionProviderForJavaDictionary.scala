@@ -55,7 +55,7 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
               override def newBuilder: scala.collection.mutable.Builder[Pair, A] =
                 new scala.collection.mutable.Builder[Pair, A] {
                   private val impl = Expr.splice(emptyDictExpr)
-                  override def clear(): Unit = this.impl match {
+                  override def clear(): Unit = impl match {
                     case hashtable: java.util.Hashtable[?, ?] => hashtable.clear()
                     case dictionary                           =>
                       dictionary.synchronized {
@@ -63,10 +63,10 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
                         keys.forEach(dictionary.remove)
                       }
                   }
-                  override def result(): A = this.impl
-                  override def addOne(elem: Pair): this.type = { this.impl.put(elem._1, elem._2); this }
+                  override def result(): A = impl
+                  override def addOne(elem: Pair): this.type = { impl.put(elem._1, elem._2); this }
                 }
-              override def fromSpecific(it: IterableOnce[Pair]): A = this.newBuilder.addAll(it).result()
+              override def fromSpecific(it: IterableOnce[Pair]): A = newBuilder.addAll(it).result()
             }
           }
           override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Pair, PossibleSmartResult], A] =

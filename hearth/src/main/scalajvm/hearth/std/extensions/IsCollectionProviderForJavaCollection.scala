@@ -65,11 +65,11 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
               override def newBuilder: scala.collection.mutable.Builder[Item, A] =
                 new scala.collection.mutable.Builder[Item, A] {
                   private val impl = Expr.splice(emptyCollExpr)
-                  override def clear(): Unit = this.impl.clear()
-                  override def result(): A = this.impl
-                  override def add(elem: Item): Unit = { this.impl.add(elem); () }
+                  override def clear(): Unit = impl.clear()
+                  override def result(): A = impl
+                  override def add(elem: Item): Unit = { impl.add(elem); () }
                 }
-              override def fromSpecific(it: IterableOnce[Item]): A = this.newBuilder.addAll(it).result()
+              override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()
             }
           }
           override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =

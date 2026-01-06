@@ -46,11 +46,11 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               override def newBuilder: scala.collection.mutable.Builder[Item, A] =
                 new scala.collection.mutable.Builder[Item, A] {
                   private var impl = java.util.stream.Stream.builder[Item]()
-                  override def clear(): Unit = this.impl = java.util.stream.Stream.builder[Item]()
-                  override def result(): A = this.impl.build().asInstanceOf[A]
-                  override def addOne(elem: Item): this.type = { this.impl.add(elem); this }
+                  override def clear(): Unit = impl = java.util.stream.Stream.builder[Item]()
+                  override def result(): A = impl.build().asInstanceOf[A]
+                  override def addOne(elem: Item): this.type = { impl.add(elem); this }
                 }
-              override def fromSpecific(it: IterableOnce[Item]): A = this.newBuilder.addAll(it).result()
+              override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()
             }
           }
           override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
@@ -76,11 +76,11 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               override def newBuilder: scala.collection.mutable.Builder[Int, A] =
                 new scala.collection.mutable.Builder[Int, A] {
                   private var impl = java.util.stream.IntStream.builder()
-                  override def clear(): Unit = this.impl = java.util.stream.IntStream.builder()
-                  override def result(): A = this.impl.build().asInstanceOf[A]
-                  override def addOne(elem: Int): this.type = { this.impl.add(elem); this }
+                  override def clear(): Unit = impl = java.util.stream.IntStream.builder()
+                  override def result(): A = impl.build().asInstanceOf[A]
+                  override def addOne(elem: Int): this.type = { impl.add(elem); this }
                 }
-              override def fromSpecific(it: IterableOnce[Int]): A = this.newBuilder.addAll(it).result()
+              override def fromSpecific(it: IterableOnce[Int]): A = newBuilder.addAll(it).result()
             }
           }
           override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Int, PossibleSmartResult], A] =
@@ -106,11 +106,11 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               override def newBuilder: scala.collection.mutable.Builder[Long, A] =
                 new scala.collection.mutable.Builder[Long, A] {
                   private var impl = java.util.stream.LongStream.builder()
-                  override def clear(): Unit = this.impl = java.util.stream.LongStream.builder()
-                  override def result(): A = this.impl.build().asInstanceOf[A]
-                  override def addOne(elem: Long): this.type = { this.impl.add(elem); this }
+                  override def clear(): Unit = impl = java.util.stream.LongStream.builder()
+                  override def result(): A = impl.build().asInstanceOf[A]
+                  override def addOne(elem: Long): this.type = { impl.add(elem); this }
                 }
-              override def fromSpecific(it: IterableOnce[Long]): A = this.newBuilder.addAll(it).result()
+              override def fromSpecific(it: IterableOnce[Long]): A = newBuilder.addAll(it).result()
             }
           }
           override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Long, PossibleSmartResult], A] =
@@ -137,11 +137,11 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               override def newBuilder: scala.collection.mutable.Builder[Double, A] =
                 new scala.collection.mutable.Builder[Double, A] {
                   private var impl = java.util.stream.DoubleStream.builder()
-                  override def clear(): Unit = this.impl = java.util.stream.DoubleStream.builder()
-                  override def result(): A = this.impl.build().asInstanceOf[A]
-                  override def addOne(elem: Double): this.type = { this.impl.add(elem); this }
+                  override def clear(): Unit = impl = java.util.stream.DoubleStream.builder()
+                  override def result(): A = impl.build().asInstanceOf[A]
+                  override def addOne(elem: Double): this.type = { impl.add(elem); this }
                 }
-              override def fromSpecific(it: IterableOnce[Double]): A = this.newBuilder.addAll(it).result()
+              override def fromSpecific(it: IterableOnce[Double]): A = newBuilder.addAll(it).result()
             }
           }
           override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Double, PossibleSmartResult], A] =

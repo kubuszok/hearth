@@ -32,9 +32,6 @@ final class IsCollectionProviderForJavaEnumeration extends StandardMacroExtensio
           // Java enumerations have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          // TODO:
-          // Without `this.` on Scala 2 we're getting code like $newBuilder, $cast, $impl - which does not compile.
-          // We should make a proper fix to printing this types.
           override val factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = Expr.quote {
             new scala.collection.Factory[Item, A] {
               override def newBuilder: scala.collection.mutable.Builder[Item, A] =
@@ -42,11 +39,11 @@ final class IsCollectionProviderForJavaEnumeration extends StandardMacroExtensio
                   private val impl = new java.util.Vector[Item]
                   private def cast(enumeration: java.util.Enumeration[Item]): A =
                     Expr.splice(fromEnumeration(Expr.quote(enumeration)))
-                  override def clear(): Unit = this.impl.clear()
-                  override def result(): A = this.cast(this.impl.elements())
-                  override def add(elem: Item): Unit = { this.impl.add(elem); () }
+                  override def clear(): Unit = impl.clear()
+                  override def result(): A = cast(impl.elements())
+                  override def add(elem: Item): Unit = { impl.add(elem); () }
                 }
-              override def fromSpecific(it: IterableOnce[Item]): A = this.newBuilder.addAll(it).result()
+              override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()
             }
           }
           override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
