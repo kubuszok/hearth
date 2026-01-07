@@ -337,8 +337,17 @@ final class TypesSpec extends MacroSuite {
 
     group("methods: Type.{position} expected behavior") {
       import TypesFixtures.testPosition
+      // Apparently: Scala 2 does not store position for for types from previous compilation unit,
+      // Scala 3 does store... something? Filename?
       val isScala3 = LanguageVersion.byHearth.isScala3
       val isScala3_8plus = isScala3 && ScalaVersion.byCompileTime >= ScalaVersion(3, 8, 0)
+      val isPositionTrimmed = isScala3_8plus
+      def classPosition(line: Int, column: Int): String =
+        if (!isScala3) "<no position>"
+        else if (isPositionTrimmed) "classes.scala:1:1"
+        else s"classes.scala:$line:$column"
+      def enumPosition(line: Int, column: Int): String =
+        if (!isScala3) "<no position>" else if (isPositionTrimmed) "enums.scala:1:1" else s"enums.scala:$line:$column"
 
       test("for primitive types") {
         testPosition[Boolean] <==> Data.map(
@@ -368,8 +377,6 @@ final class TypesSpec extends MacroSuite {
       }
 
       test("for built-in types".tag(Tags.langVerMismatch)) {
-        // Apparently: Scala 2 does not store position for for types from previous compilation unit,
-        // Scala 3 does store... something? Filename?
         testPosition[Unit] <==> Data.map(
           "Type.position" -> Data(if (isScala3_8plus) "Unit.scala:1:1" else "<no position>")
         )
@@ -392,20 +399,29 @@ final class TypesSpec extends MacroSuite {
       }
 
       test("for top-level classes (non-sealed)".tag(Tags.langVerMismatch)) {
-        // Apparently: Scala 2 does not store position for for types from previous compilation unit,
-        // Scala 3 does store... something? Filename?
-        val position = if (LanguageVersion.byHearth.isScala3) "classes.scala:1:1" else "<no position>"
-        testPosition[examples.classes.ExampleTrait] <==> Data.map("Type.position" -> Data(position))
-        testPosition[examples.classes.ExampleTraitWithTypeParam[Int]] <==> Data.map("Type.position" -> Data(position))
-        testPosition[examples.classes.ExampleAbstractClass] <==> Data.map("Type.position" -> Data(position))
-        testPosition[examples.classes.ExampleAbstractClassWithTypeParam[Int]] <==> Data.map(
-          "Type.position" -> Data(position)
+        testPosition[examples.classes.ExampleTrait] <==> Data.map(
+          "Type.position" -> Data(classPosition(5, 7))
         )
-        testPosition[examples.classes.ExampleClass] <==> Data.map("Type.position" -> Data(position))
-        testPosition[examples.classes.ExampleClassWithTypeParam[Int]] <==> Data.map("Type.position" -> Data(position))
-        testPosition[examples.classes.ExampleCaseClass] <==> Data.map("Type.position" -> Data(position))
+        testPosition[examples.classes.ExampleTraitWithTypeParam[Int]] <==> Data.map(
+          "Type.position" -> Data(classPosition(6, 7))
+        )
+        testPosition[examples.classes.ExampleAbstractClass] <==> Data.map(
+          "Type.position" -> Data(classPosition(8, 16))
+        )
+        testPosition[examples.classes.ExampleAbstractClassWithTypeParam[Int]] <==> Data.map(
+          "Type.position" -> Data(classPosition(9, 16))
+        )
+        testPosition[examples.classes.ExampleClass] <==> Data.map(
+          "Type.position" -> Data(classPosition(11, 13))
+        )
+        testPosition[examples.classes.ExampleClassWithTypeParam[Int]] <==> Data.map(
+          "Type.position" -> Data(classPosition(12, 13))
+        )
+        testPosition[examples.classes.ExampleCaseClass] <==> Data.map(
+          "Type.position" -> Data(classPosition(14, 12))
+        )
         testPosition[examples.classes.ExampleCaseClassWithTypeParam[Int]] <==> Data.map(
-          "Type.position" -> Data(position)
+          "Type.position" -> Data(classPosition(15, 12))
         )
       }
 
@@ -459,20 +475,27 @@ final class TypesSpec extends MacroSuite {
       test("for enumerations".tag(Tags.langVerMismatch)) {
         // Apparently: Scala 2 does not store position for for types from previous compilation unit,
         // Scala 3 does store... something? Filename?
-        val position = if (LanguageVersion.byHearth.isScala3) "enums.scala:1:1" else "<no position>"
-        testPosition[examples.enums.WeekDay.type] <==> Data.map("Type.position" -> Data(position))
+        testPosition[examples.enums.WeekDay.type] <==> Data.map(
+          "Type.position" -> Data(enumPosition(5, 8))
+        )
         testPosition[examples.enums.WeekDay.Value] <==> Data.map(
           "Type.position" -> Data(if (isScala3_8plus) "Enumeration.scala:1:1" else "<no position>")
         )
-        testPosition[examples.enums.Planet.type] <==> Data.map("Type.position" -> Data(position))
+        testPosition[examples.enums.Planet.type] <==> Data.map(
+          "Type.position" -> Data(enumPosition(10, 8))
+        )
         testPosition[examples.enums.Planet.Value] <==> Data.map(
           "Type.position" -> Data(if (isScala3_8plus) "Enumeration.scala:1:1" else "<no position>")
         )
-        testPosition[examples.enums.ExampleSealedTrait] <==> Data.map("Type.position" -> Data(position))
-        testPosition[examples.enums.ExampleSealedTraitWithTypeParam[Int]] <==> Data.map(
-          "Type.position" -> Data(position)
+        testPosition[examples.enums.ExampleSealedTrait] <==> Data.map(
+          "Type.position" -> Data(enumPosition(32, 14))
         )
-        testPosition[examples.enums.ExampleSealedTraitGADT[Unit]] <==> Data.map("Type.position" -> Data(position))
+        testPosition[examples.enums.ExampleSealedTraitWithTypeParam[Int]] <==> Data.map(
+          "Type.position" -> Data(enumPosition(38, 14))
+        )
+        testPosition[examples.enums.ExampleSealedTraitGADT[Unit]] <==> Data.map(
+          "Type.position" -> Data(enumPosition(44, 14))
+        )
       }
     }
 
