@@ -5,6 +5,45 @@ import hearth.data.Data
 
 /** Macro implementation is in [[MethodsFixturesImpl]] */
 final class MethodsSpec extends MacroSuite {
+  // Apparently: Scala 2 does not store position for for methods from previous compilation unit,
+  // Scala 3 does store... something? Filename? It changes between versions, settings, etc :/
+  private val isPositionTrimmed =
+    MethodsFixtures
+      .testMethodsExtraction[examples.methods.NoCompanionClass](
+        "clone",
+        "equals",
+        "finalize",
+        "getClass",
+        "hashCode",
+        "notify",
+        "notifyAll",
+        "toString",
+        "wait",
+        "asInstanceOf",
+        "isInstanceOf",
+        "synchronized",
+        "==",
+        "!=",
+        "eq",
+        "ne",
+        "##"
+      )
+      .asMap
+      .get
+      .apply("method(Int)")
+      .asMap
+      .get
+      .apply("position")
+      .asString
+      .get
+      .endsWith("1:1)")
+  private def methodsPosition(line: Int, column: Int): Data =
+    if (LanguageVersion.byHearth.isScala2_13)
+      Data("None")
+    else if (isPositionTrimmed)
+      Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala:1:1)")
+    else
+      Data(s"Some(hearth-tests/src/main/scala/hearth/examples/methods.scala:$line:$column)")
 
   group("trait typed.Methods") {
 
@@ -42,10 +81,6 @@ final class MethodsSpec extends MacroSuite {
       import MethodsFixtures.testMethodsExtraction
 
       test("for class without companion") {
-        val envDependedPosition =
-          if (LanguageVersion.byHearth.isScala2_13) Data("None")
-          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala:1:1)")
-
         testMethodsExtraction[examples.methods.NoCompanionClass](
           "clone",
           "equals",
@@ -68,7 +103,7 @@ final class MethodsSpec extends MacroSuite {
           "method(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(20, 7),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -101,7 +136,7 @@ final class MethodsSpec extends MacroSuite {
           "methodWithDefault(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(22, 7),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -134,7 +169,7 @@ final class MethodsSpec extends MacroSuite {
           "methodWithAnnotation(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(25, 7),
             "annotations" -> Data.list(Data("new hearth.examples.methods.ExampleAnnotation()")),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -167,7 +202,7 @@ final class MethodsSpec extends MacroSuite {
           "methodWithAnnotatedParam(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(27, 7),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -200,7 +235,7 @@ final class MethodsSpec extends MacroSuite {
           "scalaValue" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(29, 7),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(true),
@@ -233,7 +268,7 @@ final class MethodsSpec extends MacroSuite {
           "scalaVariable" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(31, 7),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -266,7 +301,7 @@ final class MethodsSpec extends MacroSuite {
           "scalaVariable_=(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(31, 7),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -299,7 +334,7 @@ final class MethodsSpec extends MacroSuite {
           "scalaLazyValue" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(33, 12),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(true),
@@ -332,7 +367,7 @@ final class MethodsSpec extends MacroSuite {
           "inheritedAbstractMethod(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(35, 16),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -365,7 +400,7 @@ final class MethodsSpec extends MacroSuite {
           "inheritedFinalMethod(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(14, 13),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -399,10 +434,6 @@ final class MethodsSpec extends MacroSuite {
       }
 
       test("for class with companion") {
-        val envDependedPosition =
-          if (LanguageVersion.byHearth.isScala2_13) Data("None")
-          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala:1:1)")
-
         testMethodsExtraction[examples.methods.WithCompanion](
           "clone",
           "equals",
@@ -426,7 +457,7 @@ final class MethodsSpec extends MacroSuite {
           "arg" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(38, 27),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(true),
@@ -459,7 +490,7 @@ final class MethodsSpec extends MacroSuite {
           "method(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(40, 7),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -494,7 +525,7 @@ final class MethodsSpec extends MacroSuite {
               if (LanguageVersion.byHearth.isScala2_13) "OnModule(WithCompanion)" else "OnModule(Ident(WithCompanion))"
             ),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(44, 7),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -529,7 +560,7 @@ final class MethodsSpec extends MacroSuite {
               if (LanguageVersion.byHearth.isScala2_13) "OnModule(WithCompanion)" else "OnModule(Ident(WithCompanion))"
             ),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(46, 7),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -563,10 +594,6 @@ final class MethodsSpec extends MacroSuite {
       }
 
       test("for companion object") {
-        val envDependedPosition =
-          if (LanguageVersion.byHearth.isScala2_13) Data("None")
-          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala:1:1)")
-
         testMethodsExtraction[examples.methods.WithCompanion.type](
           "clone",
           "equals",
@@ -590,7 +617,7 @@ final class MethodsSpec extends MacroSuite {
           "apply(Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(44, 7),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -623,7 +650,7 @@ final class MethodsSpec extends MacroSuite {
           "call(Int, Int)" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(46, 7),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -657,10 +684,6 @@ final class MethodsSpec extends MacroSuite {
       }
 
       test("for scope visibility from the outside") {
-        val envDependedPosition =
-          if (LanguageVersion.byHearth.isScala2_13) Data("None")
-          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala:1:1)")
-
         testMethodsExtraction[examples.methods.ScopeVisibility](
           "clone",
           "equals",
@@ -684,7 +707,7 @@ final class MethodsSpec extends MacroSuite {
           "privateCtorArg" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(50, 32),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(true),
@@ -717,7 +740,7 @@ final class MethodsSpec extends MacroSuite {
           "publicCtorArg" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(50, 57),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(true),
@@ -750,7 +773,7 @@ final class MethodsSpec extends MacroSuite {
           "publicMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(52, 7),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -783,7 +806,7 @@ final class MethodsSpec extends MacroSuite {
           "privateMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(54, 15),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -816,7 +839,7 @@ final class MethodsSpec extends MacroSuite {
           "protectedMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(56, 17),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -849,7 +872,7 @@ final class MethodsSpec extends MacroSuite {
           "privateThisMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(58, 21),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -882,7 +905,7 @@ final class MethodsSpec extends MacroSuite {
           "privateHearthMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(60, 23),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -915,7 +938,7 @@ final class MethodsSpec extends MacroSuite {
           "privateHearthExamplesMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(62, 25),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -949,10 +972,6 @@ final class MethodsSpec extends MacroSuite {
       }
 
       test("for scope visibility from the inside") {
-        val envDependedPosition =
-          if (LanguageVersion.byHearth.isScala2_13) Data("None")
-          else Data("Some(hearth-tests/src/main/scala/hearth/examples/methods.scala:1:1)")
-
         class ScopeVisibilityExtending extends examples.methods.ScopeVisibility(0, 0) {
 
           def expandMacroInsideAClass: Data = testMethodsExtraction[examples.methods.ScopeVisibility](
@@ -981,7 +1000,7 @@ final class MethodsSpec extends MacroSuite {
           "privateCtorArg" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(50, 32),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(true),
@@ -1014,7 +1033,7 @@ final class MethodsSpec extends MacroSuite {
           "publicCtorArg" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(50, 57),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(true),
@@ -1047,7 +1066,7 @@ final class MethodsSpec extends MacroSuite {
           "publicMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(52, 7),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -1080,7 +1099,7 @@ final class MethodsSpec extends MacroSuite {
           "privateMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(54, 15),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -1113,7 +1132,7 @@ final class MethodsSpec extends MacroSuite {
           "protectedMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(56, 17),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -1146,7 +1165,7 @@ final class MethodsSpec extends MacroSuite {
           "privateThisMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(58, 21),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -1179,7 +1198,7 @@ final class MethodsSpec extends MacroSuite {
           "privateHearthMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(60, 23),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),
@@ -1212,7 +1231,7 @@ final class MethodsSpec extends MacroSuite {
           "privateHearthExamplesMethod" -> Data.map(
             "invocation" -> Data("OnInstance"),
             "hasTypeParameters" -> Data(false),
-            "position" -> envDependedPosition,
+            "position" -> methodsPosition(62, 25),
             "annotations" -> Data.list(),
             "isConstructor" -> Data(false),
             "isVal" -> Data(false),

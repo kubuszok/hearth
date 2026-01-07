@@ -92,23 +92,21 @@ final class TypesScala3Spec extends MacroSuite {
 
     group("methods: Type.{position} expected behavior") {
       import TypesFixtures.testPosition
+      val isPositionTrimmed =
+        testPosition[examples.ExampleEnum] == Data.map("Type.position" -> Data("enums-s3.scala.scala:1:1"))
+      def enumS3Position(line: Int, column: Int): String =
+        if isPositionTrimmed then "enums-s3.scala.scala:1:1" else s"enums-s3.scala.scala:$line:$column"
 
       test("for Scala 3 enums".tag(Tags.langVerMismatch)) {
-        testPosition[examples.ExampleEnum] <==> Data.map(
-          "Type.position" -> Data("enums-s3.scala.scala:1:1")
-        )
+        testPosition[examples.ExampleEnum] <==> Data.map("Type.position" -> Data(enumS3Position(4, 6)))
         testPosition[examples.ExampleEnumWithTypeParam[String]] <==> Data.map(
-          "Type.position" -> Data("enums-s3.scala.scala:1:1")
+          "Type.position" -> Data(enumS3Position(9, 6))
         )
-        testPosition[examples.ExampleEnumGADT[String]] <==> Data.map(
-          "Type.position" -> Data("enums-s3.scala.scala:1:1")
-        )
+        testPosition[examples.ExampleEnumGADT[String]] <==> Data.map("Type.position" -> Data(enumS3Position(14, 6)))
       }
 
       test("for Scala 3 enum cases".tag(Tags.langVerMismatch)) {
-        testPosition[examples.ExampleEnum.ExampleEnumClass] <==> Data.map(
-          "Type.position" -> Data("enums-s3.scala.scala:1:1")
-        )
+        testPosition[examples.ExampleEnum.ExampleEnumClass] <==> Data.map("Type.position" -> Data(enumS3Position(5, 8)))
       }
     }
 
