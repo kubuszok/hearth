@@ -37,10 +37,8 @@ final class IsCollectionProviderForJavaEnumeration extends StandardMacroExtensio
               override def newBuilder: scala.collection.mutable.Builder[Item, A] =
                 new scala.collection.mutable.Builder[Item, A] {
                   private val impl = new java.util.Vector[Item]
-                  private def cast(enumeration: java.util.Enumeration[Item]): A =
-                    Expr.splice(fromEnumeration(Expr.quote(enumeration)))
                   override def clear(): Unit = impl.clear()
-                  override def result(): A = cast(impl.elements())
+                  override def result(): A = Expr.splice(fromEnumeration(Expr.quote(impl.elements())))
                   override def add(elem: Item): Unit = { impl.add(elem); () }
                 }
               override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()
