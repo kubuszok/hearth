@@ -40,8 +40,10 @@ final class IsCollectionProviderForJavaIterator extends StandardMacroExtension {
               override def newBuilder: scala.collection.mutable.Builder[Item, A] =
                 new scala.collection.mutable.Builder[Item, A] {
                   private val impl = new java.util.ArrayList[Item]
+                  private def cast(iterator: java.util.Iterator[Item]): A =
+                    Expr.splice(fromIterator(Expr.quote(iterator)))
                   override def clear(): Unit = impl.clear()
-                  override def result(): A = Expr.splice(fromIterator(Expr.quote(impl.iterator())))
+                  override def result(): A = cast(impl.iterator())
                   override def add(elem: Item): Unit = { impl.add(elem); () }
                 }
               override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()
