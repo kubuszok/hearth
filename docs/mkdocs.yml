@@ -76,7 +76,7 @@ plugins:
   - search
 copyright: |
   <div style="color: var(--md-footer-fg-color--lighter)">
-  Copyright © 2025, <a href="https://kubuszok.com" target="_blank" rel="noopener">Kubuszok.com</a>.<br />
+  Copyright © 2025-2026, <a href="https://kubuszok.com" target="_blank" rel="noopener">Kubuszok.com</a>.<br />
   Hearth is FOSS licensed under Apache 2.0<br />
   <br />
   Documentation made with <a href="https://www.mkdocs.org" target="_blank" rel="noopener">MkDocs</a>, <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">Material for MkDocs</a> and <a href="https://mkdocs-macros-plugin.readthedocs.io/" target="_blank" rel="noopener">Mkdocs-Macros</a>, hosted on <a href="https://readthedocs.org/" target="_blank" rel="noopener">Read the Docs</a>
