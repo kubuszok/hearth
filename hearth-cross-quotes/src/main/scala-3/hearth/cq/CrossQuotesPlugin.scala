@@ -202,6 +202,19 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
       private val maxUpper = untpd.Select(untpd.Ident(termName("scala")), typeName("Any"))
       private val minLower = untpd.Select(untpd.Ident(termName("scala")), typeName("Nothing"))
 
+      // One day we'll use Symbol's annotations but for now we'll use this list.
+      private val ImportedCrossTypeImplicit = Set(
+        "Underlying", // from Existential
+        "Returned", // from Method.NoInstance && Method.OfInstance
+        "Instance", // from Method.OfInstance
+        // "Result", // from PossibleSmartCtor (when implicit Type.CtorN will be supported)
+        "PossibleSmartResult", // from IsCollectionOf
+        "Key", // from IsMapOf
+        "Value", // from IsMapOf
+        "LeftValue", // from IsEither
+        "RightValue" // from IsEither
+      )
+
       extension (dd: untpd.DefDef) {
         private def isImplicit: Boolean = dd.mods.flags.is(Flags.Implicit) || dd.mods.flags.is(Flags.Given)
       }
@@ -209,15 +222,13 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
         private def isImplicit: Boolean = vd.mods.flags.is(Flags.Implicit) || vd.mods.flags.is(Flags.Given)
       }
       extension (selector: untpd.ImportSelector) {
-        private def isImportedCrossTypeImplicit: Boolean = {
-          val show = selector.imported.show
-          // Should handle all imported values defined as:
-          //   @ImportedCrossTypeImplicit
-          //   implicit val SomeName: Type[SomeName]
-          // and used as:
-          //   import someValue.SomeName // potentially SomeName as SomeOtherName
-          show == "Underlying" || show == "Instance" || show == "Returned" || show == "Result" || show == "Item" || show == "LeftValue" || show == "RightValue" || show == "Key" || show == "Value"
-        }
+        // Should handle all imported values defined as:
+        //   @ImportedCrossTypeImplicit
+        //   implicit val SomeName: Type[SomeName]
+        // and used as:
+        //   import someValue.SomeName // potentially SomeName as SomeOtherName
+        private def isImportedCrossTypeImplicit: Boolean =
+          ImportedCrossTypeImplicit(selector.imported.show)
       }
 
       // Test if TypeDef has a context bound like [A: Type], defending against changes across Scala versions.
