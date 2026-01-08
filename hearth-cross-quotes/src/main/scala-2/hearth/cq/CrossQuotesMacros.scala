@@ -123,6 +123,27 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     $result : @_root_.scala.annotation.nowarn
     """
 
+  // One day we'll use Symbol's annotations but for now we'll use this list.
+  private val ImportedCrossTypeImplicit = Set(
+    "Underlying", // from Existential
+    "Returned", // from Method.NoInstance && Method.OfInstance
+    "Instance", // from Method.OfInstance
+    // "Result", // from PossibleSmartCtor (when implicit Type.CtorN will be supported)
+    "PossibleSmartResult", // from IsCollectionOf
+    "Key", // from IsMapOf
+    "Value", // from IsMapOf
+    "LeftValue", // from IsEither
+    "RightValue" // from IsEither
+  )
+  implicit private class ImportedCrossTypeImplicitOps(private val name: Name) {
+    // Should handle all imported values defined as:
+    //   @ImportedCrossTypeImplicit
+    //   implicit val SomeName: Type[SomeName]
+    // and used as:
+    //   import someValue.SomeName // potentially SomeName as SomeOtherName
+    def isImportedCrossTypeImplicit: Boolean = ImportedCrossTypeImplicit(name.decodedName.toString)
+  }
+
   /* Replaces:
    *   Type.of[A]
    * with:
@@ -3177,8 +3198,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         // Check if the import expression is something.Underlying
         val found = importTree.selectors
           .collect {
-            // TODO: potentially handle also Method's e.g. method.Returned etc
-            case ImportSelector(name, _, rename, _) if name.decodedName.toString == "Underlying" =>
+            case ImportSelector(name, _, rename, _) if name.isImportedCrossTypeImplicit =>
               val toReplace = scala.util.Try {
                 c.typecheck(tq"${importTree.expr}.${name.toTypeName}", mode = c.TYPEmode).tpe
               }.toOption
