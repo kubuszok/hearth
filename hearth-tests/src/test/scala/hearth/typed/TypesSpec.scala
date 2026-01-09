@@ -341,7 +341,8 @@ final class TypesSpec extends MacroSuite {
       // Scala 3 does store... something? Filename?
       val isScala3 = LanguageVersion.byHearth.isScala3
       val isScala3_8plus = isScala3 && ScalaVersion.byCompileTime >= ScalaVersion(3, 8, 0)
-      val isPositionTrimmed = isScala3_8plus
+      val isPositionTrimmed =
+        testPosition[examples.classes.ExampleTrait] == Data.map("Type.position" -> Data("classes.scala:1:1"))
       def classPosition(line: Int, column: Int): String =
         if (!isScala3) "<no position>"
         else if (isPositionTrimmed) "classes.scala:1:1"
