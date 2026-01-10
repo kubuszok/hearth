@@ -1,6 +1,7 @@
 package hearth
 
-import hearth.fp.data.NonEmptyVector
+import hearth.fp.data.{NonEmptyMap, NonEmptyVector}
+import scala.collection.immutable.{ListMap, ListSet}
 import scala.reflect.{classTag, ClassTag}
 
 trait Environments extends EnvironmentCrossQuotesSupport { env =>
@@ -155,34 +156,86 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
       *   the type of the extension to load
       *
       * @return
-      *   `Right(())` if all the extensions were loaded successfully, `Left(errors)` otherwise
+      *   `AllLoaded(loadedExtensions)` if all the extensions were loaded successfully,
+      *   `SomeFailed(loadedExtensions, errors)` otherwise, `LoaderFailed(error)` if the ServiceLoader failed to load
+      *   them in thr first place.
       */
-    final def loadMacroExtensions[Extension <: MacroExtension[?]: ClassTag]: Either[NonEmptyVector[Throwable], Unit] = {
+    final def loadMacroExtensions[Extension <: MacroExtension[?]: ClassTag]: ExtensionLoadingResult[Extension] = {
       @scala.annotation.nowarn
       val Extension = classTag[Extension].runtimeClass.asInstanceOf[Class[Extension]]
 
       // Allow aggregating errors from each extension loading
-      def safeLoadExtension(ext: Extension): Either[Throwable, Unit] = try
+      def safeLoadExtension(ext: Extension): Either[(Extension, Throwable), Extension] = try
         if (ext.isDefinedAt(env)) {
-          Right(ext(env))
+          ext(env)
+          Right(ext)
         } else {
           Left(
-            new IllegalStateException(
+            ext -> new IllegalStateException(
               s"Instance of ${ext.getClass.getName} cannot be applied to ${env.getClass.getName}"
             )
           )
         }
       catch {
-        case e: Throwable => Left(e)
+        case e: Throwable => Left(ext -> e)
       }
 
-      platformSpecificServiceLoader.load[Extension](Extension, env.getClass.getClassLoader).flatMap { extensions =>
-        val (errors, _) = extensions.partitionMap(safeLoadExtension)
-        NonEmptyVector.fromVector(errors) match {
-          case Some(errors) => Left(errors)
-          case None         => Right(())
-        }
+      platformSpecificServiceLoader.load[Extension](Extension, env.getClass.getClassLoader) match {
+        case Right(extensions) =>
+          val (failure, success) = extensions.partitionMap(safeLoadExtension)
+          val loadedExtensions = ListSet.from(success)
+          NonEmptyMap.fromListMap(ListMap.from(failure)) match {
+            case Some(failed) => ExtensionLoadingResult.SomeFailed(loadedExtensions, failed)
+            case None         => ExtensionLoadingResult.AllLoaded(loadedExtensions)
+          }
+        case Left(error) => ExtensionLoadingResult.LoaderFailed(error)
       }
+    }
+  }
+
+  sealed trait ExtensionLoadingResult[Extension] extends Product with Serializable {
+    import ExtensionLoadingResult.*
+
+    def loadedExtensions: Loaded[Extension]
+
+    final def fold[B](
+        allLoaded: Loaded[Extension] => B
+    )(
+        someFailed: (Loaded[Extension], Failed[Extension]) => B
+    )(
+        loaderFailed: Throwable => B
+    ): B = this match {
+      case AllLoaded(_)          => allLoaded(loadedExtensions)
+      case SomeFailed(_, errors) => someFailed(loadedExtensions, errors)
+      case LoaderFailed(error)   => loaderFailed(error)
+    }
+    final def toEither: Either[NonEmptyVector[Throwable], Loaded[Extension]] =
+      fold[Either[NonEmptyVector[Throwable], Loaded[Extension]]](loaded => Right(loaded)) { (_, errors) =>
+        Left(errors.toNonEmptyVector.map(_._2))
+      }(error => Left(NonEmptyVector.one(error)))
+
+    final def toOption: Option[Loaded[Extension]] = toEither.toOption
+
+    final def hasFailures: Boolean = toOption.isEmpty
+  }
+  object ExtensionLoadingResult {
+    type Loaded[Extension] = ListSet[Extension]
+    type Failed[Extension] = NonEmptyMap[Extension, Throwable]
+
+    final case class AllLoaded[Extension](
+        loadedExtensions: Loaded[Extension]
+    ) extends ExtensionLoadingResult[Extension]
+
+    final case class SomeFailed[Extension](
+        loadedExtensions: Loaded[Extension],
+        errors: Failed[Extension]
+    ) extends ExtensionLoadingResult[Extension]
+
+    final case class LoaderFailed[Extension](
+        error: Throwable
+    ) extends ExtensionLoadingResult[Extension] {
+
+      override def loadedExtensions: Loaded[Extension] = ListSet.empty
     }
   }
 

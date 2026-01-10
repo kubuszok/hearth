@@ -2,7 +2,6 @@ package hearth
 package std
 
 import hearth.typed.ImportedCrossTypeImplicit
-import hearth.fp.data.NonEmptyVector
 
 trait StdExtensions { this: MacroCommons =>
 
@@ -90,7 +89,6 @@ trait StdExtensions { this: MacroCommons =>
   }
 
   // TODO: provide extension methods
-  // TODO: provide a method to load the extensions from the classpath?
 
   /** Proof that the type is a collection of the given item type.
     *
@@ -143,8 +141,6 @@ trait StdExtensions { this: MacroCommons =>
 
     def unapply[A](tpe: Type[A]): Option[IsCollection[A]] =
       providers.view.map(_.unapply(tpe)).collectFirst { case Some(collection) => collection }
-
-    // TODO: provide a support for built-in collections, Arrays, IArrays, etc
   }
 
   /** Proof that the type is a map of the given key and value types.
@@ -304,8 +300,6 @@ trait StdExtensions { this: MacroCommons =>
 
     def unapply[A](tpe: Type[A]): Option[IsEither[A]] =
       providers.view.map(_.unapply(tpe)).collectFirst { case Some(either) => either }
-
-    // TODO: provide a support for built-in Eithers, Try, etc
   }
 
   /** Proof that the type is a value type of the given inner type.
@@ -353,8 +347,6 @@ trait StdExtensions { this: MacroCommons =>
 
     def unapply[A](tpe: Type[A]): Option[IsValueType[A]] =
       providers.view.map(_.unapply(tpe)).collectFirst { case Some(valueType) => valueType }
-
-    // TODO: provide a support for any-vals (and opaque types?)
   }
 
   implicit final class EnvironmentStdExtensionsOps(private val environment: Environment.type) {
@@ -363,7 +355,7 @@ trait StdExtensions { this: MacroCommons =>
       *
       * @since 0.3.0
       */
-    def loadStandardExtensions(): Either[NonEmptyVector[Throwable], Unit] =
+    def loadStandardExtensions(): ExtensionLoadingResult[StandardMacroExtension] =
       environment.loadMacroExtensions[StandardMacroExtension]
   }
 }

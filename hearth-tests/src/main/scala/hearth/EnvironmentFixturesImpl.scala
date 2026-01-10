@@ -2,6 +2,7 @@ package hearth
 
 import hearth.data.Data
 
+/** Fixtured for testing [[EnvironmentSpec]]. */
 trait EnvironmentFixturesImpl { this: MacroCommons =>
 
   def testPosition: Expr[Data] = {
@@ -57,7 +58,7 @@ trait EnvironmentFixturesImpl { this: MacroCommons =>
   private var loadedExtensions: Vector[String] = Vector.empty
 
   def testLoadingExtensions: Expr[Data] =
-    Environment.loadMacroExtensions[ExampleMacroExtension] match {
+    Environment.loadMacroExtensions[ExampleMacroExtension].toEither match {
       case Left(errors) =>
         Environment.reportErrorAndAbort(s"Failed to load macro extensions: ${errors.mkString("\n")}")
       case Right(_) =>
