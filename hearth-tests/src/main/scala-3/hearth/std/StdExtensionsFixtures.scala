@@ -5,7 +5,10 @@ import hearth.data.Data
 
 import scala.quoted.*
 
-final private class StdExtensionsFixtures(q: Quotes) extends MacroCommonsScala3(using q), StdExtensions, StdExtensionsFixturesImpl 
+final private class StdExtensionsFixtures(q: Quotes)
+    extends MacroCommonsScala3(using q),
+      StdExtensions,
+      StdExtensionsFixturesImpl
 
 object StdExtensionsFixtures {
 

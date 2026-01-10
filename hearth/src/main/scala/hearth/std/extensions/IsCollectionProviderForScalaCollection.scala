@@ -65,6 +65,12 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           override def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair] = pairExpr(key, value)
         })
 
+      // TODO: we had to make a workaround because we got:
+      //   scala.collection.Factory[scala.Tuple2[java.lang.String, scala.Int], <none>.A]
+      // when it was inlined. We should find a proper solution for this.
+      private def findFactory[A: Type, Item: Type]: SummoningResult[scala.collection.Factory[Item, A]] =
+        Expr.summonImplicit(using Type.of[scala.collection.Factory[Item, A]])
+
       @scala.annotation.nowarn
       override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {
         // Scala collections are Iterables with Factories, we're start by finding the item type...
@@ -72,10 +78,15 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
 
+          // TODO: remove later
+          println(s"Type ${A.prettyPrint} is Iterable of ${Item.prettyPrint}")
+          println(
+            "Resolved factory:" +
+              findFactory[A, Item].toEither.map(_.prettyPrint).merge
+          )
+
           // ...then we can summon the Factory...
-          Expr
-            .summonImplicit(using Type.of[scala.collection.Factory[Item, A]])
-            .toOption
+          findFactory[A, Item].toOption
             .map { factoryExpr =>
               // ...and use it to build the collection.
               val buildExpr: Expr[scala.collection.mutable.Builder[Item, A]] => Expr[A] =

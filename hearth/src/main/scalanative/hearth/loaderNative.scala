@@ -1,6 +1,5 @@
 package hearth
 
-import hearth.fp.data.NonEmptyVector
 import java.util.ServiceLoader
 import scala.jdk.CollectionConverters.*
 
@@ -13,7 +12,7 @@ import scala.jdk.CollectionConverters.*
   */
 private[hearth] object platformSpecificServiceLoader {
 
-  def load[T](clazz: Class[T], classLoader: ClassLoader): Either[NonEmptyVector[Throwable], Vector[T]] = try
+  def load[T](clazz: Class[T], classLoader: ClassLoader): Either[Throwable, Vector[T]] = try
     Right(
       // Workaround for guard:
       //   Limitation of ScalaNative runtime: first argument of method load needs to be literal constant of class type, use `classOf[T]` instead.
@@ -27,6 +26,6 @@ private[hearth] object platformSpecificServiceLoader {
         .toVector
     )
   catch {
-    case e: Throwable => Left(NonEmptyVector.one(e))
+    case e: Throwable => Left(e)
   }
 }
