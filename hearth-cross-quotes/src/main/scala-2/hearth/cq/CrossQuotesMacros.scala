@@ -3191,10 +3191,15 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     val importedNames = scala.collection.mutable.ListBuffer[(Type, String)]()
     val expansionPos = c.enclosingPosition
 
+    def isBeforeExpansionPoint(pos: Position): Boolean =
+      pos != NoPosition &&
+        (pos.line < expansionPos.line ||
+          (pos.line == expansionPos.line && pos.column < expansionPos.column))
+
     // Helper to extract names from import selectors that match *.Underlying pattern
     def extractNamesFromImport(importTree: Import): Unit =
       // Check if import comes before macro expansion
-      if (importTree.pos != NoPosition && importTree.pos.end <= expansionPos.point) {
+      if (isBeforeExpansionPoint(importTree.pos)) {
         // Check if the import expression is something.Underlying
         val found = importTree.selectors
           .collect {
@@ -3248,7 +3253,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     // 4. replace stubs with their actual replacements
     // 5. and parse it back into Tree
     // It is _so much easier_ than properly modifying the tree.
-    val abstractTypeReferenceReplacer = new AbstractTypeReferenceReplacer(ctx)
+    val implicitTypeReferenceReplacer = new ImplicitTypeReferenceReplacer(ctx)
     val spliceReplacer = new SpliceReplacer(ctx)
     val putIntoQuasiquote: String => String = str =>
       "q\"\"\"" + str.view.map {
@@ -3259,7 +3264,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     tree
       // replace some Exprs and Types with stubs
       .pipe(spliceReplacer.transform)
-      .pipe(abstractTypeReferenceReplacer.transform)
+      .pipe(implicitTypeReferenceReplacer.transform)
       // Convert to String
       .tap { source =>
         if (loggingEnabled) {
@@ -3274,13 +3279,13 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       // Put into quasiquote - we have to do it before replacing stubs, because we might have accidentaly removed some actual string interpolation
       .pipe(putIntoQuasiquote)
       // Replace stubs with their values
-      .pipe(abstractTypeReferenceReplacer.replaceStubsInSource)
+      .pipe(implicitTypeReferenceReplacer.replaceStubsInSource)
       .pipe(spliceReplacer.replaceStubsInSource)
       // Nested Expr.splice generate `final val rassoc$1 = ...; /* use rassoc$1 */` but final val is not valid in Block so we are removing it..
       // We should probably fix this in the better-printers, but for now it's OK.
       .pipe(_.replaceAll("final val rassoc", "val rassoc"))
       // Validate that there are no stubs left
-      .pipe(abstractTypeReferenceReplacer.validateNoStubsLeft)
+      .pipe(implicitTypeReferenceReplacer.validateNoStubsLeft)
       .pipe(spliceReplacer.validateNoStubsLeft)
       // Parse back to Tree
       .tap { source =>
@@ -3295,43 +3300,25 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       .pipe(c.parse(_))
   }
 
-  /** Handles type parameters inside Expr.quote: Expr.quote { def foo[A] = ... // use A }, as we as type parameters
-    * inside Expr.splice: that require Type[A] from the outside.
+  /** Handles type parameters and imported value.Underlying inside Expr.quote: Expr.quote { def foo[A] = ... // use A },
+    * as we as type parameters and imported value.Underlying inside Expr.splice: that require Type[A] from the outside.
     */
-  private class AbstractTypeReferenceReplacer(ctx: TermName) extends Transformer {
+  private class ImplicitTypeReferenceReplacer(ctx: TermName) extends Transformer {
 
-    private var insideTypeParametricCrap = false
+    def newTypeRef(pre: Type, sym: Symbol, args: List[Type]): Type = c.internal.typeRef(pre, sym, args)
 
-    // In theory: we should always be able to check if there is Type[A], when it is
-    // convert it to c.WeakTypeTag[A] and use it in quasiquotes.
-    // But in practice, some code fails to compile, I don't know why.
-    // So for the time being we are enabling/disabling it using trial-and-error, currently:
-    //  - it is enabled inside def/class with type parameters (defined inside Expr.quote)
-    //  - it is enabled for single-letter types
-    //  - it is disabled for everything else
-    // we should fix this, but for now it's OK.
-    private def shouldTryUsingImplicitType(tree: Tree): Boolean =
-      insideTypeParametricCrap || tree.toString.length == 1
+    case class Cache(stub: TypeName, symbol: Symbol, weakTypeTag: Tree) {
 
-    private case class Cache(stub: TypeName, symbol: Symbol, weakTypeTag: Tree)
-
-    private val abstractTypes = scala.collection.mutable.Map.empty[String, Option[Cache]]
-
-    private def attemptToFindAbstractType(name: Name): Name =
-      attemptToFindAbstractType(name.toString).map(_.stub).getOrElse(name)
-
-    private def attemptToFindAbstractType(symbol: Symbol): Symbol =
-      attemptToFindAbstractType(symbol.name.toString).map(_.symbol).getOrElse(symbol)
-
-    private def attemptToFindAbstractType(name: String): Option[Cache] = abstractTypes.getOrElseUpdate(
-      name,
-      try {
+      def ident: Ident = Ident(stub)
+      def typeRef: Type = c.internal.typeRef(NoPrefix, symbol, List())
+    }
+    object Cache {
+      def forTypeName(name: String): Option[Cache] = try {
         val parsed = c.typecheck(c.parse(s"Type[$name]"))
-        val stub = freshTypeName("TypeParameterStub")
+        val stub = freshTypeName("TypeStub")
         @scala.annotation.nowarn
         val symbol = {
           val originalSymbol = parsed.tpe match {
-            // TypeRef(ThisType(hearth.demo.ShowMacrosImpl), TypeName("Type"), List(TypeRef(NoPrefix, TypeName("A"), List())))
             case TypeRef(_, _, List(TypeRef(_, nameSymbol, List()))) => nameSymbol
           }
           c.universe.internal.newTypeSymbol(
@@ -3349,70 +3336,146 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         //   None
         case _: Exception => None
       }
-    )
+    }
+
+    object AbstractTypes {
+      private val caches = scala.collection.mutable.Map.empty[String, Option[Cache]]
+
+      def find(name: String): Option[Cache] = caches.getOrElseUpdate(name, Cache.forTypeName(name))
+      def find(name: Name): Option[Cache] = find(name.toString)
+      def find(symbol: Symbol): Option[Cache] = find(symbol.name.toString)
+
+      def toReplace = caches.view.collect { case (_, Some(Cache(stub, _, weakTypeTag))) =>
+        val printedWeakTypeTag = showCodePretty(weakTypeTag, SyntaxHighlight.plain)
+        Pattern.quote(stub.toString) -> Matcher.quoteReplacement(s"$${ $printedWeakTypeTag }")
+      }.toMap
+      def toCheck = caches.view.collect { case (name, Some(Cache(stub, _, _))) =>
+        name -> stub.toString
+      }.toMap
+    }
+
+    object ImportedTypes {
+      private val cachesAliases = scala.collection.mutable.Map.empty[String, Cache]
+      private val caches = importedUnderlyingTypes.flatMap { case (tpe, name) =>
+        def byName = Cache.forTypeName(name)
+        def byType = try
+          Cache.forTypeName(showCodePretty(tpe, SyntaxHighlight.plain))
+        catch {
+          case _: Throwable => None
+        }
+        byType.orElse(byName).map { cache =>
+          cachesAliases += (name -> cache)
+          cachesAliases += (s"$name.type" -> cache)
+          tpe -> cache
+        }
+      }.toMap
+
+      // It's riddiculous but:
+      //  - we have both: someValue.Underlying (type Underlying = ...)
+      //  - and: someValue.Underlying.type (val Underlying = ...)
+      // and we have to address that.
+      private def isImportedType(imported: Type, tpe: Type): Boolean =
+        imported =:= tpe || s"$imported.type" == tpe.toString
+
+      def find(tpe: Type): Option[Cache] = caches.collectFirst {
+        case (imported, cache) if isImportedType(imported, tpe) => cache
+      }
+      def find(name: String): Option[Cache] = cachesAliases.get(name)
+
+      def toReplace = cachesAliases.view.collect { case (_, Cache(stub, _, weakTypeTag)) =>
+        val printedWeakTypeTag = showCodePretty(weakTypeTag, SyntaxHighlight.plain)
+        Pattern.quote(stub.toString) -> Matcher.quoteReplacement(s"$${ $printedWeakTypeTag }")
+      }.toMap
+      def toCheck = caches.view.collect { case (name, Cache(stub, _, _)) =>
+        name -> stub.toString
+      }.toMap
+    }
 
     override def transform(tree: Tree): Tree = tree match {
-      // find classes that have type parameters
-      case cd @ ClassDef(_, _, _, Template(parents, _, _))
-          if !insideTypeParametricCrap && parents.exists(_.tpe.typeSymbol.asType.typeParams.nonEmpty) =>
-        val oldTypeParametricCrap = insideTypeParametricCrap
-        try {
-          insideTypeParametricCrap = true
-          super.transform(cd)
-        } finally
-          insideTypeParametricCrap = oldTypeParametricCrap
-      // find methods that have type parameters
-      case dd: DefDef if !insideTypeParametricCrap && dd.tparams.nonEmpty =>
-        val oldTypeParametricCrap = insideTypeParametricCrap
-        try {
-          insideTypeParametricCrap = true
-          super.transform(dd)
-        } finally
-          insideTypeParametricCrap = oldTypeParametricCrap
-      // if we're in either of the above, we need to transform the type parameters
-      case AppliedTypeTree(tpt, args) if shouldTryUsingImplicitType(tree) =>
-        AppliedTypeTree(transform(tpt), args.map(transform))
-      case Ident(name) if shouldTryUsingImplicitType(tree) =>
-        Ident(attemptToFindAbstractType(name))
-      case tt: TypeTree if shouldTryUsingImplicitType(tree) =>
-        if (tt.original != null) {
+      // Transform references like someValue.Underlying to Ident(ImportStub).
+      case s: Select =>
+        def byType = ImportedTypes.find(s.tpe).map(_.ident)
+        def byName = ImportedTypes.find(showCodePretty(s, SyntaxHighlight.plain)).map(_.ident)
+        byType
+          .orElse(byName)
+          .map { stub =>
+            if (loggingEnabled) {
+              println(s"""Replaced Select with stub:
+                         |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
+                         |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
+                         |Out: ${showCodePretty(stub, SyntaxHighlight.ANSI)}
+                         |     ${showRawPretty(stub, SyntaxHighlight.ANSI)}
+                         |""".stripMargin)
+            }
+            stub
+          }
+          .getOrElse(super.transform(s))
+      // Transform references like TypeParameter to Ident(TypeStub).
+      case Ident(name) =>
+        AbstractTypes
+          .find(name)
+          .map { cache =>
+            val stub = cache.ident
+            if (loggingEnabled) {
+              println(s"""Replaced Ident with stub:
+                         |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
+                         |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
+                         |Out: ${showCodePretty(stub, SyntaxHighlight.ANSI)}
+                         |     ${showRawPretty(stub, SyntaxHighlight.ANSI)}
+                         |""".stripMargin)
+            }
+            stub
+          }
+          .getOrElse(Ident(name))
+      case tt: TypeTree =>
+        val r = if (tt.original != null) {
           val updated = transform(tt.original)
           if (updated == tt.original) tt.original
           else updated
         } else {
-          TypeTree(transformType(tt.tpe))
+          val updated = transformType(tt.tpe)
+          if (updated == tt.tpe) tt
+          else TypeTree(updated)
         }
-      case tree =>
-        val transformed = super.transform(tree)
         if (loggingEnabled) {
-          println(s"""Transforming tree:
+          println(s"""Stubbed TypeTree:
                      |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
                      |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
-                     |Out: ${showCodePretty(transformed, SyntaxHighlight.ANSI)}
-                     |     ${showRawPretty(transformed, SyntaxHighlight.ANSI)}
-                     |crap: $insideTypeParametricCrap
+                     |Out: ${showCodePretty(r, SyntaxHighlight.ANSI)}
+                     |     ${showRawPretty(r, SyntaxHighlight.ANSI)}
                      |""".stripMargin)
         }
-        transformed
+        r
+      case tree => super.transform(tree)
     }
 
-    private def transformType(tpe: Type): Type = tpe match {
-      case TypeRef(pre, sym, args) =>
-        c.internal.typeRef(transformType(pre), attemptToFindAbstractType(sym), args.map(transformType))
-      case tpe => tpe
+    private def transformType(tpe: Type): Type = {
+      // Makes sure to use exactly the same cache key for .Underlying, even if we have some aliases etc
+      val importedType = ImportedTypes.find(tpe).map(_.typeRef).getOrElse(tpe)
+      tpe match {
+        case _ if importedType ne tpe       => importedType
+        case TypeRef(NoPrefix, sym, List()) =>
+          AbstractTypes.find(sym).map(_.typeRef).getOrElse(tpe)
+        case TypeRef(pre, sym, args) =>
+          newTypeRef(pre, sym, args.map(transformType))
+        // TODO: maybe also transform other types
+        case _ => tpe
+      }
     }
 
-    def replaceStubsInSource(source: String): String = abstractTypes.view.values.flatten.foldLeft(source) {
-      case (result, Cache(stub, _, weakTypeTag)) =>
-        val printedWeakTypeTag = showCodePretty(weakTypeTag, SyntaxHighlight.plain)
-        result.replaceAll(Pattern.quote(stub.toString), Matcher.quoteReplacement(s"$${ $printedWeakTypeTag }"))
-    }
+    def replaceStubsInSource(source: String): String =
+      (AbstractTypes.toReplace.view ++ ImportedTypes.toReplace.view).foldLeft(source) {
+        case (result, (pattern, replacement)) => result.replaceAll(pattern, replacement)
+      }
 
     def validateNoStubsLeft(source: String): String = {
-      val stubs = abstractTypes.collect {
-        case (name, Some(Cache(stub, _, _))) if source.contains(stub.toString) => name
+      val remainingStubs = (AbstractTypes.toCheck.view ++ ImportedTypes.toCheck.view).collect {
+        case (name, stub) if source.contains(stub) => name
       }
-      assert(stubs.isEmpty, s"Type parameter stubs left: ${stubs.mkString(", ")} in:\n$source")
+      assert(
+        remainingStubs.isEmpty,
+        s"Type parameter/imported type stubs left: ${remainingStubs.mkString(", ")} in:\n$source"
+      )
       source
     }
   }
@@ -3421,7 +3484,29 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     */
   private class SpliceReplacer(ctx: TermName) extends Transformer {
 
-    private val toReplace = scala.collection.mutable.Map.empty[String, String]
+    object Splices {
+      private val caches = scala.collection.mutable.Map.empty[String, String]
+
+      def store(expr: Tree, tpe: Tree): Tree = {
+        // This code can contain $ which has to be escaped before printing, also we should use better printers for all such things.
+        val printedExpr = showCodePretty(expr, SyntaxHighlight.plain)
+        val printedTpe = showCodePretty(tpe, SyntaxHighlight.plain)
+        convert(ctx)(expr) match {
+          case Ident(_) =>
+            caches += (expr.toString() -> s"$${ {$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]] }")
+            expr
+          case _ =>
+            val stub = Ident(freshName("expressionStub"))
+            caches += (stub.toString() -> s"$${ {$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]] }")
+            stub
+        }
+      }
+
+      lazy val toReplace = caches.view.collect { case (stub, expr) =>
+        Pattern.quote(stub.toString) -> Matcher.quoteReplacement(expr)
+      }.toMap
+      lazy val toCheck = caches.keys.toSet
+    }
 
     override def transform(tree: Tree): Tree = tree match {
       /* Replaces:
@@ -3436,18 +3521,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
             ),
             List(expr)
           ) =>
-        // This code can contain $ which has to be escaped before printing, also we should use better printers for all such things.
-        val printedExpr = showCodePretty(expr, SyntaxHighlight.plain)
-        val printedTpe = showCodePretty(tpe, SyntaxHighlight.plain)
-        val result = convert(ctx)(expr) match {
-          case Ident(_) =>
-            toReplace += (expr.toString() -> s"$${ {$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]] }")
-            expr
-          case _ =>
-            val stub = Ident(freshName("expressionStub"))
-            toReplace += (stub.toString() -> s"$${ {$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]] }")
-            stub
-        }
+        val result = Splices.store(expr, tpe)
 
         log(
           s"""Cross-quotes ${paintExclDot(Console.BLUE)("Expr.splice")} expansion:
@@ -3460,12 +3534,13 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       case tree => super.transform(tree)
     }
 
-    def replaceStubsInSource(source: String): String = toReplace.foldLeft(source) { case (result, (stub, expr)) =>
-      result.replaceAll(Pattern.quote(stub.toString), Matcher.quoteReplacement(expr))
+    def replaceStubsInSource(source: String): String = Splices.toReplace.foldLeft(source) {
+      case (result, (pattern, replacement)) =>
+        result.replaceAll(pattern, replacement)
     }
 
     def validateNoStubsLeft(source: String): String = {
-      val stubs = toReplace.keys.filter(source.contains)
+      val stubs = Splices.toCheck.filter(source.contains)
       assert(stubs.isEmpty, s"Expr stubs left: ${stubs.mkString(", ")} in:\n$source")
       source
     }
