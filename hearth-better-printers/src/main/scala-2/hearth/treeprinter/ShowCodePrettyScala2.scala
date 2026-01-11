@@ -888,13 +888,19 @@ trait ShowCodePrettyScala2 {
           case tt: TypeTree =>
             if (!isEmptyTree(tt)) {
               val original = tt.original
+              // Prevents assertionErrors when printing stubs used by Cross-Quotes.
+              def isAnonymousClass = try {
+                (tree.tpe.typeSymbol ne null) && tree.tpe.typeSymbol.isAnonymousClass
+              } catch {
+                case _: Throwable => false
+              }
               if (original != null) print(original)
               // Note: copy-paste-modified (and inlined) from TreePrinter.printTree
               else if ((tree.tpe eq null) || (printPositions && tt.original != null)) {
                 if (tt.original != null) print(tt.original) // Note: originally: print("<type: ", tt.original, ">")
                 else if (failOnUnsupportedTree) unsupportedTree(tree) // Note: originally: print("<type ?>")
                 else print("<type ?>")
-              } else if ((tree.tpe.typeSymbol ne null) && tree.tpe.typeSymbol.isAnonymousClass) {
+              } else if (isAnonymousClass) {
                 print(highlightTypeDef(tree.tpe.typeSymbol.toString)) // TODO: check if we can do better
               } else {
                 processTypePrinting(tree.tpe, isLastInChain = true)
@@ -918,8 +924,15 @@ trait ShowCodePrettyScala2 {
             print(templ) // TODO: check coloring of that
 
           case AppliedTypeTree(tp, args) =>
+            // Prevents assertionErrors when printing stubs used by Cross-Quotes.
+            def isByNameParam(tree: Tree) = try
+              treeInfo.isByNameParamType(tree)
+            catch {
+              case _: Throwable => false
+            }
+
             // it's possible to have (=> String) => String type but Function1[=> String, String] is not correct
-            val containsByNameTypeParam = args exists treeInfo.isByNameParamType
+            val containsByNameTypeParam = args exists isByNameParam
 
             if (containsByNameTypeParam) {
               print("(")
@@ -1081,7 +1094,15 @@ trait ShowCodePrettyScala2 {
             print("[")
             val it = args.iterator
             while (it.hasNext) {
-              print(it.next().dealias) // TODO: why it does not propagate?
+              val next = it.next()
+              // Prevents assertionErrors when printing stubs used by Cross-Quotes.
+              print(
+                try
+                  next.dealias // TODO: why it does not propagate?
+                catch {
+                  case _: Throwable => next
+                }
+              )
               if (it.hasNext) print(", ")
             }
             print("]")
@@ -1304,7 +1325,7 @@ trait ShowCodePrettyScala2 {
               print(
                 highlightTripleQs,
                 " /* Symbol of ",
-                highlightKeyword(sym.keyString),
+                highlightKeyword(sym.keyString.trim),
                 " ",
                 if (sym.isStatic && (sym.isClass || sym.isModule)) highlightTypeDef(sym.fullName)
                 else highlightValDef(sym.name.decoded.toString),

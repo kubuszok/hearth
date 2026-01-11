@@ -41,7 +41,7 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
 
       val iteration = Expr.quote {
         val it = Expr.splice(isMap.value.asIterable(value))
-        Data(it.map { (pair: Pair) => // TODO: we have to fix printing of this type to get the correct type of pair
+        Data(it.map { pair =>
           val key = Expr.splice(isMap.value.key(Expr.quote(pair)))
           val value = Expr.splice(isMap.value.value(Expr.quote(pair)))
           Data.map(
@@ -57,7 +57,6 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       val building = if (Key <:< IntType && Value <:< StringType) Expr.quote {
         val key = Expr.splice(Expr(1).upcast[Key])
         val value = Expr.splice(Expr("one").upcast[Value])
-        // TODO: we have to fix printing of this type to get the correct type of pair
         val pair = Expr.splice(isMap.value.pair(Expr.quote(key), Expr.quote(value)))
         val b = Expr.splice(isMap.value.factory).newBuilder
         b.addOne(pair)
@@ -65,14 +64,12 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       }
       else Expr(Data("<not a map of int and string>"))
 
-      val r = Expr.quote {
+      Expr.quote {
         Data.map(
           "iteration" -> Expr.splice(iteration),
           "building" -> Expr.splice(building)
         )
       }
-      println(r.prettyPrint)
-      r
     case IsCollection(isCollection) =>
       // TODO: same as for IsMap, nested imports should be supported in Scala 2 (better printer returns isCollection.isCollectionOf.x instead of isCollection.value.x OR isCollection.x)
       // import isCollection.{Underlying as Item, value as isCollectionOf}
