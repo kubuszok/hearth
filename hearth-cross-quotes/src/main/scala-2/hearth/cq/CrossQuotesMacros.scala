@@ -3253,8 +3253,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     // 4. replace stubs with their actual replacements
     // 5. and parse it back into Tree
     // It is _so much easier_ than properly modifying the tree.
-    val implicitTypeReferenceReplacer = new ImplicitTypeReferenceReplacer(ctx)
     val spliceReplacer = new SpliceReplacer(ctx)
+    val implicitTypeReferenceReplacer = new ImplicitTypeReferenceReplacer(ctx)
     val putIntoQuasiquote: String => String = str =>
       "q\"\"\"" + str.view.map {
         // Escape $ - we have to do it before replacing stubs, because we might have accidentaly removed some actual string interpolation
@@ -3262,10 +3262,13 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         case c   => c
       }.mkString + "\"\"\""
     tree
-      // replace some Exprs and Types with stubs
+      // Replace Expr.splice and Types that have implicit Type[T] values with stubs:
+      // - there will be no nested Expr.quotes - if there is one, the nested one would expand a macro, so splice would contain only the result
+      // - the content of Expr.splice would NOT require adjustment, because it would appear inside ${ ... } where tree rewriting is undesired
+      // - that's why we start with replacing Expr.splice stubs first, and ONLY THEN we replace type parameter stubs
       .pipe(spliceReplacer.transform)
       .pipe(implicitTypeReferenceReplacer.transform)
-      // Convert to String
+      // Convert to String - we are assuming that showCodePretty produces correct Scala code (that cannot be said of toString or showCode)
       .tap { source =>
         if (loggingEnabled) {
           println(
@@ -3278,7 +3281,9 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       .pipe(showCodePretty(_, SyntaxHighlight.plain))
       // Put into quasiquote - we have to do it before replacing stubs, because we might have accidentaly removed some actual string interpolation
       .pipe(putIntoQuasiquote)
-      // Replace stubs with their values
+      // Replace stubs with their values:
+      // - Expr.splice replacement should NOT BE EDITED, which is why we replace type stubs first
+      // - only then we are replacing Expr.splice stubs
       .pipe(implicitTypeReferenceReplacer.replaceStubsInSource)
       .pipe(spliceReplacer.replaceStubsInSource)
       // Nested Expr.splice generate `final val rassoc$1 = ...; /* use rassoc$1 */` but final val is not valid in Block so we are removing it..
@@ -3394,10 +3399,12 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     override def transform(tree: Tree): Tree = tree match {
       // Transform references like someValue.Underlying to Ident(ImportStub).
       case s: Select =>
-        def byType = ImportedTypes.find(s.tpe).map(_.ident)
-        def byName = ImportedTypes.find(showCodePretty(s, SyntaxHighlight.plain)).map(_.ident)
-        byType
-          .orElse(byName)
+        // While it looks perfectly reasonable to test `ImportedTypes.find(s.tpe)` as well,
+        // if we have e.g. an expression of type `(key.Underlying, value.Underlying)` (key being scala.Int) we'd get e.g. `scala.Int`
+        // instead of the `key.Underlying` expression value.
+        ImportedTypes
+          .find(showCodePretty(s, SyntaxHighlight.plain))
+          .map(_.ident)
           .map { stub =>
             if (loggingEnabled) {
               println(s"""Replaced Select with stub:
@@ -3427,25 +3434,38 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
             stub
           }
           .getOrElse(Ident(name))
+      // Transform references like EITHER TypeParameter OR someType.Underlying to Ident(TypeStub).
       case tt: TypeTree =>
-        val r = if (tt.original != null) {
+        if (tt.original != null) {
           val updated = transform(tt.original)
           if (updated == tt.original) tt.original
-          else updated
+          else {
+            if (loggingEnabled) {
+              println(s"""Stubbed TypeTree original:
+                         |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
+                         |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
+                         |Out: ${showCodePretty(updated, SyntaxHighlight.ANSI)}
+                         |     ${showRawPretty(updated, SyntaxHighlight.ANSI)}
+                         |""".stripMargin)
+            }
+            updated
+          }
         } else {
           val updated = transformType(tt.tpe)
           if (updated == tt.tpe) tt
-          else TypeTree(updated)
+          else {
+            val newTypeTree = TypeTree(updated)
+            if (loggingEnabled) {
+              println(s"""Stubbed TypeTree:
+                         |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
+                         |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
+                         |Out: ${showCodePretty(newTypeTree, SyntaxHighlight.ANSI)}
+                         |     ${showRawPretty(newTypeTree, SyntaxHighlight.ANSI)}
+                         |""".stripMargin)
+            }
+            newTypeTree
+          }
         }
-        if (loggingEnabled) {
-          println(s"""Stubbed TypeTree:
-                     |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
-                     |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
-                     |Out: ${showCodePretty(r, SyntaxHighlight.ANSI)}
-                     |     ${showRawPretty(r, SyntaxHighlight.ANSI)}
-                     |""".stripMargin)
-        }
-        r
       case tree => super.transform(tree)
     }
 
@@ -3491,21 +3511,16 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         // This code can contain $ which has to be escaped before printing, also we should use better printers for all such things.
         val printedExpr = showCodePretty(expr, SyntaxHighlight.plain)
         val printedTpe = showCodePretty(tpe, SyntaxHighlight.plain)
-        convert(ctx)(expr) match {
-          case Ident(_) =>
-            caches += (expr.toString() -> s"$${ {$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]] }")
-            expr
-          case _ =>
-            val stub = Ident(freshName("expressionStub"))
-            caches += (stub.toString() -> s"$${ {$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]] }")
-            stub
-        }
+
+        val stub = Ident(freshName("expressionStub"))
+        caches += (stub.toString() -> s"$${ {$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]] }")
+        stub
       }
 
-      lazy val toReplace = caches.view.collect { case (stub, expr) =>
+      def toReplace = caches.view.collect { case (stub, expr) =>
         Pattern.quote(stub.toString) -> Matcher.quoteReplacement(expr)
       }.toMap
-      lazy val toCheck = caches.keys.toSet
+      def toCheck = caches.keys.toSet
     }
 
     override def transform(tree: Tree): Tree = tree match {
