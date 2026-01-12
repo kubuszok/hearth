@@ -78,13 +78,6 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
 
-          // TODO: remove later
-          println(s"Type ${A.prettyPrint} is Iterable of ${Item.prettyPrint}")
-          println(
-            "Resolved factory:" +
-              findFactory[A, Item].toEither.map(_.prettyPrint).merge
-          )
-
           // ...then we can summon the Factory...
           findFactory[A, Item].toOption
             .map { factoryExpr =>
