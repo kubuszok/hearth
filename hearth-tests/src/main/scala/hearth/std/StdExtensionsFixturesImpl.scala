@@ -180,7 +180,7 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       val folding = Expr.quote {
         val either = Expr.splice(value)
         Expr.splice(
-          isEither.fold[Data](Expr.quote(either))(
+          isEither.value.fold[Data](Expr.quote(either))(
             onLeft = (left: Expr[LeftValue]) =>
               Expr.quote {
                 Data(s"left: ${Expr.splice(left).toString}")
@@ -198,7 +198,7 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
         Data(
           Expr
             .splice(
-              isEither.getOrElse(Expr.quote(either))(
+              isEither.value.getOrElse(Expr.quote(either))(
                 Expr("default").upcast[RightValue]
               )
             )
@@ -208,8 +208,8 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       else Expr(Data("<not an either with string right>"))
 
       val building = if (LeftValue <:< StringType && RightValue <:< IntType) Expr.quote {
-        val left = Expr.splice(isEither.left(Expr("error").upcast[LeftValue]))
-        val right = Expr.splice(isEither.right(Expr(42).upcast[RightValue]))
+        val left = Expr.splice(isEither.value.left(Expr("error").upcast[LeftValue]))
+        val right = Expr.splice(isEither.value.right(Expr(42).upcast[RightValue]))
         Data.map(
           "left" -> Data(left.toString),
           "right" -> Data(right.toString)

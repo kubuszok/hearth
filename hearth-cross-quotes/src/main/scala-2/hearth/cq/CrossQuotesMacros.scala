@@ -222,11 +222,11 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1)) =>
-            Some($ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1])
+            _root_.scala.Some($ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1])
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 1) {
               val Seq(tp1) = A0.typeArgs
-              Some($ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1])
+              _root_.scala.Some($ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1])
             }
             else None
         }
@@ -290,7 +290,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2]
@@ -299,7 +299,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 2) {
               val Seq(tp1, tp2) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 ($ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2])
               )
@@ -369,7 +369,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -379,7 +379,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 3) {
               val Seq(tp1, tp2, tp3) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -457,7 +457,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -468,7 +468,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 4) {
               val Seq(tp1, tp2, tp3, tp4) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -550,7 +550,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -562,7 +562,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 5) {
               val Seq(tp1, tp2, tp3, tp4, tp5) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -649,7 +649,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -662,7 +662,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 6) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -753,7 +753,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -767,7 +767,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 7) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -862,7 +862,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -877,7 +877,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 8) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -976,7 +976,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -992,7 +992,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 9) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -1095,7 +1095,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -1112,7 +1112,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 10) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -1219,7 +1219,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -1237,7 +1237,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 11) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -1348,7 +1348,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -1367,7 +1367,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 12) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -1482,7 +1482,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -1502,7 +1502,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 13) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -1618,7 +1618,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -1639,7 +1639,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 14) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -1758,7 +1758,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -1780,7 +1780,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 15) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -1903,7 +1903,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -1926,7 +1926,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 16) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -2053,7 +2053,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -2077,7 +2077,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 17) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -2208,7 +2208,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -2233,7 +2233,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 18) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -2369,7 +2369,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -2395,7 +2395,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 19) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -2535,7 +2535,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -2562,7 +2562,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 20) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -2706,7 +2706,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -2734,7 +2734,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 21) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -2882,7 +2882,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21, tp22)) =>
-            Some(
+            _root_.scala.Some(
               (
                 $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                 $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -2911,7 +2911,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 22) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21, tp22) = A0.typeArgs
-              Some(
+              _root_.scala.Some(
                 (
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
@@ -3344,7 +3344,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           )
         }
         val ttag = c.parse(s"$parsed.asInstanceOf[$ctx.WeakTypeTag[$name]]")
-        Some(Cache(stub, symbol, ttag))
+        _root_.scala.Some(Cache(stub, symbol, ttag))
       } catch {
         // case e: scala.tools.reflect.ToolBoxError =>
         //   println(s"Error: $e")

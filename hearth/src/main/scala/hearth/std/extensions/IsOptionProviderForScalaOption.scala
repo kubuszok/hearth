@@ -15,7 +15,8 @@ final class IsOptionProviderForScalaOption extends StandardMacroExtension {
 
     IsOption.registerProvider(new IsOption.Provider {
 
-      private lazy val Option = Type.Ctor1.of[Option]
+      private lazy val Option = Type.Ctor1.of[scala.Option]
+      private lazy val Some = Type.Ctor1.of[scala.Some]
 
       private def isOption[A: Type, Item: Type](
           toOption: Expr[A] => Expr[Option[Item]],
@@ -25,7 +26,7 @@ final class IsOptionProviderForScalaOption extends StandardMacroExtension {
           override val empty: Expr[A] =
             fromOption(Expr.quote(scala.Option.empty[Item])) // TODO: Expr(None) is not compiling
           override def of(value: Expr[Item]): Expr[A] =
-            fromOption(Expr.quote(Some(Expr.splice(value))))
+            fromOption(Expr.quote(scala.Some(Expr.splice(value))))
           override def fold[B: Type](option: Expr[A])(onEmpty: Expr[B], onSome: Expr[Item] => Expr[B]): Expr[B] =
             Expr.quote {
               Expr
@@ -40,11 +41,13 @@ final class IsOptionProviderForScalaOption extends StandardMacroExtension {
 
       @scala.annotation.nowarn
       override def unapply[A](tpe: Type[A]): Option[IsOption[A]] = tpe match {
-        case Option(item) =>
+        case Some(_) => scala.None // Some is a special case, cannot be empty
+        case Option(item)
+            if !(item.Underlying =:= Type.of[Nothing]) /* Nothing is a special case, cannot be of something */ =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
           implicit val OptionItem: Type[Option[Item]] = Option[Item]
-          Some(isOption[A, Item](_.upcast[Option[Item]], _.upcast[A]))
+          scala.Some(isOption[A, Item](_.upcast[Option[Item]], _.upcast[A]))
         case _ => None
       }
     })

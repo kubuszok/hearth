@@ -22,43 +22,50 @@ final class IsEitherProviderForScalaTry extends StandardMacroExtension {
       private lazy val Throwable = Type.of[Throwable]
 
       private def isTry[A: Type, Item](
-          item: Type[Item],
           toTry: Expr[A] => Expr[Try[Item]],
           fromTry: Expr[Try[Item]] => Expr[A]
-      ): IsEither[A] = new IsEither[A] {
+      )(implicit Item: Type[Item]): IsEither[A] = {
+        val impl = new IsEitherOf[A, Throwable, Item] {
+          implicit private val Throwable0: Type[Throwable] = Throwable
 
-        override type LeftValue = Throwable
-        implicit override val LeftValue: Type[LeftValue] = Throwable
+          override def left(leftValue: Expr[Throwable]): Expr[A] =
+            fromTry(Expr.quote(Failure(Expr.splice(leftValue))))
 
-        override type RightValue = Item
-        implicit override val RightValue: Type[RightValue] = item
+          override def right(rightValue: Expr[Item]): Expr[A] =
+            fromTry(Expr.quote(Success(Expr.splice(rightValue))))
 
-        override def left(leftValue: Expr[LeftValue]): Expr[A] =
-          fromTry(Expr.quote(Failure(Expr.splice(leftValue))))
+          override def fold[B: Type](
+              `try`: Expr[A]
+          )(onLeft: Expr[Throwable] => Expr[B], onRight: Expr[Item] => Expr[B]): Expr[B] =
+            Expr.quote {
+              Expr
+                .splice(toTry(`try`))
+                .toEither
+                .fold[B](
+                  Expr.splice(LambdaBuilder.of1[Throwable]("failure").buildWith(onLeft)),
+                  Expr.splice(LambdaBuilder.of1[Item]("success").buildWith(onRight))
+                )
+            }
 
-        override def right(rightValue: Expr[RightValue]): Expr[A] =
-          fromTry(Expr.quote(Success(Expr.splice(rightValue))))
+          override def getOrElse(`try`: Expr[A])(default: Expr[Item]): Expr[Item] =
+            Expr.quote {
+              Expr.splice(toTry(`try`)).getOrElse(Expr.splice(default))
+            }
 
-        override def fold[B: Type](
-            `try`: Expr[A]
-        )(onLeft: Expr[LeftValue] => Expr[B], onRight: Expr[RightValue] => Expr[B]): Expr[B] =
-          Expr.quote {
-            Expr
-              .splice(toTry(`try`))
-              .toEither
-              .fold[B](
-                Expr.splice(LambdaBuilder.of1[LeftValue]("success").buildWith(onLeft)),
-                Expr.splice(LambdaBuilder.of1[RightValue]("failure").buildWith(onRight))
-              )
-          }
+          override def orElse(`try`: Expr[A])(default: Expr[A]): Expr[A] =
+            fromTry(Expr.quote(Expr.splice(toTry(`try`)).orElse(Expr.splice(toTry(default)))))
+        }
 
-        override def getOrElse(`try`: Expr[A])(default: Expr[RightValue]): Expr[RightValue] =
-          Expr.quote {
-            Expr.splice(toTry(`try`)).getOrElse(Expr.splice(default))
-          }
+        new IsEither[A] {
 
-        override def orElse(`try`: Expr[A])(default: Expr[A]): Expr[A] =
-          fromTry(Expr.quote(Expr.splice(toTry(`try`)).orElse(Expr.splice(toTry(default)))))
+          override type LeftValue = Throwable
+          implicit override val LeftValue: Type[LeftValue] = Throwable
+
+          override type RightValue = Item
+          implicit override val RightValue: Type[RightValue] = Item
+
+          override val value: IsEitherOf[A, Throwable, Item] = impl
+        }
       }
 
       @scala.annotation.nowarn
@@ -67,7 +74,7 @@ final class IsEitherProviderForScalaTry extends StandardMacroExtension {
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
           implicit val TryItem: Type[Try[Item]] = Try[Item]
-          Some(isTry[A, Item](Item, _.upcast[Try[Item]], _.upcast[A]))
+          Some(isTry[A, Item](_.upcast[Try[Item]], _.upcast[A]))
         case _ => None
       }
     })
