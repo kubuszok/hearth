@@ -445,7 +445,9 @@ final class StdExtensionsSpec extends MacroSuite {
           )
         )
         testIsCollection(Array("one", "two", "three")) <==> Data.map(
-          "building" -> Data(if (Platform.byHearth.isNative) "scala.scalanative.runtime.ObjectArray" else "[Ljava.lang.String"),
+          "building" -> Data(
+            if (Platform.byHearth.isNative) "scala.scalanative.runtime.ObjectArray" else "[Ljava.lang.String"
+          ),
           "iteration" -> Data.list(
             Data("one"),
             Data("two"),
@@ -455,8 +457,101 @@ final class StdExtensionsSpec extends MacroSuite {
       }
     }
 
-    // TODO: IsOption
-    // TODO: IsEither
-    // TODO: IsValueType
+    group("class: IsOption[A], returns preprocessed option") {
+      import StdExtensionsFixtures.testIsOption
+
+      test("for Scala Option") {
+        testIsOption(Option("value")) <==> Data.map(
+          "folding" -> Data("some: value"),
+          "getOrElse" -> Data("value"),
+          "building" -> Data.map(
+            "some" -> Data("Some(test)"),
+            "empty" -> Data("None")
+          )
+        )
+        testIsOption(Option.empty[String]) <==> Data.map(
+          "folding" -> Data("empty"),
+          "getOrElse" -> Data("default"),
+          "building" -> Data.map(
+            "some" -> Data("Some(test)"),
+            "empty" -> Data("None")
+          )
+        )
+        // Do not have both Some and None, without upcasting they are missing something.
+        testIsOption(Some("value")) <==> Data("<no option>")
+        testIsOption(None) <==> Data("<no option>")
+      }
+    }
+
+    group("class: IsEither[A], returns preprocessed either") {
+      import StdExtensionsFixtures.testIsEither
+
+      test("for Scala Either") {
+        testIsEither(Left("error"): Either[String, Int]) <==> Data.map(
+          "folding" -> Data("left: error"),
+          "getOrElse" -> Data("<not an either with string right>"),
+          "building" -> Data.map(
+            "left" -> Data("Left(error)"),
+            "right" -> Data("Right(42)")
+          )
+        )
+        testIsEither(Right(42): Either[String, Int]) <==> Data.map(
+          "folding" -> Data("right: 42"),
+          "getOrElse" -> Data("<not an either with string right>"),
+          "building" -> Data.map(
+            "left" -> Data("Left(error)"),
+            "right" -> Data("Right(42)")
+          )
+        )
+
+        testIsEither(Left("error"): Either[String, String]) <==> Data.map(
+          "folding" -> Data("left: error"),
+          "getOrElse" -> Data("default"),
+          "building" -> Data.map(
+            "left" -> Data("<not an either of string and int>"),
+            "right" -> Data("<not an either of string and int>")
+          )
+        )
+        testIsEither(Right("value"): Either[String, String]) <==> Data.map(
+          "folding" -> Data("right: value"),
+          "getOrElse" -> Data("value"),
+          "building" -> Data.map(
+            "left" -> Data("<not an either of string and int>"),
+            "right" -> Data("<not an either of string and int>")
+          )
+        )
+      }
+
+      test("for Scala Try") {
+        testIsEither(scala.util.Success("value"): scala.util.Try[String]) <==> Data.map(
+          "folding" -> Data("right: value"),
+          "getOrElse" -> Data("value"),
+          "building" -> Data.map(
+            "left" -> Data("<not an either of string and int>"),
+            "right" -> Data("<not an either of string and int>")
+          )
+        )
+        testIsEither(scala.util.Failure(new Exception("error")): scala.util.Try[String]) <==> Data.map(
+          "folding" -> Data("left: java.lang.Exception: error"),
+          "getOrElse" -> Data("default"),
+          "building" -> Data.map(
+            "left" -> Data("<not an either of string and int>"),
+            "right" -> Data("<not an either of string and int>")
+          )
+        )
+      }
+    }
+
+    group("class: IsValueType[A], returns preprocessed value type") {
+      import StdExtensionsFixtures.testIsValueType
+      import hearth.examples.ExampleValueClass
+
+      test("for ExampleValueClass") {
+        testIsValueType(ExampleValueClass(42)) <==> Data.map(
+          "unwrapping" -> Data("unwrapped: 42"),
+          "wrapping" -> Data("<not a value type of string>")
+        )
+      }
+    }
   }
 }

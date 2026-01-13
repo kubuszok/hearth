@@ -190,8 +190,6 @@ trait StdExtensions { this: MacroCommons =>
         case isCollection if isCollection.value.isInstanceOf[IsMapOf[?, ?]] =>
           isCollection.asInstanceOf[IsMap[A]]
       }
-
-    // TODO: provide a support for built-in maps, java's Map, etc
   }
 
   /** Proof that the type is an option of the given item type.
@@ -244,8 +242,6 @@ trait StdExtensions { this: MacroCommons =>
 
     def unapply[A](tpe: Type[A]): Option[IsOption[A]] =
       providers.view.map(_.unapply(tpe)).collectFirst { case Some(option) => option }
-
-    // TODO: provide a support for built-in options, java's Optional, etc
   }
 
   /** Proof that the type is an either of the given left and right types.
@@ -257,8 +253,31 @@ trait StdExtensions { this: MacroCommons =>
     *   - make it possible to extend the support for custom eithers coming from other libraries just by providing a std
     *     extension for macro, that would be loaded from the classpath
     *
-    * IsEither has no corresponding IsEitherOf, because it is not possible to express the left and right types as a
-    * single existential type.
+    * @tparam EitherLR
+    *   the type of the either with applied left and right type
+    * @tparam LeftValue
+    *   the type of the left value
+    * @tparam RightValue
+    *   the type of the right value
+    *
+    * @since 0.3.0
+    */
+  trait IsEitherOf[EitherLR, LeftValue, RightValue] {
+
+    def left(leftValue: Expr[LeftValue]): Expr[EitherLR]
+
+    def right(rightValue: Expr[RightValue]): Expr[EitherLR]
+
+    def fold[A: Type](
+        either: Expr[EitherLR]
+    )(onLeft: Expr[LeftValue] => Expr[A], onRight: Expr[RightValue] => Expr[A]): Expr[A]
+
+    def getOrElse(either: Expr[EitherLR])(default: Expr[RightValue]): Expr[RightValue]
+
+    def orElse(either: Expr[EitherLR])(default: Expr[EitherLR]): Expr[EitherLR]
+  }
+
+  /** Specialization for Existential type for IsEitherOf that provides the left and right types as existential types.
     *
     * @tparam EitherLR
     *   the type of the either with applied left and right type
@@ -275,17 +294,7 @@ trait StdExtensions { this: MacroCommons =>
     @ImportedCrossTypeImplicit
     implicit val RightValue: Type[RightValue]
 
-    def left(leftValue: Expr[LeftValue]): Expr[EitherLR]
-
-    def right(rightValue: Expr[RightValue]): Expr[EitherLR]
-
-    def fold[A: Type](
-        either: Expr[EitherLR]
-    )(onLeft: Expr[LeftValue] => Expr[A], onRight: Expr[RightValue] => Expr[A]): Expr[A]
-
-    def getOrElse(either: Expr[EitherLR])(default: Expr[RightValue]): Expr[RightValue]
-
-    def orElse(either: Expr[EitherLR])(default: Expr[EitherLR]): Expr[EitherLR]
+    def value: IsEitherOf[EitherLR, LeftValue, RightValue]
   }
   object IsEither {
     private val providers = scala.collection.mutable.ListBuffer[Provider]()
