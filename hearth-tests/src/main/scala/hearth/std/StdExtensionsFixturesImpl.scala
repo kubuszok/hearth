@@ -19,8 +19,8 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       Environment.reportErrorAndAbort(
         "Failed to load standard extensions: " + errors.toNonEmptyVector.map(_._2).mkString("\n")
       )
-    case ExtensionLoadingResult.AllLoaded(extensions) =>
-      Environment.reportInfo("Loaded standard extensions: " + extensions.map(_.getClass.getName).mkString("\n"))
+    case ExtensionLoadingResult.AllLoaded(_) =>
+    // Environment.reportInfo("Loaded standard extensions: " + extensions.map(_.getClass.getName).mkString("\n"))
   }
 
   def testIsCollection[A: Type](value: Expr[A]): Expr[Data] = Type[A] match {
@@ -92,11 +92,14 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       }
 
       val handleBuilder = handleSmartConstructor(isCollection.value.build) { a =>
-        Expr.quote(Data(Expr.splice(a).toString))
+        if (Type[A].isArray)
+          Expr.quote(Data(Expr.splice(a).toString.takeWhile(c => c != ';' && c != '@')))
+        else Expr.quote(Data(Expr.splice(a).toString))
       }
       val building = if (Item <:< StringType) Expr.quote {
         val b = Expr.splice(isCollection.value.factory).newBuilder
-        b.addOne(Expr.splice(Expr("one").upcast[Item]))
+        val item = Expr.splice(Expr("one").upcast[Item])
+        b.addOne(item)
         Expr.splice(handleBuilder(Expr.quote(b)))
       }
       else Expr(Data("<not a collection of string>"))

@@ -3241,7 +3241,10 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       finder.traverse(enclosingClass)
     }
 
-    importedNames.toList.distinctBy(_._2) // perhaps we should use _._1 instead?
+    // We do NOT deduplacate here, because we want to keep the order of imports,
+    // AND we may want to check e.g. if there are actual implicits for these,
+    // before we deduplicate them.
+    importedNames.toList
   } catch { case _: Throwable => Nil }
 
   // Expr utilities
@@ -3273,7 +3276,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         if (loggingEnabled) {
           println(
             s"""Stubbed source:
-               |${showCodePretty(source, SyntaxHighlight.ANSI)}
+               |${indent(showCodePretty(source, SyntaxHighlight.ANSI))}
                |""".stripMargin
           )
         }
@@ -3296,13 +3299,20 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       .tap { source =>
         if (loggingEnabled) {
           println(
-            s"""Parsed source:
+            s"""Parsing source:
                |${indent(paint(Console.BLUE)(source))}
                |""".stripMargin
           )
         }
       }
       .pipe(c.parse(_))
+      .tap { tree =>
+        if (loggingEnabled) {
+          println(s"""Parsed source:
+                     |${indent(showCodePretty(tree, SyntaxHighlight.ANSI))}
+                     |""".stripMargin)
+        }
+      }
   }
 
   /** Handles type parameters and imported value.Underlying inside Expr.quote: Expr.quote { def foo[A] = ... // use A },
@@ -3371,6 +3381,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         byType.orElse(byName).map { cache =>
           cachesAliases += (name -> cache)
           cachesAliases += (s"$name.type" -> cache)
+          cachesAliases += (showCodePretty(tpe, SyntaxHighlight.plain) -> cache)
           tpe -> cache
         }
       }.toMap

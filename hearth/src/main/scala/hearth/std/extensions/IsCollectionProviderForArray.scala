@@ -124,7 +124,9 @@ final class IsCollectionProviderForArray extends StandardMacroExtension {
                     }
                   }
                 } else if (Item <:< AnyRef) {
-                  adjust[AnyRef] { value =>
+                  val anyRefItem = Item.asInstanceOf[Type[AnyRef]].as_??<:[AnyRef]
+                  import anyRefItem.Underlying as AnyRefItem
+                  adjust[AnyRefItem] { value =>
                     Expr.quote {
                       scala.Predef.wrapRefArray(Expr.splice(value))
                     }
