@@ -3152,14 +3152,14 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
   /* If implicit was imported from tpe.Underlying or defined as implicit val/def/given,
    * it will be ignored by the c.weakTypeTag[Tpe] - so tpe.Underlying that appears inside Tpe will be resolved
    * to WeakTypeTag of the local variable, not of the type represented by tpe.Underlying.
-   * 
+   *
    * Only WeakTypeTags corresponding to type parameters' of encloding def are considered, which is why we need to rewrite the tree into:
 
    * {{{
    * def $workaround[A1, B, ...](implicit A1: $ctx.WeakTypeTag[A1], B: $ctx.WeakTypeTag[B], ...) = $ctx.weakTypeTag[...] // use A1, B2, ...
    * $workaround[A, B, ...](A.asInstanceOf[$ctx.WeakTypeTag[A]], B.asInstanceOf[$ctx.WeakTypeTag[B]], ...)
    * }}}
-   * 
+   *
    * and only then WeakTypeTag could be correctly resolved.
    */
   private def TypeWithUnderlyingInjected(ctx: TermName, weakTypeTagOf: c.Tree, excluding: TypeName*): c.Tree = {
