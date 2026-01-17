@@ -29,14 +29,33 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
       private lazy val Long = Type.of[Long]
       private lazy val Double = Type.of[Double]
 
+      // TODO: we have a bug in Type.Ctor:
+      // When I do Type.Ctor2.of[scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo]
+      // and then apply it, it is printed as:
+      //   scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo[Item, Iterable[Item]]
+      // BUT
+      //   it's resolved in implicit resolution as:
+      //     scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo.noAccumulatorFactoryInfo[Item, Type.Ctor1.Apply[Any, Nothing, Iterable, Item]]
+      // for some reason Type.Ctor1.Apply is not dealiased, I've spent several hours on that with no progress, so for now I am making a workaround.
+      private def accumulatorFactoryInfo[Item: Type]
+          : Type[scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo[Item, Iterable[Item]]] =
+        Type.of[scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo[Item, Iterable[Item]]]
+
       private def isStream[A, Item: Type](
           A: Type[A],
-          toStreamExpr: Expr[A] => Expr[java.util.stream.Stream[Item]]
+          toStreamExpr: Expr[A] => Expr[java.util.stream.Stream[Item]],
+          accumulatorFactoryInfoExpr: Expr[
+            scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo[Item, Iterable[Item]]
+          ]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
-          // We will use scala.jdk.StreamConverters.StreamHasToScala to convert the stream to Iterable.
+          // TODO: Investigate why the resolved implicit it's printed as:
+          //   (StreamExtensions.this.AccumulatorFactoryInfo.noAccumulatorFactoryInfo[java.lang.String, scala.collection.Iterable[java.lang.String]])
+          // when it should be:
+          //   (scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo....).
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
-            new scala.jdk.StreamConverters.StreamHasToScala(Expr.splice(toStreamExpr(value))).toScala(Iterable)
+            new scala.jdk.StreamConverters.StreamHasToScala(Expr.splice(toStreamExpr(value)))
+              .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
           }
           // Java streams have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
@@ -61,16 +80,23 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
 
       private def isIntStream[A](
           A: Type[A],
-          toIntStreamExpr: Expr[A] => Expr[java.util.stream.IntStream]
+          toIntStreamExpr: Expr[A] => Expr[java.util.stream.IntStream],
+          accumulatorFactoryInfoExpr: Expr[
+            scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo[Int, Iterable[Int]]
+          ]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Int](new IsCollectionOf[A, Int] {
           // We will use scala.jdk.StreamConverters.IntStreamHasToScala to convert the stream to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Int]] = Expr.quote {
-            new scala.jdk.StreamConverters.IntStreamHasToScala(Expr.splice(toIntStreamExpr(value))).toScala(Iterable)
+            new scala.jdk.StreamConverters.IntStreamHasToScala(Expr.splice(toIntStreamExpr(value)))
+              .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
           }
           // Java int streams have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
+          // TODO:
+          // Without `this.` on Scala 2 we're getting code like $newBuilder, $cast, $impl - which does not compile.
+          // We should make a proper fix to printing this types.
           override val factory: Expr[scala.collection.Factory[Int, PossibleSmartResult]] = Expr.quote {
             new scala.collection.Factory[Int, A] {
               override def newBuilder: scala.collection.mutable.Builder[Int, A] =
@@ -91,12 +117,16 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
 
       private def isLongStream[A](
           A: Type[A],
-          toLongStreamExpr: Expr[A] => Expr[java.util.stream.LongStream]
+          toLongStreamExpr: Expr[A] => Expr[java.util.stream.LongStream],
+          accumulatorFactoryInfoExpr: Expr[
+            scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo[Long, Iterable[Long]]
+          ]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Long](new IsCollectionOf[A, Long] {
           // We will use scala.jdk.StreamConverters.LongStreamHasToScala to convert the stream to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Long]] = Expr.quote {
-            new scala.jdk.StreamConverters.LongStreamHasToScala(Expr.splice(toLongStreamExpr(value))).toScala(Iterable)
+            new scala.jdk.StreamConverters.LongStreamHasToScala(Expr.splice(toLongStreamExpr(value)))
+              .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
           }
           // Java long streams have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
@@ -121,13 +151,16 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
 
       private def isDoubleStream[A](
           A: Type[A],
-          toDoubleStreamExpr: Expr[A] => Expr[java.util.stream.DoubleStream]
+          toDoubleStreamExpr: Expr[A] => Expr[java.util.stream.DoubleStream],
+          accumulatorFactoryInfoExpr: Expr[
+            scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo[Double, Iterable[Double]]
+          ]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Double](new IsCollectionOf[A, Double] {
           // We will use scala.jdk.StreamConverters.DoubleStreamHasToScala to convert the stream to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Double]] = Expr.quote {
             new scala.jdk.StreamConverters.DoubleStreamHasToScala(Expr.splice(toDoubleStreamExpr(value)))
-              .toScala(Iterable)
+              .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
           }
           // Java double streams have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
@@ -153,21 +186,29 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
       override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {
         case _ if tpe =:= juIntStream =>
           implicit val A: Type[A] = tpe
-          implicit val IntStream: Type[java.util.stream.IntStream] = juIntStream
-          Some(isIntStream[A](A, _.upcast[java.util.stream.IntStream]))
+          Expr.summonImplicit(using accumulatorFactoryInfo(using Int)).toOption.map { accumulatorFactoryInfoExpr =>
+            implicit val IntStream: Type[java.util.stream.IntStream] = juIntStream
+            isIntStream[A](A, _.upcast[java.util.stream.IntStream], accumulatorFactoryInfoExpr)
+          }
         case _ if tpe =:= juLongStream =>
           implicit val A: Type[A] = tpe
-          implicit val LongStream: Type[java.util.stream.LongStream] = juLongStream
-          Some(isLongStream[A](A, _.upcast[java.util.stream.LongStream]))
+          Expr.summonImplicit(using accumulatorFactoryInfo(using Long)).toOption.map { accumulatorFactoryInfoExpr =>
+            implicit val LongStream: Type[java.util.stream.LongStream] = juLongStream
+            isLongStream[A](A, _.upcast[java.util.stream.LongStream], accumulatorFactoryInfoExpr)
+          }
         case _ if tpe =:= juDoubleStream =>
           implicit val A: Type[A] = tpe
-          implicit val DoubleStream: Type[java.util.stream.DoubleStream] = juDoubleStream
-          Some(isDoubleStream[A](A, _.upcast[java.util.stream.DoubleStream]))
+          Expr.summonImplicit(using accumulatorFactoryInfo(using Double)).toOption.map { accumulatorFactoryInfoExpr =>
+            implicit val DoubleStream: Type[java.util.stream.DoubleStream] = juDoubleStream
+            isDoubleStream[A](A, _.upcast[java.util.stream.DoubleStream], accumulatorFactoryInfoExpr)
+          }
         case juStream(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
-          implicit val StreamItem: Type[java.util.stream.Stream[Item]] = juStream[Item]
-          Some(isStream[A, Item](A, _.upcast[java.util.stream.Stream[Item]]))
+          Expr.summonImplicit(using accumulatorFactoryInfo[Item]).toOption.map { accumulatorFactoryInfoExpr =>
+            implicit val StreamItem: Type[java.util.stream.Stream[Item]] = juStream[Item]
+            isStream[A, Item](A, _.upcast[java.util.stream.Stream[Item]], accumulatorFactoryInfoExpr)
+          }
         case _ => None
       }
     })

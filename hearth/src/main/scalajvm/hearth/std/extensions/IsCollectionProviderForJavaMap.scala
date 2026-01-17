@@ -33,6 +33,10 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
       private lazy val juWeakHashMap = Type.Ctor2.of[java.util.WeakHashMap]
       private lazy val juIdentityHashMap = Type.Ctor2.of[java.util.IdentityHashMap]
 
+      // TODO: Same issue as in IsCollectionProviderForJavaStream.scala: we have a bug in Type.Ctor.
+      // private lazy val Entry = Type.Ctor2.of[java.util.Map.Entry]
+      private def Entry[A: Type, B: Type]: Type[java.util.Map.Entry[A, B]] = Type.of[java.util.Map.Entry[A, B]]
+
       private lazy val Entry = Type.Ctor2.of[java.util.Map.Entry]
 
       private def isMap[Map0[K, V] <: java.util.Map[K, V], Key0, Value0, A <: Map0[Key0, Value0]](
@@ -40,7 +44,10 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
           Map0: Type.Ctor2[Map0],
           emptyMapExpr: Expr[A],
           keyType: Type[Key0],
-          valueType: Type[Value0]
+          valueType: Type[Value0],
+          keyExpr: Expr[java.util.Map.Entry[Key0, Value0]] => Expr[Key0],
+          valueExpr: Expr[java.util.Map.Entry[Key0, Value0]] => Expr[Value0],
+          pairExpr: (Expr[Key0], Expr[Value0]) => Expr[java.util.Map.Entry[Key0, Value0]]
       ): IsCollection[A] = {
         type Pair = java.util.Map.Entry[Key0, Value0]
         implicit val Pair: Type[Pair] = Entry[Key0, Value0](keyType, valueType)
@@ -69,15 +76,15 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
             PossibleSmartCtor.PlainValue { (expr: Expr[scala.collection.mutable.Builder[Pair, PossibleSmartResult]]) =>
               Expr.quote(Expr.splice(expr).result())
             }
-
+          // Key and Value expressions are provided from the outside
           override type Key = Key0
           implicit override val Key: Type[Key] = keyType
           override type Value = Value0
           implicit override val Value: Type[Value] = valueType
-          override def key(pair: Expr[Pair]): Expr[Key] = Expr.quote(Expr.splice(pair).getKey())
-          override def value(pair: Expr[Pair]): Expr[Value] = Expr.quote(Expr.splice(pair).getValue())
-          override def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair] =
-            Expr.quote(java.util.Map.entry(Expr.splice(key), Expr.splice(value)))
+          // FIXME: We pass these from the outside, because Cross-Quotes on Scala 2 was missing Key and Value type substitution.
+          override def key(pair: Expr[Pair]): Expr[Key] = keyExpr(pair)
+          override def value(pair: Expr[Pair]): Expr[Value] = valueExpr(pair)
+          override def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair] = pairExpr(key, value)
         })
       }
 
@@ -88,16 +95,44 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
             keyType: Type[Key],
             valueType: Type[Value]
         ): Option[IsCollection[A]] =
-          isMap[Map0, Key, Value, Map0[Key, Value]](
-            tpe.asInstanceOf[Type[Map0[Key, Value]]],
-            map,
-            emptyMapExpr.asInstanceOf[Expr[Map0[Key, Value]]],
-            keyType,
-            valueType
+          Some(
+            isMap[Map0, Key, Value, Map0[Key, Value]](
+              tpe.asInstanceOf[Type[Map0[Key, Value]]],
+              map,
+              emptyMapExpr.asInstanceOf[Expr[Map0[Key, Value]]],
+              keyType,
+              valueType,
+              (pair: Expr[java.util.Map.Entry[Key, Value]]) => Expr.quote(Expr.splice(pair).getKey()),
+              (pair: Expr[java.util.Map.Entry[Key, Value]]) => Expr.quote(Expr.splice(pair).getValue()),
+              (key: Expr[Key], value: Expr[Value]) =>
+                Expr.quote(java.util.Map.entry(Expr.splice(key), Expr.splice(value)))
+            ).asInstanceOf[IsCollection[A]]
           )
-            .asInstanceOf[Option[IsCollection[A]]]
 
-        // format: off
+        // tpe is handled by one of Map's subclasses OR it's exactly Map[Key, Value]
+        // so we can safely provide any implementation. Or we yield.
+        def node[Map0[K, V] <: java.util.Map[K, V], Map2[K, V] <: Map0[K, V], Key: Type, Value: Type](
+            ctor: Type.Ctor2[Map0],
+            emptyExpr: => Expr[Map2[Key, Value]]
+        )(
+            forSubtype: => Option[IsCollection[A]]
+        ): Option[IsCollection[A]] = {
+          val map = ctor[Key, Value]
+          if (tpe <:< map) {
+            forSubtype orElse {
+              if (tpe =:= map) isMapOf(ctor, emptyExpr, Type[Key], Type[Value])
+              else None
+            }
+          } else None
+        }
+        // tpe is exactly Map[Key, Value], so we can provide a specific implementation. Or we yield.
+        def leaf[Map0[K, V] <: java.util.Map[K, V], Map2[K, V] <: Map0[K, V], Key: Type, Value: Type](
+            ctor: Type.Ctor2[Map0],
+            emptyExpr: => Expr[Map2[Key, Value]]
+        ): Option[IsCollection[A]] =
+          if (tpe =:= ctor[Key, Value]) isMapOf(ctor, emptyExpr, Type[Key], Type[Value])
+          else None
+
         tpe match {
           case juMap(key, value) =>
             import key.Underlying as Key
@@ -106,36 +141,38 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
             implicit lazy val OrderingKey: Type[Ordering[Key]] = Ordering[Key]
             lazy val orderingExprOpt = Expr.summonImplicit[Ordering[Key]].toOption
 
-            tpe match {
-              case juAbstractMap(key, value) => tpe match {
-                case juHashMap(_, _) => tpe match {
-                  case juLinkedHashMap(_, _) => isMapOf(juLinkedHashMap, Expr.quote(new java.util.LinkedHashMap[Key, Value]), Key, Value)
-                  // handle remaining java.util.HashMaps as java.util.HashMap
-                  case _ => isMapOf(juHashMap, Expr.quote(new java.util.HashMap[Key, Value]), Key, Value)
-                }
-                case juSortedMap(_, _) if orderingExprOpt.isDefined =>
-                  val orderingExpr = orderingExprOpt.get
-                  tpe match {
-                    case juNavigableMap(_, _) => tpe match {
-                      case juTreeMap(_, _) => isMapOf(juTreeMap, Expr.quote(new java.util.TreeMap[Key, Value](Expr.splice(orderingExpr))), Key, Value)
-                      // handle remaining java.util.NavigableMaps as java.util.TreeMap
-                      case _ => isMapOf(juNavigableMap, Expr.quote(new java.util.TreeMap[Key, Value](Expr.splice(orderingExpr))), Key, Value)
-                    }
-                    // handle remaining java.util.SortedMaps as java.util.NavigableMap as java.util.TreeMap
-                    case _ => isMapOf(juNavigableMap, Expr.quote(new java.util.TreeMap[Key, Value](Expr.splice(orderingExpr))), Key, Value)
-                  }
-                case juWeakHashMap(_, _) => isMapOf(juWeakHashMap, Expr.quote(new java.util.WeakHashMap[Key, Value]), Key, Value)
-                case juIdentityHashMap(_, _) => isMapOf(juIdentityHashMap, Expr.quote(new java.util.IdentityHashMap[Key, Value]), Key, Value)
-                // TODO: handle java.util.EnumMaps
-                // handle remaining java.util.AbstractMaps as java.util.HashMap
-                case _ => isMapOf(juAbstractMap, Expr.quote(new java.util.HashMap[Key, Value]), Key, Value)
+            // based on https://docs.oracle.com/javase/8/docs/api/java/util/package-tree.html
+            def classHierarchy = node(juAbstractMap, Expr.quote(new java.util.HashMap[Key, Value])) {
+              node(juHashMap, Expr.quote(new java.util.HashMap[Key, Value])) {
+                leaf(juLinkedHashMap, Expr.quote(new java.util.LinkedHashMap[Key, Value]))
               }
-              // handle remaining java.util.Maps as java.util.AbstractMap as java.util.HashMap
-              case _ => isMapOf(juMap, Expr.quote(new java.util.HashMap[Key, Value]), Key, Value)
+                .orElse(
+                  orderingExprOpt.flatMap { orderingExpr =>
+                    node(juSortedMap, Expr.quote(new java.util.TreeMap[Key, Value](Expr.splice(orderingExpr)))) {
+                      node(juNavigableMap, Expr.quote(new java.util.TreeMap[Key, Value](Expr.splice(orderingExpr)))) {
+                        leaf(juTreeMap, Expr.quote(new java.util.TreeMap[Key, Value](Expr.splice(orderingExpr))))
+                      }
+                    }
+                  }
+                )
+                .orElse(leaf(juWeakHashMap, Expr.quote(new java.util.WeakHashMap[Key, Value])))
+                .orElse(leaf(juIdentityHashMap, Expr.quote(new java.util.IdentityHashMap[Key, Value])))
+              // TODO: handle java.util.EnumMaps
             }
+            def interfaceHierarchy = node(juMap, Expr.quote(new java.util.HashMap[Key, Value])) {
+              orderingExprOpt
+                .flatMap { orderingExpr =>
+                  node(juSortedMap, Expr.quote(new java.util.TreeMap[Key, Value](Expr.splice(orderingExpr)))) {
+                    node(juNavigableMap, Expr.quote(new java.util.TreeMap[Key, Value](Expr.splice(orderingExpr)))) {
+                      leaf(juTreeMap, Expr.quote(new java.util.TreeMap[Key, Value](Expr.splice(orderingExpr))))
+                    }
+                  }
+                }
+            }
+
+            classHierarchy orElse interfaceHierarchy
           case _ => None
         }
-        // format: on
       }
     })
   }

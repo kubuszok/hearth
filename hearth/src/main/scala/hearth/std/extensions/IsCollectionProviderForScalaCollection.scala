@@ -60,12 +60,13 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           implicit override val Key: Type[Key] = keyType
           override type Value = Value0
           implicit override val Value: Type[Value] = valueType
+          // We pass these from the outside, because Cross-Quotes on Scala 2 was missing Key and Value type substitution.
           override def key(pair: Expr[Pair]): Expr[Key] = keyExpr(pair)
           override def value(pair: Expr[Pair]): Expr[Value] = valueExpr(pair)
           override def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair] = pairExpr(key, value)
         })
 
-      // TODO: we had to make a workaround because we got:
+      // FIXME: we had to make a workaround because we got:
       //   scala.collection.Factory[scala.Tuple2[java.lang.String, scala.Int], <none>.A]
       // when it was inlined. We should find a proper solution for this.
       private def findFactory[A: Type, Item: Type]: SummoningResult[scala.collection.Factory[Item, A]] =

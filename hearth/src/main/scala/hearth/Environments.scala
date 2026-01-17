@@ -96,6 +96,9 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
         val actualLine = currentPosition.line
         val lineMatches = scala.util.Try(line.toInt).toOption.contains(actualLine)
         fileMatches && lineMatches
+      case _ if compilationLogPosition.endsWith(".scala") =>
+        val fileMatches = currentPosition.file.exists(_.toString.endsWith(compilationLogPosition))
+        fileMatches
       case _ => reportErrorAndAbort(s"Invalid position: $compilationLogPosition")
     }
     private val fileLineRegex = """^(.+):(\d+)$""".r
