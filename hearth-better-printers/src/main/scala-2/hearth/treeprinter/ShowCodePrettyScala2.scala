@@ -205,7 +205,7 @@ trait ShowCodePrettyScala2 {
       // replaces CodePrinter with HighlighedCodePrinter
       override protected def resolveSelect(t: Tree): String = t match {
         // Skip $anon.this - syntethic $anon class was removed so we need to remove the prefix as well.
-        case Select(AnonThis(), name) => ""
+        case Select(AnonThis(), name) => printedName(name)
         case AnonThis()               => ""
         // Handle this-types.
         case Select(t2 @ This(thisName), name) =>
@@ -889,11 +889,9 @@ trait ShowCodePrettyScala2 {
             if (!isEmptyTree(tt)) {
               val original = tt.original
               // Prevents assertionErrors when printing stubs used by Cross-Quotes.
-              def isAnonymousClass = try {
+              def isAnonymousClass = bestEffort {
                 (tree.tpe.typeSymbol ne null) && tree.tpe.typeSymbol.isAnonymousClass
-              } catch {
-                case _: Throwable => false
-              }
+              }(false)
               if (original != null) print(original)
               // Note: copy-paste-modified (and inlined) from TreePrinter.printTree
               else if ((tree.tpe eq null) || (printPositions && tt.original != null)) {
@@ -925,11 +923,9 @@ trait ShowCodePrettyScala2 {
 
           case AppliedTypeTree(tp, args) =>
             // Prevents assertionErrors when printing stubs used by Cross-Quotes.
-            def isByNameParam(tree: Tree) = try
+            def isByNameParam(tree: Tree) = bestEffort {
               treeInfo.isByNameParamType(tree)
-            catch {
-              case _: Throwable => false
-            }
+            }(false)
 
             // it's possible to have (=> String) => String type but Function1[=> String, String] is not correct
             val containsByNameTypeParam = args exists isByNameParam
@@ -1096,13 +1092,7 @@ trait ShowCodePrettyScala2 {
             while (it.hasNext) {
               val next = it.next()
               // Prevents assertionErrors when printing stubs used by Cross-Quotes.
-              print(
-                try
-                  next.dealias // TODO: why it does not propagate?
-                catch {
-                  case _: Throwable => next
-                }
-              )
+              print(bestEffort(next.dealias)(next)) // TODO: why it does not propagate?
               if (it.hasNext) print(", ")
             }
             print("]")
@@ -1154,10 +1144,18 @@ trait ShowCodePrettyScala2 {
       }
 
       override def print(args: Any*): Unit = args foreach {
-        case tpe: Type  => processTypePrinting(tpe, isLastInChain = true)
+        case tpe: Type  => processTypePrinting(bestEffort(tpe.dealias)(tpe), isLastInChain = true)
         case tree: Tree => processTreePrinting(tree)
         case arg        => super.print(arg)
       }
+
+      // Prevents assertionErrors when printing stubs used by Cross-Quotes.
+      private def bestEffort[A](attempt: => A)(fallback: => A): A =
+        try
+          attempt
+        catch {
+          case _: Throwable => fallback
+        }
 
       // $COVERAGE-OFF$ Should only be triggered by error we don't know about
       private def codeForError(tree: Tree): String =
@@ -1324,14 +1322,18 @@ trait ShowCodePrettyScala2 {
             else
               print(
                 highlightTripleQs,
-                " /* Symbol of ",
-                highlightKeyword(sym.keyString.trim),
-                " ",
+                " /* Symbol of ", {
+                  val kw = sym.keyString
+                  if (kw.isEmpty) ""
+                  else (highlightKeyword(kw) + " ")
+                },
                 if (sym.isStatic && (sym.isClass || sym.isModule)) highlightTypeDef(sym.fullName)
-                else highlightValDef(sym.name.decoded.toString),
-                " (flags:",
-                sym.debugFlagString,
-                ") */"
+                else highlightValDef(sym.name.decoded.toString), {
+                  val f = sym.debugFlagString
+                  if (f.isEmpty) ""
+                  else s" (flags: ${highlightKeyword(f)})"
+                },
+                " */"
               )
             if (printIds) print("#", highlightValDef(sym.id.toString))
             if (printOwners) print("@", highlightValDef(sym.owner.id.toString))

@@ -47,12 +47,19 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
       private lazy val juTreeSet = Type.Ctor1.of[java.util.TreeSet]
       // private lazy val juEnumSet = Type.Ctor1.UpperBounded.of[java.lang.Enum[?], java.util.EnumSet]
 
+      // TODO: remove this after testing
+      private val tested = Environment.isExpandedAt("StdExtensionsJvmSpec.scala:275")
+
       private def isCollection[Coll0[I] <: java.util.Collection[I], Item: Type, A <: Coll0[Item]](
           A: Type[A],
           Coll0: Type.Ctor1[Coll0],
           emptyCollExpr: Expr[A]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
+          if (tested) {
+            new Throwable().printStackTrace()
+          }
+
           // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the collection to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(value).iterator()).to(Iterable)
@@ -67,7 +74,7 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
                   private val impl = Expr.splice(emptyCollExpr)
                   override def clear(): Unit = impl.clear()
                   override def result(): A = impl
-                  override def add(elem: Item): Unit = { impl.add(elem); () }
+                  override def addOne(elem: Item): this.type = { impl.add(elem); this }
                 }
               override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()
             }
@@ -83,13 +90,38 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
             coll: Type.Ctor1[Coll],
             emptyCollExpr: Expr[Coll2[Item]]
         ): Option[IsCollection[A]] =
-          isCollection[Coll, Item, Coll[Item]](
-            tpe.asInstanceOf[Type[Coll[Item]]],
-            coll,
-            emptyCollExpr.asInstanceOf[Expr[Coll[Item]]]
-          ).asInstanceOf[Option[IsCollection[A]]]
+          Some(
+            isCollection[Coll, Item, Coll[Item]](
+              tpe.asInstanceOf[Type[Coll[Item]]],
+              coll,
+              emptyCollExpr.asInstanceOf[Expr[Coll[Item]]]
+            ).asInstanceOf[IsCollection[A]]
+          )
 
-        // format: off
+        // tpe is handled by one of Coll's subclasses OR it's exactly Coll[Item]
+        // so we can safely provide any implementation. Or we yield.
+        def node[Coll[I] <: java.util.Collection[I], Coll2[I] <: Coll[I], Item: Type](
+            ctor: Type.Ctor1[Coll],
+            emptyExpr: => Expr[Coll2[Item]]
+        )(
+            forSubtype: => Option[IsCollection[A]]
+        ): Option[IsCollection[A]] = {
+          val coll = ctor[Item]
+          if (tpe <:< coll) {
+            forSubtype orElse {
+              if (tpe =:= coll) isCollectionOf(ctor, emptyExpr)
+              else None
+            }
+          } else None
+        }
+        // tpe is exactly Coll[Item], so we can provide a specific implementation. Or we yield.
+        def leaf[Coll[I] <: java.util.Collection[I], Coll2[I] <: Coll[I], Item: Type](
+            ctor: Type.Ctor1[Coll],
+            emptyExpr: => Expr[Coll2[Item]]
+        ): Option[IsCollection[A]] =
+          if (tpe =:= ctor[Item]) isCollectionOf(ctor, emptyExpr)
+          else None
+
         tpe match {
           case juCollection(item) =>
             import item.Underlying as Item
@@ -97,86 +129,57 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
             implicit lazy val OrderingItem: Type[Ordering[Item]] = Ordering[Item]
             lazy val orderingExprOpt = Expr.summonImplicit[Ordering[Item]].toOption
 
-            tpe match {
-              case juAbstractCollection(item) => tpe match {
-                case juList(item) => tpe match {
-                  case juAbstractList(_) => tpe match {
-                    case juAbstractSequentialList(_) => tpe match {
-                      case juLinkedList(_) => isCollectionOf(juLinkedList, Expr.quote(new java.util.LinkedList[Item]))
-                      // handle remaining java.util.AbstractSequentialLists as java.util.LinkedList
-                      case _ => isCollectionOf(juAbstractSequentialList, Expr.quote(new java.util.LinkedList[Item]))
-                    }
-                    case juArrayList(_) => isCollectionOf(juArrayList, Expr.quote(new java.util.ArrayList[Item]))
-                    case juVector(_) => tpe match {
-                      case juStack(_) => isCollectionOf(juStack, Expr.quote(new java.util.Stack[Item]))
-                      // handle remaining java.util.Vectors as java.util.Vector
-                      case _ => isCollectionOf(juVector, Expr.quote(new java.util.Vector[Item]))
-                    }
-                    // handle remaining java.util.AbstractLists as java.util.ArrayList
-                    case _ => isCollectionOf(juAbstractList, Expr.quote(new java.util.ArrayList[Item]))
-                  }
-                  // handle remaining java.util.Lists as java.util.AbstractList as java.util.ArrayList
-                  case _ => isCollectionOf(juList, Expr.quote(new java.util.ArrayList[Item]))
+            // based on https://docs.oracle.com/javase/8/docs/api/java/util/package-tree.html
+            def classHierarchy = node(juAbstractCollection, Expr.quote(new java.util.ArrayList[Item])) {
+              node(juAbstractList, Expr.quote(new java.util.ArrayList[Item])) {
+                node(juAbstractSequentialList, Expr.quote(new java.util.LinkedList[Item])) {
+                  leaf(juLinkedList, Expr.quote(new java.util.LinkedList[Item]))
                 }
-                case juDeque(item) => tpe match {
-                  case juArrayDeque(_) => isCollectionOf(juArrayDeque, Expr.quote(new java.util.ArrayDeque[Item]))
-                  // Commented out - a valid case but this branch would be unreachable because of the previous cases
-                  // case juLinkedList(_) => isCollectionOf(juLinkedList, Expr.quote(new java.util.LinkedList[Item]))
-                  // handle remaining java.util.Deques as java.util.ArrayDeque
-                  case _ => isCollectionOf(juDeque, Expr.quote(new java.util.ArrayDeque[Item]))
-                }
-                case juQueue(item) => tpe match {
-                  case juAbstractQueue(_) => tpe match {
-                    case juPriorityQueue(_) if orderingExprOpt.isDefined =>
-                      val orderingExpr = orderingExprOpt.get
-                      isCollectionOf(juPriorityQueue, Expr.quote(new java.util.PriorityQueue[Item](Expr.splice(orderingExpr))))
-                    // handle remaining java.util.AbstractQueues as java.util.PriorityQueue (with natural ordering)
-                    case _ => isCollectionOf(juAbstractQueue, Expr.quote(new java.util.PriorityQueue[Item]()))
-                  }
-                  case juDeque(_) => tpe match {
-                    case juArrayDeque(_) => isCollectionOf(juArrayDeque, Expr.quote(new java.util.ArrayDeque[Item]))
-                    // Commented out - a valid case but this branch would be unreachable because of the previous cases
-                    // case juLinkedList(_) => isCollectionOf(juLinkedList, Expr.quote(new java.util.LinkedList[Item]))
-                    // handle remaining java.util.Deques as java.util.ArrayDeque
-                    case _ => isCollectionOf(juDeque, Expr.quote(new java.util.ArrayDeque[Item]))
-                  }
-                  // handle remaining java.util.Queues as java.util.AbstractQueue as java.util.PriorityQueue
-                  case _ => isCollectionOf(juQueue, Expr.quote(new java.util.PriorityQueue[Item]()))
-                }
-                case juSet(item) => tpe match {
-                  case juAbstractSet(_) => tpe match {
-                    case juHashSet(_) => tpe match {
-                      case juLinkedHashSet(_) => isCollectionOf(juLinkedHashSet, Expr.quote(new java.util.LinkedHashSet[Item]))
-                      // handle remaining java.util.HashSets as java.util.HashSet
-                      case _ => isCollectionOf(juHashSet, Expr.quote(new java.util.HashSet[Item]))
-                    }
-                    case juSortedSet(_) if orderingExprOpt.isDefined =>
-                      val orderingExpr = orderingExprOpt.get
-                      tpe match {
-                        case juNavigableSet(_) => tpe match {
-                          case juTreeSet(_) => isCollectionOf(juTreeSet, Expr.quote(new java.util.TreeSet[Item](Expr.splice(orderingExpr))))
-                          // handle remaining java.util.NavigableSets as java.util.TreeSet
-                          case _ => isCollectionOf(juNavigableSet, Expr.quote(new java.util.TreeSet[Item](Expr.splice(orderingExpr))))
-                        }
-                        // handle remaining java.util.SortedSets as java.util.NavigableSet as java.util.TreeSet
-                        case _ => isCollectionOf(juNavigableSet, Expr.quote(new java.util.TreeSet[Item](Expr.splice(orderingExpr))))
-                      }
-                    // TODO: handle java.util.EnumSets
-                    // handle remaining java.util.AbstractSets as java.util.HashSet
-                    case _ => isCollectionOf(juAbstractSet, Expr.quote(new java.util.HashSet[Item]))
-                  }
-                  // handle remaining java.util.Sets as java.util.AbstractSet as java.util.HashSet
-                  case _ => isCollectionOf(juSet, Expr.quote(new java.util.HashSet[Item]))
-                }
-                // handle remaining java.util.AbstractCollections as java.util.ArrayList
-                case _ => isCollectionOf(juAbstractCollection, Expr.quote(new java.util.ArrayList[Item]))
+                  .orElse(leaf(juArrayList, Expr.quote(new java.util.ArrayList[Item])))
+                  .orElse(node(juVector, Expr.quote(new java.util.Vector[Item])) {
+                    leaf(juStack, Expr.quote(new java.util.Stack[Item]))
+                  })
               }
-              // handle remaining java.util.Collections as java.util.AbstractCollection as java.util.ArrayList
-              case _ => isCollectionOf(juCollection, Expr.quote(new java.util.ArrayList[Item]))
+                .orElse(node(juAbstractQueue, Expr.quote(new java.util.PriorityQueue[Item]())) {
+                  orderingExprOpt
+                    .flatMap { orderingExpr =>
+                      leaf(juPriorityQueue, Expr.quote(new java.util.PriorityQueue[Item](Expr.splice(orderingExpr))))
+                    }
+                    .orElse(leaf(juArrayDeque, Expr.quote(new java.util.ArrayDeque[Item])))
+                })
+                .orElse(node(juAbstractSet, Expr.quote(new java.util.HashSet[Item])) {
+                  node(juHashSet, Expr.quote(new java.util.HashSet[Item])) {
+                    leaf(juLinkedHashSet, Expr.quote(new java.util.LinkedHashSet[Item]))
+                  }
+                    .orElse(orderingExprOpt.flatMap { orderingExpr =>
+                      leaf(juTreeSet, Expr.quote(new java.util.TreeSet[Item](Expr.splice(orderingExpr))))
+                    })
+                  // TODO: handle java.util.EnumSets
+                })
             }
+            def interfaceHierarchy = node(juCollection, Expr.quote(new java.util.ArrayList[Item])) {
+              leaf(juList, Expr.quote(new java.util.LinkedList[Item]))
+                .orElse(node(juQueue, Expr.quote(new java.util.PriorityQueue[Item]())) {
+                  orderingExprOpt
+                    .flatMap { orderingExpr =>
+                      leaf(juPriorityQueue, Expr.quote(new java.util.PriorityQueue[Item](Expr.splice(orderingExpr))))
+                    }
+                    .orElse(leaf(juDeque, Expr.quote(new java.util.ArrayDeque[Item])))
+                })
+                .orElse(node(juSet, Expr.quote(new java.util.HashSet[Item])) {
+                  node(juSortedSet, Expr.quote(new java.util.TreeSet[Item])) {
+                    orderingExprOpt
+                      .flatMap { orderingExpr =>
+                        leaf(juNavigableSet, Expr.quote(new java.util.TreeSet[Item](Expr.splice(orderingExpr))))
+                      }
+                      .orElse(leaf(juTreeSet, Expr.quote(new java.util.TreeSet[Item]())))
+                  }
+                })
+            }
+
+            classHierarchy orElse interfaceHierarchy
           case _ => None
         }
-        // format: on
       }
     })
   }

@@ -32,19 +32,14 @@ final class IsCollectionProviderForJavaIterator extends StandardMacroExtension {
           // Java iterators have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          // TODO:
-          // Without `this.` on Scala 2 we're getting code like $newBuilder, $cast, $impl - which does not compile.
-          // We should make a proper fix to printing this types.
           override val factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = Expr.quote {
             new scala.collection.Factory[Item, A] {
               override def newBuilder: scala.collection.mutable.Builder[Item, A] =
                 new scala.collection.mutable.Builder[Item, A] {
                   private val impl = new java.util.ArrayList[Item]
-                  private def cast(iterator: java.util.Iterator[Item]): A =
-                    Expr.splice(fromIterator(Expr.quote(iterator)))
                   override def clear(): Unit = impl.clear()
-                  override def result(): A = cast(impl.iterator())
-                  override def add(elem: Item): Unit = { impl.add(elem); () }
+                  override def result(): A = Expr.splice(fromIterator(Expr.quote(impl.iterator())))
+                  override def addOne(elem: Item): this.type = { impl.add(elem); this }
                 }
               override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()
             }

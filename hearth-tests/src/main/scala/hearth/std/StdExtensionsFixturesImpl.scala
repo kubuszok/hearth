@@ -94,7 +94,7 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
 
       val handleBuilder = handleSmartConstructor(isCollection.value.build) { a =>
         if (Type[A].isArray)
-          Expr.quote(Data(Expr.splice(a).toString.takeWhile(c => c != ';' && c != '@')))
+          Expr.quote(Data(Expr.splice(a).toString.takeWhile(c => c != ';' && c != '@' && c != '$')))
         else Expr.quote(Data(Expr.splice(a).toString))
       }
       val building = if (Item <:< StringType) Expr.quote {
