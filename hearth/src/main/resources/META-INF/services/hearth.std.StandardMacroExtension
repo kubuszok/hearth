@@ -1,6 +1,0 @@
-hearth.std.extensions.IsCollectionProviderForScalaCollection
-hearth.std.extensions.IsCollectionProviderForArray
-hearth.std.extensions.IsOptionProviderForScalaOption
-hearth.std.extensions.IsEitherProviderForScalaEither
-hearth.std.extensions.IsEitherProviderForScalaTry
-hearth.std.extensions.IsValueTypeProviderForAnyVal

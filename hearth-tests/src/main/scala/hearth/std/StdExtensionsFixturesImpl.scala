@@ -19,8 +19,9 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       Environment.reportErrorAndAbort(
         "Failed to load standard extensions: " + errors.toNonEmptyVector.map(_._2).mkString("\n")
       )
-    case ExtensionLoadingResult.AllLoaded(_) =>
-    // Environment.reportInfo("Loaded standard extensions: " + extensions.map(_.getClass.getName).mkString("\n"))
+    // case ExtensionLoadingResult.AllLoaded(extensions) =>
+    //   Environment.reportInfo("Loaded standard extensions: " + extensions.map(_.getClass.getName).mkString("\n"))
+    case _ =>
   }
 
   def testIsCollection[A: Type](value: Expr[A]): Expr[Data] = Type[A] match {

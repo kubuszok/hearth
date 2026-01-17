@@ -2,7 +2,6 @@ import com.jsuereth.sbtpgp.PgpKeys.publishSigned
 import com.typesafe.tools.mima.core.{Problem, ProblemFilters}
 import sbtwelcome.UsefulTask
 import commandmatrix.extra.*
-import sbt.ThisBuild
 import org.scalafmt.sbt.ScalafmtPlugin.autoImport.scalafmtOnCompile
 
 // Used to configure the build so that it would format+compile during development but not on CI.
@@ -552,6 +551,7 @@ lazy val hearth = projectMatrix
   .settings(publishSettings *)
   .settings(dependencies *)
   .settings(mimaSettings *)
+  .settings(macroExtensionTraits := Seq("hearth.std.StandardMacroExtension"))
   .dependsOn(hearthMicroFp)
   .dependsOn(hearthBetterPrinters)
 
@@ -593,6 +593,7 @@ lazy val hearthTests = projectMatrix
   .settings(noPublishSettings *)
   .settings(dependencies *)
   .settings(mimaSettings *)
+  .settings(macroExtensionTraits := Seq("hearth.ExampleMacroExtension"))
   .dependsOn(hearth)
 
 // Test cross compilation: 2.13x3
