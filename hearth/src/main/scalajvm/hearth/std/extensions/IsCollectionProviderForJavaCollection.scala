@@ -138,7 +138,7 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
                     .flatMap { orderingExpr =>
                       leaf(juPriorityQueue, Expr.quote(new java.util.PriorityQueue[Item](Expr.splice(orderingExpr))))
                     }
-                    .orElse(leaf(juArrayDeque, Expr.quote(new java.util.ArrayDeque[Item])))
+                    .orElse(leaf(juPriorityQueue, Expr.quote(new java.util.PriorityQueue[Item]())))
                 })
                 .orElse(node(juAbstractSet, Expr.quote(new java.util.HashSet[Item])) {
                   node(juHashSet, Expr.quote(new java.util.HashSet[Item])) {
@@ -149,6 +149,7 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
                     })
                   // TODO: handle java.util.EnumSets
                 })
+                .orElse(leaf(juArrayDeque, Expr.quote(new java.util.ArrayDeque[Item])))
             }
             def interfaceHierarchy = node(juCollection, Expr.quote(new java.util.ArrayList[Item])) {
               leaf(juList, Expr.quote(new java.util.LinkedList[Item]))
@@ -157,6 +158,7 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
                     .flatMap { orderingExpr =>
                       leaf(juPriorityQueue, Expr.quote(new java.util.PriorityQueue[Item](Expr.splice(orderingExpr))))
                     }
+                    .orElse(leaf(juPriorityQueue, Expr.quote(new java.util.PriorityQueue[Item]())))
                     .orElse(leaf(juDeque, Expr.quote(new java.util.ArrayDeque[Item])))
                 })
                 .orElse(node(juSet, Expr.quote(new java.util.HashSet[Item])) {

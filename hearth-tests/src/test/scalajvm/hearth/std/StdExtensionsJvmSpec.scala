@@ -29,7 +29,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
             Data("two"),
             Data("three")
           ),
-          "building" -> Data("<not a collection of string>")
+          "building" -> Data("java.util.ArrayList")
         )
         testIsCollection(java.util.Arrays.asList("one", "two", "three").iterator()) <==> Data.map(
           "iteration" -> Data.list(
@@ -37,7 +37,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
             Data("two"),
             Data("three")
           ),
-          "building" -> Data("<not a collection of string>")
+          "building" -> Data("java.util.ArrayList")
         )
       }
 
@@ -50,7 +50,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
             Data("two"),
             Data("three")
           ),
-          "building" -> Data("<not a collection of string>")
+          "building" -> Data("java.util.Vector")
         )
         testIsCollection(java.util.Collections.enumeration(java.util.Arrays.asList("one", "two", "three"))) <==> Data
           .map(
@@ -59,7 +59,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
               Data("two"),
               Data("three")
             ),
-            "building" -> Data("<not a collection of string>")
+            "building" -> Data("java.util.Vector")
           )
       }
 
@@ -77,7 +77,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.ArrayList[String]() {
+        testIsCollection[java.util.ArrayList[String]](new java.util.ArrayList[String]() {
           add("one")
           add("two")
           add("three")
@@ -89,7 +89,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.LinkedList[String]() {
+        testIsCollection[java.util.LinkedList[String]](new java.util.LinkedList[String]() {
           add("one")
           add("two")
           add("three")
@@ -101,7 +101,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.Vector[String]() {
+        testIsCollection[java.util.Vector[String]](new java.util.Vector[String]() {
           add("one")
           add("two")
           add("three")
@@ -113,7 +113,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.Stack[String]() {
+        testIsCollection[java.util.Stack[String]](new java.util.Stack[String]() {
           add("one")
           add("two")
           add("three")
@@ -125,7 +125,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.ArrayDeque[String]() {
+        testIsCollection[java.util.ArrayDeque[String]](new java.util.ArrayDeque[String]() {
           add("one")
           add("two")
           add("three")
@@ -137,19 +137,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.PriorityQueue[String]() {
-          add("one")
-          add("two")
-          add("three")
-        }) <==> Data.map(
-          "iteration" -> Data.list(
-            Data("one"),
-            Data("three"),
-            Data("two")
-          ),
-          "building" -> Data("[one]")
-        )
-        testIsCollection(new java.util.HashSet[String]() {
+        testIsCollection[java.util.PriorityQueue[String]](new java.util.PriorityQueue[String]() {
           add("one")
           add("two")
           add("three")
@@ -161,7 +149,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.LinkedHashSet[String]() {
+        testIsCollection[java.util.HashSet[String]](new java.util.HashSet[String]() {
           add("one")
           add("two")
           add("three")
@@ -173,7 +161,19 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.TreeSet[String]() {
+        testIsCollection[java.util.LinkedHashSet[String]](new java.util.LinkedHashSet[String]() {
+          add("one")
+          add("two")
+          add("three")
+        }) <==> Data.map(
+          "iteration" -> Data.list(
+            Data("one"),
+            Data("two"),
+            Data("three")
+          ),
+          "building" -> Data("[one]")
+        )
+        testIsCollection[java.util.TreeSet[String]](new java.util.TreeSet[String]() {
           add("three")
           add("one")
           add("two")
@@ -201,7 +201,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.ArrayList[String]() {
+        testIsCollection[java.util.ArrayList[String]](new java.util.ArrayList[String]() {
           add("one")
           add("two")
           add("three")
@@ -213,7 +213,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.LinkedList[String]() {
+        testIsCollection[java.util.LinkedList[String]](new java.util.LinkedList[String]() {
           add("one")
           add("two")
           add("three")
@@ -225,7 +225,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.Vector[String]() {
+        testIsCollection[java.util.Vector[String]](new java.util.Vector[String]() {
           add("one")
           add("two")
           add("three")
@@ -237,7 +237,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.Stack[String]() {
+        testIsCollection[java.util.Stack[String]](new java.util.Stack[String]() {
           add("one")
           add("two")
           add("three")
@@ -265,7 +265,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.ArrayDeque[String]() {
+        testIsCollection[java.util.ArrayDeque[String]](new java.util.ArrayDeque[String]() {
           add("one")
           add("two")
           add("three")
@@ -277,7 +277,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.LinkedList[String]() {
+        testIsCollection[java.util.LinkedList[String]](new java.util.LinkedList[String]() {
           add("one")
           add("two")
           add("three")
@@ -300,24 +300,24 @@ final class StdExtensionsJvmSpec extends MacroSuite {
         testIsCollection(queue) <==> Data.map(
           "iteration" -> Data.list(
             Data("one"),
-            Data("three"),
-            Data("two")
+            Data("two"),
+            Data("three")
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.PriorityQueue[String]() {
+        testIsCollection[java.util.PriorityQueue[String]](new java.util.PriorityQueue[String]() {
           add("one")
           add("two")
           add("three")
         }) <==> Data.map(
           "iteration" -> Data.list(
             Data("one"),
-            Data("three"),
-            Data("two")
+            Data("two"),
+            Data("three")
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.ArrayDeque[String]() {
+        testIsCollection[java.util.ArrayDeque[String]](new java.util.ArrayDeque[String]() {
           add("one")
           add("two")
           add("three")
@@ -345,7 +345,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.HashSet[String]() {
+        testIsCollection[java.util.HashSet[String]](new java.util.HashSet[String]() {
           add("one")
           add("two")
           add("three")
@@ -357,7 +357,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.LinkedHashSet[String]() {
+        testIsCollection[java.util.LinkedHashSet[String]](new java.util.LinkedHashSet[String]() {
           add("one")
           add("two")
           add("three")
@@ -369,7 +369,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection(new java.util.TreeSet[String]() {
+        testIsCollection[java.util.TreeSet[String]](new java.util.TreeSet[String]() {
           add("three")
           add("one")
           add("two")
@@ -408,7 +408,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
             Data("two"),
             Data("three")
           ),
-          "building" -> Data("<not a collection of string>")
+          "building" -> Data("java.util.stream.ReferencePipeline")
         )
         testIsCollection(java.util.stream.Stream.of("one", "two", "three")) <==> Data.map(
           "iteration" -> Data.list(
@@ -416,7 +416,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
             Data("two"),
             Data("three")
           ),
-          "building" -> Data("<not a collection of string>")
+          "building" -> Data("java.util.stream.ReferencePipeline")
         )
         testIsCollection(java.util.stream.IntStream.of(1, 2, 3)) <==> Data.map(
           "iteration" -> Data.list(
@@ -457,7 +457,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("{1=one}")
         )
-        testIsCollection(new java.util.Hashtable[Int, String]() {
+        testIsCollection[java.util.Hashtable[Int, String]](new java.util.Hashtable[Int, String]() {
           put(1, "one")
           put(2, "two")
         }) <==> Data.map(
@@ -474,10 +474,10 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           props
         } <==> Data.map(
           "iteration" -> Data.list(
-            Data.map("key" -> Data("two"), "value" -> Data("2")),
-            Data.map("key" -> Data("one"), "value" -> Data("1"))
+            Data.map("key" -> Data("one"), "value" -> Data("1")),
+            Data.map("key" -> Data("two"), "value" -> Data("2"))
           ),
-          "building" -> Data("{one=1}")
+          "building" -> Data("<not a map of int and string>")
         )
       }
 
@@ -494,7 +494,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("{1=one}")
         )
-        testIsCollection(new java.util.HashMap[Int, String]() {
+        testIsCollection[java.util.HashMap[Int, String]](new java.util.HashMap[Int, String]() {
           put(1, "one")
           put(2, "two")
         }) <==> Data.map(
@@ -504,7 +504,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("{1=one}")
         )
-        testIsCollection(new java.util.LinkedHashMap[Int, String]() {
+        testIsCollection[java.util.LinkedHashMap[Int, String]](new java.util.LinkedHashMap[Int, String]() {
           put(1, "one")
           put(2, "two")
         }) <==> Data.map(
@@ -514,7 +514,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("{1=one}")
         )
-        testIsCollection(new java.util.TreeMap[Int, String]() {
+        testIsCollection[java.util.TreeMap[Int, String]](new java.util.TreeMap[Int, String]() {
           put(2, "two")
           put(1, "one")
         }) <==> Data.map(
@@ -524,7 +524,7 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("{1=one}")
         )
-        testIsCollection(new java.util.WeakHashMap[Int, String]() {
+        testIsCollection[java.util.WeakHashMap[Int, String]](new java.util.WeakHashMap[Int, String]() {
           put(1, "one")
           put(2, "two")
         }) <==> Data.map(
@@ -534,13 +534,13 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("{1=one}")
         )
-        testIsCollection(new java.util.IdentityHashMap[Int, String]() {
+        testIsCollection[java.util.IdentityHashMap[Int, String]](new java.util.IdentityHashMap[Int, String]() {
           put(1, "one")
           put(2, "two")
         }) <==> Data.map(
           "iteration" -> Data.list(
-            Data.map("key" -> Data("2"), "value" -> Data("two")),
-            Data.map("key" -> Data("1"), "value" -> Data("one"))
+            Data.map("key" -> Data("1"), "value" -> Data("one")),
+            Data.map("key" -> Data("2"), "value" -> Data("two"))
           ),
           "building" -> Data("{1=one}")
         )
