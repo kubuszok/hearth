@@ -31,7 +31,7 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           // Standard scala collections have no smart constructors, so we just return the collection itself.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override val factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = factoryExpr
+          override def factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = factoryExpr
           override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
             PossibleSmartCtor.PlainValue(buildExpr)
         })
@@ -52,7 +52,7 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           // Standard scala collections have no smart constructors, so we just return the collection itself.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override val factory: Expr[scala.collection.Factory[Pair, PossibleSmartResult]] = factoryExpr
+          override def factory: Expr[scala.collection.Factory[Pair, PossibleSmartResult]] = factoryExpr
           override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Pair, PossibleSmartResult], A] =
             PossibleSmartCtor.PlainValue(buildExpr)
           // Key and Value expressions are provided from the outside

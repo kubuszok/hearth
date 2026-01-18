@@ -34,7 +34,7 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension {
           // Java BitSet has no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override val factory: Expr[scala.collection.Factory[Int, PossibleSmartResult]] = Expr.quote {
+          override def factory: Expr[scala.collection.Factory[Int, PossibleSmartResult]] = Expr.quote {
             new scala.collection.Factory[Int, A] {
               override def newBuilder: scala.collection.mutable.Builder[Int, A] =
                 new scala.collection.mutable.Builder[Int, A] {

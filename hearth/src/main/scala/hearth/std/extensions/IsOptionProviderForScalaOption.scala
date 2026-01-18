@@ -24,7 +24,7 @@ final class IsOptionProviderForScalaOption extends StandardMacroExtension {
       ): IsOption[A] =
         Existential[IsOptionOf[A, *], Item](new IsOptionOf[A, Item] {
           override val empty: Expr[A] =
-            fromOption(Expr.quote(scala.Option.empty[Item])) // TODO: Expr(None) is not compiling
+            fromOption(Expr.quote(scala.Option.empty[Item])) // FIXME: Expr(None) is not compiling
           override def of(value: Expr[Item]): Expr[A] =
             fromOption(Expr.quote(scala.Some(Expr.splice(value))))
           override def fold[B: Type](option: Expr[A])(onEmpty: Expr[B], onSome: Expr[Item] => Expr[B]): Expr[B] =
