@@ -453,10 +453,10 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          * with:
          *   given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
          *   [manually cast every type param Type[A] to given scala.quoted.Type[A]]
-         *   Type.Ctor1.Bounded[Nothing, Any, HKT]
-         *   Type.Ctor2.Bounded[Nothing, Any, Nothing, Any, HKT1, HKT2]
+         *   Type.Ctor1.Bounded.Impl[Nothing, Any, HKT]
+         *   Type.Ctor2.Bounded.Impl[Nothing, Any, Nothing, Any, HKT1, HKT2]
          *   ...
-         *   Type.Ctor22.Bounded[Nothing, Any, Nothing, Any, ..., Nothing, Any, HKT1, HKT2, ..., HKT22]
+         *   Type.Ctor22.Bounded.Impl[Nothing, Any, Nothing, Any, ..., Nothing, Any, HKT1, HKT2, ..., HKT22]
          */
         case TypeApply(prefix @ Select(Select(Ident(tp), ctor), of), List(hkt))
             if tp.show == "Type" && isCtor(ctor.show) && of.show == "of" =>
@@ -492,10 +492,10 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          * with:
          *   given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
          *   [manually cast every type param Type[A] to given scala.quoted.Type[A]]
-         *   Type.Ctor1.Bounded[Nothing, U1, HKT]
-         *   Type.Ctor2.Bounded[Nothing, U1, Nothing, U2, HKT]
+         *   Type.Ctor1.Bounded.Impl[Nothing, U1, HKT]
+         *   Type.Ctor2.Bounded.Impl[Nothing, U1, Nothing, U2, HKT]
          *   ...
-         *   Type.Ctor22.Bounded[Nothing, U1, Nothing, U2, ..., Nothing, U22, HKT]
+         *   Type.Ctor22.Bounded.Impl[Nothing, U1, Nothing, U2, ..., Nothing, U22, HKT]
          */
         case TypeApply(prefix @ Select(Select(Ident(tp), ctor), of), upper :+ hkt)
             if tp.show == "Type" && isCtor(ctor.show) && of.show == "of" =>
@@ -531,10 +531,10 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          * with:
          *   given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
          *   [manually cast every type param Type[A] to given scala.quoted.Type[A]]
-         *   Type.Ctor1.Bounded[L1, U1, HKT]
-         *   Type.Ctor2.Bounded[L1, U1, L2, U2, HKT]
+         *   Type.Ctor1.Bounded.Impl[L1, U1, HKT]
+         *   Type.Ctor2.Bounded.Impl[L1, U1, L2, U2, HKT]
          *   ...
-         *   Type.Ctor22.Bounded[L1, U1, L2, U2, ..., L22, U22, HKT]
+         *   Type.Ctor22.Bounded.Impl[L1, U1, L2, U2, ..., L22, U22, HKT]
          */
         case TypeApply(prefix @ Select(Select(Ident(tp), ctor), of), bounded :+ hkt)
             if tp.show == "Type" && isCtor(ctor.show) && of.show == "of" =>

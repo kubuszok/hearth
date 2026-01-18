@@ -93,7 +93,10 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       }
 
       val handleBuilder = handleSmartConstructor(isCollection.value.build) { a =>
-        if (Type[A].isArray || Type[A].plainPrint.startsWith("java.util."))
+        if (
+          Type[A].isArray || Type[A].plainPrint
+            .startsWith("scala.IArray") || Type[A].plainPrint.startsWith("java.util.")
+        )
           Expr.quote(Data(Expr.splice(a).toString.takeWhile(c => c != ';' && c != '@' && c != '$')))
         else Expr.quote(Data(Expr.splice(a).toString))
       }

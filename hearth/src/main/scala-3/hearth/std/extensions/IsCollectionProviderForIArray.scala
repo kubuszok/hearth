@@ -61,9 +61,10 @@ final class IsCollectionProviderForIArray extends StandardMacroExtension {
               // ...and use it to build the collection.
               val factoryExpr: Expr[scala.collection.Factory[Item, A]] = Expr
                 .quote {
-                  scala.collection.Factory.arrayFactory(using Expr.splice(classTagExpr))
+                  scala.collection.Factory
+                    .arrayFactory(using Expr.splice(classTagExpr))
+                    .asInstanceOf[scala.collection.Factory[Item, A]]
                 }
-                .asInstanceOf[Expr[scala.collection.Factory[Item, A]]]
               val buildExpr: Expr[scala.collection.mutable.Builder[Item, A]] => Expr[A] =
                 builder => Expr.quote(Expr.splice(builder).result())
               // Conversion from Array[Item] to Iterable[Item] depends on the item type.
@@ -125,7 +126,9 @@ final class IsCollectionProviderForIArray extends StandardMacroExtension {
                     }
                   }
                 } else if Item <:< AnyRef then {
-                  adjust[AnyRef] { value =>
+                  val anyRefItem = Item.asInstanceOf[Type[AnyRef]].as_??<:[AnyRef]
+                  import anyRefItem.Underlying as AnyRefItem
+                  adjust[AnyRefItem] { value =>
                     Expr.quote {
                       scala.Predef.wrapRefArray(Expr.splice(value).unsafeArray)
                     }
