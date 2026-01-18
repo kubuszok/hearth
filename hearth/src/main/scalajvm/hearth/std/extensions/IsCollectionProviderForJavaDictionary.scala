@@ -55,7 +55,7 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
           implicit override val Key: Type[Key] = keyType
           override type Value = Value0
           implicit override val Value: Type[Value] = valueType
-          override val factory: Expr[scala.collection.Factory[Pair, PossibleSmartResult]] = Expr.quote {
+          override def factory: Expr[scala.collection.Factory[Pair, PossibleSmartResult]] = Expr.quote {
             new scala.collection.Factory[Pair, A] {
               override def newBuilder: scala.collection.mutable.Builder[Pair, A] =
                 new scala.collection.mutable.Builder[Pair, A] {
@@ -86,7 +86,28 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
       }
 
       private lazy val isProperties = {
-
+        // Key =:= Value, so we had to extract these to avoid ambiguous implicit resolution (on Scala 3).
+        val asScalaExpr = (dictionary: Expr[java.util.Properties]) =>
+          Expr.quote {
+            val properties: java.util.Properties = Expr.splice(dictionary)
+            scala.jdk.javaapi.CollectionConverters
+              .asScala(properties.keys())
+              .map(key => (key.asInstanceOf[String], properties.get(key).asInstanceOf[String]))
+              .to(Iterable)
+          }
+        def factoryExpr: Expr[scala.collection.Factory[(String, String), java.util.Properties]] = Expr.quote {
+          new scala.collection.Factory[(String, String), java.util.Properties] {
+            override def newBuilder: scala.collection.mutable.Builder[(String, String), java.util.Properties] =
+              new scala.collection.mutable.Builder[(String, String), java.util.Properties] {
+                private val impl = new java.util.Properties()
+                override def clear(): Unit = impl.clear()
+                override def result(): java.util.Properties = impl
+                override def addOne(elem: (String, String)): this.type = { impl.put(elem._1, elem._2); this }
+              }
+            override def fromSpecific(it: IterableOnce[(String, String)]): java.util.Properties =
+              newBuilder.addAll(it).result()
+          }
+        }
         val buildExpr = (expr: Expr[scala.collection.mutable.Builder[(String, String), java.util.Properties]]) =>
           Expr.quote(Expr.splice(expr).result())
         val keyExpr = (pair: Expr[(String, String)]) => Expr.quote(Expr.splice(pair)._1)
@@ -97,35 +118,17 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
           new IsMapOf[java.util.Properties, (String, String)] {
             // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the dictionary to Iterable.
             override def asIterable(value: Expr[java.util.Properties]): Expr[Iterable[(String, String)]] =
-              Expr.quote {
-                val properties: java.util.Properties = Expr.splice(value)
-                scala.jdk.javaapi.CollectionConverters
-                  .asScala(properties.keys())
-                  .map(key => (key.asInstanceOf[String], properties.get(key).asInstanceOf[String]))
-                  .to(Iterable)
-              }
+              asScalaExpr(value)
             // Java dictionaries have no smart constructors, we we'll provide a Factory that build them as plain values.
             override type PossibleSmartResult = java.util.Properties
             implicit override val PossibleSmartResult: Type[PossibleSmartResult] = Type.of[java.util.Properties]
 
             override type Key = String
-            implicit override val Key: Type[Key] = String
+            override val Key: Type[Key] = String
             override type Value = String
-            implicit override val Value: Type[Value] = String
-            override val factory: Expr[scala.collection.Factory[(String, String), java.util.Properties]] = Expr.quote {
-              new scala.collection.Factory[(String, String), java.util.Properties] {
-                override def newBuilder: scala.collection.mutable.Builder[(String, String), java.util.Properties] =
-                  new scala.collection.mutable.Builder[(String, String), java.util.Properties] {
-                    private val impl = new java.util.Properties()
-                    override def clear(): Unit = impl.clear()
-                    override def result(): java.util.Properties = impl
-                    override def addOne(elem: (String, String)): this.type = { impl.put(elem._1, elem._2); this }
-                  }
-                override def fromSpecific(it: IterableOnce[(String, String)]): java.util.Properties =
-                  newBuilder.addAll(it).result()
-              }
-            }
+            override val Value: Type[Value] = String
             // Key =:= Value, so here we have ambiguous implicit resolution.
+            override def factory: Expr[scala.collection.Factory[(String, String), java.util.Properties]] = factoryExpr
             override def build: PossibleSmartCtor[
               scala.collection.mutable.Builder[(String, String), java.util.Properties],
               java.util.Properties

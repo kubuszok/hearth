@@ -26,7 +26,7 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
 
   def testIsCollection[A: Type](value: Expr[A]): Expr[Data] = Type[A] match {
     case IsMap(isMap) =>
-      // TODO: nested imports should be supported in Scala 2 (better printer returns isMap.isMapOf.x instead of isMap.value.x OR isMap.x)
+      // FIXME: nested imports should be supported in Scala 2 (better printer returns isMap.isMapOf.x instead of isMap.value.x OR isMap.x)
       // import isMap.{Underlying as Pair, value as isMapOf}
       // import isMapOf.{Key, Value, PossibleSmartResult}
       import isMap.Underlying as Pair
@@ -72,7 +72,7 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
         )
       }
     case IsCollection(isCollection) =>
-      // TODO: same as for IsMap, nested imports should be supported in Scala 2 (better printer returns isCollection.isCollectionOf.x instead of isCollection.value.x OR isCollection.x)
+      // FIXME: same as for IsMap, nested imports should be supported in Scala 2 (better printer returns isCollection.isCollectionOf.x instead of isCollection.value.x OR isCollection.x)
       // import isCollection.{Underlying as Item, value as isCollectionOf}
       // import isCollectionOf.{PossibleSmartResult}
       import isCollection.Underlying as Item
@@ -122,18 +122,32 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       // For upcasting
       implicit val stringType: Type[String] = StringType
 
-      val folding = Expr.quote {
-        val opt = Expr.splice(value)
-        Expr.splice(
-          isOption.value.fold[Data](Expr.quote(opt))(
-            onEmpty = Expr(Data("empty")),
-            onSome = (item: Expr[Item]) =>
-              Expr.quote {
-                Data(s"some: ${Expr.splice(item).toString}")
-              }
-          )
-        )
-      }
+      // FIXME: when it had a form:
+      // val folding = Expr.quote {
+      //   val opt = Expr.splice(value)
+      //   Expr.splice(
+      //     isOption.value.fold[Data](Expr.quote(opt))(
+      //       onEmpty = Expr.quote(Data("empty")),
+      //       onSome = (item: Expr[Item]) =>
+      //         Expr.quote {
+      //           val i = Expr.splice(item)
+      //           Data(s"some: " + i.toString)
+      //         }
+      //     )
+      //   )
+      // }
+      // it would fail with:
+      //   Exception occurred while executing macro expansion.
+      //   scala.quoted.runtime.impl.ScopeException: Expression created in a splice was used outside of that splice.
+      // so we have to fix something about our ctx manipulation logic.
+      val folding = isOption.value.fold(value)(
+        Expr(Data("empty")),
+        (item: Expr[Item]) =>
+          Expr.quote {
+            val i = Expr.splice(item)
+            Data(s"some: " + i.toString)
+          }
+      )
 
       val getOrElseTest = if (Item <:< StringType) Expr.quote {
         val opt = Expr.splice(value)

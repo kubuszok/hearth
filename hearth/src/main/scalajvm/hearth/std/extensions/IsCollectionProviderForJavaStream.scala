@@ -29,7 +29,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
       private lazy val Long = Type.of[Long]
       private lazy val Double = Type.of[Double]
 
-      // TODO: we have a bug in Type.Ctor:
+      // FIXME: we have a bug in Type.Ctor:
       // When I do Type.Ctor2.of[scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo]
       // and then apply it, it is printed as:
       //   scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo[Item, Iterable[Item]]
@@ -49,7 +49,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
           ]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
-          // TODO: Investigate why the resolved implicit it's printed as:
+          // FIXME: Investigate why the resolved implicit it's printed as:
           //   (StreamExtensions.this.AccumulatorFactoryInfo.noAccumulatorFactoryInfo[java.lang.String, scala.collection.Iterable[java.lang.String]])
           // when it should be:
           //   (scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo....).
@@ -60,7 +60,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
           // Java streams have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override val factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = Expr.quote {
+          override def factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = Expr.quote {
             new scala.collection.Factory[Item, A] {
               override def newBuilder: scala.collection.mutable.Builder[Item, A] =
                 new scala.collection.mutable.Builder[Item, A] {
@@ -94,10 +94,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
           // Java int streams have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          // TODO:
-          // Without `this.` on Scala 2 we're getting code like $newBuilder, $cast, $impl - which does not compile.
-          // We should make a proper fix to printing this types.
-          override val factory: Expr[scala.collection.Factory[Int, PossibleSmartResult]] = Expr.quote {
+          override def factory: Expr[scala.collection.Factory[Int, PossibleSmartResult]] = Expr.quote {
             new scala.collection.Factory[Int, A] {
               override def newBuilder: scala.collection.mutable.Builder[Int, A] =
                 new scala.collection.mutable.Builder[Int, A] {
@@ -131,7 +128,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
           // Java long streams have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override val factory: Expr[scala.collection.Factory[Long, PossibleSmartResult]] = Expr.quote {
+          override def factory: Expr[scala.collection.Factory[Long, PossibleSmartResult]] = Expr.quote {
             new scala.collection.Factory[Long, A] {
               override def newBuilder: scala.collection.mutable.Builder[Long, A] =
                 new scala.collection.mutable.Builder[Long, A] {
@@ -165,7 +162,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
           // Java double streams have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override val factory: Expr[scala.collection.Factory[Double, PossibleSmartResult]] = Expr.quote {
+          override def factory: Expr[scala.collection.Factory[Double, PossibleSmartResult]] = Expr.quote {
             new scala.collection.Factory[Double, A] {
               override def newBuilder: scala.collection.mutable.Builder[Double, A] =
                 new scala.collection.mutable.Builder[Double, A] {

@@ -47,19 +47,12 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
       private lazy val juTreeSet = Type.Ctor1.of[java.util.TreeSet]
       // private lazy val juEnumSet = Type.Ctor1.UpperBounded.of[java.lang.Enum[?], java.util.EnumSet]
 
-      // TODO: remove this after testing
-      private val tested = Environment.isExpandedAt("StdExtensionsJvmSpec.scala:275")
-
       private def isCollection[Coll0[I] <: java.util.Collection[I], Item: Type, A <: Coll0[Item]](
           A: Type[A],
           Coll0: Type.Ctor1[Coll0],
           emptyCollExpr: Expr[A]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
-          if (tested) {
-            new Throwable().printStackTrace()
-          }
-
           // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the collection to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(value).iterator()).to(Iterable)
@@ -67,7 +60,7 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
           // Java collections have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override val factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = Expr.quote {
+          override def factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = Expr.quote {
             new scala.collection.Factory[Item, A] {
               override def newBuilder: scala.collection.mutable.Builder[Item, A] =
                 new scala.collection.mutable.Builder[Item, A] {

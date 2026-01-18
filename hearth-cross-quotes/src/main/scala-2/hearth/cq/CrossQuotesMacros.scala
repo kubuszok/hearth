@@ -3269,11 +3269,22 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       // - there will be no nested Expr.quotes - if there is one, the nested one would expand a macro, so splice would contain only the result
       // - the content of Expr.splice would NOT require adjustment, because it would appear inside ${ ... } where tree rewriting is undesired
       // - that's why we start with replacing Expr.splice stubs first, and ONLY THEN we replace type parameter stubs
+      .tap { source =>
+        if (loggingEnabled) {
+          println("Checkpoint 0")
+        }
+      }
       .pipe(spliceReplacer.transform)
+      .tap { source =>
+        if (loggingEnabled) {
+          println("Checkpoint 1")
+        }
+      }
       .pipe(implicitTypeReferenceReplacer.transform)
       // Convert to String - we are assuming that showCodePretty produces correct Scala code (that cannot be said of toString or showCode)
       .tap { source =>
         if (loggingEnabled) {
+          println("Checkpoint 2")
           println(
             s"""Stubbed source:
                |${indent(showCodePretty(source, SyntaxHighlight.ANSI))}
@@ -3447,35 +3458,41 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           .getOrElse(Ident(name))
       // Transform references like EITHER TypeParameter OR someType.Underlying to Ident(TypeStub).
       case tt: TypeTree =>
-        if (tt.original != null) {
-          val updated = transform(tt.original)
-          if (updated == tt.original) tt.original
-          else {
-            if (loggingEnabled) {
-              println(s"""Stubbed TypeTree original:
-                         |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
-                         |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
-                         |Out: ${showCodePretty(updated, SyntaxHighlight.ANSI)}
-                         |     ${showRawPretty(updated, SyntaxHighlight.ANSI)}
-                         |""".stripMargin)
+        try
+          if (tt.original != null) {
+            val updated = transform(tt.original)
+            if (updated == tt.original) tt.original
+            else {
+              if (loggingEnabled) {
+                println(s"""Stubbed TypeTree original:
+                           |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
+                           |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
+                           |Out: ${showCodePretty(updated, SyntaxHighlight.ANSI)}
+                           |     ${showRawPretty(updated, SyntaxHighlight.ANSI)}
+                           |""".stripMargin)
+              }
+              updated
             }
-            updated
-          }
-        } else {
-          val updated = transformType(tt.tpe)
-          if (updated == tt.tpe) tt
-          else {
-            val newTypeTree = TypeTree(updated)
-            if (loggingEnabled) {
-              println(s"""Stubbed TypeTree:
-                         |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
-                         |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
-                         |Out: ${showCodePretty(newTypeTree, SyntaxHighlight.ANSI)}
-                         |     ${showRawPretty(newTypeTree, SyntaxHighlight.ANSI)}
-                         |""".stripMargin)
+          } else {
+            val updated = transformType(tt.tpe)
+            if (updated == tt.tpe) tt
+            else {
+              val newTypeTree = TypeTree(updated)
+              if (loggingEnabled) {
+                println(s"""Stubbed TypeTree:
+                           |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
+                           |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
+                           |Out: ${showCodePretty(newTypeTree, SyntaxHighlight.ANSI)}
+                           |     ${showRawPretty(newTypeTree, SyntaxHighlight.ANSI)}
+                           |""".stripMargin)
+              }
+              newTypeTree
             }
-            newTypeTree
           }
+        catch {
+          // We ignore CyclicReference errors, because they are expected and harmless.
+          // E.g. referemce to $anon class that will be erased on printing.
+          case e: Throwable if e.getClass.getName == "scala.reflect.internal.Symbols$CyclicReference" => tt
         }
       case tree => super.transform(tree)
     }

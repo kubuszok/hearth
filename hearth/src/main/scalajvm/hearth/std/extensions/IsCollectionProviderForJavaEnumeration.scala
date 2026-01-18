@@ -32,13 +32,16 @@ final class IsCollectionProviderForJavaEnumeration extends StandardMacroExtensio
           // Java enumerations have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override val factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = Expr.quote {
+          override def factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = Expr.quote {
             new scala.collection.Factory[Item, A] {
               override def newBuilder: scala.collection.mutable.Builder[Item, A] =
                 new scala.collection.mutable.Builder[Item, A] {
                   private val impl = new java.util.Vector[Item]
                   override def clear(): Unit = impl.clear()
-                  override def result(): A = Expr.splice(fromEnumeration(Expr.quote(impl.elements())))
+                  override def result(): A = {
+                    val it = impl.elements() // Scala 3 requires Expr.quote to take a value, not an expression(?).
+                    Expr.splice(fromEnumeration(Expr.quote(it)))
+                  }
                   override def addOne(elem: Item): this.type = { impl.add(elem); this }
                 }
               override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()

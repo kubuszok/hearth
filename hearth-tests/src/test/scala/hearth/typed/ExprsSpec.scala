@@ -388,7 +388,7 @@ final class ExprsSpec extends MacroSuite {
             if (LanguageVersion.byHearth.isScala2_13) "scala.Predef.classOf[scala.Int]"
             else "scala.Predef.classOf[scala.Int]"
           ),
-          "decoded" -> Data("int") // TODO: 3
+          "decoded" -> Data("int")
         ),
         "ClassTag" -> Data.map(
           "encoded" -> Data(

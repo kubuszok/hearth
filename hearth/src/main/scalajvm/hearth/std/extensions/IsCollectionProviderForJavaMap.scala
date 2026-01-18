@@ -33,7 +33,7 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
       private lazy val juWeakHashMap = Type.Ctor2.of[java.util.WeakHashMap]
       private lazy val juIdentityHashMap = Type.Ctor2.of[java.util.IdentityHashMap]
 
-      // TODO: Same issue as in IsCollectionProviderForJavaStream.scala: we have a bug in Type.Ctor.
+      // FIXME: Same issue as in IsCollectionProviderForJavaStream.scala: we have a bug in Type.Ctor.
       // private lazy val Entry = Type.Ctor2.of[java.util.Map.Entry]
       private def Entry[A: Type, B: Type]: Type[java.util.Map.Entry[A, B]] = Type.of[java.util.Map.Entry[A, B]]
 
@@ -42,7 +42,7 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
       private def isMap[Map0[K, V] <: java.util.Map[K, V], Key0, Value0, A <: Map0[Key0, Value0]](
           A: Type[A],
           Map0: Type.Ctor2[Map0],
-          emptyMapExpr: Expr[A],
+          emptyMapExpr: => Expr[A],
           keyType: Type[Key0],
           valueType: Type[Value0],
           keyExpr: Expr[java.util.Map.Entry[Key0, Value0]] => Expr[Key0],
@@ -60,11 +60,11 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
           // Java maps have no smart constructors, we we'll provide a Factory that build them as plain values.
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override val factory: Expr[scala.collection.Factory[Pair, PossibleSmartResult]] = Expr.quote {
+          override def factory: Expr[scala.collection.Factory[Pair, PossibleSmartResult]] = Expr.quote {
             new scala.collection.Factory[Pair, A] {
               override def newBuilder: scala.collection.mutable.Builder[Pair, A] =
                 new scala.collection.mutable.Builder[Pair, A] {
-                  private val impl = Expr.splice(emptyMapExpr)
+                  private val impl: A = Expr.splice(emptyMapExpr)
                   override def clear(): Unit = impl.clear()
                   override def result(): A = impl
                   override def addOne(elem: Pair): this.type = { impl.put(elem.getKey(), elem.getValue()); this }
@@ -91,23 +91,21 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
       override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = {
         def isMapOf[Map0[K, V] <: java.util.Map[K, V], Key: Type, Value: Type, Map1[K, V] <: Map0[K, V]](
             map: Type.Ctor2[Map0],
-            emptyMapExpr: Expr[Map1[Key, Value]],
+            emptyMapExpr: => Expr[Map1[Key, Value]],
             keyType: Type[Key],
             valueType: Type[Value]
-        ): Option[IsCollection[A]] =
-          Some(
-            isMap[Map0, Key, Value, Map0[Key, Value]](
-              tpe.asInstanceOf[Type[Map0[Key, Value]]],
-              map,
-              emptyMapExpr.asInstanceOf[Expr[Map0[Key, Value]]],
-              keyType,
-              valueType,
-              (pair: Expr[java.util.Map.Entry[Key, Value]]) => Expr.quote(Expr.splice(pair).getKey()),
-              (pair: Expr[java.util.Map.Entry[Key, Value]]) => Expr.quote(Expr.splice(pair).getValue()),
-              (key: Expr[Key], value: Expr[Value]) =>
-                Expr.quote(java.util.Map.entry(Expr.splice(key), Expr.splice(value)))
-            ).asInstanceOf[IsCollection[A]]
-          )
+        ): IsCollection[A] =
+          isMap[Map0, Key, Value, Map0[Key, Value]](
+            tpe.asInstanceOf[Type[Map0[Key, Value]]],
+            map,
+            emptyMapExpr.asInstanceOf[Expr[Map0[Key, Value]]],
+            keyType,
+            valueType,
+            (pair: Expr[java.util.Map.Entry[Key, Value]]) => Expr.quote(Expr.splice(pair).getKey()),
+            (pair: Expr[java.util.Map.Entry[Key, Value]]) => Expr.quote(Expr.splice(pair).getValue()),
+            (key: Expr[Key], value: Expr[Value]) =>
+              Expr.quote(java.util.Map.entry(Expr.splice(key), Expr.splice(value)))
+          ).asInstanceOf[IsCollection[A]]
 
         // tpe is handled by one of Map's subclasses OR it's exactly Map[Key, Value]
         // so we can safely provide any implementation. Or we yield.
@@ -120,7 +118,7 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
           val map = ctor[Key, Value]
           if (tpe <:< map) {
             forSubtype orElse {
-              if (tpe =:= map) isMapOf(ctor, emptyExpr, Type[Key], Type[Value])
+              if (tpe =:= map) Some(isMapOf(ctor, emptyExpr, Type[Key], Type[Value]))
               else None
             }
           } else None
@@ -130,7 +128,7 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
             ctor: Type.Ctor2[Map0],
             emptyExpr: => Expr[Map2[Key, Value]]
         ): Option[IsCollection[A]] =
-          if (tpe =:= ctor[Key, Value]) isMapOf(ctor, emptyExpr, Type[Key], Type[Value])
+          if (tpe =:= ctor[Key, Value]) Some(isMapOf(ctor, emptyExpr, Type[Key], Type[Value]))
           else None
 
         tpe match {
