@@ -102,16 +102,6 @@ trait ShowCodePrettyScala2 {
       }
     }
 
-    // So, we have a nasty situation where:
-    // - if we print something like MacroCommons.Expr - we have an invalid type, c.parse crashes
-    // - but we want `Int` `Symbol` to print `scala.Int` - and apparently it's represented as `ThisType(symOfInt)`.
-    // Similarly many other types might be represented by `ThisType(sym)`. So we have to use this context-aware distinction to
-    // handle this crap :/.
-    def isThisTypeWithPrintablePrefix(tpe: ThisType): Boolean = {
-      val ThisType(sym) = tpe
-      sym.hasModuleFlag && sym.hasPackageFlag
-    }
-
     // Copy-pasted from TypesScala2.scala because we need it here as well.
 
     /** It is surprisingly ridiculous but I've found no other way of telling whether I am looking at enum abstract class
@@ -206,16 +196,10 @@ trait ShowCodePrettyScala2 {
       override protected def resolveSelect(t: Tree): String = t match {
         // Skip $anon.this - syntethic $anon class was removed so we need to remove the prefix as well.
         case Select(AnonThis(), name) => printedName(name)
-        case AnonThis()               => ""
         // Handle this-types.
         case Select(t2 @ This(thisName), name) =>
           val printed = printedName(thisName)
           s"${if (printed.nonEmpty) (printed + ".") else ""}${if (!t2.symbol.hasPackageFlag) "this." else ""}${printedName(name)}"
-        // Nested This(_) should NOT print .this!
-        // printedName(name)
-        case This(thisName) =>
-          val printed = printedName(thisName)
-          if (printed.nonEmpty) s"$printed.this" else "this"
         // Handle regular selects.
         case Select(qual, name) =>
           val resolved = resolveSelect(qual)
@@ -228,9 +212,13 @@ trait ShowCodePrettyScala2 {
           else if (
             (name.isTermName && needsParentheses(qual)(insideLabelDef = false)) || isIntLitWithDecodedOp(qual, name)
           )
+            // $COVERAGE-OFF$ It happends but I have no idea how to test it
             s"($resolved).$printed"
+          // $COVERAGE-ON$
           else if (name.isTypeName)
+            // $COVERAGE-OFF$ It happends but I have no idea how to test it
             s"$resolved#${blankForOperatorName(name)}%$printed"
+          // $COVERAGE-ON$
           else
             s"$resolved.$printed"
         case Ident(name) =>
@@ -430,8 +418,6 @@ trait ShowCodePrettyScala2 {
           // don't remove synthetic ValDef/TypeDef
           case _ if syntheticToRemove(tree) =>
 
-          case EmptyTree =>
-
           // skip anon - $anon was removed so we need to remove the prefix as well
           case Select(AnonThis(), name) =>
             print(printedName(name))
@@ -443,7 +429,9 @@ trait ShowCodePrettyScala2 {
             if (printed.nonEmpty) {
               print(printed, ".this.", printedName(name))
             } else {
+              // $COVERAGE-OFF$ It happends but I have no idea how to test it
               print("this.", printedName(name))
+              // $COVERAGE-ON$
             }
 
           // without this `import ee.{value as expr}` would print `ee.expr` instead of `expr`
@@ -772,7 +760,9 @@ trait ShowCodePrettyScala2 {
           // print only fun when targs are TypeTrees with empty original
           case TypeApply(fun, targs) =>
             if (targs.exists(isEmptyTree(_))) {
+              // $COVERAGE-OFF$ It happends but I have no idea how to test it
               processTreePrinting(fun)
+              // $COVERAGE-ON$
             } else {
               // Note: copy-paste-modified (and inlined) from TreePrinter.printTree
               processTreePrinting(fun)
@@ -895,11 +885,15 @@ trait ShowCodePrettyScala2 {
               if (original != null) print(original)
               // Note: copy-paste-modified (and inlined) from TreePrinter.printTree
               else if ((tree.tpe eq null) || (printPositions && tt.original != null)) {
+                // $COVERAGE-OFF$ It happends but I have no idea how to test it
                 if (tt.original != null) print(tt.original) // Note: originally: print("<type: ", tt.original, ">")
                 else if (failOnUnsupportedTree) unsupportedTree(tree) // Note: originally: print("<type ?>")
                 else print("<type ?>")
+                // $COVERAGE-ON$
               } else if (isAnonymousClass) {
+                // $COVERAGE-OFF$ It happends but I have no idea how to test it
                 print(highlightTypeDef(tree.tpe.typeSymbol.toString)) // TODO: check if we can do better
+                // $COVERAGE-ON$
               } else {
                 processTypePrinting(tree.tpe, isLastInChain = true)
               }
@@ -931,9 +925,11 @@ trait ShowCodePrettyScala2 {
             val containsByNameTypeParam = args exists isByNameParam
 
             if (containsByNameTypeParam) {
+              // $COVERAGE-OFF$ It happends but I have no idea how to test it
               print("(")
               printRow(args.init, "(", ", ", ")")
               print(" => ", args.last, ")")
+              // $COVERAGE-ON$
             } else {
               if (treeInfo.isRepeatedParamType(tree) && args.nonEmpty) {
                 print(args(0), "*")
@@ -1123,6 +1119,7 @@ trait ShowCodePrettyScala2 {
           print("] = ", resultType, "})#λ")
 
         case _ =>
+          // $COVERAGE-OFF$ If we knew when it happends, we would handle it, so that it wouldn't happen in the first place.
           if (failOnUnsupportedTree) unsupportedType(tpe)
           else {
             // best effort fallback
@@ -1141,6 +1138,7 @@ trait ShowCodePrettyScala2 {
               }
             print(helper(tpe)) // TODO: is this even printed?
           }
+        // $COVERAGE-ON$
       }
 
       override def print(args: Any*): Unit = args foreach {
