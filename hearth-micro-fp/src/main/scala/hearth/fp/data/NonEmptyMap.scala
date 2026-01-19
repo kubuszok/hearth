@@ -35,6 +35,8 @@ final case class NonEmptyMap[K, +V](head: (K, V), tail: ListMap[K, V]) {
   def toNonEmptyList: NonEmptyList[(K, V)] = NonEmptyList(head, tail.toList)
   def toNonEmptyVector: NonEmptyVector[(K, V)] = NonEmptyVector(head, tail.toVector)
 
+  def size: Int = 1 + tail.size
+
   def mkString(sep: String): String = iterator.mkString(sep)
   def mkString(start: String, sep: String, end: String): String = iterator.mkString(start, sep, end)
 

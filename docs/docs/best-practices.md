@@ -290,7 +290,7 @@ need to use actual IO in macros. However:
 
         Log.nestedScope("New nested scope") {
           Log.info("Stated doing X") >>
-            someMioOperation(args) <*
+            someMioOperation(args) *>
             Log.info("Done doing X")
         }
         ```
