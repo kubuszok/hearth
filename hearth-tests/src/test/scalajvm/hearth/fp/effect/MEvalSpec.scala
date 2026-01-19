@@ -107,15 +107,15 @@ final class MEvalSpec extends ScalaCheckSuite with Laws {
       }
     }
 
-    test("*> should behave like .map2(fb)((a, _) => a)") {
+    test("<* should behave like .map2(fb)((a, _) => a)") {
       forAll { (fa: MEval[Int], fb: MEval[Int]) =>
-        fa *> fb === fa.map2(fb)((a, _) => a)
+        fa <* fb === fa.map2(fb)((a, _) => a)
       }
     }
 
-    test("<* should behave like .map2(fb)((_, b) => b)") {
+    test("*> should behave like .map2(fb)((_, b) => b)") {
       forAll { (fa: MEval[Int], fb: MEval[Int]) =>
-        fa <* fb === fa.map2(fb)((_, b) => b)
+        fa *> fb === fa.map2(fb)((_, b) => b)
       }
     }
   }

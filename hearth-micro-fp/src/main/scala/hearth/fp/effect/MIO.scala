@@ -135,8 +135,8 @@ sealed trait MIO[+A] { fa =>
   final def void: MIO[Unit] = as(())
 
   final def >>[B](fb: => MIO[B]): MIO[B] = flatMap(_ => fb)
-  final def *>[B](fb: => MIO[B]): MIO[A] = map2(fb)((a, _) => a)
-  final def <*[B](fb: => MIO[B]): MIO[B] = map2(fb)((_, b) => b)
+  final def <*[B](fb: => MIO[B]): MIO[A] = map2(fb)((a, _) => a)
+  final def *>[B](fb: => MIO[B]): MIO[B] = map2(fb)((_, b) => b)
 
   // --------------------------------------------- Monad error operations ---------------------------------------------
 
@@ -182,8 +182,8 @@ sealed trait MIO[+A] { fa =>
 
   final def parTuple[B](fb: => MIO[B]): MIO[(A, B)] = parMap2(fb)((a, b) => (a, b))
 
-  final def &>[B](fb: => MIO[B]): MIO[A] = parMap2(fb)((a, _) => a)
-  final def <&[B](fb: => MIO[B]): MIO[B] = parMap2(fb)((_, b) => b)
+  final def <&[B](fb: => MIO[B]): MIO[A] = parMap2(fb)((a, _) => a)
+  final def &>[B](fb: => MIO[B]): MIO[B] = parMap2(fb)((_, b) => b)
 
   // --------------------------------------------------- Utilities ----------------------------------------------------
 

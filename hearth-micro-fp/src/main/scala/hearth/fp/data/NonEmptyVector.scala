@@ -27,6 +27,8 @@ final case class NonEmptyVector[+A](head: A, tail: Vector[A]) {
   def toList: List[A] = head :: tail.toList
   def toNonEmptyList: NonEmptyList[A] = NonEmptyList(head, tail.toList)
 
+  def size: Int = 1 + tail.size
+
   def mkString(sep: String): String = toVector.mkString(sep)
   def mkString(start: String, sep: String, end: String): String = toVector.mkString(start, sep, end)
 

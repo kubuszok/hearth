@@ -29,8 +29,8 @@ sealed trait MEval[A] { fa =>
   final def void: MEval[Unit] = as(())
 
   final def >>[B](fb: => MEval[B]): MEval[B] = flatMap(_ => fb)
-  final def *>[B](fb: => MEval[B]): MEval[A] = map2(fb)((a, _) => a)
-  final def <*[B](fb: => MEval[B]): MEval[B] = map2(fb)((_, b) => b)
+  final def <*[B](fb: => MEval[B]): MEval[A] = map2(fb)((a, _) => a)
+  final def *>[B](fb: => MEval[B]): MEval[B] = map2(fb)((_, b) => b)
 
   // --------------------------------------------------- Utilities ----------------------------------------------------
 
