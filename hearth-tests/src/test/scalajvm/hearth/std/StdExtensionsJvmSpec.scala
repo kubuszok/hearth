@@ -6,16 +6,44 @@ import hearth.data.Data
 /** Macro implementation is in [[StdExtensionsFixturesImpl]] */
 final class StdExtensionsJvmSpec extends MacroSuite {
 
+  // Helper to generate expected iteration values for collections with unpredictable order
+  private def expectedIterationForCollection[A](coll: java.lang.Iterable[A]): Data = {
+    import scala.jdk.CollectionConverters.*
+    Data.list(coll.asScala.map(item => Data(item.toString)).toSeq*)
+  }
+
+  // Helper to generate expected iteration values for maps with unpredictable order
+  private def expectedIterationForMap[K, V](map: java.util.Map[K, V]): Data = {
+    import scala.jdk.CollectionConverters.*
+    Data.list(
+      map.asScala.map { case (k, v) =>
+        Data.map("key" -> Data(k.toString), "value" -> Data(v.toString))
+      }.toSeq*
+    )
+  }
+
+  // Helper for Dictionary types (legacy API)
+  private def expectedIterationForDictionary[K, V](dict: java.util.Dictionary[K, V]): Data = {
+    import scala.jdk.CollectionConverters.*
+    Data.list(
+      dict.asScala.map { case (k, v) =>
+        Data.map("key" -> Data(k.toString), "value" -> Data(v.toString))
+      }.toSeq*
+    )
+  }
+
   group("trait std.StdExtensions") {
 
     group("class: IsCollection[A], returns preprocessed collection") {
       import StdExtensionsFixtures.testIsCollection
 
       test("for Scala WeakHashMap") {
-        testIsCollection(scala.collection.mutable.WeakHashMap(1 -> "one", 2 -> "two")) <==> Data.map(
+        val weakHashMap = scala.collection.mutable.WeakHashMap(1 -> "one", 2 -> "two")
+        testIsCollection(weakHashMap) <==> Data.map(
           "iteration" -> Data.list(
-            Data.map("key" -> Data("2"), "value" -> Data("two")),
-            Data.map("key" -> Data("1"), "value" -> Data("one"))
+            weakHashMap.map { case (k, v) =>
+              Data.map("key" -> Data(k.toString), "value" -> Data(v.toString))
+            }.toSeq*
           ),
           "building" -> Data("WeakHashMap(1 -> one)")
         )
@@ -137,28 +165,20 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("[one]")
         )
-        testIsCollection[java.util.PriorityQueue[String]](new java.util.PriorityQueue[String]() {
-          add("one")
-          add("two")
-          add("three")
-        }) <==> Data.map(
-          "iteration" -> Data.list(
-            Data("one"),
-            Data("two"),
-            Data("three")
-          ),
+        val pq1 = new java.util.PriorityQueue[String]()
+        pq1.add("one")
+        pq1.add("two")
+        pq1.add("three")
+        testIsCollection[java.util.PriorityQueue[String]](pq1) <==> Data.map(
+          "iteration" -> expectedIterationForCollection(pq1),
           "building" -> Data("[one]")
         )
-        testIsCollection[java.util.HashSet[String]](new java.util.HashSet[String]() {
-          add("one")
-          add("two")
-          add("three")
-        }) <==> Data.map(
-          "iteration" -> Data.list(
-            Data("one"),
-            Data("two"),
-            Data("three")
-          ),
+        val hs1 = new java.util.HashSet[String]()
+        hs1.add("one")
+        hs1.add("two")
+        hs1.add("three")
+        testIsCollection[java.util.HashSet[String]](hs1) <==> Data.map(
+          "iteration" -> expectedIterationForCollection(hs1),
           "building" -> Data("[one]")
         )
         testIsCollection[java.util.LinkedHashSet[String]](new java.util.LinkedHashSet[String]() {
@@ -298,23 +318,15 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           add("three")
         }
         testIsCollection(queue) <==> Data.map(
-          "iteration" -> Data.list(
-            Data("one"),
-            Data("two"),
-            Data("three")
-          ),
+          "iteration" -> expectedIterationForCollection(queue),
           "building" -> Data("[one]")
         )
-        testIsCollection[java.util.PriorityQueue[String]](new java.util.PriorityQueue[String]() {
-          add("one")
-          add("two")
-          add("three")
-        }) <==> Data.map(
-          "iteration" -> Data.list(
-            Data("one"),
-            Data("two"),
-            Data("three")
-          ),
+        val pq2 = new java.util.PriorityQueue[String]()
+        pq2.add("one")
+        pq2.add("two")
+        pq2.add("three")
+        testIsCollection[java.util.PriorityQueue[String]](pq2) <==> Data.map(
+          "iteration" -> expectedIterationForCollection(pq2),
           "building" -> Data("[one]")
         )
         testIsCollection[java.util.ArrayDeque[String]](new java.util.ArrayDeque[String]() {
@@ -338,23 +350,15 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           add("three")
         }
         testIsCollection(set) <==> Data.map(
-          "iteration" -> Data.list(
-            Data("one"),
-            Data("two"),
-            Data("three")
-          ),
+          "iteration" -> expectedIterationForCollection(set),
           "building" -> Data("[one]")
         )
-        testIsCollection[java.util.HashSet[String]](new java.util.HashSet[String]() {
-          add("one")
-          add("two")
-          add("three")
-        }) <==> Data.map(
-          "iteration" -> Data.list(
-            Data("one"),
-            Data("two"),
-            Data("three")
-          ),
+        val hs2 = new java.util.HashSet[String]()
+        hs2.add("one")
+        hs2.add("two")
+        hs2.add("three")
+        testIsCollection[java.util.HashSet[String]](hs2) <==> Data.map(
+          "iteration" -> expectedIterationForCollection(hs2),
           "building" -> Data("[one]")
         )
         testIsCollection[java.util.LinkedHashSet[String]](new java.util.LinkedHashSet[String]() {
@@ -451,32 +455,21 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           put(2, "two")
         }
         testIsCollection(dict) <==> Data.map(
-          "iteration" -> Data.list(
-            Data.map("key" -> Data("2"), "value" -> Data("two")),
-            Data.map("key" -> Data("1"), "value" -> Data("one"))
-          ),
+          "iteration" -> expectedIterationForDictionary(dict),
           "building" -> Data("{1=one}")
         )
-        testIsCollection[java.util.Hashtable[Int, String]](new java.util.Hashtable[Int, String]() {
-          put(1, "one")
-          put(2, "two")
-        }) <==> Data.map(
-          "iteration" -> Data.list(
-            Data.map("key" -> Data("2"), "value" -> Data("two")),
-            Data.map("key" -> Data("1"), "value" -> Data("one"))
-          ),
+        val ht = new java.util.Hashtable[Int, String]()
+        ht.put(1, "one")
+        ht.put(2, "two")
+        testIsCollection[java.util.Hashtable[Int, String]](ht) <==> Data.map(
+          "iteration" -> expectedIterationForDictionary(ht),
           "building" -> Data("{1=one}")
         )
-        testIsCollection {
-          val props = new java.util.Properties()
-          props.put("one", "1")
-          props.put("two", "2")
-          props
-        } <==> Data.map(
-          "iteration" -> Data.list(
-            Data.map("key" -> Data("one"), "value" -> Data("1")),
-            Data.map("key" -> Data("two"), "value" -> Data("2"))
-          ),
+        val props = new java.util.Properties()
+        props.put("one", "1")
+        props.put("two", "2")
+        testIsCollection(props) <==> Data.map(
+          "iteration" -> expectedIterationForDictionary(props),
           "building" -> Data("<not a map of int and string>")
         )
       }
@@ -488,20 +481,14 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           put(2, "two")
         }
         testIsCollection(map) <==> Data.map(
-          "iteration" -> Data.list(
-            Data.map("key" -> Data("1"), "value" -> Data("one")),
-            Data.map("key" -> Data("2"), "value" -> Data("two"))
-          ),
+          "iteration" -> expectedIterationForMap(map),
           "building" -> Data("{1=one}")
         )
-        testIsCollection[java.util.HashMap[Int, String]](new java.util.HashMap[Int, String]() {
-          put(1, "one")
-          put(2, "two")
-        }) <==> Data.map(
-          "iteration" -> Data.list(
-            Data.map("key" -> Data("1"), "value" -> Data("one")),
-            Data.map("key" -> Data("2"), "value" -> Data("two"))
-          ),
+        val hm = new java.util.HashMap[Int, String]()
+        hm.put(1, "one")
+        hm.put(2, "two")
+        testIsCollection[java.util.HashMap[Int, String]](hm) <==> Data.map(
+          "iteration" -> expectedIterationForMap(hm),
           "building" -> Data("{1=one}")
         )
         testIsCollection[java.util.LinkedHashMap[Int, String]](new java.util.LinkedHashMap[Int, String]() {
@@ -524,24 +511,18 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           ),
           "building" -> Data("{1=one}")
         )
-        testIsCollection[java.util.WeakHashMap[Int, String]](new java.util.WeakHashMap[Int, String]() {
-          put(1, "one")
-          put(2, "two")
-        }) <==> Data.map(
-          "iteration" -> Data.list(
-            Data.map("key" -> Data("2"), "value" -> Data("two")),
-            Data.map("key" -> Data("1"), "value" -> Data("one"))
-          ),
+        val whm = new java.util.WeakHashMap[Int, String]()
+        whm.put(1, "one")
+        whm.put(2, "two")
+        testIsCollection[java.util.WeakHashMap[Int, String]](whm) <==> Data.map(
+          "iteration" -> expectedIterationForMap(whm),
           "building" -> Data("{1=one}")
         )
-        testIsCollection[java.util.IdentityHashMap[Int, String]](new java.util.IdentityHashMap[Int, String]() {
-          put(1, "one")
-          put(2, "two")
-        }) <==> Data.map(
-          "iteration" -> Data.list(
-            Data.map("key" -> Data("1"), "value" -> Data("one")),
-            Data.map("key" -> Data("2"), "value" -> Data("two"))
-          ),
+        val ihm = new java.util.IdentityHashMap[Int, String]()
+        ihm.put(1, "one")
+        ihm.put(2, "two")
+        testIsCollection[java.util.IdentityHashMap[Int, String]](ihm) <==> Data.map(
+          "iteration" -> expectedIterationForMap(ihm),
           "building" -> Data("{1=one}")
         )
       }
