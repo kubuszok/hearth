@@ -25,4 +25,14 @@ object EnvironmentFixtures {
 
   inline def testLoadingExtensions: Data = ${ testLoadingExtensionsImpl }
   private def testLoadingExtensionsImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(q).testLoadingExtensions
+
+  inline def testLoadingExtensionsExcluding: Data = ${ testLoadingExtensionsExcludingImpl }
+  private def testLoadingExtensionsExcludingImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(
+    q
+  ).testLoadingExtensionsExcluding
+
+  inline def testLoadingExtensionsWhen: Data = ${ testLoadingExtensionsWhenImpl }
+  private def testLoadingExtensionsWhenImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(
+    q
+  ).testLoadingExtensionsWhen
 }

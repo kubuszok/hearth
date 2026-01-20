@@ -58,38 +58,6 @@ trait EnvironmentFixturesImpl { this: MacroCommons =>
   private var loadedExtensions: Vector[String] = Vector.empty
 
   def testLoadingExtensions: Expr[Data] = {
-    def processResult[A](result: ExtensionLoadingResult[A]): Data = {
-      def loadedData(extensions: Seq[A]): Data = Data.list(extensions.map(e => Data(e.getClass.getName))*)
-      def errorsData(errors: fp.data.NonEmptyMap[A, Throwable]): Data =
-        Data.list(errors.toList.map(e => Data(e._2.getMessage))*)
-      def errorsData2(errors: fp.data.NonEmptyVector[Throwable]): Data =
-        Data.list(errors.toVector.map(e => Data(e.getMessage))*)
-      val detailed = result match {
-        case ExtensionLoadingResult.AllLoaded(extensions) =>
-          Data.map("loaded" -> loadedData(extensions.toSeq))
-        case ExtensionLoadingResult.SomeFailed(extensions, errors) =>
-          Data.map("loaded" -> loadedData(extensions.toSeq), "errors" -> errorsData(errors))
-        case ExtensionLoadingResult.LoaderFailed(error) =>
-          Data.map("error" -> Data(error.getMessage))
-      }
-      val asOption = result.toOption match {
-        case Some(extensions) =>
-          Data.map("loaded" -> loadedData(extensions.toSeq))
-        case None =>
-          Data.map("error" -> Data("Some extensions failed to load"))
-      }
-      val asEither = result.toEither match {
-        case Right(extensions) =>
-          Data.map("loaded" -> loadedData(extensions.toSeq))
-        case Left(errors) =>
-          Data.map("errors" -> errorsData2(errors))
-      }
-      Data.map(
-        "detailed" -> detailed,
-        "asOption" -> asOption,
-        "asEither" -> asEither
-      )
-    }
     val result = Data.map(
       "successful" -> processResult(Environment.loadMacroExtensions[SuccessfulMacroExtension]),
       "runningFailed" -> processResult(Environment.loadMacroExtensions[PartiallyFailedMacroExtension]),
@@ -98,6 +66,73 @@ trait EnvironmentFixturesImpl { this: MacroCommons =>
       "loadedExtensions" -> Data.list(loadedExtensions.map(Data(_))*)
     )
     Expr(result)
+  }
+
+  def testLoadingExtensionsExcluding: Expr[Data] = {
+    val result = Data.map(
+      "successful" -> processResult(
+        Environment.loadMacroExtensionsExcluding[SuccessfulMacroExtension]("hearth.Example2MacroExtension")
+      ),
+      "runningFailed" -> processResult(
+        Environment.loadMacroExtensionsExcluding[PartiallyFailedMacroExtension]("hearth.Example3MacroExtension")
+      ),
+      "loadingFailed" -> processResult(
+        Environment.loadMacroExtensionsExcluding[TotallyFailedMacroExtension]("hearth.Example4MacroExtension")
+      ),
+      // Must be at the end, evaluated once the extensions are loaded.
+      "loadedExtensions" -> Data.list(loadedExtensions.map(Data(_))*)
+    )
+    Expr(result)
+  }
+
+  def testLoadingExtensionsWhen: Expr[Data] = {
+    val result = Data.map(
+      "successful" -> processResult(
+        Environment.loadMacroExtensionsWhen[SuccessfulMacroExtension](_.getName.contains("2"))
+      ),
+      "runningFailed" -> processResult(
+        Environment.loadMacroExtensionsWhen[PartiallyFailedMacroExtension](_.getName.contains("2"))
+      ),
+      "loadingFailed" -> processResult(
+        Environment.loadMacroExtensionsWhen[TotallyFailedMacroExtension](_.getName.contains("2"))
+      ),
+      // Must be at the end, evaluated once the extensions are loaded.
+      "loadedExtensions" -> Data.list(loadedExtensions.map(Data(_))*)
+    )
+    Expr(result)
+  }
+
+  private def processResult[A](result: ExtensionLoadingResult[A]): Data = {
+    def loadedData(extensions: Seq[A]): Data = Data.list(extensions.map(e => Data(e.getClass.getName))*)
+    def errorsData(errors: fp.data.NonEmptyMap[A, Throwable]): Data =
+      Data.list(errors.toList.map(e => Data(e._2.getMessage))*)
+    def errorsData2(errors: fp.data.NonEmptyVector[Throwable]): Data =
+      Data.list(errors.toVector.map(e => Data(e.getMessage))*)
+    val detailed = result match {
+      case ExtensionLoadingResult.AllLoaded(extensions) =>
+        Data.map("loaded" -> loadedData(extensions.toSeq))
+      case ExtensionLoadingResult.SomeFailed(extensions, errors) =>
+        Data.map("loaded" -> loadedData(extensions.toSeq), "errors" -> errorsData(errors))
+      case ExtensionLoadingResult.LoaderFailed(error) =>
+        Data.map("error" -> Data(error.getMessage))
+    }
+    val asOption = result.toOption match {
+      case Some(extensions) =>
+        Data.map("loaded" -> loadedData(extensions.toSeq))
+      case None =>
+        Data.map("error" -> Data("Some extensions failed to load"))
+    }
+    val asEither = result.toEither match {
+      case Right(extensions) =>
+        Data.map("loaded" -> loadedData(extensions.toSeq))
+      case Left(errors) =>
+        Data.map("errors" -> errorsData2(errors))
+    }
+    Data.map(
+      "detailed" -> detailed,
+      "asOption" -> asOption,
+      "asEither" -> asEither
+    )
   }
 }
 

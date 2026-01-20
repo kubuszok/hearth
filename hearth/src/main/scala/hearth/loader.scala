@@ -36,7 +36,7 @@ private[hearth] object platformSpecificServiceLoader extends platformSpecificSer
     * @param classLoader
     *   the class loader to load services from
     * @param excluded
-    *   the names of the services to exclude (case-insensitive full qualified class names)
+    *   the names of the services to exclude (case-sensitive full qualified class names)
     * @return
     *   the loaded services or the first error encountered
     */
