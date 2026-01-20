@@ -97,7 +97,52 @@ final class EnvironmentSpec extends MacroSuite {
       import EnvironmentFixtures.testLoadingExtensions
 
       test("should load macro extensions") {
-        testLoadingExtensions <==> Data.list(Data("Example 1"), Data("Example 2"))
+        testLoadingExtensions <==> Data.map(
+          "successful" -> Data.map(
+            "detailed" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example1MacroExtension"), Data("hearth.Example2MacroExtension"))
+            ),
+            "asOption" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example1MacroExtension"), Data("hearth.Example2MacroExtension"))
+            ),
+            "asEither" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example1MacroExtension"), Data("hearth.Example2MacroExtension"))
+            )
+          ),
+          "runningFailed" -> Data.map(
+            "detailed" -> Data.map(
+              "loaded" -> Data.list(),
+              "errors" -> Data.list(Data("Failed to load Example 3"))
+            ),
+            "asOption" -> Data.map(
+              "error" -> Data("Some extensions failed to load")
+            ),
+            "asEither" -> Data.map(
+              "errors" -> Data.list(Data("Failed to load Example 3"))
+            )
+          ),
+          "loadingFailed" -> Data.map(
+            "detailed" -> Data.map(
+              "error" -> Data(
+                "hearth.TotallyFailedMacroExtension: Provider hearth.Example4MacroExtension could not be instantiated"
+              )
+            ),
+            "asOption" -> Data.map(
+              "error" -> Data("Some extensions failed to load")
+            ),
+            "asEither" -> Data.map(
+              "errors" -> Data.list(
+                Data(
+                  "hearth.TotallyFailedMacroExtension: Provider hearth.Example4MacroExtension could not be instantiated"
+                )
+              )
+            )
+          ),
+          "loadedExtensions" -> Data.list(
+            Data("Example 1"),
+            Data("Example 2")
+          )
+        )
       }
     }
   }

@@ -593,7 +593,13 @@ lazy val hearthTests = projectMatrix
   .settings(noPublishSettings *)
   .settings(dependencies *)
   .settings(mimaSettings *)
-  .settings(macroExtensionTraits := Seq("hearth.ExampleMacroExtension"))
+  .settings(
+    macroExtensionTraits := Seq(
+      "hearth.SuccessfulMacroExtension",
+      "hearth.PartiallyFailedMacroExtension",
+      "hearth.TotallyFailedMacroExtension"
+    )
+  )
   .dependsOn(hearth)
 
 // Test cross compilation: 2.13x3
