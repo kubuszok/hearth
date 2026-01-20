@@ -40,55 +40,70 @@ trait StdExtensions { this: MacroCommons =>
         ctor: Expr[Input] => Expr[Output]
     ) extends PossibleSmartCtor[Input, Output] {
 
+      // $COVERAGE-OFF$
       override type Result[A] = A
       override val Result: Type.Ctor1[Result] = new Type.Ctor1[Result] {
         def apply[A: Type]: Type[A] = Type[A]
         def unapply[A](A: Type[A]): Option[??] = Some(A.as_??)
       }
-
       override def toString: String = "PlainValue"
+      // $COVERAGE-ON$
     }
 
     final case class EitherStringOrValue[Input, Output](
         ctor: Expr[Input] => Expr[Either[String, Output]]
     ) extends PossibleSmartCtor[Input, Output] {
 
+      // $COVERAGE-OFF$
       override type Result[A] = Either[String, A]
       override val Result: Type.Ctor1[Result] =
         Type.Ctor2.of[Either].setA[String](using Type.of[String])
 
       override def toString: String = "EitherStringOrValue"
+      // $COVERAGE-ON$
     }
 
     final case class EitherIterableStringOrValue[Input, Output](
         ctor: Expr[Input] => Expr[Either[Iterable[String], Output]]
     ) extends PossibleSmartCtor[Input, Output] {
 
+      // $COVERAGE-OFF$
       override type Result[A] = Either[Iterable[String], A]
       override val Result: Type.Ctor1[Result] =
         Type.Ctor2.of[Either].setA[Iterable[String]](using Type.of[Iterable[String]])
+      override def toString: String = "EitherIterableStringOrValue"
+      // $COVERAGE-ON$
     }
 
     final case class EitherThrowableOrValue[Input, Output](
         ctor: Expr[Input] => Expr[Either[Throwable, Output]]
     ) extends PossibleSmartCtor[Input, Output] {
 
+      // $COVERAGE-OFF$
       override type Result[A] = Either[Throwable, A]
       override val Result: Type.Ctor1[Result] =
         Type.Ctor2.of[Either].setA[Throwable](using Type.of[Throwable])
+      override def toString: String = "EitherThrowableOrValue"
+      // $COVERAGE-ON$
     }
 
     final case class EitherIterableThrowableOrValue[Input, Output](
         ctor: Expr[Input] => Expr[Either[Iterable[Throwable], Output]]
     ) extends PossibleSmartCtor[Input, Output] {
 
+      // $COVERAGE-OFF$
       override type Result[A] = Either[Iterable[Throwable], A]
       override val Result: Type.Ctor1[Result] =
         Type.Ctor2.of[Either].setA[Iterable[Throwable]](using Type.of[Iterable[Throwable]])
+      override def toString: String = "EitherIterableThrowableOrValue"
+      // $COVERAGE-ON$
     }
-  }
 
-  // TODO: provide extension methods
+    // TODO:
+    //   type PossibleSmartCtorsOf[A] = ... // something existential of Input and Output
+    //   def unapply[A](tpe: Type[A]): Option[PossibleSmartCtorsOf[A]] = ...
+    // then we could have extension method on Type[A]
+  }
 
   /** Proof that the type is a collection of the given item type.
     *
