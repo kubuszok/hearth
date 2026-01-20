@@ -10,9 +10,11 @@ final private class MioIntegrationsFixtures(val c: blackbox.Context)
     with MioIntegrationsFixturesImpl {
 
   def testValDefBuilderBuildCachedWithMIOImpl: c.Expr[Data] = testValDefBuilderBuildCachedWithMIO
+  def testExtensionLoadingResultToMIOImpl: c.Expr[Data] = testExtensionLoadingResultToMIO
 }
 
 object MioIntegrationsFixtures {
 
   def testValDefBuilderBuildCachedWithMIO: Data = macro MioIntegrationsFixtures.testValDefBuilderBuildCachedWithMIOImpl
+  def testExtensionLoadingResultToMIO: Data = macro MioIntegrationsFixtures.testExtensionLoadingResultToMIOImpl
 }

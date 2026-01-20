@@ -159,36 +159,54 @@ trait MIOIntegrations { this: MacroTypedCommons =>
       */
     def toMIO(allowFailures: Boolean = false): MIO[ExtensionLoadingResult.Loaded[Extension]] = MIO(result).flatMap {
       case ExtensionLoadingResult.AllLoaded(loadedExtensions) =>
-        MIO.pure(loadedExtensions) <* Log.info(
-          s"""${classTag[Extension].runtimeClass.getName} - Successfully loaded ${loadedExtensions.size} extensions:
-             |${loadedExtensions.map(ex => "  - " + ex.getClass.getName).mkString("\n")}""".stripMargin
-        )
+        MIO
+          .pure(loadedExtensions)
+          .attemptFlatTap(_ =>
+            Log.info(
+              s"""${classTag[Extension].runtimeClass.getName} - Successfully loaded ${loadedExtensions.size} extensions:
+                 |${loadedExtensions.map(ex => "  - " + ex.getClass.getName).mkString("\n")}""".stripMargin
+            )
+          )
       case ExtensionLoadingResult.SomeFailed(loadedExtensions, errors) =>
         if (allowFailures)
-          MIO.pure(loadedExtensions) <* Log.info(
-            s"""${classTag[Extension].runtimeClass.getName} - Successfully loaded ${loadedExtensions.size} extensions:
-               |${loadedExtensions.map(e => s"  - ${e.getClass.getName}").mkString("\n")}
-               |Failed to load ${errors.size} extensions:
-               |${errors.toNonEmptyVector
-                .map { case (e, t) => s"  - ${e.getClass.getName}: ${t.getMessage}" }
-                .mkString("\n")}
-               |but failures were allowed""".stripMargin
-          )
+          MIO
+            .pure(loadedExtensions)
+            .attemptFlatTap(_ =>
+              Log.info(
+                s"""${classTag[
+                    Extension
+                  ].runtimeClass.getName} - Successfully loaded ${loadedExtensions.size} extensions:
+                   |${loadedExtensions.map(e => s"  - ${e.getClass.getName}").mkString("\n")}
+                   |Failed to load ${errors.size} extensions:
+                   |${errors.toNonEmptyVector
+                    .map { case (e, t) => s"  - ${e.getClass.getName}: ${t.getMessage}" }
+                    .mkString("\n")}
+                   |but failures were allowed""".stripMargin
+              )
+            )
         else
-          MIO.fail(errors.toNonEmptyVector.map(_._2)) <* Log.error(
-            s"""${classTag[Extension].runtimeClass.getName} - Failed to load ${errors.size} extensions:
-               |${errors.toNonEmptyVector
-                .map { case (e, t) => s"  - ${e.getClass.getName}: ${t.getMessage}" }
-                .mkString("\n")}
-               |Successfully loaded ${loadedExtensions.size} extensions:
-               |${loadedExtensions.map(ex => s"  - ${ex.getClass.getName}").mkString("\n")}
-               |but failures were not allowed""".stripMargin
-          )
+          MIO
+            .fail(errors.toNonEmptyVector.map(_._2))
+            .attemptFlatTap(_ =>
+              Log.error(
+                s"""${classTag[Extension].runtimeClass.getName} - Failed to load ${errors.size} extensions:
+                   |${errors.toNonEmptyVector
+                    .map { case (e, t) => s"  - ${e.getClass.getName}: ${t.getMessage}" }
+                    .mkString("\n")}
+                   |Successfully loaded ${loadedExtensions.size} extensions:
+                   |${loadedExtensions.map(ex => s"  - ${ex.getClass.getName}").mkString("\n")}
+                   |but failures were not allowed""".stripMargin
+              )
+            )
       case ExtensionLoadingResult.LoaderFailed(error) =>
-        MIO.fail(error) <* Log.error(
-          s"""${classTag[Extension].runtimeClass.getName} - Failed to load extensions:
-             |${error.getMessage}""".stripMargin
-        )
+        MIO
+          .fail(error)
+          .attemptFlatTap(_ =>
+            Log.error(
+              s"""${classTag[Extension].runtimeClass.getName} - Failed to load extensions:
+                 |${error.getMessage}""".stripMargin
+            )
+          )
     }
   }
 }

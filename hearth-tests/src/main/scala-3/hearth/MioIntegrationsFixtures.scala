@@ -16,4 +16,9 @@ object MioIntegrationsFixtures {
   private def testValDefBuilderBuildCachedWithMIOImpl(using q: Quotes): Expr[Data] = new MioIntegrationsFixtures(
     q
   ).testValDefBuilderBuildCachedWithMIO
+
+  inline def testExtensionLoadingResultToMIO: Data = ${ testExtensionLoadingResultToMIOImpl }
+  private def testExtensionLoadingResultToMIOImpl(using q: Quotes): Expr[Data] = new MioIntegrationsFixtures(
+    q
+  ).testExtensionLoadingResultToMIO
 }

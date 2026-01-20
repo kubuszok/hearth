@@ -1,9 +1,10 @@
 package hearth
 
 import hearth.data.Data
+import hearth.fp.effect.*
 
 /** Fixtured for testing [[MioIntegrationsSpec]]. */
-trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
+trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
 
   @scala.annotation.nowarn
   def testValDefBuilderBuildCachedWithMIO: Expr[Data] = {
@@ -730,6 +731,55 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroCommons =>
     }
 
     result.runToExprOrFail("testValDefBuilderBuildCachedWithMIO")((_, _) => "")
+  }
+
+  def testExtensionLoadingResultToMIO: Expr[Data] = {
+    def processResult[A](result: MIO[ExtensionLoadingResult.Loaded[A]]): MIO[Data] =
+      result.redeem(loaded =>
+        Data.map(
+          "loaded" -> Data.list(loaded.toSeq.map(e => Data(e.getClass.getName))*)
+        )
+      )(errors =>
+        Data.map(
+          "errors" -> Data.list(errors.toList.map(e => Data(e.getMessage))*)
+        )
+      )
+
+    val program = for {
+      successfulDontAllowFailures <- processResult(Environment.loadMacroExtensions[SuccessfulMacroExtension].toMIO())
+      successfulAllowFailures <- processResult(
+        Environment.loadMacroExtensions[SuccessfulMacroExtension].toMIO(allowFailures = true)
+      )
+      runningFailedDontAllowFailures <- processResult(
+        Environment.loadMacroExtensions[PartiallyFailedMacroExtension].toMIO()
+      )
+      runningFailedAllowFailures <- processResult(
+        Environment.loadMacroExtensions[PartiallyFailedMacroExtension].toMIO(allowFailures = true)
+      )
+      loadingFailedDontAllowFailures <- processResult(
+        Environment.loadMacroExtensions[TotallyFailedMacroExtension].toMIO()
+      )
+      loadingFailedAllowFailures <- processResult(
+        Environment.loadMacroExtensions[TotallyFailedMacroExtension].toMIO(allowFailures = true)
+      )
+    } yield Data.map(
+      "successfulDontAllowFailures" -> successfulDontAllowFailures,
+      "successfulAllowFailures" -> successfulAllowFailures,
+      "runningFailedDontAllowFailures" -> runningFailedDontAllowFailures,
+      "runningFailedAllowFailures" -> runningFailedAllowFailures,
+      "loadingFailedDontAllowFailures" -> loadingFailedDontAllowFailures,
+      "loadingFailedAllowFailures" -> loadingFailedAllowFailures
+    )
+
+    val (state, result) = program.unsafe.runSync
+    val data = result.getOrElse(Environment.reportErrorAndAbort("Failed to run program"))
+    val logs = state.logs.render.fromInfo("Logs")
+    Expr(
+      Data.map(
+        "data" -> data,
+        "logs" -> Data(logs)
+      )
+    )
   }
 
   // types using in fixtures
