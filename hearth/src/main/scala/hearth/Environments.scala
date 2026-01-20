@@ -173,11 +173,13 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
           ext(env)
           Right(ext)
         } else {
+          // $COVERAGE-OFF$ I don't have an idea how to test this.
           Left(
             ext -> new IllegalStateException(
               s"Instance of ${ext.getClass.getName} cannot be applied to ${env.getClass.getName}"
             )
           )
+          // $COVERAGE-ON$
         }
       catch {
         case e: Throwable => Left(ext -> e)
