@@ -145,5 +145,95 @@ final class EnvironmentSpec extends MacroSuite {
         )
       }
     }
+
+    group("methods: Environment.loadMacroExtensionsExcluding, expected behavior") {
+      import EnvironmentFixtures.testLoadingExtensionsExcluding
+
+      test("should load macro extensions excluding the ones with the given names") {
+        testLoadingExtensionsExcluding <==> Data.map(
+          "successful" -> Data.map(
+            "detailed" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example1MacroExtension"))
+            ),
+            "asOption" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example1MacroExtension"))
+            ),
+            "asEither" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example1MacroExtension"))
+            )
+          ),
+          "runningFailed" -> Data.map(
+            "detailed" -> Data.map(
+              "loaded" -> Data.list()
+            ),
+            "asOption" -> Data.map(
+              "loaded" -> Data.list()
+            ),
+            "asEither" -> Data.map(
+              "loaded" -> Data.list()
+            )
+          ),
+          "loadingFailed" -> Data.map(
+            "detailed" -> Data.map(
+              "loaded" -> Data.list()
+            ),
+            "asOption" -> Data.map(
+              "loaded" -> Data.list()
+            ),
+            "asEither" -> Data.map(
+              "loaded" -> Data.list()
+            )
+          ),
+          "loadedExtensions" -> Data.list(
+            Data("Example 1")
+          )
+        )
+      }
+    }
+
+    group("methods: Environment.loadMacroExtensionsWhen, expected behavior") {
+      import EnvironmentFixtures.testLoadingExtensionsWhen
+
+      test("should load macro extensions filtering by the given condition") {
+        testLoadingExtensionsWhen <==> Data.map(
+          "successful" -> Data.map(
+            "detailed" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example2MacroExtension"))
+            ),
+            "asOption" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example2MacroExtension"))
+            ),
+            "asEither" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example2MacroExtension"))
+            )
+          ),
+          "runningFailed" -> Data.map(
+            "detailed" -> Data.map(
+              "loaded" -> Data.list()
+            ),
+            "asOption" -> Data.map(
+              "loaded" -> Data.list()
+            ),
+            "asEither" -> Data.map(
+              "loaded" -> Data.list()
+            )
+          ),
+          "loadingFailed" -> Data.map(
+            "detailed" -> Data.map(
+              "loaded" -> Data.list()
+            ),
+            "asOption" -> Data.map(
+              "loaded" -> Data.list()
+            ),
+            "asEither" -> Data.map(
+              "loaded" -> Data.list()
+            )
+          ),
+          "loadedExtensions" -> Data.list(
+            Data("Example 2")
+          )
+        )
+      }
+    }
   }
 }

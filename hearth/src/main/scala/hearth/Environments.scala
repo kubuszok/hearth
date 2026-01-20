@@ -157,7 +157,6 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
       *
       * @tparam Extension
       *   the type of the extension to load
-      *
       * @return
       *   `AllLoaded(loadedExtensions)` if all the extensions were loaded successfully,
       *   `SomeFailed(loadedExtensions, errors)` otherwise, `LoaderFailed(error)` if the ServiceLoader failed to load
@@ -166,7 +165,60 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
     final def loadMacroExtensions[Extension <: MacroExtension[?]: ClassTag]: ExtensionLoadingResult[Extension] = {
       @scala.annotation.nowarn
       val Extension = classTag[Extension].runtimeClass.asInstanceOf[Class[Extension]]
+      loadMacroExtensionsFrom(
+        platformSpecificServiceLoader.load[Extension](Extension, env.getClass.getClassLoader)
+      )
+    }
 
+    /** Loads all the macro extensions for the given extension type, excluding the ones with the given names.
+      *
+      * @since 0.3.0
+      *
+      * @tparam Extension
+      *   the type of the extension to load
+      * @param excluded
+      *   the names of the extensions to exclude (case-sensitive full qualified class names)
+      * @return
+      *   `AllLoaded(loadedExtensions)` if all the extensions were loaded successfully,
+      *   `SomeFailed(loadedExtensions, errors)` otherwise, `LoaderFailed(error)` if the ServiceLoader failed to load
+      *   them in thr first place.
+      */
+    final def loadMacroExtensionsExcluding[Extension <: MacroExtension[?]: ClassTag](
+        excluded: String*
+    ): ExtensionLoadingResult[Extension] = {
+      @scala.annotation.nowarn
+      val Extension = classTag[Extension].runtimeClass.asInstanceOf[Class[Extension]]
+      loadMacroExtensionsFrom(
+        platformSpecificServiceLoader.loadExcluding[Extension](Extension, env.getClass.getClassLoader)(excluded*)
+      )
+    }
+
+    /** Loads all the macro extensions for the given extension type, filtering by the given condition.
+      *
+      * @since 0.3.0
+      *
+      * @tparam Extension
+      *   the type of the extension to load
+      * @param condition
+      *   the condition to filter extensions by
+      * @return
+      *   `AllLoaded(loadedExtensions)` if all the extensions were loaded successfully,
+      *   `SomeFailed(loadedExtensions, errors)` otherwise, `LoaderFailed(error)` if the ServiceLoader failed to load
+      *   them in thr first place.
+      */
+    final def loadMacroExtensionsWhen[Extension <: MacroExtension[?]: ClassTag](
+        condition: Class[?] => Boolean
+    ): ExtensionLoadingResult[Extension] = {
+      @scala.annotation.nowarn
+      val Extension = classTag[Extension].runtimeClass.asInstanceOf[Class[Extension]]
+      loadMacroExtensionsFrom(
+        platformSpecificServiceLoader.loadWhen[Extension](Extension, env.getClass.getClassLoader)(condition)
+      )
+    }
+
+    final private def loadMacroExtensionsFrom[Extension <: MacroExtension[?]](
+        extensions: Either[Throwable, Vector[Extension]]
+    ): ExtensionLoadingResult[Extension] = {
       // Allow aggregating errors from each extension loading
       def safeLoadExtension(ext: Extension): Either[(Extension, Throwable), Extension] = try
         if (ext.isDefinedAt(env)) {
@@ -185,7 +237,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
         case e: Throwable => Left(ext -> e)
       }
 
-      platformSpecificServiceLoader.load[Extension](Extension, env.getClass.getClassLoader) match {
+      extensions match {
         case Right(extensions) =>
           val (failure, success) = extensions.partitionMap(safeLoadExtension)
           val loadedExtensions = ListSet.from(success)
