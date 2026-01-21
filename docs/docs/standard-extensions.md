@@ -756,3 +756,77 @@ In these examples:
 This API works seamlessly with `AnyVal` types and Java boxed types (on JVM), all through the same interface!
 
 ### Smart Constructors
+
+When building values in macros (like constructing collections from builders or wrapping value types), sometimes the construction can fail. For example, when building a validated type, the constructor might return `Either[String, A]` instead of just `A`.
+
+`PossibleSmartCtor[Input, Output]` is a type that abstracts over different constructor patterns, allowing macros to handle both direct construction and validation/error cases uniformly.
+
+#### Variants
+
+`PossibleSmartCtor` comes with several predefined variants:
+
+1. **`PlainValue`** - Direct construction that always succeeds:
+   ```scala
+   Input => Output
+   ```
+   This is the most common case, used for building collections from builders or wrapping value types.
+
+2. **`EitherStringOrValue`** - Construction that can fail with a single string error:
+   ```scala
+   Input => Either[String, Output]
+   ```
+   Useful for validation that returns a single error message.
+
+3. **`EitherIterableStringOrValue`** - Construction that can fail with multiple string errors:
+   ```scala
+   Input => Either[Iterable[String], Output]
+   ```
+   Useful for validation that can accumulate multiple error messages.
+
+4. **`EitherThrowableOrValue`** - Construction that can fail with a throwable:
+   ```scala
+   Input => Either[Throwable, Output]
+   ```
+   Useful for construction that might throw exceptions.
+
+5. **`EitherIterableThrowableOrValue`** - Construction that can fail with multiple throwables:
+   ```scala
+   Input => Either[Iterable[Throwable], Output]
+   ```
+   Useful for construction that can accumulate multiple exceptions.
+
+#### Usage Pattern
+
+When you receive a `PossibleSmartCtor[Input, Output]`, you pattern match on it to handle each case:
+
+```scala
+val build: PossibleSmartCtor[Builder[Item, Coll], Coll] = isCollection.value.build
+
+build match {
+  case PossibleSmartCtor.PlainValue(ctor) =>
+    // Direct construction: ctor(builder) returns Expr[Coll]
+    val result = Expr.splice(ctor(Expr.quote(builder)))
+    // Use result directly
+    
+  case PossibleSmartCtor.EitherStringOrValue(ctor) =>
+    // Validation: ctor(builder) returns Expr[Either[String, Coll]]
+    Expr.quote {
+      Expr.splice(ctor(Expr.quote(builder))) match {
+        case Left(error) => // handle error
+        case Right(value) => // use value
+      }
+    }
+    
+  // Handle other variants similarly...
+  case _ =>
+    Expr("<unhandled smart constructor>")
+}
+```
+
+#### Why This Design?
+
+This design allows standard extensions to work with both:
+- **Simple types** (like collections) that can always be built directly
+- **Validated types** (like from validation libraries) that might fail during construction
+
+All while providing a single, uniform interface. This makes it possible to extend support for custom types (like `Validated[E, A]` from Cats) by providing new `PossibleSmartCtor` implementations, without changing the core API.
