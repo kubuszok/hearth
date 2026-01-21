@@ -55,6 +55,7 @@ nav:
   - 'Better Printers': 'better-printers.md'
   - 'Cross Quotes': 'cross-quotes.md'
   - 'Micro FP': 'micro-fp.md'
+  - 'Standard Extensions': 'standard-extensions.md'
   - 'Debug Utilities': 'debug-utilities.md'
   - 'Source Utilities': 'source-utilities.md'
   - 'Best Practices': 'best-practices.md'
