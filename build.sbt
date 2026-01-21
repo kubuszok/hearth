@@ -343,7 +343,7 @@ val mimaSettings = Seq(
       case "hearth-better-printers" | "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" =>
         Set() // fix after 0.2.0 release
       case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" |
-          "debug-hearth-better-printers" | "debug-hearth-cross-quotes" | "debug-hearth" =>
+          "debug-hearth-better-printers" | "debug-hearth" =>
         Set()
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
     }
@@ -354,7 +354,7 @@ val mimaSettings = Seq(
       case "hearth-better-printers" | "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" =>
         false // fix after 0.2.0 release
       case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" |
-          "debug-hearth-better-printers" | "debug-hearth-cross-quotes" | "debug-hearth" =>
+          "debug-hearth-better-printers" | "debug-hearth" =>
         false
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
     }
