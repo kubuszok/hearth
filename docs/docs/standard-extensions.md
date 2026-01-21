@@ -16,6 +16,11 @@ But there are no built-in macro extensions in the bare `MacroCommons`, since eve
 
 But we can predefine a set of such extensions as a proposal of usable API that Hearth users can opt-in into using, because they could be immensly useful.
 
+### Requirements
+
+ 1. we need to mix-in `hearth.std.StdExtensions` trait
+ 2. we need to load extensions via `Environment.loadStandardExtensions()` before using any of the following interfaces
+
 ### `IsCollection` macro extension
 
 `IsCollection` allows you to check if a provided `Type[A]` can be considered a collection, that is:
@@ -164,7 +169,6 @@ How could we use this API?
 
       test("processCollection works with List") {
         val result = CollectionUtils.processCollection(List("one", "two", "three"))
-        println(result + " is the result")
         assert(result.contains("""Iteration: "one", "two", "three""""))
         assert(result.contains("Built: List(newItem)"))
       }
@@ -197,9 +201,558 @@ In these examples:
 
 This API works seamlessly with Scala collections, `Array`s, `IArray`s (Scala 3), and Java collections, all through the same interface!
 
+### `IsOption` macro extension
+
+`IsOption` allows you to check if a provided `Type[A]` can be considered an option type, that is:
+
+ - it can represent an empty value
+ - it can represent a value of some item type
+ - it can be folded over (handling both empty and non-empty cases)
+
+It is not only more convenient than manually pattern matching on `Option`, but also out-of-the-box supports types that are not Scala options, but we want to treat them as such:
+
+ - `scala.Option`
+ - `java.util.Optional` (on JVM)
+
+with a possibility to support even more types, with the same API, just by adding a macro extension implementation to the class-path!
+
+How could we use this API?
+
+!!! example "Cross-compilable `IsOption`"
+
+    We can write cross-compilable macros that use `IsOption` by sharing the core logic:
+
+    ```scala
+    // file: src/main/scala/example/OptionUtilsLogic.scala - part of IsOption example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth::{{ hearth_version() }}
+    package example
+
+    import hearth.MacroCommons
+    import hearth.std.StdExtensions
+
+    // Shared macro logic
+    trait OptionUtilsLogic { this: MacroCommons & StdExtensions =>
+
+      // Load standard extensions to enable IsOption support:
+      // this is necessary to teach the macro what implementations it can use!
+      Environment.loadStandardExtensions() match {
+        case ExtensionLoadingResult.LoaderFailed(error) =>
+          Environment.reportErrorAndAbort("Failed to resolve extensions: " + error.toString)
+        case ExtensionLoadingResult.SomeFailed(extensions, errors) =>
+          Environment.reportErrorAndAbort(
+            "Failed to load standard extensions: " + errors.toNonEmptyVector.map(_._2).mkString("\n")
+          )
+        case _ =>
+      }
+
+      private val StringType = Type.of[String]
+
+      def processOption[A: Type](option: Expr[A]): Expr[String] = Type[A] match {
+        case IsOption(isOption) =>
+          // This import let us refer to the option's Item and puts implicit Type[Item] in the scope.
+          import isOption.Underlying as Item
+          
+          implicit val String: Type[String] = StringType
+
+          // Fold over the option (handling both empty and non-empty cases):
+          val foldingExample = if (Item <:< StringType) {
+            isOption.value.fold(option)(
+              onEmpty = Expr("empty"),
+              onSome = (item: Expr[Item]) =>
+                Expr.quote {
+                  val i = Expr.splice(item)
+                  "some: " + i.toString
+                }
+            )
+          }
+          else Expr("<not an option of string>")
+
+          // Get value or default:
+          val getOrElseExample = if (Item <:< StringType) {
+            Expr.quote {
+              val opt = Expr.splice(option)
+              Expr.splice(
+                isOption.value.getOrElse(Expr.quote(opt))(
+                  Expr("default").upcast[Item]
+                )
+              ).toString
+            }
+          }
+          else Expr("<not an option of string>")
+
+          // Build new options:
+          val buildingExample = if (Item <:< StringType) {
+            Expr.quote {
+              val some = Expr.splice(isOption.value.of(Expr("test").upcast[Item]))
+              val empty = Expr.splice(isOption.value.empty)
+              "Built some: " + some.toString + ", empty: " + empty.toString
+            }
+          }
+          else Expr("<not an option of string>")
+
+          Expr.quote {
+            Expr.splice(foldingExample) + ", " + Expr.splice(getOrElseExample) + ", " + Expr.splice(buildingExample)
+          }
+        case _ =>
+          Expr(s"Not an option: ${Type[A].plainPrint}")
+      }
+    }
+    ```
+
+    Then we create platform-specific adapters:
+
+    ```scala
+    // file: src/main/scala-2/example/OptionUtils.scala - part of IsOption example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+    package example
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    import hearth.MacroCommonsScala2
+
+    // Scala 2 adapter
+    class OptionUtils(val c: blackbox.Context) extends MacroCommonsScala2 with OptionUtilsLogic {
+
+      def processOptionImpl[A: c.WeakTypeTag](option: c.Expr[A]): c.Expr[String] =
+        processOption(option)
+    }
+
+    object OptionUtils {
+      def processOption[A](option: A): String = macro OptionUtils.processOptionImpl[A]
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/OptionUtils.scala - part of IsOption example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+    package example
+
+    import scala.quoted.*
+
+    import hearth.MacroCommonsScala3
+
+    // Scala 3 adapter
+    class OptionUtils(q: Quotes) extends MacroCommonsScala3(using q) with OptionUtilsLogic
+
+    object OptionUtils {
+
+      inline def processOption[A](inline option: A): String = ${ processOptionImpl[A]('{ option }) }
+      private def processOptionImpl[A: Type](option: Expr[A])(using q: Quotes): Expr[String] =
+        new OptionUtils(q).processOption(option)
+    }
+    ```
+
+    And finally we can expand the macro in our tests.
+
+    ```scala
+    // file: src/test/scala/example/OptionUtilsSpec.scala - part of IsOption example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+    package example
+
+    final class OptionUtilsSpec extends munit.FunSuite {
+
+      test("processOption works with Some") {
+        val result = OptionUtils.processOption(Option("value"))
+        assert(result.contains("some: value"))
+        assert(result.contains("value"))
+        assert(result.contains("Built some:"))
+      }
+
+      test("processOption works with None") {
+        val result = OptionUtils.processOption(Option.empty[String])
+        assert(result.contains("empty"))
+        assert(result.contains("default"))
+        assert(result.contains("Built"))
+      }
+
+      test("processOption handles non-options") {
+        val result = OptionUtils.processOption("not an option")
+        assert(result.startsWith("Not an option:"))
+      }
+    }
+    ```
+
+In these examples:
+
+ 1. **Loading extensions**: We call `Environment.loadStandardExtensions()` to load all standard macro extensions, which registers providers for `IsOption` support.
+ 2. **Pattern matching**: We use `IsOption.unapply` to check if a type is an option. If it matches, we get an `IsOption[A]` instance.
+ 3. **Accessing item type**: We import `isOption.Underlying as Item` to get the existential item type.
+ 4. **Folding**: We use `isOption.value.fold(option)(onEmpty, onSome)` to handle both empty and non-empty cases.
+ 5. **Getting with default**: We use `isOption.value.getOrElse(option)(default)` to get the value or a default.
+ 6. **Building**: We use `isOption.value.of(item)` to create a non-empty option and `isOption.value.empty` to create an empty option.
+
+This API works seamlessly with Scala `Option` and Java `Optional` (on JVM), all through the same interface!
+
+### `IsEither` macro extension
+
+`IsEither` allows you to check if a provided `Type[A]` can be considered an either type, that is:
+
+ - it can represent a left value of some type
+ - it can represent a right value of some type
+ - it can be folded over (handling both left and right cases)
+
+It is not only more convenient than manually pattern matching on `Either`, but also out-of-the-box supports types that are not Scala eithers, but we want to treat them as such:
+
+ - `scala.Either`
+ - `scala.util.Try` (treated as `Either[Throwable, A]`)
+
+with a possibility to support even more types, with the same API, just by adding a macro extension implementation to the class-path!
+
+How could we use this API?
+
+!!! example "Cross-compilable `IsEither`"
+
+    We can write cross-compilable macros that use `IsEither` by sharing the core logic:
+
+    ```scala
+    // file: src/main/scala/example/EitherUtilsLogic.scala - part of IsEither example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth::{{ hearth_version() }}
+    package example
+
+    import hearth.MacroCommons
+    import hearth.std.StdExtensions
+
+    // Shared macro logic
+    trait EitherUtilsLogic { this: MacroCommons & StdExtensions =>
+
+      // Load standard extensions to enable IsEither support:
+      // this is necessary to teach the macro what implementations it can use!
+      Environment.loadStandardExtensions() match {
+        case ExtensionLoadingResult.LoaderFailed(error) =>
+          Environment.reportErrorAndAbort("Failed to resolve extensions: " + error.toString)
+        case ExtensionLoadingResult.SomeFailed(extensions, errors) =>
+          Environment.reportErrorAndAbort(
+            "Failed to load standard extensions: " + errors.toNonEmptyVector.map(_._2).mkString("\n")
+          )
+        case _ =>
+      }
+
+      private val StringType = Type.of[String]
+      private val IntType = Type.of[Int]
+
+      def processEither[A: Type](either: Expr[A]): Expr[String] = Type[A] match {
+        case IsEither(isEither) =>
+          // This import let us refer to the either's LeftValue and RightValue types.
+          import isEither.{LeftValue, RightValue}
+          
+          implicit val String: Type[String] = StringType
+          implicit val Int: Type[Int] = IntType
+
+          // Fold over the either (handling both left and right cases):
+          val foldingExample = Expr.quote {
+            val e = Expr.splice(either)
+            Expr.splice(
+              isEither.value.fold[String](Expr.quote(e))(
+                onLeft = (left: Expr[LeftValue]) =>
+                  Expr.quote {
+                    val l = Expr.splice(left)
+                    "left: " + l.toString
+                  },
+                onRight = (right: Expr[RightValue]) =>
+                  Expr.quote {
+                    val r = Expr.splice(right)
+                    "right: " + r.toString
+                  }
+              )
+            )
+          }
+
+          // Get right value or default:
+          val getOrElseExample = if (RightValue <:< StringType) {
+            Expr.quote {
+              val e = Expr.splice(either)
+              Expr.splice(
+                isEither.value.getOrElse(Expr.quote(e))(
+                  Expr("default").upcast[RightValue]
+                )
+              ).toString
+            }
+          }
+          else Expr("<not an either with string right>")
+
+          // Build new eithers:
+          val buildingExample = if (LeftValue <:< StringType && RightValue <:< IntType) {
+            Expr.quote {
+              val left = Expr.splice(isEither.value.left(Expr("error").upcast[LeftValue]))
+              val right = Expr.splice(isEither.value.right(Expr(42).upcast[RightValue]))
+              "Built left: " + left.toString + ", right: " + right.toString
+            }
+          }
+          else Expr("<not an either of string and int>")
+
+          Expr.quote {
+            Expr.splice(foldingExample) + ", " + Expr.splice(getOrElseExample) + ", " + Expr.splice(buildingExample)
+          }
+        case _ =>
+          Expr(s"Not an either: ${Type[A].plainPrint}")
+      }
+    }
+    ```
+
+    Then we create platform-specific adapters:
+
+    ```scala
+    // file: src/main/scala-2/example/EitherUtils.scala - part of IsEither example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+    package example
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    import hearth.MacroCommonsScala2
+
+    // Scala 2 adapter
+    class EitherUtils(val c: blackbox.Context) extends MacroCommonsScala2 with EitherUtilsLogic {
+
+      def processEitherImpl[A: c.WeakTypeTag](either: c.Expr[A]): c.Expr[String] =
+        processEither(either)
+    }
+
+    object EitherUtils {
+      def processEither[A](either: A): String = macro EitherUtils.processEitherImpl[A]
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/EitherUtils.scala - part of IsEither example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+    package example
+
+    import scala.quoted.*
+
+    import hearth.MacroCommonsScala3
+
+    // Scala 3 adapter
+    class EitherUtils(q: Quotes) extends MacroCommonsScala3(using q) with EitherUtilsLogic
+
+    object EitherUtils {
+
+      inline def processEither[A](inline either: A): String = ${ processEitherImpl[A]('{ either }) }
+      private def processEitherImpl[A: Type](either: Expr[A])(using q: Quotes): Expr[String] =
+        new EitherUtils(q).processEither(either)
+    }
+    ```
+
+    And finally we can expand the macro in our tests.
+
+    ```scala
+    // file: src/test/scala/example/EitherUtilsSpec.scala - part of IsEither example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+    package example
+
+    final class EitherUtilsSpec extends munit.FunSuite {
+
+      test("processEither works with Left") {
+        val result = EitherUtils.processEither(Left("error"): Either[String, Int])
+        assert(result.contains("left: error"))
+        assert(result.contains("Built"))
+      }
+
+      test("processEither works with Right") {
+        val result = EitherUtils.processEither(Right(42): Either[String, Int])
+        assert(result.contains("right: 42"))
+        assert(result.contains("Built"))
+      }
+
+      test("processEither works with Try Success") {
+        val result = EitherUtils.processEither(scala.util.Success("value"): scala.util.Try[String])
+        assert(result.contains("right: value"))
+      }
+
+      test("processEither works with Try Failure") {
+        val result = EitherUtils.processEither(scala.util.Failure(new Exception("error")): scala.util.Try[String])
+        assert(result.contains("left:"))
+        assert(result.contains("Exception"))
+      }
+
+      test("processEither handles non-eithers") {
+        val result = EitherUtils.processEither("not an either")
+        assert(result.startsWith("Not an either:"))
+      }
+    }
+    ```
+
+In these examples:
+
+ 1. **Loading extensions**: We call `Environment.loadStandardExtensions()` to load all standard macro extensions, which registers providers for `IsEither` support.
+ 2. **Pattern matching**: We use `IsEither.unapply` to check if a type is an either. If it matches, we get an `IsEither[A]` instance.
+ 3. **Accessing left and right types**: We import `isEither.{LeftValue, RightValue}` to get the existential left and right types.
+ 4. **Folding**: We use `isEither.value.fold(either)(onLeft, onRight)` to handle both left and right cases.
+ 5. **Getting with default**: We use `isEither.value.getOrElse(either)(default)` to get the right value or a default.
+ 6. **Building**: We use `isEither.value.left(leftValue)` to create a left value and `isEither.value.right(rightValue)` to create a right value.
+
+This API works seamlessly with Scala `Either` and `Try`, all through the same interface!
+
+### `IsValueType` macro extension
+
+`IsValueType` allows you to check if a provided `Type[A]` can be considered a value type, that is:
+
+ - it wraps an inner type
+ - it can be unwrapped to its inner type
+ - it can be wrapped from its inner type
+
+It is not only more convenient than manually handling value types, but also out-of-the-box supports types that are value types:
+
+ - `AnyVal` types (with a single constructor argument)
+ - Java boxed types (on JVM): `java.lang.Integer`, `java.lang.Boolean`, `java.lang.Byte`, `java.lang.Character`, `java.lang.Short`, `java.lang.Long`, `java.lang.Float`, `java.lang.Double`
+
+with a possibility to support even more types, with the same API, just by adding a macro extension implementation to the class-path!
+
+How could we use this API?
+
+!!! example "Cross-compilable `IsValueType`"
+
+    We can write cross-compilable macros that use `IsValueType` by sharing the core logic:
+
+    ```scala
+    // file: src/main/scala/example/ValueTypeUtilsLogic.scala - part of IsValueType example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth::{{ hearth_version() }}
+    package example
+
+    import hearth.MacroCommons
+    import hearth.std.StdExtensions
+
+    // Shared macro logic
+    trait ValueTypeUtilsLogic { this: MacroCommons & StdExtensions =>
+
+      // Load standard extensions to enable IsValueType support:
+      // this is necessary to teach the macro what implementations it can use!
+      Environment.loadStandardExtensions() match {
+        case ExtensionLoadingResult.LoaderFailed(error) =>
+          Environment.reportErrorAndAbort("Failed to resolve extensions: " + error.toString)
+        case ExtensionLoadingResult.SomeFailed(extensions, errors) =>
+          Environment.reportErrorAndAbort(
+            "Failed to load standard extensions: " + errors.toNonEmptyVector.map(_._2).mkString("\n")
+          )
+        case _ =>
+      }
+
+      private val StringType = Type.of[String]
+
+      def processValueType[A: Type](value: Expr[A]): Expr[String] = Type[A] match {
+        case IsValueType(isValueType) =>
+          // This import let us refer to the value type's Inner and puts implicit Type[Inner] in the scope.
+          import isValueType.Underlying as Inner
+          
+          implicit val String: Type[String] = StringType
+
+          // Unwrap the value type:
+          val unwrappingExample = Expr.quote {
+            val outer = Expr.splice(value)
+            val inner = Expr.splice(isValueType.value.unwrap(Expr.quote(outer)))
+            "Unwrapped: " + inner.toString
+          }
+
+          // Wrap the inner type:
+          val wrappingExample = if (Inner <:< StringType) {
+            isValueType.value.wrap match {
+              case PossibleSmartCtor.PlainValue(ctor) =>
+                Expr.quote {
+                  val inner = Expr.splice(Expr("test").upcast[Inner])
+                  val outer = Expr.splice(ctor(Expr.quote(inner)))
+                  "Wrapped: " + outer.toString
+                }
+              case _ =>
+                Expr("<cannot wrap - smart constructor not handled in this example>")
+            }
+          }
+          else Expr("<not a value type of string>")
+
+          Expr.quote {
+            Expr.splice(unwrappingExample) + ", " + Expr.splice(wrappingExample)
+          }
+        case _ =>
+          Expr(s"Not a value type: ${Type[A].plainPrint}")
+      }
+    }
+    ```
+
+    Then we create platform-specific adapters:
+
+    ```scala
+    // file: src/main/scala-2/example/ValueTypeUtils.scala - part of IsValueType example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+    package example
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    import hearth.MacroCommonsScala2
+
+    // Scala 2 adapter
+    class ValueTypeUtils(val c: blackbox.Context) extends MacroCommonsScala2 with ValueTypeUtilsLogic {
+
+      def processValueTypeImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[String] =
+        processValueType(value)
+    }
+
+    object ValueTypeUtils {
+      def processValueType[A](value: A): String = macro ValueTypeUtils.processValueTypeImpl[A]
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/ValueTypeUtils.scala - part of IsValueType example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+    package example
+
+    import scala.quoted.*
+
+    import hearth.MacroCommonsScala3
+
+    // Scala 3 adapter
+    class ValueTypeUtils(q: Quotes) extends MacroCommonsScala3(using q) with ValueTypeUtilsLogic
+
+    object ValueTypeUtils {
+
+      inline def processValueType[A](inline value: A): String = ${ processValueTypeImpl[A]('{ value }) }
+      private def processValueTypeImpl[A: Type](value: Expr[A])(using q: Quotes): Expr[String] =
+        new ValueTypeUtils(q).processValueType(value)
+    }
+    ```
+
+    And finally we can expand the macro in our tests.
+
+    ```scala
+    // file: src/test/scala/example/ValueTypeUtilsSpec.scala - part of IsValueType example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+    package example
+
+    final case class ExampleValueClass(a: String) extends AnyVal
+
+    final class ValueTypeUtilsSpec extends munit.FunSuite {
+
+      test("processValueType works with AnyVal") {
+        val result = ValueTypeUtils.processValueType(ExampleValueClass("wrapped value"))
+        assert(result.contains("Unwrapped: wrapped value"))
+        assert(result.contains("Wrapped: ExampleValueClass(test)"))
+      }
+
+      test("processValueType handles non-value-types") {
+        val result = ValueTypeUtils.processValueType("not a value type")
+        assert(result.startsWith("Not a value type:"))
+      }
+    }
+    ```
+
+In these examples:
+
+ 1. **Loading extensions**: We call `Environment.loadStandardExtensions()` to load all standard macro extensions, which registers providers for `IsValueType` support.
+ 2. **Pattern matching**: We use `IsValueType.unapply` to check if a type is a value type. If it matches, we get an `IsValueType[A]` instance.
+ 3. **Accessing inner type**: We import `isValueType.Underlying as Inner` to get the existential inner type.
+ 4. **Unwrapping**: We use `isValueType.value.unwrap(outer)` to convert the outer value type to its inner type.
+ 5. **Wrapping**: We use `isValueType.value.wrap` to get a smart constructor that can wrap an inner value into the outer value type.
+
+This API works seamlessly with `AnyVal` types and Java boxed types (on JVM), all through the same interface!
+
 ### Smart Constructors
-
-### Requirements
-
- 1. we need to mix-in `hearth.std.StdExtensions` trait
- 2. we need to load extensions vis `Environment.loadStandardExtensions()`
