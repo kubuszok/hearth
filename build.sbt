@@ -342,7 +342,8 @@ val mimaSettings = Seq(
     val previousVersions = moduleName.value match {
       case "hearth-better-printers" | "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" =>
         Set() // fix after 0.2.0 release
-      case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" =>
+      case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" |
+          "debug-hearth-better-printers" | "debug-hearth-cross-quotes" | "debug-hearth" =>
         Set()
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
     }
@@ -352,7 +353,8 @@ val mimaSettings = Seq(
     moduleName.value match {
       case "hearth-better-printers" | "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" =>
         false // fix after 0.2.0 release
-      case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" =>
+      case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" |
+          "debug-hearth-better-printers" | "debug-hearth-cross-quotes" | "debug-hearth" =>
         false
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
     }
@@ -646,6 +648,36 @@ lazy val hearthSandwichTests = projectMatrix
   .dependsOn(hearthSandwichExamples213 % s"$Test->$Test;$Compile->$Compile")
   .dependsOn(hearthSandwichExamples3 % s"$Test->$Test;$Compile->$Compile")
   .settings(dependencies *)
+  .dependsOn(hearth)
+
+// Modules for debugging cross-quotes, better-printers, etc while minimizing the number of code to recompile
+
+lazy val debugHearthBetterPrinters = projectMatrix
+  .in(file("debug-hearth-better-printers"))
+  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(only1VersionInIDE *)
+  .settings(settings *)
+  .settings(publishSettings *)
+  .settings(noPublishSettings *)
+  .settings(mimaSettings *)
+  .settings(
+    moduleName := "debug-hearth-better-printers",
+    name := "debug-hearth-better-printers",
+    description := "Debugging module for hearth-better-printers, intended to recompile as little as possible when working on better-printers issue, should not be published not contain any commited code"
+  )
+  .dependsOn(hearthBetterPrinters)
+
+lazy val debugHearth = projectMatrix
+  .in(file("debug-hearth"))
+  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(only1VersionInIDE *)
+  .settings(settings *)
+  .settings(publishSettings *)
+  .settings(noPublishSettings *)
+  .settings(mimaSettings *)
+  .settings(
+    moduleName := "debug-hearth",
+    name := "debug-hearth",
+    description := "Debugging module for hearth, intended to recompile as little as possible when working on hearth issue, should not be published not contain any commited code"
+  )
   .dependsOn(hearth)
 
 // when having memory/GC-related errors during build, uncommenting this may be useful:

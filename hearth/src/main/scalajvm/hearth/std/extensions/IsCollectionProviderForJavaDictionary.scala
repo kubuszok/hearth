@@ -22,7 +22,7 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
       private lazy val juHashtable = Type.Ctor2.of[java.util.Hashtable]
       private lazy val juProperties = Type.of[java.util.Properties]
 
-      // TODO: Same issue as in IsCollectionProviderForJavaStream.scala: we have a bug in Type.Ctor.
+      // FIXME: Same issue as in IsCollectionProviderForJavaStream.scala: we have a bug in Type.Ctor.
       // private lazy val Tuple2 = Type.Ctor2.of[Tuple2]
       private def Tuple2[A: Type, B: Type]: Type[Tuple2[A, B]] = Type.of[Tuple2[A, B]]
 

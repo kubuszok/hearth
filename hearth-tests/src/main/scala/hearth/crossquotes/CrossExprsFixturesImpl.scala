@@ -83,11 +83,110 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
 
     // TODO: edge cases
 
+    // Reproduces the issue we had when trying to chain Expr.splice on a StringBuilder
     def chainingOnSplice(sb: Expr[StringBuilder], name: Expr[String]): Expr[Data] =
       Expr.quote {
         val value = Expr.splice(sb).append("<").append(Expr.splice(name)).append(">")
         Data(value.toString)
       }
+
+    def implicitTypeSubstitution: Expr[Data] = {
+      // Reproduces the issue we had when implementing StdExtensions (A was not substituted in Expr on Scala 2)
+      def fromTypeParamInferred[A: Type](value: Expr[Iterable[A]]): Expr[Data] = Expr.quote {
+        Data(Expr.splice(value).map(item => item.toString).mkString)
+      }
+      val result1 = {
+        implicit val A: Type[Int] = IntType
+        fromTypeParamInferred(Expr.quote[Iterable[Int]](List(1, 2, 3)))
+      }
+
+      // Reproduces the issue we had when implementing StdExtensions (A was not substituted in Expr on Scala 2)
+      def fromTypeParamExplicit[A: Type](value: Expr[Iterable[A]]): Expr[Data] = Expr.quote {
+        Data(Expr.splice(value).map((item: A) => item.toString).mkString)
+      }
+      val result2 = {
+        implicit val A: Type[Int] = IntType
+        fromTypeParamExplicit(Expr.quote[Iterable[Int]](List(1, 2, 3)))
+      }
+
+      trait MapType[A, Item] {
+
+        type Key
+        @typed.ImportedCrossTypeImplicit
+        implicit val Key: Type[Key]
+
+        type Value
+        @typed.ImportedCrossTypeImplicit
+        implicit val Value: Type[Value]
+
+        def toIterable(item: Expr[A]): Expr[Iterable[Item]]
+        def key(item: Expr[Item]): Expr[Key]
+        def value(item: Expr[Item]): Expr[Value]
+      }
+      val mapTypeExample = new MapType[Map[Int, String], (Int, String)] {
+        type Key = Int
+        val Key = IntType
+        type Value = String
+        val Value = StringType
+
+        override def toIterable(item: Expr[Map[Int, String]]): Expr[Iterable[(Int, String)]] = Expr.quote {
+          Expr.splice(item).toList
+        }
+        override def key(item: Expr[(Int, String)]): Expr[Int] = Expr.quote {
+          Expr.splice(item)._1
+        }
+        override def value(item: Expr[(Int, String)]): Expr[String] = Expr.quote {
+          Expr.splice(item)._2
+        }
+      }
+
+      // The workaround we had to use to support nested imports on Scala 2...
+      def fromNestedImport[A: Type](value: Expr[A], mapType: Existential[MapType[A, *]]): Expr[Data] = {
+        import mapType.Underlying as Pair
+        import mapType.value.{Key, Value} // we use a whole path to the implicit
+        Expr.quote {
+          val it = Expr.splice(mapType.value.toIterable(value))
+          Data(it.map { pair =>
+            val key = Expr.splice(mapType.value.key(Expr.quote(pair)))
+            val value = Expr.splice(mapType.value.value(Expr.quote(pair)))
+            "key: " + key.toString + ", value: " + value.toString
+          }.mkString)
+        }
+      }
+      val result3 = fromNestedImport(
+        Expr.quote(Map(1 -> "one", 2 -> "two")),
+        Existential[MapType[Map[Int, String], *], (Int, String)](mapTypeExample)(using Type.of[(Int, String)])
+      )(using Type.of[Map[Int, String]])
+
+      // ...but it's not very convenient, so we are making sure that the workaround it no longer necessary.
+      def fromSplittedNestedImport[A: Type](value: Expr[A], mapType: Existential[MapType[A, *]]): Expr[Data] = {
+        import mapType.{Underlying as Pair, value as mapTypeOf}
+        import mapTypeOf.{Key, Value} // importing from another import
+        Expr.quote {
+          val it = Expr.splice(mapTypeOf.toIterable(value))
+          Data(it.map { pair =>
+            val key = Expr.splice(mapTypeOf.key(Expr.quote(pair)))
+            val value = Expr.splice(mapTypeOf.value(Expr.quote(pair)))
+            "key: " + key.toString + ", value: " + value.toString
+          }.mkString)
+        }
+      }
+      val result4 = fromSplittedNestedImport(
+        Expr.quote(Map(1 -> "one", 2 -> "two")),
+        Existential[MapType[Map[Int, String], *], (Int, String)](mapTypeExample)(using Type.of[(Int, String)])
+      )(using Type.of[Map[Int, String]])
+
+      Expr.quote {
+        Data.map(
+          "fromTypeParamInferred" -> Expr.splice(result1),
+          "fromTypeParamExplicit" -> Expr.splice(result2),
+          "fromNestedImport" -> Expr.splice(result3),
+          "fromSplittedNestedImport" -> Expr.splice(result4)
+        )
+      }
+    }
+
+    // TODO: string interpolation in quotes
 
     Expr.quote {
       Data.map(
@@ -98,9 +197,13 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
           "nestedQuotesAndSplices" -> Expr.splice(nestedSplices)
         ),
         "edgeCases" -> Data.map(
-          "chainingOnSplice" -> Expr.splice(chainingOnSplice(Expr.quote(new StringBuilder), Expr("name")))
+          "chainingOnSplice" -> Expr.splice(chainingOnSplice(Expr.quote(new StringBuilder), Expr("name"))),
+          "implicitTypeSubstitution" -> Expr.splice(implicitTypeSubstitution)
         )
       )
     }
   }
+
+  private val IntType = Type.of[Int]
+  private val StringType = Type.of[String]
 }

@@ -410,6 +410,112 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
         }
       }
 
+      private def replaceTypeOf(tree: untpd.Tree, innerTree: untpd.Tree, name: String): untpd.Tree = {
+        val result = ensureQuotes(
+          injectGivens(
+            untpd.Apply(
+              untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("typeQuotesToCross")),
+              List(
+                untpd.TypeApply(
+                  untpd.Select(
+                    untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), termName("Type")),
+                    termName("of")
+                  ),
+                  List(transform(innerTree))
+                )
+              )
+            )
+          )
+        )
+
+        log(
+          s"""Cross-quotes $name expansion:
+             |From: ${tree.show}
+             |To: ${result.show}""".stripMargin,
+          tree.sourcePos
+        )
+
+        result
+      }
+
+      private def replaceTypeCtorOf(
+          tree: untpd.Tree,
+          ctor: Name,
+          hkt: untpd.Tree,
+          bounds: List[untpd.Tree]
+      ): untpd.Tree = {
+        val result = ensureQuotes(
+          injectGivens(
+            untpd.TypeApply(
+              untpd.Select(
+                untpd.Select(
+                  untpd.Select(untpd.Ident(termName("Type")), termName(ctor.show)),
+                  termName("Bounded")
+                ),
+                termName("Impl")
+              ),
+              bounds ++ List(transform(hkt))
+            )
+          )
+        )
+
+        log(
+          s"""Cross-quotes Type.${ctor.show}.of expansion:
+             |From: ${tree.show}
+             |To: ${result.show}""".stripMargin,
+          tree.sourcePos
+        )
+
+        result
+      }
+
+      private def replaceExprQuote(tree: untpd.Tree, thunk: untpd.Tree): untpd.Tree = {
+        val result = ensureQuotes(
+          injectGivens(
+            untpd.Apply(
+              untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("exprQuotesToCross")),
+              List(untpd.Quote(transform(thunk), Nil))
+            )
+          )
+        )
+
+        log(
+          s"""Cross-quotes Expr.quote expansion:
+             |From: ${tree.show}
+             |To: ${result.show}""".stripMargin,
+          tree.sourcePos
+        )
+
+        result
+      }
+
+      private def replaceExprSplice(tree: untpd.Tree, thunk: untpd.Tree): untpd.Tree = {
+        val result = ensureQuotes(
+          injectGivens(
+            untpd.Splice(
+              untpd.Apply(
+                untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("nestedCtx")),
+                List(
+                  untpd.Apply(
+                    untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("exprCrossToQuotes")),
+                    List(transform(thunk))
+                  )
+                )
+              )
+            )
+          )
+        )
+
+        log(
+          s"""Cross-quotes Expr.splice expansion:
+             |From: ${tree.show}
+             |To: ${result.show}""".stripMargin,
+          tree.sourcePos
+        )
+
+        result
+      }
+
       override def transform(tree: untpd.Tree)(using Context): untpd.Tree = tree match {
         /* Replaces:
          *   Type.of[A]
@@ -419,31 +525,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          *   CrossQuotes.typeQuotesToCross(scala.quoted.Type.of[A])
          */
         case TypeApply(Select(Ident(tp), of), List(innerTree)) if tp.show == "Type" && of.show == "of" =>
-          val result = ensureQuotes(
-            injectGivens(
-              untpd.Apply(
-                untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("typeQuotesToCross")),
-                List(
-                  untpd.TypeApply(
-                    untpd.Select(
-                      untpd.Select(untpd.Select(untpd.Ident(termName("scala")), termName("quoted")), termName("Type")),
-                      termName("of")
-                    ),
-                    List(transform(innerTree))
-                  )
-                )
-              )
-            )
-          )
-
-          log(
-            s"""Cross-quotes Type.of expansion:
-               |From: ${tree.show}
-               |To: ${result.show}""".stripMargin,
-            tree.sourcePos
-          )
-
-          result
+          replaceTypeOf(tree, innerTree, "Type.of")
 
         /* Replaces:
          *   Type.Ctor1.of[HKT]
@@ -460,29 +542,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          */
         case TypeApply(prefix @ Select(Select(Ident(tp), ctor), of), List(hkt))
             if tp.show == "Type" && isCtor(ctor.show) && of.show == "of" =>
-          val result = ensureQuotes(
-            injectGivens(
-              untpd.TypeApply(
-                untpd.Select(
-                  untpd.Select(
-                    untpd.Select(untpd.Ident(termName("Type")), termName(ctor.show)),
-                    termName("Bounded")
-                  ),
-                  termName("Impl")
-                ),
-                (1 to ctorSize(ctor.show)).flatMap(_ => List(minLower, maxUpper)).toList ++ List(transform(hkt))
-              )
-            )
-          )
-
-          log(
-            s"""Cross-quotes Type.${ctor.show}.of expansion:
-               |From: ${tree.show}
-               |To: ${result.show}""".stripMargin,
-            tree.sourcePos
-          )
-
-          result
+          replaceTypeCtorOf(tree, ctor, hkt, (1 to ctorSize(ctor.show)).flatMap(_ => List(minLower, maxUpper)).toList)
 
         /* Replaces:
          *   Type.Ctor1.UpperBounded.of[U1, HKT]
@@ -499,29 +559,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          */
         case TypeApply(prefix @ Select(Select(Ident(tp), ctor), of), upper :+ hkt)
             if tp.show == "Type" && isCtor(ctor.show) && of.show == "of" =>
-          val result = ensureQuotes(
-            injectGivens(
-              untpd.TypeApply(
-                untpd.Select(
-                  untpd.Select(
-                    untpd.Select(untpd.Ident(termName("Type")), termName(ctor.show)),
-                    termName("Bounded")
-                  ),
-                  termName("Impl")
-                ),
-                upper.flatMap(u => List(minLower, u)) ++ List(transform(hkt))
-              )
-            )
-          )
-
-          log(
-            s"""Cross-quotes Type.${ctor.show}.UpperBounded.of expansion:
-               |From: ${tree.show}
-               |To: ${result.show}""".stripMargin,
-            tree.sourcePos
-          )
-
-          result
+          replaceTypeCtorOf(tree, ctor, hkt, upper.flatMap(u => List(minLower, u)))
 
         /* Replaces:
          *   Type.Ctor1.Bounded.of[L1, U1, HKT]
@@ -538,58 +576,46 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          */
         case TypeApply(prefix @ Select(Select(Ident(tp), ctor), of), bounded :+ hkt)
             if tp.show == "Type" && isCtor(ctor.show) && of.show == "of" =>
-          val result = ensureQuotes(
-            injectGivens(
-              untpd.TypeApply(
-                untpd.Select(
-                  untpd.Select(
-                    untpd.Select(untpd.Ident(termName("Type")), termName(ctor.show)),
-                    termName("Bounded")
-                  ),
-                  termName("Impl")
-                ),
-                bounded ++ List(transform(hkt))
-              )
-            )
-          )
-
-          log(
-            s"""Cross-quotes Type.${ctor.show}.UpperBounded.of expansion:
-               |From: ${tree.show}
-               |To: ${result.show}""".stripMargin,
-            tree.sourcePos
-          )
-
-          result
+          replaceTypeCtorOf(tree, ctor, hkt, bounded)
 
         /* Replaces:
-         *   Expr.quote[A](thunk)
+         *   Expr.quote[A](thunk) // with explicit type parameter
+         * with:
+         *   given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
+         *   [manually cast every type param Type[A] to given scala.quoted.Type[A]]
+         *   CrossQuotes.exprQuotesToCross('{ thunk })
+         */
+        case Apply(TypeApply(Select(Ident(expr), quote), _), List(thunk))
+            if expr.show == "Expr" && quote.show == "quote" =>
+          replaceExprQuote(tree, thunk)
+
+        /* Replaces:
+         *   Expr.quote(thunk) // with inferred type
          * with:
          *   given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
          *   [manually cast every type param Type[A] to given scala.quoted.Type[A]]
          *   CrossQuotes.exprQuotesToCross('{ thunk })
          */
         case Apply(Select(Ident(expr), quote), List(thunk)) if expr.show == "Expr" && quote.show == "quote" =>
-          val result = ensureQuotes(
-            injectGivens(
-              untpd.Apply(
-                untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("exprQuotesToCross")),
-                List(untpd.Quote(transform(thunk), Nil))
-              )
-            )
-          )
-
-          log(
-            s"""Cross-quotes Expr.quote expansion:
-               |From: ${tree.show}
-               |To: ${result.show}""".stripMargin,
-            tree.sourcePos
-          )
-
-          result
+          replaceExprQuote(tree, thunk)
 
         /* Replaces:
-         *   Expr.splice[A](expr)
+         *   Expr.splice[A](expr) // with explicit type parameter
+         * with:
+         *   given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
+         *   [manually cast every type param Type[A] to given scala.quoted.Type[A]]
+         *   ${
+         *     CrossQuotes.nestedCtx { // <- necessary to handle q.Nested cases
+         *       CrossQuotes.exprCrossToQuotes(expr)
+         *     }
+         *   }
+         */
+        case Apply(TypeApply(Select(Ident(expr), splice), _), List(thunk))
+            if expr.show == "Expr" && splice.show == "splice" =>
+          replaceExprSplice(tree, thunk)
+
+        /* Replaces:
+         *   Expr.splice(expr) // with inferred type
          * with:
          *   given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
          *   [manually cast every type param Type[A] to given scala.quoted.Type[A]]
@@ -600,30 +626,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          *   }
          */
         case Apply(Select(Ident(expr), splice), List(thunk)) if expr.show == "Expr" && splice.show == "splice" =>
-          val result = ensureQuotes(
-            injectGivens(
-              untpd.Splice(
-                untpd.Apply(
-                  untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("nestedCtx")),
-                  List(
-                    untpd.Apply(
-                      untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("exprCrossToQuotes")),
-                      List(transform(thunk))
-                    )
-                  )
-                )
-              )
-            )
-          )
-
-          log(
-            s"""Cross-quotes Expr.splice expansion:
-               |From: ${tree.show}
-               |To: ${result.show}""".stripMargin,
-            tree.sourcePos
-          )
-
-          result
+          replaceExprSplice(tree, thunk)
 
         /* Looking for blocks with imports that contain Underlying, or implicit val/def/given returning Type[A].
          * For each such import we inject:

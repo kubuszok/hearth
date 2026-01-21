@@ -102,6 +102,17 @@ trait ShowCodePrettyScala2 {
       }
     }
 
+    // Without this for `import ee.{value as expr}` would print `ee.expr` instead of `ee.value`
+    // (`expr` would look much better, but does not work for nested selects of nested imports).
+    object RenamedSelect {
+      def unapply(tree: Tree): Option[(Name, Name)] = tree match {
+        case Select(Ident(qualName), name)
+            if tree.hasSymbolField && tree.symbol != NoSymbol && tree.symbol.name.decoded != name.decoded =>
+          Some((qualName, tree.symbol.name))
+        case _ => None
+      }
+    }
+
     // Copy-pasted from TypesScala2.scala because we need it here as well.
 
     /** It is surprisingly ridiculous but I've found no other way of telling whether I am looking at enum abstract class
@@ -200,6 +211,10 @@ trait ShowCodePrettyScala2 {
         case Select(t2 @ This(thisName), name) =>
           val printed = printedName(thisName)
           s"${if (printed.nonEmpty) (printed + ".") else ""}${if (!t2.symbol.hasPackageFlag) "this." else ""}${printedName(name)}"
+        // Without this for `import ee.{value as expr}` would print `ee.expr` instead of `ee.value`
+        // (`expr` would look much better, but does not work for nested selects of nested imports).
+        case RenamedSelect(qualName, name) =>
+          s"${printedName(qualName)}.${printedName(name)}"
         // Handle regular selects.
         case Select(qual, name) =>
           val resolved = resolveSelect(qual)
@@ -434,10 +449,10 @@ trait ShowCodePrettyScala2 {
               // $COVERAGE-ON$
             }
 
-          // without this `import ee.{value as expr}` would print `ee.expr` instead of `expr`
-          case Select(Ident(_), name)
-              if tree.hasSymbolField && tree.symbol != NoSymbol && tree.symbol.name.decoded != name.decoded =>
-            print(name)
+          // Without this for `import ee.{value as expr}` would print `ee.expr` instead of `ee.value`
+          // (`expr` would look much better, but does not work for nested selects of nested imports).
+          case RenamedSelect(qualName, name) =>
+            print(printedName(qualName), ".", printedName(name))
 
           case cl @ ClassDef(mods, name, tparams, impl) =>
             if (mods.isJavaDefined) super.printTree(cl)
@@ -982,6 +997,21 @@ trait ShowCodePrettyScala2 {
           printTypePrefix(pre2, sym)
         case SingleType(pre2, sym2) if super.printedName(sym2.name, decoded = true) == "`package`" =>
           printTypePrefix(pre2, sym2)
+        // When we have `import x.sth as importedName`, we would print `importedName.value`, even though, it should be just `importedName`.
+        // case SingleType(SingleType(NoPrefix, importedSym), _) if importedSym.keyString.isEmpty =>
+        //   // scala.Predef.println(s"""Our case: $pre
+        //   // |tree: ${showRaw(pre)}
+        //   // |sym: $sym2
+        //   // |isType: ${sym2.isType}
+        //   // |isTerm: ${sym2.isTerm}
+        //   // |isMethod: ${sym2.isMethod}
+        //   // |isModule: ${sym2.isModule}
+        //   // |isModuleClass: ${sym2.isModuleClass}
+        //   // |isClass: ${sym2.isClass}
+        //   // |isPackage: ${sym2.hasPackageFlag}
+        //   // |""")
+        //   scala.Predef.println(s"printing $importedSym instead of $pre")
+        //   printTypePrefix(NoPrefix, importedSym)
         // Probably something was imported and if we stopped now, we would be missing the prefix, so we should recreate it.
         case NoType =>
           val reconstructedPrefix = sym.fullName.split('.').init.filterNot(Set("`<root>`", "`package`"))
