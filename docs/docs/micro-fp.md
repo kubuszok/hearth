@@ -1304,3 +1304,12 @@ it you only get an exception, with it, you will also get error message telling y
 when the error happened, helping you find a place where it looped.
 
 It does that with the help of [`Environment.handleMioTerminationException` utility](basic-utilities.md#mio-termination-handling).
+
+There are also utilities to handle some utiltities with MIO:
+
+ - [`Environment.loadMacroExtensions[MacroExtensionType]()`](basic-utilities.md#macro-extensions) can be made lazy, and log the results
+   via `Environment.loadMacroExtensions[MacroExtensionType]().toMIO(shouldAllowFailures)` - you can use `Boolean` parameter `shouldAllowFailures`
+   to decide if in a situation when Hearth successfully created a list of extensions, but failed to load some of them, we should treat it
+   as a failure of good enough success (`false` by default)
+ - instead of passing around a lot of coppied of [an immutable `ValDefsCache`](basic-utilities.md#valdefscache), we can create the cache
+   as `MLocal` via `ValDefsCache.mlocal`, and then use extension methods on it to "mutate" the `MLoval` value in MIO program
