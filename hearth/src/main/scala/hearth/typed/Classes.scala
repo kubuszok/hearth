@@ -300,11 +300,10 @@ trait Classes { this: MacroCommons =>
       }
     }
 
-    // TODO: cross-quotes should look for the Type[A] not only in the type params but also in the parent scope, it seems.
     private def combineSetterResults[A0: Type](constructorResult: Expr[A0])(setterResults: List[Expr[Unit]]): Expr[A0] =
       setterResults.toVector
         .foldRight(constructorResult) { (setterResult, acc) =>
-          // TODO: on Scala 2, it looks ugly when printed, see ClassesJvmSpec
+          // TODO: On Scala 2, it looks ugly when printed, see ClassesJvmSpec - but it's harmless.
           Expr.quote {
             Expr.splice(setterResult)
             Expr.splice(acc)

@@ -105,6 +105,22 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       c.echo(c.enclosingPosition, message)
     }
 
+  private def pp(any: Any): String = {
+    val result = showCodePretty(any, SyntaxHighlight.ANSI)
+    // Sometimes the code is empty, not sure why, but for the debugging purposes we need a fallback.
+    if (result.nonEmpty) result else any.toString
+  }
+
+  private def renderCode(any: Any): String = {
+    val result = showCodePretty(any, SyntaxHighlight.plain)
+    // If we are rendering code to actually use it and rely on it, we cannot get empty results!!!
+    assert(
+      result.trim.nonEmpty,
+      s"Expected non-empty result for `$any`, unhandle AST:\n${showRawPretty(any, SyntaxHighlight.ANSI)}"
+    )
+    result
+  }
+
   // Scala 3 generate prefix$macro$[n] while Scala 2 prefix[n] and we want to align the behavior
   private def freshName(prefix: String): TermName = c.universe.internal.reificationSupport.freshTermName(prefix)
   private def freshTypeName(prefix: String): TypeName = c.universe.internal.reificationSupport.freshTypeName(prefix)
@@ -162,7 +178,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     val unchecked = q"""
     val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
     import _root_.scala.reflect.api.{Mirror, TypeCreator, Universe}
-    import $ctx.universe.{Mirror => _,Type => _, internal => _, _}
+    import $ctx.universe.{ TypeRef, TypeRefTag }
     implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
       $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
     _root_.hearth.fp.ignore($convertProvidedTypesForCrossQuotes[Any](_: Type[Any]))
@@ -173,8 +189,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
     log(
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.of")} expansion:
-         |From: ${paintExclDot(Console.BLUE)("Type.of")}[${weakTypeOf[A]}]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+         |From: ${paintExclDot(Console.BLUE)("Type.of")}[${pp(weakTypeOf[A])}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -211,7 +227,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor1.Stub[$L1, $U1, $HKT]].tpe.typeArgs.last
 
@@ -238,8 +254,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
     log(
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor1.of")} expansion:
-         |From: ${paintExclDot(Console.BLUE)("Type.Ctor1.of")}[${L1.tpe}, ${U1.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor1.of")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -279,7 +295,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor2.Stub[$L1, $U1, $L2, $U2, $HKT]].tpe.typeArgs.last
 
@@ -314,8 +330,10 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
     log(
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor2.of")} expansion:
-         |From: ${paintExclDot(Console.BLUE)("Type.Ctor2.of")}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor2.of")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(
+          U2.tpe
+        )}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -358,7 +376,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor3.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $HKT]].tpe.typeArgs.last
 
@@ -399,8 +417,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor3.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor3.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -446,7 +464,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor4.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $HKT]].tpe.typeArgs.last
 
@@ -489,8 +507,10 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor4.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor4.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -539,7 +559,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor5.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $HKT]].tpe.typeArgs.last
 
@@ -584,8 +604,10 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor5.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor5.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -638,7 +660,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor6.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $HKT]].tpe.typeArgs.last
 
@@ -685,8 +707,10 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor6.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor6.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -742,7 +766,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor7.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $HKT]].tpe.typeArgs.last
 
@@ -791,8 +815,12 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor7.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor7.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -851,7 +879,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor8.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $HKT]].tpe.typeArgs.last
 
@@ -902,8 +930,12 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor8.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor8.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -965,7 +997,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor9.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $HKT]].tpe.typeArgs.last
 
@@ -1018,8 +1050,12 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor9.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor9.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(L9.tpe)}, ${pp(U9.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -1084,7 +1120,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor10.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $HKT]].tpe.typeArgs.last
 
@@ -1139,8 +1175,12 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor10.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor10.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(L9.tpe)}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -1208,7 +1248,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor11.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $HKT]].tpe.typeArgs.last
 
@@ -1265,8 +1305,14 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor11.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor11.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(L9.tpe)}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(
+          L11.tpe
+        )}, ${pp(U11.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -1337,7 +1383,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor12.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $HKT]].tpe.typeArgs.last
 
@@ -1396,8 +1442,14 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor12.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor12.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(L9.tpe)}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(
+          L11.tpe
+        )}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(U12.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -1471,7 +1523,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor13.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $HKT]].tpe.typeArgs.last
 
@@ -1532,8 +1584,14 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor13.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor13.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(L9.tpe)}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(
+          L11.tpe
+        )}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(U12.tpe)}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -1607,7 +1665,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor14.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $HKT]].tpe.typeArgs.last
 
@@ -1670,8 +1728,16 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor14.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor14.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(L9.tpe)}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(
+          L11.tpe
+        )}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(U12.tpe)}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(
+          U14.tpe
+        )}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -1747,7 +1813,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor15.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $HKT]].tpe.typeArgs.last
 
@@ -1812,8 +1878,16 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor15.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor15.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(L9.tpe)}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(
+          L11.tpe
+        )}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(U12.tpe)}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(
+          U14.tpe
+        )}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -1892,7 +1966,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor16.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $HKT]].tpe.typeArgs.last
 
@@ -1959,8 +2033,16 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor16.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor16.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(L9.tpe)}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(
+          L11.tpe
+        )}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(U12.tpe)}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(
+          U14.tpe
+        )}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(L16.tpe)}, ${pp(U16.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -2042,7 +2124,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor17.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $HKT]].tpe.typeArgs.last
 
@@ -2111,8 +2193,16 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor17.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor17.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(L9.tpe)}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(
+          L11.tpe
+        )}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(U12.tpe)}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(
+          U14.tpe
+        )}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(L16.tpe)}, ${pp(U16.tpe)}, ${pp(L17.tpe)}, ${pp(U17.tpe)}, $HKT]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -2197,7 +2287,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor18.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $HKT]].tpe.typeArgs.last
 
@@ -2268,8 +2358,18 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor18.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor18.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(L9.tpe)}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(
+          L11.tpe
+        )}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(U12.tpe)}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(
+          U14.tpe
+        )}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(L16.tpe)}, ${pp(U16.tpe)}, ${pp(L17.tpe)}, ${pp(U17.tpe)}, ${pp(
+          L18.tpe
+        )}, ${pp(U18.tpe)}, $HKT]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -2358,7 +2458,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor19.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $HKT]].tpe.typeArgs.last
 
@@ -2431,8 +2531,18 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor19.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor19.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, ${L19.tpe}, ${U19.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(L9.tpe)}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(
+          L11.tpe
+        )}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(U12.tpe)}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(
+          U14.tpe
+        )}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(L16.tpe)}, ${pp(U16.tpe)}, ${pp(L17.tpe)}, ${pp(U17.tpe)}, ${pp(
+          L18.tpe
+        )}, ${pp(U18.tpe)}, ${pp(L19.tpe)}, ${pp(U19.tpe)}, $HKT]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -2524,7 +2634,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor20.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $HKT]].tpe.typeArgs.last
 
@@ -2599,8 +2709,18 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor20.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor20.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, ${L19.tpe}, ${U19.tpe}, ${L20.tpe}, ${U20.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(L9.tpe)}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(
+          L11.tpe
+        )}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(U12.tpe)}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(
+          U14.tpe
+        )}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(L16.tpe)}, ${pp(U16.tpe)}, ${pp(L17.tpe)}, ${pp(U17.tpe)}, ${pp(
+          L18.tpe
+        )}, ${pp(U18.tpe)}, ${pp(L19.tpe)}, ${pp(U19.tpe)}, ${pp(L20.tpe)}, ${pp(U20.tpe)}, $HKT]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -2695,7 +2815,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor21.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $L21, $U21, $HKT]].tpe.typeArgs.last
 
@@ -2772,8 +2892,20 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor21.of")} expansion:
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor21.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, ${L19.tpe}, ${U19.tpe}, ${L20.tpe}, ${U20.tpe}, ${L21.tpe}, ${U21.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+        )}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(L2.tpe)}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(
+          L4.tpe
+        )}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(U5.tpe)}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(
+          U7.tpe
+        )}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(L9.tpe)}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(
+          L11.tpe
+        )}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(U12.tpe)}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(
+          U14.tpe
+        )}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(L16.tpe)}, ${pp(U16.tpe)}, ${pp(L17.tpe)}, ${pp(U17.tpe)}, ${pp(
+          L18.tpe
+        )}, ${pp(U18.tpe)}, ${pp(L19.tpe)}, ${pp(U19.tpe)}, ${pp(L20.tpe)}, ${pp(U20.tpe)}, ${pp(L21.tpe)}, ${pp(
+          U21.tpe
+        )}, $HKT]
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -2871,7 +3003,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
         $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
-      import $ctx.universe.{Type => _, internal => _, _}
+      import $ctx.universe.{ TypeRef, TypeRefTag }
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor22.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $L21, $U21, $L22, $U22, $HKT]].tpe.typeArgs.last
 
@@ -2951,7 +3083,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
          |From: ${paintExclDot(Console.BLUE)(
           "Type.Ctor22.of"
         )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, ${L19.tpe}, ${U19.tpe}, ${L20.tpe}, ${U20.tpe}, ${L21.tpe}, ${U21.tpe}, ${L22.tpe}, ${U22.tpe}, $HKT]
-         |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+         |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
@@ -2985,12 +3117,13 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           }
           val resolved = typeOfImpl[A]
           if (loggingEnabled) {
-            println(s"""Created Type[$A] with: ${showCodePretty(resolved, SyntaxHighlight.ANSI)}""")
+            println(s"""Created Type[$A] with: ${pp(resolved)}""")
           }
           resolved
       }
     val quasiquote = convert(ctx)(expr.tree)
 
+    // TODO: generare freshTerm fpr quasiquotes and then {Quasiquote => $FreshTerm}
     val unchecked = q"""
     val $wtt = $typeA
     val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
@@ -3007,8 +3140,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
     log(
       s"""Cross-quotes ${paintExclDot(Console.BLUE)("Expr.quote")} expansion:
-         |From: ${paintExclDot(Console.BLUE)("Expr.quote")}[${weakTypeOf[A]}]($expr)
-         |To: ${showCodePretty(result, SyntaxHighlight.ANSI)}""".stripMargin
+         |From: ${paintExclDot(Console.BLUE)("Expr.quote")}[${pp(weakTypeOf[A])}](${pp(expr)})
+         |To: ${pp(result)}""".stripMargin
     )
 
     result
@@ -3074,7 +3207,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       // So, why I put `null` instead of `$ctx2.weakTypeTag[$weakTypeTagOf]`? As a matter of the fact, why I created new $ctx2?
       val uncheckedResultPrototype = q"""
       val $ctx2 = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
-      import $ctx2.universe.{Type => _, internal => _, _}
+      import $ctx2.universe.{ TypeRef, TypeRefTag }
       def $workaround[..$paramDefs](implicit ..$paramVals): Type[$weakTypeTagOf] = null.asInstanceOf[Type[$weakTypeTagOf]]
       $workaround[..$tpesToReplace](..$weakTypeTagValues)
       """
@@ -3287,7 +3420,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           println("Checkpoint 2")
           println(
             s"""Stubbed source:
-               |${indent(showCodePretty(source, SyntaxHighlight.ANSI))}
+               |${indent(pp(source))}
                |""".stripMargin
           )
         }
@@ -3320,7 +3453,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       .tap { tree =>
         if (loggingEnabled) {
           println(s"""Parsed source:
-                     |${indent(showCodePretty(tree, SyntaxHighlight.ANSI))}
+                     |${indent(pp(tree))}
                      |""".stripMargin)
         }
       }
@@ -3372,7 +3505,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def find(symbol: Symbol): Option[Cache] = find(symbol.name.toString)
 
       def toReplace = caches.view.collect { case (_, Some(Cache(stub, _, weakTypeTag))) =>
-        val printedWeakTypeTag = showCodePretty(weakTypeTag, SyntaxHighlight.plain)
+        val printedWeakTypeTag = renderCode(weakTypeTag)
         Pattern.quote(stub.toString) -> Matcher.quoteReplacement(s"$${ $printedWeakTypeTag }")
       }.toMap
       def toCheck = caches.view.collect { case (name, Some(Cache(stub, _, _))) =>
@@ -3385,14 +3518,14 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       private val caches = importedUnderlyingTypes.flatMap { case (tpe, name) =>
         def byName = Cache.forTypeName(name)
         def byType = try
-          Cache.forTypeName(showCodePretty(tpe, SyntaxHighlight.plain))
+          Cache.forTypeName(renderCode(tpe))
         catch {
           case _: Throwable => None
         }
         byType.orElse(byName).map { cache =>
           cachesAliases += (name -> cache)
           cachesAliases += (s"$name.type" -> cache)
-          cachesAliases += (showCodePretty(tpe, SyntaxHighlight.plain) -> cache)
+          cachesAliases += (renderCode(tpe) -> cache)
           tpe -> cache
         }
       }.toMap
@@ -3410,7 +3543,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def find(name: String): Option[Cache] = cachesAliases.get(name)
 
       def toReplace = cachesAliases.view.collect { case (_, Cache(stub, _, weakTypeTag)) =>
-        val printedWeakTypeTag = showCodePretty(weakTypeTag, SyntaxHighlight.plain)
+        val printedWeakTypeTag = renderCode(weakTypeTag)
         Pattern.quote(stub.toString) -> Matcher.quoteReplacement(s"$${ $printedWeakTypeTag }")
       }.toMap
       def toCheck = caches.view.collect { case (name, Cache(stub, _, _)) =>
@@ -3425,14 +3558,14 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         // if we have e.g. an expression of type `(key.Underlying, value.Underlying)` (key being scala.Int) we'd get e.g. `scala.Int`
         // instead of the `key.Underlying` expression value.
         ImportedTypes
-          .find(showCodePretty(s, SyntaxHighlight.plain))
+          .find(renderCode(s))
           .map(_.ident)
           .map { stub =>
             if (loggingEnabled) {
               println(s"""Replaced Select with stub:
-                         |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
+                         |In:  ${pp(tree)}
                          |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
-                         |Out: ${showCodePretty(stub, SyntaxHighlight.ANSI)}
+                         |Out: ${pp(stub)}
                          |     ${showRawPretty(stub, SyntaxHighlight.ANSI)}
                          |""".stripMargin)
             }
@@ -3447,9 +3580,9 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
             val stub = cache.ident
             if (loggingEnabled) {
               println(s"""Replaced Ident with stub:
-                         |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
+                         |In:  ${pp(tree)}
                          |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
-                         |Out: ${showCodePretty(stub, SyntaxHighlight.ANSI)}
+                         |Out: ${pp(stub)}
                          |     ${showRawPretty(stub, SyntaxHighlight.ANSI)}
                          |""".stripMargin)
             }
@@ -3465,9 +3598,9 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
             else {
               if (loggingEnabled) {
                 println(s"""Stubbed TypeTree original:
-                           |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
+                           |In:  ${pp(tree)}
                            |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
-                           |Out: ${showCodePretty(updated, SyntaxHighlight.ANSI)}
+                           |Out: ${pp(updated)}
                            |     ${showRawPretty(updated, SyntaxHighlight.ANSI)}
                            |""".stripMargin)
               }
@@ -3480,9 +3613,9 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
               val newTypeTree = TypeTree(updated)
               if (loggingEnabled) {
                 println(s"""Stubbed TypeTree:
-                           |In:  ${showCodePretty(tree, SyntaxHighlight.ANSI)}
+                           |In:  ${pp(tree)}
                            |     ${showRawPretty(tree, SyntaxHighlight.ANSI)}
-                           |Out: ${showCodePretty(newTypeTree, SyntaxHighlight.ANSI)}
+                           |Out: ${pp(newTypeTree)}
                            |     ${showRawPretty(newTypeTree, SyntaxHighlight.ANSI)}
                            |""".stripMargin)
               }
@@ -3537,8 +3670,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
       def store(expr: Tree, tpe: Tree): Tree = {
         // This code can contain $ which has to be escaped before printing, also we should use better printers for all such things.
-        val printedExpr = showCodePretty(expr, SyntaxHighlight.plain)
-        val printedTpe = showCodePretty(tpe, SyntaxHighlight.plain)
+        val printedExpr = renderCode(expr)
+        val printedTpe = renderCode(tpe)
 
         val stub = Ident(freshName("expressionStub"))
         caches += (stub.toString() -> s"$${ {$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]] }")
@@ -3568,8 +3701,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
         log(
           s"""Cross-quotes ${paintExclDot(Console.BLUE)("Expr.splice")} expansion:
-             |From: ${paintExclDot(Console.BLUE)("Expr.splice")}(${showCodePretty(expr, SyntaxHighlight.ANSI)})
-             |To: ${indent(showCodePretty(result, SyntaxHighlight.ANSI))}""".stripMargin
+             |From: ${paintExclDot(Console.BLUE)("Expr.splice")}(${pp(expr)})
+             |To: ${indent(pp(result))}""".stripMargin
         )
 
         result

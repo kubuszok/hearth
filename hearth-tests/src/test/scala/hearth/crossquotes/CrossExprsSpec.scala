@@ -28,7 +28,13 @@ final class CrossExprsSpec extends MacroSuite {
             "nestedQuotesAndSplices" -> Data("42")
           ),
           "edgeCases" -> Data.map(
-            "chainingOnSplice" -> Data("<name>")
+            "chainingOnSplice" -> Data("<name>"),
+            "implicitTypeSubstitution" -> Data.map(
+              "fromTypeParamInferred" -> Data("123"),
+              "fromTypeParamExplicit" -> Data("123"),
+              "fromNestedImport" -> Data("key: 1, value: onekey: 2, value: two"),
+              "fromSplittedNestedImport" -> Data("key: 1, value: onekey: 2, value: two")
+            )
           )
         )
       }

@@ -69,7 +69,7 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
             }
           } else colorfulReprName
 
-          // TODO: This is a quick workaround for missing .type, we have to fix it preoperly for nested types.
+          // FIXME: This is a quick workaround for missing .type, we have to fix it properly for nested types.
           if (Type[A].isObject || Type[A].isVal) && !result.contains(".type") then result + ".type"
           else result
         }

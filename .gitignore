@@ -1,3 +1,7 @@
+# Debug modules
+debug-hearth-better-printers
+debug-hearth
+
 # sbt build
 project/project
 project/target
