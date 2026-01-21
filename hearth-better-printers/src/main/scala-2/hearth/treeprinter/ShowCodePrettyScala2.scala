@@ -88,7 +88,7 @@ trait ShowCodePrettyScala2 {
     // need a workaround to not print `$anon.this.methodOrField` or similar. So we have to detect such cases.
     object AnonThis {
       def unapply(tree: Tree): Boolean = tree match {
-        case This(anon) =>
+        case This(anon) if tree.hasSymbolField && tree.symbol != NoSymbol =>
           lazy val typeName = anon.decoded.toString
           lazy val symbolName = tree.symbol.name.toString
           (typeName.isEmpty && symbolName.startsWith("$anon")) || typeName.startsWith("$anon")
