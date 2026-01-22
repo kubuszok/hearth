@@ -526,6 +526,78 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           "building" -> Data("{1=one}")
         )
       }
+
+      test("for java.lang.Iterable") {
+        val iterable: java.lang.Iterable[String] = new java.util.ArrayList[String]() {
+          add("one")
+          add("two")
+          add("three")
+        }
+        testIsCollection(iterable) <==> Data.map(
+          "iteration" -> Data.list(
+            Data("one"),
+            Data("two"),
+            Data("three")
+          ),
+          "building" -> Data("[one]")
+        )
+        testIsCollection[java.lang.Iterable[String]](new java.util.LinkedList[String]() {
+          add("one")
+          add("two")
+          add("three")
+        }) <==> Data.map(
+          "iteration" -> Data.list(
+            Data("one"),
+            Data("two"),
+            Data("three")
+          ),
+          "building" -> Data("[one]")
+        )
+      }
+
+      test("for java.util.Optional as collection") {
+        testIsCollection(java.util.Optional.of("value")) <==> Data.map(
+          "iteration" -> Data.list(Data("value")),
+          "building" -> Data("[value]")
+        )
+        testIsCollection[java.util.Optional[String]](java.util.Optional.empty[String]()) <==> Data.map(
+          "iteration" -> Data.list(),
+          "building" -> Data("[]")
+        )
+      }
+
+      test("for java.util.EnumSet") {
+        val enumSet: java.util.EnumSet[java.lang.annotation.ElementType] = java.util.EnumSet.of(
+          java.lang.annotation.ElementType.TYPE,
+          java.lang.annotation.ElementType.FIELD,
+          java.lang.annotation.ElementType.METHOD
+        )
+        testIsCollection(enumSet) <==> Data.map(
+          "iteration" -> expectedIterationForCollection(enumSet),
+          "building" -> Data("[TYPE]")
+        )
+        val emptyEnumSet: java.util.EnumSet[java.lang.annotation.ElementType] =
+          java.util.EnumSet.noneOf(classOf[java.lang.annotation.ElementType])
+        testIsCollection(emptyEnumSet) <==> Data.map(
+          "iteration" -> Data.list(),
+          "building" -> Data("[]")
+        )
+      }
+
+      test("for java.util.EnumMap") {
+        val enumMap: java.util.EnumMap[java.lang.annotation.ElementType, String] =
+          new java.util.EnumMap[java.lang.annotation.ElementType, String](
+            classOf[java.lang.annotation.ElementType]
+          ) {
+            put(java.lang.annotation.ElementType.TYPE, "type")
+            put(java.lang.annotation.ElementType.FIELD, "field")
+            put(java.lang.annotation.ElementType.METHOD, "method")
+          }
+        testIsCollection(enumMap) <==> Data.map(
+          "iteration" -> expectedIterationForMap(enumMap),
+          "building" -> Data("{TYPE=type}")
+        )
+      }
     }
 
     group("class: IsOption[A], returns preprocessed option") {
