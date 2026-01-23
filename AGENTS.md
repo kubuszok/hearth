@@ -7,7 +7,7 @@ This document provides guidelines for AI agents (like Claude Code, GitHub Copilo
 **Hearth** is the first Scala macros' standard library, designed to make macro development easier and more maintainable across Scala 2.13 and Scala 3.
 
 - **Language**: Scala (pure Scala library)
-- **Scala Versions**: 2.13.16, 3.3.7 (primary); 2.13.18, 3.8.0-RC3 (regression testing)
+- **Scala Versions**: 2.13.16, 3.3.7 (primary); 2.13.18, 3.8.1 (regression testing)
 - **Platforms**: JVM, Scala.js, Scala Native
 - **Build Tool**: SBT (but see restrictions below)
 - **License**: Apache 2.0
