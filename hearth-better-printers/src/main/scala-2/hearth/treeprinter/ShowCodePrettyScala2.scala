@@ -195,7 +195,8 @@ trait ShowCodePrettyScala2 {
       override protected def printedName(name: Name, decoded: Boolean = true) = {
         val (result, dotType) = {
           val x = super.printedName(name, decoded)
-          if (lambdaParamPattern.matches(x)) (x, false)
+          if (x == "`_*`") ("_*", false) // special case for VarArgs
+          else if (lambdaParamPattern.matches(x)) (x, false)
           else if (x.endsWith("$")) (x.dropRight("$".length), true)
           else (x, false)
         }
@@ -861,6 +862,7 @@ trait ShowCodePrettyScala2 {
               } else {
                 val str = printedName(name)
                 val strIsBackquoted = str.startsWith("`") && str.endsWith("`")
+                val x = if (id.isBackquoted && !strIsBackquoted) "`" + str + "`" else str
                 print(if (id.isBackquoted && !strIsBackquoted) "`" + str + "`" else str)
               }
             } else {

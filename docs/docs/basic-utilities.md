@@ -710,7 +710,17 @@ that convert variadic arguments into the same representation.
     }
     ```
 
-!!! tip "`VarArgs` only handles reading of variadic arguments passed into macro. It does not (yet) handle working with variadic arguments in AST."
+If you want to pass variadic arguments into AST, you can use `VarArgs.apply` or `VarArgs.from`, combined with `Expr.splice`:
+
+```scala
+implicit val intType: Type[Int] = ...
+Expr.quote {
+  // Notice `*` after Expr.splice(...)
+  List(Expr.splice(VarArgs(Expr(1), Expr(2)))*)
+  // On Scala 2 without -Xsource:3, it would be:
+  // List(Expr.splice(VarArgs(Expr(1), Expr(2))): _*)
+}
+```
 
 ### `FreshName`
 

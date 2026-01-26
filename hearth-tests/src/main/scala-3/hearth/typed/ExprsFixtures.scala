@@ -34,6 +34,10 @@ object ExprsFixtures {
   private def testSuppressUnusedImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Unit] =
     new ExprsFixtures(q).testSuppressUnused[A](expr)
 
+  inline def testVarArgs[A](inline exprs: A*): Data = ${ testVarArgsImpl[A]('{ exprs }) }
+  private def testVarArgsImpl[A: Type](exprs: Expr[Seq[A]])(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testVarArgs[A](exprs)
+
   inline def testMatchCaseTypeMatch[A](inline expr: A): Data = ${ testMatchCaseTypeMatchImpl[A]('{ expr }) }
   private def testMatchCaseTypeMatchImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testMatchCaseTypeMatch[A](expr)

@@ -358,6 +358,9 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
   trait VarArgsModule { this: VarArgs.type =>
 
     def toIterable[A](args: VarArgs[A]): Iterable[Expr[A]]
+
+    def from[A: Type](iterable: Iterable[Expr[A]]): Expr[Seq[A]]
+    final def apply[A: Type](exprs: Expr[A]*): Expr[Seq[A]] = from(exprs.to(Iterable))
   }
 
   implicit final class VarArgsMethods[A](private val varArgs: VarArgs[A]) {
