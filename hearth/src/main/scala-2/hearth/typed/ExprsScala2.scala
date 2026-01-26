@@ -254,6 +254,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
   object VarArgs extends VarArgsModule {
     override def toIterable[A](args: VarArgs[A]): Iterable[Expr[A]] = args
+    override def from[A: Type](iterable: Iterable[Expr[A]]): Expr[Seq[A]] =
+      c.Expr[Seq[A]](q"_root_.scala.collection.immutable.Seq(..${iterable.map(_.tree).toSeq})")
   }
 
   import Expr.platformSpecific.*

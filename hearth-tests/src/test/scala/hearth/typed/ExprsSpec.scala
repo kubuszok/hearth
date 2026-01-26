@@ -86,6 +86,17 @@ final class ExprsSpec extends MacroSuite {
       }
     }
 
+    group("methods: VarArgs.{apply, from}, expected behavior") {
+      import ExprsFixtures.testVarArgs
+
+      test("should create VarArgs from iterable") {
+        testVarArgs(1, 2, 3) <==> Data.map(
+          "VarArgs.apply" -> Data.list(Data("value: 1"), Data("value: 2"), Data("value: 3")),
+          "VarArgs.from" -> Data.list(Data("value: 1"), Data("value: 2"), Data("value: 3"))
+        )
+      }
+    }
+
     group("type MatchCase") {
 
       test("method MatchCase.matchType should allow pattern-matching by the type") {

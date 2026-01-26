@@ -58,6 +58,24 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
   def testSuppressUnused[A: Type](expr: Expr[A]): Expr[Unit] =
     expr.suppressUnused
 
+  // VarArgs methods
+
+  def testVarArgs[A: Type](exprs: VarArgs[A]): Expr[Data] = {
+    implicit val dataType: Type[Data] = DataType
+    val iterable = exprs.toIterable.map { expr =>
+      Expr.quote {
+        Data("value: " + Expr.splice(expr).toString)
+      }
+    }.toSeq
+
+    Expr.quote {
+      Data.map(
+        "VarArgs.apply" -> Data.list(Expr.splice(VarArgs(iterable*))*),
+        "VarArgs.from" -> Data.list(Expr.splice(VarArgs.from(iterable))*)
+      )
+    }
+  }
+
   // MatchCase methods
 
   def testMatchCaseTypeMatch[A: Type](expr: Expr[A]): Expr[Data] = {
