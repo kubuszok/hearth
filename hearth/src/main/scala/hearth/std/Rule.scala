@@ -17,6 +17,9 @@ trait Rule {
 }
 object Rule {
 
+  def matched[A](result: A): Applicability[A] = Applicability.Matched(result)
+  def yielded(reasons: String*): Applicability[Nothing] = Applicability.Yielded(reasons.toVector)
+
   /** The result of applying a rule to a context.
     *
     * @since 0.3.0

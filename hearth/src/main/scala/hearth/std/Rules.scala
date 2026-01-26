@@ -2,13 +2,14 @@ package hearth
 package std
 
 import hearth.fp.DirectStyle
+import hearth.fp.data.{NonEmptyList, NonEmptyMap, NonEmptyVector}
 import scala.collection.immutable.ListMap
 
 /** An utility which helps combining a sequence of rules into the rule application result.
   *
   * @since 0.3.0
   */
-final class Rules[R <: Rule](rules: List[R]) {
+final class Rules[R <: Rule] private (rules: NonEmptyList[R]) {
   import Rules.*
 
   /** Apply the rules to the given context.
@@ -18,7 +19,7 @@ final class Rules[R <: Rule](rules: List[R]) {
     * @since 0.3.0
     */
   def apply[A](attempt: R => Rule.Applicability[A]): ApplicationResult[R, A] =
-    applyRules(rules, Vector.empty)(attempt)
+    applyRules(rules.toList, Vector.empty)(attempt)
 
   /** Apply the rules to the given context, but with some effect (e.g. [[MIO]]).
     *
@@ -28,7 +29,7 @@ final class Rules[R <: Rule](rules: List[R]) {
     */
   def apply[F[_]: DirectStyle, A](attempt: R => F[Rule.Applicability[A]]): F[ApplicationResult[R, A]] =
     DirectStyle[F].scoped { runSafe =>
-      applyRules(rules, Vector.empty) { rule =>
+      applyRules(rules.toList, Vector.empty) { rule =>
         runSafe(attempt(rule))
       }
     }
@@ -39,13 +40,19 @@ object Rules {
     *
     * @since 0.3.0
     */
-  def apply[R <: Rule](rules: Iterable[R]): Rules[R] = new Rules(rules.toList)
+  def apply[R <: Rule](head: R, tail: R*): Rules[R] = new Rules(NonEmptyList(head, tail.toList))
 
   /** Create a new [[Rules]] instance from the given rules.
     *
     * @since 0.3.0
     */
-  def from[R <: Rule](rules: R*): Rules[R] = new Rules(rules.toList)
+  def from[R <: Rule](rules: NonEmptyList[R]): Rules[R] = new Rules(rules)
+
+  /** Create a new [[Rules]] instance from the given rules.
+    *
+    * @since 0.3.0
+    */
+  def from[R <: Rule](rules: NonEmptyVector[R]): Rules[R] = new Rules(rules.toNonEmptyList)
 
   /** The result of applying a rule to a context.
     *
@@ -56,7 +63,7 @@ object Rules {
     *
     * @since 0.3.0
     */
-  type ApplicationResult[R <: Rule, A] = Either[ListMap[R, Vector[String]], A]
+  type ApplicationResult[R <: Rule, A] = Either[NonEmptyMap[R, Vector[String]], A]
 
   @scala.annotation.tailrec
   private def applyRules[R <: Rule, A](
@@ -65,7 +72,7 @@ object Rules {
   )(
       attempt: R => Rule.Applicability[A]
   ): ApplicationResult[R, A] = remaining match {
-    case Nil          => Left(ListMap.from(failed))
+    case Nil          => Left(NonEmptyMap.fromListMap(ListMap.from(failed)).get)
     case rule :: rest =>
       attempt(rule) match {
         case Rule.Applicability.Matched(result) => Right(result)

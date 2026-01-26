@@ -1,7 +1,8 @@
 package hearth
 package std
 
-import scala.collection.immutable.ListMap
+import hearth.fp.Id
+import hearth.fp.data.{NonEmptyList, NonEmptyMap, NonEmptyVector}
 import scala.util.{Failure, Success, Try}
 
 final class RulesSpec extends Suite {
@@ -10,20 +11,20 @@ final class RulesSpec extends Suite {
 
   /** Rule that always matches */
   final case class MatchingRule(name: String, result: Int) extends Rule {
-    def attempt: Rule.Applicability[Int] = Rule.Applicability.Matched(result)
+    def attempt: Rule.Applicability[Int] = Rule.matched(result)
   }
 
   /** Rule that always yields */
   final case class YieldingRule(name: String, reasons: Vector[String]) extends Rule {
-    def attempt: Rule.Applicability[Int] = Rule.Applicability.Yielded(reasons)
+    def attempt: Rule.Applicability[Int] = Rule.yielded(reasons*)
   }
 
   /** Rule that matches conditionally */
   final case class ConditionalRule(name: String, shouldMatch: Boolean, result: Int, reasons: Vector[String])
       extends Rule {
     def attempt: Rule.Applicability[Int] =
-      if (shouldMatch) Rule.Applicability.Matched(result)
-      else Rule.Applicability.Yielded(reasons)
+      if (shouldMatch) Rule.matched(result)
+      else Rule.yielded(reasons*)
   }
 
   // Helper to extract attempt from any rule type
@@ -35,67 +36,42 @@ final class RulesSpec extends Suite {
 
   group("Rules factory methods") {
 
-    test("Rules.apply creates Rules from Iterable") {
+    test("Rules.apply creates Rules from NonEmptyList") {
       val rule1 = MatchingRule("rule1", 1)
       val rule2 = MatchingRule("rule2", 2)
-      val rules = Rules.apply(List(rule1, rule2))
-      val result = rules.apply(attemptRule)
-      result ==> Right(1) // First rule matches
+      Rules.from(NonEmptyList(rule1, rule2))(attemptRule) ==> Right(1) // First rule matches
+    }
+
+    test("Rules.apply creates Rules from NonEmptyVector") {
+      val rule1 = MatchingRule("rule1", 1)
+      val rule2 = MatchingRule("rule2", 2)
+      Rules.from(NonEmptyVector(rule1, rule2))(attemptRule) ==> Right(1) // First rule matches
     }
 
     test("Rules.from creates Rules from varargs") {
       val rule1 = MatchingRule("rule1", 1)
       val rule2 = MatchingRule("rule2", 2)
-      val rules = Rules.from(rule1, rule2)
-      val result = rules.apply(attemptRule)
-      result ==> Right(1) // First rule matches
-    }
-
-    test("Empty Iterable produces empty Rules") {
-      val rules = Rules.apply(List.empty[MatchingRule])
-      val result = rules.apply(attemptRule)
-      result ==> Left(ListMap.empty)
-    }
-
-    test("Empty varargs produces empty Rules") {
-      val rules = Rules.from[MatchingRule]()
-      val result = rules.apply(attemptRule)
-      result ==> Left(ListMap.empty)
+      Rules(rule1, rule2)(attemptRule) ==> Right(1) // First rule matches
     }
   }
 
   group("Synchronous rule application") {
 
-    group("Empty rules") {
-
-      test("returns Left with empty ListMap when no rules provided") {
-        val rules = Rules.from[MatchingRule]()
-        val result = rules.apply(attemptRule)
-        result ==> Left(ListMap.empty)
-      }
-    }
-
     group("Single rule") {
 
       test("returns Right with result when rule matches") {
         val rule = MatchingRule("rule1", 42)
-        val rules = Rules.from(rule)
-        val result = rules.apply(attemptRule)
-        result ==> Right(42)
+        Rules(rule)(attemptRule) ==> Right(42)
       }
 
       test("returns Left with rule and reasons when rule yields") {
         val rule = YieldingRule("rule1", Vector("reason1", "reason2"))
-        val rules = Rules.from(rule)
-        val result = rules.apply(attemptRule)
-        result ==> Left(ListMap(rule -> Vector("reason1", "reason2")))
+        Rules(rule)(attemptRule) ==> Left(NonEmptyMap(rule -> Vector("reason1", "reason2")))
       }
 
       test("returns Left with empty reasons when rule yields with empty Vector") {
         val rule = YieldingRule("rule1", Vector.empty)
-        val rules = Rules.from(rule)
-        val result = rules.apply(attemptRule)
-        result ==> Left(ListMap(rule -> Vector.empty))
+        Rules(rule)(attemptRule) ==> Left(NonEmptyMap(rule -> Vector.empty))
       }
     }
 
@@ -105,54 +81,39 @@ final class RulesSpec extends Suite {
         val rule1 = MatchingRule("rule1", 1)
         val rule2 = MatchingRule("rule2", 2)
         val rule3 = MatchingRule("rule3", 3)
-        val rules = Rules.from(rule1, rule2, rule3)
-        val result = rules.apply(attemptRule)
-        result ==> Right(1)
+        Rules(rule1, rule2, rule3)(attemptRule) ==> Right(1)
       }
 
       test("returns Right from middle rule when first yields, doesn't check subsequent rules") {
         val rule1 = YieldingRule("rule1", Vector("reason1"))
         val rule2 = MatchingRule("rule2", 42)
         val rule3 = MatchingRule("rule3", 99)
-        val rules = Rules.from(rule1, rule2, rule3)
-        val result = rules.apply(attemptRule)
-        result ==> Right(42)
+        Rules(rule1, rule2, rule3)(attemptRule) ==> Right(42)
       }
 
       test("returns Left with all rules and reasons when all rules yield, preserving order") {
         val rule1 = YieldingRule("rule1", Vector("reason1"))
         val rule2 = YieldingRule("rule2", Vector("reason2a", "reason2b"))
         val rule3 = YieldingRule("rule3", Vector("reason3"))
-        val rules = Rules.from(rule1, rule2, rule3)
-        val result = rules.apply(attemptRule)
-        val expectedMap = ListMap(
-          rule1 -> Vector("reason1"),
-          rule2 -> Vector("reason2a", "reason2b"),
-          rule3 -> Vector("reason3")
+        Rules(rule1, rule2, rule3)(attemptRule) ==> Left(
+          NonEmptyMap(rule1 -> Vector("reason1"), rule2 -> Vector("reason2a", "reason2b"), rule3 -> Vector("reason3"))
         )
-        result ==> Left(expectedMap)
       }
 
       test("preserves rule order in failure map") {
         val rule1 = YieldingRule("rule1", Vector("r1"))
         val rule2 = YieldingRule("rule2", Vector("r2"))
         val rule3 = YieldingRule("rule3", Vector("r3"))
-        val rules = Rules.from(rule1, rule2, rule3)
-        val result = rules.apply(attemptRule)
-        val Left(failureMap) = result: @unchecked
-        val keys = failureMap.keys.toList
-        keys(0) ==> rule1
-        keys(1) ==> rule2
-        keys(2) ==> rule3
+        Rules(rule1, rule2, rule3)(attemptRule) ==> Left(
+          NonEmptyMap(rule1 -> Vector("r1"), rule2 -> Vector("r2"), rule3 -> Vector("r3"))
+        )
       }
 
       test("handles conditional rules correctly") {
         val rule1 = ConditionalRule("rule1", shouldMatch = false, 1, Vector("no match"))
         val rule2 = ConditionalRule("rule2", shouldMatch = true, 42, Vector("should not see"))
         val rule3 = ConditionalRule("rule3", shouldMatch = false, 99, Vector("should not see"))
-        val rules = Rules.from(rule1, rule2, rule3)
-        val result = rules.apply(attemptRule)
-        result ==> Right(42)
+        Rules(rule1, rule2, rule3)(attemptRule) ==> Right(42)
       }
     }
   }
@@ -163,44 +124,37 @@ final class RulesSpec extends Suite {
 
       test("returns Some(Right(result)) when rule matches") {
         val rule = MatchingRule("rule1", 42)
-        val rules = Rules.from(rule)
-        val result = rules.apply[Option, Int](r => Some(attemptRule(r)))
-        result ==> Some(Right(42))
+        Rules(rule)[Option, Int](rule => Some(attemptRule(rule))) ==> Some(Right(42))
       }
 
       test("returns Some(Left(ListMap)) when rule yields") {
         val rule = YieldingRule("rule1", Vector("reason1"))
-        val rules = Rules.from(rule)
-        val result = rules.apply[Option, Int](r => Some(attemptRule(r)))
-        result ==> Some(Left(ListMap(rule -> Vector("reason1"))))
+        Rules(rule)[Option, Int](rule => Some(attemptRule(rule))) ==> Some(Left(NonEmptyMap(rule -> Vector("reason1"))))
       }
 
       test("returns None when effect fails") {
         val rule = MatchingRule("rule1", 42)
-        val rules = Rules.from(rule)
-        val result = rules.apply[Option, Int](_ => None)
-        result ==> None
+        Rules(rule)[Option, Int](_ => None) ==> None
       }
 
       test("returns Some(Right(result)) from first matching rule with multiple rules") {
         val rule1 = YieldingRule("rule1", Vector("reason1"))
         val rule2 = MatchingRule("rule2", 42)
         val rule3 = MatchingRule("rule3", 99)
-        val rules = Rules.from(rule1, rule2, rule3)
-        val result = rules.apply[Option, Int](r => Some(attemptRule(r)))
-        result ==> Some(Right(42))
+        Rules(rule1, rule2, rule3)[Option, Int](rule => Some(attemptRule(rule))) ==> Some(Right(42))
       }
 
       test("returns Some(Left(ListMap)) when all rules yield") {
         val rule1 = YieldingRule("rule1", Vector("reason1"))
         val rule2 = YieldingRule("rule2", Vector("reason2"))
-        val rules = Rules.from(rule1, rule2)
-        val result = rules.apply[Option, Int](r => Some(attemptRule(r)))
-        val expectedMap = ListMap(
-          rule1 -> Vector("reason1"),
-          rule2 -> Vector("reason2")
+        Rules(rule1, rule2)[Option, Int](rule => Some(attemptRule(rule))) ==> Some(
+          Left(
+            NonEmptyMap(
+              rule1 -> Vector("reason1"),
+              rule2 -> Vector("reason2")
+            )
+          )
         )
-        result ==> Some(Left(expectedMap))
       }
     }
 
@@ -208,43 +162,38 @@ final class RulesSpec extends Suite {
 
       test("returns Right(Right(result)) when rule matches") {
         val rule = MatchingRule("rule1", 42)
-        val rules = Rules.from(rule)
-        val result = rules.apply[Either[String, *], Int](r => Right(attemptRule(r)))
-        result ==> Right(Right(42))
+        Rules(rule)[Either[String, *], Int](rule => Right(attemptRule(rule))) ==> Right(Right(42))
       }
 
       test("returns Right(Left(ListMap)) when rule yields") {
         val rule = YieldingRule("rule1", Vector("reason1"))
-        val rules = Rules.from(rule)
-        val result = rules.apply[Either[String, *], Int](r => Right(attemptRule(r)))
-        result ==> Right(Left(ListMap(rule -> Vector("reason1"))))
+        Rules(rule)[Either[String, *], Int](rule => Right(attemptRule(rule))) ==> Right(
+          Left(NonEmptyMap(rule -> Vector("reason1")))
+        )
       }
 
       test("returns Left(error) when effect fails") {
         val rule = MatchingRule("rule1", 42)
-        val rules = Rules.from(rule)
-        val result = rules.apply[Either[String, *], Int](_ => Left("effect error"))
-        result ==> Left("effect error")
+        Rules(rule)[Either[String, *], Int](_ => Left("effect error")) ==> Left("effect error")
       }
 
       test("returns Right(Right(result)) from first matching rule with multiple rules") {
         val rule1 = YieldingRule("rule1", Vector("reason1"))
         val rule2 = MatchingRule("rule2", 42)
-        val rules = Rules.from(rule1, rule2)
-        val result = rules.apply[Either[String, *], Int](r => Right(attemptRule(r)))
-        result ==> Right(Right(42))
+        Rules(rule1, rule2)[Either[String, *], Int](rule => Right(attemptRule(rule))) ==> Right(Right(42))
       }
 
       test("returns Right(Left(ListMap)) when all rules yield") {
         val rule1 = YieldingRule("rule1", Vector("reason1"))
         val rule2 = YieldingRule("rule2", Vector("reason2"))
-        val rules = Rules.from(rule1, rule2)
-        val result = rules.apply[Either[String, *], Int](r => Right(attemptRule(r)))
-        val expectedMap = ListMap(
-          rule1 -> Vector("reason1"),
-          rule2 -> Vector("reason2")
+        Rules(rule1, rule2)[Either[String, *], Int](rule => Right(attemptRule(rule))) ==> Right(
+          Left(
+            NonEmptyMap(
+              rule1 -> Vector("reason1"),
+              rule2 -> Vector("reason2")
+            )
+          )
         )
-        result ==> Right(Left(expectedMap))
       }
     }
 
@@ -252,44 +201,39 @@ final class RulesSpec extends Suite {
 
       test("returns Success(Right(result)) when rule matches") {
         val rule = MatchingRule("rule1", 42)
-        val rules = Rules.from(rule)
-        val result = rules.apply[Try, Int](r => Success(attemptRule(r)))
-        result ==> Success(Right(42))
+        Rules(rule)[Try, Int](rule => Success(attemptRule(rule))) ==> Success(Right(42))
       }
 
       test("returns Success(Left(ListMap)) when rule yields") {
         val rule = YieldingRule("rule1", Vector("reason1"))
-        val rules = Rules.from(rule)
-        val result = rules.apply[Try, Int](r => Success(attemptRule(r)))
-        result ==> Success(Left(ListMap(rule -> Vector("reason1"))))
+        Rules(rule)[Try, Int](rule => Success(attemptRule(rule))) ==> Success(
+          Left(NonEmptyMap(rule -> Vector("reason1")))
+        )
       }
 
       test("returns Failure(exception) when effect fails") {
         val rule = MatchingRule("rule1", 42)
-        val rules = Rules.from(rule)
         val exception = new RuntimeException("effect error")
-        val result = rules.apply[Try, Int](_ => Failure(exception))
-        result ==> Failure(exception)
+        Rules(rule)[Try, Int](_ => Failure(exception)) ==> Failure(exception)
       }
 
       test("returns Success(Right(result)) from first matching rule with multiple rules") {
         val rule1 = YieldingRule("rule1", Vector("reason1"))
         val rule2 = MatchingRule("rule2", 42)
-        val rules = Rules.from(rule1, rule2)
-        val result = rules.apply[Try, Int](r => Success(attemptRule(r)))
-        result ==> Success(Right(42))
+        Rules(rule1, rule2)[Try, Int](rule => Success(attemptRule(rule))) ==> Success(Right(42))
       }
 
       test("returns Success(Left(ListMap)) when all rules yield") {
         val rule1 = YieldingRule("rule1", Vector("reason1"))
         val rule2 = YieldingRule("rule2", Vector("reason2"))
-        val rules = Rules.from(rule1, rule2)
-        val result = rules.apply[Try, Int](r => Success(attemptRule(r)))
-        val expectedMap = ListMap(
-          rule1 -> Vector("reason1"),
-          rule2 -> Vector("reason2")
+        Rules(rule1, rule2)[Try, Int](rule => Success(attemptRule(rule))) ==> Success(
+          Left(
+            NonEmptyMap(
+              rule1 -> Vector("reason1"),
+              rule2 -> Vector("reason2")
+            )
+          )
         )
-        result ==> Success(Left(expectedMap))
       }
     }
 
@@ -297,29 +241,24 @@ final class RulesSpec extends Suite {
 
       test("behaves like synchronous version when using Id") {
         val rule = MatchingRule("rule1", 42)
-        val rules = Rules.from(rule)
-        val result = rules.apply[hearth.fp.Id, Int](attemptRule)
-        result ==> Right(42)
+        Rules(rule)[Id, Int](rule => attemptRule(rule)) ==> Right(42)
       }
 
       test("returns Right(result) from first matching rule with Id") {
         val rule1 = YieldingRule("rule1", Vector("reason1"))
         val rule2 = MatchingRule("rule2", 42)
-        val rules = Rules.from(rule1, rule2)
-        val result = rules.apply[hearth.fp.Id, Int](attemptRule)
-        result ==> Right(42)
+        Rules(rule1, rule2)[Id, Int](rule => attemptRule(rule)) ==> Right(42)
       }
 
       test("returns Left(ListMap) when all rules yield with Id") {
         val rule1 = YieldingRule("rule1", Vector("reason1"))
         val rule2 = YieldingRule("rule2", Vector("reason2"))
-        val rules = Rules.from(rule1, rule2)
-        val result = rules.apply[hearth.fp.Id, Int](attemptRule)
-        val expectedMap = ListMap(
-          rule1 -> Vector("reason1"),
-          rule2 -> Vector("reason2")
+        Rules(rule1, rule2)[Id, Int](rule => attemptRule(rule)) ==> Left(
+          NonEmptyMap(
+            rule1 -> Vector("reason1"),
+            rule2 -> Vector("reason2")
+          )
         )
-        result ==> Left(expectedMap)
       }
     }
   }
