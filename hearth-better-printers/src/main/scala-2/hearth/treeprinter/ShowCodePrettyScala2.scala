@@ -862,7 +862,6 @@ trait ShowCodePrettyScala2 {
               } else {
                 val str = printedName(name)
                 val strIsBackquoted = str.startsWith("`") && str.endsWith("`")
-                val x = if (id.isBackquoted && !strIsBackquoted) "`" + str + "`" else str
                 print(if (id.isBackquoted && !strIsBackquoted) "`" + str + "`" else str)
               }
             } else {

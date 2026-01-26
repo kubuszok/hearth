@@ -5,6 +5,432 @@ solutions that require us to follow some convention, but in turn give us a lot o
 these unopinionated core utilities and opinionated solution, we put the latter under `std` package as opt-in
 mixins.
 
+## Rule-based derivation
+
+`Rules` is a utility that helps you combine multiple derivation rules into a single rule application system. It tries rules in order until one matches, or collects failure reasons from all rules if none match. This is particularly useful for building flexible macro systems where you want to try multiple strategies for deriving code (e.g., JSON encoders/decoders, type mappers, serializers).
+
+### Introduction to rules
+
+Let's say we need to derive a JSON encoder. After drafting the logic it should follow, we would probably arrive more or less at something like that:
+
+ * if there is an existing implicit in scope - use it
+ * if the type we are deriving for is a collection, use recursion to figure out how to encode its items, and then handle the collection
+ * if the type we are deriving for is an `Option`, use recursion to figure out how to encode its item, and handle as well the case when the value is `null`
+ * if the type we are deriving for is a `case class`, use recursion to figuer out how to encode each field
+
+(For simplicity, we're skipping handling of enums, maps, value types, etc).
+
+We could try to implement it with if-elses:
+
+```scala
+val IterableType = Type.Ctor1.of[Iterable]
+val OptionType = Type.Ctor1.of[Option]
+
+lazy val asImplicit = Expr.summonImplicit[A]
+lazy val asIterable = IterableType.unapply(A)
+lazy val asOption = OptionType.unapply(A)
+lazy val asCaseClass = CaseClass.parse(A).toOption
+
+if (asImplicit.isDefined) { ... }
+else if (asIterable.isDefined) { ... }
+else if (asOption.isDefined) { ... }
+else if (asCaseClass.isDefined) { ... }
+else Environment.reportErrorAndAbort("...")
+```
+
+but it quickly becomes a giant method that is hard to read, and any adjustments to the methods requires shuffling a lot of code around.
+
+But, we can use the fact that this code follows the patter of "if it matches, try derivation that might fail, or yield to the next rule".
+For start, we can start with handling these as `Option`s:
+
+```scala
+def asImplicit[A: Type]: Option[...] = {
+  Expr.summonImplicit[A].map { implicitExpr =>
+    // ...
+  }
+}
+def asOption[A: Type]: Option[...] = {
+  val IterableType = Type.Ctor1.of[Iterable]
+  A match {
+    case IterableType(item) => // ...
+    case _ => None
+  }
+}
+def asIterable[A: Type]: Option[...] = {
+  val IterableType = Type.Ctor1.of[Iterable]
+  Type[A] match {
+    case IterableType(item) => // ...
+    case _ => None
+  }
+}
+def asCaseClass[A: Type]: Option[...] = CaseClass.parse[A].map { caseClass =>
+  // ...
+}
+
+def deriveRecursively[A: Type] =
+  asImplicit[A]
+    .orElse(asOption[A])
+    .orElse(asIterable[A])
+    .orElse(asCaseClass[A])
+    .getOrElse(Environment.reportErrorAndAbort("..."))
+```
+
+That is much easier to maintain:
+
+ - each "rule" that we described in our specification becomes a separate method
+ - their order is easy to follow and adjust
+ - it is easy to split some rule to its subcases, and combine them back again
+
+But, let's say, we want to also add some [logging](micro-fp.md#logging) to the derivation, e.g using `MIO`. It is still possible:
+
+```scala
+def asImplicit[A: Type]: MIO[Option[...]] = ...
+def asOption[A: Type]: MIO[Option[...]] = ...
+def asIterable[A: Type]: MIO[Option[...]] = ...
+def asCaseClass[A: Type]: MIO[Option[...]] = ...
+
+def deriveRecursively[A: Type] = MIO.scoped { runSafe =>
+  runSafe(asImplicit[A])
+    .orElse(runSafe(asOption[A]))
+    .orElse(runSafe(asIterable[A]))
+    .orElse(runSafe(asCaseClass[A]))
+    .getOrElse(runSafe(MIO.fail(...)))
+}
+```
+
+However at this point `Option` is no longer as self-explanatory. If we also wanted to log a reason why each rule yielded
+in `MIO.fail(...)`, we would have to replace it with some `Either`, and then somehow manually aggregate the reasons for each rule
+(e.g. there is implicit but there is ambiguity; something is iterable, but its elements cannot be rendered, etc).
+
+While it's not difficult task to write such aggregator, one might want for some existing solution to exist, one that would
+standardize the appoach to such problem.
+
+That's what `Rule` and `Rules` in `hearth.std` are providing.
+
+### Core Concepts
+
+- **`Rule`** - A trait that marks something as a rule. Each rule has a `name` for identification.
+- **`Rule.Applicability[A]`** - The result of applying a rule:
+  - `Matched(result)` - The rule matched and produced a result of type `A`
+  - `Yielded(reasons)` - The rule didn't match, but provides reasons why (as `Vector[String]`)
+- **`Rules[R]`** - A class that combines multiple rules of type `R` and tries them in order
+- **`ApplicationResult[R, A]`** - The result type: `Either[ListMap[R, Vector[String]], A]`
+  - `Right(result)` - One of the rules matched and produced a result
+  - `Left(failureMap)` - All rules failed, with a map of each rule to its failure reasons
+
+### Basic Usage
+
+The simplest way to use `Rules` is with synchronous rule application:
+
+!!! example "Synchronous rule application"
+
+    ```scala
+    // file: src/main/scala/example/RulesExample.scala - part of basic Rules example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth::{{ hearth_version() }}
+    package example
+
+    import hearth.std.{Rule, Rules}
+
+    abstract class OurRule extends Rule with Product with Serializable {
+      def attempt: Rule.Applicability[Int]
+    }
+
+    // Define a simple rule that always matches
+    final case class MatchingRule(name: String, result: Int) extends OurRule {
+      override def attempt: Rule.Applicability[Int] = Rule.matched(result)
+    }
+
+    // Define a rule that always yields (doesn't match)
+    final case class YieldingRule(name: String, reasons: Vector[String]) extends OurRule {
+      override def attempt: Rule.Applicability[Int] = Rule.yielded((reasons.toSeq): _*)
+    }
+
+    object RulesExample {
+
+      def applyRules(): Rules.ApplicationResult[OurRule, Int] = {
+        val rule1 = YieldingRule("rule1", Vector("Type not supported"))
+        val rule2 = MatchingRule("rule2", 42)
+        val rule3 = MatchingRule("rule3", 99)
+
+        Rules(rule1, rule2, rule3)(_.attempt)
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/RulesExampleSpec.scala - part of basic Rules example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+    package example
+
+    final class RulesExampleSpec extends munit.FunSuite {
+
+      test("Rules tries rules in order until one matches") {
+        val result = RulesExample.applyRules()
+        assert(result.isRight)
+        assertEquals(result, Right(42)) // rule2 matches, rule3 is never tried
+      }
+    }
+    ```
+
+In this example, `Rules` tries `rule1` first, which yields (doesn't match). Then it tries `rule2`, which matches and returns `42`. `rule3` is never tried because `rule2` already matched.
+
+### Effectful Rule Application
+
+`Rules` also supports effectful rule application using `DirectStyle`, allowing you to work with effects like `Option`, `Either`, `Try`, or `MIO`:
+
+!!! example "Effectful rule application"
+
+    ```scala
+    // file: src/main/scala/example/EffectfulRulesExample.scala - part of effectful Rules example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth::{{ hearth_version() }}
+    //> using dep com.kubuszok::hearth-micro-fp::{{ hearth_version() }}
+    package example
+
+    import hearth.std.{Rule, Rules}
+    import hearth.fp.DirectStyle
+    import hearth.fp.instances._
+    import scala.util.{Failure, Success, Try}
+
+    // Rule that might fail when attempting
+    final case class EffectfulRule(name: String, shouldMatch: Boolean, result: Int) extends Rule {
+      def attempt: Option[Rule.Applicability[Int]] = {
+        if (shouldMatch) Some(Rule.Applicability.Matched(result))
+        else Some(Rule.Applicability.Yielded(Vector("Condition not met")))
+      }
+    }
+
+    object EffectfulRulesExample {
+
+      def applyWithOption(): Option[Rules.ApplicationResult[EffectfulRule, Int]] = {
+        val rule1 = EffectfulRule("rule1", shouldMatch = false, 1)
+        val rule2 = EffectfulRule("rule2", shouldMatch = true, 42)
+
+        Rules(rule1, rule2)[Option, Int](r => r.attempt)
+      }
+
+      def applyWithEither(): Either[String, Rules.ApplicationResult[EffectfulRule, Int]] = {
+        val rule1 = EffectfulRule("rule1", shouldMatch = false, 1)
+        val rule2 = EffectfulRule("rule2", shouldMatch = true, 42)
+
+        type EitherString[A] = Either[String, A]
+        Rules(rule1, rule2)[EitherString, Int](r => Right(r.attempt.get))
+      }
+
+      def applyWithTry(): Try[Rules.ApplicationResult[EffectfulRule, Int]] = {
+        val rule1 = EffectfulRule("rule1", shouldMatch = false, 1)
+        val rule2 = EffectfulRule("rule2", shouldMatch = true, 42)
+
+        Rules(rule1, rule2)[Try, Int](r => Success(r.attempt.get))
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/EffectfulRulesExampleSpec.scala - part of effectful Rules example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+    package example
+
+    import scala.util.Success
+
+    final class EffectfulRulesExampleSpec extends munit.FunSuite {
+
+      test("Rules works with Option effect") {
+        val result = EffectfulRulesExample.applyWithOption()
+        assertEquals(result, Some(Right(42)))
+      }
+
+      test("Rules works with Either effect") {
+        val result = EffectfulRulesExample.applyWithEither()
+        assertEquals(result, Right(Right(42)))
+      }
+
+      test("Rules works with Try effect") {
+        val result = EffectfulRulesExample.applyWithTry()
+        assertEquals(result, Success(Right(42)))
+      }
+    }
+    ```
+
+### Realistic Use Case: JSON Encoder Rules
+
+The examples above show how the API works, but not how it could be used in a macro.
+
+Here's a more realistic example showing how you might use `Rules` to build a JSON encoder system with multiple derivation strategies:
+
+!!! example "JSON encoder with multiple derivation rules"
+
+    ```scala
+    import hearth.*
+    import hearth.fp.effect.*
+    import hearth.fp.instances.*
+    import hearth.fp.syntax.*
+
+    // Mostly pseudo-code, at least for now
+
+    trait EncodingExample { this: MacroCommons =>
+
+      // The API called by macro adapters
+
+      def deriveInlineExpr[A: Type](expr: Expr[A]): Expr[Json] =
+        deriveExprRecursively(EncodingContext(expr, Type[A]))
+          .runToExprOrFail("deriveInline")(renderFailure)
+
+      def deriveEncoderExpr[A: Type]: Expr[Encoder[A]] = MIO.scoped { runSafe =>
+        Expr.quote {
+          new Encoder[A] {
+            def encode(value: A): Json = Expr.splice(runSafe(deriveExprRecursivel(EncodingContext(Expr.quote(value), Type[A]))))
+          }
+        }
+      }
+        .runToExprOrFail("deriveEncoder")(renderFailure)
+
+      // The actual macro implementation: we'll start with defining types that we'll use to express our logic.
+
+      /** To pass around: types, expressions, flags, etc */
+      case class EncodingContext[A](
+        encodedExpr: Expr[A],
+        encodedType: Type[A]
+      )
+
+      /** To represent failed derivation with some context */
+      case class EncodingFailure(
+        ruleName: String,
+        reason: String
+      ) extends Throwable
+
+      /** Abstract rule for JSON encoding */
+      abstract class EncoderRule(override val name: String) extends Rule {
+        def attempt[A](ctx: EncodingContext[A]): MIO[Rule.Applicability[Expr[Json]]]
+      }
+
+      // Then, we will use these types to define our rule-based derivation.
+
+      def deriveExprRecursively[A](ctx: EncodingContext[A]): MIO[Expr[JSON]] = Rules(
+        AttemptUsingImplicit,
+        AttemptAsOption,
+        AttemptAsIterable,
+        AttemptAsCaseClass
+      ) { encoderRule =>
+        encoderRule.attempt(ctx)
+      }.flatMap {
+        case Left(reasons) =>
+          MIO.fail(reasons.toNonEmptyVector.map { case (rule, reason) =>
+            RuleFailure(rule, reason.mkString("\n"))
+          })
+        case Right(result) =>
+          MIO.pure(result)
+      }
+
+      /** Rule 1: Try to encode using implicit */
+      object AttemptUsingImplicit extends EncoderRule("attempt using implicit") {
+        lazy val EncoderType = Type.Ctor1.of[Encoder]
+
+        def attempt[A](ctx: EncoderContext[A]): MIO[Rule.Applicability[Expr[Json]]] =
+          Expr.summonImplicit(using EncoderType(using ctx.encodedType)).map { encoderExpr =>
+            Expr.quote {
+              Expr.splice(encoderExpr).encode(Expr.splice(ctx.encodedExpr))
+            }
+          }
+      }
+
+      /** Rule 2: Try to encode as Option */
+      object AttemptAsOption extends EncoderRule("attempt as Option") {
+
+        def attempt[A](ctx: EncoderContext[A]): MIO[Rule.Applicability[Expr[Json]]] = ctx.encoder match {
+          lazy val OptionType = Type.Ctor1.of[Option]
+
+          // There are better ways to implement it, see IsOption section!
+          case OptionType(item) =>
+            import item.Underlying as Item
+            LambdaBuilder.of[Item]("value")
+              .traverse { itemExpr =>
+                deriveExprRecursively(EncodingContext(itemExpr, Item))
+              }
+              .map(_.build)
+              .map { lambda =>
+                // There are better ways to implement it, see IsOption section!
+                val option = ctx.encodedExpr.asInstanceOf[Expr[Option[Item]]]
+                Expr.quote {
+                  Expr.splice(option).fold(Json.empty)(Expr.splice(lambda))
+                }
+              }
+          case _ => MIO.pure(Rule.yielded(s"${ctx.encodedType.prettyPrint} is not an Option"))
+        }
+      }
+
+      /** Rule 3: Try to encode as Iterable */
+      object AttemptAsIterable extends EncoderRule("attempt as Iterable") {
+        lazy val IterableType = Type.Ctor1.of[Iterable]
+
+        def attempt[A](ctx: EncoderContext[A]): MIO[Rule.Applicability[Expr[Json]]] = ctx.encoder match {
+          // There are better ways to implement it, see IsCollection section!
+          case IterableType(item) =>
+            import item.Underlying as Item
+            LambdaBuilder.of[Item]("value")
+              .traverse { itemExpr =>
+                deriveExprRecursively(EncodingContext(itemExpr, Item))
+              }
+              .map(_.build)
+              .map { lambda =>
+                // There are better ways to implement it, see IsCollection section!
+                val iterable = ctx.encodedExpr.asInstanceOf[Expr[Iterable[Item]]]
+                Expr.quote {
+                  Json.arr(Expr.splice(iterable).map(Expr.splice(lambda)))
+                }
+              }
+          case _ => MIO.pure(Rule.yielded(s"${ctx.encodedType.prettyPrint} is not an Iterable"))
+        }
+      }
+
+      /** Rule 4: Try to encode as case class */
+      object AttemptAsOption extends EncoderRule("attempt as case class") {
+
+        def attempt[A](ctx: EncoderContext[A]): MIO[Rule.Applicability[Expr[Json]]] = CaseClass.parse[A] match {
+          case Some(caseClass) =>
+            caseClass.fieldValuesAt(ctx.encodedExpr).toList.parTraverse { case (fieldName, fieldValue) =>
+              fieldName.{Underlying as Field, value}
+              deriveExprRecursively(EncodingContext(value, Field)).map { jsonExpr =>
+                val keyExpr = Expr(fieldName)
+                Expr.quote {
+                  Expr.splice(keyExpr) -> Expr.splice(jsonExpr)
+                }
+              }
+            }.map { exprList =>
+              Expr.quote {
+                Json.obj(Expr.splice(VarArgs.from(exprList))*)
+              }
+            }
+          case None => MIO.pure(Rule.yielded(s"${ctx.encodedType.prettyPrint} is not a case class"))
+        }
+      }
+
+      lazy val renderFailure: (String, fp.data.NonEmptyVector[Throwable]) => String = (_, errors) => {
+        errors.map {
+          case EncodingFailure(ruleName, reasons) =>
+            if (reasons.isEmpty)
+              s"""$ruleName failed"""
+            else
+              s"""$ruleName failed because:
+                 |${reasons.split("\n").map("  " + _).mkString("\n")}""".stripMargin
+          case throwable =>
+            s"Unexpected error: ${throwable.getMessage}"
+        }.mkString("\n\n")
+      }
+    }
+    ```
+
+### Key Points
+
+- **Order matters**: Rules are tried in the order you provide them. Once a rule matches, subsequent rules are not tried.
+- **Failure reasons**: When a rule doesn't match, it can provide reasons why. This is useful for debugging and error messages.
+- **Flexible signatures**: Rules can have different method signatures (different type parameters, different context parameters). You tell `Rules` how to call each rule via the `attempt` function.
+- **Effect support**: `Rules` supports both synchronous and effectful rule application through `DirectStyle`, making it work seamlessly with `Option`, `Either`, `Try`, `MIO`, and other effects.
+- **Type safety**: The result type `ApplicationResult[R, A]` ensures you handle both success and failure cases.
+
+This design allows you to build flexible, extensible macro systems where you can easily add new derivation strategies by implementing new rules and adding them to your `Rules` instance.
+
 ## Standard Macro Extensions
 
 Core library allows us to define [macro extensions](basic-utilities.md#macro-extensions):
