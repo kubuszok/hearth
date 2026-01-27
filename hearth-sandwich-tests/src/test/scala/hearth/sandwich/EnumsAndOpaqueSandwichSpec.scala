@@ -39,4 +39,3 @@ final class EnumsAndOpaqueSandwichSpec extends MacroSuite {
     }
   }
 }
-

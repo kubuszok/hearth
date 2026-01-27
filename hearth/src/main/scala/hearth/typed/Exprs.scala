@@ -78,46 +78,46 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
 
     final def DataExprCodec: ExprCodec[data.Data] = new ExprCodec[data.Data] {
 
-      private val DataType: Type[data.Data] = Type.of[data.Data]
+      private val DataType: Type[data.Data] = Type.of[hearth.data.Data]
 
       private val StringType: Type[String] = Type.of[String]
 
       def toExpr(value: data.Data): Expr[data.Data] = value.fold(
-        onNull = Expr.quote(data.Data()),
+        onNull = Expr.quote(hearth.data.Data()),
         onInt = i => {
           val inner: Expr[Int] = Expr(i)
-          Expr.quote(data.Data(Expr.splice(inner)))
+          Expr.quote(hearth.data.Data(Expr.splice(inner)))
         },
         onLong = l => {
           val inner: Expr[Long] = Expr(l)
-          Expr.quote(data.Data(Expr.splice(inner)))
+          Expr.quote(hearth.data.Data(Expr.splice(inner)))
         },
         onFloat = f => {
           val inner: Expr[Float] = Expr(f)
-          Expr.quote(data.Data(Expr.splice(inner)))
+          Expr.quote(hearth.data.Data(Expr.splice(inner)))
         },
         onDouble = d => {
           val inner: Expr[Double] = Expr(d)
-          Expr.quote(data.Data(Expr.splice(inner)))
+          Expr.quote(hearth.data.Data(Expr.splice(inner)))
         },
         onBoolean = b => {
           val inner: Expr[Boolean] = Expr(b)
-          Expr.quote(data.Data(Expr.splice(inner)))
+          Expr.quote(hearth.data.Data(Expr.splice(inner)))
         },
         onString = s => {
           val inner: Expr[String] = Expr(s)
-          Expr.quote(data.Data(Expr.splice(inner)))
+          Expr.quote(hearth.data.Data(Expr.splice(inner)))
         },
         onList = l => {
-          implicit val dt: Type[data.Data] = DataType
+          implicit val dt: Type[hearth.data.Data] = DataType
           val inner: Expr[List[data.Data]] = Expr(l)
-          Expr.quote(data.Data((Expr.splice(inner))))
+          Expr.quote(hearth.data.Data((Expr.splice(inner))))
         },
         onMap = m => {
           implicit val st: Type[String] = StringType
-          implicit val dt: Type[data.Data] = DataType
-          val inner: Expr[Map[String, data.Data]] = Expr(m)
-          Expr.quote(data.Data(Expr.splice(inner)))
+          implicit val dt: Type[hearth.data.Data] = DataType
+          val inner: Expr[Map[String, hearth.data.Data]] = Expr(m)
+          Expr.quote(hearth.data.Data(Expr.splice(inner)))
         }
       )
       def fromExpr(expr: Expr[data.Data]): Option[data.Data] = None // TODO

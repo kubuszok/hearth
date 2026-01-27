@@ -7,20 +7,18 @@ import hearth.sandwich.examples3.Examples3
 import hearth.typed.ClassesFixtures
 import hearth.typed.MethodsFixtures
 
-/** Sandwich tests for typed.Classes and typed.Methods focused on JavaBean
-  * accessors and methods with default parameters.
+/** Sandwich tests for typed.Classes and typed.Methods focused on JavaBean accessors and methods with default
+  * parameters.
   */
 final class BeansAndMethodsSandwichSpec extends MacroSuite {
 
   private def beanAccessorNames(data: Data): Set[String] = {
     val commons = data.asMap.get.apply("commons").asMap.get
     val methods = commons.apply("methods").asList.get
-    methods.iterator
-      .flatMap { m =>
-        val mm = m.asMap.get
-        Some(mm.apply("name").asString.get)
-      }
-      .toSet
+    methods.iterator.flatMap { m =>
+      val mm = m.asMap.get
+      Some(mm.apply("name").asString.get)
+    }.toSet
   }
 
   group("typed.Classes – JavaBeans across Scala versions") {
@@ -64,6 +62,12 @@ final class BeansAndMethodsSandwichSpec extends MacroSuite {
       assert(hasMethod(methods, "addWithDefault(Int)"))
       assert(hasMethod(methods, "scaledAdd(Int, Int)"))
     }
+
+    // NOTE:
+    // MethodsFixtures.testCallInstanceIntMethod currently does not support leaving
+    // out arguments that rely on default parameters for user-defined methods.
+    // For that reason we only assert on the presence of such methods in the
+    // preprocessed view above, and we rely on the dedicated hearth-tests
+    // (MethodsSpec / MethodsJvmSpec) for detailed default-parameter semantics.
   }
 }
-
