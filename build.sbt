@@ -640,6 +640,7 @@ lazy val hearthSandwichTests = projectMatrix
   .in(file("hearth-sandwich-tests"))
   .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(only1VersionInIDE *)
   .settings(settings *)
+  .settings(scalaNewestSettings *)
   .settings(publishSettings *)
   .settings(noPublishSettings *)
   .settings(dependencies *)
