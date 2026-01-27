@@ -407,7 +407,8 @@ val al = new {
       name <- prodProjects
     } yield s"$name${if (isJVM(platform)) "" else platform}$scalaSuffix/publishLocal"
 
-  val publishLocalForTests = (publishLocal("JVM", "") ++ publishLocal("JVM", "3")).mkString(" ; ")
+  val publishLocalForTests =
+    (publishLocal("JVM", "") ++ publishLocal("JVM", "3") ++ List("show hearth/version")).mkString(" ; ")
 }
 
 // Modules
@@ -461,17 +462,20 @@ lazy val root = project
       UsefulTask(al.ci("JS", ""), "CI pipeline for Scala 2.13+Scala JS").alias("ci-js-2_13"),
       UsefulTask(al.ci("Native", "3"), "CI pipeline for Scala 3+Scala Native").alias("ci-native-3"),
       UsefulTask(al.ci("Native", ""), "CI pipeline for Scala 2.13+Scala Native").alias("ci-native-2_13"),
-      UsefulTask("hearthTests/test ; hearthTests3/test", "Quickly run JVM on all platforms").alias("quick-test"),
-      UsefulTask(
-        "hearthTests/clean ; hearthTests3/clean",
-        "Quickly clean JVM tests on all platforms (useful to force-recompile macros)"
-      ).alias("quick-clean"),
       UsefulTask(al.test("JVM", "3"), "Test all projects in Scala 3+JVM").alias("test-jvm-3"),
       UsefulTask(al.test("JVM", ""), "Test all projects in Scala 2.13+JVM").alias("test-jvm-2_13"),
       UsefulTask(al.test("JS", "3"), "Test all projects in Scala 3+Scala JS").alias("test-js-3"),
       UsefulTask(al.test("JS", ""), "Test all projects in Scala 2.13+Scala JS").alias("test-js-2_13"),
       UsefulTask(al.test("Native", "3"), "Test all projects in Scala 3+Scala Native").alias("test-native-3"),
       UsefulTask(al.test("Native", ""), "Test all projects in Scala 2.13+Scala Native").alias("test-native-2_13"),
+      UsefulTask(
+        "hearthTests/test ; hearthTests3/test ; hearthSandwichTests/test ; hearthSandwichTests3/test",
+        "Quickly run JVM on all platforms"
+      ).alias("quick-test"),
+      UsefulTask(
+        "hearthTests/clean ; hearthTests3/clean ; hearthSandwichTests/clean ; hearthSandwichTests3/clean",
+        "Quickly clean JVM tests on all platforms (useful to force-recompile macros)"
+      ).alias("quick-clean"),
       UsefulTask(
         al.publishLocalForTests,
         "Publishes all Scala 2.13 and Scala 3 JVM artifacts to test snippets in documentation"
