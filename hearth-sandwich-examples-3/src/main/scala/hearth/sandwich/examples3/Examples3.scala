@@ -4,8 +4,7 @@ package examples3
 
 /** Scala 3-only example types used for 2.13×3 sandwich tests.
   *
-  * These are deliberately small and mirror the Scala 2.13 equivalents in
-  * `hearth.sandwich.examples213`.
+  * These are deliberately small and mirror the Scala 2.13 equivalents in `hearth.sandwich.examples213`.
   */
 object Examples3 {
 
@@ -33,19 +32,16 @@ object Examples3 {
     private var stringField: String = ""
 
     def getBooleanField: Boolean = booleanField
-    def setBooleanField(value: Boolean): Unit = {
+    def setBooleanField(value: Boolean): Unit =
       booleanField = value
-    }
 
     def getIntField: Int = intField
-    def setIntField(value: Int): Unit = {
+    def setIntField(value: Int): Unit =
       intField = value
-    }
 
     def getStringField: String = stringField
-    def setStringField(value: String): Unit = {
+    def setStringField(value: String): Unit =
       stringField = value
-    }
   }
 
   // Scala 3 enum corresponding to the Scala 2.13 sealed hierarchy
@@ -75,4 +71,3 @@ object Examples3 {
       (base + delta + extra) * scale
   }
 }
-

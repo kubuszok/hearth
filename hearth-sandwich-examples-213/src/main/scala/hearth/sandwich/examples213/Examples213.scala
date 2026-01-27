@@ -6,8 +6,7 @@ import scala.beans.BeanProperty
 
 /** Scala 2.13-only example types used for 2.13×3 sandwich tests.
   *
-  * These are deliberately small and mirror the Scala 3 equivalents in
-  * `hearth.sandwich.examples3`.
+  * These are deliberately small and mirror the Scala 3 equivalents in `hearth.sandwich.examples3`.
   */
 object Examples213 {
 
@@ -52,4 +51,3 @@ object Examples213 {
       (base + delta + extra) * scale
   }
 }
-

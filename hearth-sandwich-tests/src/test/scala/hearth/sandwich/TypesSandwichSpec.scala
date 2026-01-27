@@ -6,11 +6,11 @@ import hearth.typed.TypesFixtures
 import hearth.sandwich.examples213.Examples213
 import hearth.sandwich.examples3.Examples3
 
-/** Sandwich tests for typed.Types focusing on case classes, AnyVals and basic
-  * flags when crossing Scala 2.13 and Scala 3 compilation.
+/** Sandwich tests for typed.Types focusing on case classes, AnyVals and basic flags when crossing Scala 2.13 and Scala
+  * 3 compilation.
   *
-  * We rely on existing fixtures from hearth-tests via [[SandwichFixtures]] and
-  * only assert on a small, stable subset of the produced [[Data]].
+  * We rely on existing fixtures from hearth-tests via [[SandwichFixtures]] and only assert on a small, stable subset of
+  * the produced [[Data]].
   */
 final class TypesSandwichSpec extends MacroSuite {
 
@@ -62,4 +62,3 @@ final class TypesSandwichSpec extends MacroSuite {
     }
   }
 }
-
