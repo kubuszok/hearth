@@ -130,6 +130,7 @@ Meanwhile, Hearth has [cross-quotes](cross-quotes.md) which are implemented by h
 while the types are named the same way, so using Hearth is already violating the requirements of this scheme.
 
 Changing Hearth to allow it would be possible, but it would introduce a huge burden on the maintainers without providing much value to (most) users.
+It allows sandwich however, with macros being expanded by Scala 2.13 only or Scala 3 only (`2.13 module <- 3 module <- 2.13 module` module or `3 module <- 2.13 module <- 3 module`).
 
 ## What are the requirements to use this library?
 
