@@ -638,6 +638,7 @@ lazy val hearthSandwichTests = projectMatrix
   .settings(settings *)
   .settings(publishSettings *)
   .settings(noPublishSettings *)
+  .settings(dependencies *)
   .settings(mimaSettings *)
   .settings(
     moduleName := "hearth-sandwich-tests",
@@ -647,8 +648,7 @@ lazy val hearthSandwichTests = projectMatrix
   .dependsOn(hearth % s"$Test->$Test;$Compile->$Compile")
   .dependsOn(hearthSandwichExamples213 % s"$Test->$Test;$Compile->$Compile")
   .dependsOn(hearthSandwichExamples3 % s"$Test->$Test;$Compile->$Compile")
-  .settings(dependencies *)
-  .dependsOn(hearth)
+  .dependsOn(hearthTests % s"$Test->$Test;$Compile->$Compile")
 
 // Modules for debugging cross-quotes, better-printers, etc while minimizing the number of code to recompile
 
