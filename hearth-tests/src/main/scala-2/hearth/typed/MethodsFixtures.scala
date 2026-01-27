@@ -16,6 +16,9 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
   def testMethodsExtractionImpl[A: c.WeakTypeTag](excluding: c.Expr[String]*): c.Expr[Data] =
     testMethodsExtraction[A](excluding)
 
+  def testMethodDefaultsImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
+    testMethodDefaults[A](methodName)
+
   def testCallNoInstanceIntMethodImpl[A: c.WeakTypeTag](methodName: c.Expr[String])(params: c.Expr[Int]*): c.Expr[Int] =
     testCallNoInstanceIntMethod[A](methodName)(params)
 
@@ -30,6 +33,9 @@ object MethodsFixtures {
   def testConstructorsExtraction[A]: Data = macro MethodsFixtures.testConstructorsExtractionImpl[A]
 
   def testMethodsExtraction[A](excluding: String*): Data = macro MethodsFixtures.testMethodsExtractionImpl[A]
+
+  def testMethodDefaults[A](methodName: String): Data =
+    macro MethodsFixtures.testMethodDefaultsImpl[A]
 
   def testCallNoInstanceIntMethod[A](methodName: String)(params: Int*): Int =
     macro MethodsFixtures.testCallNoInstanceIntMethodImpl[A]

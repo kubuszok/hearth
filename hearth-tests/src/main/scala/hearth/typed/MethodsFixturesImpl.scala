@@ -34,6 +34,32 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     Expr(renderMethods(filtered))
   }
 
+  def testMethodDefaults[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
+    case Expr(name) =>
+      val methods = Type[A].methods.filter(_.value.name == name)
+      val rendered = methods.map { m =>
+        import m.value as method
+        val paramsData = method.parameters.toList.flatMap { params =>
+          params.toList.map { case (paramName, param) =>
+            Data.map(
+              "name" -> Data(paramName),
+              "hasDefault" -> Data(param.hasDefault)
+            )
+          }
+        }
+        Data.map(
+          "name" -> Data(method.name),
+          "arity" -> Data(method.arity),
+          "parameters" -> Data.list(paramsData*)
+        )
+      }
+      Expr(Data.list(rendered*))
+    case other =>
+      Environment.reportErrorAndAbort(
+        s"Method name must be a string literal, got ${other.prettyPrint}"
+      )
+  }
+
   def testMethodProperties[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
     case Expr(methodName) =>
       val method = Type[A].methods.filter(_.value.name == methodName)
