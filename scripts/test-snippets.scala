@@ -111,14 +111,14 @@ class HearthExtendedRunner(runner: Runner)(
   * on CI:
   * {{{
   * # run all tests, use artifacts published locally from current tag
-  * scala-cli run scripts/test-snippets.scala -- --extra "hearth-version=$(sbt -batch -error 'print hearth/version')" "$PWD/docs/docs"
+  * scala-cli run scripts/test-snippets.scala -- --extra "hearth-version=$(sbt -batch -error 'print hearth/version')" "$PWD/docs/user-guide"
   * }}}
   *
   * during development:
   * {{{
   * # sbt publish-local-for-tests
   * # fix the version to what sbt generated, fix tmp directory to something to be able to preview generated files
-  * scala-cli run scripts/test-snippets.scala -- --extra "hearth-version=1.x.y-n-g1234567-SNAPSHOT" --test-only "supported-transformations.md*" "$PWD/docs/docs" "/var/folders/m_/sm90t09d5591cgz5h242bkm80000gn/T/docs-snippets13141962741435068727"
+  * scala-cli run scripts/test-snippets.scala -- --extra "hearth-version=1.x.y-n-g1234567-SNAPSHOT" --test-only "supported-transformations.md*" "$PWD/docs/user-guide" "/var/folders/m_/sm90t09d5591cgz5h242bkm80000gn/T/docs-snippets13141962741435068727"
   * }}}
   */
 @main def testHearthSnippets(args: String*): Unit = testSnippets(args.toArray) { cfg =>

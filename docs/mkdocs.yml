@@ -1,7 +1,7 @@
 site_name: 'Hearth documentation'
 repo_url: https://github.com/MateuszKubuszok/hearth
-edit_uri: edit/master/docs/docs/
-docs_dir: 'docs'
+edit_uri: edit/master/docs/user-guide/
+docs_dir: 'user-guide'
 theme:
   name: material
   palette:
