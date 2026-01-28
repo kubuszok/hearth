@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/docs/assets/images/logo.svg" alt="Hearth logo" height="250px" /></p>
+<p align="center"><img src="docs/user-guide/assets/images/logo.svg" alt="Hearth logo" height="250px" /></p>
 
 # Hearth
 
