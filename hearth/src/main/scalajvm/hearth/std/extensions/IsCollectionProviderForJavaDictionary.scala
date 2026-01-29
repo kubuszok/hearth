@@ -48,14 +48,14 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
           override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] =
             asScalaExpr(value.asInstanceOf[Expr[java.util.Dictionary[Key0, Value0]]])
           // Java dictionaries have no smart constructors, we we'll provide a Factory that build them as plain values.
-          override type PossibleSmartResult = A
-          implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
+          override type CtorResult = A
+          implicit override val CtorResult: Type[CtorResult] = A
 
           override type Key = Key0
           implicit override val Key: Type[Key] = keyType
           override type Value = Value0
           implicit override val Value: Type[Value] = valueType
-          override def factory: Expr[scala.collection.Factory[Pair, PossibleSmartResult]] = Expr.quote {
+          override def factory: Expr[scala.collection.Factory[Pair, CtorResult]] = Expr.quote {
             new scala.collection.Factory[Pair, A] {
               override def newBuilder: scala.collection.mutable.Builder[Pair, A] =
                 new scala.collection.mutable.Builder[Pair, A] {
@@ -74,9 +74,9 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
               override def fromSpecific(it: IterableOnce[Pair]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, PossibleSmartResult], A] =
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, CtorResult], A] =
             CtorLikeOf.PlainValue(
-              (expr: Expr[scala.collection.mutable.Builder[Pair, PossibleSmartResult]]) =>
+              (expr: Expr[scala.collection.mutable.Builder[Pair, CtorResult]]) =>
                 Expr.quote(Expr.splice(expr).result()),
               None // TODO: we should provide a method for this
             )
@@ -122,8 +122,8 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
             override def asIterable(value: Expr[java.util.Properties]): Expr[Iterable[(String, String)]] =
               asScalaExpr(value)
             // Java dictionaries have no smart constructors, we we'll provide a Factory that build them as plain values.
-            override type PossibleSmartResult = java.util.Properties
-            implicit override val PossibleSmartResult: Type[PossibleSmartResult] = Type.of[java.util.Properties]
+            override type CtorResult = java.util.Properties
+            implicit override val CtorResult: Type[CtorResult] = Type.of[java.util.Properties]
 
             override type Key = String
             override val Key: Type[Key] = String

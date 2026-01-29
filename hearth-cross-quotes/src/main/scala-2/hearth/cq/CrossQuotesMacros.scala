@@ -145,7 +145,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     "Returned", // from Method.NoInstance && Method.OfInstance
     "Instance", // from Method.OfInstance
     // "Result", // from CtorLike (when implicit Type.CtorN will be supported)
-    "PossibleSmartResult", // from IsCollectionOf
+    "CtorResult", // from IsCollectionOf
     "Key", // from IsMapOf
     "Value", // from IsMapOf
     "LeftValue", // from IsEither

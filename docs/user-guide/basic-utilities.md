@@ -412,6 +412,7 @@ You should prefer `Type[A]` when `A: Type` is present, and only use `Type.of[A]`
 | `Type.isArray[Array[Int]]`             | `Type[Array[Int]].isArray`             | `true` for array types                                               |
 | `Type.isJvmBuiltIn[String]`            | `Type[String].isJvmBuiltIn`            | `true` for primitives, Unit, String, arrays                          |
 | `Type.isTypeSystemSpecial[Any]`        | `Type[Any].isTypeSystemSpecial`        | `true` for Any, AnyRef, AnyVal, Null, Nothing                        |
+| `Type.isOpaqueType[MyType]`            | `Type[MyType].isOpaqueType`            | `true` for `opaque type`s                                            |
 |                                        |                                        | **Class types**                                                      |
 | `Type.isClass[MyClass]`                | `Type[MyClass].isClass`                | `true` for classes                                                   |
 | `Type.notJvmBuiltInClass[MyClass]`     | `Type[MyClass].notJvmBuiltInClass`     | `true` when `isClass && !isJvmBuiltIn`                               |

@@ -39,10 +39,10 @@ final class IsCollectionProviderForArray extends StandardMacroExtension {
           // We will use Array as the collection type, we need to adjust how we convert the collection to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = toIterableExpr(value)
           // Arrays have no smart constructors, so we just return the array itself.
-          override type PossibleSmartResult = A
-          implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override def factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = factoryExpr
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
+          override type CtorResult = A
+          implicit override val CtorResult: Type[CtorResult] = A
+          override def factory: Expr[scala.collection.Factory[Item, CtorResult]] = factoryExpr
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], A] =
             CtorLikeOf.PlainValue(buildExpr, None)
         })
 

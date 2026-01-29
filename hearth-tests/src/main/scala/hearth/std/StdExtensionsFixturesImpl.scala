@@ -28,17 +28,17 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
     case IsMap(isMap) =>
       // FIXME: nested imports should be supported in Scala 2 (better printer returns isMap.isMapOf.x instead of isMap.value.x OR isMap.x)
       // import isMap.{Underlying as Pair, value as isMapOf}
-      // import isMapOf.{Key, Value, PossibleSmartResult}
+      // import isMapOf.{Key, Value, CtorResult}
       import isMap.Underlying as Pair
-      import isMap.value.{Key, Value, PossibleSmartResult}
+      import isMap.value.{Key, Value, CtorResult}
       // For returning the result
       implicit val dataType: Type[Data] = DataType
       // For upcasting
       implicit val intType: Type[Int] = IntType
       implicit val stringType: Type[String] = StringType
       // For the builder
-      implicit val builderType: Type[scala.collection.mutable.Builder[Pair, PossibleSmartResult]] =
-        BuilderType[Pair, PossibleSmartResult]
+      implicit val builderType: Type[scala.collection.mutable.Builder[Pair, CtorResult]] =
+        BuilderType[Pair, CtorResult]
 
       val iteration = Expr.quote {
         val it = Expr.splice(isMap.value.asIterable(value))
@@ -74,16 +74,16 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
     case IsCollection(isCollection) =>
       // FIXME: same as for IsMap, nested imports should be supported in Scala 2 (better printer returns isCollection.isCollectionOf.x instead of isCollection.value.x OR isCollection.x)
       // import isCollection.{Underlying as Item, value as isCollectionOf}
-      // import isCollectionOf.{PossibleSmartResult}
+      // import isCollectionOf.{CtorResult}
       import isCollection.Underlying as Item
-      import isCollection.value.PossibleSmartResult
+      import isCollection.value.CtorResult
       // For returning the result
       implicit val dataType: Type[Data] = DataType
       // For upcasting
       implicit val stringType: Type[String] = StringType
       // For the builder
-      implicit val builderType: Type[scala.collection.mutable.Builder[Item, PossibleSmartResult]] =
-        BuilderType[Item, PossibleSmartResult]
+      implicit val builderType: Type[scala.collection.mutable.Builder[Item, CtorResult]] =
+        BuilderType[Item, CtorResult]
 
       val iteration = Expr.quote {
         val it = Expr.splice(isCollection.value.asIterable(value))

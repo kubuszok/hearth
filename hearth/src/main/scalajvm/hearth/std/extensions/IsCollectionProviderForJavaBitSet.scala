@@ -32,9 +32,9 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension {
             }
           }
           // Java BitSet has no smart constructors, we we'll provide a Factory that build them as plain values.
-          override type PossibleSmartResult = A
-          implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override def factory: Expr[scala.collection.Factory[Int, PossibleSmartResult]] = Expr.quote {
+          override type CtorResult = A
+          implicit override val CtorResult: Type[CtorResult] = A
+          override def factory: Expr[scala.collection.Factory[Int, CtorResult]] = Expr.quote {
             new scala.collection.Factory[Int, A] {
               override def newBuilder: scala.collection.mutable.Builder[Int, A] =
                 new scala.collection.mutable.Builder[Int, A] {
@@ -46,10 +46,9 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension {
               override def fromSpecific(it: IterableOnce[Int]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Int, PossibleSmartResult], A] =
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Int, CtorResult], A] =
             CtorLikeOf.PlainValue(
-              (expr: Expr[scala.collection.mutable.Builder[Int, PossibleSmartResult]]) =>
-                Expr.quote(Expr.splice(expr).result()),
+              (expr: Expr[scala.collection.mutable.Builder[Int, CtorResult]]) => Expr.quote(Expr.splice(expr).result()),
               None // TODO: we should provide a method for this
             )
         })(using Int)

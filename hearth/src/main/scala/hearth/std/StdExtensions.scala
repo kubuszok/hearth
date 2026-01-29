@@ -218,13 +218,13 @@ trait StdExtensions { this: MacroCommons =>
 
     def asIterable(value: Expr[CollA]): Expr[Iterable[Item]]
 
-    type PossibleSmartResult
+    type CtorResult
     @ImportedCrossTypeImplicit
-    implicit val PossibleSmartResult: Type[PossibleSmartResult]
+    implicit val CtorResult: Type[CtorResult]
 
-    def factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]]
+    def factory: Expr[scala.collection.Factory[Item, CtorResult]]
 
-    def build: CtorLikeOf[scala.collection.mutable.Builder[Item, PossibleSmartResult], CollA]
+    def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], CollA]
   }
 
   /** An alias indicating the the type is a collection of some item type, but the exact item type is an existential
