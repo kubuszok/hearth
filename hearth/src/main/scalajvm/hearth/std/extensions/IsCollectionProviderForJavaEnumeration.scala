@@ -30,9 +30,9 @@ final class IsCollectionProviderForJavaEnumeration extends StandardMacroExtensio
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(toEnumeration(value))).to(Iterable)
           }
           // Java enumerations have no smart constructors, we we'll provide a Factory that build them as plain values.
-          override type PossibleSmartResult = A
-          implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override def factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = Expr.quote {
+          override type CtorResult = A
+          implicit override val CtorResult: Type[CtorResult] = A
+          override def factory: Expr[scala.collection.Factory[Item, CtorResult]] = Expr.quote {
             new scala.collection.Factory[Item, A] {
               override def newBuilder: scala.collection.mutable.Builder[Item, A] =
                 new scala.collection.mutable.Builder[Item, A] {
@@ -47,9 +47,9 @@ final class IsCollectionProviderForJavaEnumeration extends StandardMacroExtensio
               override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], A] =
             CtorLikeOf.PlainValue(
-              (expr: Expr[scala.collection.mutable.Builder[Item, PossibleSmartResult]]) =>
+              (expr: Expr[scala.collection.mutable.Builder[Item, CtorResult]]) =>
                 Expr.quote(Expr.splice(expr).result()),
               None // TODO: we should provide a method for this
             )

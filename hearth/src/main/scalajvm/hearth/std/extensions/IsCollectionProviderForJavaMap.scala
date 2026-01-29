@@ -58,9 +58,9 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(value).entrySet().iterator()).to(Iterable)
           }
           // Java maps have no smart constructors, we we'll provide a Factory that build them as plain values.
-          override type PossibleSmartResult = A
-          implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override def factory: Expr[scala.collection.Factory[Pair, PossibleSmartResult]] = Expr.quote {
+          override type CtorResult = A
+          implicit override val CtorResult: Type[CtorResult] = A
+          override def factory: Expr[scala.collection.Factory[Pair, CtorResult]] = Expr.quote {
             new scala.collection.Factory[Pair, A] {
               override def newBuilder: scala.collection.mutable.Builder[Pair, A] =
                 new scala.collection.mutable.Builder[Pair, A] {
@@ -72,9 +72,9 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
               override def fromSpecific(it: IterableOnce[Pair]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, PossibleSmartResult], A] =
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, CtorResult], A] =
             CtorLikeOf.PlainValue(
-              (expr: Expr[scala.collection.mutable.Builder[Pair, PossibleSmartResult]]) =>
+              (expr: Expr[scala.collection.mutable.Builder[Pair, CtorResult]]) =>
                 Expr.quote(Expr.splice(expr).result()),
               None // TODO: we should provide a method for this
             )

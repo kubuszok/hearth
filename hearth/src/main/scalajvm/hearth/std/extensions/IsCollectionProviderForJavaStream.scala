@@ -58,9 +58,9 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
           }
           // Java streams have no smart constructors, we we'll provide a Factory that build them as plain values.
-          override type PossibleSmartResult = A
-          implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override def factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = Expr.quote {
+          override type CtorResult = A
+          implicit override val CtorResult: Type[CtorResult] = A
+          override def factory: Expr[scala.collection.Factory[Item, CtorResult]] = Expr.quote {
             new scala.collection.Factory[Item, A] {
               override def newBuilder: scala.collection.mutable.Builder[Item, A] =
                 new scala.collection.mutable.Builder[Item, A] {
@@ -72,9 +72,9 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], A] =
             CtorLikeOf.PlainValue(
-              (expr: Expr[scala.collection.mutable.Builder[Item, PossibleSmartResult]]) =>
+              (expr: Expr[scala.collection.mutable.Builder[Item, CtorResult]]) =>
                 Expr.quote(Expr.splice(expr).result()),
               None // TODO: we should provide a method for this
             )
@@ -94,9 +94,9 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
           }
           // Java int streams have no smart constructors, we we'll provide a Factory that build them as plain values.
-          override type PossibleSmartResult = A
-          implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override def factory: Expr[scala.collection.Factory[Int, PossibleSmartResult]] = Expr.quote {
+          override type CtorResult = A
+          implicit override val CtorResult: Type[CtorResult] = A
+          override def factory: Expr[scala.collection.Factory[Int, CtorResult]] = Expr.quote {
             new scala.collection.Factory[Int, A] {
               override def newBuilder: scala.collection.mutable.Builder[Int, A] =
                 new scala.collection.mutable.Builder[Int, A] {
@@ -108,10 +108,9 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               override def fromSpecific(it: IterableOnce[Int]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Int, PossibleSmartResult], A] =
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Int, CtorResult], A] =
             CtorLikeOf.PlainValue(
-              (expr: Expr[scala.collection.mutable.Builder[Int, PossibleSmartResult]]) =>
-                Expr.quote(Expr.splice(expr).result()),
+              (expr: Expr[scala.collection.mutable.Builder[Int, CtorResult]]) => Expr.quote(Expr.splice(expr).result()),
               None // TODO: we should provide a method for this
             )
         })(using Int)
@@ -130,9 +129,9 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
           }
           // Java long streams have no smart constructors, we we'll provide a Factory that build them as plain values.
-          override type PossibleSmartResult = A
-          implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override def factory: Expr[scala.collection.Factory[Long, PossibleSmartResult]] = Expr.quote {
+          override type CtorResult = A
+          implicit override val CtorResult: Type[CtorResult] = A
+          override def factory: Expr[scala.collection.Factory[Long, CtorResult]] = Expr.quote {
             new scala.collection.Factory[Long, A] {
               override def newBuilder: scala.collection.mutable.Builder[Long, A] =
                 new scala.collection.mutable.Builder[Long, A] {
@@ -144,9 +143,9 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               override def fromSpecific(it: IterableOnce[Long]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Long, PossibleSmartResult], A] =
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Long, CtorResult], A] =
             CtorLikeOf.PlainValue(
-              (expr: Expr[scala.collection.mutable.Builder[Long, PossibleSmartResult]]) =>
+              (expr: Expr[scala.collection.mutable.Builder[Long, CtorResult]]) =>
                 Expr.quote(Expr.splice(expr).result()),
               None // TODO: we should provide a method for this
             )
@@ -166,9 +165,9 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
           }
           // Java double streams have no smart constructors, we we'll provide a Factory that build them as plain values.
-          override type PossibleSmartResult = A
-          implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override def factory: Expr[scala.collection.Factory[Double, PossibleSmartResult]] = Expr.quote {
+          override type CtorResult = A
+          implicit override val CtorResult: Type[CtorResult] = A
+          override def factory: Expr[scala.collection.Factory[Double, CtorResult]] = Expr.quote {
             new scala.collection.Factory[Double, A] {
               override def newBuilder: scala.collection.mutable.Builder[Double, A] =
                 new scala.collection.mutable.Builder[Double, A] {
@@ -180,9 +179,9 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               override def fromSpecific(it: IterableOnce[Double]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Double, PossibleSmartResult], A] =
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Double, CtorResult], A] =
             CtorLikeOf.PlainValue(
-              (expr: Expr[scala.collection.mutable.Builder[Double, PossibleSmartResult]]) =>
+              (expr: Expr[scala.collection.mutable.Builder[Double, CtorResult]]) =>
                 Expr.quote(Expr.splice(expr).result()),
               None // TODO: we should provide a method for this
             )

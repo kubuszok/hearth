@@ -29,10 +29,10 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           // We're just upcasting the collection to Iterable, to avoid things like type constructor extraction from generic F[A].
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = value.asInstanceOf[Expr[Iterable[Item]]]
           // Standard scala collections have no smart constructors, so we just return the collection itself.
-          override type PossibleSmartResult = A
-          implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override def factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = factoryExpr
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
+          override type CtorResult = A
+          implicit override val CtorResult: Type[CtorResult] = A
+          override def factory: Expr[scala.collection.Factory[Item, CtorResult]] = factoryExpr
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], A] =
             CtorLikeOf.PlainValue(
               buildExpr,
               None // TODO: we should provide a method for this
@@ -53,10 +53,10 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           // We're just upcasting the collection to Iterable, to avoid things like type constructor extraction from generic F[A].
           override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] = value.asInstanceOf[Expr[Iterable[Pair]]]
           // Standard scala collections have no smart constructors, so we just return the collection itself.
-          override type PossibleSmartResult = A
-          implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
-          override def factory: Expr[scala.collection.Factory[Pair, PossibleSmartResult]] = factoryExpr
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, PossibleSmartResult], A] =
+          override type CtorResult = A
+          implicit override val CtorResult: Type[CtorResult] = A
+          override def factory: Expr[scala.collection.Factory[Pair, CtorResult]] = factoryExpr
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, CtorResult], A] =
             CtorLikeOf.PlainValue(
               buildExpr,
               None // TODO: we should provide a method for this
