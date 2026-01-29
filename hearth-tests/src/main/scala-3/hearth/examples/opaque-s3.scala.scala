@@ -1,6 +1,8 @@
 package hearth
 package examples
 
+// $SCOVERAGE-OFF$ This file is analyzed mostly in the compile time.
+
 object opaqueid {
 
   opaque type OpaqueId = Long
