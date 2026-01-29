@@ -116,5 +116,76 @@ final class StdExtensionsScala3Spec extends MacroSuite {
         )
       }
     }
+
+    group("class: CtorLikes[A], smart constructors discovery") {
+      import StdExtensionsFixtures.testCtorLikes
+      import hearth.examples.plainctor.PlainCtorOpaque
+      import hearth.examples.eitherstringctor.EitherStringCtorOpaque
+      import hearth.examples.eitheriterablestringctor.EitherIterableStringCtorOpaque
+      import hearth.examples.eitherthrowablector.EitherThrowableCtorOpaque
+      import hearth.examples.eitheriterablethrowablector.EitherIterableThrowableCtorOpaque
+
+      // Helper to check if a Data contains a ctor with the given type and method name
+      def containsCtor(data: Data, ctorType: String, methodName: String): Boolean =
+        data.get("ctors").flatMap(_.asList).exists { ctors =>
+          ctors.exists { ctor =>
+            ctor.get("type").contains(Data(ctorType)) &&
+            ctor.get("method").contains(Data(methodName))
+          }
+        }
+
+      test("PlainValue smart constructor") {
+        val result = testCtorLikes[PlainCtorOpaque]
+        assert(
+          containsCtor(result, "PlainValue", "apply"),
+          s"Expected PlainValue ctor with 'apply', got: ${result.render}"
+        )
+      }
+
+      test("EitherStringOrValue smart constructor") {
+        val result = testCtorLikes[EitherStringCtorOpaque]
+        assert(
+          containsCtor(result, "EitherStringOrValue", "parse"),
+          s"Expected EitherStringOrValue ctor with 'parse', got: ${result.render}"
+        )
+      }
+
+      test("EitherIterableStringOrValue smart constructor") {
+        val result = testCtorLikes[EitherIterableStringCtorOpaque]
+        assert(
+          containsCtor(result, "EitherIterableStringOrValue", "validate"),
+          s"Expected EitherIterableStringOrValue ctor with 'validate', got: ${result.render}"
+        )
+      }
+
+      test("EitherThrowableOrValue smart constructor") {
+        val result = testCtorLikes[EitherThrowableCtorOpaque]
+        assert(
+          containsCtor(result, "EitherThrowableOrValue", "safeDivide"),
+          s"Expected EitherThrowableOrValue ctor with 'safeDivide', got: ${result.render}"
+        )
+      }
+
+      test("EitherIterableThrowableOrValue smart constructor") {
+        val result = testCtorLikes[EitherIterableThrowableCtorOpaque]
+        assert(
+          containsCtor(result, "EitherIterableThrowableOrValue", "validateAll"),
+          s"Expected EitherIterableThrowableOrValue ctor with 'validateAll', got: ${result.render}"
+        )
+      }
+
+      test("OpaqueId with multiple smart constructors") {
+        import hearth.examples.opaqueid.OpaqueId
+        val result = testCtorLikes[OpaqueId]
+        assert(
+          containsCtor(result, "PlainValue", "apply"),
+          s"Expected PlainValue ctor with 'apply', got: ${result.render}"
+        )
+        assert(
+          containsCtor(result, "EitherStringOrValue", "fromString"),
+          s"Expected EitherStringOrValue ctor with 'fromString', got: ${result.render}"
+        )
+      }
+    }
   }
 }

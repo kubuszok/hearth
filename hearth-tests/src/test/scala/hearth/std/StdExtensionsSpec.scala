@@ -553,5 +553,55 @@ final class StdExtensionsSpec extends MacroSuite {
         )
       }
     }
+
+    group("class: CtorLikes[A], smart constructors discovery") {
+      import StdExtensionsFixtures.testCtorLikes
+      import hearth.examples.*
+
+      // Helper to check if a Data contains a ctor with the given type and method name
+      def containsCtor(data: Data, ctorType: String, methodName: String): Boolean =
+        data.get("ctors").flatMap(_.asList).exists { ctors =>
+          ctors.exists { ctor =>
+            ctor.get("type").contains(Data(ctorType)) &&
+            ctor.get("method").contains(Data(methodName))
+          }
+        }
+
+      test("ValidatedInt (AnyVal with EitherStringOrValue smart constructor)") {
+        val result = testCtorLikes[ValidatedInt]
+        assert(
+          containsCtor(result, "EitherStringOrValue", "parse"),
+          s"Expected EitherStringOrValue ctor with 'parse', got: ${result.render}"
+        )
+      }
+
+      test("PositiveInt (class with EitherStringOrValue smart constructor)") {
+        val result = testCtorLikes[PositiveInt]
+        assert(
+          containsCtor(result, "EitherStringOrValue", "apply"),
+          s"Expected EitherStringOrValue ctor with 'apply', got: ${result.render}"
+        )
+      }
+
+      test("Email (class with multiple smart constructors)") {
+        val result = testCtorLikes[Email]
+        assert(
+          containsCtor(result, "EitherStringOrValue", "fromString"),
+          s"Expected EitherStringOrValue ctor with 'fromString', got: ${result.render}"
+        )
+        assert(
+          containsCtor(result, "PlainValue", "unsafeFromString"),
+          s"Expected PlainValue ctor with 'unsafeFromString', got: ${result.render}"
+        )
+      }
+
+      test("Username (case class with EitherIterableStringOrValue smart constructor)") {
+        val result = testCtorLikes[Username]
+        assert(
+          containsCtor(result, "EitherIterableStringOrValue", "validate"),
+          s"Expected EitherIterableStringOrValue ctor with 'validate', got: ${result.render}"
+        )
+      }
+    }
   }
 }

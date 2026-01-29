@@ -78,7 +78,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
                 Expr.quote(Expr.splice(expr).result()),
               None // TODO: we should provide a method for this
             )
-        })(using Item)
+        })
 
       private def isIntStream[A](
           A: Type[A],
