@@ -104,5 +104,17 @@ final class StdExtensionsScala3Spec extends MacroSuite {
         )
       }
     }
+
+    group("class: IsValueType[A], opaque types") {
+      import StdExtensionsFixtures.testIsValueType
+      import hearth.examples.opaqueid.OpaqueId
+
+      test("for OpaqueId") {
+        testIsValueType(OpaqueId(42L)) <==> Data.map(
+          "unwrapping" -> Data("unwrapped: 42"),
+          "wrapping" -> Data("<not a value type of string>")
+        )
+      }
+    }
   }
 }

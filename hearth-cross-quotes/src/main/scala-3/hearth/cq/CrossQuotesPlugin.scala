@@ -207,7 +207,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
         "Underlying", // from Existential
         "Returned", // from Method.NoInstance && Method.OfInstance
         "Instance", // from Method.OfInstance
-        // "Result", // from PossibleSmartCtor (when implicit Type.CtorN will be supported)
+        // "Result", // from CtorLike (when implicit Type.CtorN will be supported)
         "PossibleSmartResult", // from IsCollectionOf
         "Key", // from IsMapOf
         "Value", // from IsMapOf

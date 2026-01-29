@@ -72,11 +72,13 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
-            PossibleSmartCtor.PlainValue { (expr: Expr[scala.collection.mutable.Builder[Item, PossibleSmartResult]]) =>
-              Expr.quote(Expr.splice(expr).result())
-            }
-        })
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[scala.collection.mutable.Builder[Item, PossibleSmartResult]]) =>
+                Expr.quote(Expr.splice(expr).result()),
+              None // TODO: we should provide a method for this
+            )
+        })(using Item)
 
       private def isIntStream[A](
           A: Type[A],
@@ -106,10 +108,12 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               override def fromSpecific(it: IterableOnce[Int]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Int, PossibleSmartResult], A] =
-            PossibleSmartCtor.PlainValue { (expr: Expr[scala.collection.mutable.Builder[Int, PossibleSmartResult]]) =>
-              Expr.quote(Expr.splice(expr).result())
-            }
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Int, PossibleSmartResult], A] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[scala.collection.mutable.Builder[Int, PossibleSmartResult]]) =>
+                Expr.quote(Expr.splice(expr).result()),
+              None // TODO: we should provide a method for this
+            )
         })(using Int)
 
       private def isLongStream[A](
@@ -140,10 +144,12 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               override def fromSpecific(it: IterableOnce[Long]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Long, PossibleSmartResult], A] =
-            PossibleSmartCtor.PlainValue { (expr: Expr[scala.collection.mutable.Builder[Long, PossibleSmartResult]]) =>
-              Expr.quote(Expr.splice(expr).result())
-            }
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Long, PossibleSmartResult], A] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[scala.collection.mutable.Builder[Long, PossibleSmartResult]]) =>
+                Expr.quote(Expr.splice(expr).result()),
+              None // TODO: we should provide a method for this
+            )
         })(using Long)
 
       private def isDoubleStream[A](
@@ -174,10 +180,12 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
               override def fromSpecific(it: IterableOnce[Double]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Double, PossibleSmartResult], A] =
-            PossibleSmartCtor.PlainValue { (expr: Expr[scala.collection.mutable.Builder[Double, PossibleSmartResult]]) =>
-              Expr.quote(Expr.splice(expr).result())
-            }
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Double, PossibleSmartResult], A] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[scala.collection.mutable.Builder[Double, PossibleSmartResult]]) =>
+                Expr.quote(Expr.splice(expr).result()),
+              None // TODO: we should provide a method for this
+            )
         })(using Double)
 
       override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {

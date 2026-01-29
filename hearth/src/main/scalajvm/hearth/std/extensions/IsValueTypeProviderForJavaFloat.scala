@@ -2,6 +2,8 @@ package hearth
 package std
 package extensions
 
+import hearth.fp.data.NonEmptyList
+
 /** Macro extension providing support for Java floats.
   *
   * Supports all Java [[java.lang.Float]]. Treats them as value types.
@@ -25,10 +27,14 @@ final class IsValueTypeProviderForJavaFloat extends StandardMacroExtension {
         Existential[IsValueTypeOf[java.lang.Float, *], Float](new IsValueTypeOf[java.lang.Float, Float] {
           override val unwrap: Expr[java.lang.Float] => Expr[Float] =
             expr => Expr.quote(Expr.splice(expr).floatValue())
-          override val wrap: PossibleSmartCtor[Float, java.lang.Float] =
-            PossibleSmartCtor.PlainValue[Float, java.lang.Float](expr =>
-              Expr.quote(java.lang.Float.valueOf(Expr.splice(expr)))
+          override val wrap: CtorLikeOf[Float, java.lang.Float] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[Float]) => Expr.quote(java.lang.Float.valueOf(Expr.splice(expr))),
+              None // TODO: we should provide a method for this
             )
+          override lazy val ctors: CtorLikes[java.lang.Float] = CtorLikes
+            .unapply(JFloat)
+            .getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, java.lang.Float], Float](wrap)))
         })
       }
 

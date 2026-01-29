@@ -36,6 +36,18 @@ Ideally, each such example should be a snippet (or a group of snippets) that can
 
 ## Instructions for fixing compilation errors
 
+### Instruction for fixing `':' expected but identifier found.`
+
+This happens when there is some special character at the end of the name, e.g. `?` right before `:` type ascription.
+
+**Example:**
+```
+[error]  [path to file]: ':' expected but identifier found.
+[error]         companionExpr_??: Expr_??,
+```
+
+[Instruction for fixing `':' expected but identifier found.`](instruction-for-fixing-colon-expected-but-identifier-found.md).
+
 ### Instruction for fixing Cross-Quotes errors on Scala 2 caused by Better-Printers
 
 When you see compilation errors with paths like:

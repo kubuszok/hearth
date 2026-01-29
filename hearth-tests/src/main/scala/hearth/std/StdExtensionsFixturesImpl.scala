@@ -20,7 +20,7 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
         "Failed to load standard extensions: " + errors.toNonEmptyVector.map(_._2).mkString("\n")
       )
     // case ExtensionLoadingResult.AllLoaded(extensions) =>
-    //   Environment.reportInfo("Loaded standard extensions: " + extensions.map(_.getClass.getName).mkString("\n"))
+    //   println("Loaded standard extensions: " + extensions.map(_.getClass.getName).mkString(", "))
     case _ =>
   }
 
@@ -268,7 +268,7 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       val handleWrap = handleSmartConstructor(isValueType.value.wrap) { a =>
         Expr.quote(Data(Expr.splice(a).toString))
       }
-      val wrapping = if (Inner <:< StringType) Expr.quote {
+      val wrapping = if (Inner =:= StringType) Expr.quote {
         val inner = Expr.splice(Expr("test").upcast[Inner])
         Expr.splice(handleWrap(Expr.quote(inner)))
       }
@@ -284,9 +284,9 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
   }
 
   private def handleSmartConstructor[Input: Type, Output: Type](
-      build: PossibleSmartCtor[Input, Output]
+      build: CtorLikeOf[Input, Output]
   )(onValid: Expr[Output] => Expr[Data]): Expr[Input] => Expr[Data] = build match {
-    case plain @ PossibleSmartCtor.PlainValue(ctor) =>
+    case plain @ CtorLikeOf.PlainValue(ctor, _) =>
       (in: Expr[Input]) => onValid(ctor(in))
     // TODO: the rest of known smart constructors
     case _ => _ => Expr(Data("<unhandled smart constructor>"))

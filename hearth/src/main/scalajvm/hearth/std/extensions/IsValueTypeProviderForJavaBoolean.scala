@@ -2,6 +2,8 @@ package hearth
 package std
 package extensions
 
+import hearth.fp.data.NonEmptyList
+
 /** Macro extension providing support for Java booleans.
   *
   * Supports all Java [[java.lang.Boolean]]. Treats them as value types.
@@ -25,10 +27,14 @@ final class IsValueTypeProviderForJavaBoolean extends StandardMacroExtension {
         Existential[IsValueTypeOf[java.lang.Boolean, *], Boolean](new IsValueTypeOf[java.lang.Boolean, Boolean] {
           override val unwrap: Expr[java.lang.Boolean] => Expr[Boolean] =
             expr => Expr.quote(Expr.splice(expr).booleanValue())
-          override val wrap: PossibleSmartCtor[Boolean, java.lang.Boolean] =
-            PossibleSmartCtor.PlainValue[Boolean, java.lang.Boolean](expr =>
-              Expr.quote(java.lang.Boolean.valueOf(Expr.splice(expr)))
-            )
+          override val wrap: CtorLikeOf[Boolean, java.lang.Boolean] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[Boolean]) => Expr.quote(java.lang.Boolean.valueOf(Expr.splice(expr))),
+              None
+            ) // TODO: we should provide a method for this
+          override val ctors: CtorLikes[java.lang.Boolean] = CtorLikes
+            .unapply(JBoolean)
+            .getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, java.lang.Boolean], Boolean](wrap)))
         })
       }
 

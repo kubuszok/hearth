@@ -2,6 +2,8 @@ package hearth
 package std
 package extensions
 
+import hearth.fp.data.NonEmptyList
+
 /** Macro extension providing support for AnyVal types.
   *
   * Supports each AnyVal which has a single constructor argument, where both constructor and argument ara available at
@@ -18,13 +20,17 @@ final class IsValueTypeProviderForAnyVal extends StandardMacroExtension {
 
       private lazy val AnyVal = Type.of[AnyVal]
 
-      private def isValueType[A, Inner: Type](
+      private def isValueType[A: Type, Inner: Type](
           unwrapExpr: Expr[A] => Expr[Inner],
-          wrapExpr: Expr[Inner] => Expr[A]
+          wrapExpr: Expr[Inner] => Expr[A],
+          ctorMethod: Method.NoInstance[A]
       ): IsValueType[A] =
         Existential[IsValueTypeOf[A, *], Inner](new IsValueTypeOf[A, Inner] {
           override val unwrap: Expr[A] => Expr[Inner] = unwrapExpr
-          override val wrap: PossibleSmartCtor[Inner, A] = PossibleSmartCtor.PlainValue(wrapExpr)
+          override val wrap: CtorLikeOf[Inner, A] =
+            CtorLikeOf.PlainValue(wrapExpr, Some(ctorMethod.asReturning))
+          override lazy val ctors: CtorLikes[A] =
+            CtorLikes.unapply(Type[A]).getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, A], Inner](wrap)))
         })
 
       override def unapply[A](tpe: Type[A]): Option[IsValueType[A]] = if (tpe <:< AnyVal) {
@@ -46,6 +52,7 @@ final class IsValueTypeProviderForAnyVal extends StandardMacroExtension {
               method
           }
         } yield {
+          implicit val A: Type[A] = tpe
           import getArgument.{Underlying as Inner, value as unwrap}
           val unwrapExpr: Expr[A] => Expr[Inner] = wrapped =>
             unwrap(wrapped, Map()) match {
@@ -57,7 +64,7 @@ final class IsValueTypeProviderForAnyVal extends StandardMacroExtension {
               case Right(wrapped) => wrapped
               case Left(error)    => hearthAssertionFailed("AnyVal wrapping failed: " + error)
             }
-          isValueType[A, Inner](unwrapExpr, wrapExpr)
+          isValueType[A, Inner](unwrapExpr, wrapExpr, ctor)
         }
       } else None
     })

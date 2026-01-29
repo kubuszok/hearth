@@ -74,10 +74,12 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
               override def fromSpecific(it: IterableOnce[Pair]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Pair, PossibleSmartResult], A] =
-            PossibleSmartCtor.PlainValue { (expr: Expr[scala.collection.mutable.Builder[Pair, PossibleSmartResult]]) =>
-              Expr.quote(Expr.splice(expr).result())
-            }
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, PossibleSmartResult], A] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[scala.collection.mutable.Builder[Pair, PossibleSmartResult]]) =>
+                Expr.quote(Expr.splice(expr).result()),
+              None // TODO: we should provide a method for this
+            )
           // FIXME: We pass these from the outside, because Cross-Quotes on Scala 2 was missing Key and Value type substitution.
           override def key(pair: Expr[Pair]): Expr[Key] = keyExpr(pair)
           override def value(pair: Expr[Pair]): Expr[Value] = valueExpr(pair)
@@ -129,10 +131,13 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
             override val Value: Type[Value] = String
             // Key =:= Value, so here we have ambiguous implicit resolution.
             override def factory: Expr[scala.collection.Factory[(String, String), java.util.Properties]] = factoryExpr
-            override def build: PossibleSmartCtor[
+            override def build: CtorLikeOf[
               scala.collection.mutable.Builder[(String, String), java.util.Properties],
               java.util.Properties
-            ] = PossibleSmartCtor.PlainValue(buildExpr)
+            ] = CtorLikeOf.PlainValue(
+              buildExpr,
+              None // TODO: we should provide a method for this
+            )
             override def key(pair: Expr[(String, String)]): Expr[String] = keyExpr(pair)
             override def value(pair: Expr[(String, String)]): Expr[String] = valueExpr(pair)
             override def pair(key: Expr[String], value: Expr[String]): Expr[(String, String)] = pairExpr(key, value)

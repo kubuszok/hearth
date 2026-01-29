@@ -2,6 +2,8 @@ package hearth
 package std
 package extensions
 
+import hearth.fp.data.NonEmptyList
+
 /** Macro extension providing support for Java integers.
   *
   * Supports all Java [[java.lang.Integer]]. Treats them as value types.
@@ -25,11 +27,15 @@ final class IsValueTypeProviderForJavaInteger extends StandardMacroExtension {
         Existential[IsValueTypeOf[java.lang.Integer, *], Int](new IsValueTypeOf[java.lang.Integer, Int] {
           override val unwrap: Expr[java.lang.Integer] => Expr[Int] =
             expr => Expr.quote(Expr.splice(expr).intValue())
-          override val wrap: PossibleSmartCtor[Int, java.lang.Integer] =
-            PossibleSmartCtor.PlainValue[Int, java.lang.Integer](expr =>
-              Expr.quote(java.lang.Integer.valueOf(Expr.splice(expr)))
+          override val wrap: CtorLikeOf[Int, java.lang.Integer] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[Int]) => Expr.quote(java.lang.Integer.valueOf(Expr.splice(expr))),
+              None // TODO: we should provide a method for this
             )
-        })
+          override lazy val ctors: CtorLikes[java.lang.Integer] = CtorLikes
+            .unapply(JInteger)
+            .getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, java.lang.Integer], Int](wrap)))
+        })(using Int)
       }
 
       override def unapply[A](tpe: Type[A]): Option[IsValueType[A]] =
