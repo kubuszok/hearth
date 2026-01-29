@@ -1,6 +1,8 @@
 package hearth
 package examples
 
+// $SCOVERAGE-OFF$ This file is analyzed mostly in the compile time.
+
 final case class ExampleValueClass(a: Int) extends AnyVal
 
 /** Example value class with smart constructor returning Either[String, A]. */

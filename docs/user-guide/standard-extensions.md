@@ -1080,7 +1080,7 @@ How could we use this API?
           // Wrap the inner type:
           val wrappingExample = if (Inner <:< StringType) {
             isValueType.value.wrap match {
-              case CtorLikeOf.PlainValue(ctor) =>
+              case CtorLikeOf.PlainValue(ctor, _) =>
                 Expr.quote {
                   val inner = Expr.splice(Expr("test").upcast[Inner])
                   val outer = Expr.splice(ctor(Expr.quote(inner)))
