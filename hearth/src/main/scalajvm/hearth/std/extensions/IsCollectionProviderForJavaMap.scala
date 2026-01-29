@@ -72,10 +72,12 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
               override def fromSpecific(it: IterableOnce[Pair]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Pair, PossibleSmartResult], A] =
-            PossibleSmartCtor.PlainValue { (expr: Expr[scala.collection.mutable.Builder[Pair, PossibleSmartResult]]) =>
-              Expr.quote(Expr.splice(expr).result())
-            }
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, PossibleSmartResult], A] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[scala.collection.mutable.Builder[Pair, PossibleSmartResult]]) =>
+                Expr.quote(Expr.splice(expr).result()),
+              None // TODO: we should provide a method for this
+            )
           // Key and Value expressions are provided from the outside
           override type Key = Key0
           implicit override val Key: Type[Key] = keyType

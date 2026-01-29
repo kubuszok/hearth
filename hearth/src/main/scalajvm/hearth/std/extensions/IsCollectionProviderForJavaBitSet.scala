@@ -46,10 +46,12 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension {
               override def fromSpecific(it: IterableOnce[Int]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Int, PossibleSmartResult], A] =
-            PossibleSmartCtor.PlainValue { (expr: Expr[scala.collection.mutable.Builder[Int, PossibleSmartResult]]) =>
-              Expr.quote(Expr.splice(expr).result())
-            }
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Int, PossibleSmartResult], A] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[scala.collection.mutable.Builder[Int, PossibleSmartResult]]) =>
+                Expr.quote(Expr.splice(expr).result()),
+              None // TODO: we should provide a method for this
+            )
         })(using Int)
 
       override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {

@@ -87,6 +87,11 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     override def fromClass(clazz: java.lang.Class[?]): UntypedType = TypeRepr.typeConstructorOf(clazz)
 
+    override def isOpaqueType(instanceTpe: UntypedType): Boolean = {
+      val sym = instanceTpe.dealias.typeSymbol
+      !sym.isNoSymbol && sym.flags.is(Flags.Opaque)
+    }
+
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       // We use =:= to check whether A is known to be exactly of the built-in type or is it some upper bound.
@@ -147,13 +152,28 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     override def companionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] =
       if untyped.isObject then None
-      else
-        Option(untyped.typeSymbol.companionModule).filterNot(_.isNoSymbol).map { module =>
-          // So... if you have `object Foo`, the `Foo` is a `Term` and have a `Symbol` (via `.companionModule`),
-          // while its type is `Foo.type` and it has another `Symbol` (via `.moduleClass`).
-          // We need to use 2 of them in different places, so we have to pass a tuple.
-          (subtypeTypeOf(untyped, module.moduleClass), Ref(module))
-        }
+      else {
+        val sym = untyped.typeSymbol
+        val isOpaque = sym.flags.is(Flags.Opaque)
+        // First try the standard companionModule lookup (works for classes)
+        Option(sym.companionModule)
+          .filterNot(_.isNoSymbol)
+          .orElse {
+            // For opaque types, companionModule returns NoSymbol because opaque types are type aliases.
+            // We need to look for a module with the same name in the owner's declarations.
+            if isOpaque then {
+              sym.owner.declarations.find { s =>
+                s.isValDef && s.name == sym.name && s.flags.is(Flags.Module)
+              }
+            } else None
+          }
+          .map { module =>
+            // So... if you have `object Foo`, the `Foo` is a `Term` and have a `Symbol` (via `.companionModule`),
+            // while its type is `Foo.type` and it has another `Symbol` (via `.moduleClass`).
+            // We need to use 2 of them in different places, so we have to pass a tuple.
+            (subtypeTypeOf(untyped, module.moduleClass), Ref(module))
+          }
+      }
 
     override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
       // no need for separate java.lang.Enum handling contrary to Scala 2

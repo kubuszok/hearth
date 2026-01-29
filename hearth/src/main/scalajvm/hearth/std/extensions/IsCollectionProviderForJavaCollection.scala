@@ -72,10 +72,12 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
               override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
-            PossibleSmartCtor.PlainValue { (expr: Expr[scala.collection.mutable.Builder[Item, PossibleSmartResult]]) =>
-              Expr.quote(Expr.splice(expr).result())
-            }
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[scala.collection.mutable.Builder[Item, PossibleSmartResult]]) =>
+                Expr.quote(Expr.splice(expr).result()),
+              None // TODO: we should provide a method for this
+            )
         })
 
       override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = {

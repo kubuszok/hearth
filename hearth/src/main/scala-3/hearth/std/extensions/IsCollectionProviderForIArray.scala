@@ -43,8 +43,8 @@ final class IsCollectionProviderForIArray extends StandardMacroExtension {
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
           override def factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = factoryExpr
-          override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
-            PossibleSmartCtor.PlainValue(buildExpr)
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
+            CtorLikeOf.PlainValue(buildExpr, None)
         })
 
       override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {

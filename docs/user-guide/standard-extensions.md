@@ -515,7 +515,7 @@ How could we use this API?
           // Build a new collection from a single Item:
           val buildingExample = if (Item <:< String) {
             isCollection.value.build match {
-              case PossibleSmartCtor.PlainValue(ctor) =>
+              case CtorLikeOf.PlainValue(ctor, _) =>
                 Expr.quote {
                   val builder = Expr.splice(isCollection.value.factory).newBuilder
                   val item = Expr.splice(Expr("newItem").upcast[Item])
@@ -1080,7 +1080,7 @@ How could we use this API?
           // Wrap the inner type:
           val wrappingExample = if (Inner <:< StringType) {
             isValueType.value.wrap match {
-              case PossibleSmartCtor.PlainValue(ctor) =>
+              case CtorLikeOf.PlainValue(ctor) =>
                 Expr.quote {
                   val inner = Expr.splice(Expr("test").upcast[Inner])
                   val outer = Expr.splice(ctor(Expr.quote(inner)))
@@ -1185,11 +1185,11 @@ This API works seamlessly with `AnyVal` types and Java boxed types (on JVM), all
 
 When building values in macros (like constructing collections from builders or wrapping value types), sometimes the construction can fail. For example, when building a validated type, the constructor might return `Either[String, A]` instead of just `A`.
 
-`PossibleSmartCtor[Input, Output]` is a type that abstracts over different constructor patterns, allowing macros to handle both direct construction and validation/error cases uniformly.
+`CtorLikeOf[Input, Output]` is a type that abstracts over different constructor patterns, allowing macros to handle both direct construction and validation/error cases uniformly.
 
 #### Variants
 
-`PossibleSmartCtor` comes with several predefined variants:
+`CtorLikeOf` comes with several predefined variants:
 
 1. **`PlainValue`** - Direct construction that always succeeds:
    ```scala
@@ -1223,18 +1223,18 @@ When building values in macros (like constructing collections from builders or w
 
 #### Usage Pattern
 
-When you receive a `PossibleSmartCtor[Input, Output]`, you pattern match on it to handle each case:
+When you receive a `CtorLikeOf[Input, Output]`, you pattern match on it to handle each case:
 
 ```scala
-val build: PossibleSmartCtor[Builder[Item, Coll], Coll] = isCollection.value.build
+val build: CtorLikeOf[Builder[Item, Coll], Coll] = isCollection.value.build
 
 build match {
-  case PossibleSmartCtor.PlainValue(ctor) =>
+  case CtorLikeOf.PlainValue(ctor, _) =>
     // Direct construction: ctor(builder) returns Expr[Coll]
     val result = Expr.splice(ctor(Expr.quote(builder)))
     // Use result directly
     
-  case PossibleSmartCtor.EitherStringOrValue(ctor) =>
+  case CtorLikeOf.EitherStringOrValue(ctor, _) =>
     // Validation: ctor(builder) returns Expr[Either[String, Coll]]
     Expr.quote {
       Expr.splice(ctor(Expr.quote(builder))) match {
@@ -1255,4 +1255,4 @@ This design allows standard extensions to work with both:
 - **Simple types** (like collections) that can always be built directly
 - **Validated types** (like from validation libraries) that might fail during construction
 
-All while providing a single, uniform interface. This makes it possible to extend support for custom types (like `Validated[E, A]` from Cats) by providing new `PossibleSmartCtor` implementations, without changing the core API.
+All while providing a single, uniform interface. This makes it possible to extend support for custom types (like `Validated[E, A]` from Cats) by providing new `CtorLikeOf` implementations, without changing the core API.

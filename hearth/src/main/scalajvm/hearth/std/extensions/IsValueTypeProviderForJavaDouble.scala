@@ -2,6 +2,8 @@ package hearth
 package std
 package extensions
 
+import hearth.fp.data.NonEmptyList
+
 /** Macro extension providing support for Java doubles.
   *
   * Supports all Java [[java.lang.Double]]. Treats them as value types.
@@ -25,10 +27,14 @@ final class IsValueTypeProviderForJavaDouble extends StandardMacroExtension {
         Existential[IsValueTypeOf[java.lang.Double, *], Double](new IsValueTypeOf[java.lang.Double, Double] {
           override val unwrap: Expr[java.lang.Double] => Expr[Double] =
             expr => Expr.quote(Expr.splice(expr).doubleValue())
-          override val wrap: PossibleSmartCtor[Double, java.lang.Double] =
-            PossibleSmartCtor.PlainValue[Double, java.lang.Double](expr =>
-              Expr.quote(java.lang.Double.valueOf(Expr.splice(expr)))
+          override val wrap: CtorLikeOf[Double, java.lang.Double] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[Double]) => Expr.quote(java.lang.Double.valueOf(Expr.splice(expr))),
+              None // TODO: we should provide a method for this
             )
+          override lazy val ctors: CtorLikes[java.lang.Double] = CtorLikes
+            .unapply(JDouble)
+            .getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, java.lang.Double], Double](wrap)))
         })
       }
 

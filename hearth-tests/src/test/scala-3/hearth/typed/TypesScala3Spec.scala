@@ -199,6 +199,7 @@ final class TypesScala3Spec extends MacroSuite {
               "Type.isFinal" -> Data(false),
               "Type.isClass" -> Data(true),
               "Type.isTypeSystemSpecial" -> Data(false),
+              "Type.isOpaqueType" -> Data(false),
               "Type.notJvmBuiltInClass" -> Data(true),
               "Type.isPlainOldJavaObject" -> Data(false),
               "Type.isJavaBean" -> Data(false),
@@ -255,6 +256,7 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isFinal" -> Data(true),
             "Type.isClass" -> Data(true),
             "Type.isTypeSystemSpecial" -> Data(false),
+            "Type.isOpaqueType" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(true),
             "Type.isJavaBean" -> Data(false),
@@ -265,6 +267,34 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isObject" -> Data(false),
             "Type.isVal" -> Data(false),
             "Type.isCaseClass" -> Data(true),
+            "Type.isCaseObject" -> Data(false),
+            "Type.isCaseVal" -> Data(false),
+            "Type.isAvailable(Everywhere)" -> Data(true),
+            "Type.isAvailable(AtCallSite)" -> Data(true)
+          )
+        }
+
+        test("for Scala 3 opaque types") {
+          import examples.opaqueid.OpaqueId
+          testFlags[OpaqueId] <==> Data.map(
+            "Type.isPrimitive" -> Data(false),
+            "Type.isArray" -> Data(false),
+            "Type.isJvmBuiltIn" -> Data(false),
+            "Type.isAbstract" -> Data(false),
+            "Type.isFinal" -> Data(false),
+            "Type.isClass" -> Data(false),
+            "Type.isTypeSystemSpecial" -> Data(false),
+            "Type.isOpaqueType" -> Data(true),
+            "Type.notJvmBuiltInClass" -> Data(false),
+            "Type.isPlainOldJavaObject" -> Data(false),
+            "Type.isJavaBean" -> Data(false),
+            "Type.isSealed" -> Data(false),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isCase" -> Data(false),
+            "Type.isObject" -> Data(false),
+            "Type.isVal" -> Data(false),
+            "Type.isCaseClass" -> Data(false),
             "Type.isCaseObject" -> Data(false),
             "Type.isCaseVal" -> Data(false),
             "Type.isAvailable(Everywhere)" -> Data(true),

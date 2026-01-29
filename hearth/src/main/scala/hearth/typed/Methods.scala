@@ -161,6 +161,12 @@ trait Methods { this: MacroCommons =>
       */
     type Of[A] = Existential[Method[A, *]]
 
+    /** Nice type alias [[Method]] returning some type `A`.
+      *
+      * @since 0.3.0
+      */
+    type Returning[A] = Existential[Method[*, A]]
+
     @scala.annotation.nowarn
     def primaryConstructorOf[A: Type]: Option[Method.NoInstance[A]] =
       UntypedType.fromTyped[A].primaryConstructor.map(_.asTyped[A]).flatMap { tpd =>
@@ -212,6 +218,9 @@ trait Methods { this: MacroCommons =>
     ) extends Method[Nothing, Returned0] {
 
       final type Returned = Returned0
+
+      def asReturning: Method.Returning[Returned] =
+        Existential[Method[*, Returned], Nothing](this)(using Type.of[Nothing])
 
       lazy val parameters: Parameters = asUntyped.parameters.asTyped[Returned]
 
@@ -285,6 +294,11 @@ trait Methods { this: MacroCommons =>
       final type Instance = Instance0
       @ImportedCrossTypeImplicit
       implicit val Instance: Type[Instance] = untypedInstanceType.asTyped[Instance]
+
+      def asOfInstance: Method.Of[Instance] =
+        Existential[Method[Instance, *], Returned](this)(using Returned)
+      def asReturning: Method.Returning[Returned] =
+        Existential[Method[*, Returned], Instance](this)(using Instance)
 
       lazy val parameters: Parameters = asUntyped.parameters.asTyped[Instance]
 

@@ -1,6 +1,7 @@
 package hearth
 package std
 
+import hearth.fp.data.NonEmptyList
 import hearth.typed.ImportedCrossTypeImplicit
 
 trait StdExtensions { this: MacroCommons =>
@@ -24,85 +25,177 @@ trait StdExtensions { this: MacroCommons =>
     *
     * @since 0.3.0
     */
-  trait PossibleSmartCtor[Input, Output] {
+  trait CtorLikeOf[Input, Output] {
 
     type Result[A]
     @ImportedCrossTypeImplicit
     val Result: Type.Ctor1[Result]
 
     val ctor: Expr[Input] => Expr[Result[Output]]
+    val method: Option[Method.Returning[Result[Output]]]
 
     def apply(input: Expr[Input]): Expr[Result[Output]] = ctor(input)
   }
-  object PossibleSmartCtor {
+  object CtorLikeOf {
 
     final case class PlainValue[Input, Output](
-        ctor: Expr[Input] => Expr[Output]
-    ) extends PossibleSmartCtor[Input, Output] {
+        ctor: Expr[Input] => Expr[Output],
+        method: Option[Method.Returning[Output]]
+    ) extends CtorLikeOf[Input, Output] {
 
       // $COVERAGE-OFF$
-      override type Result[A] = A
-      override val Result: Type.Ctor1[Result] = new Type.Ctor1[Result] {
-        def apply[A: Type]: Type[A] = Type[A]
-        def unapply[A](A: Type[A]): Option[??] = Some(A.as_??)
-      }
+      override type Result[A] = PlainValue.Result[A]
+      override val Result: Type.Ctor1[Result] = PlainValue.Result
       override def toString: String = "PlainValue"
       // $COVERAGE-ON$
     }
+    object PlainValue {
+      type Result[A] = A
+      val Result: Type.Ctor1[Result] = new Type.Ctor1[Result] {
+        def apply[A: Type]: Type[A] = Type[A]
+        def unapply[A](A: Type[A]): Option[??] = Some(A.as_??)
+      }
+    }
 
     final case class EitherStringOrValue[Input, Output](
-        ctor: Expr[Input] => Expr[Either[String, Output]]
-    ) extends PossibleSmartCtor[Input, Output] {
+        ctor: Expr[Input] => Expr[Either[String, Output]],
+        method: Option[Method.Returning[Either[String, Output]]]
+    ) extends CtorLikeOf[Input, Output] {
 
       // $COVERAGE-OFF$
-      override type Result[A] = Either[String, A]
-      override val Result: Type.Ctor1[Result] =
-        Type.Ctor2.of[Either].setA[String](using Type.of[String])
-
+      override type Result[A] = EitherStringOrValue.Result[A]
+      override val Result: Type.Ctor1[Result] = EitherStringOrValue.Result
       override def toString: String = "EitherStringOrValue"
       // $COVERAGE-ON$
     }
+    object EitherStringOrValue {
+      type Result[A] = Either[String, A]
+      val Result: Type.Ctor1[Result] = Type.Ctor2.of[Either].setA[String](using Type.of[String])
+    }
 
     final case class EitherIterableStringOrValue[Input, Output](
-        ctor: Expr[Input] => Expr[Either[Iterable[String], Output]]
-    ) extends PossibleSmartCtor[Input, Output] {
+        ctor: Expr[Input] => Expr[Either[Iterable[String], Output]],
+        method: Option[Method.Returning[Either[Iterable[String], Output]]]
+    ) extends CtorLikeOf[Input, Output] {
 
       // $COVERAGE-OFF$
-      override type Result[A] = Either[Iterable[String], A]
-      override val Result: Type.Ctor1[Result] =
-        Type.Ctor2.of[Either].setA[Iterable[String]](using Type.of[Iterable[String]])
+      override type Result[A] = EitherIterableStringOrValue.Result[A]
+      override val Result: Type.Ctor1[Result] = EitherIterableStringOrValue.Result
       override def toString: String = "EitherIterableStringOrValue"
       // $COVERAGE-ON$
     }
+    object EitherIterableStringOrValue {
+      type Result[A] = Either[Iterable[String], A]
+      val Result: Type.Ctor1[Result] = Type.Ctor2.of[Either].setA[Iterable[String]](using Type.of[Iterable[String]])
+    }
 
     final case class EitherThrowableOrValue[Input, Output](
-        ctor: Expr[Input] => Expr[Either[Throwable, Output]]
-    ) extends PossibleSmartCtor[Input, Output] {
+        ctor: Expr[Input] => Expr[Either[Throwable, Output]],
+        method: Option[Method.Returning[Either[Throwable, Output]]]
+    ) extends CtorLikeOf[Input, Output] {
 
       // $COVERAGE-OFF$
-      override type Result[A] = Either[Throwable, A]
-      override val Result: Type.Ctor1[Result] =
-        Type.Ctor2.of[Either].setA[Throwable](using Type.of[Throwable])
+      override type Result[A] = EitherThrowableOrValue.Result[A]
+      override val Result: Type.Ctor1[Result] = EitherThrowableOrValue.Result
       override def toString: String = "EitherThrowableOrValue"
       // $COVERAGE-ON$
     }
+    object EitherThrowableOrValue {
+      type Result[A] = Either[Throwable, A]
+      val Result: Type.Ctor1[Result] = Type.Ctor2.of[Either].setA[Throwable](using Type.of[Throwable])
+    }
 
     final case class EitherIterableThrowableOrValue[Input, Output](
-        ctor: Expr[Input] => Expr[Either[Iterable[Throwable], Output]]
-    ) extends PossibleSmartCtor[Input, Output] {
+        ctor: Expr[Input] => Expr[Either[Iterable[Throwable], Output]],
+        method: Option[Method.Returning[Either[Iterable[Throwable], Output]]]
+    ) extends CtorLikeOf[Input, Output] {
 
       // $COVERAGE-OFF$
-      override type Result[A] = Either[Iterable[Throwable], A]
-      override val Result: Type.Ctor1[Result] =
-        Type.Ctor2.of[Either].setA[Iterable[Throwable]](using Type.of[Iterable[Throwable]])
+      override type Result[A] = EitherIterableThrowableOrValue.Result[A]
+      override val Result: Type.Ctor1[Result] = EitherIterableThrowableOrValue.Result
       override def toString: String = "EitherIterableThrowableOrValue"
       // $COVERAGE-ON$
     }
+    object EitherIterableThrowableOrValue {
+      type Result[A] = Either[Iterable[Throwable], A]
+      val Result: Type.Ctor1[Result] =
+        Type.Ctor2.of[Either].setA[Iterable[Throwable]](using Type.of[Iterable[Throwable]])
+    }
+  }
 
-    // TODO:
-    //   type PossibleSmartCtorsOf[A] = ... // something existential of Input and Output
-    //   def unapply[A](tpe: Type[A]): Option[PossibleSmartCtorsOf[A]] = ...
-    // then we could have extension method on Type[A]
+  type CtorLike[A] = Existential[CtorLikeOf[*, A]]
+
+  type CtorLikes[A] = NonEmptyList[CtorLike[A]]
+  object CtorLikes {
+    private val providers = scala.collection.mutable.ListBuffer[Provider]()
+
+    trait Provider {
+
+      def unapply[A](tpe: Type[A]): Option[CtorLikes[A]]
+    }
+
+    def registerProvider(provider: Provider): Unit =
+      providers += provider
+
+    def unapply[A](tpe: Type[A]): Option[CtorLikes[A]] =
+      providers.view.map(_.unapply(tpe)).foldLeft[Option[CtorLikes[A]]](None) {
+        case (Some(l), Some(r)) => Some(l ++ r)
+        case (Some(l), None)    => Some(l)
+        case (None, Some(r))    => Some(r)
+        case (None, None)       => None
+      }
+
+    /** Builder trait for creating CtorLike from an existential input type. Used instead of polymorphic function types
+      * for Scala 2 compatibility.
+      */
+    trait CtorBuilder[Output, Result] {
+      def apply[Input: Type](
+          ctor: Expr[Input] => Expr[Result],
+          method: Method.Returning[Result]
+      ): CtorLikeOf[Input, Output]
+    }
+
+    /** Extracts from type `Output` all possible smart constructors that can be used to build an instance of `Output`
+      * from an instance of `Input`.
+      *
+      * @tparam Output
+      *   the type construct, maybe with a smart constructor
+      * @tparam Result
+      *   the type of the result
+      * @param buildCtor
+      *   a function that builds a smart constructor from an input type and a result type
+      * @return
+      *   a list of existential smart constructors
+      */
+    @scala.annotation.nowarn
+    def extractCtorLikesResult[Output: Type, Result: Type](
+        buildCtor: CtorBuilder[Output, Result]
+    ): List[Existential[CtorLikeOf[*, Output]]] = {
+      // Constructors of the type itself
+      val plainCtors: List[Method.NoInstance[?]] =
+        if (Type[Output] <:< Type[Result]) Type[Output].constructors.asInstanceOf[List[Method.NoInstance[?]]]
+        else Nil
+
+      // NoInstance methods from the type (for case objects, etc.)
+      val noInstanceMethods: List[Method.NoInstance[?]] = Type[Output].methods.collect {
+        case method if method.value.isInstanceOf[Method.NoInstance[?]] =>
+          method.value.asInstanceOf[Method.NoInstance[?]]
+      }
+
+      // Process constructors and noInstance methods
+      (plainCtors ++ noInstanceMethods).collect {
+        case mi: Method.NoInstance[?] if mi.isUnary && mi.Returned <:< Type[Result] =>
+          val method = mi.asInstanceOf[Method.NoInstance[Result]]
+          val (paramName, param) = mi.parameters.flatten.head
+          import param.tpe.Underlying as Input
+          def applyMiInput(input: Expr[Input]): Expr[Result] =
+            method(Map(paramName -> input.as_??)) match {
+              case Right(ex) => ex
+              case Left(err) => hearthAssertionFailed(err.toString)
+            }
+          Existential[CtorLikeOf[*, Output], Input](buildCtor[Input](applyMiInput, method.asReturning))
+      }
+    }
   }
 
   /** Proof that the type is a collection of the given item type.
@@ -131,7 +224,7 @@ trait StdExtensions { this: MacroCommons =>
 
     def factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]]
 
-    def build: PossibleSmartCtor[scala.collection.mutable.Builder[Item, PossibleSmartResult], CollA]
+    def build: CtorLikeOf[scala.collection.mutable.Builder[Item, PossibleSmartResult], CollA]
   }
 
   /** An alias indicating the the type is a collection of some item type, but the exact item type is an existential
@@ -346,7 +439,9 @@ trait StdExtensions { this: MacroCommons =>
 
     val unwrap: Expr[Outer] => Expr[Inner]
 
-    val wrap: PossibleSmartCtor[Inner, Outer]
+    val wrap: CtorLikeOf[Inner, Outer]
+
+    def ctors: CtorLikes[Outer]
   }
 
   /** An alias indicating the the type is a value type of some inner type, but the exact inner type is an existential

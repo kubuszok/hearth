@@ -2,6 +2,8 @@ package hearth
 package std
 package extensions
 
+import hearth.fp.data.NonEmptyList
+
 /** Macro extension providing support for Java shorts.
   *
   * Supports all Java [[java.lang.Short]]. Treats them as value types.
@@ -25,10 +27,14 @@ final class IsValueTypeProviderForJavaShort extends StandardMacroExtension {
         Existential[IsValueTypeOf[java.lang.Short, *], Short](new IsValueTypeOf[java.lang.Short, Short] {
           override val unwrap: Expr[java.lang.Short] => Expr[Short] =
             expr => Expr.quote(Expr.splice(expr).shortValue())
-          override val wrap: PossibleSmartCtor[Short, java.lang.Short] =
-            PossibleSmartCtor.PlainValue[Short, java.lang.Short](expr =>
-              Expr.quote(java.lang.Short.valueOf(Expr.splice(expr)))
+          override val wrap: CtorLikeOf[Short, java.lang.Short] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[Short]) => Expr.quote(java.lang.Short.valueOf(Expr.splice(expr))),
+              None // TODO: we should provide a method for this
             )
+          override lazy val ctors: CtorLikes[java.lang.Short] = CtorLikes
+            .unapply(JShort)
+            .getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, java.lang.Short], Short](wrap)))
         })
       }
 

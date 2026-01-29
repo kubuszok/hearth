@@ -32,8 +32,11 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
           override def factory: Expr[scala.collection.Factory[Item, PossibleSmartResult]] = factoryExpr
-          override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
-            PossibleSmartCtor.PlainValue(buildExpr)
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, PossibleSmartResult], A] =
+            CtorLikeOf.PlainValue(
+              buildExpr,
+              None // TODO: we should provide a method for this
+            )
         })
 
       private def isMap[A, Pair: Type, Key0, Value0](
@@ -53,8 +56,11 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           override type PossibleSmartResult = A
           implicit override val PossibleSmartResult: Type[PossibleSmartResult] = A
           override def factory: Expr[scala.collection.Factory[Pair, PossibleSmartResult]] = factoryExpr
-          override def build: PossibleSmartCtor[scala.collection.mutable.Builder[Pair, PossibleSmartResult], A] =
-            PossibleSmartCtor.PlainValue(buildExpr)
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, PossibleSmartResult], A] =
+            CtorLikeOf.PlainValue(
+              buildExpr,
+              None // TODO: we should provide a method for this
+            )
           // Key and Value expressions are provided from the outside
           override type Key = Key0
           implicit override val Key: Type[Key] = keyType

@@ -2,6 +2,8 @@ package hearth
 package std
 package extensions
 
+import hearth.fp.data.NonEmptyList
+
 /** Macro extension providing support for Java longs.
   *
   * Supports all Java [[java.lang.Long]]. Treats them as value types.
@@ -25,11 +27,14 @@ final class IsValueTypeProviderForJavaLong extends StandardMacroExtension {
         Existential[IsValueTypeOf[java.lang.Long, *], Long](new IsValueTypeOf[java.lang.Long, Long] {
           override val unwrap: Expr[java.lang.Long] => Expr[Long] =
             expr => Expr.quote(Expr.splice(expr).longValue())
-          override val wrap: PossibleSmartCtor[Long, java.lang.Long] =
-            PossibleSmartCtor.PlainValue[Long, java.lang.Long](expr =>
-              Expr.quote(java.lang.Long.valueOf(Expr.splice(expr)))
+          override val wrap: CtorLikeOf[Long, java.lang.Long] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[Long]) => Expr.quote(java.lang.Long.valueOf(Expr.splice(expr))),
+              None // TODO: we should provide a method for this
             )
-        })
+          override lazy val ctors: CtorLikes[java.lang.Long] = CtorLikes
+          CtorLikes.unapply(JLong).getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, java.lang.Long], Long](wrap)))
+        })(using Long)
       }
 
       override def unapply[A](tpe: Type[A]): Option[IsValueType[A]] =

@@ -2,6 +2,8 @@ package hearth
 package std
 package extensions
 
+import hearth.fp.data.NonEmptyList
+
 /** Macro extension providing support for Java bytes.
   *
   * Supports all Java [[java.lang.Byte]]. Treats them as value types.
@@ -25,11 +27,14 @@ final class IsValueTypeProviderForJavaByte extends StandardMacroExtension {
         Existential[IsValueTypeOf[java.lang.Byte, *], Byte](new IsValueTypeOf[java.lang.Byte, Byte] {
           override val unwrap: Expr[java.lang.Byte] => Expr[Byte] =
             expr => Expr.quote(Expr.splice(expr).byteValue())
-          override val wrap: PossibleSmartCtor[Byte, java.lang.Byte] =
-            PossibleSmartCtor.PlainValue[Byte, java.lang.Byte](expr =>
-              Expr.quote(java.lang.Byte.valueOf(Expr.splice(expr)))
+          override val wrap: CtorLikeOf[Byte, java.lang.Byte] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[Byte]) => Expr.quote(java.lang.Byte.valueOf(Expr.splice(expr))),
+              None // TODO: we should provide a method for this
             )
-        })
+          override lazy val ctors: CtorLikes[java.lang.Byte] =
+            CtorLikes.unapply(JByte).getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, java.lang.Byte], Byte](wrap)))
+        })(using Byte)
       }
 
       override def unapply[A](tpe: Type[A]): Option[IsValueType[A]] =

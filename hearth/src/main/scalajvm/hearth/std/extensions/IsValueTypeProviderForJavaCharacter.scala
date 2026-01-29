@@ -2,6 +2,8 @@ package hearth
 package std
 package extensions
 
+import hearth.fp.data.NonEmptyList
+
 /** Macro extension providing support for Java characters.
   *
   * Supports all Java [[java.lang.Character]]. Treats them as value types.
@@ -25,10 +27,14 @@ final class IsValueTypeProviderForJavaCharacter extends StandardMacroExtension {
         Existential[IsValueTypeOf[java.lang.Character, *], Char](new IsValueTypeOf[java.lang.Character, Char] {
           override val unwrap: Expr[java.lang.Character] => Expr[Char] =
             expr => Expr.quote(Expr.splice(expr).charValue())
-          override val wrap: PossibleSmartCtor[Char, java.lang.Character] =
-            PossibleSmartCtor.PlainValue[Char, java.lang.Character](expr =>
-              Expr.quote(java.lang.Character.valueOf(Expr.splice(expr)))
+          override val wrap: CtorLikeOf[Char, java.lang.Character] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[Char]) => Expr.quote(java.lang.Character.valueOf(Expr.splice(expr))),
+              None // TODO: we should provide a method for this
             )
+          override lazy val ctors: CtorLikes[java.lang.Character] = CtorLikes
+            .unapply(JCharacter)
+            .getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, java.lang.Character], Char](wrap)))
         })
       }
 
