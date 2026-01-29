@@ -20,6 +20,8 @@ final private class StdExtensionsFixtures(val c: blackbox.Context)
   def testIsEitherImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[Data] = testIsEither[A](value)
 
   def testIsValueTypeImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[Data] = testIsValueType[A](value)
+
+  def testCtorLikesImpl[A: c.WeakTypeTag]: c.Expr[Data] = testCtorLikes[A]
 }
 
 object StdExtensionsFixtures {
@@ -31,4 +33,6 @@ object StdExtensionsFixtures {
   def testIsEither[A](value: A): Data = macro StdExtensionsFixtures.testIsEitherImpl[A]
 
   def testIsValueType[A](value: A): Data = macro StdExtensionsFixtures.testIsValueTypeImpl[A]
+
+  def testCtorLikes[A]: Data = macro StdExtensionsFixtures.testCtorLikesImpl[A]
 }

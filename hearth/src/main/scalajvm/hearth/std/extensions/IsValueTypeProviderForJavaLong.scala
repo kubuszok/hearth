@@ -32,8 +32,8 @@ final class IsValueTypeProviderForJavaLong extends StandardMacroExtension {
               (expr: Expr[Long]) => Expr.quote(java.lang.Long.valueOf(Expr.splice(expr))),
               None // TODO: we should provide a method for this
             )
-          override lazy val ctors: CtorLikes[java.lang.Long] = CtorLikes
-          CtorLikes.unapply(JLong).getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, java.lang.Long], Long](wrap)))
+          override lazy val ctors: CtorLikes[java.lang.Long] =
+            CtorLikes.unapply(JLong).getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, java.lang.Long], Long](wrap)))
         })(using Long)
       }
 

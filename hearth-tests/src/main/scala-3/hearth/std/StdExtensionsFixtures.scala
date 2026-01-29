@@ -29,4 +29,8 @@ object StdExtensionsFixtures {
   inline def testIsValueType[A](inline value: A): Data = ${ testIsValueTypeImpl[A]('{ value }) }
   private def testIsValueTypeImpl[A: Type](value: Expr[A])(using q: Quotes): Expr[Data] =
     new StdExtensionsFixtures(q).testIsValueType[A](value)
+
+  inline def testCtorLikes[A]: Data = ${ testCtorLikesImpl[A] }
+  private def testCtorLikesImpl[A: Type](using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testCtorLikes[A]
 }

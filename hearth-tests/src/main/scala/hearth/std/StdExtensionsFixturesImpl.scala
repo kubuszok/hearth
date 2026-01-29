@@ -291,4 +291,45 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
     // TODO: the rest of known smart constructors
     case _ => _ => Expr(Data("<unhandled smart constructor>"))
   }
+
+  def testCtorLikes[A: Type]: Expr[Data] = {
+    implicit val dataType: Type[Data] = DataType
+    implicit val stringType: Type[String] = StringType
+
+    CtorLikes.unapply(Type[A]) match {
+      case Some(ctors) =>
+        val ctorInfos = ctors.toList.map { existential =>
+          import existential.Underlying as Input
+          val ctorType = existential.value match {
+            case _: CtorLikeOf.PlainValue[?, ?]                     => "PlainValue"
+            case _: CtorLikeOf.EitherStringOrValue[?, ?]            => "EitherStringOrValue"
+            case _: CtorLikeOf.EitherIterableStringOrValue[?, ?]    => "EitherIterableStringOrValue"
+            case _: CtorLikeOf.EitherThrowableOrValue[?, ?]         => "EitherThrowableOrValue"
+            case _: CtorLikeOf.EitherIterableThrowableOrValue[?, ?] => "EitherIterableThrowableOrValue"
+            case other                                              => s"Unknown(${other.getClass.getSimpleName})"
+          }
+          val inputType = Input.prettyPrint
+          val methodName = existential.value.method.map(_.value.name).getOrElse("<no method>")
+          (ctorType, inputType, methodName)
+        }
+
+        // Build ctors list as compile-time constant Data
+        val ctorDataList: List[Data] = ctorInfos.map { case (ctorType, inputType, methodName) =>
+          Data.map(
+            "type" -> Data(ctorType),
+            "input" -> Data(inputType),
+            "method" -> Data(methodName)
+          )
+        }
+
+        Expr(
+          Data.map(
+            "count" -> Data(ctors.size.toString),
+            "ctors" -> Data(ctorDataList)
+          )
+        )
+      case None =>
+        Expr(Data("<no ctors>"))
+    }
+  }
 }
