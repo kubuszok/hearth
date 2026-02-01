@@ -16,19 +16,19 @@ object MethodsFixtures {
     new MethodsFixtures(q).testConstructorsExtraction[A]
 
   inline def testMethodsExtraction[A](inline excluding: String*): Data = ${
-    testMethodsExtractionImpl[A]('{ excluding })
+    testMethodsExtractionImpl[A]('excluding)
   }
   private def testMethodsExtractionImpl[A: Type](excluding: Expr[Seq[String]])(using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testMethodsExtraction[A](excluding)
 
   inline def testMethodDefaults[A](inline methodName: String): Data = ${
-    testMethodDefaultsImpl[A]('{ methodName })
+    testMethodDefaultsImpl[A]('methodName)
   }
   private def testMethodDefaultsImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testMethodDefaults[A](methodName)
 
   inline def testCallNoInstanceIntMethod[A](inline methodName: String)(inline params: Int*): Int = ${
-    testCallNoInstanceIntMethodImpl[A]('{ methodName }, 'params)
+    testCallNoInstanceIntMethodImpl[A]('methodName, 'params)
   }
   private def testCallNoInstanceIntMethodImpl[A: Type](methodName: Expr[String], params: Expr[Seq[Int]])(using
       q: Quotes
@@ -36,7 +36,7 @@ object MethodsFixtures {
     new MethodsFixtures(q).testCallNoInstanceIntMethod[A](methodName)(params)
 
   inline def testCallInstanceIntMethod[A](inline instance: A)(inline methodName: String)(inline params: Int*): Int = ${
-    testCallInstanceIntMethodImpl[A]('{ instance }, 'methodName, 'params)
+    testCallInstanceIntMethodImpl[A]('instance, 'methodName, 'params)
   }
   private def testCallInstanceIntMethodImpl[A: Type](
       instance: Expr[A],

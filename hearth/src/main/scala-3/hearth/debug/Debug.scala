@@ -40,14 +40,14 @@ object Debug {
     *
     * @since 0.1.0
     */
-  inline def withFinalCodeInIDE[A](inline expr: A): A = ${ Debug.withFinalCodeInIDEImpl[A]('{ expr }) }
+  inline def withFinalCodeInIDE[A](inline expr: A): A = ${ Debug.withFinalCodeInIDEImpl[A]('expr) }
   private def withFinalCodeInIDEImpl[A](expr: Expr[A])(using q: Quotes): Expr[A] = new Debug(q).withFinalCodeInIDE(expr)
 
   /** Passes expression unchanged, but displays its AST in IDE as a hint.
     *
     * @since 0.1.0
     */
-  inline def withFinalASTInIDE[A](inline expr: A): A = ${ Debug.withFinalASTInIDEImpl[A]('{ expr }) }
+  inline def withFinalASTInIDE[A](inline expr: A): A = ${ Debug.withFinalASTInIDEImpl[A]('expr) }
   private def withFinalASTInIDEImpl[A](expr: Expr[A])(using q: Quotes): Expr[A] = new Debug(q).withFinalASTInIDE(expr)
 
   /** Summons value of type A, and displays its code in IDE as a hint.

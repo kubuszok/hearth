@@ -7,19 +7,19 @@ final private class ShowCodePrettyFixtures(q: Quotes) extends MacroCommonsScala3
 
 object ShowCodePrettyFixtures {
 
-  inline def testExprPrettyPrint[A](inline expr: A): String = ${ testExprPrettyPrintImpl[A]('{ expr }) }
+  inline def testExprPrettyPrint[A](inline expr: A): String = ${ testExprPrettyPrintImpl[A]('expr) }
   private def testExprPrettyPrintImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
     new ShowCodePrettyFixtures(q).testExprPrettyPrint[A](expr)
 
-  inline def testExprPlainPrint[A](inline expr: A): String = ${ testExprPlainPrintImpl[A]('{ expr }) }
+  inline def testExprPlainPrint[A](inline expr: A): String = ${ testExprPlainPrintImpl[A]('expr) }
   private def testExprPlainPrintImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
     new ShowCodePrettyFixtures(q).testExprPlainPrint[A](expr)
 
-  inline def testExprPrettyAST[A](inline expr: A): String = ${ testExprPrettyASTImpl[A]('{ expr }) }
+  inline def testExprPrettyAST[A](inline expr: A): String = ${ testExprPrettyASTImpl[A]('expr) }
   private def testExprPrettyASTImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
     new ShowCodePrettyFixtures(q).testExprPrettyAST[A](expr)
 
-  inline def testExprPlainAST[A](inline expr: A): String = ${ testExprPlainASTImpl[A]('{ expr }) }
+  inline def testExprPlainAST[A](inline expr: A): String = ${ testExprPlainASTImpl[A]('expr) }
   private def testExprPlainASTImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
     new ShowCodePrettyFixtures(q).testExprPlainAST[A](expr)
 
