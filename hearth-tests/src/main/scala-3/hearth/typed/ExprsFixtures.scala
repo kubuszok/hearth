@@ -89,6 +89,10 @@ object ExprsFixtures {
   private def testValDefBuilderBuildCachedVarGetterSetterImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testValDefBuilderBuildCachedVarGetterSetter
 
+  inline def testValDefsCacheMerge: Unit = ${ testValDefsCacheMergeImpl }
+  private def testValDefsCacheMergeImpl(using q: Quotes): Expr[Unit] =
+    new ExprsFixtures(q).testValDefsCacheMerge
+
   inline def testLambdaBuilderOfNAndBuild: Data = ${ testLambdaBuilderOfNAndBuildImpl }
   private def testLambdaBuilderOfNAndBuildImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testLambdaBuilderOfNAndBuild

@@ -551,6 +551,35 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
     }
   }
 
+  def testValDefsCacheMerge: Expr[Unit] = {
+    implicit val intType: Type[Int] = IntType
+    implicit val unitType: Type[Unit] = UnitType
+    val defBuilder = ValDefBuilder.ofDef1[Int, Int]("example", "a")
+
+    val forwarded = defBuilder.forwardDeclare(ValDefsCache.empty, "example")
+    val build = defBuilder.buildCachedWith(ValDefsCache.empty, "example")(_ => Expr.quote(100))
+
+    // We expect the following to be equal:
+    val forwardedThenBuild = ValDefsCache.merge(forwarded, build)
+    val buildThenForwarded = ValDefsCache.merge(build, forwarded)
+    val emptyThenBuild = ValDefsCache.merge(ValDefsCache.empty, build)
+    val buildThenEmpty = ValDefsCache.merge(build, ValDefsCache.empty)
+
+    // None of these should throw an error with forwarded but undefined declaration
+    val expr1 = forwardedThenBuild.toValDefs.use(_ => Expr(()))
+    val expr2 = buildThenForwarded.toValDefs.use(_ => Expr(()))
+    val expr3 = emptyThenBuild.toValDefs.use(_ => Expr(()))
+    val expr4 = buildThenEmpty.toValDefs.use(_ => Expr(()))
+
+    // We expect the following to compile
+    Expr.quote {
+      Expr.splice(expr1)
+      Expr.splice(expr2)
+      Expr.splice(expr3)
+      Expr.splice(expr4)
+    }
+  }
+
   // LambdaBuilder methods
 
   def testLambdaBuilderOfNAndBuild: Expr[Data] = {
