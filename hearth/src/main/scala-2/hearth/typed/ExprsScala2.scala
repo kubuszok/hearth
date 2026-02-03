@@ -1637,7 +1637,21 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
               )
             }
             // $COVERAGE-ON$
-            (key, value1)
+            (value1.definition, value2.definition) match {
+              // Forwarding after declaration should be a safe no-op
+              case (Some(_), None) => (key, value1)
+              // Declaration after forwarding should keep declaration
+              case (None, Some(_)) => (key, value2)
+              case _               =>
+                // $COVERAGE-OFF$
+                if (value1.definition != value2.definition) {
+                  hearthRequirementFailed(
+                    s"Def with key $key already exists with different definition, you probably created it twice in 2 branches, without noticing"
+                  )
+                }
+                // $COVERAGE-ON$
+                (key, value1)
+            }
           case (Some(value), None) => (key, value)
           case (None, Some(value)) => (key, value)
           // $COVERAGE-OFF$
