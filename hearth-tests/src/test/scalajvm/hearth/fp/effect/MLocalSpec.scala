@@ -31,5 +31,31 @@ final class MLocalSpec extends ScalaCheckSuite {
 
       (add(10).parTuple(add(10)) >> counter.get).unsafe.runSync._2 === Right(20)
     }
+
+    test("should work with nested use of .scoped") {
+      val mlocal = MLocal(Map.empty[String, Int])((m) => m)((m1, m2) => m1 ++ m2)
+
+      def append(name: String, value: Int) = for {
+        m <- mlocal.get
+        _ <- mlocal.set(m.updated(name, value))
+      } yield ()
+
+      def reproduction(name: String)(value: MIO[Int]) = for {
+        _ <- append(s"forward-declare-$name", 1)
+        _ <- MIO.scoped { runSafe =>
+          runSafe {
+            append(s"define-$name", runSafe(value))
+          }
+        }
+      } yield ()
+
+      val program = reproduction("a") {
+        reproduction("b")(MIO(10)).as(5)
+      } >> mlocal.get
+
+      program.unsafe.runSync._2 === Right(
+        Map("forward-declare-a" -> 1, "define-a" -> 5, "forward-declare-b" -> 1, "define-b" -> 10)
+      )
+    }
   }
 }
