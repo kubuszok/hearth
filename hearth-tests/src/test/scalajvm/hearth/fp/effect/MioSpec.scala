@@ -296,6 +296,18 @@ final class MioSpec extends ScalaCheckSuite with Laws {
 
       countdown(n) === MIO.void
     }
+
+    test("should not hang infinitely on FatalErrors") {
+      val error = new OutOfMemoryError("Out of memory")
+
+      MIO
+        .scoped { runSafe =>
+          runSafe(MIO.fail(error).as(10))
+        }
+        .unsafe
+        .runSync
+        ._2 === Left(NonEmptyVector(error))
+    }
   }
 
   group("Instances for MIO") {
