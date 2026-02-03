@@ -58,6 +58,10 @@ object DirectStyle {
   final class RunSafe[F[_]](directStyle: DirectStyle[F]) {
     def apply[A](value: => F[A]): A = directStyle.runUnsafe(this.asOwner)(value)
     private[DirectStyle] def asOwner: ScopeOwner[F] = this.asInstanceOf[ScopeOwner[F]]
+
+    // For debugging purposes
+    private lazy val id = counter.getAndIncrement()
+    override def toString: String = s"RunSafe($id)"
   }
 
   /** When we use nested direct style operations, we need a way to distinct who is the managing which `runSafe`. Scope
@@ -133,4 +137,6 @@ object DirectStyle {
         case Success(value) => value
       }
   }
+
+  private val counter = new java.util.concurrent.atomic.AtomicLong(1L)
 }

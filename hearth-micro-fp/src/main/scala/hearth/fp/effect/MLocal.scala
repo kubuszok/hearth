@@ -23,6 +23,9 @@ final class MLocal[A] private (
   def get: MIO[A] = MIO.get(this)
 
   def set(a: A): MIO[Unit] = MIO.set(this, a)
+
+  private val version = new java.util.concurrent.atomic.AtomicLong(1L)
+  private[effect] def nextVersion: Long = version.getAndIncrement()
 }
 
 object MLocal {

@@ -36,15 +36,20 @@ final case class MState private[effect] (
   // ----------------------------------------------- API called by MIO  -----------------------------------------------
 
   private[effect] def ++(state: MState): MState =
-    MState(appendLocals(locals, state.locals), combineLogs(logs, state.logs))
+    if (this eq MState.empty) state
+    else if (state eq MState.empty) this
+    else MState(appendLocals(locals, state.locals), combineLogs(logs, state.logs))
 
   private[effect] def fork(explicitlyRewind: MState): MState =
     MState(forkLocals(locals, explicitlyRewind), logs)
   private[effect] def join(state: MState): MState =
-    MState(joinLocals(locals, state.locals), combineLogs(logs, state.logs))
+    if (this eq MState.empty) state
+    else if (state eq MState.empty) this
+    else MState(joinLocals(locals, state.locals), combineLogs(logs, state.logs))
 
   private[effect] def get[A](local: MLocal[A]): A = locals.get(local).fold(local.initial)(_.as[A])
-  private[effect] def set[A](local: MLocal[A], a: A): MState = MState(locals + (local -> Value(a)), logs)
+  private[effect] def set[A](local: MLocal[A], a: A): MState =
+    MState(locals + (local -> Value(a, local.nextVersion)), logs)
 
   private[effect] def log(log: Log): MState = MState(locals, logs :+ log)
   private[effect] def nameLogsScope(name: String, previous: MState): MState =
@@ -72,10 +77,11 @@ final case class MState private[effect] (
       handleLocalsCasting(locals.keySet, explicitlyRewind.locals.keySet) {
         _.map { local =>
           locals.get(local) match {
-            case Some(a) => local -> Value(local.asInstanceOf[MLocal[Any]].fork(a.value))
+            case Some(a) => local -> Value(local.asInstanceOf[MLocal[Any]].fork(a.value), local.nextVersion)
             case None    =>
               local -> Value(
-                local.initial
+                local.initial,
+                local.nextVersion
               ) // We do this so that None won't fall back on value from another computation.
           }
         }.toMap
@@ -87,10 +93,10 @@ final case class MState private[effect] (
       handleLocalsCasting(locals1.keySet, locals2.keySet) {
         _.map { local =>
           (locals1.get(local), locals2.get(local)) match {
-            case (Some(a), Some(b)) => local -> Value(local.join(a.value, b.value))
+            case (Some(a), Some(b)) => local -> Value(local.join(a.value, b.value), local.nextVersion)
             case (Some(a), None)    => local -> a
             case (None, Some(b))    => local -> b
-            case (None, None)       => local -> Value(local.initial)
+            case (None, None)       => local -> Value(local.initial, local.nextVersion)
           }
         }.toMap
       }
@@ -159,13 +165,13 @@ object MState {
 
   val empty: MState = MState(Map.empty, logs = Vector.empty)
 
-  final case class Value(value: Any, timestamp: Long = System.nanoTime()) {
+  final case class Value(value: Any, version: Long) {
 
     def as[A]: A = value.asInstanceOf[A]
   }
 
   object Value {
 
-    implicit val ordering: Ordering[Value] = Ordering.by(_.timestamp)
+    implicit val ordering: Ordering[Value] = Ordering.by(_.version)
   }
 }

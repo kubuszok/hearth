@@ -320,6 +320,11 @@ object MIO {
     final private case class PassErrors(owner: Any, errors: MErrors) extends ControlThrowable with NoStackTrace
 
     private val ongoingStates = scala.collection.mutable.Map.empty[Any, MState]
+    private def getState(owner: DirectStyle.ScopeOwner[MIO]): MState = ongoingStates(owner)
+    private def setState(owner: DirectStyle.ScopeOwner[MIO], state: MState): Unit = ignore(
+      ongoingStates.put(owner, state)
+    )
+    private def removeState(owner: DirectStyle.ScopeOwner[MIO]): Unit = ignore(ongoingStates.remove(owner))
 
     @scala.annotation.nowarn
     override protected def scopedUnsafe[A](owner: DirectStyle.ScopeOwner[MIO])(thunk: => A): MIO[A] = void :+ {
@@ -327,25 +332,36 @@ object MIO {
         // We're keeping the track of ownership because, there can be nested awaits.
         // And we have to consolidate state because there might be multiple awaits in the thunk.
         try {
-          ignore(ongoingStates.put(owner, initialState))
+          setState(owner, initialState)
           val a = thunk // We have to trigger side-effect before we'll extract current state
-          Pure(ongoingStates(owner), MResult.pure(a)) // There might have been no call to `await` in the thunk.
+          val newState = getState(owner)
+          Pure(newState, MResult.pure(a)) // There might have been no call to `await` in the thunk.
         } catch {
           case PassErrors(`owner`, errors) =>
-            Pure(ongoingStates(owner), MResult.fail(errors)) // There should be some state, otherwise it's a bug.
+            val newState = getState(owner) // There should be some state, otherwise it's a bug.
+            Pure(newState, MResult.fail(errors))
         } finally
-          ignore(ongoingStates.remove(owner))
+          removeState(owner)
       case (initialState, Left(e)) => Pure(initialState, Left(e))
     }
     override protected def runUnsafe[A](owner: DirectStyle.ScopeOwner[MIO])(mio: => MIO[A]): A = {
+      val initialState = getState(owner) // We have to extract the state before we'll run the MIO.
+
       // We're running the MIO in a virtual thread, to avoid StackOverflowError when using recursive MIO with direct style.
-      val (state, result) = DirectStyleExecutor {
-        run(Pure(ongoingStates(owner), Right(())) >> mio)
+      val (computedState, result) = DirectStyleExecutor {
+        // We're merging the state here because the MIO might have been run in a nested direct style operation.
+        run(mio match {
+          case Pure(state, result)      => Pure(initialState ++ state, result)
+          case Impure(state, result, q) => Impure(initialState ++ state, result, q)
+        })
       }
 
-      val previousState = ongoingStates(owner)
-      val newState = previousState ++ state
-      ignore(ongoingStates.put(owner, newState))
+      // This could have been overriden by nested direct style operations, so we have to merge the state here.
+      val intermediateState = getState(owner)
+      // We use merge instead of ++... as a workaround basically. We could have lost continuity of passing state around
+      // in nested .scoped, intermediateState can still have it, while returned new state could have been overriden.
+      val newState = intermediateState join computedState
+      setState(owner, newState)
 
       result match {
         case Right(a) => a
