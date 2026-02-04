@@ -11,7 +11,7 @@ hide:
 
 This is the first library focused on helping you write robust, easy-to-maintain macros that you can make cross-compilable between the Scala 2 and Scala 3 macro systems.
 
-Introduces among others:
+Introduces, among other things:
 
  * reliable extension methods that make checking properties of types, expressions and methods easier
  * Magnolia-like utilities for creating and decomposing data types
@@ -60,18 +60,18 @@ The majority of the macro code is shared by putting it into a mix-in trait.
     //> using dep com.kubuszok::hearth:{{ hearth_version() }}
     package demo_sanely_automatic
 
-    /** toString as a type class - easy to understand what this type class want to do. */
+    /** toString as a type class - easy to understand what this type class wants to do. */
     trait Show[A] {
 
       def show(value: A): String
     }
 
-    /** Companion will contain the derivation adapted specific to Scala language version. */
+    /** Companion will contain the derivation adapted specifically to Scala language version. */
     object Show extends ShowCompanionCompat {
 
       def apply[A](implicit show: Show[A]): Show[A] = show
 
-      /** Special type - is its implicit is in scope then macros will log the derivation process.
+      /** Special type - if its implicit is in scope, then macros will log the derivation process.
         *
         * @see
         *   [[hearth.demo_sanely_automatic.debug.logDerivation]] for details
