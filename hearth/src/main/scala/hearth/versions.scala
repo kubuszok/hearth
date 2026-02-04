@@ -30,8 +30,8 @@ object HearthVersion {
 
 /** Exact JDK version.
   *
-  * Uses tools available only in JVM runtime, so it should be used either only on JVM Scala or the code, that is used
-  * online for macros (does is not actually linked to Scala.js/Scala Native).
+  * Uses tools available only in the JVM runtime, so it should be used either only on JVM Scala or in code that is used
+  * only for macros (does not actually link to Scala.js/Scala Native).
   *
   * @since 0.1.0
   */
@@ -42,8 +42,8 @@ final case class JDKVersion(major: Int, minor: Int) {
 
 /** Exact JDK version.
   *
-  * Uses tools available only in JVM runtime, so it should be used either only on JVM Scala or the code, that is used
-  * online for macros (does is not actually linked to Scala.js/Scala Native).
+  * Uses tools available only in the JVM runtime, so it should be used either only on JVM Scala or in code that is used
+  * only for macros (does not actually link to Scala.js/Scala Native).
   *
   * @since 0.1.0
   */
@@ -103,8 +103,8 @@ object JDKVersion extends JDKVersionsCompanionCompat {
   *
   * Uses heuristics since classpath can contain both Scala 2.13 and Scala 3 standard libraries at once.
   *
-  * Uses tools available only in JVM runtime, so it should be used either only on JVM Scala or the code, that is used
-  * online for macros (does is not actually linked to Scala.js/Scala Native).
+  * Uses tools available only in the JVM runtime, so it should be used either only on JVM Scala or in code that is used
+  * only for macros (does not actually link to Scala.js/Scala Native).
   *
   * @since 0.1.0
   */
@@ -126,8 +126,8 @@ final case class ScalaVersion(major: Int, minor: Int, patch: Int) {
   *
   * Uses heuristics since classpath can contain both Scala 2.13 and Scala 3 standard libraries at once.
   *
-  * Uses tools available only in JVM runtime, so it should be used either only on JVM Scala or the code, that is used
-  * online for macros (does is not actually linked to Scala.js/Scala Native).
+  * Uses tools available only in the JVM runtime, so it should be used either only on JVM Scala or in code that is used
+  * only for macros (does not actually link to Scala.js/Scala Native).
   *
   * @since 0.1.0
   */

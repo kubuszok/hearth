@@ -13,8 +13,8 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
     override def line(pos: Position): Int = pos.line
     override def column(pos: Position): Int = pos.column - macroPositionCorrection(pos)
 
-    /** So, apparently when we expanding a macro, the position of the macro expansion is computed differently for
-      * macro-methods that have no parameret lists and for those that have:
+    /** So, apparently when we are expanding a macro, the position of the macro expansion is computed differently for
+      * macro-methods that have no parameter lists and for those that have:
       *
       * {{{
       * MyType.noParamMacro
@@ -48,7 +48,7 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
     override def reportErrorAndAbort(msg: String): Nothing = c.abort(c.enclosingPosition, msg)
   }
 
-  /** No not use this module, it exists only to be used by Scala 2 Cross-Quotes macros and Scala 3 Cross-Quotes compiler
+  /** Do not use this module, it exists only to be used by Scala 2 Cross-Quotes macros and Scala 3 Cross-Quotes compiler
     * plugin.
     *
     * Here live dragons.

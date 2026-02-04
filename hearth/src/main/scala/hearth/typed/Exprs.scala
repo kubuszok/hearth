@@ -12,17 +12,17 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     *
     * Typed [[Expr]] and [[UntypedExpr]] exist because some macro operations do not require the full knowledge about the
     * type (because they operate on Symbols, and we would have to convert from the typed representation to Symbols to
-    * use them), and some require the full knowledge about the type (because e.g. type parameters from the class has to
+    * use them), and some require the full knowledge about the type (because e.g. type parameters from the class have to
     * be applied to its methods and their arguments/returned values).
     *
     * The implementation will use the right underlying representation to perform the operations, and where possible
     * convert between typed and untyped representations, but the distinction would be useful in cases where some
-    * operations are only available to only one of them. Then user could covert between them in the context where the
+    * operations are available to only one of them. Then the user could convert between them in the context where the
     * missing information is available.
     *
-    * Note that existential type [[Expr_??]], is not an [[UntypedExpr]] - it's a typed representaiton, where the macro
-    * during **its excution** would know the exact type BUT it's inconvenient for us to use generics to represent that
-    * exact type during compilation of the macro itself (not it's expansion).
+    * Note that existential type [[Expr_??]], is not an [[UntypedExpr]] - it's a typed representation, where the macro
+    * during **its execution** would know the exact type BUT it's inconvenient for us to use generics to represent that
+    * exact type during compilation of the macro itself (not its expansion).
     *
     * @since 0.1.0
     */

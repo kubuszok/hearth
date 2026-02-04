@@ -166,7 +166,7 @@ trait UntypedMethods { this: MacroCommons =>
       declared.sortBy(_._1).map(_._2) ++ others.sortBy(_._1).map(_._2)
     }
 
-    // Defaults methods' positionsare 1-indexed. They are named `methodName$default$indexOfParameter`.
+    // Defaults methods' positions are 1-indexed. They are named `methodName$default$indexOfParameter`.
 
     final protected def defaultValueMethodName(methodName: String, idx: Int): String = methodName + "$default$" + idx
 
