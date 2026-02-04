@@ -228,11 +228,11 @@ trait ShowCodePrettyScala2 {
           else if (
             (name.isTermName && needsParentheses(qual)(insideLabelDef = false)) || isIntLitWithDecodedOp(qual, name)
           )
-            // $COVERAGE-OFF$ It happends but I have no idea how to test it
+            // $COVERAGE-OFF$ It happens but I have no idea how to test it
             s"($resolved).$printed"
           // $COVERAGE-ON$
           else if (name.isTypeName)
-            // $COVERAGE-OFF$ It happends but I have no idea how to test it
+            // $COVERAGE-OFF$ It happens but I have no idea how to test it
             s"$resolved#${blankForOperatorName(name)}%$printed"
           // $COVERAGE-ON$
           else
@@ -445,7 +445,7 @@ trait ShowCodePrettyScala2 {
             if (printed.nonEmpty) {
               print(printed, ".this.", printedName(name))
             } else {
-              // $COVERAGE-OFF$ It happends but I have no idea how to test it
+              // $COVERAGE-OFF$ It happens but I have no idea how to test it
               print("this.", printedName(name))
               // $COVERAGE-ON$
             }
@@ -776,7 +776,7 @@ trait ShowCodePrettyScala2 {
           // print only fun when targs are TypeTrees with empty original
           case TypeApply(fun, targs) =>
             if (targs.exists(isEmptyTree(_))) {
-              // $COVERAGE-OFF$ It happends but I have no idea how to test it
+              // $COVERAGE-OFF$ It happens but I have no idea how to test it
               processTreePrinting(fun)
               // $COVERAGE-ON$
             } else {
@@ -901,13 +901,13 @@ trait ShowCodePrettyScala2 {
               if (original != null) print(original)
               // Note: copy-paste-modified (and inlined) from TreePrinter.printTree
               else if ((tree.tpe eq null) || (printPositions && tt.original != null)) {
-                // $COVERAGE-OFF$ It happends but I have no idea how to test it
+                // $COVERAGE-OFF$ It happens but I have no idea how to test it
                 if (tt.original != null) print(tt.original) // Note: originally: print("<type: ", tt.original, ">")
                 else if (failOnUnsupportedTree) unsupportedTree(tree) // Note: originally: print("<type ?>")
                 else print("<type ?>")
                 // $COVERAGE-ON$
               } else if (isAnonymousClass) {
-                // $COVERAGE-OFF$ It happends but I have no idea how to test it
+                // $COVERAGE-OFF$ It happens but I have no idea how to test it
                 print(highlightTypeDef(tree.tpe.typeSymbol.toString)) // TODO: check if we can do better
                 // $COVERAGE-ON$
               } else {
@@ -941,7 +941,7 @@ trait ShowCodePrettyScala2 {
             val containsByNameTypeParam = args exists isByNameParam
 
             if (containsByNameTypeParam) {
-              // $COVERAGE-OFF$ It happends but I have no idea how to test it
+              // $COVERAGE-OFF$ It happens but I have no idea how to test it
               print("(")
               printRow(args.init, "(", ", ", ")")
               print(" => ", args.last, ")")
@@ -1150,7 +1150,7 @@ trait ShowCodePrettyScala2 {
           print("] = ", resultType, "})#λ")
 
         case _ =>
-          // $COVERAGE-OFF$ If we knew when it happends, we would handle it, so that it wouldn't happen in the first place.
+          // $COVERAGE-OFF$ If we knew when it happens, we would handle it, so that it wouldn't happen in the first place.
           if (failOnUnsupportedTree) unsupportedType(tpe)
           else {
             // best effort fallback

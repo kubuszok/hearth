@@ -29,7 +29,7 @@ private[fp] object DirectStyleExecutor {
       )
       .fold(throw _, identity)
 
-  /** Virtual threads are only avilable on JVM and only from JDK 17+.
+  /** Virtual threads are only available on JVM and only from JDK 17+.
     *
     * So we need to discover if they are available and fall back if they are not.
     *

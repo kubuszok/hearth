@@ -6,7 +6,7 @@ import hearth.fp.data.NonEmptyList
 
 /** Macro extension providing support for AnyVal types.
   *
-  * Supports each AnyVal which has a single constructor argument, where both constructor and argument ara available at
+  * Supports each AnyVal which has a single constructor argument, where both constructor and argument are available at
   * call site.
   *
   * @since 0.3.0
