@@ -2,7 +2,7 @@ build:
   docker build . -t mkdocs-hearth-docs
 
 serve: build
-  docker run --rm -it -p 8000:8000 -v ${PWD}:/user-guide --env "CI_LATEST_TAG=$(git describe --tags)" mkdocs-hearth-docs
+  docker run --rm -it -p 8000:8000 -v ${PWD}:/docs --env "CI_LATEST_TAG=$(git describe --tags)" mkdocs-hearth-docs
 
 test-snippets:
   cd .. && sbt publish-local-for-tests
