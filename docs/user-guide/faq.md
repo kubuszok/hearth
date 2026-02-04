@@ -130,7 +130,7 @@ Meanwhile, Hearth has [cross-quotes](cross-quotes.md) which are implemented by h
 while the types are named the same way, so using Hearth is already violating the requirements of this scheme.
 
 Changing Hearth to allow it would be possible, but it would introduce a huge burden on the maintainers without providing much value to (most) users.
-It allows sandwich however, with macros being expanded by Scala 2.13 only or Scala 3 only (`2.13 module <- 3 module <- 2.13 module` module or `3 module <- 2.13 module <- 3 module`).
+It allows sandwich, however, with macros being expanded by Scala 2.13 only or Scala 3 only (`2.13 module <- 3 module <- 2.13 module` module or `3 module <- 2.13 module <- 3 module`).
 
 ## What are the requirements to use this library?
 
@@ -169,14 +169,14 @@ Also, its MIO is _not_ truly parallel - such functionality is not needed for mac
 
 ## How to fix `forward reference to value ... defined on line ... extends over definition of value ...`?
 
-It happend when you write:
+It happened when you write:
 
 ```scala
 // With Cross-Quotes
 implicit val someType: Type[A] = Type.of[A]
 ```
 
-Depends on the platform it translates to:
+Depending on the platform, it translates to:
 
 ```scala
 // Scala 2
@@ -198,9 +198,9 @@ we are creating a circular dependency. We have to prevent the utility from summo
 private val SomeType = Type.of[A]
 
 locally {
-  // In another scope, where we can expose a computer result as an implicit:
+  // In another scope, where we can expose a computed result as an implicit:
   implicit val someType: Type[A] = SomeType
 }
 ```
 
-While it's a bit mundate, it makes it rather explicit which types are we using or not, and where.
+While it's a bit mundane, it makes it rather explicit which types we are using or not, and where.
