@@ -8,14 +8,17 @@ import scala.collection.immutable.ListMap
 
 trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
-  import quotes.*, quotes.reflect.*
-  import scala.quoted.{Exprs, FromExpr, ToExpr, Varargs}
+  import scala.quoted.{Exprs, FromExpr, Quotes, ToExpr, Varargs}
 
   final override type Expr[A] = scala.quoted.Expr[A]
 
   object Expr extends ExprModule {
+    import quotes.*, quotes.reflect.*
 
     object platformSpecific {
+
+      def withQuotes[A](thunk: scala.quoted.Quotes ?=> A): A =
+        thunk(using CrossQuotes.ctx[Quotes])
 
       final class ExprCodecImpl[A](using val from: FromExpr[A], val to: ToExpr[A]) extends ExprCodec[A] {
         override def toExpr(value: A): Expr[A] = to(value)
@@ -367,6 +370,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
   sealed trait MatchCase[A] extends Product with Serializable
 
   object MatchCase extends MatchCaseModule {
+    import quotes.*, quotes.reflect.{MatchCase as _, *}
 
     final private case class TypeMatch[A](name: Symbol, expr: Expr_??, result: A) extends MatchCase[A]
 
@@ -431,9 +435,13 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     }
   }
 
-  final class ValDefs[A] private[typed] (private val definitions: Vector[Statement], private val value: A)
+  final class ValDefs[A] private[typed] (
+      private val definitions: Vector[quotes.reflect.Statement],
+      private val value: A
+  )
 
   object ValDefs extends ValDefsModule {
+    import quotes.*, quotes.reflect.*
 
     override def createVal[A: Type](value: Expr[A], freshName: FreshName): ValDefs[Expr[A]] = {
       val name = freshTerm.valdef[A](freshName, value, Flags.EmptyFlags)
@@ -499,6 +507,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
   )
 
   object ValDefBuilder extends ValDefBuilderModule {
+    import quotes.*, quotes.reflect.*
 
     sealed private[typed] trait Mk[Signature, Returned] private[typed] {
 
@@ -3004,7 +3013,11 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     private[typed] def forwardDeclare(key: ValDefsCache.Key, signature: Any): ValDefsCache =
       new ValDefsCache(definitions.updated(key, new ValDefsCache.Value(signature, None)))
 
-    private[typed] def set(key: ValDefsCache.Key, signature: Any, definition: Statement): ValDefsCache = {
+    private[typed] def set(
+        key: ValDefsCache.Key,
+        signature: Any,
+        definition: quotes.reflect.Statement
+    ): ValDefsCache = {
       // $COVERAGE-OFF$
       if definitions.get(key).exists(_.signature != signature) then {
         hearthRequirementFailed(
@@ -3020,6 +3033,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
   }
 
   object ValDefsCache extends ValDefsCacheModule {
+    import quotes.*, quotes.reflect.*
 
     final private[typed] case class Key(name: String, args: Seq[UntypedType], returned: UntypedType) {
 
@@ -3152,6 +3166,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
   final class LambdaBuilder[From[_], To] private (private val mk: LambdaBuilder.Mk[From], private val value: To)
 
   object LambdaBuilder extends LambdaBuilderModule {
+    import quotes.*, quotes.reflect.*
+
+    import Expr.platformSpecific.*
 
     private trait Mk[From[_]] {
 
@@ -3159,6 +3176,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     }
 
     // format: off
+    @scala.annotation.nowarn
     override def of1[A: Type](
         freshA: FreshName
     ): LambdaBuilder[A => *, Expr[A]] = {
@@ -3166,14 +3184,18 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val a1Expr = Ref(a1).asExprOf[A]
       new LambdaBuilder[A => *, Expr[A]](
         new Mk[A => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[A => To] = {
+          // TODO: we need to create tests for each such utility,
+          // reproducing the issue and then fixing it.
+          override def apply[To: Type](body: Expr[To]): Expr[A => To] = withQuotes {
 
+            // The problem is already with the Type[To] :/, maybe we should use cross quotes here
+            println("executing the problematic code version=4")
             def mkBody(a: Expr[A]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
                 '{ val _ = $a1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A) => ${ mkBody('a) } }
