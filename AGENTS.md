@@ -87,6 +87,7 @@ log.cross-quotes = false
     git log
     git branch
     git show
+    sbt --client "..."
     ```
 
  - ❌ **forbidden operations**:
@@ -100,10 +101,10 @@ log.cross-quotes = false
     git rebase
     git merge
     git reset --hard
-    sbt
-    ``` 
+    sbt          # bare sbt without --client is forbidden
+    ```
 
- - **prefer working with MCP server**, it allows for:
+ - **prefer working with MCP server** when available, it allows for:
 
     - **Compilation**: Request compilation through MCP tools
     - **Testing**: Run tests through MCP tools
@@ -111,9 +112,10 @@ log.cross-quotes = false
     - **Code navigation**: Find definitions, references, implementations
     - **Type information**: Query types at specific positions
 
- - **only if MCP server is inaccessible OR it would not be enough** (the task requires implementation of both Scala 2 and Scala 3 code, while MCP exposes only 1 of them)
-   **ask user for permission to use `sbt --client`** - always call it with `--client` as sbt startup is expensive and kills the feedback loop, **never run it without it**
- - **do not modify `dev.properties`** - it's primarly used by the developer to focus on working on one platform in their IDE without the issues related to shared sources
+ - **use `sbt --client` when MCP is insufficient** — e.g. when the task requires both Scala 2 and Scala 3
+   (MCP exposes only 1 version at a time), or when MCP is down. Always use `--client` flag as sbt startup
+   is expensive and kills the feedback loop — **never run bare `sbt` without `--client`**
+ - **do not modify `dev.properties`** - it's primarily used by the developer to focus on working on one platform in their IDE without the issues related to shared sources
    (IDE not being able to identify whether source file should be treated as a part of Scala 2 project or Scala 3 project, JVM or JS or Native)
 
 ### Finding the MCP Server Address
@@ -204,6 +206,26 @@ but an agent was not able to run the compilation and tests (e.g. because GitHub 
 prevents downloading artifacts), it should inform user that any PR they would attempt to make
 will be closed immediatelly.
 
+## Bug Fix Workflow
+
+For the complete bug-fix workflow (reproduce → fix → verify), see [Instruction for fixing a bug](docs/contributing/instruction-for-fixing-a-bug.md).
+
+**Quick reference — clean commands by changed module** (all using `sbt --client`):
+
+| What changed | Clean commands |
+|---|---|
+| `hearth-better-printers` | `hearthBetterPrinters/clean ; hearthBetterPrinters3/clean ; hearthCrossQuotes/clean ; hearthCrossQuotes3/clean ; hearth/clean ; hearth3/clean ; quick-clean` |
+| `hearth-cross-quotes` | `hearthCrossQuotes/clean ; hearthCrossQuotes3/clean ; hearth/clean ; hearth3/clean ; quick-clean` |
+| `hearth` | `hearth/clean ; hearth3/clean ; quick-clean` |
+| `hearth-tests` only | `quick-clean` |
+
+**Key reminders:**
+- Always clean after macro changes — incremental compilation does NOT re-expand macros
+- `quick-clean` then `quick-test` is the standard verify cycle
+- MCP supports only 1 Scala version at a time — use `sbt --client` for the other version
+
 ## Skills
 
 Are available in [contributing documentation](docs/contributing/_index.md).
+
+The bug fix workflow is documented in [instruction for fixing a bug](docs/contributing/instruction-for-fixing-a-bug.md).
