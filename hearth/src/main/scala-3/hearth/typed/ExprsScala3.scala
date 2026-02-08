@@ -3176,7 +3176,6 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     }
 
     // format: off
-    @scala.annotation.nowarn
     override def of1[A: Type](
         freshA: FreshName
     ): LambdaBuilder[A => *, Expr[A]] = {
@@ -3184,12 +3183,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val a1Expr = Ref(a1).asExprOf[A]
       new LambdaBuilder[A => *, Expr[A]](
         new Mk[A => *] {
-          // TODO: we need to create tests for each such utility,
-          // reproducing the issue and then fixing it.
           override def apply[To: Type](body: Expr[To]): Expr[A => To] = withQuotes {
 
-            // The problem is already with the Type[To] :/, maybe we should use cross quotes here
-            println("executing the problematic code version=4")
             def mkBody(a: Expr[A]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
@@ -3214,7 +3209,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val b1Expr = Ref(b1).asExprOf[B]
       new LambdaBuilder[(A, B) => *, (Expr[A], Expr[B])](
         new Mk[(A, B) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B]) = Block(
               List(
@@ -3223,7 +3218,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(b1, Some(b.asTerm)),
                 '{ val _ = $b1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B) => ${ mkBody('a, 'b) } }
@@ -3245,7 +3240,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val c1Expr = Ref(c1).asExprOf[C]
       new LambdaBuilder[(A, B, C) => *, (Expr[A], Expr[B], Expr[C])](
         new Mk[(A, B, C) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C]) = Block(
               List(
@@ -3256,7 +3251,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(c1, Some(c.asTerm)),
                 '{ val _ = $c1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C) => ${ mkBody('a, 'b, 'c) } }
@@ -3281,7 +3276,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val d1Expr = Ref(d1).asExprOf[D]
       new LambdaBuilder[(A, B, C, D) => *, (Expr[A], Expr[B], Expr[C], Expr[D])](
         new Mk[(A, B, C, D) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D]) = Block(
               List(
@@ -3294,7 +3289,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(d1, Some(d.asTerm)),
                 '{ val _ = $d1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D) => ${ mkBody('a, 'b, 'c, 'd) } }
@@ -3322,7 +3317,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val e1Expr = Ref(e1).asExprOf[E]
       new LambdaBuilder[(A, B, C, D, E) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E])](
         new Mk[(A, B, C, D, E) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E]) = Block(
               List(
@@ -3337,7 +3332,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(e1, Some(e.asTerm)),
                 '{ val _ = $e1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E) => ${ mkBody('a, 'b, 'c, 'd, 'e) } }
@@ -3368,7 +3363,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val f1Expr = Ref(f1).asExprOf[F]
       new LambdaBuilder[(A, B, C, D, E, F) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F])](
         new Mk[(A, B, C, D, E, F) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F]) = Block(
               List(
@@ -3385,7 +3380,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(f1, Some(f.asTerm)),
                 '{ val _ = $f1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f) } }
@@ -3419,7 +3414,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val g1Expr = Ref(g1).asExprOf[G]
       new LambdaBuilder[(A, B, C, D, E, F, G) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G])](
         new Mk[(A, B, C, D, E, F, G) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G]) = Block(
               List(
@@ -3438,7 +3433,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(g1, Some(g.asTerm)),
                 '{ val _ = $g1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g) } }
@@ -3475,7 +3470,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val h1Expr = Ref(h1).asExprOf[H]
       new LambdaBuilder[(A, B, C, D, E, F, G, H) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H])](
         new Mk[(A, B, C, D, E, F, G, H) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H]) = Block(
               List(
@@ -3496,7 +3491,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(h1, Some(h.asTerm)),
                 '{ val _ = $h1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h) } }
@@ -3536,7 +3531,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val i1Expr = Ref(i1).asExprOf[I]
       new LambdaBuilder[(A, B, C, D, E, F, G, H, I) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I])](
         new Mk[(A, B, C, D, E, F, G, H, I) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I]) = Block(
               List(
@@ -3559,7 +3554,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(i1, Some(i.asTerm)),
                 '{ val _ = $i1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i) } }
@@ -3602,7 +3597,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val j1Expr = Ref(j1).asExprOf[J]
       new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J])](
         new Mk[(A, B, C, D, E, F, G, H, I, J) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J]) = Block(
               List(
@@ -3627,7 +3622,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(j1, Some(j.asTerm)),
                 '{ val _ = $j1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j) } }
@@ -3673,7 +3668,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val k1Expr = Ref(k1).asExprOf[K]
       new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K])](
         new Mk[(A, B, C, D, E, F, G, H, I, J, K) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K]) = Block(
               List(
@@ -3700,7 +3695,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(k1, Some(k.asTerm)),
                 '{ val _ = $k1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k) } }
@@ -3749,7 +3744,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val l1Expr = Ref(l1).asExprOf[L]
       new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L])](
         new Mk[(A, B, C, D, E, F, G, H, I, J, K, L) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L]) = Block(
               List(
@@ -3778,7 +3773,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(l1, Some(l.asTerm)),
                 '{ val _ = $l1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l) } }
@@ -3830,7 +3825,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val m1Expr = Ref(m1).asExprOf[M]
       new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M])](
         new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M]) = Block(
               List(
@@ -3861,7 +3856,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(m1, Some(m.asTerm)),
                 '{ val _ = $m1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm) } }
@@ -3916,7 +3911,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val n1Expr = Ref(n1).asExprOf[N]
       new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N])](
         new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N]) = Block(
               List(
@@ -3949,7 +3944,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(n1, Some(n.asTerm)),
                 '{ val _ = $n1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n) } }
@@ -4007,7 +4002,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val o1Expr = Ref(o1).asExprOf[O]
       new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O])](
         new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O]) = Block(
               List(
@@ -4042,7 +4037,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(o1, Some(o.asTerm)),
                 '{ val _ = $o1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o) } }
@@ -4103,7 +4098,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val p1Expr = Ref(p1).asExprOf[P]
       new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P])](
         new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P]) = Block(
               List(
@@ -4140,7 +4135,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(p1, Some(p.asTerm)),
                 '{ val _ = $p1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) } }
@@ -4204,7 +4199,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val q1Expr = Ref(q1).asExprOf[Q]
       new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q])](
         new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q]) = Block(
               List(
@@ -4243,7 +4238,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(q1, Some(q.asTerm)),
                 '{ val _ = $q1Expr }.asTerm
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q) } }
@@ -4293,7 +4288,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val r1Expr = Ref(r1).asExprOf[R]
       new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R])](
         new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R]) = Block(
               List(
@@ -4334,7 +4329,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(r1, Some(r.asTerm)),
                 '{ val _ = $r1Expr }.asTerm,
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r) } }
@@ -4387,7 +4382,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val s1Expr = Ref(s1).asExprOf[S]
       new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S])](
         new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S]) = Block(
               List(
@@ -4430,7 +4425,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(s1, Some(s.asTerm)),
                 '{ val _ = $s1Expr }.asTerm,
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R, s: S) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r, 's) } }
@@ -4485,7 +4480,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val t1Expr = Ref(t1).asExprOf[T]
       new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T])](
         new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T]) = Block(
               List(
@@ -4530,7 +4525,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(t1, Some(t.asTerm)),
                 '{ val _ = $t1Expr }.asTerm,
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R, s: S, t: T) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r, 's, 't) } }
@@ -4587,7 +4582,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val u1Expr = Ref(u1).asExprOf[U]
       new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U])](
         new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T], u: Expr[U]) = Block(
               List(
@@ -4634,7 +4629,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(u1, Some(u.asTerm)),
                 '{ val _ = $u1Expr }.asTerm,
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R, s: S, t: T, u: U) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r, 's, 't, 'u) } }
@@ -4693,7 +4688,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val v1Expr = Ref(v1).asExprOf[V]
       new LambdaBuilder[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) => *, (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V])](
         new Mk[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) => *] {
-          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) => To] = {
+          override def apply[To: Type](body: Expr[To]): Expr[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) => To] = withQuotes {
 
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T], u: Expr[U], v: Expr[V]) = Block(
               List(
@@ -4742,7 +4737,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(v1, Some(v.asTerm)),
                 '{ val _ = $v1Expr }.asTerm,
               ),
-              body.asTerm
+              body.resetOwner.asTerm
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R, s: S, t: T, u: U, v: V) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r, 's, 't, 'u, 'v) } }

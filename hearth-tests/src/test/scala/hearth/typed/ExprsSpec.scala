@@ -353,6 +353,157 @@ final class ExprsSpec extends MacroSuite {
       }
     }
 
+    group("type LambdaBuilder scope issue") {
+
+      test("method LambdaBuilder.of1 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf1ScopeIssue
+
+        testLambdaBuilderOf1ScopeIssue ==> Data(2 + 1)
+      }
+
+      test("method LambdaBuilder.of2 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf2ScopeIssue
+
+        testLambdaBuilderOf2ScopeIssue ==> Data(2 * 3 + 1)
+      }
+
+      test("method LambdaBuilder.of3 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf3ScopeIssue
+
+        testLambdaBuilderOf3ScopeIssue ==> Data(2 * 3 * 5 + 1)
+      }
+
+      test("method LambdaBuilder.of4 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf4ScopeIssue
+
+        testLambdaBuilderOf4ScopeIssue ==> Data(2 * 3 * 5 * 7 + 1)
+      }
+
+      test("method LambdaBuilder.of5 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf5ScopeIssue
+
+        testLambdaBuilderOf5ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 + 1)
+      }
+
+      test("method LambdaBuilder.of6 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf6ScopeIssue
+
+        testLambdaBuilderOf6ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 + 1)
+      }
+
+      test("method LambdaBuilder.of7 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf7ScopeIssue
+
+        testLambdaBuilderOf7ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 + 1)
+      }
+
+      test("method LambdaBuilder.of8 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf8ScopeIssue
+
+        testLambdaBuilderOf8ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 + 1)
+      }
+
+      test("method LambdaBuilder.of9 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf9ScopeIssue
+
+        testLambdaBuilderOf9ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 + 1)
+      }
+
+      test("method LambdaBuilder.of10 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf10ScopeIssue
+
+        testLambdaBuilderOf10ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 + 1)
+      }
+
+      test("method LambdaBuilder.of11 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf11ScopeIssue
+
+        testLambdaBuilderOf11ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 + 1)
+      }
+
+      test("method LambdaBuilder.of12 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf12ScopeIssue
+
+        testLambdaBuilderOf12ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 + 1)
+      }
+
+      test("method LambdaBuilder.of13 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf13ScopeIssue
+
+        testLambdaBuilderOf13ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 + 1)
+      }
+
+      test("method LambdaBuilder.of14 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf14ScopeIssue
+
+        testLambdaBuilderOf14ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 + 1)
+      }
+
+      test("method LambdaBuilder.of15 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf15ScopeIssue
+
+        testLambdaBuilderOf15ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 + 1
+        )
+      }
+
+      test("method LambdaBuilder.of16 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf16ScopeIssue
+
+        testLambdaBuilderOf16ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 + 1
+        )
+      }
+
+      test("method LambdaBuilder.of17 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf17ScopeIssue
+
+        testLambdaBuilderOf17ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 + 1
+        )
+      }
+
+      test("method LambdaBuilder.of18 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf18ScopeIssue
+
+        testLambdaBuilderOf18ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 + 1
+        )
+      }
+
+      test("method LambdaBuilder.of19 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf19ScopeIssue
+
+        testLambdaBuilderOf19ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 * 67 + 1
+        )
+      }
+
+      test("method LambdaBuilder.of20 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf20ScopeIssue
+
+        testLambdaBuilderOf20ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 * 67 * 71 + 1
+        )
+      }
+
+      test("method LambdaBuilder.of21 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf21ScopeIssue
+
+        testLambdaBuilderOf21ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 * 67 * 71 * 73 + 1
+        )
+      }
+
+      test("method LambdaBuilder.of22 should handle body Expr from different scope") {
+        import ExprsFixtures.testLambdaBuilderOf22ScopeIssue
+
+        testLambdaBuilderOf22ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 * 67 * 71 * 73 * 79 + 1
+        )
+      }
+    }
+
     group("type ExprCodec") {
 
       test(

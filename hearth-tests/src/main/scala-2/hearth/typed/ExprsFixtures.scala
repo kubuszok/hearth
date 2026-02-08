@@ -65,6 +65,32 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
   def testLambdaBuilderTraverseImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
     testLambdaBuilderTraverse[A](expr)
 
+  def testLambdaBuilderOf1ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf1ScopeIssue
+
+  def testLambdaBuilderOf2ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf2ScopeIssue
+
+  def testLambdaBuilderOf3ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf3ScopeIssue
+
+  def testLambdaBuilderOf4ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf4ScopeIssue
+  def testLambdaBuilderOf5ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf5ScopeIssue
+  def testLambdaBuilderOf6ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf6ScopeIssue
+  def testLambdaBuilderOf7ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf7ScopeIssue
+  def testLambdaBuilderOf8ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf8ScopeIssue
+  def testLambdaBuilderOf9ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf9ScopeIssue
+  def testLambdaBuilderOf10ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf10ScopeIssue
+  def testLambdaBuilderOf11ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf11ScopeIssue
+  def testLambdaBuilderOf12ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf12ScopeIssue
+  def testLambdaBuilderOf13ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf13ScopeIssue
+  def testLambdaBuilderOf14ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf14ScopeIssue
+  def testLambdaBuilderOf15ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf15ScopeIssue
+  def testLambdaBuilderOf16ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf16ScopeIssue
+  def testLambdaBuilderOf17ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf17ScopeIssue
+  def testLambdaBuilderOf18ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf18ScopeIssue
+  def testLambdaBuilderOf19ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf19ScopeIssue
+  def testLambdaBuilderOf20ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf20ScopeIssue
+  def testLambdaBuilderOf21ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf21ScopeIssue
+  def testLambdaBuilderOf22ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf22ScopeIssue
+
   def testBidirectionalCodecsImpl: c.Expr[Data] = testBidirectionalCodecs
 
   def testOneWayCodecsImpl: c.Expr[Data] = testOneWayCodecs
@@ -119,6 +145,32 @@ object ExprsFixtures {
   def testLambdaBuilderPartition[A](expr: A): Data = macro ExprsFixtures.testLambdaBuilderPartitionImpl[A]
 
   def testLambdaBuilderTraverse[A](expr: A): Data = macro ExprsFixtures.testLambdaBuilderTraverseImpl[A]
+
+  def testLambdaBuilderOf1ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf1ScopeIssueImpl
+
+  def testLambdaBuilderOf2ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf2ScopeIssueImpl
+
+  def testLambdaBuilderOf3ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf3ScopeIssueImpl
+
+  def testLambdaBuilderOf4ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf4ScopeIssueImpl
+  def testLambdaBuilderOf5ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf5ScopeIssueImpl
+  def testLambdaBuilderOf6ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf6ScopeIssueImpl
+  def testLambdaBuilderOf7ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf7ScopeIssueImpl
+  def testLambdaBuilderOf8ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf8ScopeIssueImpl
+  def testLambdaBuilderOf9ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf9ScopeIssueImpl
+  def testLambdaBuilderOf10ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf10ScopeIssueImpl
+  def testLambdaBuilderOf11ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf11ScopeIssueImpl
+  def testLambdaBuilderOf12ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf12ScopeIssueImpl
+  def testLambdaBuilderOf13ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf13ScopeIssueImpl
+  def testLambdaBuilderOf14ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf14ScopeIssueImpl
+  def testLambdaBuilderOf15ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf15ScopeIssueImpl
+  def testLambdaBuilderOf16ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf16ScopeIssueImpl
+  def testLambdaBuilderOf17ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf17ScopeIssueImpl
+  def testLambdaBuilderOf18ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf18ScopeIssueImpl
+  def testLambdaBuilderOf19ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf19ScopeIssueImpl
+  def testLambdaBuilderOf20ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf20ScopeIssueImpl
+  def testLambdaBuilderOf21ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf21ScopeIssueImpl
+  def testLambdaBuilderOf22ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf22ScopeIssueImpl
 
   def testBidirectionalCodecs: Data = macro ExprsFixtures.testBidirectionalCodecsImpl
 

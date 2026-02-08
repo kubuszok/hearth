@@ -109,6 +109,94 @@ object ExprsFixtures {
   private def testLambdaBuilderTraverseImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testLambdaBuilderTraverse[A](expr)
 
+  inline def testLambdaBuilderOf1ScopeIssue: Data = ${ testLambdaBuilderOf1ScopeIssueImpl }
+  private def testLambdaBuilderOf1ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf1ScopeIssue
+
+  inline def testLambdaBuilderOf2ScopeIssue: Data = ${ testLambdaBuilderOf2ScopeIssueImpl }
+  private def testLambdaBuilderOf2ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf2ScopeIssue
+
+  inline def testLambdaBuilderOf3ScopeIssue: Data = ${ testLambdaBuilderOf3ScopeIssueImpl }
+  private def testLambdaBuilderOf3ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf3ScopeIssue
+
+  inline def testLambdaBuilderOf4ScopeIssue: Data = ${ testLambdaBuilderOf4ScopeIssueImpl }
+  private def testLambdaBuilderOf4ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf4ScopeIssue
+
+  inline def testLambdaBuilderOf5ScopeIssue: Data = ${ testLambdaBuilderOf5ScopeIssueImpl }
+  private def testLambdaBuilderOf5ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf5ScopeIssue
+
+  inline def testLambdaBuilderOf6ScopeIssue: Data = ${ testLambdaBuilderOf6ScopeIssueImpl }
+  private def testLambdaBuilderOf6ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf6ScopeIssue
+
+  inline def testLambdaBuilderOf7ScopeIssue: Data = ${ testLambdaBuilderOf7ScopeIssueImpl }
+  private def testLambdaBuilderOf7ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf7ScopeIssue
+
+  inline def testLambdaBuilderOf8ScopeIssue: Data = ${ testLambdaBuilderOf8ScopeIssueImpl }
+  private def testLambdaBuilderOf8ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf8ScopeIssue
+
+  inline def testLambdaBuilderOf9ScopeIssue: Data = ${ testLambdaBuilderOf9ScopeIssueImpl }
+  private def testLambdaBuilderOf9ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf9ScopeIssue
+
+  inline def testLambdaBuilderOf10ScopeIssue: Data = ${ testLambdaBuilderOf10ScopeIssueImpl }
+  private def testLambdaBuilderOf10ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf10ScopeIssue
+
+  inline def testLambdaBuilderOf11ScopeIssue: Data = ${ testLambdaBuilderOf11ScopeIssueImpl }
+  private def testLambdaBuilderOf11ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf11ScopeIssue
+
+  inline def testLambdaBuilderOf12ScopeIssue: Data = ${ testLambdaBuilderOf12ScopeIssueImpl }
+  private def testLambdaBuilderOf12ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf12ScopeIssue
+
+  inline def testLambdaBuilderOf13ScopeIssue: Data = ${ testLambdaBuilderOf13ScopeIssueImpl }
+  private def testLambdaBuilderOf13ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf13ScopeIssue
+
+  inline def testLambdaBuilderOf14ScopeIssue: Data = ${ testLambdaBuilderOf14ScopeIssueImpl }
+  private def testLambdaBuilderOf14ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf14ScopeIssue
+
+  inline def testLambdaBuilderOf15ScopeIssue: Data = ${ testLambdaBuilderOf15ScopeIssueImpl }
+  private def testLambdaBuilderOf15ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf15ScopeIssue
+
+  inline def testLambdaBuilderOf16ScopeIssue: Data = ${ testLambdaBuilderOf16ScopeIssueImpl }
+  private def testLambdaBuilderOf16ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf16ScopeIssue
+
+  inline def testLambdaBuilderOf17ScopeIssue: Data = ${ testLambdaBuilderOf17ScopeIssueImpl }
+  private def testLambdaBuilderOf17ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf17ScopeIssue
+
+  inline def testLambdaBuilderOf18ScopeIssue: Data = ${ testLambdaBuilderOf18ScopeIssueImpl }
+  private def testLambdaBuilderOf18ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf18ScopeIssue
+
+  inline def testLambdaBuilderOf19ScopeIssue: Data = ${ testLambdaBuilderOf19ScopeIssueImpl }
+  private def testLambdaBuilderOf19ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf19ScopeIssue
+
+  inline def testLambdaBuilderOf20ScopeIssue: Data = ${ testLambdaBuilderOf20ScopeIssueImpl }
+  private def testLambdaBuilderOf20ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf20ScopeIssue
+
+  inline def testLambdaBuilderOf21ScopeIssue: Data = ${ testLambdaBuilderOf21ScopeIssueImpl }
+  private def testLambdaBuilderOf21ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf21ScopeIssue
+
+  inline def testLambdaBuilderOf22ScopeIssue: Data = ${ testLambdaBuilderOf22ScopeIssueImpl }
+  private def testLambdaBuilderOf22ScopeIssueImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderOf22ScopeIssue
+
   inline def testBidirectionalCodecs: Data = ${ testBidirectionalCodecsImpl }
   private def testBidirectionalCodecsImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testBidirectionalCodecs
