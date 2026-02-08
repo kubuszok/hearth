@@ -34,7 +34,14 @@ Ideally, each such example should be a snippet (or a group of snippets) that can
 [Instruction for testing documentation snippets](instruction-for-testing-documentation-snippets.md).
 
 
-## Instructions for fixing compilation errors
+## Instructions for fixing bugs and compilation errors
+
+### Instruction for fixing a bug (end-to-end workflow)
+
+Complete workflow for reproducing bugs with failing tests, applying fixes, and verifying them.
+Covers clean/compile/test cycles, incremental compilation gotchas, and MCP limitations.
+
+[Instruction for fixing a bug](instruction-for-fixing-a-bug.md).
 
 ### Instruction for fixing `':' expected but identifier found.`
 

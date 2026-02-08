@@ -222,3 +222,72 @@ Agent: I've updated better-printers to improve AST printing. Since cross-quotes 
        3. Compiling hearth...
        4. Running hearth-tests to verify safety...
 ```
+
+## Adding a test for a bug fix
+
+When reproducing a bug or verifying a fix, you need tests that demonstrate the problem and the solution.
+For the complete bug-fix workflow including clean/compile/test cycles, see
+[instruction for fixing a bug](instruction-for-fixing-a-bug.md).
+
+### Choosing between extending a fixture and creating a new one
+
+**Prefer extending an existing fixture** when the bug relates to functionality that already has test coverage.
+For example:
+
+ - Bug in `Expr.quote` behavior → extend `CrossExprsFixturesImpl.scala`
+ - Bug in type handling → extend `CrossTypesFixturesImpl.scala` or `TypeFixturesImpl.scala`
+ - Bug in class inspection → extend `ClassesFixturesImpl.scala`
+
+**Create a new fixture** only when the bug exercises a fundamentally different code path that existing fixtures
+do not cover. If unsure, ask.
+
+### Testing compilation failures
+
+If the bug manifests as code that should compile but doesn't (or shouldn't compile but does),
+use `compileErrors`:
+
+```scala
+// Verify that buggy code triggers a compilation error
+compileErrors(
+  """
+  // code that triggers the bug
+  """
+).arePresent()
+
+// Verify a specific error message
+compileErrors(
+  """
+  // code that triggers the bug
+  """
+).check(
+  "expected error text"
+)
+
+// Verify that a specific misleading error does NOT appear
+compileErrors(
+  """
+  // code that triggers the bug
+  """
+).checkNot(
+  "misleading error that should not appear"
+)
+```
+
+### Testing incorrect macro output
+
+If the bug manifests as a macro producing wrong results, add a test case to an existing fixture
+and assert the expected output:
+
+```scala
+SomeFixtures.testSomething(...) <==> Data.map(
+  "key" -> Data("expected value")
+)
+```
+
+### Cleaning after test changes
+
+After adding or modifying fixtures, **always clean the module chain** before running tests.
+Incremental compilation does NOT reliably re-expand macros when fixture implementations change.
+
+At minimum, run `quick-clean` (cleans `hearthTests`, `hearthTests3`, `hearthSandwichTests`, `hearthSandwichTests3`)
+before `quick-test`. For a full clean table by module, see the [bug fix instruction](instruction-for-fixing-a-bug.md).
