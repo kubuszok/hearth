@@ -2,6 +2,7 @@ package hearth
 package typed
 
 import hearth.data.Data
+import hearth.fp.effect.MIO
 import hearth.fp.instances.*
 import hearth.fp.syntax.*
 
@@ -794,6 +795,622 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
       Data(Expr.splice(lambda)(2))
     }
   }
+
+  // LambdaBuilder scope issue reproduction
+  //
+  // Reproduces the pattern from FastShowPrettyMacrosImpl.deriveCollectionItems where:
+  // 1. An outer Expr.splice creates a nested Quotes context (Q1)
+  // 2. Inside Q1, Type[Item] is obtained and LambdaBuilder.of1[Item] is called
+  // 3. mk.apply creates '{ (a: A) => ${ mkBody('a) } } — the '{ ... } uses the
+  //    implicit `quotes` from the class constructor (Q0), not the current Q1
+  // 4. Type[A] from Q1 is used in a quote bound to Q0 → ScopeException
+  //
+  // Fix: withQuotes ensures '{ ... } uses CrossQuotes.ctx (Q1), not the stale Q0.
+  // resetOwner fixes body Expr's symbol ownership to match the new splice owner.
+
+  def testLambdaBuilderOf1ScopeIssue: Expr[Data] = {
+    // Create a non-trivial quote + splice to enter Q1 context.
+    // Inside Q1: create Type[Int], set up LambdaBuilder, run MIO, return lambda Expr.
+    // Without withQuotes fix, mk.apply's '{ ... } uses Q0 but Type[Int] is from Q1.
+    val lambda: Expr[Int => Int] = Expr.quote {
+      val x: Int => Int = Expr.splice {
+        // We're now in Q1 context (CrossQuotes.nestedCtx pushed new Quotes)
+        // Cannot use `implicit val t: Type[Int] = ...` because the cross-quotes plugin
+        // transforms Type[Int] annotations into self-referencing code, causing infinite loop.
+        // Instead, call a helper that takes Type[Int] as a parameter.
+        scopeIssueOf1Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2)))
+  }
+
+  private def scopeIssueOf1Inner(implicit intType: Type[Int]): Expr[Int => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of1[Int]("a")
+            .traverse[MIO, Expr[Int]] { a =>
+              MIO.pure(Expr.quote(Expr.splice(a) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf2ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int) => Int = Expr.splice {
+        scopeIssueOf2Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3)))
+  }
+
+  private def scopeIssueOf2Inner(implicit intType: Type[Int]): Expr[(Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of2[Int, Int]("a", "b")
+            .traverse[MIO, Expr[Int]] { case ((a, b)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf3ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf3Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5)))
+  }
+
+  private def scopeIssueOf3Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of3[Int, Int, Int]("a", "b", "c")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  // format: off
+  def testLambdaBuilderOf4ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf4Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7)))
+  }
+
+  private def scopeIssueOf4Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of4[Int, Int, Int, Int]("a", "b", "c", "d")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf5ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf5Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11)))
+  }
+
+  private def scopeIssueOf5Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of5[Int, Int, Int, Int, Int]("a", "b", "c", "d", "e")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf6ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf6Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13)))
+  }
+
+  private def scopeIssueOf6Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of6[Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf7ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf7Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17)))
+  }
+
+  private def scopeIssueOf7Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of7[Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf8ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf8Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19)))
+  }
+
+  private def scopeIssueOf8Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of8[Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf9ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf9Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19, 23)))
+  }
+
+  private def scopeIssueOf9Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of9[Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h, i)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf10ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf10Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29)))
+  }
+
+  private def scopeIssueOf10Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of10[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h, i, j)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf11ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf11Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31)))
+  }
+
+  private def scopeIssueOf11Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of11[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h, i, j, k)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf12ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf12Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37)))
+  }
+
+  private def scopeIssueOf12Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of12[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h, i, j, k, l)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf13ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf13Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41)))
+  }
+
+  private def scopeIssueOf13Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of13[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h, i, j, k, l, m)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf14ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf14Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43)))
+  }
+
+  private def scopeIssueOf14Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of14[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf15ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf15Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47)))
+  }
+
+  private def scopeIssueOf15Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of15[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf16ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf16Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53)))
+  }
+
+  private def scopeIssueOf16Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of16[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf17ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf17Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59)))
+  }
+
+  private def scopeIssueOf17Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of17[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf18ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf18Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61)))
+  }
+
+  private def scopeIssueOf18Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of18[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf19ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf19Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67)))
+  }
+
+  private def scopeIssueOf19Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of19[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) * Expr.splice(s) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf20ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf20Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71)))
+  }
+
+  private def scopeIssueOf20Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of20[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) * Expr.splice(s) * Expr.splice(t) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf21ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf21Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73)))
+  }
+
+  private def scopeIssueOf21Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of21[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) * Expr.splice(s) * Expr.splice(t) * Expr.splice(u) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testLambdaBuilderOf22ScopeIssue: Expr[Data] = {
+    val lambda: Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] = Expr.quote {
+      val x: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int = Expr.splice {
+        scopeIssueOf22Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(lambda)(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79)))
+  }
+
+  private def scopeIssueOf22Inner(implicit intType: Type[Int]): Expr[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) => Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          LambdaBuilder
+            .of22[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v")
+            .traverse[MIO, Expr[Int]] { case ((a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) * Expr.splice(s) * Expr.splice(t) * Expr.splice(u) * Expr.splice(v) + 1))
+            }
+            .map(_.build[Int])
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  // format: on
 
   // ExprCodecs
 
