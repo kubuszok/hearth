@@ -71,7 +71,9 @@ object FastShowPrettyUtils {
       sb.append("\n")
       val _ = renderItem(item)
       if (iterator.hasNext) {
-        sb.append(", ")
+        sb.append(",")
+      } else {
+        sb.append("\n")
       }
     }
     sb
@@ -87,13 +89,13 @@ object FastShowPrettyUtils {
 
   /** Opens a map entry rendering. */
   def openMapEntry(sb: StringBuilder): StringBuilder =
-    sb
+    sb.append("(")
 
-  /** Appends the arrow separator between key and value in a map entry. */
+  /** Appends the separator between key and value in a map entry. */
   def appendMapArrow(sb: StringBuilder): StringBuilder =
-    sb.append(" -> ")
+    sb.append(", ")
 
   /** Closes a map entry rendering. */
   def closeMapEntry(sb: StringBuilder): StringBuilder =
-    sb
+    sb.append(")")
 }
