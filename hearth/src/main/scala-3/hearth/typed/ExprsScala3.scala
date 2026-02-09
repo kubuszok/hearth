@@ -509,6 +509,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
   object ValDefBuilder extends ValDefBuilderModule {
     import quotes.*, quotes.reflect.*
 
+    import Expr.platformSpecific.*
+
     sealed private[typed] trait Mk[Signature, Returned] private[typed] {
 
       def build(body: Expr[Returned]): ValDefs[Signature]
@@ -812,7 +814,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -828,6 +830,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
