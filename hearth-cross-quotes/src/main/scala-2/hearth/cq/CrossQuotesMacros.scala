@@ -121,9 +121,11 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     result
   }
 
-  // Scala 3 generate prefix$macro$[n] while Scala 2 prefix[n] and we want to align the behavior
-  private def freshName(prefix: String): TermName = c.universe.internal.reificationSupport.freshTermName(prefix)
-  private def freshTypeName(prefix: String): TypeName = c.universe.internal.reificationSupport.freshTypeName(prefix)
+  // We're adding `_` to the prefix to make sure that if there was a trailing digit, it would not affect the order of stubs.
+  private def freshName(prefix: String): TermName =
+    c.universe.internal.reificationSupport.freshTermName(prefix + "_")
+  private def freshTypeName(prefix: String): TypeName =
+    c.universe.internal.reificationSupport.freshTypeName(prefix + "_")
 
   private def paint(color: String)(text: String): String =
     text.split("\n").map(line => s"$color$line${Console.RESET}").mkString("\n")
@@ -3459,6 +3461,20 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       }
   }
 
+  /** When we replace stubs, we should be careful to e.g. not replace Something$1 before Something$10, or we will end up
+    * with a broken code. To avoid this, we sort stubs in descending order of their suffixes.
+    */
+  private val stubSuffixDescending: Ordering[String] = Ordering.by { (string: String) =>
+    val lastNonDigit = {
+      var i = string.length - 1
+      while (i >= 0 && string.charAt(i).isDigit) i -= 1
+      i
+    }
+    val prefix = string.substring(0, lastNonDigit + 1)
+    val suffix = string.substring(lastNonDigit + 1).toIntOption.getOrElse(0)
+    (prefix, suffix)
+  }.reverse
+
   /** Handles type parameters and imported value.Underlying inside Expr.quote: Expr.quote { def foo[A] = ... // use A },
     * as we as type parameters and imported value.Underlying inside Expr.splice: that require Type[A] from the outside.
     */
@@ -3506,8 +3522,9 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
       def toReplace = caches.view.collect { case (_, Some(Cache(stub, _, weakTypeTag))) =>
         val printedWeakTypeTag = renderCode(weakTypeTag)
-        Pattern.quote(stub.toString) -> Matcher.quoteReplacement(s"$${ $printedWeakTypeTag }")
-      }.toMap
+        val stubString = stub.toString
+        (stubString, Pattern.quote(stubString), Matcher.quoteReplacement(s"$${ $printedWeakTypeTag }"))
+      }
       def toCheck = caches.view.collect { case (name, Some(Cache(stub, _, _))) =>
         name -> stub.toString
       }.toMap
@@ -3544,8 +3561,9 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
       def toReplace = cachesAliases.view.collect { case (_, Cache(stub, _, weakTypeTag)) =>
         val printedWeakTypeTag = renderCode(weakTypeTag)
-        Pattern.quote(stub.toString) -> Matcher.quoteReplacement(s"$${ $printedWeakTypeTag }")
-      }.toMap
+        val stubString = stub.toString
+        (stubString, Pattern.quote(stubString), Matcher.quoteReplacement(s"$${ $printedWeakTypeTag }"))
+      }
       def toCheck = caches.view.collect { case (name, Cache(stub, _, _)) =>
         name -> stub.toString
       }.toMap
@@ -3645,9 +3663,11 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     }
 
     def replaceStubsInSource(source: String): String =
-      (AbstractTypes.toReplace.view ++ ImportedTypes.toReplace.view).foldLeft(source) {
-        case (result, (pattern, replacement)) => result.replaceAll(pattern, replacement)
-      }
+      (AbstractTypes.toReplace ++ ImportedTypes.toReplace).toVector
+        .sortBy(_._1)(using stubSuffixDescending)
+        .foldLeft(source) { case (result, (_, pattern, replacement)) =>
+          result.replaceAll(pattern, replacement)
+        }
 
     def validateNoStubsLeft(source: String): String = {
       val remainingStubs = (AbstractTypes.toCheck.view ++ ImportedTypes.toCheck.view).collect {
@@ -3679,8 +3699,9 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       }
 
       def toReplace = caches.view.collect { case (stub, expr) =>
-        Pattern.quote(stub.toString) -> Matcher.quoteReplacement(expr)
-      }.toMap
+        val stubString = stub.toString
+        (stubString, Pattern.quote(stubString), Matcher.quoteReplacement(expr))
+      }
       def toCheck = caches.keys.toSet
     }
 
@@ -3710,10 +3731,11 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       case tree => super.transform(tree)
     }
 
-    def replaceStubsInSource(source: String): String = Splices.toReplace.foldLeft(source) {
-      case (result, (pattern, replacement)) =>
-        result.replaceAll(pattern, replacement)
-    }
+    def replaceStubsInSource(source: String): String =
+      Splices.toReplace.toVector.sortBy(_._1)(using stubSuffixDescending).foldLeft(source) {
+        case (result, (_, pattern, replacement)) =>
+          result.replaceAll(pattern, replacement)
+      }
 
     def validateNoStubsLeft(source: String): String = {
       val stubs = Splices.toCheck.filter(source.contains)
