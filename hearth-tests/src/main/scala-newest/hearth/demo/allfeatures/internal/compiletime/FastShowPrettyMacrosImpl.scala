@@ -14,14 +14,22 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
 
   // Entrypoints to the macro
 
-  def deriveInline[A: Type](value: Expr[A], config: Expr[RenderConfig], level: Expr[Int]): Expr[String] = {
+  def deriveInline[A: Type](valueExpr: Expr[A], configExpr: Expr[RenderConfig], levelExpr: Expr[Int]): Expr[String] = {
     implicit val StringBuilder: Type[StringBuilder] = Types.StringBuilder
+    implicit val RenderConfig: Type[RenderConfig] = Types.RenderConfig
     implicit val String: Type[String] = Types.String
+    implicit val Int: Type[Int] = Types.Int
 
     deriveFromCtxAndAdaptForEntrypoint[A, String]("FastShowPretty.render") { fromCtx =>
-      ValDefs.createVal[StringBuilder](Expr.quote(new StringBuilder)).use { sb =>
-        Expr.quote {
-          Expr.splice(fromCtx(DerivationCtx.from(sb, value, config, level))).toString
+      ValDefs.createVal[StringBuilder](Expr.quote(new StringBuilder)).use { sbVal =>
+        ValDefs.createVal[A](valueExpr).use { valueVal =>
+          ValDefs.createVal[RenderConfig](configExpr).use { configVal =>
+            ValDefs.createVal[Int](levelExpr).use { levelVal =>
+              Expr.quote {
+                Expr.splice(fromCtx(DerivationCtx.from(sbVal, valueVal, configVal, levelVal))).toString
+              }
+            }
+          }
         }
       }
     }
@@ -80,10 +88,10 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
     }
     .runToExprOrFail(
       macroName,
-      infoRendering =
-        if (Environment.isExpandedAt("FastShowPrettySpec.scala"))
-          hearth.fp.effect.RenderFrom(hearth.fp.effect.Log.Level.Info)
-        else hearth.fp.effect.DontRender,
+      infoRendering = hearth.fp.effect.DontRender,
+      // if (Environment.isExpandedAt("FastShowPrettySpec.scala"))
+      //   hearth.fp.effect.RenderFrom(hearth.fp.effect.Log.Level.Info)
+      // else hearth.fp.effect.DontRender,
       warnRendering = hearth.fp.effect.DontRender,
       errorRendering = hearth.fp.effect.RenderFrom(hearth.fp.effect.Log.Level.Info)
     ) { (errorLogs, errors) =>
@@ -217,32 +225,41 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
   // The actual derivation logic in the form of DerivationCtx[A] ?=> MIO[Expr[StringBuilder]].
 
   def deriveResultRecursively[A: DerivationCtx]: MIO[Expr[StringBuilder]] =
-    Log.namedScope(s"Deriving for type ${Type[A].prettyPrint}") {
-      Rules(
-        UseCachedDefWhenAvailableRule,
-        UseImplicitWhenAvailableRule,
-        UseBuiltInSupportRule,
-        HandleAsMapRule,
-        HandleAsCollectionRule,
-        HandleAsCaseClassRule,
-        HandleAsEnumRule
-      )(_[A]).flatMap {
-        case Right(result) =>
-          Log.info(s"Derived result for ${Type[A].prettyPrint}: ${result.prettyPrint}") >>
-            MIO.pure(result)
-        case Left(reasons) =>
-          val reasonsStrings = reasons.toListMap
-            .removed(UseCachedDefWhenAvailableRule)
-            .view
-            .map { case (rule, reasons) =>
-              if (reasons.isEmpty) s"The rule ${rule.name} was not applicable"
-              else s" - The rule ${rule.name} was not applicable, for the following reasons: ${reasons.mkString(", ")}"
-            }
-            .toList
-          Log.info(s"Failed to derive result for ${Type[A].prettyPrint}:\n${reasonsStrings.mkString("\n")}") >>
-            MIO.fail(DerivationError.UnsupportedType(Type[A].prettyPrint, reasonsStrings))
+    Log
+      .namedScope(s"Deriving for type ${Type[A].prettyPrint}") {
+        Rules(
+          UseCachedDefWhenAvailableRule,
+          UseImplicitWhenAvailableRule,
+          UseBuiltInSupportRule,
+          HandleAsMapRule,
+          HandleAsCollectionRule,
+          HandleAsCaseClassRule,
+          HandleAsEnumRule
+        )(_[A]).flatMap {
+          case Right(result) =>
+            Log.info(s"Derived result for ${Type[A].prettyPrint}: ${result.prettyPrint}") >>
+              MIO.pure(result)
+          case Left(reasons) =>
+            val reasonsStrings = reasons.toListMap
+              .removed(UseCachedDefWhenAvailableRule)
+              .view
+              .map { case (rule, reasons) =>
+                if (reasons.isEmpty) s"The rule ${rule.name} was not applicable"
+                else
+                  s" - The rule ${rule.name} was not applicable, for the following reasons: ${reasons.mkString(", ")}"
+              }
+              .toList
+            Log.info(s"Failed to derive result for ${Type[A].prettyPrint}:\n${reasonsStrings.mkString("\n")}") >>
+              MIO.fail(DerivationError.UnsupportedType(Type[A].prettyPrint, reasonsStrings))
+        }
       }
-    }
+      .attemptTap {
+        case Right(result) =>
+        case Left(errors)  =>
+          if (Environment.isExpandedAt("FastShowPrettySpec.scala")) {
+            errors.toList.foreach(e => e.printStackTrace())
+          }
+      }
 
   // Particular derivation rules - the first one that applies (succeeding OR failing) is used.
 

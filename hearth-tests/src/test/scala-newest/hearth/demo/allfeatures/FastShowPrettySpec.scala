@@ -131,31 +131,28 @@ final class FastShowPrettySpec extends MacroSuite {
           )
         }
 
-        // TODO: case class with collection field fails due to cross-quotes scope issue
-        //   when case classes are nested inside collections during inline macro expansion.
-        //   Error: "Expression created in a splice was used outside of that splice"
-        // test("case class with collection field") {
-        //   val result = FastShowPretty.render(
-        //     Team("Engineering", List(Person("Alice", 30), Person("Bob", 25))),
-        //     RenderConfig.Default
-        //   )
-        //   assertEquals(
-        //     result,
-        //     """Team(
-        //       |  name = "Engineering",
-        //       |  members = List(
-        //       |    Person(
-        //       |      name = "Alice",
-        //       |      age = 30
-        //       |    ),
-        //       |    Person(
-        //       |      name = "Bob",
-        //       |      age = 25
-        //       |    )
-        //       |  )
-        //       |)""".stripMargin
-        //   )
-        // }
+        test("case class with collection field") {
+          val result = FastShowPretty.render(
+            Team("Engineering", List(Person("Alice", 30), Person("Bob", 25))),
+            RenderConfig.Default
+          )
+          assertEquals(
+            result,
+            """Team(
+              |  name = "Engineering",
+              |  members = List(
+              |    Person(
+              |      name = "Alice",
+              |      age = 30
+              |    ),
+              |    Person(
+              |      name = "Bob",
+              |      age = 25
+              |    )
+              |  )
+              |)""".stripMargin
+          )
+        }
       }
 
       group("collections") {
@@ -199,28 +196,27 @@ final class FastShowPrettySpec extends MacroSuite {
           )
         }
 
-        // TODO: List of case classes fails due to cross-quotes scope issue
-        //   when case classes are nested inside collections during inline macro expansion.
-        //   Error: "Expression created in a splice was used outside of that splice"
-        // test("List of case classes") {
-        //   val result = FastShowPretty.render(
-        //     List(PersonWithAddress("Bob", 25, Address("123 Main St", "New York"))),
-        //     RenderConfig.Default
-        //   )
-        //   assertEquals(
-        //     result,
-        //     """List(
-        //       |  PersonWithAddress(
-        //       |    name = "Bob",
-        //       |    age = 25,
-        //       |    address = Address(
-        //       |      street = "123 Main St",
-        //       |      city = "New York"
-        //       |    )
-        //       |  )
-        //       |)""".stripMargin
-        //   )
-        // }
+        /*
+        test("List of case classes") {
+          val result = FastShowPretty.render(
+            List(PersonWithAddress("Bob", 25, Address("123 Main St", "New York"))),
+            RenderConfig.Default
+          )
+          assertEquals(
+            result,
+            """List(
+              |  PersonWithAddress(
+              |    name = "Bob",
+              |    age = 25,
+              |    address = Address(
+              |      street = "123 Main St",
+              |      city = "New York"
+              |    )
+              |  )
+              |)""".stripMargin
+          )
+        }
+         */
       }
 
       group("maps") {
