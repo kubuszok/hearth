@@ -81,7 +81,7 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
     .runToExprOrFail(
       macroName,
       infoRendering =
-        if (Environment.isExpandedAt("FastShowPrettySpec.scala:358"))
+        if (Environment.isExpandedAt("FastShowPrettySpec.scala"))
           hearth.fp.effect.RenderFrom(hearth.fp.effect.Log.Level.Info)
         else hearth.fp.effect.DontRender,
       warnRendering = hearth.fp.effect.DontRender,
@@ -184,9 +184,6 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
       level = level,
       cache = ValDefsCache.mlocal
     )
-
-    type Helper[B, R, V] =
-      ValDefBuilder[(Expr[StringBuilder], Expr[RenderConfig], Expr[Int], Expr[B]) => Expr[StringBuilder], R, V]
   }
 
   def ctx[A](implicit A: DerivationCtx[A]): DerivationCtx[A] = A
@@ -225,6 +222,7 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
         UseCachedDefWhenAvailableRule,
         UseImplicitWhenAvailableRule,
         UseBuiltInSupportRule,
+        HandleAsMapRule,
         HandleAsCollectionRule,
         HandleAsCaseClassRule,
         HandleAsEnumRule
@@ -355,6 +353,66 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
       }
   }
 
+  object HandleAsMapRule extends DerivationRule("handle as map when possible") {
+    implicit val StringBuilder: Type[StringBuilder] = Types.StringBuilder
+
+    def apply[A: DerivationCtx]: MIO[Rule.Applicability[Expr[StringBuilder]]] =
+      Log.info(s"Attempting to handle ${Type[A].prettyPrint} as a map") >> {
+        Type[A] match {
+          case IsMap(isMap) =>
+            import isMap.Underlying as Pair
+            import isMap.value.{Key, Value}
+            deriveMapItems[A, Pair](isMap.value)
+
+          case _ =>
+            yieldUnsupportedType[A]
+        }
+      }
+
+    private def deriveMapItems[A: DerivationCtx, Pair: Type](
+        isMap: IsMapOf[A, Pair]
+    ): MIO[Rule.Applicability[Expr[StringBuilder]]] = {
+      import isMap.{Key, Value}
+      val name = Expr(Type[A].shortName)
+      val iterableExpr = isMap.asIterable(ctx.value)
+
+      LambdaBuilder
+        .of1[Pair]("pair")
+        .traverse { pairExpr =>
+          val keyExpr = isMap.key(pairExpr)
+          val valueExpr = isMap.value(pairExpr)
+          for {
+            keyResult <- deriveResultRecursively[Key](using ctx.incrementLevel.nest(keyExpr))
+            valueResult <- deriveResultRecursively[Value](using ctx.incrementLevel.nest(valueExpr))
+          } yield Expr.quote {
+            FastShowPrettyUtils.appendIndent(
+              Expr.splice(ctx.sb),
+              Expr.splice(ctx.config).indentString,
+              Expr.splice(ctx.level) + 1
+            )
+            FastShowPrettyUtils.openMapEntry(Expr.splice(ctx.sb))
+            Expr.splice(keyResult)
+            FastShowPrettyUtils.appendMapArrow(Expr.splice(ctx.sb))
+            Expr.splice(valueResult)
+            FastShowPrettyUtils.closeMapEntry(Expr.splice(ctx.sb))
+          }
+        }
+        .map { builder =>
+          val lambda = builder.build[StringBuilder]
+          Rule.matched(Expr.quote {
+            FastShowPrettyUtils.openCollection(Expr.splice(ctx.sb), Expr.splice(name))
+            FastShowPrettyUtils.fillCollection(Expr.splice(ctx.sb), Expr.splice(iterableExpr))(Expr.splice(lambda))
+            FastShowPrettyUtils
+              .appendIndent(Expr.splice(ctx.sb), Expr.splice(ctx.config).indentString, Expr.splice(ctx.level))
+            FastShowPrettyUtils.closeCollection(Expr.splice(ctx.sb))
+          })
+        }
+    }
+
+    private def yieldUnsupportedType[A: DerivationCtx]: MIO[Rule.Applicability[Expr[StringBuilder]]] =
+      MIO.pure(Rule.yielded(s"The type ${Type[A].prettyPrint} is not considered to be a map"))
+  }
+
   object HandleAsCollectionRule extends DerivationRule("handle as collection when possible") {
     implicit val StringBuilder: Type[StringBuilder] = Types.StringBuilder
 
@@ -379,21 +437,19 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
       LambdaBuilder
         .of1[Item]("item")
         .traverse { itemExpr =>
-          // TODO: possible .incrementLevel
-          deriveResultRecursively[Item](using ctx.nest(itemExpr))
+          deriveResultRecursively[Item](using ctx.incrementLevel.nest(itemExpr)).map { result =>
+            Expr.quote {
+              FastShowPrettyUtils.appendIndent(
+                Expr.splice(ctx.sb),
+                Expr.splice(ctx.config).indentString,
+                Expr.splice(ctx.level) + 1
+              )
+              Expr.splice(result)
+            }
+          }
         }
         .map { builder =>
-          // TODO: this creates error on Scala 3:
-          val lambda =
-            try
-              // the solution we want
-              builder.build[StringBuilder]
-            catch {
-              case e: Throwable =>
-                e.printStackTrace()
-                // workaround to no fight unrelated compilation errors end stuff
-                Expr.quote((_: Item) => Expr.splice(ctx.sb))
-            }
+          val lambda = builder.build[StringBuilder]
           Rule.matched(Expr.quote {
             FastShowPrettyUtils.openCollection(Expr.splice(ctx.sb), Expr.splice(name))
             FastShowPrettyUtils.fillCollection(Expr.splice(ctx.sb), Expr.splice(iterableExpr))(Expr.splice(lambda))
