@@ -1,4 +1,4 @@
-package hearth.demo
+package hearth.demo.simple
 
 import hearth.MacroSuite
 

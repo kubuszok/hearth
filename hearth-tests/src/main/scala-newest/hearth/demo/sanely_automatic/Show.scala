@@ -1,8 +1,9 @@
 // We've put things into a separate package and do not use:
 //   package hearth
-//   package demo_sanely_automatic
+//   package demo
+//   package sanely_automatic
 // here, because we want to show all the imports normal users would have to do.
-package hearth.demo_sanely_automatic
+package hearth.demo.sanely_automatic
 
 /** Example of Show type class with sanely-automatic derivation.
   *
@@ -27,7 +28,7 @@ object Show extends ShowCompanionCompat {
   /** Special type - is its implicit is in scope then macros will log the derivation process.
     *
     * @see
-    *   [[hearth.demo_sanely_automatic.debug.logDerivation]] for details
+    *   [[hearth.demo.sanely_automatic.debug.logDerivation]] for details
     */
   sealed trait LogDerivation
   object LogDerivation extends LogDerivation
