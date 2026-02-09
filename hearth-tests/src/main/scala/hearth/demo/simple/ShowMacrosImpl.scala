@@ -1,8 +1,9 @@
 // We've put things into a separate package and do not use:
 //   package hearth
-//   package demo_sanely_automatic
+//   package demo
+//   package simple
 // here, because we want to show all the imports normal users would have to do.
-package hearth.demo_sanely_automatic
+package hearth.demo.simple
 
 import hearth.*
 import hearth.fp.effect.*
@@ -10,7 +11,7 @@ import hearth.fp.instances.*
 import hearth.fp.syntax.*
 
 /** Implementation of the [[Show]] macro, tested in [[ShowSpec]]. */
-private[demo_sanely_automatic] trait ShowMacrosImpl { this: MacroCommons =>
+private[demo] trait ShowMacrosImpl { this: MacroCommons =>
 
   /** Derives a `Show[A]` type class instance for a given type `A`. */
   def deriveTypeClass[A: Type]: Expr[Show[A]] = Expr.quote {
@@ -62,7 +63,7 @@ private[demo_sanely_automatic] trait ShowMacrosImpl { this: MacroCommons =>
     }
 
   /** Enables logging if we either:
-    *   - import [[hearth.demo_sanely_automatic.debug.logDerivation]] in the scope
+    *   - import [[hearth.demo.debug.logDerivation]] in the scope
     *   - have set scalac option `-Xmacro-settings:show.logDerivation=true`
     */
   private def shouldWeLogDerivation: Boolean = {
@@ -107,22 +108,11 @@ private[demo_sanely_automatic] trait ShowMacrosImpl { this: MacroCommons =>
     }
   }
 
-  /** Show.derived will be ignored - so this macro will never summon itself! */
-  private lazy val ignoredImplicits: Seq[UntypedMethod] =
-    Type
-      .of[Show.type]
-      .asUntyped
-      .methods
-      .collect {
-        case method if method.name == "derived" => method
-      }
-      .toSeq
-
   /** Attempts to show `A` value using an implicit `Show[A]` value. */
   private def attemptUsingImplicit[A: Type](value: Expr[A]): Attempt[String] =
     Log.info(s"Attempting summoning implicit ${Types.Show[A].prettyPrint} to show value") >> MIO {
       implicit val showA: Type[Show[A]] = Types.Show[A]
-      Expr.summonImplicitIgnoring[Show[A]](ignoredImplicits*).toOption.map { show =>
+      Expr.summonImplicit[Show[A]].toOption.map { show =>
         Expr.quote {
           Expr.splice(show).show(Expr.splice(value))
         }
@@ -297,8 +287,7 @@ private[demo_sanely_automatic] trait ShowMacrosImpl { this: MacroCommons =>
     */
   private object Types {
 
-    val LogDerivation: Type[demo_sanely_automatic.Show.LogDerivation] =
-      Type.of[demo_sanely_automatic.Show.LogDerivation]
+    val LogDerivation: Type[demo.simple.Show.LogDerivation] = Type.of[demo.simple.Show.LogDerivation]
     val String: Type[String] = Type.of[String]
     val Show: Type.Ctor1[Show] = Type.Ctor1.of[Show]
     val Iterable: Type.Ctor1[Iterable] = Type.Ctor1.of[Iterable]
@@ -308,11 +297,8 @@ private[demo_sanely_automatic] trait ShowMacrosImpl { this: MacroCommons =>
 /** We can define our own ADT for errors, they are better than bunch of strings when we want to build a single, nice
   * error message.
   */
-sealed private[demo_sanely_automatic] trait DerivationError
-    extends scala.util.control.NoStackTrace
-    with Product
-    with Serializable
-private[demo_sanely_automatic] object DerivationError {
+sealed private[demo] trait DerivationError extends scala.util.control.NoStackTrace with Product with Serializable
+private[demo] object DerivationError {
   final case class UnsupportedType(typeName: String) extends DerivationError
   final case class UnsupportedMethod(typeName: String, field: String) extends DerivationError
   final case class AssertionFailed(message: String) extends DerivationError

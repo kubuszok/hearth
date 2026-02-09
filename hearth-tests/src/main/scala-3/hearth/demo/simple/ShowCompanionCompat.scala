@@ -1,8 +1,9 @@
 // We've put things into a separate package and do not use:
 //   package hearth
 //   package demo
+//   package simple
 // here, because we want to show all the imports normal users would have to do.
-package hearth.demo
+package hearth.demo.simple
 
 import scala.quoted.*
 

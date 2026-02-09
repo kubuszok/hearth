@@ -1,8 +1,9 @@
 // We've put things into a separate package and do not use:
 //   package hearth
 //   package demo
+//   package simple
 // here, because we want to show all the imports normal users would have to do.
-package hearth.demo
+package hearth.demo.simple
 
 /** Example of Show type class with sanely-automatic derivation.
   *
@@ -26,8 +27,14 @@ object Show extends ShowCompanionCompat {
     case show: Show[A] => show
   }
 
-  // Pre 2.13.17 and 3.7.0 we need this trick to avoid summoning the implicit value automatically.
-  // See hearth.demo_sanely_automatic for version which does not need this trick.
+  /** Pre 2.13.17 and 3.7.0 we need this trick to avoid summoning the implicit value automatically.
+    *
+    * @see
+    *   [[hearth.demo.sanely_automatic.Show]] for version which does not need this trick!
+    * @see
+    *   [[hearth.demo.allfeatures.FastShowPretty]] for version which NOT only does not need this trick, but also
+    *   utilizes every feature of this library!
+    */
   sealed trait AutoDerived[A] {
 
     def show(value: A): String
