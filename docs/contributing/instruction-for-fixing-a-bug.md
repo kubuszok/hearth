@@ -20,6 +20,7 @@ Use `compileErrors(...)` to test compilation failures, or standard assertions (`
    - Type names like `someValue.Underlying` in generated code (Scala 3) → [Cross-Quotes undetected implicit (Scala 3)](instruction-for-fixing-cross-quotes-errors-on-scala-3-caused-by-undetected-implicit.md)
    - `':' expected but identifier found.` → [Colon expected error](instruction-for-fixing-colon-expected-but-identifier-found.md)
    - `forward reference to value` → [Forward reference error](instruction-for-fixing-forward-reference-to-value.md)
+   - `ScopeException: Cannot call ... on an Expr that was defined in a different Quotes context` → [ScopeException from raw quotes](instruction-for-fixing-scope-exception-in-scala-3-caused-by-raw-quotes.md) (`ScopeException` might be hidden)
 
 
 ## Step 2 — Reproduce with a failing test

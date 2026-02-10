@@ -111,3 +111,23 @@ forward reference to value ... defined on line ... extends over definition of va
 ```
 
 [Instruction for fixing `forward reference to value` caused by implicit](instruction-for-fixing-forward-reference-to-value.md).
+
+### Instruction for fixing ScopeException in Scala 3 caused by raw quotes
+
+When code in Scala 3 platform-specific files uses raw `'{ ... }` or `${ ... }` (as opposed to `Expr.quote` / `Expr.splice`)
+inside a closure that may execute in a nested Quotes context, the expansion fails with a `ScopeException`.
+
+**Example error:**
+```
+[error] .../SomeFile.scala:42:9: Cannot call `asTerm` on an `Expr` that was defined in a different `Quotes` context.
+```
+or
+```
+scala.quoted.runtime.impl.ScopeException:
+  Cannot call `asTerm` on an `Expr` that was defined in a different `Quotes` context.
+```
+
+The fix is to wrap the closure body with `withQuotes { ... }`, which provides `CrossQuotes.ctx[Quotes]` (the
+dynamically current Quotes) as the implicit, replacing the stale class-level one.
+
+[Instruction for fixing ScopeException in Scala 3 caused by raw quotes](instruction-for-fixing-scope-exception-in-scala-3-caused-by-raw-quotes.md).
