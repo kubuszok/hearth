@@ -50,12 +50,12 @@ final class FastShowPrettySpec extends MacroSuite {
 
         test("Float") {
           val result = FastShowPretty.render(42.5f, RenderConfig.Default)
-          assertEquals(result, "42.5.0f")
+          assertEquals(result, "42.5f")
         }
 
         test("Double") {
           val result = FastShowPretty.render(42.5, RenderConfig.Default)
-          assertEquals(result, "42.5.0d")
+          assertEquals(result, "42.5d")
         }
 
         test("Char") {
@@ -267,8 +267,8 @@ final class FastShowPrettySpec extends MacroSuite {
         test("zero values") {
           assertEquals(FastShowPretty.render(0, RenderConfig.Default), "0")
           assertEquals(FastShowPretty.render(0L, RenderConfig.Default), "0L")
-          assertEquals(FastShowPretty.render(0.0f, RenderConfig.Default), "0.0.0f")
-          assertEquals(FastShowPretty.render(0.0, RenderConfig.Default), "0.0.0d")
+          assertEquals(FastShowPretty.render(0.0f, RenderConfig.Default), "0.0f")
+          assertEquals(FastShowPretty.render(0.0, RenderConfig.Default), "0.0d")
         }
 
         test("negative numbers") {
