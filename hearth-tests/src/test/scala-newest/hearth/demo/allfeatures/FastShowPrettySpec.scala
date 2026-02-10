@@ -434,13 +434,14 @@ final class FastShowPrettySpec extends MacroSuite {
           FastShowPretty.render(new hearth.demo.allfeatures.NotAHandledType, RenderConfig.Default)
           """
         ).check(
-          "The type hearth.demo.allfeatures.NotAHandledType was not handled by any derivation rule:",
-          "The rule use implicit when available was not applicable",
-          "The rule use built-in support when handling primitive types was not applicable",
-          "The rule handle as map when possible was not applicable",
-          "The rule handle as collection when possible was not applicable",
-          "The rule handle as case class when possible was not applicable",
-          "The rule handle as enum when possible was not applicable"
+          "Macro derivation failed with the following errors:",
+          "  - The type hearth.demo.allfeatures.NotAHandledType was not handled by any derivation rule:",
+          "    - The rule use implicit when available was not applicable, for the following reasons: The type hearth.demo.allfeatures.NotAHandledType does not have an implicit FastShowPretty instance: No implicit value of type hearth.demo.allfeatures.FastShowPretty[hearth.demo.allfeatures.NotAHandledType] found",
+          "    - The rule use built-in support when handling primitive types was not applicable, for the following reasons: The type hearth.demo.allfeatures.NotAHandledType is not considered to be a built-in type",
+          "    - The rule handle as map when possible was not applicable, for the following reasons: The type hearth.demo.allfeatures.NotAHandledType is not considered to be a map",
+          "    - The rule handle as collection when possible was not applicable, for the following reasons: The type hearth.demo.allfeatures.NotAHandledType is not considered to be a collection",
+          "    - The rule handle as case class when possible was not applicable, for the following reasons: The type hearth.demo.allfeatures.NotAHandledType is not considered to be a case class",
+          "    - The rule handle as enum when possible was not applicable, for the following reasons: The type hearth.demo.allfeatures.NotAHandledType is not considered to be an enum"
         )
       }
     }
