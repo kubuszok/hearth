@@ -425,9 +425,12 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
           val lambda = builder.build[StringBuilder]
           Rule.matched(Expr.quote {
             FastShowPrettyUtils.openCollection(Expr.splice(ctx.sb), Expr.splice(name))
-            FastShowPrettyUtils.fillCollection(Expr.splice(ctx.sb), Expr.splice(iterableExpr))(Expr.splice(lambda))
-            FastShowPrettyUtils
-              .appendIndent(Expr.splice(ctx.sb), Expr.splice(ctx.config).indentString, Expr.splice(ctx.level))
+            FastShowPrettyUtils.fillCollection(
+              Expr.splice(ctx.sb),
+              Expr.splice(iterableExpr),
+              Expr.splice(ctx.config).indentString,
+              Expr.splice(ctx.level)
+            )(Expr.splice(lambda))
             FastShowPrettyUtils.closeCollection(Expr.splice(ctx.sb))
           })
         }
@@ -476,9 +479,12 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
           val lambda = builder.build[StringBuilder]
           Rule.matched(Expr.quote {
             FastShowPrettyUtils.openCollection(Expr.splice(ctx.sb), Expr.splice(name))
-            FastShowPrettyUtils.fillCollection(Expr.splice(ctx.sb), Expr.splice(iterableExpr))(Expr.splice(lambda))
-            FastShowPrettyUtils
-              .appendIndent(Expr.splice(ctx.sb), Expr.splice(ctx.config).indentString, Expr.splice(ctx.level))
+            FastShowPrettyUtils.fillCollection(
+              Expr.splice(ctx.sb),
+              Expr.splice(iterableExpr),
+              Expr.splice(ctx.config).indentString,
+              Expr.splice(ctx.level)
+            )(Expr.splice(lambda))
             FastShowPrettyUtils.closeCollection(Expr.splice(ctx.sb))
           })
         }

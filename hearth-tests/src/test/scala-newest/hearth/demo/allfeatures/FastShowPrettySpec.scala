@@ -453,7 +453,7 @@ final class FastShowPrettySpec extends MacroSuite {
           result,
           """Tree(
             |  value = 1,
-            |  children = List(  )
+            |  children = List()
             |)""".stripMargin
         )
       }
@@ -468,14 +468,14 @@ final class FastShowPrettySpec extends MacroSuite {
             |  children = List(
             |    Tree(
             |      value = 2,
-            |      children = List(      )
+            |      children = List()
             |    ),
             |    Tree(
             |      value = 3,
             |      children = List(
             |        Tree(
             |          value = 4,
-            |          children = List(          )
+            |          children = List()
             |        )
             |      )
             |    )
