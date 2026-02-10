@@ -88,18 +88,30 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
     }
     .runToExprOrFail(
       macroName,
-      infoRendering = hearth.fp.effect.DontRender,
-      // if (Environment.isExpandedAt("FastShowPrettySpec.scala"))
-      //   hearth.fp.effect.RenderFrom(hearth.fp.effect.Log.Level.Info)
-      // else hearth.fp.effect.DontRender,
-      warnRendering = hearth.fp.effect.DontRender,
-      errorRendering = hearth.fp.effect.RenderFrom(hearth.fp.effect.Log.Level.Info)
+      infoRendering = if (shouldWeLogDerivation) RenderFrom(Log.Level.Info) else DontRender
     ) { (errorLogs, errors) =>
       s"""Macro derivation failed with the following errors:
          |${errors.map(e => s"  - ${e.getMessage()}").mkString("\n")}
          |and the following logs:
          |$errorLogs""".stripMargin
     }
+
+  /** Enables logging if we either:
+    *   - import [[hearth.demo.allfeatures.debug.logDerivationForFastShowPretty]] in the scope
+    *   - have set scalac option `-Xmacro-settings:fastShowPretty.logDerivation=true`
+    */
+  def shouldWeLogDerivation: Boolean = {
+    implicit val LogDerivation: Type[FastShowPretty.LogDerivation] = Types.LogDerivation
+    def logDerivationImported = Expr.summonImplicit[FastShowPretty.LogDerivation].isDefined
+
+    def logDerivationSetGlobally = (for {
+      data <- Environment.typedSettings.toOption
+      fastShowPretty <- data.get("fastShowPretty")
+      shouldLog <- fastShowPretty.get("logDerivation").flatMap(_.asBoolean)
+    } yield shouldLog).getOrElse(false)
+
+    logDerivationImported || logDerivationSetGlobally
+  }
 
   // Context utilities - instead of passing around multiple types, expressions, helpers,
   // maybe some config options in the future - we can just pass around a single context object.
@@ -208,6 +220,8 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
   private object Types {
 
     def FastShowPretty: Type.Ctor1[FastShowPretty] = Type.Ctor1.of[FastShowPretty]
+    val LogDerivation: Type[hearth.demo.allfeatures.FastShowPretty.LogDerivation] =
+      Type.of[hearth.demo.allfeatures.FastShowPretty.LogDerivation]
     val StringBuilder: Type[StringBuilder] = Type.of[StringBuilder]
     val RenderConfig: Type[RenderConfig] = Type.of[RenderConfig]
 
@@ -634,6 +648,7 @@ sealed private[compiletime] trait DerivationError extends util.control.NoStackTr
 }
 private[compiletime] object DerivationError {
   final case class UnsupportedType(tpeName: String, reasons: List[String]) extends DerivationError {
-    override def message: String = s"The type $tpeName was "
+    override def message: String =
+      s"The type $tpeName was not handled by any derivation rule:\n${reasons.mkString("\n")}"
   }
 }

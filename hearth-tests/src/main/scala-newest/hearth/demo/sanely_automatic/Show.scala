@@ -25,7 +25,7 @@ object Show extends ShowCompanionCompat {
 
   def apply[A](implicit show: Show[A]): Show[A] = show
 
-  /** Special type - is its implicit is in scope then macros will log the derivation process.
+  /** Special type - if its implicit is in scope then macros will log the derivation process.
     *
     * @see
     *   [[hearth.demo.sanely_automatic.debug.logDerivation]] for details
