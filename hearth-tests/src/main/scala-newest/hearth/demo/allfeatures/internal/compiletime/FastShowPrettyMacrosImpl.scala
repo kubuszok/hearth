@@ -88,12 +88,25 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
     }
     .runToExprOrFail(
       macroName,
-      infoRendering = if (shouldWeLogDerivation) RenderFrom(Log.Level.Info) else DontRender
+      infoRendering = if (shouldWeLogDerivation) RenderFrom(Log.Level.Info) else DontRender,
+      errorRendering = RenderFrom(Log.Level.Info)
     ) { (errorLogs, errors) =>
-      s"""Macro derivation failed with the following errors:
-         |${errors.map(e => s"  - ${e.getMessage()}").mkString("\n")}
-         |and the following logs:
-         |$errorLogs""".stripMargin
+      val errorsRendered = errors
+        .map { e =>
+          e.getMessage.split("\n").toList match {
+            case head :: tail => (("  - " + head) :: tail.map("    " + _)).mkString("\n")
+            case _            => "  - " + e.getMessage
+          }
+        }
+        .mkString("\n")
+      if (errorLogs.nonEmpty)
+        s"""Macro derivation failed with the following errors:
+           |$errorsRendered
+           |and the following logs:
+           |$errorLogs""".stripMargin
+      else
+        s"""Macro derivation failed with the following errors:
+           |$errorsRendered""".stripMargin
     }
 
   /** Enables logging if we either:
