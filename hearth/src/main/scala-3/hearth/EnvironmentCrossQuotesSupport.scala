@@ -33,4 +33,61 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
         currentCtx = oldContext
     }
   }
+
+  /** Captures the current [[scala.quoted.Quotes]] context for Hearth utlities.
+    *
+    * As you may have noticed, Hearth API does not take any [[scala.quoted.Quotes]] as an implicit parameter, to make it
+    * possible to share the code between Scala 2 and Scala 3 macros.
+    *
+    * However, Scala 3 macros create a new implicit [[scala.quoted.Quotes]] inside a splice (`${ /* new implicit Quotes
+    * */ ... }`), and takes [[scala.quoted.Quotes]] as an implicit parameter when creating an Expr with quoting (`/*
+    * using Quotes */ '{}`).
+    *
+    * Because of that, it is necessary to capture the current [[scala.quoted.Quotes]] within splices (if you aim to call
+    * Hearth utilities inside a splice), and restore it before creating an Expr with quoting (when there is a change
+    * that some Hearth utility might use it, e.g. during recursive Expr building).
+    *
+    * These are handled automatically by Cross-Quotes [[Expr.quote]] and [[Expr.splice]] when you are constructing
+    * expressions in a cross-compilable way, but have to be handled manually when you are constructing expressions in a
+    * Scala 3 specific way.
+    *
+    * {{{
+    * withQuotes { // restores the current Quotes context
+    *   '{
+    *     val value = ...
+    *     ${ passQuotes { recursiveCall('{ value }) } } // captures the current Quotes context
+    *   }
+    * }
+    * }}}
+    *
+    * @see
+    *   [[withQuotes]] for a complimentary method
+    * @see
+    *   [[CrossQuotes.nestedCtx]] for the underlying implementation
+    *
+    * @since 0.3.0
+    */
+  final def passQuotes[A](using scala.quoted.Quotes)(thunk: => A): A =
+    CrossQuotes.nestedCtx(thunk)
+
+  /** Restores the current [[scala.quoted.Quotes]] context for Scala 3-specific quoting.
+    *
+    * {{{
+    * withQuotes { // restores the current Quotes context
+    *   '{
+    *     val value = ...
+    *     ${ passQuotes { recursiveCall('{ value }) } } // captures the current Quotes context
+    *   }
+    * }
+    * }}}
+    *
+    * @see
+    *   [[passQuotes]] for a complimentary method and the explanation
+    * @see
+    *   [[CrossQuotes.ctx]] for the underlying implementation
+    *
+    * @since 0.3.0
+    */
+  final def withQuotes[A](thunk: scala.quoted.Quotes ?=> A): A =
+    thunk(using CrossQuotes.ctx[scala.quoted.Quotes])
 }
