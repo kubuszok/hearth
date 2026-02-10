@@ -17,9 +17,6 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
     object platformSpecific {
 
-      def withQuotes[A](thunk: scala.quoted.Quotes ?=> A): A =
-        thunk(using CrossQuotes.ctx[Quotes])
-
       final class ExprCodecImpl[A](using val from: FromExpr[A], val to: ToExpr[A]) extends ExprCodec[A] {
         override def toExpr(value: A): Expr[A] = to(value)
         override def fromExpr(expr: Expr[A]): Option[A] = from.unapply(expr)
