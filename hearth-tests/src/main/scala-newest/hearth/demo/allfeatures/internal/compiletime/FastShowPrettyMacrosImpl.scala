@@ -253,13 +253,6 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
               MIO.fail(DerivationError.UnsupportedType(Type[A].prettyPrint, reasonsStrings))
         }
       }
-      .attemptTap {
-        case Right(result) =>
-        case Left(errors)  =>
-          if (Environment.isExpandedAt("FastShowPrettySpec.scala")) {
-            errors.toList.foreach(e => e.printStackTrace())
-          }
-      }
 
   // Particular derivation rules - the first one that applies (succeeding OR failing) is used.
 
