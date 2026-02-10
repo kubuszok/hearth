@@ -1410,6 +1410,711 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
       ._2
       .fold(es => throw es.head, identity)
 
+  // ValDefBuilder scope issue tests
+
+  def testValDefBuilderOfValScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfValInner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfValInner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofVal[Int]("v")
+            .traverse[MIO, Expr[Int]] { _ =>
+              MIO.pure(Expr.quote(42))
+            }
+            .map(_.build.close)
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfVarScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfVarInner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfVarInner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofVar[Int]("v")
+            .traverse[MIO, Expr[Int]] { _ =>
+              MIO.pure(Expr.quote(42))
+            }
+            .map(_.build.close)
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfLazyScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfLazyInner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfLazyInner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofLazy[Int]("v")
+            .traverse[MIO, Expr[Int]] { _ =>
+              MIO.pure(Expr.quote(42))
+            }
+            .map(_.build.close)
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef0ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef0Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef0Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef0[Int]("d")
+            .traverse[MIO, Expr[Int]] { _ =>
+              MIO.pure(Expr.quote(42))
+            }
+            .map(_.build.close)
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  // format: off
+  def testValDefBuilderOfDef1ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef1Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef1Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef1[Int, Int]("d", "a")
+            .traverse[MIO, Expr[Int]] { case (_, a) =>
+              MIO.pure(Expr.quote(Expr.splice(a) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef2ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef2Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef2Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef2[Int, Int, Int]("d", "a", "b")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef3ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef3Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef3Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef3[Int, Int, Int, Int]("d", "a", "b", "c")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef4ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef4Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef4Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef4[Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef5ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef5Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef5Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef5[Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef6ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef6Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef6Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef6[Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef7ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef7Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef7Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef7[Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef8ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef8Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef8Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef8[Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef9ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef9Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef9Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef9[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h", "i")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h, i)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19), Expr.quote(23))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef10ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef10Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef10Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef10[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h", "i", "j")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h, i, j)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19), Expr.quote(23), Expr.quote(29))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef11ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef11Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef11Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef11[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h", "i", "j", "k")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h, i, j, k)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19), Expr.quote(23), Expr.quote(29), Expr.quote(31))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef12ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef12Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef12Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef12[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h", "i", "j", "k", "l")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h, i, j, k, l)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19), Expr.quote(23), Expr.quote(29), Expr.quote(31), Expr.quote(37))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef13ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef13Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef13Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef13[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h", "i", "j", "k", "l", "m")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19), Expr.quote(23), Expr.quote(29), Expr.quote(31), Expr.quote(37), Expr.quote(41))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef14ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef14Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef14Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef14[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19), Expr.quote(23), Expr.quote(29), Expr.quote(31), Expr.quote(37), Expr.quote(41), Expr.quote(43))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef15ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef15Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef15Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef15[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19), Expr.quote(23), Expr.quote(29), Expr.quote(31), Expr.quote(37), Expr.quote(41), Expr.quote(43), Expr.quote(47))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef16ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef16Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef16Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef16[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19), Expr.quote(23), Expr.quote(29), Expr.quote(31), Expr.quote(37), Expr.quote(41), Expr.quote(43), Expr.quote(47), Expr.quote(53))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef17ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef17Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef17Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef17[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19), Expr.quote(23), Expr.quote(29), Expr.quote(31), Expr.quote(37), Expr.quote(41), Expr.quote(43), Expr.quote(47), Expr.quote(53), Expr.quote(59))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef18ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef18Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef18Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef18[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19), Expr.quote(23), Expr.quote(29), Expr.quote(31), Expr.quote(37), Expr.quote(41), Expr.quote(43), Expr.quote(47), Expr.quote(53), Expr.quote(59), Expr.quote(61))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef19ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef19Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef19Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef19[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) * Expr.splice(s) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19), Expr.quote(23), Expr.quote(29), Expr.quote(31), Expr.quote(37), Expr.quote(41), Expr.quote(43), Expr.quote(47), Expr.quote(53), Expr.quote(59), Expr.quote(61), Expr.quote(67))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef20ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef20Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef20Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef20[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) * Expr.splice(s) * Expr.splice(t) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19), Expr.quote(23), Expr.quote(29), Expr.quote(31), Expr.quote(37), Expr.quote(41), Expr.quote(43), Expr.quote(47), Expr.quote(53), Expr.quote(59), Expr.quote(61), Expr.quote(67), Expr.quote(71))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef21ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef21Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef21Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef21[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) * Expr.splice(s) * Expr.splice(t) * Expr.splice(u) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19), Expr.quote(23), Expr.quote(29), Expr.quote(31), Expr.quote(37), Expr.quote(41), Expr.quote(43), Expr.quote(47), Expr.quote(53), Expr.quote(59), Expr.quote(61), Expr.quote(67), Expr.quote(71), Expr.quote(73))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
+  def testValDefBuilderOfDef22ScopeIssue: Expr[Data] = {
+    val result: Expr[Int] = Expr.quote {
+      val x: Int = Expr.splice {
+        valDefScopeIssueOfDef22Inner(Type.of[Int])
+      }
+      x
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
+  private def valDefScopeIssueOfDef22Inner(implicit intType: Type[Int]): Expr[Int] =
+    MIO
+      .scoped { runSafe =>
+        runSafe {
+          ValDefBuilder
+            .ofDef22[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]("d", "a", "b", "c", "d0", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v")
+            .traverse[MIO, Expr[Int]] { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v)) =>
+              MIO.pure(Expr.quote(Expr.splice(a) * Expr.splice(b) * Expr.splice(c) * Expr.splice(d) * Expr.splice(e) * Expr.splice(f) * Expr.splice(g) * Expr.splice(h) * Expr.splice(i) * Expr.splice(j) * Expr.splice(k) * Expr.splice(l) * Expr.splice(m) * Expr.splice(n) * Expr.splice(o) * Expr.splice(p) * Expr.splice(q) * Expr.splice(r) * Expr.splice(s) * Expr.splice(t) * Expr.splice(u) * Expr.splice(v) + 1))
+            }
+            .map(_.build.use(_(Expr.quote(2), Expr.quote(3), Expr.quote(5), Expr.quote(7), Expr.quote(11), Expr.quote(13), Expr.quote(17), Expr.quote(19), Expr.quote(23), Expr.quote(29), Expr.quote(31), Expr.quote(37), Expr.quote(41), Expr.quote(43), Expr.quote(47), Expr.quote(53), Expr.quote(59), Expr.quote(61), Expr.quote(67), Expr.quote(71), Expr.quote(73), Expr.quote(79))))
+        }
+      }
+      .unsafe
+      .runSync
+      ._2
+      .fold(es => throw es.head, identity)
+
   // format: on
 
   // ExprCodecs

@@ -504,6 +504,183 @@ final class ExprsSpec extends MacroSuite {
       }
     }
 
+    group("type ValDefBuilder scope issue") {
+
+      test("method ValDefBuilder.ofVal should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfValScopeIssue
+
+        testValDefBuilderOfValScopeIssue ==> Data(42)
+      }
+
+      test("method ValDefBuilder.ofVar should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfVarScopeIssue
+
+        @scala.annotation.nowarn // suppress "local var v$macro$N in value <local ExprsSpec> is never updated" error
+        val result = testValDefBuilderOfVarScopeIssue
+        result ==> Data(42)
+      }
+
+      test("method ValDefBuilder.ofLazy should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfLazyScopeIssue
+
+        testValDefBuilderOfLazyScopeIssue ==> Data(42)
+      }
+
+      test("method ValDefBuilder.ofDef0 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef0ScopeIssue
+
+        testValDefBuilderOfDef0ScopeIssue ==> Data(42)
+      }
+
+      test("method ValDefBuilder.ofDef1 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef1ScopeIssue
+
+        testValDefBuilderOfDef1ScopeIssue ==> Data(2 + 1)
+      }
+
+      test("method ValDefBuilder.ofDef2 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef2ScopeIssue
+
+        testValDefBuilderOfDef2ScopeIssue ==> Data(2 * 3 + 1)
+      }
+
+      test("method ValDefBuilder.ofDef3 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef3ScopeIssue
+
+        testValDefBuilderOfDef3ScopeIssue ==> Data(2 * 3 * 5 + 1)
+      }
+
+      test("method ValDefBuilder.ofDef4 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef4ScopeIssue
+
+        testValDefBuilderOfDef4ScopeIssue ==> Data(2 * 3 * 5 * 7 + 1)
+      }
+
+      test("method ValDefBuilder.ofDef5 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef5ScopeIssue
+
+        testValDefBuilderOfDef5ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 + 1)
+      }
+
+      test("method ValDefBuilder.ofDef6 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef6ScopeIssue
+
+        testValDefBuilderOfDef6ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 + 1)
+      }
+
+      test("method ValDefBuilder.ofDef7 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef7ScopeIssue
+
+        testValDefBuilderOfDef7ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 + 1)
+      }
+
+      test("method ValDefBuilder.ofDef8 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef8ScopeIssue
+
+        testValDefBuilderOfDef8ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 + 1)
+      }
+
+      test("method ValDefBuilder.ofDef9 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef9ScopeIssue
+
+        testValDefBuilderOfDef9ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 + 1)
+      }
+
+      test("method ValDefBuilder.ofDef10 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef10ScopeIssue
+
+        testValDefBuilderOfDef10ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 + 1)
+      }
+
+      test("method ValDefBuilder.ofDef11 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef11ScopeIssue
+
+        testValDefBuilderOfDef11ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 + 1)
+      }
+
+      test("method ValDefBuilder.ofDef12 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef12ScopeIssue
+
+        testValDefBuilderOfDef12ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 + 1)
+      }
+
+      test("method ValDefBuilder.ofDef13 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef13ScopeIssue
+
+        testValDefBuilderOfDef13ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 + 1)
+      }
+
+      test("method ValDefBuilder.ofDef14 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef14ScopeIssue
+
+        testValDefBuilderOfDef14ScopeIssue ==> Data(2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 + 1)
+      }
+
+      test("method ValDefBuilder.ofDef15 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef15ScopeIssue
+
+        testValDefBuilderOfDef15ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 + 1
+        )
+      }
+
+      test("method ValDefBuilder.ofDef16 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef16ScopeIssue
+
+        testValDefBuilderOfDef16ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 + 1
+        )
+      }
+
+      test("method ValDefBuilder.ofDef17 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef17ScopeIssue
+
+        testValDefBuilderOfDef17ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 + 1
+        )
+      }
+
+      test("method ValDefBuilder.ofDef18 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef18ScopeIssue
+
+        testValDefBuilderOfDef18ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 + 1
+        )
+      }
+
+      test("method ValDefBuilder.ofDef19 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef19ScopeIssue
+
+        testValDefBuilderOfDef19ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 * 67 + 1
+        )
+      }
+
+      test("method ValDefBuilder.ofDef20 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef20ScopeIssue
+
+        testValDefBuilderOfDef20ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 * 67 * 71 + 1
+        )
+      }
+
+      test("method ValDefBuilder.ofDef21 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef21ScopeIssue
+
+        testValDefBuilderOfDef21ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 * 67 * 71 * 73 + 1
+        )
+      }
+
+      test("method ValDefBuilder.ofDef22 should handle body Expr from different scope") {
+        import ExprsFixtures.testValDefBuilderOfDef22ScopeIssue
+
+        testValDefBuilderOfDef22ScopeIssue ==> Data(
+          2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29 * 31 * 37 * 41 * 43 * 47 * 53 * 59 * 61 * 67 * 71 * 73 * 79 + 1
+        )
+      }
+    }
+
     group("type ExprCodec") {
 
       test(
