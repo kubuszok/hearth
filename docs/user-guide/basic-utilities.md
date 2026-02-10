@@ -208,6 +208,13 @@ These examples show how to write Scala-specific macros with Hearth.
     If you want to write Scala 3-only macros, you can simplify the code: use `MacroCommonsScala3` directly,
     use `quoted.Type` and `quoted.Expr` directly, etc., while still using extension methods and utilities from Hearth:
 
+    !!! warning "Quotes context management"
+
+        When using native Scala 3 `'{ ... }` / `${ ... }` syntax with Hearth builders (e.g. `LambdaBuilder`,
+        `ValDefBuilder`), you must use [`passQuotes` and `withQuotes`](#pass-quotes-and-with-quotes) to keep
+        the `Quotes` context in sync. This is **not** needed when using [Cross Quotes](cross-quotes.md)
+        (`Expr.quote` / `Expr.splice`), which handle it automatically.
+
     ```scala
     // file: src/main/scala/example/Example.scala - part of Scala-3-only macro example
     //> using scala {{ scala.3 }}
@@ -2772,3 +2779,103 @@ Behavior can be configured via `-Xmacro-settings:hearth.mioTerminationShouldUseR
 - `false`: Prints to stderr and throws exception to terminate compilation
 
 This is automatically handled when using [`mio.runToExprOrFail(...)(...)` extension](micro-fp.md#integration-with-macrocommons).
+
+### `passQuotes` and `withQuotes` (Scala 3 only) { #pass-quotes-and-with-quotes }
+
+When writing **Scala 3-only macros** (without [Cross Quotes](cross-quotes.md)), Scala 3's native `'{ ... }` and `${ ... }` syntax
+resolves `scala.quoted.Quotes` through normal implicit resolution. This works for simple macros, but **breaks when using Hearth's
+builders** (like `LambdaBuilder` or `ValDefBuilder`) because they internally store closures that may execute in a different `Quotes`
+context than the one captured from the lexical scope.
+
+!!! note "Not needed with Cross Quotes"
+
+    If you use `Expr.quote` / `Expr.splice` (Cross Quotes), the `Quotes` context is managed automatically — you do **not** need
+    `passQuotes` or `withQuotes`. See [Cross Quotes](cross-quotes.md) for details.
+
+To bridge native Scala 3 quotes with Hearth's internal context management, use:
+
+- **`passQuotes`** — inside every `${ ... }` splice, captures the current `Quotes` context for Hearth utilities:
+
+    ```scala
+    ${ passQuotes { /* Hearth code here */ } }
+    ```
+
+- **`withQuotes`** — before every `'{ ... }` quote, restores the captured `Quotes` context:
+
+    ```scala
+    withQuotes { '{ /* quoted code here */ } }
+    ```
+
+The general pattern is:
+
+```scala
+withQuotes {      // restores current Quotes before quoting
+  '{
+    val x = ${ passQuotes {   // captures current Quotes inside splice
+      // use Hearth builders here
+    } }
+    x
+  }
+}
+```
+
+!!! example "Scala 3-only macro using `passQuotes` and `withQuotes`"
+
+    ```scala
+    // file: src/main/scala/example/Example.scala - part of passQuotes/withQuotes example
+    //> using scala {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+    package example
+
+    import hearth.MacroCommonsScala3
+
+    import scala.quoted.*
+
+    class YourMacro(q: Quotes) extends MacroCommonsScala3(using q) {
+
+      def addOne(input: Expr[Int]): Expr[Int] = {
+        // withQuotes: restores the current Quotes before creating a quoted expression
+        withQuotes {
+          '{
+            // passQuotes: captures the Quotes context from this splice
+            // so that Hearth utilities work correctly
+            val x = ${ passQuotes { input } }
+            x + 1
+          }
+        }
+      }
+    }
+    object YourMacro {
+
+      def addOne(input: Expr[Int])(using q: Quotes): Expr[Int] =
+        new YourMacro(q).addOne(input)
+    }
+
+    object Example {
+      inline def addOne(inline x: Int): Int = ${ YourMacro.addOne('x) }
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of passQuotes/withQuotes example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+    package example
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.addOne increments value at compile time") {
+        assertEquals(Example.addOne(2), 3)
+      }
+    }
+    ```
+
+!!! warning "What happens without `passQuotes`/`withQuotes`?"
+
+    Without these utilities, you may get errors like:
+
+    ```
+    scala.quoted.runtime.impl.ScopeException:
+      Cannot call `asTerm` on an `Expr` that was defined in a different `Quotes` context.
+    ```
+
+    See also the [FAQ entry](faq.md#faq-scope-exception) on this error.

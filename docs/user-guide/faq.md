@@ -204,3 +204,46 @@ locally {
 ```
 
 While it's a bit mundane, it makes it rather explicit which types we are using or not, and where.
+
+## How to fix `ScopeException: Cannot call 'asTerm' on an 'Expr' that was defined in a different 'Quotes' context`? { #faq-scope-exception }
+
+This error occurs when native Scala 3 `'{ ... }` / `${ ... }` syntax is used with Hearth's builders (e.g. `LambdaBuilder`,
+`ValDefBuilder`) without properly managing the `scala.quoted.Quotes` context.
+
+The full error message looks like:
+
+```
+scala.quoted.runtime.impl.ScopeException:
+  Cannot call `asTerm` on an `Expr` that was defined in a different `Quotes` context.
+```
+
+or, at the call site:
+
+```
+[error] .../SomeFile.scala:42:9: Cannot call `asTerm` on an `Expr` that was defined in a different `Quotes` context.
+```
+
+**Most likely cause:** you are using native Scala 3 quotes (`'{ ... }` / `${ ... }`) in a Scala 3-only codebase without wrapping
+them with `passQuotes` and `withQuotes`. Hearth builders store closures that may execute in a different `Quotes` context than the
+one captured from the lexical scope, causing a mismatch.
+
+**Fix:** wrap every `${ ... }` splice that calls Hearth utilities with `passQuotes`, and every `'{ ... }` quote with `withQuotes`:
+
+```scala
+withQuotes {
+  '{
+    val x = ${ passQuotes {
+      // Hearth builder code here
+    } }
+    x
+  }
+}
+```
+
+See [`passQuotes` and `withQuotes`](basic-utilities.md#pass-quotes-and-with-quotes) for a full explanation and runnable example.
+
+!!! note "Not an issue with Cross Quotes"
+
+    If you use `Expr.quote` / `Expr.splice` ([Cross Quotes](cross-quotes.md)), the `Quotes` context is managed automatically
+    and this error should not occur. If it does, please
+    [file a bug report](https://github.com/MateuszKubuszok/hearth/issues/new).

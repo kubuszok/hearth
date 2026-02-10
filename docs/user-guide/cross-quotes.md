@@ -46,6 +46,13 @@ Cross Quotes provides a unified API that gets transformed into the appropriate n
 Additionally, under the hood, it passes around and sets some local copy of `blackbox.Context`/`scala.quoted.Quotes`,
 that makes the whole process possible.
 
+!!! note "Automatic `Quotes` management"
+
+    Because Cross Quotes handle `scala.quoted.Quotes` passing automatically, you do **not** need to use
+    `passQuotes` or `withQuotes` when building expressions with `Expr.quote` / `Expr.splice`. These utilities
+    are only needed when using native Scala 3 `'{ ... }` / `${ ... }` syntax — see
+    [`passQuotes` and `withQuotes`](basic-utilities.md#pass-quotes-and-with-quotes) for details.
+
 ## Usage
 
 ### Basic Type Operations
