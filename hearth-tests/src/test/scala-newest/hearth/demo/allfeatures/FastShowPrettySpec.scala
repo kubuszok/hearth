@@ -93,6 +93,24 @@ final class FastShowPrettySpec extends MacroSuite {
         }
       }
 
+      group("value types") {
+        import hearth.examples.ExampleValueClass
+
+        test("ExampleValueClass") {
+          // import hearth.demo.allfeatures.debug.logDerivationForFastShowPretty // Uncomment to see how the derivation is done.
+          val result = FastShowPretty.render(ExampleValueClass(42), RenderConfig.Default)
+          assertEquals(result, "42")
+        }
+
+        test("ExampleValueClass with derived") {
+          // import hearth.demo.allfeatures.debug.logDerivationForFastShowPretty // Uncomment to see how the derivation is done.
+          import FastShowPretty.derived
+          val instance = implicitly[FastShowPretty[ExampleValueClass]]
+          val result = instance.render(new StringBuilder, RenderConfig.Default, 0)(ExampleValueClass(99)).toString
+          assertEquals(result, "99")
+        }
+      }
+
       group("case classes") {
 
         test("compact (no indent)") {
@@ -438,6 +456,7 @@ final class FastShowPrettySpec extends MacroSuite {
           "  - The type hearth.demo.allfeatures.NotAHandledType was not handled by any derivation rule:",
           "    - The rule use implicit when available was not applicable, for the following reasons: The type hearth.demo.allfeatures.NotAHandledType does not have an implicit FastShowPretty instance: No implicit value of type hearth.demo.allfeatures.FastShowPretty[hearth.demo.allfeatures.NotAHandledType] found",
           "    - The rule use built-in support when handling primitive types was not applicable, for the following reasons: The type hearth.demo.allfeatures.NotAHandledType is not considered to be a built-in type",
+          "    - The rule handle as value type when possible was not applicable, for the following reasons: The type hearth.demo.allfeatures.NotAHandledType is not considered to be a value type",
           "    - The rule handle as map when possible was not applicable, for the following reasons: The type hearth.demo.allfeatures.NotAHandledType is not considered to be a map",
           "    - The rule handle as collection when possible was not applicable, for the following reasons: The type hearth.demo.allfeatures.NotAHandledType is not considered to be a collection",
           "    - The rule handle as case class when possible was not applicable, for the following reasons: The type hearth.demo.allfeatures.NotAHandledType is not considered to be a case class",
