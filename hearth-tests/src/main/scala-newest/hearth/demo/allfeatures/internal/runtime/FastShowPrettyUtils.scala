@@ -26,7 +26,7 @@ object FastShowPrettyUtils {
     val result = value.toString
     sb.append(result)
     // Workaround for https://www.scala-js.org/doc/semantics.html#tostring-of-float-double-and-unit
-    if (result.contains(".")) {
+    if (!result.contains(".")) {
       sb.append(".0")
     }
     sb.append('f')
@@ -35,7 +35,7 @@ object FastShowPrettyUtils {
     val result = value.toString
     sb.append(result)
     // Workaround for https://www.scala-js.org/doc/semantics.html#tostring-of-float-double-and-unit
-    if (result.contains(".")) {
+    if (!result.contains(".")) {
       sb.append(".0")
     }
     sb.append('d')
