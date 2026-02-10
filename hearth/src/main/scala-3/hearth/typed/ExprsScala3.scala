@@ -655,7 +655,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term)) =>
+                case List(List(a: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -665,6 +665,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -702,7 +703,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term)) =>
+                case List(List(a: Term, b: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -714,6 +715,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -755,7 +757,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term)) =>
+                case List(List(a: Term, b: Term, c: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -769,6 +771,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -880,7 +883,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -898,6 +901,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -951,7 +955,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -971,6 +975,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -1028,7 +1033,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -1050,6 +1055,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -1111,7 +1117,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -1135,6 +1141,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -1200,7 +1207,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -1226,6 +1233,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -1295,7 +1303,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -1323,6 +1331,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -1396,7 +1405,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -1426,6 +1435,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -1503,7 +1513,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -1535,6 +1545,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -1616,7 +1627,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -1650,6 +1661,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -1735,7 +1747,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -1771,6 +1783,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -1860,7 +1873,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -1898,6 +1911,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -1991,7 +2005,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -2031,6 +2045,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -2128,7 +2143,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -2170,6 +2185,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -2271,7 +2287,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -2315,6 +2331,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -2420,7 +2437,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -2466,6 +2483,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -2575,7 +2593,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term, t: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term, t: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -2623,6 +2641,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -2736,7 +2755,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term, t: Term, u: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term, t: Term, u: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -2786,6 +2805,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =
@@ -2903,7 +2923,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             DefDef(
               name,
               {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term, t: Term, u: Term, v: Term)) =>
+                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term, t: Term, u: Term, v: Term)) => withQuotes {
                   Some {
                     Block(
                       List(
@@ -2955,6 +2975,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                       body.asTerm.changeOwner(name)
                     )
                   }
+                }
                 // $COVERAGE-OFF$
                 case args =>
                   val preview =

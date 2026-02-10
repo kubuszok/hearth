@@ -91,6 +91,33 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
   def testLambdaBuilderOf21ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf21ScopeIssue
   def testLambdaBuilderOf22ScopeIssueImpl: c.Expr[Data] = testLambdaBuilderOf22ScopeIssue
 
+  def testValDefBuilderOfValScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfValScopeIssue
+  def testValDefBuilderOfVarScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfVarScopeIssue
+  def testValDefBuilderOfLazyScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfLazyScopeIssue
+  def testValDefBuilderOfDef0ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef0ScopeIssue
+  def testValDefBuilderOfDef1ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef1ScopeIssue
+  def testValDefBuilderOfDef2ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef2ScopeIssue
+  def testValDefBuilderOfDef3ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef3ScopeIssue
+  def testValDefBuilderOfDef4ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef4ScopeIssue
+  def testValDefBuilderOfDef5ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef5ScopeIssue
+  def testValDefBuilderOfDef6ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef6ScopeIssue
+  def testValDefBuilderOfDef7ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef7ScopeIssue
+  def testValDefBuilderOfDef8ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef8ScopeIssue
+  def testValDefBuilderOfDef9ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef9ScopeIssue
+  def testValDefBuilderOfDef10ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef10ScopeIssue
+  def testValDefBuilderOfDef11ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef11ScopeIssue
+  def testValDefBuilderOfDef12ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef12ScopeIssue
+  def testValDefBuilderOfDef13ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef13ScopeIssue
+  def testValDefBuilderOfDef14ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef14ScopeIssue
+  def testValDefBuilderOfDef15ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef15ScopeIssue
+  def testValDefBuilderOfDef16ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef16ScopeIssue
+  def testValDefBuilderOfDef17ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef17ScopeIssue
+  def testValDefBuilderOfDef18ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef18ScopeIssue
+  def testValDefBuilderOfDef19ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef19ScopeIssue
+  def testValDefBuilderOfDef20ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef20ScopeIssue
+  def testValDefBuilderOfDef21ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef21ScopeIssue
+  def testValDefBuilderOfDef22ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef22ScopeIssue
+
   def testBidirectionalCodecsImpl: c.Expr[Data] = testBidirectionalCodecs
 
   def testOneWayCodecsImpl: c.Expr[Data] = testOneWayCodecs
@@ -171,6 +198,33 @@ object ExprsFixtures {
   def testLambdaBuilderOf20ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf20ScopeIssueImpl
   def testLambdaBuilderOf21ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf21ScopeIssueImpl
   def testLambdaBuilderOf22ScopeIssue: Data = macro ExprsFixtures.testLambdaBuilderOf22ScopeIssueImpl
+
+  def testValDefBuilderOfValScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfValScopeIssueImpl
+  def testValDefBuilderOfVarScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfVarScopeIssueImpl
+  def testValDefBuilderOfLazyScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfLazyScopeIssueImpl
+  def testValDefBuilderOfDef0ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef0ScopeIssueImpl
+  def testValDefBuilderOfDef1ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef1ScopeIssueImpl
+  def testValDefBuilderOfDef2ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef2ScopeIssueImpl
+  def testValDefBuilderOfDef3ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef3ScopeIssueImpl
+  def testValDefBuilderOfDef4ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef4ScopeIssueImpl
+  def testValDefBuilderOfDef5ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef5ScopeIssueImpl
+  def testValDefBuilderOfDef6ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef6ScopeIssueImpl
+  def testValDefBuilderOfDef7ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef7ScopeIssueImpl
+  def testValDefBuilderOfDef8ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef8ScopeIssueImpl
+  def testValDefBuilderOfDef9ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef9ScopeIssueImpl
+  def testValDefBuilderOfDef10ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef10ScopeIssueImpl
+  def testValDefBuilderOfDef11ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef11ScopeIssueImpl
+  def testValDefBuilderOfDef12ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef12ScopeIssueImpl
+  def testValDefBuilderOfDef13ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef13ScopeIssueImpl
+  def testValDefBuilderOfDef14ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef14ScopeIssueImpl
+  def testValDefBuilderOfDef15ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef15ScopeIssueImpl
+  def testValDefBuilderOfDef16ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef16ScopeIssueImpl
+  def testValDefBuilderOfDef17ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef17ScopeIssueImpl
+  def testValDefBuilderOfDef18ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef18ScopeIssueImpl
+  def testValDefBuilderOfDef19ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef19ScopeIssueImpl
+  def testValDefBuilderOfDef20ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef20ScopeIssueImpl
+  def testValDefBuilderOfDef21ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef21ScopeIssueImpl
+  def testValDefBuilderOfDef22ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef22ScopeIssueImpl
 
   def testBidirectionalCodecs: Data = macro ExprsFixtures.testBidirectionalCodecsImpl
 
