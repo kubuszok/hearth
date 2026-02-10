@@ -17,4 +17,13 @@ trait FastShowPretty[A] {
   /** Renders a value to a StringBuilder with indentation support. */
   def render(sb: StringBuilder, config: RenderConfig, level: Int)(value: A): StringBuilder
 }
-object FastShowPretty extends FastShowPrettyCompanionCompat
+object FastShowPretty extends FastShowPrettyCompanionCompat {
+
+  /** Special type - if its implicit is in scope then macros will log the derivation process.
+    *
+    * @see
+    *   [[hearth.demo.allfeatures.debug.logDerivation]] for details
+    */
+  sealed trait LogDerivation
+  object LogDerivation extends LogDerivation
+}
