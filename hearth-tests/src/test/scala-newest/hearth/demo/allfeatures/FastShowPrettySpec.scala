@@ -8,6 +8,8 @@ case class Single(value: Int)
 case class Address(street: String, city: String)
 case class PersonWithAddress(name: String, age: Int, address: Address)
 case class Team(name: String, members: List[Person])
+case class Tree(value: Int, children: List[Tree])
+class NotAHandledType
 
 @scala.annotation.nowarn // TODO: unused values - we cannot suppress them with val _ = ... until we fix cross-quotes on Scala 2!!!
 final class FastShowPrettySpec extends MacroSuite {
@@ -420,6 +422,66 @@ final class FastShowPrettySpec extends MacroSuite {
         sb.append(", ")
         instance.render(sb, RenderConfig.Default, 0)(3)
         assertEquals(sb.toString, "start: 1, 2, 3")
+      }
+    }
+
+    group("compile-time errors") {
+
+      test("unhandled type produces error message") {
+        compileErrors(
+          """
+          import hearth.demo.allfeatures.{FastShowPretty, RenderConfig}
+          FastShowPretty.render(new hearth.demo.allfeatures.NotAHandledType, RenderConfig.Default)
+          """
+        ).check(
+          "The type hearth.demo.allfeatures.NotAHandledType was not handled by any derivation rule:",
+          "The rule use implicit when available was not applicable",
+          "The rule use built-in support when handling primitive types was not applicable",
+          "The rule handle as map when possible was not applicable",
+          "The rule handle as collection when possible was not applicable",
+          "The rule handle as case class when possible was not applicable",
+          "The rule handle as enum when possible was not applicable"
+        )
+      }
+    }
+
+    group("recursive data structures") {
+
+      test("leaf node") {
+        val result = FastShowPretty.render(Tree(1, List.empty[Tree]), RenderConfig.Default)
+        assertEquals(
+          result,
+          """Tree(
+            |  value = 1,
+            |  children = List(  )
+            |)""".stripMargin
+        )
+      }
+
+      test("nested tree") {
+        val tree = Tree(1, List(Tree(2, List.empty[Tree]), Tree(3, List(Tree(4, List.empty[Tree])))))
+        val result = FastShowPretty.render(tree, RenderConfig.Default)
+        assertEquals(
+          result,
+          """Tree(
+            |  value = 1,
+            |  children = List(
+            |    Tree(
+            |      value = 2,
+            |      children = List(      )
+            |    ),
+            |    Tree(
+            |      value = 3,
+            |      children = List(
+            |        Tree(
+            |          value = 4,
+            |          children = List(          )
+            |        )
+            |      )
+            |    )
+            |  )
+            |)""".stripMargin
+        )
       }
     }
   }
