@@ -64,7 +64,9 @@ object FastShowPrettyUtils {
   def openCollection(sb: StringBuilder, typeName: String): StringBuilder =
     sb.append(typeName).append("(")
 
-  def fillCollection[A](sb: StringBuilder, iterable: Iterable[A])(renderItem: A => StringBuilder): StringBuilder = {
+  def fillCollection[A](sb: StringBuilder, iterable: Iterable[A], indentString: String, level: Int)(
+      renderItem: A => StringBuilder
+  ): StringBuilder = {
     val iterator = iterable.iterator
     while (iterator.hasNext) {
       val item = iterator.next()
@@ -74,6 +76,7 @@ object FastShowPrettyUtils {
         sb.append(",")
       } else {
         sb.append("\n")
+        appendIndent(sb, indentString, level): Unit
       }
     }
     sb
