@@ -599,3 +599,159 @@ and learn the shape of AST to create it yourself. Or if you already build the AS
 **Sources**:
 
   *	[Scala 3 reflection guide](https://docs.scala-lang.org/scala3/guides/macros/reflection.html)
+
+## How to test macros effectively?
+
+Testing macros is challenging because they cannot be tested in the same compilation unit where they are defined. Hearth provides the **hearth-munit** module with specialized testing utilities to make macro testing easier and more maintainable.
+
+### Installation
+
+To use **hearth-munit** in your tests:
+
+!!! example "[sbt](https://www.scala-sbt.org/)"
+
+    JVM only:
+
+    ```scala
+    libraryDependencies += "com.kubuszok" %% "hearth-munit" % "{{ hearth_version() }}" % Test
+    ```
+
+    JVM/Scala.js/Scala Native via [sbt-crossproject](https://github.com/portable-scala/sbt-crossproject), [sbt-projectmatrix](https://github.com/sbt/sbt-projectmatrix) or sbt 2:
+
+    ```scala
+    libraryDependencies += "com.kubuszok" %%% "hearth-munit" % "{{ hearth_version() }}" % Test
+    ```
+
+!!! example "[Scala CLI](https://scala-cli.virtuslab.org/)"
+
+    JVM only:
+
+    ```scala
+    //> using test.dep "com.kubuszok::hearth-munit:{{ hearth_version() }}"
+    ```
+
+    JVM/Scala.js/Scala Native:
+
+    ```scala
+    //> using test.dep "com.kubuszok::hearth-munit::{{ hearth_version() }}"
+    ```
+
+!!! warning
+
+    **hearth-munit** depends on the [core Hearth library](index.md#installation), so if you add hearth-munit, you'll automatically get hearth as well.
+
+### Test suite types
+
+#### hearth.Suite
+
+The base test suite providing:
+- **Test grouping** with `group()` method for organizing tests hierarchically
+- **Simple assertions** with `==>` operator for any type equality
+- **Specialized assertions** with `<==>` operator for `String` and `hearth.data.Data` with diff output
+
+#### hearth.MacroSuite
+
+Extends `Suite` with compile-time error checking utilities:
+- **Check error presence**: `compileErrors("code").check("expected text in error")`
+- **Check error absence**: `compileErrors("code").checkNot("text that should not appear")`
+- **Verify errors exist**: `compileErrors("code").arePresent()`
+
+#### hearth.ScalaCheckSuite
+
+Combines `Suite` with ScalaCheck for property-based testing, with Hearth-specific `Arbitrary` instances for `hearth.data.Data` structures.
+
+### Testing multiple properties with Data
+
+The **hearth.data.Data** structure is a JSON-like format that allows testing multiple related properties in a single macro expansion.
+
+**Why use Data?**
+- Macros cannot be tested in the same compilation unit where they're defined
+- Creating separate macros for each property is tedious and slow to compile
+- Data lets you gather multiple test assertions from one macro invocation
+
+**Pattern:**
+
+1. **Create a fixture macro** that returns `Expr[Data]`
+2. **Expose as a macro** in Scala 2/3 adapters
+3. **Test multiple properties** in your spec using `<==>` for clear diffs
+
+!!! example "Complete macro testing example"
+
+    ```scala
+    // file: src/main/scala/myfeature/MyFeatureFixtureImpl.scala - part of macro testing example
+    //> using scala {{ scala.newest_2_13 }} {{ scala.newest_3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    package myfeature
+
+    import hearth.*
+    import hearth.data.Data
+    import hearth.std.*
+    import scala.quoted.*
+
+    object MyFeatureFixtureImpl {
+      def testTypeInfo[A](using q: Quotes, tpe: Type[A]): Expr[Data] = {
+        val mc = new MacroCommonsScala3(using q) {}
+        import mc.*
+
+        // Strip ANSI color codes from prettyPrint output for cleaner test comparisons
+        val typeName = Type[A].prettyPrint.replaceAll("\u001b\\[([0-9]+)m", "")
+
+        Expr(Data.map(
+          "typeName" -> Data(typeName),
+          "isSealed" -> Data(Type[A].isSealed)
+        ))
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/myfeature/MyFeatureFixture.scala - part of macro testing example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    package myfeature
+
+    import hearth.data.Data
+    import scala.quoted.*
+
+    object MyFeatureFixture {
+      inline def testTypeInfo[A]: Data = ${ MyFeatureFixtureImpl.testTypeInfo[A] }
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/myfeature/MyFeatureSpec.scala - part of macro testing example
+    //> using test.dep com.kubuszok::hearth-munit:{{ hearth_version() }}
+
+    package myfeature
+
+    import hearth.MacroSuite
+    import hearth.data.Data
+
+    final class MyFeatureSpec extends MacroSuite {
+      test("Option[Int] type info") {
+        MyFeatureFixture.testTypeInfo[Option[Int]] <==> Data.map(
+          "typeName" -> Data("scala.Option[scala.Int]"),
+          "isSealed" -> Data(true)
+        )
+      }
+    }
+    ```
+
+### Assertion operators
+
+**Use `==>` for simple equality** assertions on any type. On failure, shows: `expected: X but got: Y`
+
+**Use `<==>` for `String` and `hearth.data.Data`** comparisons with detailed diff output. Essential for comparing multi-line strings or complex Data structures.
+
+**When to use which:**
+- Use `==>` for: primitives, simple objects, small collections, boolean conditions
+- Use `<==>` for: macro-generated strings, error messages, Data structures from fixtures
+
+### Benefits of this approach
+
+- Single macro expansion tests multiple related properties
+- `<==>` operator provides clear diff when any property fails
+- Easy to add new properties without creating new macros
+- Scales well for complex macro behavior validation
