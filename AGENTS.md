@@ -1,4 +1,4 @@
-# AGENTS.md - AI Agent Guidelines for Hearth
+# AI Agent Guidelines for Hearth
 
 This document provides guidelines for AI agents (like Claude Code, GitHub Copilot, Cursor, etc.) working with the Hearth codebase.
 
