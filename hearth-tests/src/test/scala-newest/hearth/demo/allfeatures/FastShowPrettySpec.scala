@@ -11,7 +11,6 @@ case class Team(name: String, members: List[Person])
 case class Tree(value: Int, children: List[Tree])
 class NotAHandledType
 
-@scala.annotation.nowarn // TODO: unused values - we cannot suppress them with val _ = ... until we fix cross-quotes on Scala 2!!!
 final class FastShowPrettySpec extends MacroSuite {
 
   group("FastShowPretty") {
