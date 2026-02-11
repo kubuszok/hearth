@@ -371,7 +371,8 @@ val noPublishSettings =
 
 val al = new {
 
-  private val prodProjects = Vector("hearthBetterPrinters", "hearthCrossQuotes", "hearthMicroFp", "hearth", "hearthMunit")
+  private val prodProjects =
+    Vector("hearthBetterPrinters", "hearthCrossQuotes", "hearthMicroFp", "hearth", "hearthMunit")
   private val testProjects = Vector("hearthTests", "hearthSandwichTests")
 
   private def isJVM(platform: String): Boolean = platform == "JVM"
@@ -578,7 +579,10 @@ lazy val hearthMunit = projectMatrix
     libraryDependencies ++= Seq(
       "org.scalameta" %%% "munit" % versions.munit,
       "org.scalacheck" %%% "scalacheck" % versions.scalacheck
-    )
+    ),
+    // Allow eviction of test-interface for Scala Native (munit requires 0.5.10, scalacheck requires 0.5.8)
+    // Since test-interface 0.5.10 is backwards compatible with 0.5.8, we can safely use the newer version
+    evictionErrorLevel := Level.Warn
   )
   .settings(settings *)
   .settings(versionSchemeSettings *)
@@ -604,6 +608,8 @@ lazy val hearthTests = projectMatrix
     ),
     // Do not cover Fixtures and FixturesImpl, they are used to test the library, not a part of it.
     coverageExcludedFiles := ".*Fixtures;.*FixturesImpl",
+    // Allow eviction of test-interface for Scala Native - 0.5.10 is backwards compatible with 0.5.8
+    evictionErrorLevel := Level.Warn,
     scalacOptions ++= Seq(
       // To make sure that we are not silently failing on unspupported trees
       "-Xmacro-settings:hearth.betterPrintersShouldFailOnUnsupportedTree=true",
