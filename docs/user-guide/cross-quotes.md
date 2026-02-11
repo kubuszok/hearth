@@ -51,7 +51,7 @@ that makes the whole process possible.
     Because Cross Quotes handle `scala.quoted.Quotes` passing automatically, you do **not** need to use
     `passQuotes` or `withQuotes` when building expressions with `Expr.quote` / `Expr.splice`. These utilities
     are only needed when using native Scala 3 `'{ ... }` / `${ ... }` syntax — see
-    [`passQuotes` and `withQuotes`](basic-utilities.md#pass-quotes-and-with-quotes) for details.
+    [`passQuotes` and `withQuotes`](basic-utilities.md#passquotes-and-withquotes-scala-3-only) for details.
 
 ## Usage
 

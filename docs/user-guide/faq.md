@@ -205,7 +205,7 @@ locally {
 
 While it's a bit mundane, it makes it rather explicit which types we are using or not, and where.
 
-## How to fix `ScopeException: Cannot call 'asTerm' on an 'Expr' that was defined in a different 'Quotes' context`? { #faq-scope-exception }
+## How to fix `ScopeException: Cannot call 'asTerm' on an 'Expr' that was defined in a different 'Quotes' context`?
 
 This error occurs when native Scala 3 `'{ ... }` / `${ ... }` syntax is used with Hearth's builders (e.g. `LambdaBuilder`,
 `ValDefBuilder`) without properly managing the `scala.quoted.Quotes` context.
@@ -240,7 +240,7 @@ withQuotes {
 }
 ```
 
-See [`passQuotes` and `withQuotes`](basic-utilities.md#pass-quotes-and-with-quotes) for a full explanation and runnable example.
+See [`passQuotes` and `withQuotes`](basic-utilities.md#passquotes-and-withquotes-scala-3-only) for a full explanation and runnable example.
 
 !!! note "Not an issue with Cross Quotes"
 
