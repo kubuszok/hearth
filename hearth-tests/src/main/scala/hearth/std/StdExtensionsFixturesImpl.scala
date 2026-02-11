@@ -4,7 +4,6 @@ package std
 import hearth.data.Data
 
 /** Fixtures for testing [[StdExtensionsSpec]]. */
-@scala.annotation.nowarn // TODO: remove later?
 trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
 
   private val IntType = Type.of[Int]
@@ -15,7 +14,7 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
   Environment.loadStandardExtensions() match {
     case ExtensionLoadingResult.LoaderFailed(error) =>
       Environment.reportErrorAndAbort("Failed to resolve extensions: " + error.toString)
-    case ExtensionLoadingResult.SomeFailed(extensions, errors) =>
+    case ExtensionLoadingResult.SomeFailed(_, errors) =>
       Environment.reportErrorAndAbort(
         "Failed to load standard extensions: " + errors.toNonEmptyVector.map(_._2).mkString("\n")
       )
@@ -286,16 +285,13 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
   private def handleSmartConstructor[Input: Type, Output: Type](
       build: CtorLikeOf[Input, Output]
   )(onValid: Expr[Output] => Expr[Data]): Expr[Input] => Expr[Data] = build match {
-    case plain @ CtorLikeOf.PlainValue(ctor, _) =>
+    case CtorLikeOf.PlainValue(ctor, _) =>
       (in: Expr[Input]) => onValid(ctor(in))
     // TODO: the rest of known smart constructors
     case _ => _ => Expr(Data("<unhandled smart constructor>"))
   }
 
-  def testCtorLikes[A: Type]: Expr[Data] = {
-    implicit val dataType: Type[Data] = DataType
-    implicit val stringType: Type[String] = StringType
-
+  def testCtorLikes[A: Type]: Expr[Data] =
     CtorLikes.unapply(Type[A]) match {
       case Some(ctors) =>
         val ctorInfos = ctors.toList.map { existential =>
@@ -331,5 +327,4 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       case None =>
         Expr(Data("<no ctors>"))
     }
-  }
 }
