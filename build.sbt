@@ -11,6 +11,9 @@ ThisBuild / scalafmtOnCompile := !isCI
 // Used to compile tests against the newest Scala versions, to check for regressions.
 lazy val isNewestScalaTests = sys.env.get("NEWEST_SCALA_TESTS").contains("true")
 
+// Allow munit's Scala 2.13.18 dependency when we compile with 2.13.16 (backwards compatible per SIP-51)
+ThisBuild / allowUnsafeScalaLibUpgrade := true
+
 // Used to publish snapshots to Maven Central.
 val mavenCentralSnapshots = "Maven Central Snapshots" at "https://central.sonatype.com/repository/maven-snapshots"
 
@@ -340,7 +343,7 @@ val publishSettings = Seq(
 val mimaSettings = Seq(
   mimaPreviousArtifacts := {
     val previousVersions = moduleName.value match {
-      case "hearth-better-printers" | "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" =>
+      case "hearth-better-printers" | "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" | "hearth-munit" =>
         Set() // fix after 0.2.0 release
       case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" |
           "debug-hearth-better-printers" | "debug-hearth" =>
@@ -351,7 +354,7 @@ val mimaSettings = Seq(
   },
   mimaFailOnNoPrevious := {
     moduleName.value match {
-      case "hearth-better-printers" | "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" =>
+      case "hearth-better-printers" | "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" | "hearth-munit" =>
         false // fix after 0.2.0 release
       case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" |
           "debug-hearth-better-printers" | "debug-hearth" =>
@@ -368,7 +371,7 @@ val noPublishSettings =
 
 val al = new {
 
-  private val prodProjects = Vector("hearthBetterPrinters", "hearthCrossQuotes", "hearthMicroFp", "hearth")
+  private val prodProjects = Vector("hearthBetterPrinters", "hearthCrossQuotes", "hearthMicroFp", "hearth", "hearthMunit")
   private val testProjects = Vector("hearthTests", "hearthSandwichTests")
 
   private def isJVM(platform: String): Boolean = platform == "JVM"
@@ -422,6 +425,7 @@ lazy val root = project
   .aggregate(hearthBetterPrinters.projectRefs *)
   .aggregate(hearthCrossQuotes.projectRefs *)
   .aggregate(hearthMicroFp.projectRefs *)
+  .aggregate(hearthMunit.projectRefs *)
   .aggregate(hearth.projectRefs *)
   .aggregate(hearthTests.projectRefs *)
   .aggregate(hearthSandwichTests.projectRefs *)
@@ -446,6 +450,7 @@ lazy val root = project
          | - hearth-cross-quotes (obligatory)
          | - hearth-micro-fp (obligatory)
          | - hearth (obligatory)
+         | - hearth-munit (optional)
          |for the right Scala version and platform (see projects task).
          |""".stripMargin,
     usefulTasks := Seq(
@@ -561,6 +566,26 @@ lazy val hearth = projectMatrix
   .dependsOn(hearthMicroFp)
   .dependsOn(hearthBetterPrinters)
 
+lazy val hearthMunit = projectMatrix
+  .in(file("hearth-munit"))
+  .someVariations(versions.scalas, versions.platforms)(only1VersionInIDE *)
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .disablePlugins(WelcomePlugin)
+  .settings(
+    moduleName := "hearth-munit",
+    name := "hearth-munit",
+    description := "MUnit testing utilities for Hearth-based tests",
+    libraryDependencies ++= Seq(
+      "org.scalameta" %%% "munit" % versions.munit,
+      "org.scalacheck" %%% "scalacheck" % versions.scalacheck
+    )
+  )
+  .settings(settings *)
+  .settings(versionSchemeSettings *)
+  .settings(publishSettings *)
+  .settings(mimaSettings *)
+  .dependsOn(hearth)
+
 // Test normal use cases
 
 lazy val hearthTests = projectMatrix
@@ -607,6 +632,7 @@ lazy val hearthTests = projectMatrix
     )
   )
   .dependsOn(hearth)
+  .dependsOn(hearthMunit)
 
 // Test cross compilation: 2.13x3
 
