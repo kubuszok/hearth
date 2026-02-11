@@ -1,6 +1,7 @@
 //> using scala 3.3.7
 //> using dep com.kubuszok::scala-cli-md-spec:0.2.0
 //> using dep org.virtuslab::scala-yaml:0.3.1
+//> using jvm 17
 
 import com.kubuszok.scalaclimdspec.*
 import java.io.File
@@ -84,7 +85,7 @@ class HearthExtendedRunner(runner: Runner)(
     "better-printers.md#Installation[2]" -> "We don't want to run empty snippet, and this one only demonstrates adding deps",
     "cross-quotes.md#Installation[2]" -> "We don't want to run empty snippet, and this one only demonstrates adding deps",
     "cross-quotes.md#Debugging[2]" -> "It's just a part of the snippet containing configs for the build, not a real snippet",
-    "cross-quotes.md#Debugging[3]" -> "It's just a part of the snippet containing configs for the build, not a real snippet"
+    "cross-quotes.md#Debugging[3]" -> "It's just a part of the snippet containing configs for the build, not a real snippet",
   )
 
   extension (snippet: Snippet)
