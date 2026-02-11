@@ -101,6 +101,300 @@ final class FastShowPrettySpec extends MacroSuite {
 }
 ```
 
+## Best Practices for Testing Macros
+
+Testing macros is challenging because they cannot be tested in the same compilation unit where they are defined. Hearth provides the **hearth-munit** module with specialized testing utilities to make macro testing easier and more maintainable.
+
+### Using hearth-munit Test Suites
+
+The **hearth-munit** module provides three main test suite types:
+
+#### hearth.Suite
+
+The base test suite providing:
+- **Test grouping** with `group()` method for organizing tests hierarchically
+- **Simple assertions** with `==>` operator for any type equality
+- **Specialized assertions** with `<==>` operator for `String` and `hearth.data.Data` with diff output
+
+```scala
+import hearth.Suite
+
+final class MyBasicSpec extends Suite {
+  group("feature name") {
+    test("specific behavior") {
+      val result = computeSomething()
+      result ==> expectedValue
+    }
+  }
+}
+```
+
+#### hearth.MacroSuite
+
+Extends `Suite` with compile-time error checking utilities:
+- **Check error presence**: `compileErrors("code").check("expected text in error")`
+- **Check error absence**: `compileErrors("code").checkNot("text that should not appear")`
+- **Verify errors exist**: `compileErrors("code").arePresent()`
+
+```scala
+import hearth.MacroSuite
+
+final class MyMacroSpec extends MacroSuite {
+  group("error messages") {
+    test("unsupported type produces helpful error") {
+      compileErrors("""
+        FastShowPretty.render(new Thread(), RenderConfig.Default)
+      """).check(
+        "Cannot derive FastShowPretty",
+        "for type: java.lang.Thread"
+      )
+    }
+  }
+}
+```
+
+#### hearth.ScalaCheckSuite
+
+Combines `Suite` with ScalaCheck for property-based testing:
+- Provides standard `Arbitrary` instances
+- Includes Hearth-specific `Arbitrary` instances for `hearth.data.Data` structures
+
+```scala
+import hearth.ScalaCheckSuite
+import org.scalacheck.Prop.*
+
+final class PropertySpec extends ScalaCheckSuite {
+  property("roundtrip serialization") {
+    forAll { (data: hearth.data.Data) =>
+      val serialized = serialize(data)
+      val deserialized = deserialize(serialized)
+      deserialized == data
+    }
+  }
+}
+```
+
+### Grouping Tests
+
+Use the `group()` method to organize tests hierarchically by functionality, method name, or feature area:
+
+```scala
+final class ComprehensiveSpec extends MacroSuite {
+  group("Type handling") {
+    group("primitives") {
+      test("Int") { /* ... */ }
+      test("String") { /* ... */ }
+    }
+
+    group("collections") {
+      test("List") { /* ... */ }
+      test("Map") { /* ... */ }
+    }
+  }
+
+  group("Error messages") {
+    test("unsupported type") { /* ... */ }
+    test("recursive type") { /* ... */ }
+  }
+}
+```
+
+Groups can be nested arbitrarily deep, and test names will reflect the full hierarchy in output.
+
+### Assertion Operators: ==> vs <==>
+
+#### The ==> Operator (Simple Equality)
+
+Use `==>` for standard equality assertions on any type:
+
+```scala
+test("basic equality") {
+  val result = 2 + 2
+  result ==> 4
+
+  val list = List(1, 2, 3)
+  list.length ==> 3
+}
+```
+
+**Characteristics:**
+- Works with any type that has an `==` comparison
+- On failure, shows: `expected: X but got: Y`
+- Borrowed from uTest for familiarity
+- Best for simple values, numbers, booleans, small collections
+
+#### The <==> Operator (Diff-Based Equality)
+
+Use `<==>` for `String` and `hearth.data.Data` comparisons with detailed diff output:
+
+```scala
+test("string comparison with diff") {
+  val actual = "Hello\nWorld\nFoo"
+  val expected = "Hello\nWorld\nBar"
+  actual <==> expected
+  // On failure, shows a line-by-line diff highlighting the difference
+}
+
+test("Data comparison with diff") {
+  val result: Data = macroResult
+  result <==> Data.obj(
+    "name" -> Data.str("example"),
+    "count" -> Data.num(42)
+  )
+  // On failure, shows structured diff of the Data tree
+}
+```
+
+**Characteristics:**
+- Only works with `String` and `hearth.data.Data`
+- On failure, shows a detailed diff highlighting exact differences
+- Essential for comparing multi-line strings or complex Data structures
+- Makes debugging macro output much easier
+
+**When to use which:**
+- Use `==>` for: primitives, simple objects, small collections, boolean conditions
+- Use `<==>` for: macro-generated strings, error messages, Data structures from fixtures
+
+### Testing Multiple Properties with Data
+
+The **hearth.data.Data** structure is a JSON-like format that allows testing multiple related properties in a single macro expansion:
+
+**Why use Data?**
+- Macros cannot be tested in the same compilation unit where they're defined
+- Creating separate macros for each property is tedious and slow to compile
+- Data lets you gather multiple test assertions from one macro invocation
+
+#### Installation
+
+To use **hearth-munit** in your tests:
+
+!!! example "[sbt](https://www.scala-sbt.org/)"
+
+    JVM only:
+
+    ```scala
+    libraryDependencies += "com.kubuszok" %% "hearth-munit" % "{{ hearth_version() }}" % Test
+    ```
+
+    JVM/Scala.js/Scala Native via [sbt-crossproject](https://github.com/portable-scala/sbt-crossproject), [sbt-projectmatrix](https://github.com/sbt/sbt-projectmatrix) or sbt 2:
+
+    ```scala
+    libraryDependencies += "com.kubuszok" %%% "hearth-munit" % "{{ hearth_version() }}" % Test
+    ```
+
+!!! example "[Scala CLI](https://scala-cli.virtuslab.org/)"
+
+    JVM only:
+
+    ```scala
+    //> using test.dep "com.kubuszok::hearth-munit:{{ hearth_version() }}"
+    ```
+
+    JVM/Scala.js/Scala Native:
+
+    ```scala
+    //> using test.dep "com.kubuszok::hearth-munit::{{ hearth_version() }}"
+    ```
+
+!!! warning
+
+    **hearth-munit** depends on the [core Hearth library](../user-guide/index.md#installation), so if you add hearth-munit, you'll automatically get hearth as well.
+
+#### Pattern
+
+1. **Create a fixture macro** that returns `Expr[Data]`:
+
+```scala title="MyFeatureFixtureImpl.scala"
+//> using scala 3.3.7
+//> using dep "com.kubuszok::hearth:{{ hearth_version() }}"
+
+package myfeature
+
+import hearth.*
+import hearth.data.Data
+import hearth.std.*
+import scala.quoted.*
+
+object MyFeatureFixtureImpl {
+  def testTypeInfo[A](using q: Quotes, tpe: Type[A]): Expr[Data] = {
+    val mc = new MacroCommonsScala3(using q) {}
+    import mc.*
+
+    // Strip ANSI color codes from prettyPrint output for cleaner test comparisons
+    val typeName = Type[A].prettyPrint.replaceAll("\u001b\\[([0-9]+)m", "")
+
+    Expr(Data.map(
+      "typeName" -> Data(typeName),
+      "isSealed" -> Data(Type[A].isSealed)
+    ))
+  }
+}
+```
+
+2. **Expose as a macro** in Scala 2/3 adapters:
+
+```scala title="MyFeatureFixture.scala (Scala 2.13)"
+// hearth-tests/src/main/scala-2/myfeature/MyFeatureFixture.scala
+package myfeature
+
+import hearth.data.Data
+import scala.language.experimental.macros
+
+object MyFeatureFixture {
+  def testTypeInfo[A]: Data = macro MyFeatureFixtureImpl.testTypeInfo[A]
+}
+```
+
+```scala title="MyFeatureFixture.scala (Scala 3)"
+//> using scala 3.3.7
+//> using dep "com.kubuszok::hearth:{{ hearth_version() }}"
+
+package myfeature
+
+import hearth.data.Data
+
+object MyFeatureFixture {
+  inline def testTypeInfo[A]: Data = ${ MyFeatureFixtureImpl.testTypeInfo[A] }
+}
+```
+
+3. **Test multiple properties** in your spec:
+
+```scala title="MyFeatureSpec.scala"
+//> using scala 3.3.7
+//> using test.dep "com.kubuszok::hearth-munit:{{ hearth_version() }}"
+//> using file "MyFeatureFixtureImpl.scala"
+//> using file "MyFeatureFixture.scala"
+
+package myfeature
+
+import hearth.MacroSuite
+import hearth.data.Data
+
+final class MyFeatureSpec extends MacroSuite {
+  test("Option[Int] type info") {
+    MyFeatureFixture.testTypeInfo[Option[Int]] <==> Data.map(
+      "typeName" -> Data("scala.Option[scala.Int]"),
+      "isSealed" -> Data(true)
+    )
+  }
+}
+```
+
+**Benefits:**
+- Single macro expansion tests multiple related properties
+- `<==>` operator provides clear diff when any property fails
+- Easy to add new properties without creating new macros
+- Scales well for complex macro behavior validation
+
+!!! tip "Running the example"
+
+    Save all three files in the same directory and run with Scala CLI:
+
+    ```bash
+    scala-cli test .
+    ```
+
 ## Fixtures
 
 Majority of tested code are macro-utilities. They:
