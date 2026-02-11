@@ -2,7 +2,7 @@
 
 While the [Basic Utilities](basic-utilities.md) try to be reasonably unopinionated, sometimes we can consider
 solutions that require us to follow some convention, but in turn give us a lot out of the box. To not mix
-these unopinionated core utilities and opinionated solution, we put the latter under `std` package as opt-in
+these unopinionated core utilities and opinionated solutions, we put the latter under the `std` package as opt-in
 mixins.
 
 ## Rule-based derivation
@@ -16,11 +16,11 @@ Let's say we need to derive a JSON encoder. After drafting the logic it should f
  * if there is an existing implicit in scope - use it
  * if the type we are deriving for is a collection, use recursion to figure out how to encode its items, and then handle the collection
  * if the type we are deriving for is an `Option`, use recursion to figure out how to encode its item, and handle as well the case when the value is `null`
- * if the type we are deriving for is a `case class`, use recursion to figuer out how to encode each field
+ * if the type we are deriving for is a `case class`, use recursion to figure out how to encode each field
 
 (For simplicity, we're skipping handling of enums, maps, value types, etc).
 
-We could try to implement it with if-elses:
+We could try to implement it with `if`/`else` branches:
 
 ```scala
 val IterableType = Type.Ctor1.of[Iterable]
@@ -38,10 +38,10 @@ else if (asCaseClass.isDefined) { ... }
 else Environment.reportErrorAndAbort("...")
 ```
 
-but it quickly becomes a giant method that is hard to read, and any adjustments to the methods requires shuffling a lot of code around.
+but it quickly becomes a giant method that is hard to read, and any adjustments to the methods require shuffling a lot of code around.
 
-But, we can use the fact that this code follows the patter of "if it matches, try derivation that might fail, or yield to the next rule".
-For start, we can start with handling these as `Option`s:
+But we can use the fact that this code follows the pattern: "if it matches, try derivation that might fail, or yield to the next rule".
+For starters, we can handle these as `Option`s:
 
 ```scala
 def asImplicit[A: Type]: Option[...] = {
@@ -81,7 +81,7 @@ That is much easier to maintain:
  - their order is easy to follow and adjust
  - it is easy to split some rule to its subcases, and combine them back again
 
-But, let's say, we want to also add some [logging](micro-fp.md#logging) to the derivation, e.g using `MIO`. It is still possible:
+But let's say we also want to add some [logging](micro-fp.md#logging) to the derivation, e.g. using `MIO`. It is still possible:
 
 ```scala
 def asImplicit[A: Type]: MIO[Option[...]] = ...
@@ -102,8 +102,8 @@ However at this point `Option` is no longer as self-explanatory. If we also want
 in `MIO.fail(...)`, we would have to replace it with some `Either`, and then somehow manually aggregate the reasons for each rule
 (e.g. there is implicit but there is ambiguity; something is iterable, but its elements cannot be rendered, etc).
 
-While it's not difficult task to write such aggregator, one might want for some existing solution to exist, one that would
-standardize the appoach to such problem.
+While it's not a difficult task to write such an aggregator, one might want an existing solution that
+standardizes the approach to such a problem.
 
 That's what `Rule` and `Rules` in `hearth.std` are providing.
 

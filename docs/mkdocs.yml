@@ -2,6 +2,7 @@ site_name: 'Hearth documentation'
 repo_url: https://github.com/MateuszKubuszok/hearth
 edit_uri: edit/master/docs/user-guide/
 docs_dir: 'user-guide'
+strict: true # ensures that all links are valid
 theme:
   name: material
   palette:

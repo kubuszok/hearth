@@ -211,7 +211,7 @@ These examples show how to write Scala-specific macros with Hearth.
     !!! warning "Quotes context management"
 
         When using native Scala 3 `'{ ... }` / `${ ... }` syntax with Hearth builders (e.g. `LambdaBuilder`,
-        `ValDefBuilder`), you must use [`passQuotes` and `withQuotes`](#pass-quotes-and-with-quotes) to keep
+        `ValDefBuilder`), you must use [`passQuotes` and `withQuotes`](#passquotes-and-withquotes-scala-3-only) to keep
         the `Quotes` context in sync. This is **not** needed when using [Cross Quotes](cross-quotes.md)
         (`Expr.quote` / `Expr.splice`), which handle it automatically.
 
@@ -2780,7 +2780,7 @@ Behavior can be configured via `-Xmacro-settings:hearth.mioTerminationShouldUseR
 
 This is automatically handled when using [`mio.runToExprOrFail(...)(...)` extension](micro-fp.md#integration-with-macrocommons).
 
-### `passQuotes` and `withQuotes` (Scala 3 only) { #pass-quotes-and-with-quotes }
+### `passQuotes` and `withQuotes` (Scala 3 only)
 
 When writing **Scala 3-only macros** (without [Cross Quotes](cross-quotes.md)), Scala 3's native `'{ ... }` and `${ ... }` syntax
 resolves `scala.quoted.Quotes` through normal implicit resolution. This works for simple macros, but **breaks when using Hearth's
@@ -2878,4 +2878,4 @@ withQuotes {      // restores current Quotes before quoting
       Cannot call `asTerm` on an `Expr` that was defined in a different `Quotes` context.
     ```
 
-    See also the [FAQ entry](faq.md#faq-scope-exception) on this error.
+    See also the [FAQ entry](faq.md#how-to-fix-scopeexception-cannot-call-asterm-on-an-expr-that-was-defined-in-a-different-quotes-context) on this error.
