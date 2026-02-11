@@ -3,7 +3,7 @@ package hearth
 import hearth.data.Data
 import hearth.fp.effect.*
 
-/** Fixtured for testing [[MioIntegrationsSpec]]. */
+/** Fixtures for testing [[MioIntegrationsSpec]]. */
 trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
 
   @scala.annotation.nowarn

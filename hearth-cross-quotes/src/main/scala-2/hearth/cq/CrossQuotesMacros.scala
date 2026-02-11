@@ -3125,7 +3125,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       }
     val quasiquote = convert(ctx)(expr.tree)
 
-    // TODO: generare freshTerm fpr quasiquotes and then {Quasiquote => $FreshTerm}
+    // TODO: generate freshTerm for quasiquotes and then {Quasiquote => $FreshTerm}
     val unchecked = q"""
     val $wtt = $typeA
     val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
@@ -3137,7 +3137,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     $ctx.Expr[$A]($quasiquote)($wtt.asInstanceOf[$ctx.WeakTypeTag[$A]]).asInstanceOf[Expr[$A]]
     """
 
-    // purposefuly not typechecking, because it would fail with: unexpected error: Position.point on NoPosition
+    // purposefully not typechecking, because it would fail with: unexpected error: Position.point on NoPosition
     val result = suppressWarnings(unchecked)
 
     log(

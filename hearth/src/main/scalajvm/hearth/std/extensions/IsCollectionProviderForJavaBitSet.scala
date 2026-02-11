@@ -31,7 +31,7 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension {
               else Some(currentValue, bitSet.nextSetBit(currentValue + 1))
             }
           }
-          // Java BitSet has no smart constructors, we we'll provide a Factory that build them as plain values.
+          // Java BitSet has no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
           override def factory: Expr[scala.collection.Factory[Int, CtorResult]] = Expr.quote {

@@ -25,8 +25,8 @@ final class IsValueTypeProviderForOpaque extends StandardMacroExtension {
         * Strategy:
         *   1. Try `simplified` which reduces TypeRefs to their underlying type when in scope
         *   2. Outside the opaque type's scope
-        *    - try to infer from PlainValue ctor (the one that returns A directly, not Either[?, A])
-        *    - fall back to the underlying type of the opaque type
+        *      - try to infer from PlainValue ctor (the one that returns A directly, not Either[?, A])
+        *      - fall back to the underlying type of the opaque type
         *
         * Note: We cannot use `sym.tree` from outside the opaque type's scope because it only shows TypeBounds, not the
         * actual underlying type.

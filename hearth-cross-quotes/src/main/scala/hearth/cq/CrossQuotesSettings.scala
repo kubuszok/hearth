@@ -26,7 +26,7 @@ object CrossQuotesSettings {
     val checks = settings
       .collect[(List[((Option[JFile], Int, Int) => Boolean)])] {
         case setting if setting.startsWith(loggingSettingName + "=") =>
-          // We're splitting by '|' because compiler treats ',' as a separator for settings (which looses the prefix).
+          // We're splitting by '|' because compiler treats ',' as a separator for settings (which loses the prefix).
           val value = setting.stripPrefix(loggingSettingName + "=").trim
           if (value == "true") List((_, _, _) => true)
           else if (value == "false") List((_, _, _) => false)

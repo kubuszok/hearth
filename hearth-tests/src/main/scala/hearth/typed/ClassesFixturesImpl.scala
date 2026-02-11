@@ -4,7 +4,7 @@ package typed
 import hearth.data.Data
 import hearth.fp.effect.MIO
 
-/** Fixtured for testing [[ClassesSpec]]. */
+/** Fixtures for testing [[ClassesSpec]]. */
 trait ClassesFixturesImpl { this: MacroCommons =>
 
   def testClass[A: Type](excluding: VarArgs[String]): Expr[Data] = {

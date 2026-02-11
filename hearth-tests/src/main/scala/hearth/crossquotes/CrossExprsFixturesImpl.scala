@@ -3,7 +3,7 @@ package crossquotes
 
 import hearth.data.Data
 
-/** Fixtured for testing [[CrossExprsSpec]]. */
+/** Fixtures for testing [[CrossExprsSpec]]. */
 trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
 
   def testExprOf[ExampleType: Type](example: Expr[ExampleType]): Expr[Data] = {
@@ -158,7 +158,7 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
         Existential[MapType[Map[Int, String], *], (Int, String)](mapTypeExample)(using Type.of[(Int, String)])
       )(using Type.of[Map[Int, String]])
 
-      // ...but it's not very convenient, so we are making sure that the workaround it no longer necessary.
+      // ...but it's not very convenient, so we are making sure that the workaround is no longer necessary.
       def fromSplittedNestedImport[A: Type](value: Expr[A], mapType: Existential[MapType[A, *]]): Expr[Data] = {
         import mapType.{Underlying as Pair, value as mapTypeOf}
         import mapTypeOf.{Key, Value} // importing from another import

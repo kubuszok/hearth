@@ -2,7 +2,7 @@ package hearth
 
 import hearth.data.Data
 
-/** Fixtured for testing [[EnvironmentSpec]]. */
+/** Fixtures for testing [[EnvironmentSpec]]. */
 trait EnvironmentFixturesImpl { this: MacroCommons =>
 
   def testPosition: Expr[Data] = {
