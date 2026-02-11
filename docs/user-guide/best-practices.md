@@ -679,7 +679,7 @@ The **hearth.data.Data** structure is a JSON-like format that allows testing mul
 
     ```scala
     // file: src/main/scala/myfeature/MyFeatureFixtureImpl.scala - part of macro testing example
-    //> using scala {{ scala.newest_2_13 }} {{ scala.newest_3 }}
+    //> using scala {{ scala.3 }}
     //> using dep com.kubuszok::hearth:{{ hearth_version() }}
 
     package myfeature
