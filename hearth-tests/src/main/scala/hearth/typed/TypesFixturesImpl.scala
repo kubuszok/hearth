@@ -3,7 +3,7 @@ package typed
 
 import hearth.data.Data
 
-/** Fixtured for testing [[TypesSpec]] and [[TypedJvmSpec]]. */
+/** Fixtures for testing [[TypesSpec]] and [[TypesJvmSpec]]. */
 trait TypesFixturesImpl { this: MacroTypedCommons =>
 
   // Type methods

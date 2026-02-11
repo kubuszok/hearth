@@ -6,7 +6,7 @@ import hearth.fp.effect.MIO
 import hearth.fp.instances.*
 import hearth.fp.syntax.*
 
-/** Fixtured for testing [[ExprsSpec]]. */
+/** Fixtures for testing [[ExprsSpec]]. */
 trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethods =>
 
   // Expr methods

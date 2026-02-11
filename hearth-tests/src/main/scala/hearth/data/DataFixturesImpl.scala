@@ -1,7 +1,7 @@
 package hearth
 package data
 
-/** Fixtured for testing [[DataSpec]]. */
+/** Fixtures for testing [[DataSpec]]. */
 trait DataFixturesImpl { this: MacroCommons =>
 
   def example: Expr[Data] = Expr(DataFixturesImpl.example)

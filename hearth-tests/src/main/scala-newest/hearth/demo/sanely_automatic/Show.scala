@@ -7,7 +7,7 @@ package hearth.demo.sanely_automatic
 
 /** Example of Show type class with sanely-automatic derivation.
   *
-  * It showcases how one can generate fast code, without taxing the compiler, with easy error handling, WITHOUT repying
+  * It showcases how one can generate fast code, without taxing the compiler, with easy error handling, WITHOUT relying
   * on tons of implicit defs in the companion object, nor heavy use of semi-automatic derivation: derive only for the
   * outermost type and macro will handle everything internally!
   *

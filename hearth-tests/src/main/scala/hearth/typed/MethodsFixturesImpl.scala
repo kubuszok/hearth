@@ -3,7 +3,7 @@ package typed
 
 import hearth.data.Data
 
-/** Fixtured for testing [[MethodsSpec]]. */
+/** Fixtures for testing [[MethodsSpec]]. */
 trait MethodsFixturesImpl { this: MacroCommons =>
 
   def testConstructorsExtraction[A: Type]: Expr[Data] = Expr(

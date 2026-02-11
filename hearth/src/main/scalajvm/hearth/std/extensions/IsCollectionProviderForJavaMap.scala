@@ -5,7 +5,7 @@ package extensions
 /** Macro extension providing support for Java maps.
   *
   * Supports all Java [[java.util.Map]]. Converts them to [[scala.collection.Iterable]] using
-  * [[scala.jdk.javaapi.CollectionConverters.asScala]], and providing as [[scala.collection.Factory]] implementation.
+  * [[scala.jdk.javaapi.CollectionConverters.asScala]], and provides a [[scala.collection.Factory]] implementation.
   * Treats them as types without smart constructors.
   *
   * @since 0.3.0
@@ -57,7 +57,7 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
           override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] = Expr.quote {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(value).entrySet().iterator()).to(Iterable)
           }
-          // Java maps have no smart constructors, we we'll provide a Factory that build them as plain values.
+          // Java maps have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
           override def factory: Expr[scala.collection.Factory[Pair, CtorResult]] = Expr.quote {

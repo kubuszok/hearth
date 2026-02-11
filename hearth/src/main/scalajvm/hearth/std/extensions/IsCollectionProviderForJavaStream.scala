@@ -5,7 +5,7 @@ package extensions
 /** Macro extension providing support for Java streams.
   *
   * Supports all Java [[java.util.stream.Stream]] types including primitive specializations. Converts them to
-  * [[scala.collection.Iterable]] using [[scala.jdk.javaapi.StreamConverters.asScala]], and providing as
+  * [[scala.collection.Iterable]] using [[scala.jdk.javaapi.StreamConverters.asScala]], and provides a
   * [[scala.collection.Factory]] implementation. Treats them as types without smart constructors.
   *
   * Note: Streams are consumed when converted to Iterable, so they can only be used once.
@@ -49,7 +49,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
           ]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
-          // FIXME: Investigate why the resolved implicit it's printed as:
+          // FIXME: Investigate why the resolved implicit is shown as:
           //   (StreamExtensions.this.AccumulatorFactoryInfo.noAccumulatorFactoryInfo[java.lang.String, scala.collection.Iterable[java.lang.String]])
           // when it should be:
           //   (scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo....).
@@ -57,7 +57,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
             new scala.jdk.StreamConverters.StreamHasToScala(Expr.splice(toStreamExpr(value)))
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
           }
-          // Java streams have no smart constructors, we we'll provide a Factory that build them as plain values.
+          // Java streams have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
           override def factory: Expr[scala.collection.Factory[Item, CtorResult]] = Expr.quote {
@@ -93,7 +93,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
             new scala.jdk.StreamConverters.IntStreamHasToScala(Expr.splice(toIntStreamExpr(value)))
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
           }
-          // Java int streams have no smart constructors, we we'll provide a Factory that build them as plain values.
+          // Java int streams have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
           override def factory: Expr[scala.collection.Factory[Int, CtorResult]] = Expr.quote {
@@ -128,7 +128,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
             new scala.jdk.StreamConverters.LongStreamHasToScala(Expr.splice(toLongStreamExpr(value)))
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
           }
-          // Java long streams have no smart constructors, we we'll provide a Factory that build them as plain values.
+          // Java long streams have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
           override def factory: Expr[scala.collection.Factory[Long, CtorResult]] = Expr.quote {
@@ -164,7 +164,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
             new scala.jdk.StreamConverters.DoubleStreamHasToScala(Expr.splice(toDoubleStreamExpr(value)))
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
           }
-          // Java double streams have no smart constructors, we we'll provide a Factory that build them as plain values.
+          // Java double streams have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
           override def factory: Expr[scala.collection.Factory[Double, CtorResult]] = Expr.quote {

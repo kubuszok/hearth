@@ -3,7 +3,7 @@ package crossquotes
 
 import hearth.data.Data
 
-/** Fixtured for testing [[CrossTypesSpec]]. */
+/** Fixtures for testing [[CrossTypesSpec]]. */
 trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeOf[A: Type]: Expr[Data] = {

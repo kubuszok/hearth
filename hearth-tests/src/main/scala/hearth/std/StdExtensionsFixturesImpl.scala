@@ -3,7 +3,7 @@ package std
 
 import hearth.data.Data
 
-/** Fixtured for testing [[StdExtensionsSpec]]. */
+/** Fixtures for testing [[StdExtensionsSpec]]. */
 @scala.annotation.nowarn // TODO: remove later?
 trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
 

@@ -5,7 +5,7 @@ package extensions
 /** Macro extension providing support for Java dictionaries.
   *
   * Supports all Java [[java.util.Dictionary]]. Converts them to [[scala.collection.Iterable]] using
-  * [[scala.jdk.javaapi.CollectionConverters.asScala]], and providing as [[scala.collection.Factory]] implementation.
+  * [[scala.jdk.javaapi.CollectionConverters.asScala]], and provides a [[scala.collection.Factory]] implementation.
   * Treats them as types without smart constructors.
   *
   * @since 0.3.0
@@ -47,7 +47,7 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
           // even though it works in provider ForJavaMap and ForScalaCollection.
           override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] =
             asScalaExpr(value.asInstanceOf[Expr[java.util.Dictionary[Key0, Value0]]])
-          // Java dictionaries have no smart constructors, we we'll provide a Factory that build them as plain values.
+          // Java dictionaries have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
 
@@ -121,7 +121,7 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
             // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the dictionary to Iterable.
             override def asIterable(value: Expr[java.util.Properties]): Expr[Iterable[(String, String)]] =
               asScalaExpr(value)
-            // Java dictionaries have no smart constructors, we we'll provide a Factory that build them as plain values.
+            // Java dictionaries have no smart constructors, we'll provide a Factory that builds them as plain values.
             override type CtorResult = java.util.Properties
             implicit override val CtorResult: Type[CtorResult] = Type.of[java.util.Properties]
 
