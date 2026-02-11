@@ -3435,9 +3435,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       // - only then we are replacing Expr.splice stubs
       .pipe(implicitTypeReferenceReplacer.replaceStubsInSource)
       .pipe(spliceReplacer.replaceStubsInSource)
-      // Nested Expr.splice generate `final val rassoc$1 = ...; /* use rassoc$1 */` but final val is not valid in Block so we are removing it..
-      // We should probably fix this in the better-printers, but for now it's OK.
-      .pipe(_.replaceAll("final val rassoc", "val rassoc"))
       // Validate that there are no stubs left
       .pipe(implicitTypeReferenceReplacer.validateNoStubsLeft)
       .pipe(spliceReplacer.validateNoStubsLeft)

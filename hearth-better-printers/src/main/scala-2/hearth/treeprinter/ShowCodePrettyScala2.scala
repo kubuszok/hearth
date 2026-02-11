@@ -249,6 +249,40 @@ trait ShowCodePrettyScala2 {
         print(NoColor)
       }
 
+      // Override the version that has access to the tree to do smarter filtering
+      override def printModifiers(tree: Tree, mods: Modifiers): Unit = {
+        // Filter out invalid modifiers when inside a Block.
+        // This fixes GitHub issue #169.
+        //
+        // When a ValDef appears inside a Block, Scala's compiler may mark it as:
+        // - private[this] (PRIVATE | LOCAL flags)
+        // - final (FINAL flag)
+        // Both are invalid syntax in Block context and must be removed.
+        //
+        // We detect this by checking if the tree's owner is a method/term (not a class/trait/object).
+        // When the owner is a method, it means we're in a local block where "this" is not meaningful.
+        val isInLocalBlock = tree match {
+          case _ if !tree.hasSymbolField || tree.symbol == null || tree.symbol == NoSymbol => false
+          case _                                                                           =>
+            val owner = tree.symbol.owner
+            owner != null && owner != NoSymbol && !owner.isClass && !owner.isModule && !owner.isTrait
+        }
+
+        val shouldFilter = isInLocalBlock && mods.hasFlag(PRIVATE | LOCAL | FINAL)
+
+        val modsToUse =
+          if (shouldFilter) {
+            // Remove PRIVATE, LOCAL, and FINAL flags to prevent printing invalid modifiers
+            // Create a new Modifiers with the flags removed
+            val newFlags = mods.flags & ~(PRIVATE | LOCAL | FINAL)
+            Modifiers(newFlags, mods.privateWithin, mods.annotations)
+          } else {
+            mods
+          }
+
+        printModifiers(modsToUse, primaryCtorParam = false)
+      }
+
       override def printModifiers(mods: Modifiers, primaryCtorParam: Boolean): Unit = {
         print(KeywordColor)
         super.printModifiers(mods, primaryCtorParam)
