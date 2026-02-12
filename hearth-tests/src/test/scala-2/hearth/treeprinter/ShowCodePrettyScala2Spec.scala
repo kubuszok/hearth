@@ -1682,4 +1682,22 @@ final class ShowCodePrettyScala2Spec extends MacroSuite {
     // Exact code might change between Scala versions, and we don't care about particular output - only that whole tree was handled.
     assert(printed.nonEmpty)
   }
+
+  test("showCodePretty(..., SyntaxHighlight.plain) should handle kind-projector placeholder syntax on Scala 2") {
+
+    @scala.annotation.nowarn
+    val printed = ShowCodePrettyFixtures.testTypePlainPrint[Either[?, Int]]
+
+    printed <==> "scala.util.Either[scala.Any, scala.Int]"
+  }
+
+  test("showCodePretty should handle kind-projector Lambda as type argument on Scala 2") {
+
+    @scala.annotation.nowarn
+    class Foo[F[_]]
+
+    val printed = ShowCodePrettyFixtures.testTypePlainPrint[Foo[Lambda[X => Either[X, Int]]]]
+
+    printed <==> "hearth.treeprinter.ShowCodePrettyScala2Spec.Foo[({type λ[X] = scala.util.Either[hearth.treeprinter.ShowCodePrettyScala2Spec.<refinement>.X, scala.Int]})#λ]"
+  }
 }
