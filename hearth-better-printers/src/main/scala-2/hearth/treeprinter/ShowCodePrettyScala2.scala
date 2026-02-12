@@ -567,7 +567,12 @@ trait ShowCodePrettyScala2 {
             )
 
           case vd @ ValDef(mods, name, tp, rhs) =>
-            printValDef(vd, printedName(name)) {
+            // Detect wildcard patterns: synthetic vals with compiler-generated names like x$1, x$2, etc.
+            // These are generated from `val _ = ...` patterns and should be printed as `_`.
+            val isWildcardPattern = mods.isSynthetic && name.toString.matches("x\\$\\d+")
+            val nameToUse = if (isWildcardPattern) "_" else printedName(name)
+
+            printValDef(vd, nameToUse) {
               // place space after symbolic def name (val *: Unit does not compile)
               printOpt(s"${blankForName(name)}: ", tp)
             } {
@@ -795,6 +800,10 @@ trait ShowCodePrettyScala2 {
               // case for untypechecked trees
               case Annotated(annot, arg) if (expr ne null) && (arg ne null) && expr.equalsStructure(arg) =>
                 printTp() // remove double arg - 5: 5: @unchecked
+              case Annotated(annot, arg) =>
+                // If arg doesn't match expr, just print the expression (don't print the annotated type)
+                // This handles cases where cross-quotes creates complex Typed nodes
+                print(expr)
               case tt: TypeTree if tt.original.isInstanceOf[Annotated] => printTp()
               case Function(List(), EmptyTree)                         => print("(", expr, " _)") // func _
               // parentheses required when (a match {}) : Type
