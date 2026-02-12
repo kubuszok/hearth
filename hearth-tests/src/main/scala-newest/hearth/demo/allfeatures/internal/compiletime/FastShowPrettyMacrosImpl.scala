@@ -25,6 +25,10 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
           ValDefs.createVal[RenderConfig](configExpr).use { configVal =>
             ValDefs.createVal[Int](levelExpr).use { levelVal =>
               Expr.quote {
+                val _ = Expr.splice(sbVal)
+                val _ = Expr.splice(valueVal)
+                val _ = Expr.splice(configVal)
+                val _ = Expr.splice(levelVal)
                 Expr.splice(fromCtx(DerivationCtx.from(sbVal, valueVal, configVal, levelVal))).toString
               }
             }
@@ -42,15 +46,21 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
       Expr.quote {
         new FastShowPretty[A] {
 
-          def render(sb: StringBuilder, config: RenderConfig, level: Int)(value: A): StringBuilder = Expr.splice {
-            fromCtx(
-              DerivationCtx.from(
-                Expr.quote(sb),
-                Expr.quote(value),
-                Expr.quote(config),
-                Expr.quote(level)
+          def render(sb: StringBuilder, config: RenderConfig, level: Int)(value: A): StringBuilder = {
+            val _ = sb
+            val _ = config
+            val _ = level
+            val _ = value
+            Expr.splice {
+              fromCtx(
+                DerivationCtx.from(
+                  Expr.quote(sb),
+                  Expr.quote(value),
+                  Expr.quote(config),
+                  Expr.quote(level)
+                )
               )
-            )
+            }
           }
         }
       }
@@ -427,7 +437,6 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
         Type[A] match {
           case IsMap(isMap) =>
             import isMap.Underlying as Pair
-            import isMap.value.{Key, Value}
             deriveMapItems[A, Pair](isMap.value)
 
           case _ =>
