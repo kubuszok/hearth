@@ -1494,7 +1494,7 @@ final class ShowCodePrettyScala2Spec extends MacroSuite {
 
     // format: off
     @scala.annotation.nowarn
-    val printed = ShowCodePrettyFixtures.testTypePrettyPrint[
+    val ansiPrinted = ShowCodePrettyFixtures.testTypePrettyPrint[
       ({
         // Higher-kinded type lambda that we'll project:
         // L[X] = Either[String, X]
@@ -1570,11 +1570,65 @@ final class ShowCodePrettyScala2Spec extends MacroSuite {
     ]
 		// format: on
 
-    // Uncomment and print to preview results.
-    // printed.split("\n").foreach(println)
+    @scala.annotation.nowarn
+    val plainPrinted = ShowCodePrettyFixtures.testTypePlainPrint[
+      ({
+        type L[X] = Either[String, X]
+        type T =
+          (MyOuter.Inner with ({ type A0 <: Animal })#A0 with Speak with Closeable) {
+            def extra: Int
+          }
+        type U =
+          (
+              ({ type K = String @deprecated("old", "0.0") })#K,
+              ({ type Q = List[? <: Animal] })#Q,
+              ({ type R = L[? <: Animal] })#R
+          )
+        type V = {
+          val pet: MyOuter.inner.type
+          type M >: Null <: AnyRef
+          type NothingRef >: Nothing <: Any
+        }
+      })#T
+        with (({
+          type L[X] = Either[String, X]
+          type T =
+            (MyOuter.Inner with Speak with Closeable) {
+              def extra: Int
+            }
+          type U =
+            (
+                ({ type K = String @deprecated("old", "0.0") })#K,
+                ({ type Q = List[? <: Animal] })#Q,
+                ({ type R = L[? <: Animal] })#R
+            )
+          type V = {
+            val pet: MyOuter.inner.type
+            type M >: Null <: AnyRef
+            type NothingRef >: Nothing <: Any
+          }
+          type All = (T, U, V)
+        })#All)
+        with ({
+          type W = Outer#Inner
+        })#W
+    ]
 
-    // Exact code might change between Scala versions, and we don't care about particular output - only that whole tree was handled.
-    assert(printed.nonEmpty)
+    // Primary assertion: plain output should match expected string
+    plainPrinted <==> """MyOuter.Pet with (java.lang.Object {
+                        |  type A0 <: Animal
+                        |})#A0 with hearth.treeprinter.ShowCodePrettyScala2Spec.Speak with hearth.treeprinter.ShowCodePrettyScala2Spec.Closeable {
+                        |  def extra: Int
+                        |} with scala.Tuple3[MyOuter.Pet with hearth.treeprinter.ShowCodePrettyScala2Spec.Speak with hearth.treeprinter.ShowCodePrettyScala2Spec.Closeable {
+                        |  def extra: Int
+                        |}, scala.Tuple3[java.lang.String @scala.deprecated("old", "0.0"), scala.collection.immutable.List[hearth.treeprinter.ShowCodePrettyScala2Spec.Animal], scala.util.Either[java.lang.String, hearth.treeprinter.ShowCodePrettyScala2Spec.Animal]], java.lang.Object {
+                        |  val pet: MyOuter.inner.type
+                        |  type M >: Null <: Object
+                        |  type NothingRef
+                        |}] with hearth.treeprinter.ShowCodePrettyScala2Spec.Outer#Inner""".stripMargin
+
+    // After stripping ANSI colors, ANSI printer and plain printer should produce identical output.
+    ansiPrinted.stripANSI <==> plainPrinted
   }
 
   test("showCodePretty(..., SyntaxHighlight.plain) should support all known types on Scala 2") {
@@ -1676,11 +1730,17 @@ final class ShowCodePrettyScala2Spec extends MacroSuite {
     ]
 		// format: on
 
-    // Uncomment and print to preview results.
-    // printed.split("\n").foreach(println)
-
-    // Exact code might change between Scala versions, and we don't care about particular output - only that whole tree was handled.
-    assert(printed.nonEmpty)
+    printed <==> """MyOuter.Pet with (java.lang.Object {
+                   |  type A0 <: Animal
+                   |})#A0 with hearth.treeprinter.ShowCodePrettyScala2Spec.Speak with hearth.treeprinter.ShowCodePrettyScala2Spec.Closeable {
+                   |  def extra: Int
+                   |} with scala.Tuple3[MyOuter.Pet with hearth.treeprinter.ShowCodePrettyScala2Spec.Speak with hearth.treeprinter.ShowCodePrettyScala2Spec.Closeable {
+                   |  def extra: Int
+                   |}, scala.Tuple3[java.lang.String @scala.deprecated("old", "0.0"), scala.collection.immutable.List[hearth.treeprinter.ShowCodePrettyScala2Spec.Animal], scala.util.Either[java.lang.String, hearth.treeprinter.ShowCodePrettyScala2Spec.Animal]], java.lang.Object {
+                   |  val pet: MyOuter.inner.type
+                   |  type M >: Null <: Object
+                   |  type NothingRef
+                   |}] with hearth.treeprinter.ShowCodePrettyScala2Spec.Outer#Inner""".stripMargin
   }
 
   test("showCodePretty(..., SyntaxHighlight.plain) should handle kind-projector placeholder syntax on Scala 2") {
