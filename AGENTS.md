@@ -200,6 +200,9 @@ Agents should:
 - make sure that the code was actually compiled by sbt and that `quick-tests` succeeded
 - make sure that new snippets where runnable Scala CLI examples that pass tests
 - coverage and MiMa can be skipped
+- **before reporting that a task is done**, run `sbt --client "quick-clean ; quick-test"` as the final
+  verification step — while MCP speeds up the development loop, `sbt --client` compiles and tests across
+  both Scala versions and is the more reliable way to confirm a fix
 
 If an agent was used to generate the code (e.g. following GitHub issue instructions),
 but an agent was not able to run the compilation and tests (e.g. because GitHub sandboxing
