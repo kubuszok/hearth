@@ -44,10 +44,7 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           factoryExpr: Expr[scala.collection.Factory[Pair, A]],
           buildExpr: Expr[scala.collection.mutable.Builder[Pair, A]] => Expr[A],
           keyType: Type[Key0],
-          valueType: Type[Value0],
-          keyExpr: Expr[Pair] => Expr[Key0],
-          valueExpr: Expr[Pair] => Expr[Value0],
-          pairExpr: (Expr[Key0], Expr[Value0]) => Expr[Pair]
+          valueType: Type[Value0]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Pair](new IsMapOf[A, Pair] {
           // We're just upcasting the collection to Iterable, to avoid things like type constructor extraction from generic F[A].
@@ -61,15 +58,16 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
               buildExpr,
               None // TODO: we should provide a method for this
             )
-          // Key and Value expressions are provided from the outside
           override type Key = Key0
           implicit override val Key: Type[Key] = keyType
           override type Value = Value0
           implicit override val Value: Type[Value] = valueType
-          // We pass these from the outside, because Cross-Quotes on Scala 2 was missing Key and Value type substitution.
-          override def key(pair: Expr[Pair]): Expr[Key] = keyExpr(pair)
-          override def value(pair: Expr[Pair]): Expr[Value] = valueExpr(pair)
-          override def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair] = pairExpr(key, value)
+          override def key(pair: Expr[Pair]): Expr[Key] =
+            Expr.quote(Expr.splice(pair.asInstanceOf[Expr[(Key, Value)]])._1)
+          override def value(pair: Expr[Pair]): Expr[Value] =
+            Expr.quote(Expr.splice(pair.asInstanceOf[Expr[(Key, Value)]])._2)
+          override def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair] =
+            Expr.quote((Expr.splice(key), Expr.splice(value))).asInstanceOf[Expr[Pair]]
         })
 
       // FIXME: we had to make a workaround because we got:
@@ -98,14 +96,7 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
                   import value.Underlying as Value
                   assert(Item =:= Tuple2[Key, Value])
 
-                  val keyExpr: Expr[Item] => Expr[Key] =
-                    pair => Expr.quote(Expr.splice(pair.asInstanceOf[Expr[(Key, Value)]])._1)
-                  val valueExpr: Expr[Item] => Expr[Value] =
-                    pair => Expr.quote(Expr.splice(pair.asInstanceOf[Expr[(Key, Value)]])._2)
-                  val pairExpr: (Expr[Key], Expr[Value]) => Expr[Item] =
-                    (k, v) => Expr.quote((Expr.splice(k), Expr.splice(v))).asInstanceOf[Expr[Item]]
-
-                  isMap(A, factoryExpr, buildExpr, Key, Value, keyExpr, valueExpr, pairExpr)
+                  isMap(A, factoryExpr, buildExpr, Key, Value)
                 case _ =>
                   isCollection(A, factoryExpr, buildExpr)
               }

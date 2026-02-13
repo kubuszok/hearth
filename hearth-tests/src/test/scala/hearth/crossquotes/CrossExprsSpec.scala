@@ -33,7 +33,8 @@ final class CrossExprsSpec extends MacroSuite {
               "fromTypeParamInferred" -> Data("123"),
               "fromTypeParamExplicit" -> Data("123"),
               "fromNestedImport" -> Data("key: 1, value: onekey: 2, value: two"),
-              "fromSplittedNestedImport" -> Data("key: 1, value: onekey: 2, value: two")
+              "fromSplittedNestedImport" -> Data("key: 1, value: onekey: 2, value: two"),
+              "fromSameClassImplicit" -> Data("key: 1, value: onekey: 2, value: two")
             )
           )
         )
