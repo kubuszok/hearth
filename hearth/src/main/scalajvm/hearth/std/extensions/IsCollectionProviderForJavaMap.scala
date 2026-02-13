@@ -44,10 +44,7 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
           Map0: Type.Ctor2[Map0],
           emptyMapExpr: => Expr[A],
           keyType: Type[Key0],
-          valueType: Type[Value0],
-          keyExpr: Expr[java.util.Map.Entry[Key0, Value0]] => Expr[Key0],
-          valueExpr: Expr[java.util.Map.Entry[Key0, Value0]] => Expr[Value0],
-          pairExpr: (Expr[Key0], Expr[Value0]) => Expr[java.util.Map.Entry[Key0, Value0]]
+          valueType: Type[Value0]
       ): IsCollection[A] = {
         type Pair = java.util.Map.Entry[Key0, Value0]
         implicit val Pair: Type[Pair] = Entry[Key0, Value0](keyType, valueType)
@@ -78,15 +75,14 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
                 Expr.quote(Expr.splice(expr).result()),
               None // TODO: we should provide a method for this
             )
-          // Key and Value expressions are provided from the outside
           override type Key = Key0
           implicit override val Key: Type[Key] = keyType
           override type Value = Value0
           implicit override val Value: Type[Value] = valueType
-          // FIXME: We pass these from the outside, because Cross-Quotes on Scala 2 was missing Key and Value type substitution.
-          override def key(pair: Expr[Pair]): Expr[Key] = keyExpr(pair)
-          override def value(pair: Expr[Pair]): Expr[Value] = valueExpr(pair)
-          override def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair] = pairExpr(key, value)
+          override def key(pair: Expr[Pair]): Expr[Key] = Expr.quote(Expr.splice(pair).getKey())
+          override def value(pair: Expr[Pair]): Expr[Value] = Expr.quote(Expr.splice(pair).getValue())
+          override def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair] =
+            Expr.quote(java.util.Map.entry(Expr.splice(key), Expr.splice(value)))
         })
       }
 
@@ -102,11 +98,7 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
             map,
             emptyMapExpr.asInstanceOf[Expr[Map0[Key, Value]]],
             keyType,
-            valueType,
-            (pair: Expr[java.util.Map.Entry[Key, Value]]) => Expr.quote(Expr.splice(pair).getKey()),
-            (pair: Expr[java.util.Map.Entry[Key, Value]]) => Expr.quote(Expr.splice(pair).getValue()),
-            (key: Expr[Key], value: Expr[Value]) =>
-              Expr.quote(java.util.Map.entry(Expr.splice(key), Expr.splice(value)))
+            valueType
           ).asInstanceOf[IsCollection[A]]
 
         // tpe is handled by one of Map's subclasses OR it's exactly Map[Key, Value]

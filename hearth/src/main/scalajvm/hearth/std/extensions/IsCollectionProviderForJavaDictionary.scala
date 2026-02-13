@@ -32,21 +32,21 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
           A: Type[A],
           emptyDictExpr: Expr[A],
           keyType: Type[Key0],
-          valueType: Type[Value0],
-          asScalaExpr: Expr[java.util.Dictionary[Key0, Value0]] => Expr[Iterable[Tuple2[Key0, Value0]]],
-          keyExpr: Expr[(Key0, Value0)] => Expr[Key0],
-          valueExpr: Expr[(Key0, Value0)] => Expr[Value0],
-          pairExpr: (Expr[Key0], Expr[Value0]) => Expr[(Key0, Value0)]
+          valueType: Type[Value0]
       ): IsCollection[A] = {
         type Pair = Tuple2[Key0, Value0]
         implicit val Pair: Type[Pair] = Tuple2[Key0, Value0](keyType, valueType)
 
         Existential[IsCollectionOf[A, *], Pair](new IsMapOf[A, Pair] {
           // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the dictionary to Iterable.
-          // FIXME: For some reason, Key and Value type substitution is not working in Cross-Quotes on Scala 2,
-          // even though it works in provider ForJavaMap and ForScalaCollection.
-          override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] =
-            asScalaExpr(value.asInstanceOf[Expr[java.util.Dictionary[Key0, Value0]]])
+          override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] = Expr.quote {
+            val dict: java.util.Dictionary[Key, Value] =
+              Expr.splice(value).asInstanceOf[java.util.Dictionary[Key, Value]]
+            scala.jdk.javaapi.CollectionConverters
+              .asScala(dict.keys())
+              .map(key => (key, dict.get(key)))
+              .to(Iterable)
+          }
           // Java dictionaries have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
@@ -80,10 +80,10 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
                 Expr.quote(Expr.splice(expr).result()),
               None // TODO: we should provide a method for this
             )
-          // FIXME: We pass these from the outside, because Cross-Quotes on Scala 2 was missing Key and Value type substitution.
-          override def key(pair: Expr[Pair]): Expr[Key] = keyExpr(pair)
-          override def value(pair: Expr[Pair]): Expr[Value] = valueExpr(pair)
-          override def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair] = pairExpr(key, value)
+          override def key(pair: Expr[Pair]): Expr[Key] = Expr.quote(Expr.splice(pair)._1)
+          override def value(pair: Expr[Pair]): Expr[Value] = Expr.quote(Expr.splice(pair)._2)
+          override def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair] =
+            Expr.quote((Expr.splice(key), Expr.splice(value)))
         })
       }
 
@@ -154,18 +154,7 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
             tpe.asInstanceOf[Type[Dict1[Key, Value]]],
             emptyDictExpr.asInstanceOf[Expr[Dict1[Key, Value]]],
             Key,
-            Value,
-            (dictionary: Expr[java.util.Dictionary[Key, Value]]) =>
-              Expr.quote {
-                val dict: java.util.Dictionary[Key, Value] = Expr.splice(dictionary)
-                scala.jdk.javaapi.CollectionConverters
-                  .asScala(dict.keys())
-                  .map(key => (key, dict.get(key)))
-                  .to(Iterable)
-              },
-            (pair: Expr[(Key, Value)]) => Expr.quote(Expr.splice(pair)._1),
-            (pair: Expr[(Key, Value)]) => Expr.quote(Expr.splice(pair)._2),
-            (key: Expr[Key], value: Expr[Value]) => Expr.quote((Expr.splice(key), Expr.splice(value)))
+            Value
           ).asInstanceOf[IsCollection[A]]
 
         // tpe is handled by one of Dictionary's subclasses OR it's exactly Dictionary[Key, Value]

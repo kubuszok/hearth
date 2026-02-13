@@ -3382,6 +3382,46 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     importedNames.toList
   } catch { case _: Throwable => Nil }
 
+  /** Collects implicit vals with ImportedCrossTypeImplicit names from the enclosing class (issue #168).
+    *
+    * These are vals like `implicit val Key: Type[Key]` defined in the same class/trait as the Expr.quote call. Unlike
+    * `importedUnderlyingTypes`, these are NOT fed into `TypeWithUnderlyingInjected` (which handles `Type.of[A]`
+    * resolution) because same-class type members with `ThisType` prefixes cause issues there. Instead, these are only
+    * used by `ImplicitTypeReferenceReplacer` for type substitution in `Expr.quote`.
+    */
+  private def sameClassImplicitTypes: List[(Type, String)] = try {
+    val result = scala.collection.mutable.ListBuffer[(Type, String)]()
+
+    @scala.annotation.nowarn // No replacement and it's not going anywhere
+    val enclosingClass = c.enclosingClass
+    if (enclosingClass != EmptyTree) {
+      object implicitValFinder extends Traverser {
+        override def traverse(tree: Tree): Unit = tree match {
+          case vd: ValDef
+              if vd.mods.hasFlag(Flag.IMPLICIT) &&
+                vd.name.isImportedCrossTypeImplicit &&
+                vd.symbol != null =>
+            // Extract the inner type from Type[X] - the symbol's info is Type[X], we want X.
+            // symbol.info is e.g. TypeRef(_, Type, List(TypeRef(ThisType($anon), Key, List())))
+            scala.util
+              .Try {
+                vd.symbol.info match {
+                  case TypeRef(_, _, List(innerType)) => innerType
+                }
+              }
+              .toOption
+              .foreach { tpeToReplace =>
+                result += (tpeToReplace -> vd.name.decodedName.toString)
+              }
+          case _ => super.traverse(tree)
+        }
+      }
+      implicitValFinder.traverse(enclosingClass)
+    }
+
+    result.toList
+  } catch { case _: Throwable => Nil }
+
   // Expr utilities
 
   private def convert(ctx: TermName)(tree: c.Tree): c.Tree = {
@@ -3529,7 +3569,10 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
     object ImportedTypes {
       private val cachesAliases = scala.collection.mutable.Map.empty[String, Cache]
-      private val caches = importedUnderlyingTypes.flatMap { case (tpe, name) =>
+      // Combine imported types with same-class implicit vals (issue #168).
+      // Same-class implicit vals are only used here (not in TypeWithUnderlyingInjected) because
+      // their ThisType prefixes cause issues in the WeakTypeTag workaround mechanism.
+      private val caches = (importedUnderlyingTypes ++ sameClassImplicitTypes).flatMap { case (tpe, name) =>
         def byName = Cache.forTypeName(name)
         def byType = try
           Cache.forTypeName(renderCode(tpe))

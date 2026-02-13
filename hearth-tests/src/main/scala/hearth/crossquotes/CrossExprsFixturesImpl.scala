@@ -123,6 +123,9 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
         def key(item: Expr[Item]): Expr[Key]
         def value(item: Expr[Item]): Expr[Value]
       }
+      trait MapTypeWithResult[A, Item] extends MapType[A, Item] {
+        def result: Expr[Data]
+      }
       val mapTypeExample = new MapType[Map[Int, String], (Int, String)] {
         type Key = Int
         val Key = IntType
@@ -176,12 +179,48 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
         Existential[MapType[Map[Int, String], *], (Int, String)](mapTypeExample)(using Type.of[(Int, String)])
       )(using Type.of[Map[Int, String]])
 
+      // Reproduces issue #168: implicit val Key/Value defined in the same class should be found by Cross-Quotes
+      def fromSameClassImplicit[A: Type](a: Expr[A], mapType: Existential[MapType[A, *]]): Expr[Data] = {
+        // NO import of Key/Value - they come from the anonymous class's own implicit vals
+        val wrapper: MapTypeWithResult[A, mapType.Underlying] = new MapTypeWithResult[A, mapType.Underlying] {
+          override type Key = mapType.value.Key
+          implicit override val Key: Type[Key] = mapType.value.Key
+          override type Value = mapType.value.Value
+          implicit override val Value: Type[Value] = mapType.value.Value
+
+          override def toIterable(item: Expr[A]): Expr[Iterable[mapType.Underlying]] =
+            mapType.value.toIterable(item)
+          override def key(item: Expr[mapType.Underlying]): Expr[Key] = mapType.value.key(item)
+          override def value(item: Expr[mapType.Underlying]): Expr[Value] = mapType.value.value(item)
+
+          // This Expr.quote should find Key and Value from the enclosing class's implicit vals.
+          // Pair is imported (as it would be in real Provider code), but Key/Value are NOT imported.
+          override def result: Expr[Data] = {
+            import mapType.Underlying as Pair
+            Expr.quote {
+              val it = Expr.splice(toIterable(a))
+              Data(it.map { pair =>
+                val k = Expr.splice(key(Expr.quote(pair)))
+                val v = Expr.splice(value(Expr.quote(pair)))
+                "key: " + k.toString + ", value: " + v.toString
+              }.mkString)
+            }
+          }
+        }
+        wrapper.result
+      }
+      val result5 = fromSameClassImplicit(
+        Expr.quote(Map(1 -> "one", 2 -> "two")),
+        Existential[MapType[Map[Int, String], *], (Int, String)](mapTypeExample)(using Type.of[(Int, String)])
+      )(using Type.of[Map[Int, String]])
+
       Expr.quote {
         Data.map(
           "fromTypeParamInferred" -> Expr.splice(result1),
           "fromTypeParamExplicit" -> Expr.splice(result2),
           "fromNestedImport" -> Expr.splice(result3),
-          "fromSplittedNestedImport" -> Expr.splice(result4)
+          "fromSplittedNestedImport" -> Expr.splice(result4),
+          "fromSameClassImplicit" -> Expr.splice(result5)
         )
       }
     }
