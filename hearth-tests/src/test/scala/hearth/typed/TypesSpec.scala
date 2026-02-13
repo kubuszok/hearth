@@ -1606,6 +1606,15 @@ final class TypesSpec extends MacroSuite {
           ),
           """Right["a", "b"]""" -> Data.map(
             "encoded" -> Data("scala.util.Right[\"a\", \"b\"]")
+          ),
+          """Tuple1["a"]""" -> Data.map(
+            "encoded" -> Data("scala.Tuple1[\"a\"]")
+          ),
+          """("a", "b")""" -> Data.map(
+            "encoded" -> Data("scala.Tuple2[\"a\", \"b\"]")
+          ),
+          """("a", "b", "a")""" -> Data.map(
+            "encoded" -> Data("scala.Tuple3[\"a\", \"b\", \"a\"]")
           )
         )
       }
