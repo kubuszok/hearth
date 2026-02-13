@@ -6,7 +6,7 @@ import hearth.fp.data.*
 import scala.collection.immutable.ListMap
 import scala.language.implicitConversions
 
-trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons =>
+trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { this: MacroCommons =>
 
   /** Platform-specific type representation (`c.WeakTypeTag[A]` in 2, `scala.quoted.Type[A]` in 3).
     *
@@ -29,7 +29,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
   type Type[A]
 
   val Type: TypeModule
-  trait TypeModule extends Ctors with TypeCrossQuotes { this: Type.type =>
+  trait TypeModule extends Ctors with TypeCrossQuotes with TypeCompat { this: Type.type =>
 
     /** Summons `Type` instance */
     final def apply[A](implicit A: Type[A]): Type[A] = A
@@ -866,7 +866,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     def toType[A <: U](value: A): Type[A]
     def fromType[A](tpe: Type[A]): Option[Existential.UpperBounded[U, Id]]
   }
-  object TypeCodec {
+  object TypeCodec extends TypeCodecCompat {
 
     def apply[A](implicit codec: TypeCodec[A]): TypeCodec[A] = codec
 

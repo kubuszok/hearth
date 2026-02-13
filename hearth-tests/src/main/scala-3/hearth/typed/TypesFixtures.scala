@@ -5,7 +5,80 @@ import hearth.data.Data
 
 import scala.quoted.*
 
-final private class TypesFixtures(q: Quotes) extends MacroCommonsScala3(using q), TypesFixturesImpl
+final private class TypesFixtures(q: Quotes) extends MacroCommonsScala3(using q), TypesFixturesImpl {
+
+  @scala.annotation.nowarn
+  def testTupleXXLCodec: Expr[Data] = {
+    def oneWay[A: TypeCodec](value: A): Data = {
+      val encoded = Type(value)
+      Data.map(
+        "encoded" -> Data(encoded.plainPrint)
+      )
+    }
+    // Use scala.quoted.Type.of directly to avoid the cross-quotes plugin expansion
+    // which would try to summon implicit Type["a"]/Type["b"] and loop.
+    given quotes: scala.quoted.Quotes = CrossQuotes.ctx
+    implicit val a: Type["a"] = scala.quoted.Type.of["a"].asInstanceOf[Type["a"]]
+    implicit val b: Type["b"] = scala.quoted.Type.of["b"].asInstanceOf[Type["b"]]
+    Expr(
+      Data.map(
+        "23-element tuple" -> oneWay[
+          (
+              "a",
+              "b",
+              "a",
+              "b",
+              "a",
+              "b",
+              "a",
+              "b",
+              "a",
+              "b",
+              "a",
+              "b",
+              "a",
+              "b",
+              "a",
+              "b",
+              "a",
+              "b",
+              "a",
+              "b",
+              "a",
+              "b",
+              "a"
+          )
+        ](
+          (
+            "a": "a",
+            "b": "b",
+            "a": "a",
+            "b": "b",
+            "a": "a",
+            "b": "b",
+            "a": "a",
+            "b": "b",
+            "a": "a",
+            "b": "b",
+            "a": "a",
+            "b": "b",
+            "a": "a",
+            "b": "b",
+            "a": "a",
+            "b": "b",
+            "a": "a",
+            "b": "b",
+            "a": "a",
+            "b": "b",
+            "a": "a",
+            "b": "b",
+            "a": "a"
+          )
+        )
+      )
+    )
+  }
+}
 
 object TypesFixtures {
 
@@ -41,4 +114,7 @@ object TypesFixtures {
 
   inline def testOneWayCodecs: Data = ${ testOneWayCodecsImpl }
   private def testOneWayCodecsImpl(using q: Quotes): Expr[Data] = new TypesFixtures(q).testOneWayCodecs
+
+  inline def testTupleXXLCodec: Data = ${ testTupleXXLCodecImpl }
+  private def testTupleXXLCodecImpl(using q: Quotes): Expr[Data] = new TypesFixtures(q).testTupleXXLCodec
 }

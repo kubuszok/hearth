@@ -433,5 +433,20 @@ final class TypesScala3Spec extends MacroSuite {
 
       // TODO: <:< and =:= should behave the same way, let's test it another day
     }
+
+    group("type TypeCodec") {
+
+      test("methods TypeCodec.{toType} should allow converting types for TupleXXL (23+ elements) and EmptyTuple") {
+        import TypesFixtures.testTupleXXLCodec
+
+        testTupleXXLCodec <==> Data.map(
+          "23-element tuple" -> Data.map(
+            "encoded" -> Data(
+              "scala.*:[\"a\", scala.*:[\"b\", scala.*:[\"a\", scala.*:[\"b\", scala.*:[\"a\", scala.*:[\"b\", scala.*:[\"a\", scala.*:[\"b\", scala.*:[\"a\", scala.*:[\"b\", scala.*:[\"a\", scala.*:[\"b\", scala.*:[\"a\", scala.*:[\"b\", scala.*:[\"a\", scala.*:[\"b\", scala.*:[\"a\", scala.*:[\"b\", scala.*:[\"a\", scala.*:[\"b\", scala.*:[\"a\", scala.*:[\"b\", scala.*:[\"a\", scala.Tuple$package.EmptyTuple]]]]]]]]]]]]]]]]]]]]]]]"
+            )
+          )
+        )
+      }
+    }
   }
 }
