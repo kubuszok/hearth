@@ -162,7 +162,10 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
         "None" -> oneWay[None.type](None),
         """Either["a", "b"]""" -> oneWay[Either["a", "b"]](Left["a", "b"]("a")),
         """Left["a", "b"]""" -> oneWay[Left["a", "b"]](Left["a", "b"]("a")),
-        """Right["a", "b"]""" -> oneWay[Right["a", "b"]](Right["a", "b"]("b"))
+        """Right["a", "b"]""" -> oneWay[Right["a", "b"]](Right["a", "b"]("b")),
+        """Tuple1["a"]""" -> oneWay[Tuple1["a"]](Tuple1("a": "a")),
+        """("a", "b")""" -> oneWay[("a", "b")](("a": "a", "b": "b")),
+        """("a", "b", "a")""" -> oneWay[("a", "b", "a")](("a": "a", "b": "b", "a": "a"))
       )
     )
   }

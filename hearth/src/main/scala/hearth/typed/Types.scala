@@ -170,7 +170,524 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     def CharCodec: TypeCodec[Char]
     def StringCodec: TypeCodec[String]
 
-    // TODO: BigInt, BigDecimal, StringContext, Class, ClassTag, Tuple1-Tuple22
+    // TODO: BigInt, BigDecimal, StringContext, Class, ClassTag
+
+    // Tuple codecs
+    final def Tuple1Codec[T1: Type]: TypeCodec[Tuple1[T1]] = new TypeCodec[Tuple1[T1]] {
+      override def toType[B <: Tuple1[T1]](value: B): Type[B] = Type.of[Tuple1[T1]].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Tuple1[T1], Id]] = None // TODO
+    }
+    final def Tuple2Codec[T1: Type, T2: Type]: TypeCodec[(T1, T2)] = new TypeCodec[(T1, T2)] {
+      override def toType[B <: (T1, T2)](value: B): Type[B] = Type.of[(T1, T2)].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[(T1, T2), Id]] = None // TODO
+    }
+    final def Tuple3Codec[T1: Type, T2: Type, T3: Type]: TypeCodec[(T1, T2, T3)] =
+      new TypeCodec[(T1, T2, T3)] {
+        override def toType[B <: (T1, T2, T3)](value: B): Type[B] = Type.of[(T1, T2, T3)].asInstanceOf[Type[B]]
+        override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[(T1, T2, T3), Id]] = None // TODO
+      }
+    final def Tuple4Codec[T1: Type, T2: Type, T3: Type, T4: Type]: TypeCodec[(T1, T2, T3, T4)] =
+      new TypeCodec[(T1, T2, T3, T4)] {
+        override def toType[B <: (T1, T2, T3, T4)](value: B): Type[B] =
+          Type.of[(T1, T2, T3, T4)].asInstanceOf[Type[B]]
+        override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[(T1, T2, T3, T4), Id]] = None // TODO
+      }
+    final def Tuple5Codec[T1: Type, T2: Type, T3: Type, T4: Type, T5: Type]: TypeCodec[(T1, T2, T3, T4, T5)] =
+      new TypeCodec[(T1, T2, T3, T4, T5)] {
+        override def toType[B <: (T1, T2, T3, T4, T5)](value: B): Type[B] =
+          Type.of[(T1, T2, T3, T4, T5)].asInstanceOf[Type[B]]
+        override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[(T1, T2, T3, T4, T5), Id]] =
+          None // TODO
+      }
+    final def Tuple6Codec[T1: Type, T2: Type, T3: Type, T4: Type, T5: Type, T6: Type]
+        : TypeCodec[(T1, T2, T3, T4, T5, T6)] =
+      new TypeCodec[(T1, T2, T3, T4, T5, T6)] {
+        override def toType[B <: (T1, T2, T3, T4, T5, T6)](value: B): Type[B] =
+          Type.of[(T1, T2, T3, T4, T5, T6)].asInstanceOf[Type[B]]
+        override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[(T1, T2, T3, T4, T5, T6), Id]] =
+          None // TODO
+      }
+    final def Tuple7Codec[T1: Type, T2: Type, T3: Type, T4: Type, T5: Type, T6: Type, T7: Type]
+        : TypeCodec[(T1, T2, T3, T4, T5, T6, T7)] =
+      new TypeCodec[(T1, T2, T3, T4, T5, T6, T7)] {
+        override def toType[B <: (T1, T2, T3, T4, T5, T6, T7)](value: B): Type[B] =
+          Type.of[(T1, T2, T3, T4, T5, T6, T7)].asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[Existential.UpperBounded[(T1, T2, T3, T4, T5, T6, T7), Id]] = None // TODO
+      }
+    final def Tuple8Codec[T1: Type, T2: Type, T3: Type, T4: Type, T5: Type, T6: Type, T7: Type, T8: Type]
+        : TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8)] =
+      new TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8)] {
+        override def toType[B <: (T1, T2, T3, T4, T5, T6, T7, T8)](value: B): Type[B] =
+          Type.of[(T1, T2, T3, T4, T5, T6, T7, T8)].asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[Existential.UpperBounded[(T1, T2, T3, T4, T5, T6, T7, T8), Id]] = None // TODO
+      }
+    final def Tuple9Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9)] =
+      new TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9)] {
+        override def toType[B <: (T1, T2, T3, T4, T5, T6, T7, T8, T9)](value: B): Type[B] =
+          Type.of[(T1, T2, T3, T4, T5, T6, T7, T8, T9)].asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[Existential.UpperBounded[(T1, T2, T3, T4, T5, T6, T7, T8, T9), Id]] = None // TODO
+      }
+    final def Tuple10Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)] =
+      new TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)] {
+        override def toType[B <: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)](value: B): Type[B] =
+          Type.of[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)].asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[Existential.UpperBounded[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10), Id]] = None // TODO
+      }
+    final def Tuple11Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)] =
+      new TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)] {
+        override def toType[B <: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)](value: B): Type[B] =
+          Type.of[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)].asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[Existential.UpperBounded[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11), Id]] = None // TODO
+      }
+    final def Tuple12Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)] =
+      new TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)] {
+        override def toType[B <: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)](value: B): Type[B] =
+          Type.of[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)].asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[Existential.UpperBounded[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12), Id]] =
+          None // TODO
+      }
+    final def Tuple13Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)] =
+      new TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)] {
+        override def toType[B <: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)](value: B): Type[B] =
+          Type.of[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)].asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[Existential.UpperBounded[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13), Id]] =
+          None // TODO
+      }
+    final def Tuple14Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)] =
+      new TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)] {
+        override def toType[B <: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)](
+            value: B
+        ): Type[B] =
+          Type.of[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)].asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[Existential.UpperBounded[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14), Id]] =
+          None // TODO
+      }
+    final def Tuple15Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15)] =
+      new TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15)] {
+        override def toType[B <: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15)](
+            value: B
+        ): Type[B] =
+          Type.of[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15)].asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[
+          Existential.UpperBounded[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15), Id]
+        ] = None // TODO
+      }
+    final def Tuple16Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type,
+        T16: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16)] =
+      new TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16)] {
+        override def toType[B <: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16)](
+            value: B
+        ): Type[B] =
+          Type
+            .of[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16)]
+            .asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[
+          Existential.UpperBounded[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16), Id]
+        ] = None // TODO
+      }
+    final def Tuple17Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type,
+        T16: Type,
+        T17: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17)] =
+      new TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17)] {
+        override def toType[B <: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17)](
+            value: B
+        ): Type[B] =
+          Type
+            .of[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17)]
+            .asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[
+          Existential.UpperBounded[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17), Id]
+        ] = None // TODO
+      }
+    final def Tuple18Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type,
+        T16: Type,
+        T17: Type,
+        T18: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18)] =
+      new TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18)] {
+        override def toType[
+            B <: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18)
+        ](value: B): Type[B] =
+          Type
+            .of[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18)]
+            .asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[
+          Existential.UpperBounded[
+            (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18),
+            Id
+          ]
+        ] = None // TODO
+      }
+    final def Tuple19Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type,
+        T16: Type,
+        T17: Type,
+        T18: Type,
+        T19: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19)] =
+      new TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19)] {
+        override def toType[
+            B <: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19)
+        ](value: B): Type[B] =
+          Type
+            .of[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19)]
+            .asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[Existential.UpperBounded[
+          (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19),
+          Id
+        ]] = None // TODO
+      }
+    final def Tuple20Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type,
+        T16: Type,
+        T17: Type,
+        T18: Type,
+        T19: Type,
+        T20: Type
+    ]: TypeCodec[
+      (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20)
+    ] =
+      new TypeCodec[
+        (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20)
+      ] {
+        override def toType[
+            B <: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20)
+        ](value: B): Type[B] =
+          Type
+            .of[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20)]
+            .asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[Existential.UpperBounded[
+          (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20),
+          Id
+        ]] = None // TODO
+      }
+    final def Tuple21Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type,
+        T16: Type,
+        T17: Type,
+        T18: Type,
+        T19: Type,
+        T20: Type,
+        T21: Type
+    ]: TypeCodec[
+      (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21)
+    ] =
+      new TypeCodec[
+        (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21)
+      ] {
+        override def toType[
+            B <: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21)
+        ](value: B): Type[B] =
+          Type
+            .of[
+              (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21)
+            ]
+            .asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[Existential.UpperBounded[
+          (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21),
+          Id
+        ]] = None // TODO
+      }
+    final def Tuple22Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type,
+        T16: Type,
+        T17: Type,
+        T18: Type,
+        T19: Type,
+        T20: Type,
+        T21: Type,
+        T22: Type
+    ]: TypeCodec[
+      (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22)
+    ] =
+      new TypeCodec[
+        (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22)
+      ] {
+        override def toType[
+            B <: (
+                T1,
+                T2,
+                T3,
+                T4,
+                T5,
+                T6,
+                T7,
+                T8,
+                T9,
+                T10,
+                T11,
+                T12,
+                T13,
+                T14,
+                T15,
+                T16,
+                T17,
+                T18,
+                T19,
+                T20,
+                T21,
+                T22
+            )
+        ](value: B): Type[B] =
+          Type
+            .of[
+              (
+                  T1,
+                  T2,
+                  T3,
+                  T4,
+                  T5,
+                  T6,
+                  T7,
+                  T8,
+                  T9,
+                  T10,
+                  T11,
+                  T12,
+                  T13,
+                  T14,
+                  T15,
+                  T16,
+                  T17,
+                  T18,
+                  T19,
+                  T20,
+                  T21,
+                  T22
+              )
+            ]
+            .asInstanceOf[Type[B]]
+        override def fromType[B](
+            B: Type[B]
+        ): Option[Existential.UpperBounded[
+          (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22),
+          Id
+        ]] = None // TODO
+      }
 
     // TODO: specialize for primitive types
     final def ArrayCodec[A: Type]: TypeCodec[Array[A]] = new TypeCodec[Array[A]] {
@@ -378,6 +895,310 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     implicit def EitherCodec[L: Type, R: Type]: TypeCodec[Either[L, R]] = Type.EitherCodec[L, R]
     implicit def LeftCodec[L: Type, R: Type]: TypeCodec[Left[L, R]] = Type.LeftCodec[L, R]
     implicit def RightCodec[L: Type, R: Type]: TypeCodec[Right[L, R]] = Type.RightCodec[L, R]
+
+    implicit def Tuple1Codec[T1: Type]: TypeCodec[Tuple1[T1]] = Type.Tuple1Codec[T1]
+    implicit def Tuple2Codec[T1: Type, T2: Type]: TypeCodec[(T1, T2)] = Type.Tuple2Codec[T1, T2]
+    implicit def Tuple3Codec[T1: Type, T2: Type, T3: Type]: TypeCodec[(T1, T2, T3)] =
+      Type.Tuple3Codec[T1, T2, T3]
+    implicit def Tuple4Codec[T1: Type, T2: Type, T3: Type, T4: Type]: TypeCodec[(T1, T2, T3, T4)] =
+      Type.Tuple4Codec[T1, T2, T3, T4]
+    implicit def Tuple5Codec[T1: Type, T2: Type, T3: Type, T4: Type, T5: Type]: TypeCodec[(T1, T2, T3, T4, T5)] =
+      Type.Tuple5Codec[T1, T2, T3, T4, T5]
+    implicit def Tuple6Codec[T1: Type, T2: Type, T3: Type, T4: Type, T5: Type, T6: Type]
+        : TypeCodec[(T1, T2, T3, T4, T5, T6)] =
+      Type.Tuple6Codec[T1, T2, T3, T4, T5, T6]
+    implicit def Tuple7Codec[T1: Type, T2: Type, T3: Type, T4: Type, T5: Type, T6: Type, T7: Type]
+        : TypeCodec[(T1, T2, T3, T4, T5, T6, T7)] =
+      Type.Tuple7Codec[T1, T2, T3, T4, T5, T6, T7]
+    implicit def Tuple8Codec[T1: Type, T2: Type, T3: Type, T4: Type, T5: Type, T6: Type, T7: Type, T8: Type]
+        : TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8)] =
+      Type.Tuple8Codec[T1, T2, T3, T4, T5, T6, T7, T8]
+    implicit def Tuple9Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9)] =
+      Type.Tuple9Codec[T1, T2, T3, T4, T5, T6, T7, T8, T9]
+    implicit def Tuple10Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)] =
+      Type.Tuple10Codec[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]
+    implicit def Tuple11Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)] =
+      Type.Tuple11Codec[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]
+    implicit def Tuple12Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)] =
+      Type.Tuple12Codec[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]
+    implicit def Tuple13Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)] =
+      Type.Tuple13Codec[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]
+    implicit def Tuple14Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)] =
+      Type.Tuple14Codec[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]
+    implicit def Tuple15Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15)] =
+      Type.Tuple15Codec[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]
+    implicit def Tuple16Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type,
+        T16: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16)] =
+      Type.Tuple16Codec[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]
+    implicit def Tuple17Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type,
+        T16: Type,
+        T17: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17)] =
+      Type.Tuple17Codec[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17]
+    implicit def Tuple18Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type,
+        T16: Type,
+        T17: Type,
+        T18: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18)] =
+      Type.Tuple18Codec[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18]
+    implicit def Tuple19Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type,
+        T16: Type,
+        T17: Type,
+        T18: Type,
+        T19: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19)] =
+      Type.Tuple19Codec[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19]
+    implicit def Tuple20Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type,
+        T16: Type,
+        T17: Type,
+        T18: Type,
+        T19: Type,
+        T20: Type
+    ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20)] =
+      Type.Tuple20Codec[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20]
+    implicit def Tuple21Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type,
+        T16: Type,
+        T17: Type,
+        T18: Type,
+        T19: Type,
+        T20: Type,
+        T21: Type
+    ]: TypeCodec[
+      (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21)
+    ] =
+      Type.Tuple21Codec[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21]
+    implicit def Tuple22Codec[
+        T1: Type,
+        T2: Type,
+        T3: Type,
+        T4: Type,
+        T5: Type,
+        T6: Type,
+        T7: Type,
+        T8: Type,
+        T9: Type,
+        T10: Type,
+        T11: Type,
+        T12: Type,
+        T13: Type,
+        T14: Type,
+        T15: Type,
+        T16: Type,
+        T17: Type,
+        T18: Type,
+        T19: Type,
+        T20: Type,
+        T21: Type,
+        T22: Type
+    ]: TypeCodec[
+      (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22)
+    ] =
+      Type.Tuple22Codec[
+        T1,
+        T2,
+        T3,
+        T4,
+        T5,
+        T6,
+        T7,
+        T8,
+        T9,
+        T10,
+        T11,
+        T12,
+        T13,
+        T14,
+        T15,
+        T16,
+        T17,
+        T18,
+        T19,
+        T20,
+        T21,
+        T22
+      ]
 
     implicit def ModuleCodec[ModuleSingleton <: Singleton]: TypeCodec[ModuleSingleton] =
       Type.ModuleCodec[ModuleSingleton]

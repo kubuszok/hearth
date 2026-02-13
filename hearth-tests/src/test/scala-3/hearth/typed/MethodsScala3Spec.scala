@@ -27,8 +27,31 @@ final class MethodsScala3Spec extends MacroSuite {
           // 23-element tuple: macro reflection sees typeSymbol = scala.Tuple (the sealed abstract trait),
           // so constructors reflect Tuple's no-arg constructor, not *:'s constructor.
           testConstructorsExtraction[
-            (Int, String, Boolean, Long, Float, Double, Char, Byte, Short, Int, String, Boolean, Long, Float, Double,
-              Char, Byte, Short, Int, String, Boolean, Int, String)
+            (
+                Int,
+                String,
+                Boolean,
+                Long,
+                Float,
+                Double,
+                Char,
+                Byte,
+                Short,
+                Int,
+                String,
+                Boolean,
+                Long,
+                Float,
+                Double,
+                Char,
+                Byte,
+                Short,
+                Int,
+                String,
+                Boolean,
+                Int,
+                String
+            )
           ] <==> Data.map(
             "primaryConstructor" -> Data("()"),
             "defaultConstructor" -> Data("()"),
@@ -71,8 +94,31 @@ final class MethodsScala3Spec extends MacroSuite {
           // Macro reflection sees typeSymbol = scala.Tuple for TupleXXL types,
           // so methods reflect Tuple's members rather than *:'s _1/_2 accessors.
           val methods = testMethodsExtraction[
-            (Int, String, Boolean, Long, Float, Double, Char, Byte, Short, Int, String, Boolean, Long, Float, Double,
-              Char, Byte, Short, Int, String, Boolean, Int, String)
+            (
+                Int,
+                String,
+                Boolean,
+                Long,
+                Float,
+                Double,
+                Char,
+                Byte,
+                Short,
+                Int,
+                String,
+                Boolean,
+                Long,
+                Float,
+                Double,
+                Char,
+                Byte,
+                Short,
+                Int,
+                String,
+                Boolean,
+                Int,
+                String
+            )
           ](
             "clone",
             "equals",
