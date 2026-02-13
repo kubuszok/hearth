@@ -92,6 +92,12 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       !sym.isNoSymbol && sym.flags.is(Flags.Opaque)
     }
 
+    override def isTuple(instanceTpe: UntypedType): Boolean = {
+      val tupleBase = fromTyped[Tuple]
+      val nonEmptyBase = fromTyped[NonEmptyTuple]
+      instanceTpe <:< tupleBase && !(instanceTpe =:= tupleBase) && !(instanceTpe =:= nonEmptyBase)
+    }
+
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       // We use =:= to check whether A is known to be exactly of the built-in type or is it some upper bound.

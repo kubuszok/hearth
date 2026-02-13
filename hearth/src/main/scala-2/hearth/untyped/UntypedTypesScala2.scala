@@ -143,6 +143,20 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
     override def isOpaqueType(instanceTpe: UntypedType): Boolean = false
 
+    override def isTuple(instanceTpe: UntypedType): Boolean = {
+      val A = instanceTpe.typeSymbol
+      A != NoSymbol && {
+        val fullName = A.fullName
+        fullName.startsWith("scala.Tuple") && {
+          val suffix = fullName.stripPrefix("scala.Tuple")
+          suffix.nonEmpty && suffix.forall(_.isDigit) && {
+            val n = suffix.toInt
+            n >= 1 && n <= 22
+          }
+        }
+      }
+    }
+
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       // We use =:= to check whether A is known to be exactly of the built-in type or is it some upper bound.

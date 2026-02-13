@@ -56,6 +56,7 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
       "Type.isClass" -> Data(Type[A].isClass),
       "Type.isTypeSystemSpecial" -> Data(Type[A].isTypeSystemSpecial),
       "Type.isOpaqueType" -> Data(Type[A].isOpaqueType),
+      "Type.isTuple" -> Data(Type[A].isTuple),
       "Type.notJvmBuiltInClass" -> Data(Type[A].notJvmBuiltInClass),
       "Type.isPlainOldJavaObject" -> Data(Type[A].isPlainOldJavaObject),
       "Type.isJavaBean" -> Data(Type[A].isJavaBean),

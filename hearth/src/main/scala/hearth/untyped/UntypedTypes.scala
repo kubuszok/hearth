@@ -95,6 +95,7 @@ trait UntypedTypes { this: MacroCommons =>
       Type.typeSystemSpecialTypes.exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))
 
     def isOpaqueType(instanceTpe: UntypedType): Boolean
+    def isTuple(instanceTpe: UntypedType): Boolean
 
     def isAbstract(instanceTpe: UntypedType): Boolean
     def isFinal(instanceTpe: UntypedType): Boolean
@@ -166,6 +167,7 @@ trait UntypedTypes { this: MacroCommons =>
     def isJvmBuiltIn: Boolean = UntypedType.isJvmBuiltIn(untyped)
     def isTypeSystemSpecial: Boolean = UntypedType.isTypeSystemSpecial(untyped)
     def isOpaqueType: Boolean = UntypedType.isOpaqueType(untyped)
+    def isTuple: Boolean = UntypedType.isTuple(untyped)
 
     def isAbstract: Boolean = UntypedType.isAbstract(untyped)
     def isFinal: Boolean = UntypedType.isFinal(untyped)
