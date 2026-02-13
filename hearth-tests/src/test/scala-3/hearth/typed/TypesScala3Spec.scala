@@ -181,7 +181,7 @@ final class TypesScala3Spec extends MacroSuite {
       }
 
       group(
-        "methods: Type.{isPrimitive, isBuiltIn, isAbstract, isFinal, isClass, notJvmBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
+        "methods: Type.{isPrimitive, isJvmBuiltIn, isAbstract, isFinal, isClass, isTuple, notJvmBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
       ) {
         import TypesFixtures.{testFlags, testChildrenFlags}
 
@@ -200,6 +200,7 @@ final class TypesScala3Spec extends MacroSuite {
               "Type.isClass" -> Data(true),
               "Type.isTypeSystemSpecial" -> Data(false),
               "Type.isOpaqueType" -> Data(false),
+              "Type.isTuple" -> Data(false),
               "Type.notJvmBuiltInClass" -> Data(true),
               "Type.isPlainOldJavaObject" -> Data(false),
               "Type.isJavaBean" -> Data(false),
@@ -257,6 +258,7 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isClass" -> Data(true),
             "Type.isTypeSystemSpecial" -> Data(false),
             "Type.isOpaqueType" -> Data(false),
+            "Type.isTuple" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(true),
             "Type.isJavaBean" -> Data(false),
@@ -285,6 +287,132 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isClass" -> Data(false),
             "Type.isTypeSystemSpecial" -> Data(false),
             "Type.isOpaqueType" -> Data(true),
+            "Type.isTuple" -> Data(false),
+            "Type.notJvmBuiltInClass" -> Data(false),
+            "Type.isPlainOldJavaObject" -> Data(false),
+            "Type.isJavaBean" -> Data(false),
+            "Type.isSealed" -> Data(false),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isCase" -> Data(false),
+            "Type.isObject" -> Data(false),
+            "Type.isVal" -> Data(false),
+            "Type.isCaseClass" -> Data(false),
+            "Type.isCaseObject" -> Data(false),
+            "Type.isCaseVal" -> Data(false),
+            "Type.isAvailable(Everywhere)" -> Data(true),
+            "Type.isAvailable(AtCallSite)" -> Data(true)
+          )
+        }
+      }
+
+      group("methods: Type.{isTuple, constructors, methods}, expected behavior for tuples") {
+        import TypesFixtures.testFlags
+
+        test("for small tuples (Tuple1, Tuple2, Tuple3)") {
+          List(
+            testFlags[Tuple1[Int]],
+            testFlags[(Int, String)],
+            testFlags[(Int, String, Boolean)]
+          ).foreach { actual =>
+            actual <==> Data.map(
+              "Type.isPrimitive" -> Data(false),
+              "Type.isArray" -> Data(false),
+              "Type.isJvmBuiltIn" -> Data(false),
+              "Type.isAbstract" -> Data(false),
+              "Type.isFinal" -> Data(true),
+              "Type.isClass" -> Data(true),
+              "Type.isTypeSystemSpecial" -> Data(false),
+              "Type.isOpaqueType" -> Data(false),
+              "Type.isTuple" -> Data(true),
+              "Type.notJvmBuiltInClass" -> Data(true),
+              "Type.isPlainOldJavaObject" -> Data(true),
+              "Type.isJavaBean" -> Data(false),
+              "Type.isSealed" -> Data(false),
+              "Type.isJavaEnum" -> Data(false),
+              "Type.isJavaEnumValue" -> Data(false),
+              "Type.isCase" -> Data(true),
+              "Type.isObject" -> Data(false),
+              "Type.isVal" -> Data(false),
+              "Type.isCaseClass" -> Data(true),
+              "Type.isCaseObject" -> Data(false),
+              "Type.isCaseVal" -> Data(false),
+              "Type.isAvailable(Everywhere)" -> Data(true),
+              "Type.isAvailable(AtCallSite)" -> Data(true)
+            )
+          }
+        }
+
+        test("for TupleXXL (23+ elements)") {
+          // 23-element tuple, represented as nested *: at the type level, TupleXXL at runtime.
+          // Note: Scala 3 macro reflection sees TupleXXL types with typeSymbol = scala.Tuple (sealed abstract trait),
+          // so flags like isAbstract/isSealed/isClass reflect the Tuple trait, not the *: case class.
+          testFlags[
+            (
+                Int,
+                String,
+                Boolean,
+                Long,
+                Float,
+                Double,
+                Char,
+                Byte,
+                Short,
+                Int,
+                String,
+                Boolean,
+                Long,
+                Float,
+                Double,
+                Char,
+                Byte,
+                Short,
+                Int,
+                String,
+                Boolean,
+                Int,
+                String
+            )
+          ] <==> Data.map(
+            "Type.isPrimitive" -> Data(false),
+            "Type.isArray" -> Data(false),
+            "Type.isJvmBuiltIn" -> Data(false),
+            "Type.isAbstract" -> Data(true),
+            "Type.isFinal" -> Data(false),
+            "Type.isClass" -> Data(true),
+            "Type.isTypeSystemSpecial" -> Data(false),
+            "Type.isOpaqueType" -> Data(false),
+            "Type.isTuple" -> Data(true),
+            "Type.notJvmBuiltInClass" -> Data(true),
+            "Type.isPlainOldJavaObject" -> Data(false),
+            "Type.isJavaBean" -> Data(false),
+            "Type.isSealed" -> Data(true),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isCase" -> Data(false),
+            "Type.isObject" -> Data(false),
+            "Type.isVal" -> Data(false),
+            "Type.isCaseClass" -> Data(false),
+            "Type.isCaseObject" -> Data(false),
+            "Type.isCaseVal" -> Data(false),
+            "Type.isAvailable(Everywhere)" -> Data(true),
+            "Type.isAvailable(AtCallSite)" -> Data(true)
+          )
+        }
+
+        test("for EmptyTuple") {
+          // EmptyTuple is a type alias in Scala 3, so macro reflection sees it differently
+          // from regular classes/objects.
+          testFlags[EmptyTuple] <==> Data.map(
+            "Type.isPrimitive" -> Data(false),
+            "Type.isArray" -> Data(false),
+            "Type.isJvmBuiltIn" -> Data(false),
+            "Type.isAbstract" -> Data(false),
+            "Type.isFinal" -> Data(false),
+            "Type.isClass" -> Data(false),
+            "Type.isTypeSystemSpecial" -> Data(false),
+            "Type.isOpaqueType" -> Data(false),
+            "Type.isTuple" -> Data(true),
             "Type.notJvmBuiltInClass" -> Data(false),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),

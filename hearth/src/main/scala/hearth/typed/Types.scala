@@ -127,6 +127,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     )
     final def isTypeSystemSpecial[A: Type]: Boolean = UntypedType.fromTyped[A].isTypeSystemSpecial
     final def isOpaqueType[A: Type]: Boolean = UntypedType.fromTyped[A].isOpaqueType
+    final def isTuple[A: Type]: Boolean = UntypedType.fromTyped[A].isTuple
 
     final def isAbstract[A: Type]: Boolean = UntypedType.fromTyped[A].isAbstract
     final def isFinal[A: Type]: Boolean = UntypedType.fromTyped[A].isFinal
@@ -281,6 +282,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes { this: MacroCommons 
     def isJvmBuiltIn: Boolean = Type.isJvmBuiltIn(using tpe)
     def isTypeSystemSpecial: Boolean = Type.isTypeSystemSpecial(using tpe)
     def isOpaqueType: Boolean = Type.isOpaqueType(using tpe)
+    def isTuple: Boolean = Type.isTuple(using tpe)
 
     def isAbstract: Boolean = Type.isAbstract(using tpe)
     def isFinal: Boolean = Type.isFinal(using tpe)

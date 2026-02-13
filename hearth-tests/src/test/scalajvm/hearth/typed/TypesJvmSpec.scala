@@ -131,7 +131,7 @@ final class TypesJvmSpec extends MacroSuite {
       // TODO: annotations? Could we even use StaticAnnotation on Java classes? Can we detect Java annotations in macro at all?
 
       group(
-        "methods: Type.{isPrimitive, isBuiltIn, isAbstract, isFinal, isClass, notJvmBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
+        "methods: Type.{isPrimitive, isJvmBuiltIn, isAbstract, isFinal, isClass, isTuple, notJvmBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
       ) {
         import TypesFixtures.{testFlags, testChildrenFlags}
 
@@ -149,6 +149,7 @@ final class TypesJvmSpec extends MacroSuite {
               "Type.isClass" -> Data(true),
               "Type.isTypeSystemSpecial" -> Data(false),
               "Type.isOpaqueType" -> Data(false),
+              "Type.isTuple" -> Data(false),
               "Type.notJvmBuiltInClass" -> Data(true),
               "Type.isPlainOldJavaObject" -> Data(!isAbstract),
               "Type.isJavaBean" -> Data(!isAbstract),
@@ -181,6 +182,7 @@ final class TypesJvmSpec extends MacroSuite {
               "Type.isClass" -> Data(true),
               "Type.isTypeSystemSpecial" -> Data(false),
               "Type.isOpaqueType" -> Data(false),
+              "Type.isTuple" -> Data(false),
               "Type.notJvmBuiltInClass" -> Data(true),
               "Type.isPlainOldJavaObject" -> Data(false),
               "Type.isJavaBean" -> Data(false),

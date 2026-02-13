@@ -694,7 +694,7 @@ final class TypesSpec extends MacroSuite {
       }
 
       group(
-        "methods: Type.{isPrimitive, isBuiltIn, isAbstract, isFinal, isClass, notJvmBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
+        "methods: Type.{isPrimitive, isJvmBuiltIn, isAbstract, isFinal, isClass, isTuple, notJvmBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
       ) {
         import TypesFixtures.{testFlags, testChildrenFlags}
 
@@ -718,6 +718,7 @@ final class TypesSpec extends MacroSuite {
               "Type.isClass" -> Data(true),
               "Type.isTypeSystemSpecial" -> Data(false),
               "Type.isOpaqueType" -> Data(false),
+              "Type.isTuple" -> Data(false),
               "Type.notJvmBuiltInClass" -> Data(false),
               "Type.isPlainOldJavaObject" -> Data(false),
               "Type.isJavaBean" -> Data(false),
@@ -747,6 +748,7 @@ final class TypesSpec extends MacroSuite {
             "Type.isClass" -> Data(true),
             "Type.isTypeSystemSpecial" -> Data(false),
             "Type.isOpaqueType" -> Data(false),
+            "Type.isTuple" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(false),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),
@@ -772,6 +774,7 @@ final class TypesSpec extends MacroSuite {
             "Type.isClass" -> Data(true),
             "Type.isTypeSystemSpecial" -> Data(false),
             "Type.isOpaqueType" -> Data(false),
+            "Type.isTuple" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(false),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),
@@ -797,6 +800,7 @@ final class TypesSpec extends MacroSuite {
             "Type.isClass" -> Data(false),
             "Type.isTypeSystemSpecial" -> Data(false),
             "Type.isOpaqueType" -> Data(false),
+            "Type.isTuple" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(false),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),
@@ -834,6 +838,7 @@ final class TypesSpec extends MacroSuite {
               "Type.isClass" -> Data(true),
               "Type.isTypeSystemSpecial" -> Data(false),
               "Type.isOpaqueType" -> Data(false),
+              "Type.isTuple" -> Data(false),
               "Type.notJvmBuiltInClass" -> Data(true),
               "Type.isPlainOldJavaObject" -> Data(!isAbstract),
               "Type.isJavaBean" -> Data(isJavaBean),
@@ -892,6 +897,7 @@ final class TypesSpec extends MacroSuite {
               "Type.isClass" -> Data(true),
               "Type.isTypeSystemSpecial" -> Data(false),
               "Type.isOpaqueType" -> Data(false),
+              "Type.isTuple" -> Data(false),
               "Type.notJvmBuiltInClass" -> Data(true),
               "Type.isPlainOldJavaObject" -> Data(!isAbstract),
               "Type.isJavaBean" -> Data(isJavaBean),
@@ -929,6 +935,7 @@ final class TypesSpec extends MacroSuite {
               "Type.isClass" -> Data(true),
               "Type.isTypeSystemSpecial" -> Data(false),
               "Type.isOpaqueType" -> Data(false),
+              "Type.isTuple" -> Data(false),
               "Type.notJvmBuiltInClass" -> Data(true),
               "Type.isPlainOldJavaObject" -> Data(!isAbstract),
               "Type.isJavaBean" -> Data(isJavaBean),
