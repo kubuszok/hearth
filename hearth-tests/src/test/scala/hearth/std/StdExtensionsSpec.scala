@@ -455,6 +455,49 @@ final class StdExtensionsSpec extends MacroSuite {
           )
         )
       }
+
+      test("for String") {
+        testIsCollection("abc") <==> Data.map(
+          "iteration" -> Data.list(
+            Data("a"),
+            Data("b"),
+            Data("c")
+          ),
+          "building" -> Data("<not a collection of string>")
+        )
+        testIsCollection("") <==> Data.map(
+          "iteration" -> Data.list(),
+          "building" -> Data("<not a collection of string>")
+        )
+      }
+
+      test("for Scala Option") {
+        testIsCollection(Option("value")) <==> Data.map(
+          "iteration" -> Data.list(
+            Data("value")
+          ),
+          "building" -> Data("Some(one)")
+        )
+        testIsCollection(Option.empty[String]) <==> Data.map(
+          "iteration" -> Data.list(),
+          "building" -> Data("Some(one)")
+        )
+      }
+
+      test("for Scala Iterator") {
+        testIsCollection(Iterator("one", "two", "three")) <==> Data.map(
+          "iteration" -> Data.list(
+            Data("one"),
+            Data("two"),
+            Data("three")
+          ),
+          "building" -> Data("<iterator>")
+        )
+        testIsCollection(Iterator.empty[String]) <==> Data.map(
+          "iteration" -> Data.list(),
+          "building" -> Data("<iterator>")
+        )
+      }
     }
 
     group("class: IsOption[A], returns preprocessed option") {

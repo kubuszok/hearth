@@ -526,6 +526,64 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           "building" -> Data("{1=one}")
         )
       }
+
+      test("for java.lang.Iterable") {
+        // Use an Iterable that is NOT a Collection to ensure this provider handles it
+        val iterable: java.lang.Iterable[String] = new java.lang.Iterable[String] {
+          override def iterator(): java.util.Iterator[String] =
+            java.util.Arrays.asList("one", "two", "three").iterator()
+        }
+        testIsCollection(iterable) <==> Data.map(
+          "iteration" -> Data.list(
+            Data("one"),
+            Data("two"),
+            Data("three")
+          ),
+          "building" -> Data("[one]")
+        )
+      }
+
+      test("for java.util.Optional as collection") {
+        testIsCollection(java.util.Optional.of("value")) <==> Data.map(
+          "iteration" -> Data.list(
+            Data("value")
+          ),
+          "building" -> Data("Optional[one]")
+        )
+        testIsCollection(java.util.Optional.empty[String]) <==> Data.map(
+          "iteration" -> Data.list(),
+          "building" -> Data("Optional[one]")
+        )
+      }
+
+      test("for java.util.EnumSet") {
+        testIsCollection(java.util.EnumSet.of(Thread.State.NEW, Thread.State.RUNNABLE)) <==> Data.map(
+          "iteration" -> Data.list(
+            Data("NEW"),
+            Data("RUNNABLE")
+          ),
+          "building" -> Data("<not a collection of string>")
+        )
+      }
+
+      test("for java.util.EnumMap") {
+        val em = new java.util.EnumMap[Thread.State, String](classOf[Thread.State])
+        em.put(Thread.State.NEW, "one")
+        em.put(Thread.State.RUNNABLE, "two")
+        testIsCollection[java.util.EnumMap[Thread.State, String]](em) <==> Data.map(
+          "iteration" -> Data.list(
+            Data.map(
+              "key" -> Data("NEW"),
+              "value" -> Data("one")
+            ),
+            Data.map(
+              "key" -> Data("RUNNABLE"),
+              "value" -> Data("two")
+            )
+          ),
+          "building" -> Data("<not a map of int and string>")
+        )
+      }
     }
 
     group("class: IsOption[A], returns preprocessed option") {

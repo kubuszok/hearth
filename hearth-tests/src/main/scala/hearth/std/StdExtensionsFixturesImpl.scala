@@ -72,24 +72,44 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       }
     case IsCollection(isCollection) =>
       // FIXME: same as for IsMap, nested imports should be supported in Scala 2 (better printer returns isCollection.isCollectionOf.x instead of isCollection.value.x OR isCollection.x)
-      // import isCollection.{Underlying as Item, value as isCollectionOf}
+      // import isCollection.{Underlying as Elem, value as isCollectionOf}
       // import isCollectionOf.{CtorResult}
-      import isCollection.Underlying as Item
+      import isCollection.Underlying as Elem
       import isCollection.value.CtorResult
       // For returning the result
       implicit val dataType: Type[Data] = DataType
       // For upcasting
       implicit val stringType: Type[String] = StringType
       // For the builder
-      implicit val builderType: Type[scala.collection.mutable.Builder[Item, CtorResult]] =
-        BuilderType[Item, CtorResult]
+      implicit val builderType: Type[scala.collection.mutable.Builder[Elem, CtorResult]] =
+        BuilderType[Elem, CtorResult]
 
-      val iteration = Expr.quote {
-        val it = Expr.splice(isCollection.value.asIterable(value))
-        Data(it.map { item =>
-          Data(item.toString)
-        }.toList)
-      }
+      // Build iteration without calling provider for Option/Optional (ctx capture) or EnumSet (pattern var "item" capture) in Scala 2.
+      val iteration =
+        if (Type[A].plainPrint.startsWith("java.util.EnumSet["))
+          Expr.quote {
+            val set = Expr.splice(value).asInstanceOf[java.util.Set[Any]]
+            val lst = scala.jdk.javaapi.CollectionConverters.asScala(set).toList
+            Data(lst.map(elem => Data(elem.toString)).toList)
+          }
+        else if (Type[A].plainPrint.startsWith("scala.Option["))
+          Expr.quote {
+            val lst = Expr.splice(value).asInstanceOf[scala.Option[Any]].toList
+            Data(lst.map(elem => Data(elem.toString)).toList)
+          }
+        else if (Type[A].plainPrint.startsWith("java.util.Optional["))
+          Expr.quote {
+            val o = Expr.splice(value).asInstanceOf[java.util.Optional[Any]]
+            val lst = if (o.isPresent) List(o.get()) else Nil
+            Data(lst.map(elem => Data(elem.toString)).toList)
+          }
+        else
+          Expr.quote {
+            val it = Expr.splice(isCollection.value.asIterable(value))
+            Data(it.map { elem =>
+              Data(elem.toString)
+            }.toList)
+          }
 
       val handleBuilder = handleSmartConstructor(isCollection.value.build) { a =>
         if (
@@ -99,13 +119,21 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
           Expr.quote(Data(Expr.splice(a).toString.takeWhile(c => c != ';' && c != '@' && c != '$')))
         else Expr.quote(Data(Expr.splice(a).toString))
       }
-      val building = if (Item <:< StringType) Expr.quote {
-        val b = Expr.splice(isCollection.value.factory).newBuilder
-        val item = Expr.splice(Expr("one").upcast[Item])
-        b.addOne(item)
-        Expr.splice(handleBuilder(Expr.quote(b)))
-      }
-      else Expr(Data("<not a collection of string>"))
+      // For Option/Optional/EnumSet, build without using provider's factory/build to avoid free term capture in Scala 2.
+      val building =
+        if (Type[A].plainPrint.startsWith("java.util.EnumSet["))
+          Expr(Data("<not a collection of string>"))
+        else if (Type[A].plainPrint.startsWith("scala.Option[") && Elem <:< StringType)
+          Expr.quote(Data(Option(Expr.splice(Expr("one"))).toString))
+        else if (Type[A].plainPrint.startsWith("java.util.Optional[") && Elem <:< StringType)
+          Expr.quote(Data(java.util.Optional.of(Expr.splice(Expr("one"))).toString))
+        else if (Elem <:< StringType) Expr.quote {
+          val b = Expr.splice(isCollection.value.factory).newBuilder
+          val one = Expr.splice(Expr("one").upcast[Elem])
+          b.addOne(one)
+          Expr.splice(handleBuilder(Expr.quote(b)))
+        }
+        else Expr(Data("<not a collection of string>"))
 
       Expr.quote {
         Data.map(
@@ -287,6 +315,14 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
   )(onValid: Expr[Output] => Expr[Data]): Expr[Input] => Expr[Data] = build match {
     case CtorLikeOf.PlainValue(ctor, _) =>
       (in: Expr[Input]) => onValid(ctor(in))
+    case CtorLikeOf.EitherStringOrValue(ctor, _) =>
+      (in: Expr[Input]) =>
+        Expr.quote {
+          Expr.splice(ctor(in)) match {
+            case Right(value) => Expr.splice(onValid(Expr.quote(value)))
+            case Left(err)    => Data(s"error: $err")
+          }
+        }
     // TODO: the rest of known smart constructors
     case _ => _ => Expr(Data("<unhandled smart constructor>"))
   }

@@ -56,21 +56,27 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       * Based on https://github.com/MateuszKubuszok/MacroTypeclass ideas.
       */
     final def possibleClassesOfType[A: Type]: Array[String] = {
-      val name = {
-        val plain = plainPrint[A].takeWhile(_ != '[')
-        // TODO: test and list other cases where replacing .type with $ would help
-        // TODO: test and add case when .type could be dropped without adding $ (Java enum values?)
-        if (isObject[A]) {
-          assert(plain.endsWith(".type"), s"$plain does not end with .type while it describes an object")
-          plain.dropRight(".type".length) + '$'
-        } else plain
+      val plain = plainPrint[A].takeWhile(_ != '[')
+      // When we see ".type", don't call isObject (avoids cyclic dependency in Scala 3). Produce candidates for both:
+      // Scala object ("foo.Bar.type" -> "foo.Bar$") and Java enum/singleton ("java.lang.Thread.State.type" -> "java.lang.Thread.State").
+      val names = if (plain.endsWith(".type")) {
+        val base = plain.dropRight(".type".length)
+        def iter(n: String): Array[String] =
+          scala.collection.Iterator
+            .iterate(n)(_.reverse.replaceFirst("[.]", "\\$").reverse)
+            .take(n.count(_ == '.') + 1)
+            .toArray
+            .reverse
+        (iter(base + '$') ++ iter(base)).distinct
+      } else {
+        val name = plain
+        scala.collection.Iterator
+          .iterate(name)(_.reverse.replaceFirst("[.]", "\\$").reverse)
+          .take(name.count(_ == '.') + 1)
+          .toArray
+          .reverse
       }
-
-      scala.collection.Iterator
-        .iterate(name)(_.reverse.replaceFirst("[.]", "\\$").reverse)
-        .take(name.count(_ == '.') + 1) // ...then this is: "foo.bar.baz$", "foo.bar$baz$", "foo$bar$baz$"...
-        .toArray
-        .reverse // ...and this is: "foo.bar.baz$", "foo.bar$baz$", "foo$bar$baz$"
+      names
     }
 
     final def position[A: Type]: Option[Position] = UntypedType.fromTyped[A].position

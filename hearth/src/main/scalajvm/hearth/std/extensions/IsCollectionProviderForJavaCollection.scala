@@ -45,7 +45,7 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
       private lazy val juSortedSet = Type.Ctor1.of[java.util.SortedSet]
       private lazy val juNavigableSet = Type.Ctor1.of[java.util.NavigableSet]
       private lazy val juTreeSet = Type.Ctor1.of[java.util.TreeSet]
-      // private lazy val juEnumSet = Type.Ctor1.UpperBounded.of[java.lang.Enum[?], java.util.EnumSet]
+      private lazy val juEnumType = Type.of[java.lang.Enum[?]]
 
       private def isCollection[Coll0[I] <: java.util.Collection[I], Item: Type, A <: Coll0[Item]](
           A: Type[A],
@@ -149,7 +149,71 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
                     .orElse(orderingExprOpt.flatMap { orderingExpr =>
                       leaf(juTreeSet, Expr.quote(new java.util.TreeSet[Item](Expr.splice(orderingExpr))))
                     })
-                  // TODO: handle java.util.EnumSets
+                    .orElse {
+                      // EnumSet requires E <: Enum[E] bound which cannot be expressed as a Type.Ctor1.
+                      // We check for EnumSet by comparing the runtime class at macro time, and use
+                      // Type.classOfType + casts through Nothing to satisfy bounds in generated code.
+                      if (Item <:< juEnumType) {
+                        val isEnumSet = Type.classOfType(using tpe).exists { c =>
+                          classOf[java.util.EnumSet[?]].isAssignableFrom(c)
+                        }
+                        if (isEnumSet) {
+                          Type.classOfType[Item].flatMap { enumClass =>
+                            val enumClassExpr: Expr[java.lang.Class[Item]] = {
+                              implicit val classCodec: ExprCodec[java.lang.Class[Item]] =
+                                Expr.ClassExprCodec[Item]
+                              Expr(enumClass)
+                            }
+                            Some(
+                              Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
+                                override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
+                                  scala.jdk.javaapi.CollectionConverters
+                                    .asScala(
+                                      Expr.splice(value).asInstanceOf[java.util.Set[Item]].iterator()
+                                    )
+                                    .to(Iterable)
+                                }
+                                override type CtorResult = A
+                                implicit override val CtorResult: Type[CtorResult] = tpe
+                                override def factory: Expr[scala.collection.Factory[Item, CtorResult]] =
+                                  Expr.quote {
+                                    new scala.collection.Factory[Item, A] {
+                                      override def newBuilder: scala.collection.mutable.Builder[Item, A] =
+                                        new scala.collection.mutable.Builder[Item, A] {
+                                          @SuppressWarnings(Array("unchecked"))
+                                          private val impl: java.util.EnumSet[?] = {
+                                            // Bypass EnumSet.noneOf type bound (E <: Enum[E]) via reflection:
+                                            // Scala 2 cannot infer E for the static method call due to
+                                            // F-bounded polymorphism + Class invariance.
+                                            val cls: java.lang.Class[?] = Expr.splice(enumClassExpr)
+                                            classOf[java.util.EnumSet[?]]
+                                              .getMethod("noneOf", classOf[java.lang.Class[?]])
+                                              .invoke(null, cls)
+                                              .asInstanceOf[java.util.EnumSet[?]]
+                                          }
+                                          override def clear(): Unit = impl.clear()
+                                          override def result(): A = impl.asInstanceOf[A]
+                                          override def addOne(elem: Item): this.type = {
+                                            impl.asInstanceOf[java.util.Set[AnyRef]].add(elem.asInstanceOf[AnyRef]);
+                                            this
+                                          }
+                                        }
+                                      override def fromSpecific(it: IterableOnce[Item]): A =
+                                        newBuilder.addAll(it).result()
+                                    }
+                                  }
+                                override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], A] =
+                                  CtorLikeOf.PlainValue(
+                                    (expr: Expr[scala.collection.mutable.Builder[Item, CtorResult]]) =>
+                                      Expr.quote(Expr.splice(expr).result()),
+                                    None
+                                  )
+                              })
+                            )
+                          }
+                        } else None
+                      } else None
+                    }
                 })
                 .orElse(leaf(juArrayDeque, Expr.quote(new java.util.ArrayDeque[Item])))
             }
