@@ -35,6 +35,7 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
           case idx => name.substring(idx + 1)
         }
       } else (TypeRepr.of[A].dealias.typeSymbol.name: String).replaceAll("\\$", "")
+
     override def plainPrint[A: Type]: String = removeAnsiColors(prettyPrint[A])
     override def prettyPrint[A: Type]: String = {
       // In Scala 3 typeRepr.dealias dealiases only the "main" type but not types applied as type parameters,

@@ -33,11 +33,68 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
       private lazy val juWeakHashMap = Type.Ctor2.of[java.util.WeakHashMap]
       private lazy val juIdentityHashMap = Type.Ctor2.of[java.util.IdentityHashMap]
 
+      private lazy val juEnumType = Type.of[java.lang.Enum[?]]
+
       // FIXME: Same issue as in IsCollectionProviderForJavaStream.scala: we have a bug in Type.Ctor.
       // private lazy val Entry = Type.Ctor2.of[java.util.Map.Entry]
       private def Entry[A: Type, B: Type]: Type[java.util.Map.Entry[A, B]] = Type.of[java.util.Map.Entry[A, B]]
 
       private lazy val Entry = Type.Ctor2.of[java.util.Map.Entry]
+
+      // Helper for EnumMap: mirrors isMap but without requiring Type.Ctor2 (which can't express EnumMap bounds).
+      // Uses Type.classOfType + casts through Nothing to create the EnumMap in generated code.
+      private def isEnumMap[Key0, Value0, A](
+          A: Type[A],
+          keyType: Type[Key0],
+          valueType: Type[Value0],
+          keyClassExpr: Expr[java.lang.Class[Key0]]
+      ): IsCollection[A] = {
+        type Pair = java.util.Map.Entry[Key0, Value0]
+        implicit val Pair: Type[Pair] = Entry[Key0, Value0](keyType, valueType)
+
+        Existential[IsCollectionOf[A, *], Pair](new IsMapOf[A, Pair] {
+          override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] = Expr.quote {
+            scala.jdk.javaapi.CollectionConverters
+              .asScala(
+                Expr.splice(value).asInstanceOf[java.util.Map[Key0, Value0]].entrySet().iterator()
+              )
+              .to(Iterable)
+          }
+          override type CtorResult = A
+          implicit override val CtorResult: Type[CtorResult] = A
+          override def factory: Expr[scala.collection.Factory[Pair, CtorResult]] = Expr.quote {
+            new scala.collection.Factory[Pair, A] {
+              override def newBuilder: scala.collection.mutable.Builder[Pair, A] =
+                new scala.collection.mutable.Builder[Pair, A] {
+                  @SuppressWarnings(Array("unchecked"))
+                  private val impl = new java.util.EnumMap[Nothing, Value0](
+                    Expr.splice(keyClassExpr).asInstanceOf[java.lang.Class[Nothing]]
+                  ).asInstanceOf[java.util.Map[Key0, Value0]]
+                  override def clear(): Unit = impl.clear()
+                  override def result(): A = impl.asInstanceOf[A]
+                  override def addOne(elem: Pair): this.type = {
+                    impl.put(elem.getKey(), elem.getValue()); this
+                  }
+                }
+              override def fromSpecific(it: IterableOnce[Pair]): A = newBuilder.addAll(it).result()
+            }
+          }
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, CtorResult], A] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[scala.collection.mutable.Builder[Pair, CtorResult]]) =>
+                Expr.quote(Expr.splice(expr).result()),
+              None
+            )
+          override type Key = Key0
+          implicit override val Key: Type[Key] = keyType
+          override type Value = Value0
+          implicit override val Value: Type[Value] = valueType
+          override def key(pair: Expr[Pair]): Expr[Key] = Expr.quote(Expr.splice(pair).getKey())
+          override def value(pair: Expr[Pair]): Expr[Value] = Expr.quote(Expr.splice(pair).getValue())
+          override def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair] =
+            Expr.quote(java.util.Map.entry(Expr.splice(key), Expr.splice(value)))
+        })
+      }
 
       private def isMap[Map0[K, V] <: java.util.Map[K, V], Key0, Value0, A <: Map0[Key0, Value0]](
           A: Type[A],
@@ -149,7 +206,29 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
                 )
                 .orElse(leaf(juWeakHashMap, Expr.quote(new java.util.WeakHashMap[Key, Value])))
                 .orElse(leaf(juIdentityHashMap, Expr.quote(new java.util.IdentityHashMap[Key, Value])))
-              // TODO: handle java.util.EnumMaps
+                .orElse {
+                  // EnumMap requires K <: Enum[K] bound which cannot be expressed as a Type.Ctor2.
+                  // We check for EnumMap by comparing the runtime class at macro time, and delegate
+                  // to isEnumMap helper which uses casts through Nothing for bounds.
+                  if (Key <:< juEnumType) {
+                    val isEnumMapType = Type.classOfType(using tpe).exists { c =>
+                      classOf[java.util.EnumMap[?, ?]].isAssignableFrom(c)
+                    }
+                    if (isEnumMapType) {
+                      Type.classOfType[Key].flatMap { keyClass =>
+                        val keyClassExpr: Expr[java.lang.Class[Key]] = {
+                          implicit val classCodec: ExprCodec[java.lang.Class[Key]] =
+                            Expr.ClassExprCodec[Key]
+                          Expr(keyClass)
+                        }
+                        Some(
+                          isEnumMap[Key, Value, A](tpe, Type[Key], Type[Value], keyClassExpr)
+                            .asInstanceOf[IsCollection[A]]
+                        )
+                      }
+                    } else None
+                  } else None
+                }
             }
             def interfaceHierarchy = node(juMap, Expr.quote(new java.util.HashMap[Key, Value])) {
               orderingExprOpt
