@@ -25,11 +25,8 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
 
   def testIsCollection[A: Type](value: Expr[A]): Expr[Data] = Type[A] match {
     case IsMap(isMap) =>
-      // FIXME: nested imports should be supported in Scala 2 (better printer returns isMap.isMapOf.x instead of isMap.value.x OR isMap.x)
-      // import isMap.{Underlying as Pair, value as isMapOf}
-      // import isMapOf.{Key, Value, CtorResult}
-      import isMap.Underlying as Pair
-      import isMap.value.{Key, Value, CtorResult}
+      import isMap.{Underlying as Pair, value as isMapOf}
+      import isMapOf.{Key, Value, CtorResult}
       // For returning the result
       implicit val dataType: Type[Data] = DataType
       // For upcasting
@@ -40,10 +37,10 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
         BuilderType[Pair, CtorResult]
 
       val iteration = Expr.quote {
-        val it = Expr.splice(isMap.value.asIterable(value))
+        val it = Expr.splice(isMapOf.asIterable(value))
         Data(it.map { pair =>
-          val key = Expr.splice(isMap.value.key(Expr.quote(pair)))
-          val value = Expr.splice(isMap.value.value(Expr.quote(pair)))
+          val key = Expr.splice(isMapOf.key(Expr.quote(pair)))
+          val value = Expr.splice(isMapOf.value(Expr.quote(pair)))
           Data.map(
             "key" -> Data(key.toString),
             "value" -> Data(value.toString)
@@ -51,14 +48,14 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
         }.toList)
       }
 
-      val handleBuilder = handleSmartConstructor(isMap.value.build) { a =>
+      val handleBuilder = handleSmartConstructor(isMapOf.build) { a =>
         Expr.quote(Data(Expr.splice(a).toString))
       }
       val building = if (Key <:< IntType && Value <:< StringType) Expr.quote {
         val key = Expr.splice(Expr(1).upcast[Key])
         val value = Expr.splice(Expr("one").upcast[Value])
-        val pair = Expr.splice(isMap.value.pair(Expr.quote(key), Expr.quote(value)))
-        val b = Expr.splice(isMap.value.factory).newBuilder
+        val pair = Expr.splice(isMapOf.pair(Expr.quote(key), Expr.quote(value)))
+        val b = Expr.splice(isMapOf.factory).newBuilder
         b.addOne(pair)
         Expr.splice(handleBuilder(Expr.quote(b)))
       }
@@ -71,11 +68,8 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
         )
       }
     case IsCollection(isCollection) =>
-      // FIXME: same as for IsMap, nested imports should be supported in Scala 2 (better printer returns isCollection.isCollectionOf.x instead of isCollection.value.x OR isCollection.x)
-      // import isCollection.{Underlying as Elem, value as isCollectionOf}
-      // import isCollectionOf.{CtorResult}
-      import isCollection.Underlying as Elem
-      import isCollection.value.CtorResult
+      import isCollection.{Underlying as Elem, value as isCollectionOf}
+      import isCollectionOf.CtorResult
       // For returning the result
       implicit val dataType: Type[Data] = DataType
       // For upcasting
@@ -105,13 +99,13 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
           }
         else
           Expr.quote {
-            val it = Expr.splice(isCollection.value.asIterable(value))
+            val it = Expr.splice(isCollectionOf.asIterable(value))
             Data(it.map { elem =>
               Data(elem.toString)
             }.toList)
           }
 
-      val handleBuilder = handleSmartConstructor(isCollection.value.build) { a =>
+      val handleBuilder = handleSmartConstructor(isCollectionOf.build) { a =>
         if (
           Type[A].isArray || Type[A].plainPrint
             .startsWith("scala.IArray") || Type[A].plainPrint.startsWith("java.util.")
@@ -128,7 +122,7 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
         else if (Type[A].plainPrint.startsWith("java.util.Optional[") && Elem <:< StringType)
           Expr.quote(Data(java.util.Optional.of(Expr.splice(Expr("one"))).toString))
         else if (Elem <:< StringType) Expr.quote {
-          val b = Expr.splice(isCollection.value.factory).newBuilder
+          val b = Expr.splice(isCollectionOf.factory).newBuilder
           val one = Expr.splice(Expr("one").upcast[Elem])
           b.addOne(one)
           Expr.splice(handleBuilder(Expr.quote(b)))
