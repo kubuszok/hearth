@@ -143,15 +143,14 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
         }
       }
 
-      // The workaround we had to use to support nested imports on Scala 2...
       def fromNestedImport[A: Type](value: Expr[A], mapType: Existential[MapType[A, *]]): Expr[Data] = {
-        import mapType.Underlying as Pair
-        import mapType.value.{Key, Value} // we use a whole path to the implicit
+        import mapType.{Underlying as Pair, value as mapTypeOf}
+        import mapTypeOf.{Key, Value}
         Expr.quote {
-          val it = Expr.splice(mapType.value.toIterable(value))
+          val it = Expr.splice(mapTypeOf.toIterable(value))
           Data(it.map { pair =>
-            val key = Expr.splice(mapType.value.key(Expr.quote(pair)))
-            val value = Expr.splice(mapType.value.value(Expr.quote(pair)))
+            val key = Expr.splice(mapTypeOf.key(Expr.quote(pair)))
+            val value = Expr.splice(mapTypeOf.value(Expr.quote(pair)))
             "key: " + key.toString + ", value: " + value.toString
           }.mkString)
         }
@@ -161,10 +160,9 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
         Existential[MapType[Map[Int, String], *], (Int, String)](mapTypeExample)(using Type.of[(Int, String)])
       )(using Type.of[Map[Int, String]])
 
-      // ...but it's not very convenient, so we are making sure that the workaround is no longer necessary.
       def fromSplittedNestedImport[A: Type](value: Expr[A], mapType: Existential[MapType[A, *]]): Expr[Data] = {
         import mapType.{Underlying as Pair, value as mapTypeOf}
-        import mapTypeOf.{Key, Value} // importing from another import
+        import mapTypeOf.{Key, Value}
         Expr.quote {
           val it = Expr.splice(mapTypeOf.toIterable(value))
           Data(it.map { pair =>
