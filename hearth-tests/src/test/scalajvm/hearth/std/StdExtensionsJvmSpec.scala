@@ -549,6 +549,45 @@ final class StdExtensionsJvmSpec extends MacroSuite {
           )
         )
       }
+
+      test("for Java OptionalInt") {
+        testIsOption(java.util.OptionalInt.of(42)) <==> Data.map(
+          "folding" -> Data("some: 42"),
+          "getOrElse" -> Data("<not an option of string>"),
+          "building" -> Data("<not an option of string>")
+        )
+        testIsOption(java.util.OptionalInt.empty()) <==> Data.map(
+          "folding" -> Data("empty"),
+          "getOrElse" -> Data("<not an option of string>"),
+          "building" -> Data("<not an option of string>")
+        )
+      }
+
+      test("for Java OptionalLong") {
+        testIsOption(java.util.OptionalLong.of(42L)) <==> Data.map(
+          "folding" -> Data("some: 42"),
+          "getOrElse" -> Data("<not an option of string>"),
+          "building" -> Data("<not an option of string>")
+        )
+        testIsOption(java.util.OptionalLong.empty()) <==> Data.map(
+          "folding" -> Data("empty"),
+          "getOrElse" -> Data("<not an option of string>"),
+          "building" -> Data("<not an option of string>")
+        )
+      }
+
+      test("for Java OptionalDouble") {
+        testIsOption(java.util.OptionalDouble.of(3.14)) <==> Data.map(
+          "folding" -> Data("some: 3.14"),
+          "getOrElse" -> Data("<not an option of string>"),
+          "building" -> Data("<not an option of string>")
+        )
+        testIsOption(java.util.OptionalDouble.empty()) <==> Data.map(
+          "folding" -> Data("empty"),
+          "getOrElse" -> Data("<not an option of string>"),
+          "building" -> Data("<not an option of string>")
+        )
+      }
     }
 
     group("class: IsValueType[A], returns preprocessed value type") {
