@@ -499,7 +499,7 @@ How could we use this API?
         case IsCollection(isCollection) =>
           // This import let us refer to the collection's Item and puts implicit Type[Item] in the scope.
           import isCollection.Underlying as Item
-          // This import decribes the Type of result of isCollection.value.factory
+          // This import describes the Type of result of isCollection.value.factory
           import isCollection.value.CtorResult
           
           implicit val String: Type[String] = StringType
@@ -611,7 +611,7 @@ How could we use this API?
       }
 
       test("processCollection handles non-collections") {
-        val result = CollectionUtils.processCollection("not a collection")
+        val result = CollectionUtils.processCollection(42)
         assert(result.startsWith("Not a collection:"))
       }
     }
