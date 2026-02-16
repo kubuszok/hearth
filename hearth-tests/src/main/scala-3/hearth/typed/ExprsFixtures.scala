@@ -7,9 +7,9 @@ import scala.quoted.*
 
 final private class ExprsFixtures(q: Quotes) extends MacroCommonsScala3(using q), ExprsFixturesImpl {
 
-  private val cachedIntType: Type[Int] = Type.of[Int]
+  private val IntType: Type[Int] = Type.of[Int]
   def testIArrayOneWayCodecs: Expr[Data] = {
-    implicit val intType: Type[Int] = cachedIntType
+    implicit val intType: Type[Int] = IntType
     def oneWay[A: ExprCodec](value: A): Data = {
       val encoded = Expr(value)
       Data.map(

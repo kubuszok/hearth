@@ -88,7 +88,7 @@ trait UntypedTypes { this: MacroCommons =>
         }
 
     /** Override to add platform-specific built-in type class resolution (e.g. IArray on Scala 3). */
-    def toClassJvmBuiltInExtra(untyped: UntypedType): Option[java.lang.Class[?]] = None
+    protected def toClassJvmBuiltInExtra(untyped: UntypedType): Option[java.lang.Class[?]] = None
 
     final def isPrimitive(instanceTpe: UntypedType): Boolean =
       Type.primitiveTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
