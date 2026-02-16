@@ -111,6 +111,8 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
   // TypeCodecs
 
   def testBidirectionalCodecs: Expr[Data] = {
+    implicit val it: Type[Int] = intType
+    implicit val st: Type[String] = stringType
     def roundtrip[A: TypeCodec](value: A): Data = {
       val encoded = Type(value)
       val decoded = Type.unapply(encoded)
@@ -138,7 +140,14 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
         "double" -> roundtrip(1.toDouble),
         "char" -> roundtrip('a'),
         "string" -> roundtrip("a"),
-        "module" -> roundtrip(scala.Predef)(using TypeCodec.ModuleCodec)
+        "module" -> roundtrip(scala.Predef)(using TypeCodec.ModuleCodec),
+        "Tuple1(1)" -> roundtrip(Tuple1(1)),
+        "(1, a)" -> roundtrip((1, "a")),
+        "(1, a, true)" -> roundtrip((1, "a", true)),
+        "Some(1)" -> roundtrip(Some(1)),
+        "None" -> roundtrip[Option[Int]](None),
+        "Left(1)" -> roundtrip[Either[Int, String]](Left(1)),
+        "Right(a)" -> roundtrip[Either[Int, String]](Right("a"))
       )
     )
   }
@@ -152,6 +161,8 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
     }
     implicit val a: Type["a"] = aStringType
     implicit val b: Type["b"] = bStringType
+    implicit val aCodec: TypeCodec["a"] = TypeCodec.StringCodec.asInstanceOf[TypeCodec["a"]]
+    implicit val bCodec: TypeCodec["b"] = TypeCodec.StringCodec.asInstanceOf[TypeCodec["b"]]
     Expr(
       Data.map(
         """Array["a"]""" -> oneWay[Array["a"]](Array["a"]("a")),
@@ -167,6 +178,10 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
         """Either["a", "b"]""" -> oneWay[Either["a", "b"]](Left["a", "b"]("a")),
         """Left["a", "b"]""" -> oneWay[Left["a", "b"]](Left["a", "b"]("a")),
         """Right["a", "b"]""" -> oneWay[Right["a", "b"]](Right["a", "b"]("b")),
+        """Class["a"]""" -> oneWay[java.lang.Class["a"]](classOf[String].asInstanceOf[java.lang.Class["a"]]),
+        """ClassTag["a"]""" -> oneWay[scala.reflect.ClassTag["a"]](
+          scala.reflect.ClassTag(classOf[String]).asInstanceOf[scala.reflect.ClassTag["a"]]
+        ),
         """Tuple1["a"]""" -> oneWay[Tuple1["a"]](Tuple1("a": "a")),
         """("a", "b")""" -> oneWay[("a", "b")](("a": "a", "b": "b")),
         """("a", "b", "a")""" -> oneWay[("a", "b", "a")](("a": "a", "b": "b", "a": "a")),
@@ -510,4 +525,6 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
 
   private val aStringType = Type.of["a"]
   private val bStringType = Type.of["b"]
+  private val intType = Type.of[Int]
+  private val stringType = Type.of[String]
 }

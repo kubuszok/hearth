@@ -62,6 +62,10 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]]
     def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]]
 
+    def BigIntExprCodec: ExprCodec[BigInt]
+    def BigDecimalExprCodec: ExprCodec[BigDecimal]
+    def StringContextExprCodec: ExprCodec[StringContext]
+
     def ArrayExprCodec[A: ExprCodec: Type]: ExprCodec[Array[A]]
     def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]]
     def ListExprCodec[A: ExprCodec: Type]: ExprCodec[List[A]]
@@ -247,7 +251,6 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     // TODO: Consider implementing more of these:
     // TODO: Tuple1-Tuple22
-    // TODO: BigInt, BigDecimal, StringContext
     // TODO: derivation?
 
     implicit lazy val NullExprCodec: ExprCodec[Null] = Expr.NullExprCodec
@@ -264,6 +267,10 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     implicit def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = Expr.ClassExprCodec[A]
     implicit def ClassTagExprCodec[A: Type]: ExprCodec[scala.reflect.ClassTag[A]] = Expr.ClassTagExprCodec[A]
+
+    implicit lazy val BigIntExprCodec: ExprCodec[BigInt] = Expr.BigIntExprCodec
+    implicit lazy val BigDecimalExprCodec: ExprCodec[BigDecimal] = Expr.BigDecimalExprCodec
+    implicit lazy val StringContextExprCodec: ExprCodec[StringContext] = Expr.StringContextExprCodec
 
     implicit def ArrayExprCodec[A: ExprCodec: Type]: ExprCodec[Array[A]] = Expr.ArrayExprCodec[A]
     implicit lazy val NilExprCodec: ExprCodec[Nil.type] = Expr.NilExprCodec

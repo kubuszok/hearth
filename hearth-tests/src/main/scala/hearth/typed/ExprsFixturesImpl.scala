@@ -2121,12 +2121,16 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
 
   def testBidirectionalCodecs: Expr[Data] = try {
     implicit val intType: Type[Int] = IntType
+    def displayValue(a: Any): String = a match {
+      case arr: Array[?] => s"Array(${arr.mkString(", ")})"
+      case other         => s"$other"
+    }
     def roundtrip[A: ExprCodec](value: A): Data = {
       val encoded = Expr(value)
       val decoded = Expr.unapply(encoded)
       Data.map(
         "encoded" -> Data(encoded.plainPrint),
-        "decoded" -> Data(decoded.fold("not decoded")(s => s"$s"))
+        "decoded" -> Data(decoded.fold("not decoded")(s => displayValue(s)))
       )
     }
     Expr(
@@ -2143,40 +2147,29 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
         "char" -> roundtrip('a'),
         "string" -> roundtrip("a"),
         "Class" -> roundtrip(classOf[Int]),
-        "ClassTag" -> roundtrip(scala.reflect.classTag[Int])
+        "ClassTag" -> roundtrip(scala.reflect.classTag[Int]),
+        "BigInt" -> roundtrip(BigInt("42")),
+        "BigDecimal" -> roundtrip(BigDecimal("3.14")),
+        "StringContext" -> roundtrip(StringContext("hello ", " world")),
+        "Array[Int]" -> roundtrip(Array[Int](1)),
+        "Seq[Int]" -> roundtrip(Seq[Int](1)),
+        "List[Int]" -> roundtrip(List[Int](1)),
+        "Nil" -> roundtrip(Nil),
+        "Vector[Int]" -> roundtrip(Vector[Int](1)),
+        "Map[Int, Int]" -> roundtrip(Map[Int, Int](1 -> 1)),
+        "Set[Int]" -> roundtrip(Set[Int](1)),
+        "Option[Int]" -> roundtrip(Option[Int](1)),
+        "Some[Int]" -> roundtrip(Some[Int](1)),
+        "None" -> roundtrip(None),
+        "Either[Int, Int]" -> roundtrip[Either[Int, Int]](Left[Int, Int](1)),
+        "Left[Int, Int]" -> roundtrip(Left[Int, Int](1)),
+        "Right[Int, Int]" -> roundtrip(Right[Int, Int](1))
       )
     )
   } catch {
     case e: Throwable =>
       e.printStackTrace()
       Environment.reportErrorAndAbort(e.getMessage)
-  }
-
-  def testOneWayCodecs: Expr[Data] = {
-    implicit val intType: Type[Int] = IntType
-    def oneWay[A: ExprCodec](value: A): Data = {
-      val encoded = Expr(value)
-      Data.map(
-        "encoded" -> Data(encoded.plainPrint)
-      )
-    }
-    Expr(
-      Data.map(
-        "Array[Int]" -> oneWay(Array[Int](1)),
-        "Seq[Int]" -> oneWay(Seq[Int](1)),
-        "List[Int]" -> oneWay(List[Int](1)),
-        "Nil" -> oneWay(Nil),
-        "Vector[Int]" -> oneWay(Vector[Int](1)),
-        "Map[Int, Int]" -> oneWay(Map[Int, Int](1 -> 1)),
-        "Set[Int]" -> oneWay(Set[Int](1)),
-        "Option[Int]" -> oneWay(Option[Int](1)),
-        "Some[Int]" -> oneWay(Some[Int](1)),
-        "None" -> oneWay(None),
-        "Either[Int, Int]" -> oneWay(Left[Int, Int](1)),
-        "Left[Int, Int]" -> oneWay(Left[Int, Int](1)),
-        "Right[Int, Int]" -> oneWay(Right[Int, Int](1))
-      )
-    )
   }
 
   // DirectStyle tests

@@ -1670,6 +1670,34 @@ final class TypesSpec extends MacroSuite {
           "module" -> Data.map(
             "encoded" -> Data("scala.Predef.type"),
             "decoded" -> Data("scala.Predef$")
+          ),
+          "Tuple1(1)" -> Data.map(
+            "encoded" -> Data("scala.Tuple1[1]"),
+            "decoded" -> Data("(1)")
+          ),
+          "(1, a)" -> Data.map(
+            "encoded" -> Data("scala.Tuple2[1, \"a\"]"),
+            "decoded" -> Data("(1,a)")
+          ),
+          "(1, a, true)" -> Data.map(
+            "encoded" -> Data("scala.Tuple3[1, \"a\", true]"),
+            "decoded" -> Data("(1,a,true)")
+          ),
+          "Some(1)" -> Data.map(
+            "encoded" -> Data("scala.Some[1]"),
+            "decoded" -> Data("Some(1)")
+          ),
+          "None" -> Data.map(
+            "encoded" -> Data("scala.None.type"),
+            "decoded" -> Data("None")
+          ),
+          "Left(1)" -> Data.map(
+            "encoded" -> Data("scala.util.Left[1, java.lang.String]"),
+            "decoded" -> Data("Left(1)")
+          ),
+          "Right(a)" -> Data.map(
+            "encoded" -> Data("scala.util.Right[scala.Int, \"a\"]"),
+            "decoded" -> Data("Right(a)")
           )
         )
       }
@@ -1702,7 +1730,7 @@ final class TypesSpec extends MacroSuite {
             "encoded" -> Data("scala.collection.immutable.Set[\"a\"]")
           ),
           """Option["a"]""" -> Data.map(
-            "encoded" -> Data("scala.Option[\"a\"]")
+            "encoded" -> Data("scala.Some[\"a\"]")
           ),
           """Some["a"]""" -> Data.map(
             "encoded" -> Data("scala.Some[\"a\"]")
@@ -1711,13 +1739,19 @@ final class TypesSpec extends MacroSuite {
             "encoded" -> Data("scala.None.type")
           ),
           """Either["a", "b"]""" -> Data.map(
-            "encoded" -> Data("scala.util.Either[\"a\", \"b\"]")
+            "encoded" -> Data("scala.util.Left[\"a\", \"b\"]")
           ),
           """Left["a", "b"]""" -> Data.map(
             "encoded" -> Data("scala.util.Left[\"a\", \"b\"]")
           ),
           """Right["a", "b"]""" -> Data.map(
             "encoded" -> Data("scala.util.Right[\"a\", \"b\"]")
+          ),
+          """Class["a"]""" -> Data.map(
+            "encoded" -> Data("java.lang.Class[\"a\"]")
+          ),
+          """ClassTag["a"]""" -> Data.map(
+            "encoded" -> Data("scala.reflect.ClassTag[\"a\"]")
           ),
           """Tuple1["a"]""" -> Data.map(
             "encoded" -> Data("scala.Tuple1[\"a\"]")
