@@ -5,7 +5,7 @@ package effect
 import java.util.concurrent.*
 import scala.concurrent.*
 
-private[fp] object DirectStyleExecutor {
+private[hearth] object DirectStyleExecutor {
 
   /** Run the thunk in a separate thread to avoid StackOverflowError when using recursive MIO with direct style.
     *

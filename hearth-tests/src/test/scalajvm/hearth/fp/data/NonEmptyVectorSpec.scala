@@ -262,5 +262,9 @@ final class NonEmptyVectorSpec extends ScalaCheckSuite with Laws {
     group("should follow Traverse laws") {
       traverseLaws[Either[NonEmptyVector[String], *], Option, String]
     }
+
+    group("should follow DirectStyle laws") {
+      directStyleLaws[Either[NonEmptyVector[String], *], Int]
+    }
   }
 }

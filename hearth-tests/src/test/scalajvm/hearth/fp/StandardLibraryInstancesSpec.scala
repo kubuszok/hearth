@@ -52,6 +52,13 @@ final class StandardLibraryInstancesSpec extends ScalaCheckSuite with Laws {
     group("should follow DirectStyle laws") {
       directStyleLaws[Either[String, *], Int]
     }
+
+    group("should follow DirectStyle laws when left is List") {
+      directStyleLaws[Either[List[String], *], Int]
+    }
+    group("should follow DirectStyle laws when left is Vector") {
+      directStyleLaws[Either[Vector[String], *], Int]
+    }
   }
 
   group("Instances for Option") {

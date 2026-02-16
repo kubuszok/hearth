@@ -301,6 +301,29 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           case TypeMatch(name, expr, a) => f(a).map(b => TypeMatch(name, expr, b))
         }
     }
+
+    override val directStyle: fp.DirectStyle[MatchCase] = new fp.DirectStyle[MatchCase] {
+      private val saved = scala.collection.mutable.Map.empty[Any, (TermName, Expr_??)]
+
+      override protected def scopedUnsafe[A](owner: fp.DirectStyle.ScopeOwner[MatchCase])(thunk: => A): MatchCase[A] = {
+        val result = fp.effect.DirectStyleExecutor(thunk)
+        val (name, expr) = saved
+          .remove(owner)
+          // $COVERAGE-OFF$
+          .getOrElse(
+            hearthRequirementFailed("MatchCase.directStyle: runSafe was not called inside scoped")
+          )
+        // $COVERAGE-ON$
+        TypeMatch(name, expr, result)
+      }
+
+      override protected def runUnsafe[A](owner: fp.DirectStyle.ScopeOwner[MatchCase])(value: => MatchCase[A]): A =
+        fp.effect.DirectStyleExecutor(value) match {
+          case TypeMatch(name, expr, result) =>
+            saved(owner) = (name, expr)
+            result.asInstanceOf[A]
+        }
+    }
   }
 
   final class ValDefs[A] private[typed] (private val definitions: Vector[ValOrDefDef], private val value: A)
@@ -353,6 +376,22 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
       override def parTraverse[G[_]: fp.Parallel, A, B](fa: ValDefs[A])(f: A => G[B]): G[ValDefs[B]] =
         f(fa.value).map(b => new ValDefs[B](fa.definitions, b))
+    }
+
+    override val directStyle: fp.DirectStyle[ValDefs] = new fp.DirectStyle[ValDefs] {
+      private val saved = scala.collection.mutable.Map.empty[Any, Vector[ValOrDefDef]]
+
+      override protected def scopedUnsafe[A](owner: fp.DirectStyle.ScopeOwner[ValDefs])(thunk: => A): ValDefs[A] = {
+        val result = fp.effect.DirectStyleExecutor(thunk)
+        val defs = saved.remove(owner).getOrElse(Vector.empty)
+        new ValDefs[A](defs, result)
+      }
+
+      override protected def runUnsafe[A](owner: fp.DirectStyle.ScopeOwner[ValDefs])(value: => ValDefs[A]): A = {
+        val vd = fp.effect.DirectStyleExecutor(value)
+        saved(owner) = saved.getOrElse(owner, Vector.empty) ++ vd.definitions
+        vd.value
+      }
     }
   }
 
@@ -1577,6 +1616,33 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         ): G[ValDefBuilder[Signature, Returned, B]] =
           f(fa.value).map(b => new ValDefBuilder[Signature, Returned, B](fa.mk, b))
       }
+
+    override def directStyle[Signature, Returned]: fp.DirectStyle[ValDefBuilder[Signature, Returned, *]] =
+      new fp.DirectStyle[ValDefBuilder[Signature, Returned, *]] {
+        private val saved = scala.collection.mutable.Map.empty[Any, Mk[Signature, Returned]]
+
+        override protected def scopedUnsafe[A](
+            owner: fp.DirectStyle.ScopeOwner[ValDefBuilder[Signature, Returned, *]]
+        )(thunk: => A): ValDefBuilder[Signature, Returned, A] = {
+          val result = fp.effect.DirectStyleExecutor(thunk)
+          val mk = saved
+            .remove(owner)
+            // $COVERAGE-OFF$
+            .getOrElse(
+              hearthRequirementFailed("ValDefBuilder.directStyle: runSafe was not called inside scoped")
+            )
+          // $COVERAGE-ON$
+          new ValDefBuilder[Signature, Returned, A](mk, result)
+        }
+
+        override protected def runUnsafe[A](
+            owner: fp.DirectStyle.ScopeOwner[ValDefBuilder[Signature, Returned, *]]
+        )(value: => ValDefBuilder[Signature, Returned, A]): A = {
+          val vdb = fp.effect.DirectStyleExecutor(value)
+          saved(owner) = vdb.mk
+          vdb.value
+        }
+      }
   }
 
   final class ValDefsCache private[typed] (val definitions: ListMap[ValDefsCache.Key, ValDefsCache.Value]) {
@@ -2495,5 +2561,32 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       ): G[LambdaBuilder[From, B]] =
         f(fa.value).map(b => new LambdaBuilder[From, B](fa.mk, b))
     }
+
+    override def directStyle[From[_]]: fp.DirectStyle[LambdaBuilder[From, *]] =
+      new fp.DirectStyle[LambdaBuilder[From, *]] {
+        private val saved = scala.collection.mutable.Map.empty[Any, Mk[From]]
+
+        override protected def scopedUnsafe[A](
+            owner: fp.DirectStyle.ScopeOwner[LambdaBuilder[From, *]]
+        )(thunk: => A): LambdaBuilder[From, A] = {
+          val result = fp.effect.DirectStyleExecutor(thunk)
+          val mk = saved
+            .remove(owner)
+            // $COVERAGE-OFF$
+            .getOrElse(
+              hearthRequirementFailed("LambdaBuilder.directStyle: runSafe was not called inside scoped")
+            )
+          // $COVERAGE-ON$
+          new LambdaBuilder[From, A](mk, result)
+        }
+
+        override protected def runUnsafe[A](
+            owner: fp.DirectStyle.ScopeOwner[LambdaBuilder[From, *]]
+        )(value: => LambdaBuilder[From, A]): A = {
+          val lb = fp.effect.DirectStyleExecutor(value)
+          saved(owner) = lb.mk
+          lb.value
+        }
+      }
   }
 }

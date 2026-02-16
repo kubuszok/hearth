@@ -318,6 +318,26 @@ object ExprsFixtures {
   private def testValDefBuilderOfDef22ScopeIssueImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testValDefBuilderOfDef22ScopeIssue
 
+  inline def testMatchCaseDirectStyle[A, B](inline expr: A): B = ${ testMatchCaseDirectStyleImpl[A, B]('expr) }
+  private def testMatchCaseDirectStyleImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
+    new ExprsFixtures(q).testMatchCaseDirectStyle[A, B](expr)
+
+  inline def testValDefsDirectStyleAndClose[A, B](inline expr: A): B = ${
+    testValDefsDirectStyleAndCloseImpl[A, B]('expr)
+  }
+  private def testValDefsDirectStyleAndCloseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
+    new ExprsFixtures(q).testValDefsDirectStyleAndClose[A, B](expr)
+
+  inline def testValDefBuilderDirectStyleAndClose[A, B](inline expr: A): B = ${
+    testValDefBuilderDirectStyleAndCloseImpl[A, B]('expr)
+  }
+  private def testValDefBuilderDirectStyleAndCloseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
+    new ExprsFixtures(q).testValDefBuilderDirectStyleAndClose[A, B](expr)
+
+  inline def testLambdaBuilderDirectStyle[A](inline expr: A): Data = ${ testLambdaBuilderDirectStyleImpl[A]('expr) }
+  private def testLambdaBuilderDirectStyleImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderDirectStyle[A](expr)
+
   inline def testBidirectionalCodecs: Data = ${ testBidirectionalCodecsImpl }
   private def testBidirectionalCodecsImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testBidirectionalCodecs
