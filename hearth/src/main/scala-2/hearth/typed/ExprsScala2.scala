@@ -177,75 +177,342 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       ExprCodec.make[scala.reflect.ClassTag[A]]
     }
 
+    override lazy val BigIntExprCodec: ExprCodec[BigInt] = {
+      implicit val liftable: Liftable[BigInt] = Liftable[BigInt] { value =>
+        q"scala.math.BigInt(${value.toString})"
+      }
+      implicit val unliftable: Unliftable[BigInt] = new Unliftable[BigInt] {
+        private def fromArg(arg: Tree): Option[BigInt] = arg match {
+          case Literal(Constant(s: String)) => Some(BigInt(s))
+          case Literal(Constant(i: Int))    => Some(BigInt(i))
+          case Literal(Constant(l: Long))   => Some(BigInt(l))
+          case _                            => None
+        }
+        def unapply(tree: Tree): Option[BigInt] = tree match {
+          case q"scala.math.BigInt.apply($arg)"      => fromArg(arg)
+          case q"scala.math.BigInt($arg)"            => fromArg(arg)
+          case q"scala.`package`.BigInt.apply($arg)" => fromArg(arg)
+          case q"scala.`package`.BigInt($arg)"       => fromArg(arg)
+          case q"scala.BigInt.apply($arg)"           => fromArg(arg)
+          case q"scala.BigInt($arg)"                 => fromArg(arg)
+          case q"BigInt.apply($arg)"                 => fromArg(arg)
+          case q"BigInt($arg)"                       => fromArg(arg)
+          case _                                     => None
+        }
+      }
+      ExprCodec.make[BigInt]
+    }
+
+    override lazy val BigDecimalExprCodec: ExprCodec[BigDecimal] = {
+      implicit val liftable: Liftable[BigDecimal] = Liftable[BigDecimal] { value =>
+        q"scala.math.BigDecimal(${value.toString})"
+      }
+      implicit val unliftable: Unliftable[BigDecimal] = new Unliftable[BigDecimal] {
+        private def fromArg(arg: Tree): Option[BigDecimal] = arg match {
+          case Literal(Constant(s: String)) => Some(BigDecimal(s))
+          case Literal(Constant(i: Int))    => Some(BigDecimal(i))
+          case Literal(Constant(l: Long))   => Some(BigDecimal(l))
+          case Literal(Constant(d: Double)) => Some(BigDecimal(d))
+          case _                            => None
+        }
+        def unapply(tree: Tree): Option[BigDecimal] = tree match {
+          case q"scala.math.BigDecimal.apply($arg)"      => fromArg(arg)
+          case q"scala.math.BigDecimal($arg)"            => fromArg(arg)
+          case q"scala.`package`.BigDecimal.apply($arg)" => fromArg(arg)
+          case q"scala.`package`.BigDecimal($arg)"       => fromArg(arg)
+          case q"scala.BigDecimal.apply($arg)"           => fromArg(arg)
+          case q"scala.BigDecimal($arg)"                 => fromArg(arg)
+          case q"BigDecimal.apply($arg)"                 => fromArg(arg)
+          case q"BigDecimal($arg)"                       => fromArg(arg)
+          case _                                         => None
+        }
+      }
+      ExprCodec.make[BigDecimal]
+    }
+
+    override lazy val StringContextExprCodec: ExprCodec[StringContext] = {
+      implicit val liftable: Liftable[StringContext] = Liftable[StringContext] { value =>
+        q"scala.StringContext(..${value.parts.toList.map(s => q"$s")})"
+      }
+      implicit val unliftable: Unliftable[StringContext] = new Unliftable[StringContext] {
+        def unapply(tree: Tree): Option[StringContext] = tree match {
+          case q"scala.StringContext.apply(..$parts)" =>
+            val strings = parts.collect { case Literal(Constant(s: String)) => s }
+            if (strings.size == parts.size) Some(StringContext(strings*)) else None
+          case q"scala.StringContext(..$parts)" =>
+            val strings = parts.collect { case Literal(Constant(s: String)) => s }
+            if (strings.size == parts.size) Some(StringContext(strings*)) else None
+          case q"new scala.StringContext(..$parts)" =>
+            val strings = parts.collect { case Literal(Constant(s: String)) => s }
+            if (strings.size == parts.size) Some(StringContext(strings*)) else None
+          case q"StringContext.apply(..$parts)" =>
+            val strings = parts.collect { case Literal(Constant(s: String)) => s }
+            if (strings.size == parts.size) Some(StringContext(strings*)) else None
+          case q"StringContext(..$parts)" =>
+            val strings = parts.collect { case Literal(Constant(s: String)) => s }
+            if (strings.size == parts.size) Some(StringContext(strings*)) else None
+          case q"new StringContext(..$parts)" =>
+            val strings = parts.collect { case Literal(Constant(s: String)) => s }
+            if (strings.size == parts.size) Some(StringContext(strings*)) else None
+          case _ => None
+        }
+      }
+      ExprCodec.make[StringContext]
+    }
+
     // In the code below we cannot just `import platformSpecific.implicits.given`, because Expr.make[Coll[A]] would use
     // implicit ExprCodec[Coll[A]] from the companion object, which would create a circular dependency. Instead, we
     // want to extract the implicit ToExpr[A] and FromExpr[A] from the ExprCodec[A], and then use it in the code below.
 
     override def ArrayExprCodec[A: ExprCodec: Type]: ExprCodec[Array[A]] = {
       implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
-      implicit val unliftable: Unliftable[Array[A]] = Unliftable[Array[A]](PartialFunction.empty) // TODO
+      implicit val unliftableA: Unliftable[A] = platformSpecific.implicits.ExprCodecUnliftable[A]
+      implicit val unliftable: Unliftable[Array[A]] = new Unliftable[Array[A]] {
+        private def extractElems(elems: List[Tree]): Option[Array[A]] = {
+          val decoded = elems.collect { case unliftableA(a) => a }
+          if (decoded.size == elems.size) {
+            val ct = Type[A].getRuntimeClass
+              .map(c => scala.reflect.ClassTag[A](c.asInstanceOf[java.lang.Class[A]]))
+              .getOrElse(scala.reflect.ClassTag[A](classOf[AnyRef].asInstanceOf[java.lang.Class[A]]))
+            Some(decoded.toArray(ct))
+          } else None
+        }
+        def unapply(tree: Tree): Option[Array[A]] = tree match {
+          case q"scala.Array.apply(..$elems)" => extractElems(elems)
+          case q"scala.Array(..$elems)"       => extractElems(elems)
+          case q"Array.apply(..$elems)"       => extractElems(elems)
+          case q"Array(..$elems)"             => extractElems(elems)
+          case _                              => None
+        }
+      }
       ExprCodec.make[Array[A]]
     }
     override def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = {
       implicit val liftable: Liftable[Seq[A]] = Liftable[Seq[A]] { seq =>
         q"scala.collection.immutable.Seq(..${seq.map(ExprCodec[A].toExpr)})"
       }
-      implicit val unliftable: Unliftable[Seq[A]] = Unliftable[Seq[A]](PartialFunction.empty) // TODO
+      implicit val unliftableA: Unliftable[A] = platformSpecific.implicits.ExprCodecUnliftable[A]
+      implicit val unliftable: Unliftable[Seq[A]] = new Unliftable[Seq[A]] {
+        private def extractElems(elems: List[Tree]): Option[Seq[A]] = {
+          val decoded = elems.collect { case unliftableA(a) => a }
+          if (decoded.size == elems.size) Some(decoded) else None
+        }
+        def unapply(tree: Tree): Option[Seq[A]] = tree match {
+          case q"scala.collection.immutable.Seq.apply(..$elems)" => extractElems(elems)
+          case q"scala.collection.immutable.Seq(..$elems)"       => extractElems(elems)
+          case q"Seq.apply(..$elems)"                            => extractElems(elems)
+          case q"Seq(..$elems)"                                  => extractElems(elems)
+          // subtype specialization: match List patterns
+          case q"scala.collection.immutable.List.apply(..$elems)" => extractElems(elems)
+          case q"scala.collection.immutable.List(..$elems)"       => extractElems(elems)
+          case q"List.apply(..$elems)"                            => extractElems(elems)
+          case q"List(..$elems)"                                  => extractElems(elems)
+          case q"scala.collection.immutable.Nil"                  => Some(Nil)
+          case q"Nil"                                             => Some(Nil)
+          // subtype specialization: match Vector patterns
+          case q"scala.collection.immutable.Vector.apply(..$elems)" => extractElems(elems)
+          case q"scala.collection.immutable.Vector(..$elems)"       => extractElems(elems)
+          case q"Vector.apply(..$elems)"                            => extractElems(elems)
+          case q"Vector(..$elems)"                                  => extractElems(elems)
+          case _                                                    => None
+        }
+      }
       ExprCodec.make[Seq[A]]
     }
     override def ListExprCodec[A: ExprCodec: Type]: ExprCodec[List[A]] = {
       implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
-      implicit val unliftable: Unliftable[List[A]] = Unliftable[List[A]](PartialFunction.empty) // TODO
+      implicit val unliftableA: Unliftable[A] = platformSpecific.implicits.ExprCodecUnliftable[A]
+      implicit val unliftable: Unliftable[List[A]] = new Unliftable[List[A]] {
+        private def extractElems(elems: List[Tree]): Option[List[A]] = {
+          val decoded = elems.collect { case unliftableA(a) => a }
+          if (decoded.size == elems.size) Some(decoded) else None
+        }
+        def unapply(tree: Tree): Option[List[A]] = tree match {
+          case q"scala.collection.immutable.List.apply(..$elems)" => extractElems(elems)
+          case q"scala.collection.immutable.List(..$elems)"       => extractElems(elems)
+          case q"List.apply(..$elems)"                            => extractElems(elems)
+          case q"List(..$elems)"                                  => extractElems(elems)
+          case q"scala.collection.immutable.Nil"                  => Some(Nil)
+          case q"Nil"                                             => Some(Nil)
+          case _                                                  => None
+        }
+      }
       ExprCodec.make[List[A]]
     }
     override lazy val NilExprCodec: ExprCodec[Nil.type] = {
-      implicit val unliftable: Unliftable[Nil.type] = Unliftable[Nil.type](PartialFunction.empty) // TODO
+      implicit val unliftable: Unliftable[Nil.type] = new Unliftable[Nil.type] {
+        def unapply(tree: Tree): Option[Nil.type] = tree match {
+          case q"scala.collection.immutable.Nil"          => Some(Nil)
+          case q"Nil"                                     => Some(Nil)
+          case q"scala.collection.immutable.List()"       => Some(Nil)
+          case q"scala.collection.immutable.List.apply()" => Some(Nil)
+          case q"List()"                                  => Some(Nil)
+          case q"List.apply()"                            => Some(Nil)
+          case _                                          => None
+        }
+      }
       ExprCodec.make[Nil.type]
     }
     override def VectorExprCodec[A: ExprCodec: Type]: ExprCodec[Vector[A]] = {
       implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
-      implicit val unliftable: Unliftable[Vector[A]] = Unliftable[Vector[A]](PartialFunction.empty) // TODO
+      implicit val unliftableA: Unliftable[A] = platformSpecific.implicits.ExprCodecUnliftable[A]
+      implicit val unliftable: Unliftable[Vector[A]] = new Unliftable[Vector[A]] {
+        private def extractElems(elems: List[Tree]): Option[Vector[A]] = {
+          val decoded = elems.collect { case unliftableA(a) => a }
+          if (decoded.size == elems.size) Some(decoded.toVector) else None
+        }
+        def unapply(tree: Tree): Option[Vector[A]] = tree match {
+          case q"scala.collection.immutable.Vector.apply(..$elems)" => extractElems(elems)
+          case q"scala.collection.immutable.Vector(..$elems)"       => extractElems(elems)
+          case q"Vector.apply(..$elems)"                            => extractElems(elems)
+          case q"Vector(..$elems)"                                  => extractElems(elems)
+          case _                                                    => None
+        }
+      }
       ExprCodec.make[Vector[A]]
     }
     override def MapExprCodec[K: ExprCodec: Type, V: ExprCodec: Type]: ExprCodec[Map[K, V]] = {
       implicit val liftableK: Liftable[K] = platformSpecific.implicits.ExprCodecLiftable[K]
       implicit val liftableV: Liftable[V] = platformSpecific.implicits.ExprCodecLiftable[V]
-      implicit val unliftable: Unliftable[Map[K, V]] = Unliftable[Map[K, V]](PartialFunction.empty) // TODO
+      implicit val unliftableK: Unliftable[K] = platformSpecific.implicits.ExprCodecUnliftable[K]
+      implicit val unliftableV: Unliftable[V] = platformSpecific.implicits.ExprCodecUnliftable[V]
+      implicit val unliftable: Unliftable[Map[K, V]] = new Unliftable[Map[K, V]] {
+        private def extractPair(tree: Tree): Option[(K, V)] = tree match {
+          case q"scala.Tuple2.apply($k, $v)" =>
+            for (kv <- unliftableK.unapply(k); vv <- unliftableV.unapply(v)) yield (kv, vv)
+          case q"scala.Tuple2($k, $v)" =>
+            for (kv <- unliftableK.unapply(k); vv <- unliftableV.unapply(v)) yield (kv, vv)
+          case q"scala.Predef.ArrowAssoc($k).->($v)" =>
+            for (kv <- unliftableK.unapply(k); vv <- unliftableV.unapply(v)) yield (kv, vv)
+          case q"($k, $v)" => for (kv <- unliftableK.unapply(k); vv <- unliftableV.unapply(v)) yield (kv, vv)
+          case _           => None
+        }
+        private def extractPairs(elems: List[Tree]): Option[Map[K, V]] = {
+          val decoded = elems.flatMap(extractPair)
+          if (decoded.size == elems.size) Some(Map.from(decoded)) else None
+        }
+        def unapply(tree: Tree): Option[Map[K, V]] = tree match {
+          case q"scala.collection.immutable.Map.apply(..$elems)" => extractPairs(elems)
+          case q"scala.collection.immutable.Map(..$elems)"       => extractPairs(elems)
+          case q"scala.Predef.Map.apply(..$elems)"               => extractPairs(elems)
+          case q"scala.Predef.Map(..$elems)"                     => extractPairs(elems)
+          case q"Map.apply(..$elems)"                            => extractPairs(elems)
+          case q"Map(..$elems)"                                  => extractPairs(elems)
+          case _                                                 => None
+        }
+      }
       ExprCodec.make[Map[K, V]]
     }
     override def SetExprCodec[A: ExprCodec: Type]: ExprCodec[Set[A]] = {
       implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
-      implicit val unliftable: Unliftable[Set[A]] = Unliftable[Set[A]](PartialFunction.empty) // TODO
+      implicit val unliftableA: Unliftable[A] = platformSpecific.implicits.ExprCodecUnliftable[A]
+      implicit val unliftable: Unliftable[Set[A]] = new Unliftable[Set[A]] {
+        private def extractElems(elems: List[Tree]): Option[Set[A]] = {
+          val decoded = elems.collect { case unliftableA(a) => a }
+          if (decoded.size == elems.size) Some(decoded.toSet) else None
+        }
+        def unapply(tree: Tree): Option[Set[A]] = tree match {
+          case q"scala.collection.immutable.Set.apply(..$elems)" => extractElems(elems)
+          case q"scala.collection.immutable.Set(..$elems)"       => extractElems(elems)
+          case q"scala.Predef.Set.apply(..$elems)"               => extractElems(elems)
+          case q"scala.Predef.Set(..$elems)"                     => extractElems(elems)
+          case q"Set.apply(..$elems)"                            => extractElems(elems)
+          case q"Set(..$elems)"                                  => extractElems(elems)
+          case _                                                 => None
+        }
+      }
       ExprCodec.make[Set[A]]
     }
     override def OptionExprCodec[A: ExprCodec: Type]: ExprCodec[Option[A]] = {
       implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
-      implicit val unliftable: Unliftable[Option[A]] = Unliftable[Option[A]](PartialFunction.empty) // TODO
+      implicit val unliftableA: Unliftable[A] = platformSpecific.implicits.ExprCodecUnliftable[A]
+      implicit val unliftable: Unliftable[Option[A]] = new Unliftable[Option[A]] {
+        def unapply(tree: Tree): Option[Option[A]] = tree match {
+          case q"scala.Some.apply($elem)" => unliftableA.unapply(elem).map(Some(_))
+          case q"scala.Some($elem)"       => unliftableA.unapply(elem).map(Some(_))
+          case q"Some.apply($elem)"       => unliftableA.unapply(elem).map(Some(_))
+          case q"Some($elem)"             => unliftableA.unapply(elem).map(Some(_))
+          case q"new scala.Some($elem)"   => unliftableA.unapply(elem).map(Some(_))
+          case q"scala.None"              => Some(None)
+          case q"None"                    => Some(None)
+          case _                          => None
+        }
+      }
       ExprCodec.make[Option[A]]
     }
     override def SomeExprCodec[A: ExprCodec: Type]: ExprCodec[Some[A]] = {
       implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
-      implicit val unliftable: Unliftable[Some[A]] = Unliftable[Some[A]](PartialFunction.empty) // TODO
+      implicit val unliftableA: Unliftable[A] = platformSpecific.implicits.ExprCodecUnliftable[A]
+      implicit val unliftable: Unliftable[Some[A]] = new Unliftable[Some[A]] {
+        def unapply(tree: Tree): Option[Some[A]] = tree match {
+          case q"scala.Some.apply($elem)" => unliftableA.unapply(elem).map(Some(_))
+          case q"scala.Some($elem)"       => unliftableA.unapply(elem).map(Some(_))
+          case q"Some.apply($elem)"       => unliftableA.unapply(elem).map(Some(_))
+          case q"Some($elem)"             => unliftableA.unapply(elem).map(Some(_))
+          case q"new scala.Some($elem)"   => unliftableA.unapply(elem).map(Some(_))
+          case _                          => None
+        }
+      }
       ExprCodec.make[Some[A]]
     }
     override lazy val NoneExprCodec: ExprCodec[None.type] = {
-      implicit val unliftable: Unliftable[None.type] = Unliftable[None.type](PartialFunction.empty) // TODO
+      implicit val unliftable: Unliftable[None.type] = new Unliftable[None.type] {
+        def unapply(tree: Tree): Option[None.type] = tree match {
+          case q"scala.None" => Some(None)
+          case q"None"       => Some(None)
+          case _             => None
+        }
+      }
       ExprCodec.make[None.type]
     }
     override def EitherExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Either[L, R]] = {
       implicit val liftableL: Liftable[L] = platformSpecific.implicits.ExprCodecLiftable[L]
       implicit val liftableR: Liftable[R] = platformSpecific.implicits.ExprCodecLiftable[R]
-      implicit val unliftable: Unliftable[Either[L, R]] = Unliftable[Either[L, R]](PartialFunction.empty) // TODO
+      implicit val unliftableL: Unliftable[L] = platformSpecific.implicits.ExprCodecUnliftable[L]
+      implicit val unliftableR: Unliftable[R] = platformSpecific.implicits.ExprCodecUnliftable[R]
+      implicit val unliftable: Unliftable[Either[L, R]] = new Unliftable[Either[L, R]] {
+        def unapply(tree: Tree): Option[Either[L, R]] = tree match {
+          case q"scala.util.Left.apply($elem)"  => unliftableL.unapply(elem).map(Left(_))
+          case q"scala.util.Left($elem)"        => unliftableL.unapply(elem).map(Left(_))
+          case q"Left.apply($elem)"             => unliftableL.unapply(elem).map(Left(_))
+          case q"Left($elem)"                   => unliftableL.unapply(elem).map(Left(_))
+          case q"scala.util.Right.apply($elem)" => unliftableR.unapply(elem).map(Right(_))
+          case q"scala.util.Right($elem)"       => unliftableR.unapply(elem).map(Right(_))
+          case q"Right.apply($elem)"            => unliftableR.unapply(elem).map(Right(_))
+          case q"Right($elem)"                  => unliftableR.unapply(elem).map(Right(_))
+          case _                                => None
+        }
+      }
       ExprCodec.make[Either[L, R]]
     }
     override def LeftExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Left[L, R]] = {
       implicit val liftableL: Liftable[L] = platformSpecific.implicits.ExprCodecLiftable[L]
-      implicit val unliftable: Unliftable[Left[L, R]] = Unliftable[Left[L, R]](PartialFunction.empty) // TODO
+      implicit val unliftableL: Unliftable[L] = platformSpecific.implicits.ExprCodecUnliftable[L]
+      implicit val unliftable: Unliftable[Left[L, R]] = new Unliftable[Left[L, R]] {
+        def unapply(tree: Tree): Option[Left[L, R]] = tree match {
+          case q"scala.util.Left.apply($elem)" => unliftableL.unapply(elem).map(Left(_))
+          case q"scala.util.Left($elem)"       => unliftableL.unapply(elem).map(Left(_))
+          case q"Left.apply($elem)"            => unliftableL.unapply(elem).map(Left(_))
+          case q"Left($elem)"                  => unliftableL.unapply(elem).map(Left(_))
+          case q"new scala.util.Left($elem)"   => unliftableL.unapply(elem).map(Left(_))
+          case _                               => None
+        }
+      }
       ExprCodec.make[Left[L, R]]
     }
     override def RightExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Right[L, R]] = {
       implicit val liftableR: Liftable[R] = platformSpecific.implicits.ExprCodecLiftable[R]
-      implicit val unliftable: Unliftable[Right[L, R]] = Unliftable[Right[L, R]](PartialFunction.empty) // TODO
+      implicit val unliftableR: Unliftable[R] = platformSpecific.implicits.ExprCodecUnliftable[R]
+      implicit val unliftable: Unliftable[Right[L, R]] = new Unliftable[Right[L, R]] {
+        def unapply(tree: Tree): Option[Right[L, R]] = tree match {
+          case q"scala.util.Right.apply($elem)" => unliftableR.unapply(elem).map(Right(_))
+          case q"scala.util.Right($elem)"       => unliftableR.unapply(elem).map(Right(_))
+          case q"Right.apply($elem)"            => unliftableR.unapply(elem).map(Right(_))
+          case q"Right($elem)"                  => unliftableR.unapply(elem).map(Right(_))
+          case q"new scala.util.Right($elem)"   => unliftableR.unapply(elem).map(Right(_))
+          case _                                => None
+        }
+      }
       ExprCodec.make[Right[L, R]]
     }
   }

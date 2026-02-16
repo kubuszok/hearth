@@ -342,10 +342,6 @@ object ExprsFixtures {
   private def testBidirectionalCodecsImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testBidirectionalCodecs
 
-  inline def testOneWayCodecs: Data = ${ testOneWayCodecsImpl }
-  private def testOneWayCodecsImpl(using q: Quotes): Expr[Data] =
-    new ExprsFixtures(q).testOneWayCodecs
-
   inline def testIArrayOneWayCodecs: Data = ${ testIArrayOneWayCodecsImpl }
   private def testIArrayOneWayCodecsImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testIArrayOneWayCodecs

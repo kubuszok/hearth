@@ -482,11 +482,18 @@ You should prefer `Type[A]` when `A: Type` is present, and only use `Type.of[A]`
 
 Built-in codecs exist for:
 
+**Bidirectional** (`toType` + `fromType`):
+
 - Primitives: `Null`, `Unit`, `Boolean`, `Byte`, `Short`, `Int`, `Long`, `Float`, `Double`, `Char`, `String`
-- Collections: `Array[A]`, `Seq[A]`, `List[A]`, `Nil.type`, `Vector[A]`, `Map[K,V]`, `Set[A]`
+- Tuples: `Tuple1[A]` through `Tuple22[A,...,V]`
 - Options: `Option[A]`, `Some[A]`, `None.type`
 - Either: `Either[L,R]`, `Left[L,R]`, `Right[L,R]`
 - Module singletons: any `object` in classpath
+
+**One-way** (`toType` only):
+
+- Special: `Class[A]`, `ClassTag[A]`
+- Collections: `Array[A]`, `Seq[A]`, `List[A]`, `Nil.type`, `Vector[A]`, `Map[K,V]`, `Set[A]`
 
 ### Existential Types
 
@@ -615,12 +622,18 @@ It can be used to e.g. prevent the macro from summoning itself, so that recursio
 
 Built-in codecs exist for:
 
+**Bidirectional** (`toExpr` + `fromExpr`):
+
 - Primitives: `Null`, `Unit`, `Boolean`, `Byte`, `Short`, `Int`, `Long`, `Float`, `Double`, `Char`, `String`
-- Special: `Class[A]`, `ClassTag[A]`
-- Collections: `Array[A]`, `Seq[A]`, `List[A]`, `Nil.type`, `Vector[A]`, `Map[K,V]`, `Set[A]`
+- Numeric: `BigInt`, `BigDecimal`
+- Special: `Class[A]`, `ClassTag[A]`, `StringContext`
+- Collections: `Array[A]`, `IArray[A]` _(Scala 3 only)_, `Seq[A]`, `List[A]`, `Nil.type`, `Vector[A]`, `Map[K,V]`, `Set[A]`
 - Options: `Option[A]`, `Some[A]`, `None.type`
 - Either: `Either[L,R]`, `Left[L,R]`, `Right[L,R]`
-- Data: Hearth's `data.Data` type
+
+**One-way** (`toExpr` only):
+
+- Hearth internals: `data.Data`, `HearthVersion`, `JDKVersion`, `ScalaVersion`, `LanguageVersion`, `Platform`
 
 ### `VarArgs`
 

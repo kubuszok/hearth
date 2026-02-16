@@ -131,8 +131,6 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
     testLambdaBuilderDirectStyle[A](expr)
 
   def testBidirectionalCodecsImpl: c.Expr[Data] = testBidirectionalCodecs
-
-  def testOneWayCodecsImpl: c.Expr[Data] = testOneWayCodecs
 }
 
 object ExprsFixtures {
@@ -249,6 +247,4 @@ object ExprsFixtures {
   def testLambdaBuilderDirectStyle[A](expr: A): Data = macro ExprsFixtures.testLambdaBuilderDirectStyleImpl[A]
 
   def testBidirectionalCodecs: Data = macro ExprsFixtures.testBidirectionalCodecsImpl
-
-  def testOneWayCodecs: Data = macro ExprsFixtures.testOneWayCodecsImpl
 }

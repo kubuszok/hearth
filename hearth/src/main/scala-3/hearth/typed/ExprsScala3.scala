@@ -227,6 +227,68 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       ExprCodec.make[scala.reflect.ClassTag[A]]
     }
 
+    override lazy val BigIntExprCodec: ExprCodec[BigInt] = {
+      given FromExpr[BigInt] = new {
+        override def unapply(expr: Expr[BigInt])(using scala.quoted.Quotes): Option[BigInt] = expr match {
+          case '{ BigInt(${ Expr(s) }: String) }       => Some(BigInt(s))
+          case '{ BigInt.apply(${ Expr(s) }: String) } => Some(BigInt(s))
+          case '{ BigInt(${ Expr(i) }: Int) }          => Some(BigInt(i))
+          case '{ BigInt.apply(${ Expr(i) }: Int) }    => Some(BigInt(i))
+          case '{ BigInt(${ Expr(l) }: Long) }         => Some(BigInt(l))
+          case '{ BigInt.apply(${ Expr(l) }: Long) }   => Some(BigInt(l))
+          case _                                       => None
+        }
+      }
+      given ToExpr[BigInt] = new {
+        override def apply(value: BigInt)(using scala.quoted.Quotes): Expr[BigInt] = {
+          val s = value.toString
+          '{ BigInt(${ Expr(s) }) }
+        }
+      }
+      ExprCodec.make[BigInt]
+    }
+
+    override lazy val BigDecimalExprCodec: ExprCodec[BigDecimal] = {
+      given FromExpr[BigDecimal] = new {
+        override def unapply(expr: Expr[BigDecimal])(using scala.quoted.Quotes): Option[BigDecimal] = expr match {
+          case '{ BigDecimal(${ Expr(s) }: String) }       => Some(BigDecimal(s))
+          case '{ BigDecimal.apply(${ Expr(s) }: String) } => Some(BigDecimal(s))
+          case '{ BigDecimal(${ Expr(i) }: Int) }          => Some(BigDecimal(i))
+          case '{ BigDecimal.apply(${ Expr(i) }: Int) }    => Some(BigDecimal(i))
+          case '{ BigDecimal(${ Expr(l) }: Long) }         => Some(BigDecimal(l))
+          case '{ BigDecimal.apply(${ Expr(l) }: Long) }   => Some(BigDecimal(l))
+          case '{ BigDecimal(${ Expr(d) }: Double) }       => Some(BigDecimal(d))
+          case '{ BigDecimal.apply(${ Expr(d) }: Double) } => Some(BigDecimal(d))
+          case _                                           => None
+        }
+      }
+      given ToExpr[BigDecimal] = new {
+        override def apply(value: BigDecimal)(using scala.quoted.Quotes): Expr[BigDecimal] = {
+          val s = value.toString
+          '{ BigDecimal(${ Expr(s) }) }
+        }
+      }
+      ExprCodec.make[BigDecimal]
+    }
+
+    override lazy val StringContextExprCodec: ExprCodec[StringContext] = {
+      given FromExpr[StringContext] = new {
+        override def unapply(expr: Expr[StringContext])(using scala.quoted.Quotes): Option[StringContext] = expr match {
+          case '{ StringContext(${ Varargs(Exprs(parts)) }*) }       => Some(StringContext(parts*))
+          case '{ new StringContext(${ Varargs(Exprs(parts)) }*) }   => Some(StringContext(parts*))
+          case '{ StringContext.apply(${ Varargs(Exprs(parts)) }*) } => Some(StringContext(parts*))
+          case _                                                     => None
+        }
+      }
+      given ToExpr[StringContext] = new {
+        override def apply(value: StringContext)(using scala.quoted.Quotes): Expr[StringContext] = {
+          val parts = value.parts.map(Expr(_)).toSeq
+          '{ StringContext(${ Varargs(parts) }*) }
+        }
+      }
+      ExprCodec.make[StringContext]
+    }
+
     // In the code below we cannot just `import platformSpecific.implicits.given`, because Expr.make[Coll[A]] would use
     // implicit ExprCodec[Coll[A]] from the companion object, which would create a circular dependency. Instead, we
     // want to extract the implicit ToExpr[A] and FromExpr[A] from the ExprCodec[A], and then use it in the code below.
@@ -235,11 +297,78 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       given ExprCodec[scala.reflect.ClassTag[A]] = ClassTagExprCodec[A]
       given FromExpr[A] = platformSpecific.implicits.ExprCodecIsFromExpr[A]
       given FromExpr[Array[A]] = new {
+        private lazy val classTagFromType: Option[scala.reflect.ClassTag[A]] =
+          Type.classOfType[A].map(scala.reflect.ClassTag(_))
+        private def extractElements(expr: Expr[Array[A]])(using scala.quoted.Quotes): Option[Array[A]] = {
+          import scala.quoted.quotes.reflect.*
+          def unwrap(term: Term): Term = term match {
+            case Inlined(_, _, inner) => unwrap(inner)
+            case Block(Nil, inner)    => unwrap(inner)
+            case other                => other
+          }
+          def extractArgs(args: List[Term]): Option[List[A]] = {
+            val elements = args.flatMap { arg =>
+              arg.asExprOf[A] match {
+                case '{ ${ Expr(v) } } => Some(v)
+                case _                 => None
+              }
+            }
+            if elements.size == args.size then Some(elements) else None
+          }
+          unwrap(expr.asTerm) match {
+            // Generic: Array.apply[T](args*)(using ct) - Apply(Apply(TypeApply(sel, _), args), List(ct))
+            case Apply(Apply(TypeApply(sel, _), args), _) if sel.symbol.fullName == "scala.Array$.apply" =>
+              extractArgs(args).flatMap(elems => classTagFromType.map(ct => elems.toArray(using ct)))
+            // Specialized: Array.apply(first, Seq(rest*): _*) - e.g. Array.apply(1: Int, Seq(): _*)
+            // These are the primitive overloads like Array.apply(x: Int, xs: Int*): Array[Int]
+            case Apply(sel, args) if sel.symbol.fullName == "scala.Array$.apply" =>
+              // For specialized overloads, first arg is the first element, second arg is varargs (Typed(..., Repeated))
+              args match {
+                case first :: Typed(Repeated(restArgs, _), _) :: Nil =>
+                  extractArgs(first :: restArgs).flatMap(elems => classTagFromType.map(ct => elems.toArray(using ct)))
+                case first :: rest :: Nil =>
+                  // rest might be wrapped differently - try to extract just the first element
+                  extractArgs(List(first)).flatMap { firstElems =>
+                    // If rest is an empty seq, just use first
+                    classTagFromType.map(ct => firstElems.toArray(using ct))
+                  }
+                case _ =>
+                  extractArgs(args).flatMap(elems => classTagFromType.map(ct => elems.toArray(using ct)))
+              }
+            case _ => None
+          }
+        }
         override def unapply(expr: Expr[Array[A]])(using scala.quoted.Quotes): Option[Array[A]] = expr match {
-          // TODO: just one possible case, but we need more
           case '{ Array[A]((${ Varargs(Exprs(inner)) })*)(using (${ Expr(ct) }: scala.reflect.ClassTag[A])) } =>
             Some(inner.toArray(using ct))
-          case _ => None
+          case '{ Array.apply[A]((${ Varargs(Exprs(inner)) })*)(using (${ Expr(ct) }: scala.reflect.ClassTag[A])) } =>
+            Some(inner.toArray(using ct))
+          case '{ Array.empty[A](using (${ Expr(ct) }: scala.reflect.ClassTag[A])) } =>
+            Some(Array.empty[A](using ct))
+          case '{ Array[A]((${ Varargs(Exprs(inner)) })*)(using ${ _ }: scala.reflect.ClassTag[A]) } =>
+            classTagFromType.map(ct => inner.toArray(using ct))
+          case '{ Array.apply[A]((${ Varargs(Exprs(inner)) })*)(using ${ _ }: scala.reflect.ClassTag[A]) } =>
+            classTagFromType.map(ct => inner.toArray(using ct))
+          case '{ Array.empty[A](using ${ _ }: scala.reflect.ClassTag[A]) } =>
+            classTagFromType.map(ct => Array.empty[A](using ct))
+          case '{ Array.emptyBooleanArray } if TypeRepr.of[A] =:= TypeRepr.of[Boolean] =>
+            Some(Array.empty[Boolean].asInstanceOf[Array[A]])
+          case '{ Array.emptyByteArray } if TypeRepr.of[A] =:= TypeRepr.of[Byte] =>
+            Some(Array.empty[Byte].asInstanceOf[Array[A]])
+          case '{ Array.emptyShortArray } if TypeRepr.of[A] =:= TypeRepr.of[Short] =>
+            Some(Array.empty[Short].asInstanceOf[Array[A]])
+          case '{ Array.emptyCharArray } if TypeRepr.of[A] =:= TypeRepr.of[Char] =>
+            Some(Array.empty[Char].asInstanceOf[Array[A]])
+          case '{ Array.emptyIntArray } if TypeRepr.of[A] =:= TypeRepr.of[Int] =>
+            Some(Array.empty[Int].asInstanceOf[Array[A]])
+          case '{ Array.emptyLongArray } if TypeRepr.of[A] =:= TypeRepr.of[Long] =>
+            Some(Array.empty[Long].asInstanceOf[Array[A]])
+          case '{ Array.emptyFloatArray } if TypeRepr.of[A] =:= TypeRepr.of[Float] =>
+            Some(Array.empty[Float].asInstanceOf[Array[A]])
+          case '{ Array.emptyDoubleArray } if TypeRepr.of[A] =:= TypeRepr.of[Double] =>
+            Some(Array.empty[Double].asInstanceOf[Array[A]])
+          case other =>
+            extractElements(other)
         }
       }
       given ToExpr[A] = platformSpecific.implicits.ExprCodecIsToExpr[A]
@@ -322,9 +451,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       given FromExpr[A] = platformSpecific.implicits.ExprCodecIsFromExpr[A]
       given FromExpr[Vector[A]] = new {
         override def unapply(expr: Expr[Vector[A]])(using scala.quoted.Quotes): Option[Vector[A]] = expr match {
-          // TODO: just one possible case, but we need more
-          case '{ Vector((${ Varargs(Exprs(inner)) }: Seq[A])*) } => Some(inner.toVector)
-          case _                                                  => None
+          case '{ Vector((${ Varargs(Exprs(inner)) }: Seq[A])*) }       => Some(inner.toVector)
+          case '{ Vector.apply((${ Varargs(Exprs(inner)) }: Seq[A])*) } => Some(inner.toVector)
+          case '{ Vector.empty[A] }                                     => Some(Vector.empty[A])
+          case _                                                        => None
         }
       }
       given ToExpr[Vector[A]] = new {
