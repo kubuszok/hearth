@@ -6,7 +6,7 @@ import hearth.fp.syntax.*
 
 import scala.language.implicitConversions
 
-trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
+trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
   /** Platform-specific untyped type representation (`c.Expr[A]` in 2, `scala.quoted.Expr[A]` in 3).
     *
@@ -29,7 +29,7 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
   type Expr[A]
 
   val Expr: ExprModule
-  trait ExprModule extends ExprCrossQuotes { this: Expr.type =>
+  trait ExprModule extends ExprCrossQuotes with ExprCompat { this: Expr.type =>
 
     final def apply[A: ExprCodec](value: A): Expr[A] = ExprCodec[A].toExpr(value)
 
@@ -281,7 +281,7 @@ trait Exprs extends ExprsCrossQuotes { this: MacroCommons =>
     implicit lazy val LanguageVersionCodec: ExprCodec[LanguageVersion] = Expr.LanguageVersionExprCodec
     implicit lazy val PlatformCodec: ExprCodec[Platform] = Expr.PlatformExprCodec
   }
-  private[hearth] trait ExprCodecImplicits0 extends ExprCodecImplicits1 { this: ExprCodec.type =>
+  private[hearth] trait ExprCodecImplicits0 extends ExprCodecImplicits1 with ExprCodecCompat { this: ExprCodec.type =>
 
     implicit def ListExprCodec[A: ExprCodec: Type]: ExprCodec[List[A]] = Expr.ListExprCodec[A]
     implicit def VectorExprCodec[A: ExprCodec: Type]: ExprCodec[Vector[A]] = Expr.VectorExprCodec[A]

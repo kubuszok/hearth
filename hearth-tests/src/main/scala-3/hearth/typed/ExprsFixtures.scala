@@ -5,7 +5,24 @@ import hearth.data.Data
 
 import scala.quoted.*
 
-final private class ExprsFixtures(q: Quotes) extends MacroCommonsScala3(using q), ExprsFixturesImpl
+final private class ExprsFixtures(q: Quotes) extends MacroCommonsScala3(using q), ExprsFixturesImpl {
+
+  private val cachedIntType: Type[Int] = Type.of[Int]
+  def testIArrayOneWayCodecs: Expr[Data] = {
+    implicit val intType: Type[Int] = cachedIntType
+    def oneWay[A: ExprCodec](value: A): Data = {
+      val encoded = Expr(value)
+      Data.map(
+        "encoded" -> Data(encoded.plainPrint)
+      )
+    }
+    Expr(
+      Data.map(
+        "IArray[Int]" -> oneWay(IArray[Int](1))
+      )
+    )
+  }
+}
 
 object ExprsFixtures {
 
@@ -308,4 +325,8 @@ object ExprsFixtures {
   inline def testOneWayCodecs: Data = ${ testOneWayCodecsImpl }
   private def testOneWayCodecsImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testOneWayCodecs
+
+  inline def testIArrayOneWayCodecs: Data = ${ testIArrayOneWayCodecsImpl }
+  private def testIArrayOneWayCodecsImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testIArrayOneWayCodecs
 }

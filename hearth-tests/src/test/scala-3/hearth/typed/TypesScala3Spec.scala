@@ -194,6 +194,7 @@ final class TypesScala3Spec extends MacroSuite {
             actual <==> Data.map(
               "Type.isPrimitive" -> Data(false),
               "Type.isArray" -> Data(false),
+              "Type.isIArray" -> Data(false),
               "Type.isJvmBuiltIn" -> Data(false),
               "Type.isAbstract" -> Data(true),
               "Type.isFinal" -> Data(false),
@@ -252,6 +253,7 @@ final class TypesScala3Spec extends MacroSuite {
           testFlags[examples.ExampleEnum.ExampleEnumClass] <==> Data.map(
             "Type.isPrimitive" -> Data(false),
             "Type.isArray" -> Data(false),
+            "Type.isIArray" -> Data(false),
             "Type.isJvmBuiltIn" -> Data(false),
             "Type.isAbstract" -> Data(false),
             "Type.isFinal" -> Data(true),
@@ -281,6 +283,7 @@ final class TypesScala3Spec extends MacroSuite {
           testFlags[OpaqueId] <==> Data.map(
             "Type.isPrimitive" -> Data(false),
             "Type.isArray" -> Data(false),
+            "Type.isIArray" -> Data(false),
             "Type.isJvmBuiltIn" -> Data(false),
             "Type.isAbstract" -> Data(false),
             "Type.isFinal" -> Data(false),
@@ -318,6 +321,7 @@ final class TypesScala3Spec extends MacroSuite {
             actual <==> Data.map(
               "Type.isPrimitive" -> Data(false),
               "Type.isArray" -> Data(false),
+              "Type.isIArray" -> Data(false),
               "Type.isJvmBuiltIn" -> Data(false),
               "Type.isAbstract" -> Data(false),
               "Type.isFinal" -> Data(true),
@@ -376,6 +380,7 @@ final class TypesScala3Spec extends MacroSuite {
           ] <==> Data.map(
             "Type.isPrimitive" -> Data(false),
             "Type.isArray" -> Data(false),
+            "Type.isIArray" -> Data(false),
             "Type.isJvmBuiltIn" -> Data(false),
             "Type.isAbstract" -> Data(true),
             "Type.isFinal" -> Data(false),
@@ -400,12 +405,42 @@ final class TypesScala3Spec extends MacroSuite {
           )
         }
 
+        test("for IArray types") {
+          testFlags[IArray[Int]] <==> Data.map(
+            "Type.isPrimitive" -> Data(false),
+            "Type.isArray" -> Data(false),
+            "Type.isIArray" -> Data(true),
+            "Type.isJvmBuiltIn" -> Data(true),
+            "Type.isAbstract" -> Data(false),
+            "Type.isFinal" -> Data(true),
+            "Type.isClass" -> Data(false),
+            "Type.isTypeSystemSpecial" -> Data(false),
+            "Type.isOpaqueType" -> Data(true),
+            "Type.isTuple" -> Data(false),
+            "Type.notJvmBuiltInClass" -> Data(false),
+            "Type.isPlainOldJavaObject" -> Data(false),
+            "Type.isJavaBean" -> Data(false),
+            "Type.isSealed" -> Data(false),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isCase" -> Data(false),
+            "Type.isObject" -> Data(false),
+            "Type.isVal" -> Data(false),
+            "Type.isCaseClass" -> Data(false),
+            "Type.isCaseObject" -> Data(false),
+            "Type.isCaseVal" -> Data(false),
+            "Type.isAvailable(Everywhere)" -> Data(true),
+            "Type.isAvailable(AtCallSite)" -> Data(true)
+          )
+        }
+
         test("for EmptyTuple") {
           // EmptyTuple is a type alias in Scala 3, so macro reflection sees it differently
           // from regular classes/objects.
           testFlags[EmptyTuple] <==> Data.map(
             "Type.isPrimitive" -> Data(false),
             "Type.isArray" -> Data(false),
+            "Type.isIArray" -> Data(false),
             "Type.isJvmBuiltIn" -> Data(false),
             "Type.isAbstract" -> Data(false),
             "Type.isFinal" -> Data(false),

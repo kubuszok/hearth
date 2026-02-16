@@ -74,23 +74,31 @@ trait UntypedTypes { this: MacroCommons =>
                 scala.reflect.ClassTag(elementClass).newArray(0).getClass()
               }
             case _ =>
-              // $COVERAGE-OFF$
-              hearthAssertionFailed(
-                s"${untyped.prettyPrint} is recognized as built-in type, but is not handled by a built-in branch"
-              )
-            // $COVERAGE-ON$
+              toClassJvmBuiltInExtra(untyped).orElse {
+                // $COVERAGE-OFF$
+                hearthAssertionFailed(
+                  s"${untyped.prettyPrint} is recognized as built-in type, but is not handled by a built-in branch"
+                )
+                // $COVERAGE-ON$
+              }
           }
       } else
         Type.possibleClassesOfType(untyped.asTyped[Any]).collectFirst { case AvailableClass(value) =>
           value
         }
 
+    /** Override to add platform-specific built-in type class resolution (e.g. IArray on Scala 3). */
+    def toClassJvmBuiltInExtra(untyped: UntypedType): Option[java.lang.Class[?]] = None
+
     final def isPrimitive(instanceTpe: UntypedType): Boolean =
       Type.primitiveTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
     final def isArray(instanceTpe: UntypedType): Boolean =
       ArrayCtor.unapply(toTyped[Any](instanceTpe)).isDefined
+    def isIArray(instanceTpe: UntypedType): Boolean = false
     final def isJvmBuiltIn(instanceTpe: UntypedType): Boolean =
-      Type.jvmBuiltInTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying)) || isArray(instanceTpe)
+      Type.jvmBuiltInTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying)) || isArray(
+        instanceTpe
+      ) || isIArray(instanceTpe)
     final def isTypeSystemSpecial(instanceTpe: UntypedType): Boolean =
       Type.typeSystemSpecialTypes.exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))
 
@@ -164,6 +172,7 @@ trait UntypedTypes { this: MacroCommons =>
 
     def isPrimitive: Boolean = UntypedType.isPrimitive(untyped)
     def isArray: Boolean = UntypedType.isArray(untyped)
+    def isIArray: Boolean = UntypedType.isIArray(untyped)
     def isJvmBuiltIn: Boolean = UntypedType.isJvmBuiltIn(untyped)
     def isTypeSystemSpecial: Boolean = UntypedType.isTypeSystemSpecial(untyped)
     def isOpaqueType: Boolean = UntypedType.isOpaqueType(untyped)

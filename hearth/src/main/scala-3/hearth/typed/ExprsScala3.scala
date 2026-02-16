@@ -274,6 +274,28 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           }
       ExprCodec.make[Array[A]]
     }
+    override def IArrayExprCodec[A: ExprCodec: Type]: ExprCodec[IArray[A]] = {
+      val arrayCodec: ExprCodec[Array[A]] = ArrayExprCodec[A]
+      given FromExpr[IArray[A]] = new {
+        private val fromExprArray: FromExpr[Array[A]] =
+          platformSpecific.implicits.ExprCodecIsFromExpr[Array[A]](using arrayCodec)
+        override def unapply(expr: Expr[IArray[A]])(using scala.quoted.Quotes): Option[IArray[A]] =
+          // IArray is an opaque type alias for Array, so match the unsafeFromArray wrapper and delegate
+          expr match {
+            case '{ IArray.unsafeFromArray[A]($arrayExpr: Array[A]) } =>
+              fromExprArray.unapply(arrayExpr).map(IArray.unsafeFromArray(_))
+            case _ => None
+          }
+      }
+      given ToExpr[IArray[A]] = new ToExpr[IArray[A]] {
+        override def apply(value: IArray[A])(using scala.quoted.Quotes): Expr[IArray[A]] = {
+          given ToExpr[Array[A]] = platformSpecific.implicits.ExprCodecIsToExpr[Array[A]](using arrayCodec)
+          val arrayExpr: Expr[Array[A]] = summon[ToExpr[Array[A]]].apply(value.unsafeArray.asInstanceOf[Array[A]])
+          '{ IArray.unsafeFromArray($arrayExpr) }
+        }
+      }
+      ExprCodec.make[IArray[A]]
+    }
     override def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = {
       given FromExpr[A] = platformSpecific.implicits.ExprCodecIsFromExpr[A]
       given ToExpr[A] = platformSpecific.implicits.ExprCodecIsToExpr[A]

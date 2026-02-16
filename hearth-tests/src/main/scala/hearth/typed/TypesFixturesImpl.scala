@@ -50,6 +50,7 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
     Data.map(
       "Type.isPrimitive" -> Data(Type[A].isPrimitive),
       "Type.isArray" -> Data(Type[A].isArray),
+      "Type.isIArray" -> Data(Type[A].isIArray),
       "Type.isJvmBuiltIn" -> Data(Type[A].isJvmBuiltIn),
       "Type.isAbstract" -> Data(Type[A].isAbstract),
       "Type.isFinal" -> Data(Type[A].isFinal),
