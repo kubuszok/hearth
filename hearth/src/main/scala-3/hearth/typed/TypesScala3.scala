@@ -71,7 +71,10 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
           } else colorfulReprName
 
           // FIXME: This is a quick workaround for missing .type, we have to fix it properly for nested types.
-          if (Type[A].isObject || Type[A].isVal) && !result.contains(".type") then result + ".type"
+          // TermRef represents a singleton type (term reference) which should also get .type suffix.
+          // We use termSymbol to detect TermRef-like types since TermRef.unapply can throw ClassCastException.
+          val isSingletonOfTerm = repr.termSymbol != Symbol.noSymbol && !repr.termSymbol.isNoSymbol
+          if (Type[A].isObject || Type[A].isVal || isSingletonOfTerm) && !result.contains(".type") then result + ".type"
           else result
         }
         .getOrElse(repr.toString)

@@ -209,6 +209,7 @@ trait Classes { this: MacroCommons =>
 
     def unapply[A](tpe: Type[A]): Option[Enum[A]] =
       if (tpe.isSealed) tpe.directChildren.map(children => new Enum(tpe, children))
+      else if (tpe.isEnumeration) tpe.directChildren.map(children => new Enum(tpe, children))
       else None
     def parse[A: Type]: Option[Enum[A]] = unapply(Type[A])
   }
