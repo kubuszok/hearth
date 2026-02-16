@@ -113,6 +113,7 @@ trait UntypedTypes { this: MacroCommons =>
     def isSealed(instanceTpe: UntypedType): Boolean
     def isJavaEnum(instanceTpe: UntypedType): Boolean
     def isJavaEnumValue(instanceTpe: UntypedType): Boolean
+    def isEnumeration(instanceTpe: UntypedType): Boolean
 
     def isCase(instanceTpe: UntypedType): Boolean
     def isObject(instanceTpe: UntypedType): Boolean
@@ -131,18 +132,26 @@ trait UntypedTypes { this: MacroCommons =>
     def companionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)]
 
     def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]]
-    final def exhaustiveChildren(instanceTpe: UntypedType): Option[NonEmptyMap[String, UntypedType]] =
+    final def exhaustiveChildren(instanceTpe: UntypedType): Option[NonEmptyMap[String, UntypedType]] = {
+      val isEnum = instanceTpe.isEnumeration
       directChildren(instanceTpe)
         .flatMap(_.foldLeft[Option[Vector[(String, UntypedType)]]](Some(Vector.empty)) {
           case (None, _)                                                                    => None
           case (Some(vector), (_, subtype)) if subtype.isSealed && !subtype.isJavaEnumValue =>
             exhaustiveChildren(subtype).map(vector ++ _.toVector)
-          case (_, (_, subtype)) if subtype.isAbstract => None
-          case (Some(vector), nameSubtype)             => Some(vector :+ nameSubtype)
+          // For enumerations, children are value instances — they may appear abstract due to the Value class
+          // being abstract, but they are concrete singleton values, so skip the abstract check.
+          case (_, (_, subtype)) if !isEnum && subtype.isAbstract => None
+          case (Some(vector), nameSubtype)                        => Some(vector :+ nameSubtype)
         })
-        .map(_.filter(_._2 <:< instanceTpe)) // TODO: handle it somehow for GADT in abstract type context
+        // Skip the <:< filter for enumerations — enum values are not subtypes of the enum object type
+        .map(children =>
+          if (isEnum) children
+          else children.filter(_._2 <:< instanceTpe) // TODO: handle it somehow for GADT in abstract type context
+        )
         .map(ListMap.from(_))
         .flatMap(NonEmptyMap.fromListMap(_))
+    }
 
     def annotations(untyped: UntypedType): List[UntypedExpr]
 
@@ -186,6 +195,7 @@ trait UntypedTypes { this: MacroCommons =>
     def isSealed: Boolean = UntypedType.isSealed(untyped)
     def isJavaEnum: Boolean = UntypedType.isJavaEnum(untyped)
     def isJavaEnumValue: Boolean = UntypedType.isJavaEnumValue(untyped)
+    def isEnumeration: Boolean = UntypedType.isEnumeration(untyped)
 
     def isCase: Boolean = UntypedType.isCase(untyped)
     def isObject: Boolean = UntypedType.isObject(untyped)

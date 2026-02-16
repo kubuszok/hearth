@@ -160,9 +160,11 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       // We use =:= to check whether A is known to be exactly of the built-in type or is it some upper bound.
+      // Also exclude enumeration Value types (they're not abstract)
       A != NoSymbol &&
       (isJavaEnum(instanceTpe) || (A.isAbstract && !Type.jvmBuiltInTypes
-        .exists(tpe => instanceTpe =:= tpe.Underlying.asUntyped)))
+        .exists(tpe => instanceTpe =:= tpe.Underlying.asUntyped))) &&
+      !isEnumeration(instanceTpe)
     }
     override def isFinal(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
@@ -185,6 +187,38 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     override def isJavaEnumValue(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       A.isJavaEnum && javaEnumRegexpFormat.matches(instanceTpe.toString)
+    }
+    override def isEnumeration(instanceTpe: UntypedType): Boolean = {
+      val A = instanceTpe.typeSymbol
+      if (A == NoSymbol) false
+      else {
+        val enumClass = c.mirror.staticClass("scala.Enumeration")
+        // Case (a): Object extending Enumeration (e.g. WeekDay.type)
+        val isEnumerationObject = A.isModuleClass &&
+          A.asClass.baseClasses.contains(enumClass)
+        // Case (b): Value type member of an Enumeration object (e.g. WeekDay.Value)
+        // Value's owner is scala.Enumeration (the class), not the specific enum object.
+        // We check the type's prefix to see if it comes through an Enumeration-extending module.
+        val isEnumerationValue = !isEnumerationObject && {
+          instanceTpe match {
+            case TypeRef(prefix, sym, _) if sym.name == TypeName("Value") =>
+              prefix.typeSymbol != NoSymbol && prefix.typeSymbol.isModuleClass &&
+              prefix.typeSymbol.asClass.baseClasses.contains(enumClass)
+            case _ =>
+              // Fallback: check if the type itself is or extends scala.Enumeration#Value
+              // and is accessed through an Enumeration object
+              A.isType && A.owner == enumClass && {
+                instanceTpe match {
+                  case TypeRef(prefix, _, _) =>
+                    prefix.typeSymbol != NoSymbol && prefix.typeSymbol.isModuleClass &&
+                    prefix.typeSymbol.asClass.baseClasses.contains(enumClass)
+                  case _ => false
+                }
+              }
+          }
+        }
+        isEnumerationObject || isEnumerationValue
+      }
     }
 
     override def isCase(instanceTpe: UntypedType): Boolean = {
@@ -221,7 +255,54 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] = {
       val A = instanceTpe.typeSymbol
 
-      if (isJavaEnum(instanceTpe)) {
+      if (isEnumeration(instanceTpe)) {
+        // Determine if we have the object type or the Value type
+        val enumObjectTypeOpt: Option[UntypedType] = if (A.isModuleClass) {
+          // We have the object type directly
+          Some(instanceTpe)
+        } else {
+          // We have the Value type - find the enum object from the type's prefix
+          instanceTpe match {
+            case TypeRef(prefix, _, _) if prefix.typeSymbol != NoSymbol && prefix.typeSymbol.isModuleClass =>
+              Some(prefix)
+            case _ =>
+              // Fallback: try owner chain
+              val owner = A.owner
+              if (owner == NoSymbol || !owner.isModuleClass) None
+              else Some(owner.asClass.toType)
+          }
+        }
+
+        enumObjectTypeOpt.flatMap { enumObjectType =>
+          // Get the Value type member from scala.Enumeration
+          val enumClass = c.mirror.staticClass("scala.Enumeration")
+          val valueClassSymbol = enumClass.toType.decls.find(s => s.isClass && s.name == TypeName("Value"))
+
+          valueClassSymbol.flatMap { valueSym =>
+            // Get enumeration values from the object's decls
+            // Use baseClasses check instead of <:< because path-dependent types
+            // (Enumeration.this.Value vs WeekDay.Value) make <:< unreliable.
+            // Use .resultType to unwrap NullaryMethodType (Enumeration vals are implemented as methods).
+            val children = enumObjectType.decls
+              .filter(_.isTerm)
+              .map(_.asTerm)
+              .filter(t => t.isStable && !t.isPrivate)
+              .filter { term =>
+                val tpe = term.typeSignature.resultType
+                tpe.baseClasses.contains(valueSym)
+              }
+              .toVector
+              .sorted(symbolOrdering)
+              .map { term =>
+                // Create singleton type (e.g. WeekDay.Mon.type) for proper type representation
+                symbolName(term) -> c.universe.internal.singleType(enumObjectType, term)
+              }
+
+            if (children.isEmpty) None
+            else Some(ListMap.from(children))
+          }
+        }
+      } else if (isJavaEnum(instanceTpe)) {
         Some(
           ListMap.from(
             instanceTpe.companion.decls

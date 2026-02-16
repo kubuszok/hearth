@@ -142,13 +142,16 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     final def isClass[A: Type]: Boolean = UntypedType.fromTyped[A].isClass
     final def notJvmBuiltInClass[A: Type]: Boolean = isClass[A] && !isJvmBuiltIn[A]
     final def isPlainOldJavaObject[A: Type]: Boolean =
-      notJvmBuiltInClass[A] && !(isAbstract[A] || isSealed[A] || isJavaEnum[A] || isJavaEnumValue[A])
+      notJvmBuiltInClass[A] && !(isAbstract[A] || isSealed[A] || isJavaEnum[A] || isJavaEnumValue[A] || isEnumeration[
+        A
+      ])
     final def isJavaBean[A: Type]: Boolean =
       !isObject[A] && isPlainOldJavaObject[A] && Type[A].defaultConstructor.exists(_.isAvailable(Everywhere))
 
     final def isSealed[A: Type]: Boolean = UntypedType.fromTyped[A].isSealed
     final def isJavaEnum[A: Type]: Boolean = UntypedType.fromTyped[A].isJavaEnum
     final def isJavaEnumValue[A: Type]: Boolean = UntypedType.fromTyped[A].isJavaEnumValue
+    final def isEnumeration[A: Type]: Boolean = UntypedType.fromTyped[A].isEnumeration
 
     final def isCase[A: Type]: Boolean = UntypedType.fromTyped[A].isCase
     final def isObject[A: Type]: Boolean = UntypedType.fromTyped[A].isObject
@@ -820,6 +823,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def isSealed: Boolean = Type.isSealed(using tpe)
     def isJavaEnum: Boolean = Type.isJavaEnum(using tpe)
     def isJavaEnumValue: Boolean = Type.isJavaEnumValue(using tpe)
+    def isEnumeration: Boolean = Type.isEnumeration(using tpe)
 
     def isCase: Boolean = Type.isCase(using tpe)
     def isObject: Boolean = Type.isObject(using tpe)
