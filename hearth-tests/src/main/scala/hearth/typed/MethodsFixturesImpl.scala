@@ -139,6 +139,63 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     )
 
   private val IntType: Type[Int] = Type.of[Int]
+  private val StringType: Type[String] = Type.of[String]
+  private val ProductType: Type[Product] = Type.of[Product]
+
+  /** Constructs a NamedTuple (or any type with a primary constructor) using hardcoded test values.
+    *
+    * Returns the `.toString` of the constructed value wrapped in [[Data]].
+    */
+  def testConstructNamedTuple[A: Type]: Expr[Data] = {
+    implicit val StringType: Type[String] = this.StringType
+    implicit val IntType: Type[Int] = this.IntType
+    Type[A].primaryConstructor match {
+      case Some(constructor) =>
+        val arguments: Arguments = constructor.parameters.flatten.map { case (name, param) =>
+          import param.tpe.Underlying
+          val value: Expr_?? =
+            if (Underlying <:< Type.of[String]) Expr("Alice").as_??
+            else if (Underlying <:< Type.of[Int]) Expr(42).as_??
+            else
+              Environment.reportErrorAndAbort(
+                s"testConstructNamedTuple: unsupported parameter type ${param.tpe.Underlying.prettyPrint}"
+              )
+          name -> value
+        }.toMap
+        constructor.apply(arguments) match {
+          case Right(result) => Expr.quote(Data(Expr.splice(result).toString))
+          case Left(error)   => Expr(Data(s"FAILED: $error"))
+        }
+      case None => Expr(Data("<no primary constructor>"))
+    }
+  }
+
+  /** Extracts fields from a NamedTuple by name using the constructor's parameters and `Product.productElement`.
+    *
+    * Returns a string like `"name=Alice, age=42"` wrapped in [[Data]].
+    */
+  @scala.annotation.nowarn("msg=is never used")
+  def testNamedTupleFieldExtraction[A: Type](instance: Expr[A]): Expr[Data] = {
+    implicit val StringType: Type[String] = this.StringType
+    implicit val IntType: Type[Int] = this.IntType
+    implicit val ProductType: Type[Product] = this.ProductType
+    Type[A].primaryConstructor match {
+      case Some(constructor) =>
+        val fields = constructor.parameters.flatten.toList
+        val parts: List[Expr[String]] = fields.map { case (name, param) =>
+          val idx = Expr(param.index)
+          Expr.quote {
+            val product = Expr.splice(instance).asInstanceOf[Product]
+            Expr.splice(Expr(name)) + "=" + product.productElement(Expr.splice(idx)).toString
+          }
+        }
+        val combined = parts.reduceLeft { (acc, part) =>
+          Expr.quote(Expr.splice(acc) + ", " + Expr.splice(part))
+        }
+        Expr.quote(Data(Expr.splice(combined)))
+      case None => Expr(Data("<no primary constructor>"))
+    }
+  }
 
   def testCallNoInstanceIntMethod[A: Type](methodName: Expr[String])(params: VarArgs[Int]): Expr[Int] = {
     implicit val IntType: Type[Int] = this.IntType
