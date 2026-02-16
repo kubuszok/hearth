@@ -137,6 +137,15 @@ final class ExprsSpec extends MacroSuite {
         def run = testMatchCaseTraverse[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
         run
       }
+
+      test("method MatchCase.directStyle should allow using direct style with MatchCase in a macro") {
+        import ExprsFixtures.testMatchCaseDirectStyle
+
+        // Tests whether the result build using these methods compiles
+        @scala.annotation.nowarn // suppress "unreachable code" error
+        def run = testMatchCaseDirectStyle[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
+        run
+      }
     }
 
     group("type ValDefs") {
@@ -167,6 +176,13 @@ final class ExprsSpec extends MacroSuite {
 
         // Tests whether the result build using these methods compiles and is correct
         testValDefsTraverseAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
+      }
+
+      test("methods ValDefs.{directStyle, close} should allow using direct style with ValDefs in a macro") {
+        import ExprsFixtures.testValDefsDirectStyleAndClose
+
+        // Tests whether the result build using these methods compiles and is correct
+        testValDefsDirectStyleAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
     }
 
@@ -228,6 +244,13 @@ final class ExprsSpec extends MacroSuite {
 
         // Tests whether the result build using these methods compiles and is correct
         testValDefBuilderTraverseAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
+      }
+
+      test("methods ValDefBuilder.{directStyle, build} should allow using direct style with ValDefBuilder in a macro") {
+        import ExprsFixtures.testValDefBuilderDirectStyleAndClose
+
+        // Tests whether the result build using these methods compiles and is correct
+        testValDefBuilderDirectStyleAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
     }
 
@@ -350,6 +373,12 @@ final class ExprsSpec extends MacroSuite {
         import ExprsFixtures.testLambdaBuilderTraverse
 
         testLambdaBuilderTraverse[Int](5) ==> Data(5 + 2)
+      }
+
+      test("methods LambdaBuilder.directStyle should allow using direct style with LambdaBuilder in a macro") {
+        import ExprsFixtures.testLambdaBuilderDirectStyle
+
+        testLambdaBuilderDirectStyle[Int](5) ==> Data(5 + 2)
       }
     }
 

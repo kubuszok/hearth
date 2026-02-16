@@ -873,6 +873,22 @@ Then we would have to build that expression programmatically with `MatchCase`.
 
 !!! tip "`matchOn` and `MatchCase` are not needed if you can make the whole `match` at once inside (cross) quotes. Only if you have to construct the `case`s (e.g. types are being resolved, they're not known during the compilation of a macro) you have to use it as a `match`-builder."
 
+!!! warning "`DirectStyle[MatchCase]` requires an explicit import"
+
+    `MatchCase` wraps exactly one metadata (name + expression) alongside the value. This means `runSafe` **must** be
+    called exactly once inside `scoped` — calling it zero times will throw an error, and calling it more than once
+    will silently discard metadata from earlier calls. Because of these constraints, the `DirectStyle[MatchCase]`
+    implicit requires an explicit import:
+
+    ```scala
+    import MatchCase.unsafe.*
+
+    val result: MatchCase[Expr[B]] = DirectStyle[MatchCase].scoped { runSafe =>
+      runSafe(MatchCase.typeMatch[A]("x"))
+      // ...
+    }
+    ```
+
 ### `ValDefs`
 
 If you know the types and number of `val`/`var`/`lazy val`/`def` upfront, things are simple:
@@ -1076,6 +1092,11 @@ Then we would have to create these definitions programmatically with automatic s
 
 !!! tip "`ValDefs` creates `var`/`val`/`lazy val`/`def` when you know their (initial) value upfront. If you need to construct it, use [`ValDefBuilder`](#valdefbuilder)."
 
+!!! info "`DirectStyle[ValDefs]` is available without extra imports"
+
+    `ValDefs` accumulates definitions, so zero `runSafe` calls produce empty definitions and multiple calls correctly
+    merge them — matching the behavior of `map2`. The `DirectStyle[ValDefs]` implicit is available globally.
+
 ### `ValDefBuilder`
 
 If your use case looks similar to [`ValDefs`](#valdefs) but you cannot provide the initial value immediately,
@@ -1192,6 +1213,22 @@ a support for error aggregation and recursive definitions:
 `def`s are supported up to 22 parameters (`ofDef0` through `ofDef22`).
 
 !!! tip "`ValDefBuilder` is useful when you need to build definitions programmatically, especially when you need recursive definitions or error aggregation with effects like `MIO`."
+
+!!! warning "`DirectStyle[ValDefBuilder[S, R, *]]` requires an explicit import"
+
+    `ValDefBuilder` wraps exactly one build strategy alongside the value. This means `runSafe` **must** be called
+    exactly once inside `scoped` — calling it zero times will throw an error, and calling it more than once will
+    silently discard metadata from earlier calls. Because of these constraints, the `DirectStyle[ValDefBuilder[S, R, *]]`
+    implicit requires an explicit import:
+
+    ```scala
+    import ValDefBuilder.unsafe.*
+
+    val result: ValDefBuilder[Expr[B], B, Expr[B]] = DirectStyle[ValDefBuilder[Expr[B], B, *]].scoped { runSafe =>
+      runSafe(ValDefBuilder.ofDef0[B]("x").map(_ => expr))
+      // ...
+    }
+    ```
 
 ### `ValDefsCache`
 
@@ -1514,6 +1551,22 @@ Then we would have to create these lambdas programmatically using `LambdaBuilder
 Supports up to 22 parameters (`of1` through `of22`).
 
 !!! tip "`LambdaBuilder`s are not needed if you can make the lambda inside (cross) quotes. Only if the types and/or number of the arguments is unknown during the compilation of the macro and have to be resolved, you need to use a lambda builder to stay flexible."
+
+!!! warning "`DirectStyle[LambdaBuilder[From, *]]` requires an explicit import"
+
+    `LambdaBuilder` wraps exactly one build strategy alongside the value. This means `runSafe` **must** be called
+    exactly once inside `scoped` — calling it zero times will throw an error, and calling it more than once will
+    silently discard metadata from earlier calls. Because of these constraints, the `DirectStyle[LambdaBuilder[From, *]]`
+    implicit requires an explicit import:
+
+    ```scala
+    import LambdaBuilder.unsafe.*
+
+    val result: LambdaBuilder[Int => *, Expr[Int]] = DirectStyle[LambdaBuilder[Int => *, *]].scoped { runSafe =>
+      runSafe(LambdaBuilder.of1[Int]("a"))
+      // ...
+    }
+    ```
 
 ## `Method`
 

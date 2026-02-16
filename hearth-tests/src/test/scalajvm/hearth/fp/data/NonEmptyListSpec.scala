@@ -262,5 +262,9 @@ final class NonEmptyListSpec extends ScalaCheckSuite with Laws {
     group("should follow Traverse laws") {
       traverseLaws[Either[NonEmptyList[String], *], Option, String]
     }
+
+    group("should follow DirectStyle laws") {
+      directStyleLaws[Either[NonEmptyList[String], *], Int]
+    }
   }
 }

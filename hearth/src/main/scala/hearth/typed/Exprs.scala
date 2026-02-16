@@ -410,6 +410,26 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     def partition[A, B, C](matchCase: MatchCase[A])(f: A => Either[B, C]): Either[MatchCase[B], MatchCase[C]]
 
     def traverse: fp.Traverse[MatchCase]
+
+    /** DirectStyle instance for MatchCase.
+      *
+      * '''Safety:''' `MatchCase` wraps exactly one metadata (name + expression) alongside the value. This means:
+      *   - `runSafe` '''must''' be called exactly once inside `scoped` — calling it zero times will throw an
+      *     `AssertionError`, and calling it more than once will silently discard metadata from earlier calls.
+      *   - This is in contrast to types like `Either`/`Option`/`Try` where zero or multiple `runSafe` calls are safe.
+      *
+      * Because of these constraints, the implicit is placed inside `object unsafe` and requires an explicit import:
+      * {{{
+      * import MatchCase.unsafe.*
+      * }}}
+      *
+      * @since 0.3.0
+      */
+    def directStyle: fp.DirectStyle[MatchCase]
+
+    object unsafe {
+      implicit final val MatchCaseDirectStyle: fp.DirectStyle[MatchCase] = directStyle
+    }
   }
   implicit final val MatchCaseTraverse: fp.Traverse[MatchCase] = MatchCase.traverse
 
@@ -509,8 +529,18 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     def closeScope[A](scoped: ValDefs[Expr[A]]): Expr[A]
 
     def traverse: fp.ApplicativeTraverse[ValDefs]
+
+    /** DirectStyle instance for ValDefs.
+      *
+      * '''Safety:''' `ValDefs` accumulates definitions, so zero `runSafe` calls produce empty definitions and multiple
+      * calls correctly merge them — matching the behavior of `map2`. This instance is safe to use without restrictions.
+      *
+      * @since 0.3.0
+      */
+    def directStyle: fp.DirectStyle[ValDefs]
   }
   implicit final val ValDefsTraverse: fp.ApplicativeTraverse[ValDefs] = ValDefs.traverse
+  implicit final val ValDefsDirectStyle: fp.DirectStyle[ValDefs] = ValDefs.directStyle
 
   implicit final class ValDefsMethods[A](private val scoped: ValDefs[A]) {
 
@@ -961,6 +991,28 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     ): Either[ValDefBuilder[Signature, Returned, B], ValDefBuilder[Signature, Returned, C]]
 
     def traverse[Signature, Returned]: fp.Traverse[ValDefBuilder[Signature, Returned, *]]
+
+    /** DirectStyle instance for ValDefBuilder.
+      *
+      * '''Safety:''' `ValDefBuilder` wraps exactly one `Mk` (build strategy) alongside the value. This means:
+      *   - `runSafe` '''must''' be called exactly once inside `scoped` — calling it zero times will throw an
+      *     `AssertionError`, and calling it more than once will silently discard metadata from earlier calls.
+      *   - This is in contrast to types like `Either`/`Option`/`Try` where zero or multiple `runSafe` calls are safe.
+      *
+      * Because of these constraints, the implicit is placed inside `object unsafe` and requires an explicit import:
+      * {{{
+      * import ValDefBuilder.unsafe.*
+      * }}}
+      *
+      * @since 0.3.0
+      */
+    def directStyle[Signature, Returned]: fp.DirectStyle[ValDefBuilder[Signature, Returned, *]]
+
+    object unsafe {
+      implicit final def ValDefBuilderDirectStyle[Signature, Returned]
+          : fp.DirectStyle[ValDefBuilder[Signature, Returned, *]] =
+        directStyle
+    }
   }
   implicit final def ValDefBuilderTraverse[Signature, Returned]: fp.Traverse[ValDefBuilder[Signature, Returned, *]] =
     ValDefBuilder.traverse
@@ -1504,6 +1556,26 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     ): Either[LambdaBuilder[From, B], LambdaBuilder[From, C]]
 
     def traverse[From[_]]: fp.Traverse[LambdaBuilder[From, *]]
+
+    /** DirectStyle instance for LambdaBuilder.
+      *
+      * '''Safety:''' `LambdaBuilder` wraps exactly one `Mk` (build strategy) alongside the value. This means:
+      *   - `runSafe` '''must''' be called exactly once inside `scoped` — calling it zero times will throw an
+      *     `AssertionError`, and calling it more than once will silently discard metadata from earlier calls.
+      *   - This is in contrast to types like `Either`/`Option`/`Try` where zero or multiple `runSafe` calls are safe.
+      *
+      * Because of these constraints, the implicit is placed inside `object unsafe` and requires an explicit import:
+      * {{{
+      * import LambdaBuilder.unsafe.*
+      * }}}
+      *
+      * @since 0.3.0
+      */
+    def directStyle[From[_]]: fp.DirectStyle[LambdaBuilder[From, *]]
+
+    object unsafe {
+      implicit final def LambdaBuilderDirectStyle[From[_]]: fp.DirectStyle[LambdaBuilder[From, *]] = directStyle
+    }
   }
   implicit final def LambdaBuilderTraverse[From[_]]: fp.Traverse[LambdaBuilder[From, *]] = LambdaBuilder.traverse
 

@@ -2179,6 +2179,60 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
     )
   }
 
+  // DirectStyle tests
+
+  def testMatchCaseDirectStyle[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
+    import MatchCase.unsafe.*
+    val matched = MatchCase.typeMatch[B]("matched")
+    val unmatched: MatchCase[Expr[B]] = fp.DirectStyle[MatchCase].scoped { runSafe =>
+      val a: Expr[A] = runSafe(MatchCase.typeMatch[A]("unmatched"))
+      if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) {
+        Expr.quote(Expr.splice(a).asInstanceOf[B])
+      } else runtimeFail[B]
+    }
+    expr.matchOn(matched, unmatched)
+  }
+
+  def testValDefsDirectStyleAndClose[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
+    val valDefs: ValDefs[Expr[B]] = fp.DirectStyle[ValDefs].scoped { runSafe =>
+      val a: Expr[A] = runSafe(ValDefs.createDef(expr, "a"))
+      if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) {
+        Expr.quote(Expr.splice(a).asInstanceOf[B])
+      } else runtimeFail[B]
+    }
+    valDefs.close
+  }
+
+  def testValDefBuilderDirectStyleAndClose[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
+    import ValDefBuilder.unsafe.*
+    val valDefBuilder =
+      fp.DirectStyle[ValDefBuilder[Expr[B], B, *]].scoped { runSafe =>
+        val a: Expr[A] = runSafe(ValDefBuilder.ofDef0[B]("a").map(_ => expr))
+        if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) {
+          Expr.quote(Expr.splice(a).asInstanceOf[B])
+        } else runtimeFail[B]
+      }
+    valDefBuilder.build.close
+  }
+
+  def testLambdaBuilderDirectStyle[A: Type](expr: Expr[A]): Expr[Data] = {
+    import LambdaBuilder.unsafe.*
+    implicit val intType: Type[Int] = IntType
+    val lambdaBuilder =
+      fp.DirectStyle[LambdaBuilder[Int => *, *]].scoped { runSafe =>
+        val a: Expr[Int] = runSafe {
+          LambdaBuilder.of1[Int]("a")
+        }
+        if (Type[A] <:< Type.of[Int]) {
+          Expr.quote(Expr.splice(expr.upcast[Int]) + Expr.splice(a))
+        } else runtimeFail[Int]
+      }
+    val lambda: Expr[Int => Int] = lambdaBuilder.buildWith(identity)
+    Expr.quote {
+      Data(Expr.splice(lambda)(2))
+    }
+  }
+
   // types using in fixtures
 
   private val IntType = Type.of[Int]

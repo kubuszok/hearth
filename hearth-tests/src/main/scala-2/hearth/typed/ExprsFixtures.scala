@@ -118,6 +118,18 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
   def testValDefBuilderOfDef21ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef21ScopeIssue
   def testValDefBuilderOfDef22ScopeIssueImpl: c.Expr[Data] = testValDefBuilderOfDef22ScopeIssue
 
+  def testMatchCaseDirectStyleImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
+    testMatchCaseDirectStyle[A, B](expr)
+
+  def testValDefsDirectStyleAndCloseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
+    testValDefsDirectStyleAndClose[A, B](expr)
+
+  def testValDefBuilderDirectStyleAndCloseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
+    testValDefBuilderDirectStyleAndClose[A, B](expr)
+
+  def testLambdaBuilderDirectStyleImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testLambdaBuilderDirectStyle[A](expr)
+
   def testBidirectionalCodecsImpl: c.Expr[Data] = testBidirectionalCodecs
 
   def testOneWayCodecsImpl: c.Expr[Data] = testOneWayCodecs
@@ -225,6 +237,16 @@ object ExprsFixtures {
   def testValDefBuilderOfDef20ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef20ScopeIssueImpl
   def testValDefBuilderOfDef21ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef21ScopeIssueImpl
   def testValDefBuilderOfDef22ScopeIssue: Data = macro ExprsFixtures.testValDefBuilderOfDef22ScopeIssueImpl
+
+  def testMatchCaseDirectStyle[A, B](expr: A): B = macro ExprsFixtures.testMatchCaseDirectStyleImpl[A, B]
+
+  def testValDefsDirectStyleAndClose[A, B](expr: A): B =
+    macro ExprsFixtures.testValDefsDirectStyleAndCloseImpl[A, B]
+
+  def testValDefBuilderDirectStyleAndClose[A, B](expr: A): B =
+    macro ExprsFixtures.testValDefBuilderDirectStyleAndCloseImpl[A, B]
+
+  def testLambdaBuilderDirectStyle[A](expr: A): Data = macro ExprsFixtures.testLambdaBuilderDirectStyleImpl[A]
 
   def testBidirectionalCodecs: Data = macro ExprsFixtures.testBidirectionalCodecsImpl
 
