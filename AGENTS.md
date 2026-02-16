@@ -115,6 +115,13 @@ log.cross-quotes = false
  - **use `sbt --client` when MCP is insufficient** — e.g. when the task requires both Scala 2 and Scala 3
    (MCP exposes only 1 version at a time), or when MCP is down. Always use `--client` flag as sbt startup
    is expensive and kills the feedback loop — **never run bare `sbt` without `--client`**
+ - **redirect sbt output to a temporary file** when running long compilation/test cycles — this avoids
+   re-running the same expensive command just to inspect a different part of the output:
+   ```bash
+   sbt --client "quick-clean ; quick-test" 2>&1 | tee /tmp/sbt-output.txt
+   ```
+   Then use `grep`, `tail`, `head`, etc. on `/tmp/sbt-output.txt` to inspect results. Only re-run
+   sbt if code was actually modified.
  - **do not modify `dev.properties`** - it's primarily used by the developer to focus on working on one platform in their IDE without the issues related to shared sources
    (IDE not being able to identify whether source file should be treated as a part of Scala 2 project or Scala 3 project, JVM or JS or Native)
 

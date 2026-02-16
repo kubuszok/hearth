@@ -44,4 +44,14 @@ object MethodsFixtures {
       params: Expr[Seq[Int]]
   )(using q: Quotes): Expr[Int] =
     new MethodsFixtures(q).testCallInstanceIntMethod[A](instance)(methodName)(params)
+
+  inline def testConstructNamedTuple[A]: Data = ${ testConstructNamedTupleImpl[A] }
+  private def testConstructNamedTupleImpl[A: Type](using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testConstructNamedTuple[A]
+
+  inline def testNamedTupleFieldExtraction[A](inline instance: A): Data = ${
+    testNamedTupleFieldExtractionImpl[A]('instance)
+  }
+  private def testNamedTupleFieldExtractionImpl[A: Type](instance: Expr[A])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testNamedTupleFieldExtraction[A](instance)
 }

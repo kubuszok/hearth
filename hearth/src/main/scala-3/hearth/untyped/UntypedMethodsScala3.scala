@@ -10,7 +10,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
   import UntypedType.platformSpecific.{positionOf, symbolAvailable}
 
-  final class UntypedParameter private (val method: UntypedMethod, val symbol: Symbol, val index: Int)
+  class UntypedParameter private[UntypedMethodsScala3] (val method: UntypedMethod, val symbol: Symbol, val index: Int)
       extends UntypedParameterMethods {
 
     override def name: String = symbol.name
@@ -37,6 +37,16 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
     override def toTyped[Instance: Type](untyped: UntypedParameters): Parameters = {
       lazy val instanceTpe = UntypedType.fromTyped[Instance]
+
+      // Synthetic NamedTuple parameters carry their types directly — no symbol-based resolution needed.
+      val isSyntheticNamedTuple = untyped.exists(_.exists(_._2.isInstanceOf[SyntheticNamedTupleParameter]))
+      if isSyntheticNamedTuple then return untyped.map { params =>
+        params.map { case (paramName, param) =>
+          val synParam = param.asInstanceOf[SyntheticNamedTupleParameter]
+          paramName -> Parameter(asUntyped = param, untypedInstanceType = instanceTpe, tpe = synParam.fieldType.as_??)
+        }
+      }
+
       lazy val method = untyped.head.head._2.method // If params are empty it would throw... unless we don't use it.
 
       // Constructor methods still have to have their type parameters manually applied, even if we know the exact type of their class.
@@ -92,7 +102,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     }
   }
 
-  final class UntypedMethod private (
+  class UntypedMethod private[UntypedMethodsScala3] (
       val symbol: Symbol,
       val invocation: Invocation,
       val isDeclared: Boolean,
@@ -159,6 +169,137 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       symbol.flags.is(Flags.Synthetic) || UntypedMethod.methodsConsideredSynthetic(symbol)
 
     override def isAvailable(scope: Accessible): Boolean = symbolAvailable(symbol, scope)
+  }
+
+  // NamedTuple synthetic constructor support (Scala 3.7+ only).
+  // NamedTuples are opaque type aliases and have no real constructor symbol.
+  // We synthesize one that builds the underlying tuple and type-ascribes it.
+
+  /** Synthetic parameter for NamedTuple constructor — carries its type directly instead of using a Symbol. */
+  final private class SyntheticNamedTupleParameter(
+      override val method: UntypedMethod,
+      override val index: Int,
+      val fieldName: String,
+      val fieldType: TypeRepr
+  ) extends UntypedParameter(method, Symbol.noSymbol, index) {
+    override def name: String = fieldName
+    override def position: Option[Position] = None
+    override def annotations: List[UntypedExpr] = Nil
+    override def isByName: Boolean = false
+    override def isImplicit: Boolean = false
+    override def hasDefault: Boolean = false
+  }
+
+  /** Synthetic constructor for NamedTuple types.
+    *
+    * Constructs the underlying regular tuple and type-ascribes it to the NamedTuple type. E.g. for
+    * `(name: String, age: Int)` which is `NamedTuple[("name", "age"), (String, Int)]`, the constructor builds a
+    * `Tuple2[String, Int]` and ascribes it to the NamedTuple type.
+    */
+  final private class SyntheticNamedTupleConstructor(
+      val fieldNames: List[String],
+      val fieldTypes: List[TypeRepr]
+  ) extends UntypedMethod(
+        symbol = Symbol.noSymbol,
+        invocation = Invocation.Constructor,
+        isDeclared = true,
+        isConstructorArgument = false,
+        isCaseField = false
+      ) {
+
+    override lazy val hasTypeParameters: Boolean = false
+
+    override lazy val parameters: UntypedParameters = {
+      val params = ListMap.from(fieldNames.zip(fieldTypes).zipWithIndex.map { case ((fname, ftype), idx) =>
+        fname -> new SyntheticNamedTupleParameter(
+          method = this,
+          index = idx,
+          fieldName = fname,
+          fieldType = ftype
+        )
+      })
+      List(params)
+    }
+
+    override def unsafeApply(
+        instanceTpe: UntypedType
+    )(instance: Option[UntypedExpr], arguments: UntypedArguments): UntypedExpr = {
+      // Build a regular Tuple with arguments in the right order
+      val orderedArgs = fieldNames.map { fname =>
+        arguments.getOrElse(fname, hearthRequirementFailed(s"Missing argument for field '$fname'"))
+      }
+      // Get the underlying tuple type (second type arg of NamedTuple[Names, Values])
+      val underlyingTupleTpe = instanceTpe match {
+        case AppliedType(_, List(_, valuesTpe)) => valuesTpe
+        case _ => hearthAssertionFailed(s"Expected NamedTuple AppliedType, got ${instanceTpe.show}")
+      }
+      // Construct the underlying tuple via its constructor: new TupleN(arg1, arg2, ...)
+      type Underlying
+      given scala.quoted.Type[Underlying] = underlyingTupleTpe.asType.asInstanceOf[scala.quoted.Type[Underlying]]
+      val tupleCtor = underlyingTupleTpe.typeSymbol.primaryConstructor
+      val select = New(TypeTree.of[Underlying]).select(tupleCtor)
+      val applied =
+        if underlyingTupleTpe.typeArgs.nonEmpty then select.appliedToTypes(underlyingTupleTpe.typeArgs)
+        else select
+      val tupleExpr = applied.appliedToArgss(List(orderedArgs))
+      // Type-ascribe the tuple to the NamedTuple type: (tupleExpr : NamedTupleType)
+      type NT
+      given scala.quoted.Type[NT] = instanceTpe.asType.asInstanceOf[scala.quoted.Type[NT]]
+      Typed(tupleExpr, TypeTree.of[NT])
+    }
+
+    override lazy val name: String = "<init>"
+    override def position: Option[Position] = None
+    override def annotations: List[UntypedExpr] = Nil
+
+    override def isConstructor: Boolean = true
+
+    override def isVal: Boolean = false
+    override def isVar: Boolean = false
+    override def isLazy: Boolean = false
+    override def isDef: Boolean = true
+    override def isSynthetic: Boolean = true
+    override def isImplicit: Boolean = false
+
+    override def isAvailable(scope: Accessible): Boolean = true
+  }
+
+  /** Extracts field names and types from a NamedTuple type.
+    *
+    * NamedTuple[("name", "age"), (String, Int)] has:
+    *   - type args(0) = ("name", "age") — tuple of string literal types
+    *   - type args(1) = (String, Int) — tuple of value types
+    *
+    * Returns Some((names, types)) if the type is a recognized NamedTuple, None otherwise.
+    */
+  private def namedTupleComponents(instanceTpe: UntypedType): Option[(List[String], List[TypeRepr])] = {
+    def extractTupleElements(tpe: TypeRepr): List[TypeRepr] = tpe.dealias.simplified match {
+      case AppliedType(_, args) if tpe.dealias <:< TypeRepr.of[Tuple] =>
+        // For Tuple2[A, B], args = List(A, B)
+        // For *:[H, T], args = List(H, T) where T is another tuple
+        val base = tpe.dealias.simplified
+        base match {
+          case AppliedType(tycon, List(head, tail)) if tycon.typeSymbol.name == "*:" =>
+            head :: extractTupleElements(tail)
+          case AppliedType(_, args) =>
+            args // For TupleN types, all args are the elements
+        }
+      case _ => Nil // EmptyTuple or unrecognized
+    }
+
+    def extractStringLiterals(tpe: TypeRepr): List[String] =
+      extractTupleElements(tpe).collect { case ConstantType(StringConstant(name)) =>
+        name
+      }
+
+    instanceTpe match {
+      case AppliedType(_, List(namesTpe, valuesTpe)) if UntypedType.isNamedTuple(instanceTpe) =>
+        val names = extractStringLiterals(namesTpe)
+        val types = extractTupleElements(valuesTpe)
+        if names.nonEmpty && names.length == types.length then Some((names, types))
+        else None
+      case _ => None
+    }
   }
 
   object UntypedMethod extends UntypedMethodModule {
@@ -238,20 +379,28 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     }
 
     override def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod] =
-      Option(instanceTpe.typeSymbol.primaryConstructor)
-        .filterNot(_.isNoSymbol)
-        .flatMap(
-          UntypedMethod
-            .parseOption(isDeclared = true, isConstructorArgument = false, isCaseField = false, module = None)
-        )
+      namedTupleComponents(instanceTpe) match {
+        case Some((names, types)) => Some(new SyntheticNamedTupleConstructor(names, types))
+        case None                 =>
+          Option(instanceTpe.typeSymbol.primaryConstructor)
+            .filterNot(_.isNoSymbol)
+            .flatMap(
+              UntypedMethod
+                .parseOption(isDeclared = true, isConstructorArgument = false, isCaseField = false, module = None)
+            )
+      }
     override def constructors(instanceTpe: UntypedType): List[UntypedMethod] =
-      instanceTpe.typeSymbol.declarations
-        .filterNot(_.isNoSymbol)
-        .filter(_.isClassConstructor)
-        .flatMap(
-          UntypedMethod
-            .parseOption(isDeclared = true, isConstructorArgument = false, isCaseField = false, module = None)
-        )
+      namedTupleComponents(instanceTpe) match {
+        case Some((names, types)) => List(new SyntheticNamedTupleConstructor(names, types))
+        case None                 =>
+          instanceTpe.typeSymbol.declarations
+            .filterNot(_.isNoSymbol)
+            .filter(_.isClassConstructor)
+            .flatMap(
+              UntypedMethod
+                .parseOption(isDeclared = true, isConstructorArgument = false, isCaseField = false, module = None)
+            )
+      }
     override def methods(instanceTpe: UntypedType): List[UntypedMethod] = {
       val symbol = instanceTpe.typeSymbol
       // Defined in the type or its parent, or synthetic

@@ -98,6 +98,23 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       instanceTpe <:< tupleBase && !(instanceTpe =:= tupleBase) && !(instanceTpe =:= nonEmptyBase)
     }
 
+    // Named tuple detection (Scala 3.7+ only; returns None on 3.3.x where the module doesn't exist)
+    private lazy val namedTupleTypeSymbol: Option[Symbol] =
+      try
+        Symbol.requiredModule("scala.NamedTuple")
+          .declaredType("NamedTuple")
+          .headOption
+      catch case _: Throwable => None
+
+    override def isNamedTuple(instanceTpe: UntypedType): Boolean =
+      namedTupleTypeSymbol.exists { ntSym =>
+        val sym = instanceTpe.typeSymbol
+        sym == ntSym || (instanceTpe match {
+          case AppliedType(tycon, _) => tycon.typeSymbol == ntSym
+          case _                    => false
+        })
+      }
+
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       // We use =:= to check whether A is known to be exactly of the built-in type or is it some upper bound.
