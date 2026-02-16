@@ -70,5 +70,20 @@ final class ExprsScala3Spec extends MacroSuite {
         testValDefBuilderOfDef1ScopeIssue ==> Data(2 + 1)
       }
     }
+
+    group("type ExprCodec") {
+
+      test(
+        "methods ExprCodec.{toExpr, fromExpr} should allow converting between expressions and values for IArray (Scala 3 only)"
+      ) {
+        import ExprsFixtures.testIArrayOneWayCodecs
+
+        testIArrayOneWayCodecs <==> Data.map(
+          "IArray[Int]" -> Data.map(
+            "encoded" -> Data("scala.IArray$package.IArray.unsafeFromArray[scala.Int](scala.Array.apply(1, ))")
+          )
+        )
+      }
+    }
   }
 }

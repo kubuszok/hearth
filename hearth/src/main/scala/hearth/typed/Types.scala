@@ -110,6 +110,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     )
     final def isPrimitive[A: Type]: Boolean = UntypedType.fromTyped[A].isPrimitive
     final def isArray[A: Type]: Boolean = UntypedType.fromTyped[A].isArray
+    final def isIArray[A: Type]: Boolean = UntypedType.fromTyped[A].isIArray
 
     // TODO: add: java.lang.Class, java.lang.Object, java.lang.Enum, java.lang.EnumValue?
     // TODO: add: java.lang.reflect.*, java.lang.invoke.*
@@ -802,6 +803,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
 
     def isPrimitive: Boolean = Type.isPrimitive(using tpe)
     def isArray: Boolean = Type.isArray(using tpe)
+    def isIArray: Boolean = Type.isIArray(using tpe)
     def isJvmBuiltIn: Boolean = Type.isJvmBuiltIn(using tpe)
     def isTypeSystemSpecial: Boolean = Type.isTypeSystemSpecial(using tpe)
     def isOpaqueType: Boolean = Type.isOpaqueType(using tpe)

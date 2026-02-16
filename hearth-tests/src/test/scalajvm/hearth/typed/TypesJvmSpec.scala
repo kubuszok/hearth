@@ -143,6 +143,7 @@ final class TypesJvmSpec extends MacroSuite {
             actual <==> Data.map(
               "Type.isPrimitive" -> Data(false),
               "Type.isArray" -> Data(false),
+              "Type.isIArray" -> Data(false),
               "Type.isJvmBuiltIn" -> Data(false),
               "Type.isAbstract" -> Data(isAbstract),
               "Type.isFinal" -> Data(isFinal),
@@ -176,6 +177,7 @@ final class TypesJvmSpec extends MacroSuite {
             actual <==> Data.map(
               "Type.isPrimitive" -> Data(false),
               "Type.isArray" -> Data(false),
+              "Type.isIArray" -> Data(false),
               "Type.isJvmBuiltIn" -> Data(false),
               "Type.isAbstract" -> Data(true),
               "Type.isFinal" -> Data(true),

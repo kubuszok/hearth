@@ -104,20 +104,36 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       !A.isNoSymbol && (A.flags.is(Flags.Abstract) || A.flags.is(Flags.Trait)) &&
       !Type.jvmBuiltInTypes.exists(tpe => instanceTpe =:= tpe.Underlying.asUntyped)
     }
+    private lazy val IArrayCtor = Type.Ctor1.of[IArray]
+
+    override def isIArray(instanceTpe: UntypedType): Boolean =
+      IArrayCtor.unapply(toTyped[Any](instanceTpe)).isDefined
+
+    override def toClassJvmBuiltInExtra(untyped: UntypedType): Option[java.lang.Class[?]] =
+      untyped.asTyped[Any] match {
+        case IArrayCtor(elementType) =>
+          toClass(elementType.asUntyped).map { elementClass =>
+            scala.reflect.ClassTag(elementClass).newArray(0).getClass()
+          }
+        case _ => None
+      }
+
     override def isFinal(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       // String is not being detected as a final in Scala 3, so we need to check it manually.
       // TODO: check if it's not a general issue with Java classes in Scala 3
       !A.isNoSymbol && ((A.flags.is(Flags.Final) || instanceTpe.asTyped[Any] <:< Type.of[String]) || isArray(
         instanceTpe
-      ))
+      ) || isIArray(instanceTpe))
     }
 
     override def isClass(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       // String is not being detected as a class in Scala 3, so we need to check it manually.
       // TODO: check if it's not a general issue with Java classes in Scala 3
-      !A.isNoSymbol && ((A.isClassDef || instanceTpe.asTyped[Any] <:< Type.of[String]) && !isArray(instanceTpe))
+      !A.isNoSymbol && ((A.isClassDef || instanceTpe.asTyped[Any] <:< Type.of[String]) && !isArray(
+        instanceTpe
+      ) && !isIArray(instanceTpe))
     }
 
     override def isSealed(instanceTpe: UntypedType): Boolean = {
