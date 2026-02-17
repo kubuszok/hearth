@@ -288,6 +288,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       ExprCodec.make[Array[A]]
     }
     override def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = {
+      val listCodec = ListExprCodec[A]
+      val vectorCodec = VectorExprCodec[A]
       implicit val liftable: Liftable[Seq[A]] = Liftable[Seq[A]] { seq =>
         q"scala.collection.immutable.Seq(..${seq.map(ExprCodec[A].toExpr)})"
       }
@@ -302,19 +304,12 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           case q"scala.collection.immutable.Seq(..$elems)"       => extractElems(elems)
           case q"Seq.apply(..$elems)"                            => extractElems(elems)
           case q"Seq(..$elems)"                                  => extractElems(elems)
-          // subtype specialization: match List patterns
-          case q"scala.collection.immutable.List.apply(..$elems)" => extractElems(elems)
-          case q"scala.collection.immutable.List(..$elems)"       => extractElems(elems)
-          case q"List.apply(..$elems)"                            => extractElems(elems)
-          case q"List(..$elems)"                                  => extractElems(elems)
-          case q"scala.collection.immutable.Nil"                  => Some(Nil)
-          case q"Nil"                                             => Some(Nil)
-          // subtype specialization: match Vector patterns
-          case q"scala.collection.immutable.Vector.apply(..$elems)" => extractElems(elems)
-          case q"scala.collection.immutable.Vector(..$elems)"       => extractElems(elems)
-          case q"Vector.apply(..$elems)"                            => extractElems(elems)
-          case q"Vector(..$elems)"                                  => extractElems(elems)
-          case _                                                    => None
+          // subtype specialization: delegate to List and Vector codecs
+          case _ =>
+            listCodec
+              .fromExpr(c.Expr[List[A]](tree))
+              .map(_.toSeq)
+              .orElse(vectorCodec.fromExpr(c.Expr[Vector[A]](tree)).map(_.toSeq))
         }
       }
       ExprCodec.make[Seq[A]]
@@ -424,19 +419,15 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       ExprCodec.make[Set[A]]
     }
     override def OptionExprCodec[A: ExprCodec: Type]: ExprCodec[Option[A]] = {
+      val someCodec = SomeExprCodec[A]
+      val noneCodec = NoneExprCodec
       implicit val liftable: Liftable[A] = platformSpecific.implicits.ExprCodecLiftable[A]
-      implicit val unliftableA: Unliftable[A] = platformSpecific.implicits.ExprCodecUnliftable[A]
       implicit val unliftable: Unliftable[Option[A]] = new Unliftable[Option[A]] {
-        def unapply(tree: Tree): Option[Option[A]] = tree match {
-          case q"scala.Some.apply($elem)" => unliftableA.unapply(elem).map(Some(_))
-          case q"scala.Some($elem)"       => unliftableA.unapply(elem).map(Some(_))
-          case q"Some.apply($elem)"       => unliftableA.unapply(elem).map(Some(_))
-          case q"Some($elem)"             => unliftableA.unapply(elem).map(Some(_))
-          case q"new scala.Some($elem)"   => unliftableA.unapply(elem).map(Some(_))
-          case q"scala.None"              => Some(None)
-          case q"None"                    => Some(None)
-          case _                          => None
-        }
+        def unapply(tree: Tree): Option[Option[A]] =
+          someCodec
+            .fromExpr(c.Expr[Some[A]](tree))
+            .map(x => x: Option[A])
+            .orElse(noneCodec.fromExpr(c.Expr[None.type](tree)).map(_ => None))
       }
       ExprCodec.make[Option[A]]
     }
@@ -466,22 +457,16 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       ExprCodec.make[None.type]
     }
     override def EitherExprCodec[L: ExprCodec: Type, R: ExprCodec: Type]: ExprCodec[Either[L, R]] = {
+      val leftCodec = LeftExprCodec[L, R]
+      val rightCodec = RightExprCodec[L, R]
       implicit val liftableL: Liftable[L] = platformSpecific.implicits.ExprCodecLiftable[L]
       implicit val liftableR: Liftable[R] = platformSpecific.implicits.ExprCodecLiftable[R]
-      implicit val unliftableL: Unliftable[L] = platformSpecific.implicits.ExprCodecUnliftable[L]
-      implicit val unliftableR: Unliftable[R] = platformSpecific.implicits.ExprCodecUnliftable[R]
       implicit val unliftable: Unliftable[Either[L, R]] = new Unliftable[Either[L, R]] {
-        def unapply(tree: Tree): Option[Either[L, R]] = tree match {
-          case q"scala.util.Left.apply($elem)"  => unliftableL.unapply(elem).map(Left(_))
-          case q"scala.util.Left($elem)"        => unliftableL.unapply(elem).map(Left(_))
-          case q"Left.apply($elem)"             => unliftableL.unapply(elem).map(Left(_))
-          case q"Left($elem)"                   => unliftableL.unapply(elem).map(Left(_))
-          case q"scala.util.Right.apply($elem)" => unliftableR.unapply(elem).map(Right(_))
-          case q"scala.util.Right($elem)"       => unliftableR.unapply(elem).map(Right(_))
-          case q"Right.apply($elem)"            => unliftableR.unapply(elem).map(Right(_))
-          case q"Right($elem)"                  => unliftableR.unapply(elem).map(Right(_))
-          case _                                => None
-        }
+        def unapply(tree: Tree): Option[Either[L, R]] =
+          leftCodec
+            .fromExpr(c.Expr[Left[L, R]](tree))
+            .map(x => x: Either[L, R])
+            .orElse(rightCodec.fromExpr(c.Expr[Right[L, R]](tree)).map(x => x: Either[L, R]))
       }
       ExprCodec.make[Either[L, R]]
     }
