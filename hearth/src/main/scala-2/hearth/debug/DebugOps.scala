@@ -6,14 +6,14 @@ import scala.reflect.macros.blackbox
 
 final private class DebugOpsImpl(val c: blackbox.Context) extends MacroCommonsScala2 with DebugMacros {
 
-  import c.universe._
+  import c.universe.*
 
   private def extractExpr[A: c.WeakTypeTag]: c.Expr[A] = {
     val tree = c.prefix.tree
     val arg = tree match {
       case Apply(_, List(arg))               => arg
       case Apply(TypeApply(_, _), List(arg)) => arg
-      case other =>
+      case other                             =>
         c.abort(c.enclosingPosition, s"Cannot extract expression from Debug extension prefix: ${showRaw(other)}")
     }
     c.Expr[A](arg)
