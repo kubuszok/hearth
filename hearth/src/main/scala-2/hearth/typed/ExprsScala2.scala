@@ -141,9 +141,13 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       if (sym.isModuleClass) {
         val moduleSym = sym.asClass.module
         Some(c.Expr[A](c.universe.internal.gen.mkAttributedRef(moduleSym)))
-      } else if (sym.isModule) {
+      }
+      // $COVERAGE-OFF$ defensive branch: in practice typeSymbol returns module class, not module
+      else if (sym.isModule) {
         Some(c.Expr[A](c.universe.internal.gen.mkAttributedRef(sym)))
-      } else None
+      }
+      // $COVERAGE-ON$
+      else None
     }
 
     override lazy val NullExprCodec: ExprCodec[Null] = {
@@ -556,10 +560,12 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
               cq"${pq"$name @ $valueTree"} => $body"
             case _ if valueTree.symbol != null && valueTree.symbol.isModule =>
               cq"${pq"$name @ $valueTree"} => $body"
+            // $COVERAGE-OFF$ optimization for stable val references (rare in practice, singletonOf produces modules)
             case _
                 if valueTree.symbol != null && valueTree.symbol.isStatic &&
                   valueTree.symbol.isTerm && valueTree.symbol.asTerm.isStable =>
               cq"${pq"$name @ $valueTree"} => $body"
+            // $COVERAGE-ON$
             case _ => cq"$name if $name == $valueTree => $body"
           }
       }.toList

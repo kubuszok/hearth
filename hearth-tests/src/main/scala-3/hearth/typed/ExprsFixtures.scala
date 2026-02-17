@@ -63,6 +63,22 @@ object ExprsFixtures {
   private def testMatchCaseEqValueImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testMatchCaseEqValue[A](expr)
 
+  inline def testMatchCaseEqValueSingleton[A]: Data = ${ testMatchCaseEqValueSingletonImpl[A] }
+  private def testMatchCaseEqValueSingletonImpl[A: Type](using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testMatchCaseEqValueSingleton[A]
+
+  inline def testMatchCaseEqValuePartition[A, B](inline expr: A): B = ${
+    testMatchCaseEqValuePartitionImpl[A, B]('expr)
+  }
+  private def testMatchCaseEqValuePartitionImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
+    new ExprsFixtures(q).testMatchCaseEqValuePartition[A, B](expr)
+
+  inline def testMatchCaseEqValueDirectStyle[A, B](inline expr: A): B = ${
+    testMatchCaseEqValueDirectStyleImpl[A, B]('expr)
+  }
+  private def testMatchCaseEqValueDirectStyleImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
+    new ExprsFixtures(q).testMatchCaseEqValueDirectStyle[A, B](expr)
+
   inline def testMatchCasePartition[A, B](inline expr: A): B = ${ testMatchCasePartitionImpl[A, B]('expr) }
   private def testMatchCasePartitionImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
     new ExprsFixtures(q).testMatchCasePartition[A, B](expr)

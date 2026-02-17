@@ -143,6 +143,54 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
     result
   }
 
+  // Tests eqValue with a singleton (case object) — exercises singletonOf and the module branch in matchOn
+  def testMatchCaseEqValueSingleton[A: Type]: Expr[Data] = {
+    implicit val dataType: Type[Data] = DataType
+
+    val singletonOpt = Expr.singletonOf[A]
+
+    singletonOpt match {
+      case Some(singleton) =>
+        val matched = MatchCase.eqValue[A](singleton, "matched")
+        val fallback = MatchCase.typeMatch[A]("fallback")
+        singleton.matchOn(
+          matched.map { matchedExpr =>
+            Expr(Data.map("singletonOf" -> Data("found"), "matched" -> Data(matchedExpr.plainPrint)))
+          },
+          fallback.map { _ =>
+            Expr(Data.map("singletonOf" -> Data("found"), "matched" -> Data("<fallback>")))
+          }
+        )
+      case None =>
+        Expr(Data.map("singletonOf" -> Data("none")))
+    }
+  }
+
+  // Tests eqValue with partition — exercises the partition EqValue branch and default FreshName
+  def testMatchCaseEqValuePartition[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
+    val matched = MatchCase.typeMatch[B]("matched")
+    val either = MatchCase.eqValue[A](expr).partition { a => // use default FreshName.FromExpr
+      if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) Right {
+        Expr.quote(Expr.splice(a).asInstanceOf[B])
+      }
+      else Left(runtimeFail[B])
+    }
+    either.fold[Expr[B]](throwing => expr.matchOn(matched, throwing), unmatched => expr.matchOn(matched, unmatched))
+  }
+
+  // Tests eqValue with directStyle — exercises the directStyle EqValue branch
+  def testMatchCaseEqValueDirectStyle[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
+    import MatchCase.unsafe.*
+    val matched = MatchCase.typeMatch[B]("matched")
+    val unmatched: MatchCase[Expr[B]] = fp.DirectStyle[MatchCase].scoped { runSafe =>
+      val a: Expr[A] = runSafe(MatchCase.eqValue[A](expr, "unmatched"))
+      if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) {
+        Expr.quote(Expr.splice(a).asInstanceOf[B])
+      } else runtimeFail[B]
+    }
+    expr.matchOn(matched, unmatched)
+  }
+
   // ValDefs methods
 
   def testValDefsCreateAndUse: Expr[Data] = {
