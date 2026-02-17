@@ -146,7 +146,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     "Underlying", // from Existential
     "Returned", // from Method.NoInstance && Method.OfInstance
     "Instance", // from Method.OfInstance
-    // "Result", // from CtorLike (when implicit Type.CtorN will be supported)
+    "Result", // from CtorLike
     "CtorResult", // from IsCollectionOf
     "Key", // from IsMapOf
     "Value", // from IsMapOf
@@ -223,7 +223,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
     val termInner = freshName("Inner")
     val typeInner = TypeName(freshName("Inner").toString)
-
     val unchecked = q"""
     new Type.Ctor1.Bounded[$L1, $U1, $HKT] {
       private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
@@ -301,7 +300,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor2.Stub[$L1, $U1, $L2, $U2, $HKT]].tpe.typeArgs.last
 
-      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type]: Type[$appliedHKT] =
         $typeValue
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2)] = {
@@ -382,7 +381,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
       private val HKT = $ctx.weakTypeTag[Type.Ctor3.Stub[$L1, $U1, $L2, $U2, $L3, $U3, $HKT]].tpe.typeArgs.last
 
-      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type]: Type[$appliedHKT] = 
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type]: Type[$appliedHKT] =
         $typeValue  
 
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3)] = {

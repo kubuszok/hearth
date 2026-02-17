@@ -54,6 +54,7 @@ trait StdExtensions { this: MacroCommons =>
       val Result: Type.Ctor1[Result] = new Type.Ctor1[Result] {
         def apply[A: Type]: Type[A] = Type[A]
         def unapply[A](A: Type[A]): Option[??] = Some(A.as_??)
+        override def asUntyped: UntypedType = Type.identityCtor1Untyped
       }
     }
 

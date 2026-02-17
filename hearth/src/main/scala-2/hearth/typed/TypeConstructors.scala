@@ -24,10 +24,21 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type]: Type[HKT[A]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1)]
+        /** Returns the underlying untyped type constructor representation. */
+        def asUntyped: UntypedType = Ctor1.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type[HKT[A]] = apply[A]
       }
       object Bounded {
+        /** Reflectively reads the private `HKT` field from macro-generated anonymous Bounded classes.
+          * This is necessary because Scala 2 macro-generated quasiquotes cannot reference the `UntypedType`
+          * type alias, so the `asUntyped` method cannot be overridden in the generated code.
+          */
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, HKT[_ >: L1 <: U1]]: Bounded[L1, U1, HKT] = macro CrossQuotesMacros.typeCtor1Impl[L1, U1, HKT]
       }
@@ -54,11 +65,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type]: Type[HKT[A, B]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2)]
+        def asUntyped: UntypedType = Ctor2.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor1.Bounded[L2, U2, Lambda[`B >: L2 <: U2` => HKT[A, B]]] = new Type.Ctor1.Bounded[L2, U2, Lambda[`B >: L2 <: U2` => HKT[A, B]]] {
           def apply[B >: L2 <: U2: Type]: Type[HKT[A, B]] = ctor.apply[A, B]
           def unapply[In](In: Type[In]): Option[L2 <:??<: U2] = ctor.unapply(In).collect {
             case (l1, l2) if l1.Underlying =:= Type[A] => l2
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -67,9 +90,25 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[L1 <:??<: U1] = ctor.unapply(In).collect {
             case (l1, l2) if l2.Underlying =:= Type[B] => l1
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, HKT[_ >: L1 <: U1, _ >: L2 <: U2]]: Bounded[L1, U1, L2, U2, HKT] = macro CrossQuotesMacros.typeCtor2Impl[L1, U1, L2, U2, HKT]
       }
@@ -96,11 +135,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type]: Type[HKT[A, B, C]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3)]
+        def asUntyped: UntypedType = Ctor3.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor2.Bounded[L2, U2, L3, U3, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`) => HKT[A, B, C]]] = new Type.Ctor2.Bounded[L2, U2, L3, U3, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`) => HKT[A, B, C]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type]: Type[HKT[A, B, C]] = ctor.apply[A, B, C]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3)] = ctor.unapply(In).collect {
             case (l1, l2, l3) if l1.Underlying =:= Type[A] => (l2, l3)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -109,6 +160,18 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3)] = ctor.unapply(In).collect {
             case (l1, l2, l3) if l2.Underlying =:= Type[B] => (l1, l3)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor2.Bounded[L1, U1, L2, U2, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`) => HKT[A, B, C]]] = new Type.Ctor2.Bounded[L1, U1, L2, U2, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`) => HKT[A, B, C]]] {
@@ -116,9 +179,25 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2)] = ctor.unapply(In).collect {
             case (l1, l2, l3) if l3.Underlying =:= Type[C] => (l1, l2)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(cType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3]]: Bounded[L1, U1, L2, U2, L3, U3, HKT] = macro CrossQuotesMacros.typeCtor3Impl[L1, U1, L2, U2, L3, U3, HKT]
       }
@@ -145,11 +224,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type]: Type[HKT[A, B, C, D]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4)]
+        def asUntyped: UntypedType = Ctor4.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor3.Bounded[L2, U2, L3, U3, L4, U4, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`) => HKT[A, B, C, D]]] = new Type.Ctor3.Bounded[L2, U2, L3, U3, L4, U4, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`) => HKT[A, B, C, D]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type]: Type[HKT[A, B, C, D]] = ctor.apply[A, B, C, D]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4) if l1.Underlying =:= Type[A] => (l2, l3, l4)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -158,12 +249,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4) if l2.Underlying =:= Type[B] => (l1, l3, l4)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor3.Bounded[L1, U1, L2, U2, L4, U4, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`) => HKT[A, B, C, D]]] = new Type.Ctor3.Bounded[L1, U1, L2, U2, L4, U4, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`) => HKT[A, B, C, D]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type]: Type[HKT[A, B, C, D]] = ctor.apply[A, B, C, D]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4) if l3.Underlying =:= Type[C] => (l1, l2, l4)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -172,9 +287,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4) if l4.Underlying =:= Type[D] => (l1, l2, l3)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, HKT] = macro CrossQuotesMacros.typeCtor4Impl[L1, U1, L2, U2, L3, U3, L4, U4, HKT]
       }
@@ -201,11 +333,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type]: Type[HKT[A, B, C, D, E]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5)]
+        def asUntyped: UntypedType = Ctor5.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor4.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`) => HKT[A, B, C, D, E]]] = new Type.Ctor4.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`) => HKT[A, B, C, D, E]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type]: Type[HKT[A, B, C, D, E]] = ctor.apply[A, B, C, D, E]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -214,12 +358,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor4.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`) => HKT[A, B, C, D, E]]] = new Type.Ctor4.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`) => HKT[A, B, C, D, E]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type]: Type[HKT[A, B, C, D, E]] = ctor.apply[A, B, C, D, E]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -228,6 +396,18 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor4.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`) => HKT[A, B, C, D, E]]] = new Type.Ctor4.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`) => HKT[A, B, C, D, E]]] {
@@ -235,9 +415,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(eType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, HKT] = macro CrossQuotesMacros.typeCtor5Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, HKT]
       }
@@ -264,11 +461,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type]: Type[HKT[A, B, C, D, E, F]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6)]
+        def asUntyped: UntypedType = Ctor6.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor5.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`) => HKT[A, B, C, D, E, F]]] = new Type.Ctor5.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`) => HKT[A, B, C, D, E, F]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type]: Type[HKT[A, B, C, D, E, F]] = ctor.apply[A, B, C, D, E, F]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -277,12 +486,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor5.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`) => HKT[A, B, C, D, E, F]]] = new Type.Ctor5.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`) => HKT[A, B, C, D, E, F]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type]: Type[HKT[A, B, C, D, E, F]] = ctor.apply[A, B, C, D, E, F]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -291,12 +524,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor5.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`) => HKT[A, B, C, D, E, F]]] = new Type.Ctor5.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`) => HKT[A, B, C, D, E, F]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type]: Type[HKT[A, B, C, D, E, F]] = ctor.apply[A, B, C, D, E, F]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -305,9 +562,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, HKT] = macro CrossQuotesMacros.typeCtor6Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, HKT]
       }
@@ -334,11 +608,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type]: Type[HKT[A, B, C, D, E, F, G]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7)]
+        def asUntyped: UntypedType = Ctor7.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor6.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`) => HKT[A, B, C, D, E, F, G]]] = new Type.Ctor6.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`) => HKT[A, B, C, D, E, F, G]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type]: Type[HKT[A, B, C, D, E, F, G]] = ctor.apply[A, B, C, D, E, F, G]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -347,12 +633,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor6.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`) => HKT[A, B, C, D, E, F, G]]] = new Type.Ctor6.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`) => HKT[A, B, C, D, E, F, G]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type]: Type[HKT[A, B, C, D, E, F, G]] = ctor.apply[A, B, C, D, E, F, G]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -361,12 +671,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor6.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`) => HKT[A, B, C, D, E, F, G]]] = new Type.Ctor6.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`) => HKT[A, B, C, D, E, F, G]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type]: Type[HKT[A, B, C, D, E, F, G]] = ctor.apply[A, B, C, D, E, F, G]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -375,6 +709,18 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor6.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`) => HKT[A, B, C, D, E, F, G]]] = new Type.Ctor6.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`) => HKT[A, B, C, D, E, F, G]]] {
@@ -382,9 +728,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(gType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, HKT] = macro CrossQuotesMacros.typeCtor7Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, HKT]
       }
@@ -411,11 +774,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type]: Type[HKT[A, B, C, D, E, F, G, H]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8)]
+        def asUntyped: UntypedType = Ctor8.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor7.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`) => HKT[A, B, C, D, E, F, G, H]]] = new Type.Ctor7.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`) => HKT[A, B, C, D, E, F, G, H]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type]: Type[HKT[A, B, C, D, E, F, G, H]] = ctor.apply[A, B, C, D, E, F, G, H]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -424,12 +799,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor7.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`) => HKT[A, B, C, D, E, F, G, H]]] = new Type.Ctor7.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`) => HKT[A, B, C, D, E, F, G, H]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type]: Type[HKT[A, B, C, D, E, F, G, H]] = ctor.apply[A, B, C, D, E, F, G, H]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -438,12 +837,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor7.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`) => HKT[A, B, C, D, E, F, G, H]]] = new Type.Ctor7.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`) => HKT[A, B, C, D, E, F, G, H]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type]: Type[HKT[A, B, C, D, E, F, G, H]] = ctor.apply[A, B, C, D, E, F, G, H]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -452,12 +875,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor7.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`) => HKT[A, B, C, D, E, F, G, H]]] = new Type.Ctor7.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`) => HKT[A, B, C, D, E, F, G, H]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type]: Type[HKT[A, B, C, D, E, F, G, H]] = ctor.apply[A, B, C, D, E, F, G, H]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -466,9 +913,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, HKT] = macro CrossQuotesMacros.typeCtor8Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, HKT]
       }
@@ -495,11 +959,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type]: Type[HKT[A, B, C, D, E, F, G, H, I]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9)]
+        def asUntyped: UntypedType = Ctor9.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor8.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`) => HKT[A, B, C, D, E, F, G, H, I]]] = new Type.Ctor8.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`) => HKT[A, B, C, D, E, F, G, H, I]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type]: Type[HKT[A, B, C, D, E, F, G, H, I]] = ctor.apply[A, B, C, D, E, F, G, H, I]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8, l9)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -508,12 +984,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8, l9)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor8.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`) => HKT[A, B, C, D, E, F, G, H, I]]] = new Type.Ctor8.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`) => HKT[A, B, C, D, E, F, G, H, I]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type]: Type[HKT[A, B, C, D, E, F, G, H, I]] = ctor.apply[A, B, C, D, E, F, G, H, I]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8, l9)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -522,12 +1022,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8, l9)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor8.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`) => HKT[A, B, C, D, E, F, G, H, I]]] = new Type.Ctor8.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`) => HKT[A, B, C, D, E, F, G, H, I]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type]: Type[HKT[A, B, C, D, E, F, G, H, I]] = ctor.apply[A, B, C, D, E, F, G, H, I]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8, l9)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -536,12 +1060,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8, l9)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor8.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`) => HKT[A, B, C, D, E, F, G, H, I]]] = new Type.Ctor8.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`) => HKT[A, B, C, D, E, F, G, H, I]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type]: Type[HKT[A, B, C, D, E, F, G, H, I]] = ctor.apply[A, B, C, D, E, F, G, H, I]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8, L9 <:??<: U9)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8, l9)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -550,6 +1098,18 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L9 <:??<: U9)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7, l9)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(7, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(7)), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setI[I >: L9 <: U9: Type]: Type.Ctor8.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`) => HKT[A, B, C, D, E, F, G, H, I]]] = new Type.Ctor8.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`) => HKT[A, B, C, D, E, F, G, H, I]]] {
@@ -557,9 +1117,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9) if l9.Underlying =:= Type[I] => (l1, l2, l3, l4, l5, l6, l7, l8)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val iType = Type[I].asInstanceOf[ctx0.WeakTypeTag[I]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(iType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, HKT] = macro CrossQuotesMacros.typeCtor9Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, HKT]
       }
@@ -586,11 +1163,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10)]
+        def asUntyped: UntypedType = Ctor10.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor9.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`) => HKT[A, B, C, D, E, F, G, H, I, J]]] = new Type.Ctor9.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`) => HKT[A, B, C, D, E, F, G, H, I, J]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J]] = ctor.apply[A, B, C, D, E, F, G, H, I, J]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8, l9, l10)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -599,12 +1188,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8, l9, l10)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor9.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`) => HKT[A, B, C, D, E, F, G, H, I, J]]] = new Type.Ctor9.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`) => HKT[A, B, C, D, E, F, G, H, I, J]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J]] = ctor.apply[A, B, C, D, E, F, G, H, I, J]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8, l9, l10)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -613,12 +1226,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8, l9, l10)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor9.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`) => HKT[A, B, C, D, E, F, G, H, I, J]]] = new Type.Ctor9.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`) => HKT[A, B, C, D, E, F, G, H, I, J]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J]] = ctor.apply[A, B, C, D, E, F, G, H, I, J]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8, l9, l10)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -627,12 +1264,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8, l9, l10)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor9.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`) => HKT[A, B, C, D, E, F, G, H, I, J]]] = new Type.Ctor9.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`) => HKT[A, B, C, D, E, F, G, H, I, J]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J]] = ctor.apply[A, B, C, D, E, F, G, H, I, J]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8, l9, l10)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -641,12 +1302,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L9 <:??<: U9, L10 <:??<: U10)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7, l9, l10)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(7, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(7)), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setI[I >: L9 <: U9: Type]: Type.Ctor9.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`) => HKT[A, B, C, D, E, F, G, H, I, J]]] = new Type.Ctor9.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`) => HKT[A, B, C, D, E, F, G, H, I, J]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, J >: L10 <: U10: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J]] = ctor.apply[A, B, C, D, E, F, G, H, I, J]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L10 <:??<: U10)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10) if l9.Underlying =:= Type[I] => (l1, l2, l3, l4, l5, l6, l7, l8, l10)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val iType = Type[I].asInstanceOf[ctx0.WeakTypeTag[I]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(8, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(8)), List(iType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -655,9 +1340,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10) if l10.Underlying =:= Type[J] => (l1, l2, l3, l4, l5, l6, l7, l8, l9)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val jType = Type[J].asInstanceOf[ctx0.WeakTypeTag[J]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(jType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, HKT] = macro CrossQuotesMacros.typeCtor10Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, HKT]
       }
@@ -684,11 +1386,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11)]
+        def asUntyped: UntypedType = Ctor11.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor10.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`) => HKT[A, B, C, D, E, F, G, H, I, J, K]]] = new Type.Ctor10.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`) => HKT[A, B, C, D, E, F, G, H, I, J, K]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8, l9, l10, l11)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -697,12 +1411,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8, l9, l10, l11)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor10.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`) => HKT[A, B, C, D, E, F, G, H, I, J, K]]] = new Type.Ctor10.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`) => HKT[A, B, C, D, E, F, G, H, I, J, K]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8, l9, l10, l11)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -711,12 +1449,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8, l9, l10, l11)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor10.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`) => HKT[A, B, C, D, E, F, G, H, I, J, K]]] = new Type.Ctor10.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`) => HKT[A, B, C, D, E, F, G, H, I, J, K]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8, l9, l10, l11)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -725,12 +1487,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8, l9, l10, l11)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor10.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`) => HKT[A, B, C, D, E, F, G, H, I, J, K]]] = new Type.Ctor10.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`) => HKT[A, B, C, D, E, F, G, H, I, J, K]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8, l9, l10, l11)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -739,12 +1525,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7, l9, l10, l11)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(7, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(7)), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setI[I >: L9 <: U9: Type]: Type.Ctor10.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`) => HKT[A, B, C, D, E, F, G, H, I, J, K]]] = new Type.Ctor10.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`) => HKT[A, B, C, D, E, F, G, H, I, J, K]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L10 <:??<: U10, L11 <:??<: U11)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11) if l9.Underlying =:= Type[I] => (l1, l2, l3, l4, l5, l6, l7, l8, l10, l11)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val iType = Type[I].asInstanceOf[ctx0.WeakTypeTag[I]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(8, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(8)), List(iType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -753,6 +1563,18 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L11 <:??<: U11)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11) if l10.Underlying =:= Type[J] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l11)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val jType = Type[J].asInstanceOf[ctx0.WeakTypeTag[J]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(9, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(9)), List(jType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setK[K >: L11 <: U11: Type]: Type.Ctor10.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`) => HKT[A, B, C, D, E, F, G, H, I, J, K]]] = new Type.Ctor10.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`) => HKT[A, B, C, D, E, F, G, H, I, J, K]]] {
@@ -760,9 +1582,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11) if l11.Underlying =:= Type[K] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val kType = Type[K].asInstanceOf[ctx0.WeakTypeTag[K]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(kType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, HKT] = macro CrossQuotesMacros.typeCtor11Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, HKT]
       }
@@ -789,11 +1628,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12)]
+        def asUntyped: UntypedType = Ctor12.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor11.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L]]] = new Type.Ctor11.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -802,12 +1653,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor11.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L]]] = new Type.Ctor11.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8, l9, l10, l11, l12)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -816,12 +1691,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8, l9, l10, l11, l12)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor11.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L]]] = new Type.Ctor11.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8, l9, l10, l11, l12)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -830,12 +1729,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8, l9, l10, l11, l12)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor11.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L]]] = new Type.Ctor11.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8, l9, l10, l11, l12)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -844,12 +1767,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7, l9, l10, l11, l12)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(7, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(7)), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setI[I >: L9 <: U9: Type]: Type.Ctor11.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L]]] = new Type.Ctor11.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12) if l9.Underlying =:= Type[I] => (l1, l2, l3, l4, l5, l6, l7, l8, l10, l11, l12)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val iType = Type[I].asInstanceOf[ctx0.WeakTypeTag[I]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(8, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(8)), List(iType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -858,12 +1805,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L11 <:??<: U11, L12 <:??<: U12)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12) if l10.Underlying =:= Type[J] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l11, l12)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val jType = Type[J].asInstanceOf[ctx0.WeakTypeTag[J]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(9, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(9)), List(jType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setK[K >: L11 <: U11: Type]: Type.Ctor11.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L]]] = new Type.Ctor11.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, L >: L12 <: U12: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L12 <:??<: U12)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12) if l11.Underlying =:= Type[K] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l12)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val kType = Type[K].asInstanceOf[ctx0.WeakTypeTag[K]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(10, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(10)), List(kType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -872,9 +1843,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12) if l12.Underlying =:= Type[L] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val lType = Type[L].asInstanceOf[ctx0.WeakTypeTag[L]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(lType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, HKT] = macro CrossQuotesMacros.typeCtor12Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, HKT]
       }
@@ -901,11 +1889,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13)]
+        def asUntyped: UntypedType = Ctor13.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor12.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]] = new Type.Ctor12.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -914,12 +1914,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor12.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]] = new Type.Ctor12.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -928,12 +1952,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8, l9, l10, l11, l12, l13)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor12.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]] = new Type.Ctor12.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8, l9, l10, l11, l12, l13)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -942,12 +1990,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8, l9, l10, l11, l12, l13)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor12.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]] = new Type.Ctor12.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8, l9, l10, l11, l12, l13)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -956,12 +2028,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7, l9, l10, l11, l12, l13)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(7, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(7)), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setI[I >: L9 <: U9: Type]: Type.Ctor12.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]] = new Type.Ctor12.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13) if l9.Underlying =:= Type[I] => (l1, l2, l3, l4, l5, l6, l7, l8, l10, l11, l12, l13)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val iType = Type[I].asInstanceOf[ctx0.WeakTypeTag[I]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(8, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(8)), List(iType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -970,12 +2066,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13) if l10.Underlying =:= Type[J] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l11, l12, l13)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val jType = Type[J].asInstanceOf[ctx0.WeakTypeTag[J]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(9, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(9)), List(jType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setK[K >: L11 <: U11: Type]: Type.Ctor12.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]] = new Type.Ctor12.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L12 <:??<: U12, L13 <:??<: U13)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13) if l11.Underlying =:= Type[K] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l12, l13)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val kType = Type[K].asInstanceOf[ctx0.WeakTypeTag[K]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(10, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(10)), List(kType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -984,6 +2104,18 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L13 <:??<: U13)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13) if l12.Underlying =:= Type[L] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l13)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val lType = Type[L].asInstanceOf[ctx0.WeakTypeTag[L]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(11, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(11)), List(lType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setM[M >: L13 <: U13: Type]: Type.Ctor12.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]] = new Type.Ctor12.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M]]] {
@@ -991,9 +2123,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13) if l13.Underlying =:= Type[M] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val mType = Type[M].asInstanceOf[ctx0.WeakTypeTag[M]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(mType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, HKT] = macro CrossQuotesMacros.typeCtor13Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, HKT]
       }
@@ -1020,11 +2169,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14)]
+        def asUntyped: UntypedType = Ctor14.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor13.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]] = new Type.Ctor13.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1033,12 +2194,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor13.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]] = new Type.Ctor13.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1047,12 +2232,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor13.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]] = new Type.Ctor13.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8, l9, l10, l11, l12, l13, l14)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1061,12 +2270,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8, l9, l10, l11, l12, l13, l14)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor13.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]] = new Type.Ctor13.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8, l9, l10, l11, l12, l13, l14)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1075,12 +2308,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7, l9, l10, l11, l12, l13, l14)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(7, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(7)), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setI[I >: L9 <: U9: Type]: Type.Ctor13.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]] = new Type.Ctor13.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14) if l9.Underlying =:= Type[I] => (l1, l2, l3, l4, l5, l6, l7, l8, l10, l11, l12, l13, l14)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val iType = Type[I].asInstanceOf[ctx0.WeakTypeTag[I]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(8, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(8)), List(iType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1089,12 +2346,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14) if l10.Underlying =:= Type[J] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l11, l12, l13, l14)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val jType = Type[J].asInstanceOf[ctx0.WeakTypeTag[J]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(9, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(9)), List(jType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setK[K >: L11 <: U11: Type]: Type.Ctor13.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]] = new Type.Ctor13.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14) if l11.Underlying =:= Type[K] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l12, l13, l14)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val kType = Type[K].asInstanceOf[ctx0.WeakTypeTag[K]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(10, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(10)), List(kType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1103,12 +2384,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L13 <:??<: U13, L14 <:??<: U14)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14) if l12.Underlying =:= Type[L] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l13, l14)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val lType = Type[L].asInstanceOf[ctx0.WeakTypeTag[L]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(11, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(11)), List(lType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setM[M >: L13 <: U13: Type]: Type.Ctor13.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]] = new Type.Ctor13.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, N >: L14 <: U14: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L14 <:??<: U14)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14) if l13.Underlying =:= Type[M] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l14)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val mType = Type[M].asInstanceOf[ctx0.WeakTypeTag[M]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(12, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(12)), List(mType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1117,9 +2422,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14) if l14.Underlying =:= Type[N] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val nType = Type[N].asInstanceOf[ctx0.WeakTypeTag[N]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(nType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, HKT] = macro CrossQuotesMacros.typeCtor14Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, HKT]
       }
@@ -1146,11 +2468,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15)]
+        def asUntyped: UntypedType = Ctor15.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor14.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] = new Type.Ctor14.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1159,12 +2493,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor14.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] = new Type.Ctor14.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1173,12 +2531,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor14.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] = new Type.Ctor14.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1187,12 +2569,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8, l9, l10, l11, l12, l13, l14, l15)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor14.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] = new Type.Ctor14.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8, l9, l10, l11, l12, l13, l14, l15)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1201,12 +2607,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7, l9, l10, l11, l12, l13, l14, l15)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(7, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(7)), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setI[I >: L9 <: U9: Type]: Type.Ctor14.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] = new Type.Ctor14.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l9.Underlying =:= Type[I] => (l1, l2, l3, l4, l5, l6, l7, l8, l10, l11, l12, l13, l14, l15)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val iType = Type[I].asInstanceOf[ctx0.WeakTypeTag[I]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(8, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(8)), List(iType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1215,12 +2645,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l10.Underlying =:= Type[J] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l11, l12, l13, l14, l15)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val jType = Type[J].asInstanceOf[ctx0.WeakTypeTag[J]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(9, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(9)), List(jType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setK[K >: L11 <: U11: Type]: Type.Ctor14.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] = new Type.Ctor14.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l11.Underlying =:= Type[K] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l12, l13, l14, l15)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val kType = Type[K].asInstanceOf[ctx0.WeakTypeTag[K]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(10, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(10)), List(kType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1229,12 +2683,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l12.Underlying =:= Type[L] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l13, l14, l15)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val lType = Type[L].asInstanceOf[ctx0.WeakTypeTag[L]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(11, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(11)), List(lType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setM[M >: L13 <: U13: Type]: Type.Ctor14.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] = new Type.Ctor14.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L14 <:??<: U14, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l13.Underlying =:= Type[M] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l14, l15)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val mType = Type[M].asInstanceOf[ctx0.WeakTypeTag[M]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(12, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(12)), List(mType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1243,6 +2721,18 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l14.Underlying =:= Type[N] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l15)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val nType = Type[N].asInstanceOf[ctx0.WeakTypeTag[N]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(13, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(13)), List(nType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setO[O >: L15 <: U15: Type]: Type.Ctor14.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] = new Type.Ctor14.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]] {
@@ -1250,9 +2740,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15) if l15.Underlying =:= Type[O] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val oType = Type[O].asInstanceOf[ctx0.WeakTypeTag[O]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(oType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, HKT] = macro CrossQuotesMacros.typeCtor15Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, HKT]
       }
@@ -1279,11 +2786,23 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)]
+        def asUntyped: UntypedType = Ctor16.Bounded.reflectiveAsUntyped(this)
 
         final def setA[A >: L1 <: U1: Type]: Type.Ctor15.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] = new Type.Ctor15.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1292,12 +2811,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor15.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] = new Type.Ctor15.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1306,12 +2849,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor15.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] = new Type.Ctor15.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1320,12 +2887,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor15.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] = new Type.Ctor15.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8, l9, l10, l11, l12, l13, l14, l15, l16)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1334,12 +2925,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7, l9, l10, l11, l12, l13, l14, l15, l16)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(7, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(7)), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setI[I >: L9 <: U9: Type]: Type.Ctor15.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] = new Type.Ctor15.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l9.Underlying =:= Type[I] => (l1, l2, l3, l4, l5, l6, l7, l8, l10, l11, l12, l13, l14, l15, l16)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val iType = Type[I].asInstanceOf[ctx0.WeakTypeTag[I]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(8, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(8)), List(iType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1348,12 +2963,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l10.Underlying =:= Type[J] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l11, l12, l13, l14, l15, l16)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val jType = Type[J].asInstanceOf[ctx0.WeakTypeTag[J]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(9, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(9)), List(jType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setK[K >: L11 <: U11: Type]: Type.Ctor15.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] = new Type.Ctor15.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l11.Underlying =:= Type[K] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l12, l13, l14, l15, l16)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val kType = Type[K].asInstanceOf[ctx0.WeakTypeTag[K]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(10, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(10)), List(kType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1362,12 +3001,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l12.Underlying =:= Type[L] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l13, l14, l15, l16)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val lType = Type[L].asInstanceOf[ctx0.WeakTypeTag[L]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(11, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(11)), List(lType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setM[M >: L13 <: U13: Type]: Type.Ctor15.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] = new Type.Ctor15.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l13.Underlying =:= Type[M] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l14, l15, l16)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val mType = Type[M].asInstanceOf[ctx0.WeakTypeTag[M]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(12, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(12)), List(mType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1376,12 +3039,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l14.Underlying =:= Type[N] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l15, l16)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val nType = Type[N].asInstanceOf[ctx0.WeakTypeTag[N]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(13, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(13)), List(nType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setO[O >: L15 <: U15: Type]: Type.Ctor15.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] = new Type.Ctor15.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, P >: L16 <: U16: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l15.Underlying =:= Type[O] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l16)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val oType = Type[O].asInstanceOf[ctx0.WeakTypeTag[O]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(14, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(14)), List(oType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1390,9 +3077,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16) if l16.Underlying =:= Type[P] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val pType = Type[P].asInstanceOf[ctx0.WeakTypeTag[P]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(pType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, HKT] = macro CrossQuotesMacros.typeCtor16Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, HKT]
       }
@@ -1419,10 +3123,22 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)]
+        def asUntyped: UntypedType = Ctor17.Bounded.reflectiveAsUntyped(this)
         final def setA[A >: L1 <: U1: Type]: Type.Ctor16.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] = new Type.Ctor16.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1431,12 +3147,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor16.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] = new Type.Ctor16.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1445,12 +3185,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor16.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] = new Type.Ctor16.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1459,12 +3223,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor16.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] = new Type.Ctor16.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1473,12 +3261,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7, l9, l10, l11, l12, l13, l14, l15, l16, l17)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(7, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(7)), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setI[I >: L9 <: U9: Type]: Type.Ctor16.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] = new Type.Ctor16.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l9.Underlying =:= Type[I] => (l1, l2, l3, l4, l5, l6, l7, l8, l10, l11, l12, l13, l14, l15, l16, l17)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val iType = Type[I].asInstanceOf[ctx0.WeakTypeTag[I]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(8, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(8)), List(iType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1487,12 +3299,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l10.Underlying =:= Type[J] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l11, l12, l13, l14, l15, l16, l17)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val jType = Type[J].asInstanceOf[ctx0.WeakTypeTag[J]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(9, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(9)), List(jType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setK[K >: L11 <: U11: Type]: Type.Ctor16.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] = new Type.Ctor16.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l11.Underlying =:= Type[K] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l12, l13, l14, l15, l16, l17)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val kType = Type[K].asInstanceOf[ctx0.WeakTypeTag[K]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(10, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(10)), List(kType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1501,12 +3337,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l12.Underlying =:= Type[L] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l13, l14, l15, l16, l17)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val lType = Type[L].asInstanceOf[ctx0.WeakTypeTag[L]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(11, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(11)), List(lType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setM[M >: L13 <: U13: Type]: Type.Ctor16.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, L16, U16, L17, U17, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] = new Type.Ctor16.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, L16, U16, L17, U17, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l13.Underlying =:= Type[M] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l14, l15, l16, l17)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val mType = Type[M].asInstanceOf[ctx0.WeakTypeTag[M]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(12, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(12)), List(mType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1515,12 +3375,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l14.Underlying =:= Type[N] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l15, l16, l17)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val nType = Type[N].asInstanceOf[ctx0.WeakTypeTag[N]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(13, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(13)), List(nType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setO[O >: L15 <: U15: Type]: Type.Ctor16.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L16, U16, L17, U17, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] = new Type.Ctor16.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L16, U16, L17, U17, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `P >: L16 <: U16`, `Q >: L17 <: U17`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l15.Underlying =:= Type[O] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l16, l17)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val oType = Type[O].asInstanceOf[ctx0.WeakTypeTag[O]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(14, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(14)), List(oType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1529,6 +3413,18 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l16.Underlying =:= Type[P] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l17)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val pType = Type[P].asInstanceOf[ctx0.WeakTypeTag[P]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(15, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(15)), List(pType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setQ[Q >: L17 <: U17: Type]: Type.Ctor16.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] = new Type.Ctor16.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]] {
@@ -1536,9 +3432,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17) if l17.Underlying =:= Type[Q] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val qType = Type[Q].asInstanceOf[ctx0.WeakTypeTag[Q]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(qType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, HKT] = macro CrossQuotesMacros.typeCtor17Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, HKT]
       }
@@ -1565,10 +3478,22 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)]
+        def asUntyped: UntypedType = Ctor18.Bounded.reflectiveAsUntyped(this)
         final def setA[A >: L1 <: U1: Type]: Type.Ctor17.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] = new Type.Ctor17.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1577,12 +3502,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor17.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] = new Type.Ctor17.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1591,12 +3540,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor17.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] = new Type.Ctor17.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1605,12 +3578,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor17.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] = new Type.Ctor17.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1619,12 +3616,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(7, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(7)), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setI[I >: L9 <: U9: Type]: Type.Ctor17.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] = new Type.Ctor17.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l9.Underlying =:= Type[I] => (l1, l2, l3, l4, l5, l6, l7, l8, l10, l11, l12, l13, l14, l15, l16, l17, l18)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val iType = Type[I].asInstanceOf[ctx0.WeakTypeTag[I]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(8, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(8)), List(iType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1633,12 +3654,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l10.Underlying =:= Type[J] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l11, l12, l13, l14, l15, l16, l17, l18)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val jType = Type[J].asInstanceOf[ctx0.WeakTypeTag[J]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(9, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(9)), List(jType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setK[K >: L11 <: U11: Type]: Type.Ctor17.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] = new Type.Ctor17.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l11.Underlying =:= Type[K] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l12, l13, l14, l15, l16, l17, l18)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val kType = Type[K].asInstanceOf[ctx0.WeakTypeTag[K]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(10, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(10)), List(kType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1647,12 +3692,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l12.Underlying =:= Type[L] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l13, l14, l15, l16, l17, l18)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val lType = Type[L].asInstanceOf[ctx0.WeakTypeTag[L]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(11, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(11)), List(lType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setM[M >: L13 <: U13: Type]: Type.Ctor17.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] = new Type.Ctor17.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l13.Underlying =:= Type[M] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l14, l15, l16, l17, l18)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val mType = Type[M].asInstanceOf[ctx0.WeakTypeTag[M]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(12, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(12)), List(mType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1661,12 +3730,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l14.Underlying =:= Type[N] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l15, l16, l17, l18)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val nType = Type[N].asInstanceOf[ctx0.WeakTypeTag[N]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(13, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(13)), List(nType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setO[O >: L15 <: U15: Type]: Type.Ctor17.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] = new Type.Ctor17.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l15.Underlying =:= Type[O] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l16, l17, l18)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val oType = Type[O].asInstanceOf[ctx0.WeakTypeTag[O]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(14, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(14)), List(oType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1675,12 +3768,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l16.Underlying =:= Type[P] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l17, l18)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val pType = Type[P].asInstanceOf[ctx0.WeakTypeTag[P]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(15, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(15)), List(pType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setQ[Q >: L17 <: U17: Type]: Type.Ctor17.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] = new Type.Ctor17.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, R >: L18 <: U18: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l17.Underlying =:= Type[Q] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l18)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val qType = Type[Q].asInstanceOf[ctx0.WeakTypeTag[Q]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(16, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(16)), List(qType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1689,9 +3806,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18) if l18.Underlying =:= Type[R] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val rType = Type[R].asInstanceOf[ctx0.WeakTypeTag[R]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(rType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, HKT] = macro CrossQuotesMacros.typeCtor18Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, HKT]
       }
@@ -1718,10 +3852,22 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)]
+        def asUntyped: UntypedType = Ctor19.Bounded.reflectiveAsUntyped(this)
         final def setA[A >: L1 <: U1: Type]: Type.Ctor18.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] = new Type.Ctor18.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1730,12 +3876,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor18.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] = new Type.Ctor18.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1744,12 +3914,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] = new Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1758,12 +3952,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] = new Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1772,12 +3990,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(7, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(7)), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setI[I >: L9 <: U9: Type]: Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] = new Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l9.Underlying =:= Type[I] => (l1, l2, l3, l4, l5, l6, l7, l8, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val iType = Type[I].asInstanceOf[ctx0.WeakTypeTag[I]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(8, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(8)), List(iType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1786,12 +4028,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l10.Underlying =:= Type[J] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l11, l12, l13, l14, l15, l16, l17, l18, l19)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val jType = Type[J].asInstanceOf[ctx0.WeakTypeTag[J]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(9, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(9)), List(jType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setK[K >: L11 <: U11: Type]: Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] = new Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l11.Underlying =:= Type[K] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l12, l13, l14, l15, l16, l17, l18, l19)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val kType = Type[K].asInstanceOf[ctx0.WeakTypeTag[K]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(10, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(10)), List(kType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1800,12 +4066,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l12.Underlying =:= Type[L] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l13, l14, l15, l16, l17, l18, l19)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val lType = Type[L].asInstanceOf[ctx0.WeakTypeTag[L]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(11, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(11)), List(lType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setM[M >: L13 <: U13: Type]: Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] = new Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l13.Underlying =:= Type[M] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l14, l15, l16, l17, l18, l19)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val mType = Type[M].asInstanceOf[ctx0.WeakTypeTag[M]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(12, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(12)), List(mType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1814,12 +4104,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l14.Underlying =:= Type[N] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l15, l16, l17, l18, l19)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val nType = Type[N].asInstanceOf[ctx0.WeakTypeTag[N]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(13, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(13)), List(nType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setO[O >: L15 <: U15: Type]: Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] = new Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L16, U16, L17, U17, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l15.Underlying =:= Type[O] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l16, l17, l18, l19)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val oType = Type[O].asInstanceOf[ctx0.WeakTypeTag[O]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(14, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(14)), List(oType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1828,12 +4142,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l16.Underlying =:= Type[P] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l17, l18, l19)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val pType = Type[P].asInstanceOf[ctx0.WeakTypeTag[P]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(15, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(15)), List(pType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setQ[Q >: L17 <: U17: Type]: Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] = new Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L18, U18, L19, U19, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `R >: L18 <: U18`, `S >: L19 <: U19`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l17.Underlying =:= Type[Q] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l18, l19)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val qType = Type[Q].asInstanceOf[ctx0.WeakTypeTag[Q]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(16, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(16)), List(qType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1842,6 +4180,18 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l18.Underlying =:= Type[R] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l19)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val rType = Type[R].asInstanceOf[ctx0.WeakTypeTag[R]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(17, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(17)), List(rType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setS[S >: L19 <: U19: Type]: Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] = new Type.Ctor18.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]] {
@@ -1849,9 +4199,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19) if l19.Underlying =:= Type[S] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val sType = Type[S].asInstanceOf[ctx0.WeakTypeTag[S]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(sType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, HKT] = macro CrossQuotesMacros.typeCtor19Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, HKT]
       }
@@ -1878,10 +4245,22 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)]
+        def asUntyped: UntypedType = Ctor20.Bounded.reflectiveAsUntyped(this)
         final def setA[A >: L1 <: U1: Type]: Type.Ctor19.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] = new Type.Ctor19.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1890,12 +4269,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor19.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] = new Type.Ctor19.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1904,12 +4307,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] = new Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1918,12 +4345,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] = new Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1932,12 +4383,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(7, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(7)), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setI[I >: L9 <: U9: Type]: Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] = new Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l9.Underlying =:= Type[I] => (l1, l2, l3, l4, l5, l6, l7, l8, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val iType = Type[I].asInstanceOf[ctx0.WeakTypeTag[I]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(8, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(8)), List(iType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1946,12 +4421,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l10.Underlying =:= Type[J] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val jType = Type[J].asInstanceOf[ctx0.WeakTypeTag[J]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(9, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(9)), List(jType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setK[K >: L11 <: U11: Type]: Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] = new Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l11.Underlying =:= Type[K] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l12, l13, l14, l15, l16, l17, l18, l19, l20)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val kType = Type[K].asInstanceOf[ctx0.WeakTypeTag[K]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(10, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(10)), List(kType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1960,12 +4459,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l12.Underlying =:= Type[L] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l13, l14, l15, l16, l17, l18, l19, l20)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val lType = Type[L].asInstanceOf[ctx0.WeakTypeTag[L]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(11, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(11)), List(lType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setM[M >: L13 <: U13: Type]: Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] = new Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l13.Underlying =:= Type[M] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l14, l15, l16, l17, l18, l19, l20)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val mType = Type[M].asInstanceOf[ctx0.WeakTypeTag[M]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(12, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(12)), List(mType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1974,12 +4497,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l14.Underlying =:= Type[N] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l15, l16, l17, l18, l19, l20)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val nType = Type[N].asInstanceOf[ctx0.WeakTypeTag[N]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(13, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(13)), List(nType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setO[O >: L15 <: U15: Type]: Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] = new Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l15.Underlying =:= Type[O] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l16, l17, l18, l19, l20)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val oType = Type[O].asInstanceOf[ctx0.WeakTypeTag[O]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(14, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(14)), List(oType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -1988,12 +4535,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l16.Underlying =:= Type[P] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l17, l18, l19, l20)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val pType = Type[P].asInstanceOf[ctx0.WeakTypeTag[P]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(15, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(15)), List(pType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setQ[Q >: L17 <: U17: Type]: Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] = new Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l17.Underlying =:= Type[Q] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l18, l19, l20)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val qType = Type[Q].asInstanceOf[ctx0.WeakTypeTag[Q]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(16, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(16)), List(qType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2002,12 +4573,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l18.Underlying =:= Type[R] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l19, l20)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val rType = Type[R].asInstanceOf[ctx0.WeakTypeTag[R]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(17, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(17)), List(rType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setS[S >: L19 <: U19: Type]: Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] = new Type.Ctor19.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, T >: L20 <: U20: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l19.Underlying =:= Type[S] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l20)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val sType = Type[S].asInstanceOf[ctx0.WeakTypeTag[S]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(18, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(18)), List(sType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2016,9 +4611,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20) if l20.Underlying =:= Type[T] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val tType = Type[T].asInstanceOf[ctx0.WeakTypeTag[T]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(tType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, HKT] = macro CrossQuotesMacros.typeCtor20Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, HKT]
       }
@@ -2045,10 +4657,22 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)]
+        def asUntyped: UntypedType = Ctor21.Bounded.reflectiveAsUntyped(this)
         final def setA[A >: L1 <: U1: Type]: Type.Ctor20.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] = new Type.Ctor20.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2057,12 +4681,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor20.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] = new Type.Ctor20.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2071,12 +4719,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] = new Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2085,12 +4757,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] = new Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2099,12 +4795,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(7, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(7)), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setI[I >: L9 <: U9: Type]: Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] = new Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l9.Underlying =:= Type[I] => (l1, l2, l3, l4, l5, l6, l7, l8, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val iType = Type[I].asInstanceOf[ctx0.WeakTypeTag[I]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(8, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(8)), List(iType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2113,12 +4833,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l10.Underlying =:= Type[J] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val jType = Type[J].asInstanceOf[ctx0.WeakTypeTag[J]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(9, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(9)), List(jType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setK[K >: L11 <: U11: Type]: Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] = new Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l11.Underlying =:= Type[K] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val kType = Type[K].asInstanceOf[ctx0.WeakTypeTag[K]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(10, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(10)), List(kType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2127,12 +4871,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l12.Underlying =:= Type[L] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l13, l14, l15, l16, l17, l18, l19, l20, l21)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val lType = Type[L].asInstanceOf[ctx0.WeakTypeTag[L]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(11, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(11)), List(lType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setM[M >: L13 <: U13: Type]: Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] = new Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l13.Underlying =:= Type[M] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l14, l15, l16, l17, l18, l19, l20, l21)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val mType = Type[M].asInstanceOf[ctx0.WeakTypeTag[M]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(12, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(12)), List(mType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2141,12 +4909,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l14.Underlying =:= Type[N] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l15, l16, l17, l18, l19, l20, l21)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val nType = Type[N].asInstanceOf[ctx0.WeakTypeTag[N]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(13, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(13)), List(nType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setO[O >: L15 <: U15: Type]: Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] = new Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l15.Underlying =:= Type[O] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l16, l17, l18, l19, l20, l21)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val oType = Type[O].asInstanceOf[ctx0.WeakTypeTag[O]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(14, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(14)), List(oType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2155,12 +4947,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l16.Underlying =:= Type[P] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l17, l18, l19, l20, l21)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val pType = Type[P].asInstanceOf[ctx0.WeakTypeTag[P]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(15, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(15)), List(pType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setQ[Q >: L17 <: U17: Type]: Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] = new Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L18, U18, L19, U19, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l17.Underlying =:= Type[Q] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l18, l19, l20, l21)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val qType = Type[Q].asInstanceOf[ctx0.WeakTypeTag[Q]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(16, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(16)), List(qType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2169,12 +4985,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l18.Underlying =:= Type[R] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l19, l20, l21)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val rType = Type[R].asInstanceOf[ctx0.WeakTypeTag[R]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(17, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(17)), List(rType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setS[S >: L19 <: U19: Type]: Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] = new Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L20, U20, L21, U21, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `T >: L20 <: U20`, `U >: L21 <: U21`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l19.Underlying =:= Type[S] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l20, l21)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val sType = Type[S].asInstanceOf[ctx0.WeakTypeTag[S]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(18, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(18)), List(sType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2183,6 +5023,18 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l20.Underlying =:= Type[T] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l21)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val tType = Type[T].asInstanceOf[ctx0.WeakTypeTag[T]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(19, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(19)), List(tType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setU[U >: L21 <: U21: Type]: Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] = new Type.Ctor20.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]] {
@@ -2190,9 +5042,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21) if l21.Underlying =:= Type[U] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val uType = Type[U].asInstanceOf[ctx0.WeakTypeTag[U]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(uType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, L21, U21 >: L21, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20, _ >: L21 <: U21]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, HKT] = macro CrossQuotesMacros.typeCtor21Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, HKT]
       }
@@ -2219,10 +5088,22 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
         def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type, V >: L22 <: U22: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]
         def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)]
+        def asUntyped: UntypedType = Ctor22.Bounded.reflectiveAsUntyped(this)
         final def setA[A >: L1 <: U1: Type]: Type.Ctor21.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] = new Type.Ctor21.Bounded[L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] {
           def apply[B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type, V >: L22 <: U22: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
           def unapply[In](In: Type[In]): Option[(L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l1.Underlying =:= Type[A] => (l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val aType = Type[A].asInstanceOf[ctx0.WeakTypeTag[A]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.tail,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.head), List(aType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2231,12 +5112,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l2.Underlying =:= Type[B] => (l1, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val bType = Type[B].asInstanceOf[ctx0.WeakTypeTag[B]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(1, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(1)), List(bType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setC[C >: L3 <: U3: Type]: Type.Ctor21.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] = new Type.Ctor21.Bounded[L1, U1, L2, U2, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type, V >: L22 <: U22: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l3.Underlying =:= Type[C] => (l1, l2, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val cType = Type[C].asInstanceOf[ctx0.WeakTypeTag[C]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(2, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(2)), List(cType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2245,12 +5150,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l4.Underlying =:= Type[D] => (l1, l2, l3, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val dType = Type[D].asInstanceOf[ctx0.WeakTypeTag[D]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(3, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(3)), List(dType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setE[E >: L5 <: U5: Type]: Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] = new Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type, V >: L22 <: U22: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l5.Underlying =:= Type[E] => (l1, l2, l3, l4, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val eType = Type[E].asInstanceOf[ctx0.WeakTypeTag[E]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(4, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(4)), List(eType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2259,12 +5188,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l6.Underlying =:= Type[F] => (l1, l2, l3, l4, l5, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val fType = Type[F].asInstanceOf[ctx0.WeakTypeTag[F]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(5, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(5)), List(fType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setG[G >: L7 <: U7: Type]: Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] = new Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type, V >: L22 <: U22: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l7.Underlying =:= Type[G] => (l1, l2, l3, l4, l5, l6, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val gType = Type[G].asInstanceOf[ctx0.WeakTypeTag[G]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(6, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(6)), List(gType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2273,12 +5226,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l8.Underlying =:= Type[H] => (l1, l2, l3, l4, l5, l6, l7, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val hType = Type[H].asInstanceOf[ctx0.WeakTypeTag[H]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(7, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(7)), List(hType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setI[I >: L9 <: U9: Type]: Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] = new Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type, V >: L22 <: U22: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l9.Underlying =:= Type[I] => (l1, l2, l3, l4, l5, l6, l7, l8, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val iType = Type[I].asInstanceOf[ctx0.WeakTypeTag[I]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(8, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(8)), List(iType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2287,12 +5264,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l10.Underlying =:= Type[J] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val jType = Type[J].asInstanceOf[ctx0.WeakTypeTag[J]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(9, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(9)), List(jType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setK[K >: L11 <: U11: Type]: Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] = new Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type, V >: L22 <: U22: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l11.Underlying =:= Type[K] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val kType = Type[K].asInstanceOf[ctx0.WeakTypeTag[K]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(10, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(10)), List(kType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2301,12 +5302,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l12.Underlying =:= Type[L] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val lType = Type[L].asInstanceOf[ctx0.WeakTypeTag[L]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(11, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(11)), List(lType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setM[M >: L13 <: U13: Type]: Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] = new Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type, V >: L22 <: U22: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l13.Underlying =:= Type[M] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l14, l15, l16, l17, l18, l19, l20, l21, l22)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val mType = Type[M].asInstanceOf[ctx0.WeakTypeTag[M]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(12, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(12)), List(mType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2315,12 +5340,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l14.Underlying =:= Type[N] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l15, l16, l17, l18, l19, l20, l21, l22)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val nType = Type[N].asInstanceOf[ctx0.WeakTypeTag[N]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(13, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(13)), List(nType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setO[O >: L15 <: U15: Type]: Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] = new Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type, V >: L22 <: U22: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l15.Underlying =:= Type[O] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l16, l17, l18, l19, l20, l21, l22)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val oType = Type[O].asInstanceOf[ctx0.WeakTypeTag[O]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(14, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(14)), List(oType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2329,12 +5378,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l16.Underlying =:= Type[P] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l17, l18, l19, l20, l21, l22)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val pType = Type[P].asInstanceOf[ctx0.WeakTypeTag[P]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(15, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(15)), List(pType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setQ[Q >: L17 <: U17: Type]: Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] = new Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type, V >: L22 <: U22: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l17.Underlying =:= Type[Q] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l18, l19, l20, l21, l22)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val qType = Type[Q].asInstanceOf[ctx0.WeakTypeTag[Q]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(16, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(16)), List(qType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2343,12 +5416,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l18.Underlying =:= Type[R] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l19, l20, l21, l22)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val rType = Type[R].asInstanceOf[ctx0.WeakTypeTag[R]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(17, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(17)), List(rType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setS[S >: L19 <: U19: Type]: Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] = new Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L20, U20, L21, U21, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `T >: L20 <: U20`, `U >: L21 <: U21`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, T >: L20 <: U20: Type, U >: L21 <: U21: Type, V >: L22 <: U22: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L20 <:??<: U20, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l19.Underlying =:= Type[S] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l20, l21, l22)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val sType = Type[S].asInstanceOf[ctx0.WeakTypeTag[S]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(18, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(18)), List(sType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2357,12 +5454,36 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L21 <:??<: U21, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l20.Underlying =:= Type[T] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l21, l22)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val tType = Type[T].asInstanceOf[ctx0.WeakTypeTag[T]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(19, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(19)), List(tType))
+            ).asInstanceOf[UntypedType]
+          }
         }
 
         final def setU[U >: L21 <: U21: Type]: Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] = new Type.Ctor21.Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L22, U22, Lambda[(`A >: L1 <: U1`, `B >: L2 <: U2`, `C >: L3 <: U3`, `D >: L4 <: U4`, `E >: L5 <: U5`, `F >: L6 <: U6`, `G >: L7 <: U7`, `H >: L8 <: U8`, `I >: L9 <: U9`, `J >: L10 <: U10`, `K >: L11 <: U11`, `L >: L12 <: U12`, `M >: L13 <: U13`, `N >: L14 <: U14`, `O >: L15 <: U15`, `P >: L16 <: U16`, `Q >: L17 <: U17`, `R >: L18 <: U18`, `S >: L19 <: U19`, `T >: L20 <: U20`, `V >: L22 <: U22`) => HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]] {
           def apply[A >: L1 <: U1: Type, B >: L2 <: U2: Type, C >: L3 <: U3: Type, D >: L4 <: U4: Type, E >: L5 <: U5: Type, F >: L6 <: U6: Type, G >: L7 <: U7: Type, H >: L8 <: U8: Type, I >: L9 <: U9: Type, J >: L10 <: U10: Type, K >: L11 <: U11: Type, L >: L12 <: U12: Type, M >: L13 <: U13: Type, N >: L14 <: U14: Type, O >: L15 <: U15: Type, P >: L16 <: U16: Type, Q >: L17 <: U17: Type, R >: L18 <: U18: Type, S >: L19 <: U19: Type, T >: L20 <: U20: Type, V >: L22 <: U22: Type]: Type[HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]] = ctor.apply[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L22 <:??<: U22)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l21.Underlying =:= Type[U] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l22)
+          }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val uType = Type[U].asInstanceOf[ctx0.WeakTypeTag[U]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            val remaining = typeParams.patch(20, Nil, 1)
+            internal.polyType(
+              remaining,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams(20)), List(uType))
+            ).asInstanceOf[UntypedType]
           }
         }
 
@@ -2371,9 +5492,26 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
           def unapply[In](In: Type[In]): Option[(L1 <:??<: U1, L2 <:??<: U2, L3 <:??<: U3, L4 <:??<: U4, L5 <:??<: U5, L6 <:??<: U6, L7 <:??<: U7, L8 <:??<: U8, L9 <:??<: U9, L10 <:??<: U10, L11 <:??<: U11, L12 <:??<: U12, L13 <:??<: U13, L14 <:??<: U14, L15 <:??<: U15, L16 <:??<: U16, L17 <:??<: U17, L18 <:??<: U18, L19 <:??<: U19, L20 <:??<: U20, L21 <:??<: U21)] = ctor.unapply(In).collect {
             case (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21, l22) if l22.Underlying =:= Type[V] => (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15, l16, l17, l18, l19, l20, l21)
           }
+          override def asUntyped: UntypedType = {
+            val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+            import ctx0.universe._
+            val vType = Type[V].asInstanceOf[ctx0.WeakTypeTag[V]].tpe
+            val hktType = ctor.asUntyped.asInstanceOf[ctx0.Type]
+            val typeParams = hktType.typeParams
+            internal.polyType(
+              typeParams.init,
+              hktType.typeConstructor.resultType.substituteTypes(List(typeParams.last), List(vType))
+            ).asInstanceOf[UntypedType]
+          }
         }
       }
       object Bounded {
+
+        private[Ctors] def reflectiveAsUntyped(bounded: AnyRef): UntypedType = {
+          val field = bounded.getClass.getDeclaredField("HKT")
+          field.setAccessible(true)
+          field.get(bounded).asInstanceOf[UntypedType]
+        }
 
         def of[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, L21, U21 >: L21, L22, U22 >: L22, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20, _ >: L21 <: U21, _ >: L22 <: U22]]: Bounded[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, HKT] = macro CrossQuotesMacros.typeCtor22Impl[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, HKT]
       }
@@ -2388,6 +5526,14 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
       // But using a type alias and applying values to it finished without c.typecheck errors.
       type Apply[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, L21, U21 >: L21, L22, U22 >: L22, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20, _ >: L21 <: U21, _ >: L22 <: U22], A >: L1 <: U1, B >: L2 <: U2, C >: L3 <: U3, D >: L4 <: U4, E >: L5 <: U5, F >: L6 <: U6, G >: L7 <: U7, H >: L8 <: U8, I >: L9 <: U9, J >: L10 <: U10, K >: L11 <: U11, L >: L12 <: U12, M >: L13 <: U13, N >: L14 <: U14, O >: L15 <: U15, P >: L16 <: U16, Q >: L17 <: U17, R >: L18 <: U18, S >: L19 <: U19, T >: L20 <: U20, U >: L21 <: U21, V >: L22 <: U22] = HKT[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
       type Stub[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, L21, U21 >: L21, L22, U22 >: L22, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20, _ >: L21 <: U21, _ >: L22 <: U22]] = HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]
+    }
+
+    /** Returns the `UntypedType` for the identity type constructor `[A] =>> A`. Used by `PlainValue.Result`. */
+    private[hearth] lazy val identityCtor1Untyped: UntypedType = {
+      val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
+      import ctx0.universe._
+      val A = ctx0.universe.internal.newFreeType("A")
+      internal.polyType(List(A), A.asType.toType).asInstanceOf[UntypedType]
     }
   }
 }

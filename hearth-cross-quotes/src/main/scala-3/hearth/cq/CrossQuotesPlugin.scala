@@ -207,7 +207,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
         "Underlying", // from Existential
         "Returned", // from Method.NoInstance && Method.OfInstance
         "Instance", // from Method.OfInstance
-        // "Result", // from CtorLike (when implicit Type.CtorN will be supported)
+        "Result", // from CtorLike
         "CtorResult", // from IsCollectionOf
         "Key", // from IsMapOf
         "Value", // from IsMapOf
@@ -262,6 +262,53 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
         }
       }
 
+      // Helper to extract HKT from Type.CtorN[HKT] (for N = 1..22)
+      private object TypeCtorAppliedTypeTree {
+        private val ctorNames = (1 to 22).map(i => s"Ctor$i").toSet
+        def unapply(tree: untpd.Tree): Option[untpd.Tree] = tree match {
+          case AppliedTypeTree(Select(Ident(tpeName), ctorName), List(hkt))
+              if tpeName.show == "Type" && ctorNames(ctorName.show) =>
+            Some(hkt)
+          case _ => None
+        }
+      }
+
+      // given casted$name: scala.quoted.Type[$tpe] =
+      //   CrossQuotes.untypedToQuotedType($valueRef.asUntyped).asInstanceOf[scala.quoted.Type[$tpe]]
+      private def makeGivenFromUntyped(name: String, tpe: untpd.Tree, valueRef: untpd.Tree): untpd.ValDef =
+        untpd
+          .ValDef(
+            name = termName(s"casted$name"),
+            tpt = untpd.AppliedTypeTree(
+              untpd.Select(
+                untpd.Select(untpd.Ident(termName("scala")), termName("quoted")),
+                typeName("Type")
+              ),
+              List(tpe)
+            ),
+            rhs = untpd.TypeApply(
+              untpd.Select(
+                untpd.Apply(
+                  untpd.Select(untpd.Ident(termName("CrossQuotes")), termName("untypedToQuotedType")),
+                  List(
+                    untpd.Select(valueRef, termName("asUntyped"))
+                  )
+                ),
+                termName("asInstanceOf")
+              ),
+              List(
+                untpd.AppliedTypeTree(
+                  untpd.Select(
+                    untpd.Select(untpd.Ident(termName("scala")), termName("quoted")),
+                    typeName("Type")
+                  ),
+                  List(tpe)
+                )
+              )
+            )
+          )
+          .withFlags(Flags.Given)
+
       // given casted$name: scala.quoted.Type[$tpe] = Type[$tpe].asInstanceOf[scala.quoted.Type[$tpe]]
       private def makeGiven(name: String, tpe: untpd.Tree): untpd.ValDef =
         untpd
@@ -296,7 +343,8 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
           .withFlags(Flags.Given)
 
       private def blockGivenCandidates(trees: List[untpd.Tree]): List[untpd.ValDef] = trees.collect {
-        // Handle imports with Underlying
+        // Handle imports with @ImportedCrossTypeImplicit (e.g. Underlying, Result, etc.)
+        // Uses makeGivenFromUntyped which works for both Type[X] and Type.CtorN[X] values
         case Import(expr, selectors) if selectors.exists(_.isImportedCrossTypeImplicit) =>
           selectors.collect {
             case selector @ untpd.ImportSelector(Ident(underlying), rename, _)
@@ -309,23 +357,45 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
                 case Ident(name) => untpd.Ident(typeName(name.show))
                 case _           => untpd.Select(expr, typeName(underlying.show))
               }
+              val valueRef = rename match {
+                case Ident(name) => untpd.Ident(termName(name.show))
+                case _           => untpd.Select(expr, termName(underlying.show))
+              }
 
-              makeGiven(name, tpe)
+              makeGivenFromUntyped(name, tpe, valueRef)
           }
 
         // Handle implicit val someName: Type[SomeType] = ... or given someName: Type[SomeType] = ...
         case vd: untpd.ValDef if vd.isImplicit =>
-          TypeAppliedTypeTree.unapply(vd.tpt).map { innerType =>
-            val name = vd.name.show
-            makeGiven(name, innerType)
-          }
+          TypeAppliedTypeTree
+            .unapply(vd.tpt)
+            .map { innerType =>
+              val name = vd.name.show
+              makeGiven(name, innerType)
+            }
+            .orElse(
+              // Handle implicit val someName: Type.CtorN[HKT] = ...
+              TypeCtorAppliedTypeTree.unapply(vd.tpt).map { hkt =>
+                val name = vd.name.show
+                makeGivenFromUntyped(name, hkt, untpd.Ident(termName(name)))
+              }
+            )
 
         // Handle implicit def someName2: Type[SomeType2] = ... (no type parameters) or given someName2: Type[SomeType2] = ...
         case dd @ untpd.DefDef(methodName, paramss, returnTpe, _) if dd.isImplicit && paramss.flatten.isEmpty =>
-          TypeAppliedTypeTree.unapply(returnTpe).map { innerType =>
-            val name = methodName.show
-            makeGiven(name, innerType)
-          }
+          TypeAppliedTypeTree
+            .unapply(returnTpe)
+            .map { innerType =>
+              val name = methodName.show
+              makeGiven(name, innerType)
+            }
+            .orElse(
+              // Handle implicit def someName: Type.CtorN[HKT] = ...
+              TypeCtorAppliedTypeTree.unapply(returnTpe).map { hkt =>
+                val name = methodName.show
+                makeGivenFromUntyped(name, hkt, untpd.Ident(termName(name)))
+              }
+            )
       }.flatten
 
       private def boundGivenCandidates(paramss: List[List[untpd.ValDef | untpd.TypeDef]]): List[untpd.ValDef] =
