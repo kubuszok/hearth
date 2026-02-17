@@ -123,6 +123,26 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
     }
   }
 
+  def testMatchCaseEqValue[A: Type](expr: Expr[A]): Expr[Data] = {
+    implicit val dataType: Type[Data] = DataType
+
+    val matched = MatchCase.eqValue[A](expr, "matched")
+    val fallback = MatchCase.typeMatch[A]("fallback")
+    val result = expr.matchOn(
+      matched.map { matchedExpr =>
+        Expr(
+          Data.map(
+            "matched" -> Data(matchedExpr.plainPrint)
+          )
+        )
+      },
+      fallback.map { _ =>
+        Expr(Data.map("matched" -> Data("<fallback>")))
+      }
+    )
+    result
+  }
+
   // ValDefs methods
 
   def testValDefsCreateAndUse: Expr[Data] = {

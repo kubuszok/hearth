@@ -47,6 +47,8 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit]
 
+    def singletonOf[A: Type]: Option[Expr[A]]
+
     def NullExprCodec: ExprCodec[Null]
     def UnitExprCodec: ExprCodec[Unit]
     def BooleanExprCodec: ExprCodec[Boolean]
@@ -411,6 +413,8 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
   trait MatchCaseModule { this: MatchCase.type =>
 
     def typeMatch[A: Type](freshName: FreshName = FreshName.FromType): MatchCase[Expr[A]]
+
+    def eqValue[A: Type](expr: Expr[A], freshName: FreshName = FreshName.FromExpr): MatchCase[Expr[A]]
 
     def matchOn[A: Type, B: Type](toMatch: Expr[A])(cases: NonEmptyVector[MatchCase[Expr[B]]]): Expr[B]
 

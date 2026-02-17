@@ -146,6 +146,18 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
     override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = '{ val _ = $expr; () }
 
+    override def singletonOf[A: Type]: Option[Expr[A]] = {
+      import quotes.reflect.*
+      val repr = TypeRepr.of[A]
+      val sym = repr.typeSymbol
+      val termSym = repr.termSymbol
+      if sym.flags.is(Flags.Module) then Some(Ref(sym.companionModule).asExprOf[A])
+      else if !termSym.isNoSymbol then Some(Ref(termSym).asExprOf[A])
+      else if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(Flags.StableRealizable))
+      then Some(Ident(sym.termRef).asExprOf[A])
+      else None
+    }
+
     override lazy val NullExprCodec: ExprCodec[Null] = {
       given FromExpr[Null] = new {
         override def unapply(expr: Expr[Null])(using scala.quoted.Quotes): Option[Null] = expr match {
@@ -522,6 +534,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     import quotes.*, quotes.reflect.{MatchCase as _, *}
 
     final private case class TypeMatch[A](name: Symbol, expr: Expr_??, result: A) extends MatchCase[A]
+    final private case class EqValue[A](name: Symbol, matchedExpr: Expr_??, valueExpr: Expr_??, result: A)
+        extends MatchCase[A]
 
     override def typeMatch[A: Type](freshName: FreshName): MatchCase[Expr[A]] = {
       val name = freshTerm.bind[A](freshName, Flags.EmptyFlags)
@@ -529,31 +543,66 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       TypeMatch(name, expr.as_??, expr)
     }
 
+    override def eqValue[A: Type](expr: Expr[A], freshName: FreshName): MatchCase[Expr[A]] = {
+      val name = freshTerm.bind[A](freshName, Flags.EmptyFlags)
+      val matched: Expr[A] = Ref(name).asExprOf[A]
+      EqValue(name, matched.as_??, expr.as_??, matched)
+    }
+
     override def matchOn[A: Type, B: Type](toMatch: Expr[A])(cases: NonEmptyVector[MatchCase[Expr[B]]]): Expr[B] = {
       val uncheckedToMatch = '{ ${ toMatch.asTerm.changeOwner(Symbol.spliceOwner).asExprOf[A] }: @scala.unchecked }
 
       val caseTrees = cases
-        .map { case TypeMatch(name, expr, result) =>
-          import expr.{Underlying as Matched, value as toSuppress}
+        .map {
+          case TypeMatch(name, expr, result) =>
+            import expr.{Underlying as Matched, value as toSuppress}
 
-          // val body = '{ val _ = $toSuppress; $result }
-          // We're constructing:
-          // '{ val fromName = bindName; val _ = fromName; ${ usage } }
-          val body = Block(
-            List(
-              // ValDef(fromName, Some(Ref(bindName))), // not a Term, so we cannot use Expr.block
-              Expr.suppressUnused(toSuppress).asTerm
-            ),
-            result.asTerm
-          )
+            // val body = '{ val _ = $toSuppress; $result }
+            // We're constructing:
+            // '{ val fromName = bindName; val _ = fromName; ${ usage } }
+            val body = Block(
+              List(Expr.suppressUnused(toSuppress).asTerm),
+              result.asTerm
+            )
 
-          val sym = TypeRepr.of[Matched].typeSymbol
-          if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(Flags.StableRealizable)) then
-          // Scala 3's enums' parameterless cases are vals with type erased, so we have to match them by value
-          // case arg @ Enum.Value => ...
-          CaseDef(Bind(name, Ident(sym.termRef)), None, body)
-          // case arg : Enum.Value => ...
-          else CaseDef(Bind(name, Typed(Wildcard(), TypeTree.of[Matched])), None, body)
+            val sym = TypeRepr.of[Matched].typeSymbol
+            if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(Flags.StableRealizable)) then
+            // Scala 3's enums' parameterless cases are vals with type erased, so we have to match them by value
+            // case arg @ Enum.Value => ...
+            CaseDef(Bind(name, Ident(sym.termRef)), None, body)
+            // case arg : Enum.Value => ...
+            else CaseDef(Bind(name, Typed(Wildcard(), TypeTree.of[Matched])), None, body)
+
+          case EqValue(name, matchedExpr, valueExpr, result) =>
+            import matchedExpr.value as toSuppress
+            import valueExpr.{Underlying as ValueType, value as valueRef}
+            // val body = '{ val _ = $valueRef; $result }
+            // We're constructing:
+            // '{ val _ = ref; ${ usage } }
+            val body = Block(
+              List(Expr.suppressUnused(toSuppress).asTerm),
+              result.asTerm
+            )
+            val valueTerm = valueRef.asTerm
+            valueTerm match {
+              case lit: Literal => CaseDef(Bind(name, lit), None, body)
+              case _            =>
+                val sym = TypeRepr.of[ValueType].typeSymbol
+                val termSym = TypeRepr.of[ValueType].termSymbol
+                if sym.flags.is(Flags.Module) then CaseDef(Bind(name, Ident(sym.companionModule.termRef)), None, body)
+                else if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(
+                  Flags.StableRealizable
+                )) then CaseDef(Bind(name, Ident(sym.termRef)), None, body)
+                else if !termSym.isNoSymbol then CaseDef(Bind(name, valueTerm), None, body)
+                else {
+                  val eqMethod = TypeRepr.of[Any].typeSymbol.methodMember("==").head
+                  CaseDef(
+                    Bind(name, Wildcard()),
+                    Some(Apply(Select(Ref(name), eqMethod), List(valueTerm))),
+                    body
+                  )
+                }
+            }
         }
         .toVector
         .toList
@@ -568,40 +617,54 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             case Left(value)  => Left(TypeMatch(name, expr, value))
             case Right(value) => Right(TypeMatch(name, expr, value))
           }
+        case EqValue(name, matchedExpr, valueExpr, result) =>
+          f(result) match {
+            case Left(value)  => Left(EqValue(name, matchedExpr, valueExpr, value))
+            case Right(value) => Right(EqValue(name, matchedExpr, valueExpr, value))
+          }
       }
 
     override val traverse: fp.Traverse[MatchCase] = new fp.Traverse[MatchCase] {
 
       override def traverse[G[_]: fp.Applicative, A, B](fa: MatchCase[A])(f: A => G[B]): G[MatchCase[B]] =
         fa match {
-          case TypeMatch(name, expr, a) => f(a).map(b => TypeMatch(name, expr, b))
+          case TypeMatch(name, expr, a)                 => f(a).map(b => TypeMatch(name, expr, b))
+          case EqValue(name, matchedExpr, valueExpr, a) => f(a).map(b => EqValue(name, matchedExpr, valueExpr, b))
         }
 
       override def parTraverse[G[_]: fp.Parallel, A, B](fa: MatchCase[A])(f: A => G[B]): G[MatchCase[B]] =
         fa match {
-          case TypeMatch(name, expr, a) => f(a).map(b => TypeMatch(name, expr, b))
+          case TypeMatch(name, expr, a)                 => f(a).map(b => TypeMatch(name, expr, b))
+          case EqValue(name, matchedExpr, valueExpr, a) => f(a).map(b => EqValue(name, matchedExpr, valueExpr, b))
         }
     }
 
     override val directStyle: fp.DirectStyle[MatchCase] = new fp.DirectStyle[MatchCase] {
-      private val saved = scala.collection.mutable.Map.empty[Any, (quotes.reflect.Symbol, Expr_??)]
+      private val saved =
+        scala.collection.mutable.Map.empty[Any, (quotes.reflect.Symbol, Expr_??, Option[Expr_??])]
 
       override protected def scopedUnsafe[A](owner: fp.DirectStyle.ScopeOwner[MatchCase])(thunk: => A): MatchCase[A] = {
         val result = fp.effect.DirectStyleExecutor(thunk)
-        val (name, expr) = saved
+        val (name, expr, valueExprOpt) = saved
           .remove(owner)
           // $COVERAGE-OFF$
           .getOrElse(
             hearthRequirementFailed("MatchCase.directStyle: runSafe was not called inside scoped")
           )
         // $COVERAGE-ON$
-        TypeMatch(name, expr, result)
+        valueExprOpt match {
+          case Some(valueExpr) => EqValue(name, expr, valueExpr, result)
+          case None            => TypeMatch(name, expr, result)
+        }
       }
 
       override protected def runUnsafe[A](owner: fp.DirectStyle.ScopeOwner[MatchCase])(value: => MatchCase[A]): A =
         fp.effect.DirectStyleExecutor(value) match {
           case TypeMatch(name, expr, result) =>
-            saved(owner) = (name, expr)
+            saved(owner) = (name, expr, None)
+            result.asInstanceOf[A]
+          case EqValue(name, matchedExpr, valueExpr, result) =>
+            saved(owner) = (name, matchedExpr, Some(valueExpr))
             result.asInstanceOf[A]
         }
     }

@@ -11,7 +11,7 @@ package extensions
   * Note: This provider is sorted after [[IsCollectionProviderForJavaCollection]] alphabetically, so
   * [[java.util.Collection]] subtypes are handled by their own provider first.
   *
-  * @since 0.4.0
+  * @since 0.3.0
   */
 final class IsCollectionProviderForJavaIterable extends StandardMacroExtension {
 

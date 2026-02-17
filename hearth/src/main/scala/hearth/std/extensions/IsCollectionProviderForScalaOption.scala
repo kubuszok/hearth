@@ -10,7 +10,7 @@ package extensions
   *
   * Does not match [[scala.Some]] (it cannot be empty).
   *
-  * @since 0.4.0
+  * @since 0.3.0
   */
 final class IsCollectionProviderForScalaOption extends StandardMacroExtension {
 

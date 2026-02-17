@@ -120,10 +120,19 @@ final class ExprsSpec extends MacroSuite {
         )
       }
 
+      test("method MatchCase.eqValue should allow pattern-matching by value equality") {
+        import ExprsFixtures.testMatchCaseEqValue
+
+        @scala.annotation.nowarn // suppress "unreachable code" - eqValue always matches the same value
+        def run = testMatchCaseEqValue[Int](42) <==> Data.map(
+          "matched" -> Data("matched")
+        )
+        run
+      }
+
       test("method MatchCase.partition should allow branching MatchCase in a macro") {
         import ExprsFixtures.testMatchCasePartition
 
-        // Tests whether the result build using these methods compiles
         @scala.annotation.nowarn // suppress "unreachable code" error
         def run = testMatchCasePartition[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
         run
@@ -132,7 +141,6 @@ final class ExprsSpec extends MacroSuite {
       test("method MatchCase.traverse should allow traversing MatchCase in a macro") {
         import ExprsFixtures.testMatchCaseTraverse
 
-        // Tests whether the result build using these methods compiles
         @scala.annotation.nowarn // suppress "unreachable code" error
         def run = testMatchCaseTraverse[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
         run
@@ -141,7 +149,6 @@ final class ExprsSpec extends MacroSuite {
       test("method MatchCase.directStyle should allow using direct style with MatchCase in a macro") {
         import ExprsFixtures.testMatchCaseDirectStyle
 
-        // Tests whether the result build using these methods compiles
         @scala.annotation.nowarn // suppress "unreachable code" error
         def run = testMatchCaseDirectStyle[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
         run
@@ -155,7 +162,6 @@ final class ExprsSpec extends MacroSuite {
       ) {
         import ExprsFixtures.testValDefsCreateAndUse
 
-        // Tests whether the result build using these methods compiles and is correct
         testValDefsCreateAndUse ==> Data.map(
           "val" -> Data(1 + 1),
           "var" -> Data((1 + 1) * 10),
@@ -167,21 +173,18 @@ final class ExprsSpec extends MacroSuite {
       test("methods ValDefs.{partition, close} should allow branching and closing a scoped block") {
         import ExprsFixtures.testValDefsPartitionAndClose
 
-        // Tests whether the result build using these methods compiles and is correct
         testValDefsPartitionAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
 
       test("methods ValDefs.{traverse, close} should allow traversing and closing a scoped block") {
         import ExprsFixtures.testValDefsTraverseAndClose
 
-        // Tests whether the result build using these methods compiles and is correct
         testValDefsTraverseAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
 
       test("methods ValDefs.{directStyle, close} should allow using direct style with ValDefs in a macro") {
         import ExprsFixtures.testValDefsDirectStyleAndClose
 
-        // Tests whether the result build using these methods compiles and is correct
         testValDefsDirectStyleAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
     }
@@ -195,7 +198,6 @@ final class ExprsSpec extends MacroSuite {
 
         @scala.annotation.nowarn // suppress "local var varExample$macro$1 in value <local ExprsSpec> is never updated" error
         val result = testValDefBuilderCreateAndUse
-        // Tests whether the result built using these methods compiles and is correct
         result ==> Data.map(
           "val" -> Data(1),
           "var" -> Data(2),
@@ -235,21 +237,18 @@ final class ExprsSpec extends MacroSuite {
       test("methods ValDefs.{partition, build} should allow branching and closing a scoped block") {
         import ExprsFixtures.testValDefBuilderPartitionAndClose
 
-        // Tests whether the result build using these methods compiles and is correct
         testValDefBuilderPartitionAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
 
       test("methods ValDefs.{traverse, build} should allow traversing and closing a scoped block") {
         import ExprsFixtures.testValDefBuilderTraverseAndClose
 
-        // Tests whether the result build using these methods compiles and is correct
         testValDefBuilderTraverseAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
 
       test("methods ValDefBuilder.{directStyle, build} should allow using direct style with ValDefBuilder in a macro") {
         import ExprsFixtures.testValDefBuilderDirectStyleAndClose
 
-        // Tests whether the result build using these methods compiles and is correct
         testValDefBuilderDirectStyleAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
     }
@@ -314,7 +313,7 @@ final class ExprsSpec extends MacroSuite {
       test("methods ValDefsCache.merge should allow merging ValDefsCache") {
         import ExprsFixtures.testValDefsCacheMerge
 
-        @scala.annotation.nowarn // suppress "unused method" errors - we want to check whethere these compile, not use them
+        @scala.annotation.nowarn // suppress "unused method" errors - we want to check whether these compile, not use them
         val result = testValDefsCacheMerge
         result ==> ()
       }

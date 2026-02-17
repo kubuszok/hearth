@@ -598,10 +598,11 @@ It can be used to e.g. prevent the macro from summoning itself, so that recursio
 
 **`Expr` operations**:
 
-| Companion method                          | Extension method            | Result type  | Description                              |
-|-------------------------------------------|-----------------------------|--------------|------------------------------------------|
-| `Expr.upcast[String, AnyRef](stringExpr)` | `stringExpr.upcast[AnyRef]` | `Expr[...]`  | safe upcast to a supertype               |
-| `Expr.suppressUnused[A](expr)`            | `expr.suppressUnused`       | `Expr[Unit]` | prevents "unused value" warnings         |
+| Companion method                          | Extension method            | Result type       | Description                                                                                              |
+|-------------------------------------------|-----------------------------|-------------------|----------------------------------------------------------------------------------------------------------|
+| `Expr.upcast[String, AnyRef](stringExpr)` | `stringExpr.upcast[AnyRef]` | `Expr[...]`       | safe upcast to a supertype                                                                               |
+| `Expr.suppressUnused[A](expr)`            | `expr.suppressUnused`       | `Expr[Unit]`      | prevents "unused value" warnings                                                                         |
+| `Expr.singletonOf[A]`                     | —                           | `Option[Expr[A]]` | returns singleton reference if `A` is a case object, Java enum value, or Scala 3 parameterless enum case |
 
 ### `ExprCodec`
 
@@ -885,6 +886,111 @@ Then we would have to build that expression programmatically with `MatchCase`.
     ```
 
 !!! tip "`matchOn` and `MatchCase` are not needed if you can make the whole `match` at once inside (cross) quotes. Only if you have to construct the `case`s (e.g. types are being resolved, they're not known during the compilation of a macro) you have to use it as a `match`-builder."
+
+#### `MatchCase.eqValue`
+
+While `MatchCase.typeMatch[A]` generates `case x: A => ...`, `MatchCase.eqValue[A](expr)` matches by value equality
+against a known expression. The generated pattern is optimized where possible:
+
+| Expression kind                              | Generated pattern                      |
+|----------------------------------------------|----------------------------------------|
+| Literal (`Expr(42)`, `Expr("hello")`)        | `case x @ 42 => ...`                   |
+| Case object / module reference               | `case x @ SomeObject => ...`           |
+| Scala 3 parameterless enum case or Java enum | `case x @ EnumValue => ...`            |
+| Other stable reference                       | `case x @ stableRef => ...`            |
+| General expression                           | `case x if x == expr => ...`           |
+
+This is useful when matching on enum children: `Enum[A].matchOn` automatically uses `eqValue` for children that
+are values with erased types (Scala 3 parameterless enum cases, Java enum values), where a type-based `typeMatch`
+would not be specific enough. `Expr.singletonOf[A]` can be used to obtain the singleton reference for such types.
+
+!!! example "How `MatchCase.eqValue` is used"
+
+    ```scala
+    // file: src/main/scala/example/EqValueMacro.scala - part of EqValue example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    import hearth.fp.syntax.* // for map syntax on MatchCase
+
+    trait EqValueMacro { this: hearth.MacroCommons =>
+
+      val string = Type.of[String]
+
+      def matchByValue[A: Type](expr: Expr[A], expected: Expr[A]): Expr[String] = {
+        implicit val stringType: Type[String] = string
+
+        // match expr against expected value
+        expr.matchOn[String](
+          // case x @ <expected> =>  or  case x if x == <expected> =>
+          MatchCase.eqValue[A](expected, "matched").map { _ =>
+            Expr("matched!")
+          },
+          // case x: A =>
+          MatchCase.typeMatch[A]("other").map { other =>
+            Expr.quote { s"got something else: ${ Expr.splice(other) }" }
+          }
+        )
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/EqValueMacroImpl.scala - part of EqValue example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object EqValueExample {
+      def matchByValue[A](expr: A, expected: A): String = macro EqValueMacroImpl.matchByValueImpl[A]
+    }
+
+    // Scala 2 adapter
+    class EqValueMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with EqValueMacro {
+
+      def matchByValueImpl[A: c.WeakTypeTag](expr: c.Expr[A], expected: c.Expr[A]): c.Expr[String] =
+        matchByValue[A](expr, expected)
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/EqValueMacroImpl.scala - part of EqValue example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object EqValueExample {
+      inline def matchByValue[A](inline expr: A, inline expected: A): String =
+        ${ EqValueMacroImpl.matchByValueImpl[A]('expr, 'expected) }
+    }
+
+    // Scala 3 adapter
+    class EqValueMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), EqValueMacro
+    object EqValueMacroImpl {
+
+      def matchByValueImpl[A: Type](expr: Expr[A], expected: Expr[A])(using q: Quotes): Expr[String] =
+        new EqValueMacroImpl(q).matchByValue[A](expr, expected)
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/EqValueSpec.scala - part of EqValue example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class EqValueSpec extends munit.FunSuite {
+
+      test("EqValueExample.matchByValue should match equal values") {
+        assertEquals(EqValueExample.matchByValue(42, 42), "matched!")
+      }
+
+      test("EqValueExample.matchByValue should not match different values") {
+        assertEquals(EqValueExample.matchByValue(42, 99), "got something else: 42")
+      }
+    }
+    ```
 
 !!! warning "`DirectStyle[MatchCase]` requires an explicit import"
 

@@ -10,7 +10,7 @@ package extensions
   *
   * Note: Iterators are consumed when converted to Iterable, so they can only be used once.
   *
-  * @since 0.4.0
+  * @since 0.3.0
   */
 final class IsCollectionProviderForScalaIterator extends StandardMacroExtension {
 
