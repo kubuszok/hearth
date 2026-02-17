@@ -18,6 +18,12 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
     final inline def exprCrossToQuotes[A](expr: Expr[A]): scala.quoted.Expr[A] = expr.asInstanceOf[scala.quoted.Expr[A]]
     final inline def exprQuotesToCross[A](expr: scala.quoted.Expr[A]): Expr[A] = expr.asInstanceOf[Expr[A]]
 
+    /** Converts an `UntypedType` (= `TypeRepr`) to a `scala.quoted.Type[?]` for injection into quotes. */
+    final def untypedToQuotedType(untyped: Any): Any = {
+      given q: scala.quoted.Quotes = currentCtx
+      untyped.asInstanceOf[q.reflect.TypeRepr].asType
+    }
+
     protected var currentCtx: scala.quoted.Quotes = _
 
     /** Necessary to use for achieving correct expansion when we extract some Expr.quote inside an Expr.splice,
