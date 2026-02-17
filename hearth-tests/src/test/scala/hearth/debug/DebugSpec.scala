@@ -40,7 +40,7 @@ final class DebugSpec extends MacroSuite {
     }
 
     group("extension methods") {
-      import DebugOps._
+      import DebugOps.*
 
       test("withFinalCodeInIDE extension passes through value") {
         "hello".withFinalCodeInIDE ==> "hello"
