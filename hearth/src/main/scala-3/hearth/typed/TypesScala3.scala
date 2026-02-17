@@ -78,6 +78,9 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
           else result
         }
         .getOrElse(repr.toString)
+        // Scala 3 JS/Native renders type lambdas with =>> while JVM uses =>;
+        // normalize to => for consistent cross-platform output.
+        .replace("=>>", "=>")
     }
 
     override lazy val NullCodec: TypeCodec[Null] = LiteralCodec[Null](_ => NullConstant())
