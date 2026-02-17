@@ -30,6 +30,15 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
   def testMatchCaseEqValueImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
     testMatchCaseEqValue[A](expr)
 
+  def testMatchCaseEqValueSingletonImpl[A: c.WeakTypeTag]: c.Expr[Data] =
+    testMatchCaseEqValueSingleton[A]
+
+  def testMatchCaseEqValuePartitionImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
+    testMatchCaseEqValuePartition[A, B](expr)
+
+  def testMatchCaseEqValueDirectStyleImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
+    testMatchCaseEqValueDirectStyle[A, B](expr)
+
   def testMatchCasePartitionImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
     testMatchCasePartition[A, B](expr)
 
@@ -154,6 +163,14 @@ object ExprsFixtures {
   def testMatchCaseTypeMatch[A](expr: A): Data = macro ExprsFixtures.testMatchCaseTypeMatchImpl[A]
 
   def testMatchCaseEqValue[A](expr: A): Data = macro ExprsFixtures.testMatchCaseEqValueImpl[A]
+
+  def testMatchCaseEqValueSingleton[A]: Data = macro ExprsFixtures.testMatchCaseEqValueSingletonImpl[A]
+
+  def testMatchCaseEqValuePartition[A, B](expr: A): B =
+    macro ExprsFixtures.testMatchCaseEqValuePartitionImpl[A, B]
+
+  def testMatchCaseEqValueDirectStyle[A, B](expr: A): B =
+    macro ExprsFixtures.testMatchCaseEqValueDirectStyleImpl[A, B]
 
   def testMatchCasePartition[A, B](expr: A): B = macro ExprsFixtures.testMatchCasePartitionImpl[A, B]
 

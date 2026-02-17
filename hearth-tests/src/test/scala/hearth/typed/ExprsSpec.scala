@@ -130,6 +130,42 @@ final class ExprsSpec extends MacroSuite {
         run
       }
 
+      test("method MatchCase.eqValue should work with singletons (case objects)") {
+        import ExprsFixtures.testMatchCaseEqValueSingleton
+
+        // Singleton type: singletonOf returns Some, eqValue matches the object
+        @scala.annotation.nowarn // suppress "unreachable code"
+        def runObject =
+          testMatchCaseEqValueSingleton[
+            examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type
+          ] <==> Data.map(
+            "singletonOf" -> Data("found"),
+            "matched" -> Data("matched")
+          )
+        runObject
+
+        // Non-singleton type should return singletonOf = none
+        testMatchCaseEqValueSingleton[Int] <==> Data.map(
+          "singletonOf" -> Data("none")
+        )
+      }
+
+      test("method MatchCase.eqValue should work with partition") {
+        import ExprsFixtures.testMatchCaseEqValuePartition
+
+        @scala.annotation.nowarn // suppress "unreachable code" error
+        def run = testMatchCaseEqValuePartition[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
+        run
+      }
+
+      test("method MatchCase.eqValue should work with directStyle") {
+        import ExprsFixtures.testMatchCaseEqValueDirectStyle
+
+        @scala.annotation.nowarn // suppress "unreachable code" error
+        def run = testMatchCaseEqValueDirectStyle[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
+        run
+      }
+
       test("method MatchCase.partition should allow branching MatchCase in a macro") {
         import ExprsFixtures.testMatchCasePartition
 

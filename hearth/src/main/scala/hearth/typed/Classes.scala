@@ -174,8 +174,10 @@ trait Classes { this: MacroCommons =>
             val mc: MatchCase[Expr[A0]] =
               if (Type.isVal[A0] && !Type.isObject[A0])
                 Expr.singletonOf[A0] match {
+                  // $COVERAGE-OFF$ singletonOf returns Some only for Scala 3 enum vals, not testable on Scala 2
                   case Some(singleton) => MatchCase.eqValue[A0](singleton, name)
-                  case None            => MatchCase.typeMatch[A0](name)
+                  // $COVERAGE-ON$
+                  case None => MatchCase.typeMatch[A0](name)
                 }
               else MatchCase.typeMatch[A0](name)
             mc.map { matched =>
@@ -201,8 +203,10 @@ trait Classes { this: MacroCommons =>
             val mc: MatchCase[Expr[A0]] =
               if (Type.isVal[A0] && !Type.isObject[A0])
                 Expr.singletonOf[A0] match {
+                  // $COVERAGE-OFF$ singletonOf returns Some only for Scala 3 enum vals, not testable on Scala 2
                   case Some(singleton) => MatchCase.eqValue[A0](singleton, name)
-                  case None            => MatchCase.typeMatch[A0](name)
+                  // $COVERAGE-ON$
+                  case None => MatchCase.typeMatch[A0](name)
                 }
               else MatchCase.typeMatch[A0](name)
             mc.map { matched =>
