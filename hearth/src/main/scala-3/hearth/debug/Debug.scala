@@ -29,6 +29,12 @@ final private class Debug(q: Quotes) extends MacroCommonsScala3(using q), DebugM
   *     {{{
   *     Debug.withGivenASTInIDE[TypeClass[A]]
   *     }}}
+  *   - previewing the inferred type of some expression:
+  *     {{{
+  *     Debug.withInferredTypeInIDE {
+  *       someExpression
+  *     }
+  *     }}}
   *
   * @since 0.1.0
   */
@@ -63,4 +69,19 @@ object Debug {
     */
   inline def withGivenASTInIDE[A]: A = ${ Debug.withGivenASTInIDEImpl[A] }
   private def withGivenASTInIDEImpl[A: Type](using q: Quotes): Expr[A] = new Debug(q).withGivenASTInIDE[A]
+
+  /** Passes expression unchanged, but displays its inferred type in IDE as a hint.
+    *
+    * @since 0.3.0
+    */
+  inline def withInferredTypeInIDE[A](inline expr: A): A = ${ Debug.withInferredTypeInIDEImpl[A]('expr) }
+  private def withInferredTypeInIDEImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[A] =
+    new Debug(q).withInferredTypeInIDE(expr)
+
+  /** Summons value of type A, and displays its inferred type in IDE as a hint.
+    *
+    * @since 0.3.0
+    */
+  inline def withGivenTypeInIDE[A]: A = ${ Debug.withGivenTypeInIDEImpl[A] }
+  private def withGivenTypeInIDEImpl[A: Type](using q: Quotes): Expr[A] = new Debug(q).withGivenTypeInIDE[A]
 }
