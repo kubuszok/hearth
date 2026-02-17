@@ -25,4 +25,5 @@ project/metals.sbt
 
 # other
 .scala-build
+.claude
 *.log
