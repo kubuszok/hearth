@@ -1683,6 +1683,100 @@ final class TypesSpec extends MacroSuite {
             "encoded" -> Data("scala.Tuple3[1, \"a\", true]"),
             "decoded" -> Data("(1,a,true)")
           ),
+          "(1, a, true, 2L)" -> Data.map(
+            "encoded" -> Data("scala.Tuple4[1, \"a\", true, 2L]"),
+            "decoded" -> Data("(1,a,true,2)")
+          ),
+          "(1, a, true, 2L, 3)" -> Data.map(
+            "encoded" -> Data("scala.Tuple5[1, \"a\", true, 2L, 3]"),
+            "decoded" -> Data("(1,a,true,2,3)")
+          ),
+          "(1, a, true, 2L, 3, b)" -> Data.map(
+            "encoded" -> Data("scala.Tuple6[1, \"a\", true, 2L, 3, \"b\"]"),
+            "decoded" -> Data("(1,a,true,2,3,b)")
+          ),
+          "(1, a, true, 2L, 3, b, false)" -> Data.map(
+            "encoded" -> Data("scala.Tuple7[1, \"a\", true, 2L, 3, \"b\", false]"),
+            "decoded" -> Data("(1,a,true,2,3,b,false)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L)" -> Data.map(
+            "encoded" -> Data("scala.Tuple8[1, \"a\", true, 2L, 3, \"b\", false, 4L]"),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L, 5)" -> Data.map(
+            "encoded" -> Data("scala.Tuple9[1, \"a\", true, 2L, 3, \"b\", false, 4L, 5]"),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4,5)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L, 5, c)" -> Data.map(
+            "encoded" -> Data("scala.Tuple10[1, \"a\", true, 2L, 3, \"b\", false, 4L, 5, \"c\"]"),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4,5,c)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L, 5, c, true)" -> Data.map(
+            "encoded" -> Data("scala.Tuple11[1, \"a\", true, 2L, 3, \"b\", false, 4L, 5, \"c\", true]"),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4,5,c,true)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L)" -> Data.map(
+            "encoded" -> Data("scala.Tuple12[1, \"a\", true, 2L, 3, \"b\", false, 4L, 5, \"c\", true, 6L]"),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4,5,c,true,6)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7)" -> Data.map(
+            "encoded" -> Data("scala.Tuple13[1, \"a\", true, 2L, 3, \"b\", false, 4L, 5, \"c\", true, 6L, 7]"),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4,5,c,true,6,7)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d)" -> Data.map(
+            "encoded" -> Data(
+              "scala.Tuple14[1, \"a\", true, 2L, 3, \"b\", false, 4L, 5, \"c\", true, 6L, 7, \"d\"]"
+            ),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4,5,c,true,6,7,d)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false)" -> Data.map(
+            "encoded" -> Data(
+              "scala.Tuple15[1, \"a\", true, 2L, 3, \"b\", false, 4L, 5, \"c\", true, 6L, 7, \"d\", false]"
+            ),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4,5,c,true,6,7,d,false)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false, 8L)" -> Data.map(
+            "encoded" -> Data(
+              "scala.Tuple16[1, \"a\", true, 2L, 3, \"b\", false, 4L, 5, \"c\", true, 6L, 7, \"d\", false, 8L]"
+            ),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4,5,c,true,6,7,d,false,8)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false, 8L, 9)" -> Data.map(
+            "encoded" -> Data(
+              "scala.Tuple17[1, \"a\", true, 2L, 3, \"b\", false, 4L, 5, \"c\", true, 6L, 7, \"d\", false, 8L, 9]"
+            ),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4,5,c,true,6,7,d,false,8,9)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false, 8L, 9, e)" -> Data.map(
+            "encoded" -> Data(
+              "scala.Tuple18[1, \"a\", true, 2L, 3, \"b\", false, 4L, 5, \"c\", true, 6L, 7, \"d\", false, 8L, 9, \"e\"]"
+            ),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4,5,c,true,6,7,d,false,8,9,e)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false, 8L, 9, e, true)" -> Data.map(
+            "encoded" -> Data(
+              "scala.Tuple19[1, \"a\", true, 2L, 3, \"b\", false, 4L, 5, \"c\", true, 6L, 7, \"d\", false, 8L, 9, \"e\", true]"
+            ),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4,5,c,true,6,7,d,false,8,9,e,true)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false, 8L, 9, e, true, 10L)" -> Data.map(
+            "encoded" -> Data(
+              "scala.Tuple20[1, \"a\", true, 2L, 3, \"b\", false, 4L, 5, \"c\", true, 6L, 7, \"d\", false, 8L, 9, \"e\", true, 10L]"
+            ),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4,5,c,true,6,7,d,false,8,9,e,true,10)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false, 8L, 9, e, true, 10L, 11)" -> Data.map(
+            "encoded" -> Data(
+              "scala.Tuple21[1, \"a\", true, 2L, 3, \"b\", false, 4L, 5, \"c\", true, 6L, 7, \"d\", false, 8L, 9, \"e\", true, 10L, 11]"
+            ),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4,5,c,true,6,7,d,false,8,9,e,true,10,11)")
+          ),
+          "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false, 8L, 9, e, true, 10L, 11, f)" -> Data.map(
+            "encoded" -> Data(
+              "scala.Tuple22[1, \"a\", true, 2L, 3, \"b\", false, 4L, 5, \"c\", true, 6L, 7, \"d\", false, 8L, 9, \"e\", true, 10L, 11, \"f\"]"
+            ),
+            "decoded" -> Data("(1,a,true,2,3,b,false,4,5,c,true,6,7,d,false,8,9,e,true,10,11,f)")
+          ),
           "Some(1)" -> Data.map(
             "encoded" -> Data("scala.Some[1]"),
             "decoded" -> Data("Some(1)")

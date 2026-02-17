@@ -1984,30 +1984,17 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
 
     override def OptionCodec[A: TypeCodec]: TypeCodec[Option[A]] =
       new TypeCodec[Option[A]] {
+        private val someCodec = SomeCodec[A]
+        private val noneCodec = NoneCodec
         override def toType[B <: Option[A]](value: B): Type[B] = value match {
-          case Some(a) =>
-            val ta = TypeCodec[A].toType(a)
-            UntypedType.toTyped(
-              c.universe.appliedType(c.mirror.staticClass("scala.Some").toType.typeConstructor, scala.List(ta.tpe))
-            )
-          case None =>
-            Type.of[None.type].asInstanceOf[Type[B]]
+          case s: Some[A @unchecked] => someCodec.toType(s).asInstanceOf[Type[B]]
+          case None                  => noneCodec.toType(None).asInstanceOf[Type[B]]
         }
-        override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Option[A], Id]] = {
-          val tpe = B.tpe.dealias
-          if (tpe =:= c.typeOf[None.type])
-            Some(Existential.UpperBounded[Option[A], Id, Option[A]](None)(using B.asInstanceOf[Type[Option[A]]]))
-          else
-            tpe.typeArgs match {
-              case scala.List(a) =>
-                TypeCodec[A].fromType(UntypedType.toTyped(a)).map { v =>
-                  Existential.UpperBounded[Option[A], Id, Option[A]](Some(v.value.asInstanceOf[A]))(using
-                    B.asInstanceOf[Type[Option[A]]]
-                  )
-                }
-              case _ => None
-            }
-        }
+        override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Option[A], Id]] =
+          noneCodec
+            .fromType(B)
+            .map(_.asInstanceOf[Existential.UpperBounded[Option[A], Id]])
+            .orElse(someCodec.fromType(B).map(_.asInstanceOf[Existential.UpperBounded[Option[A], Id]]))
       }
 
     override def SomeCodec[A: TypeCodec]: TypeCodec[Some[A]] =
@@ -2042,47 +2029,17 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
 
     override def EitherCodec[L: TypeCodec: Type, R: TypeCodec: Type]: TypeCodec[Either[L, R]] =
       new TypeCodec[Either[L, R]] {
+        private val leftCodec = LeftCodec[L, R]
+        private val rightCodec = RightCodec[L, R]
         override def toType[B <: Either[L, R]](value: B): Type[B] = value match {
-          case Left(l) =>
-            val tl = TypeCodec[L].toType(l)
-            val tr = Type.of[R]
-            UntypedType.toTyped(
-              c.universe
-                .appliedType(c.mirror.staticClass("scala.util.Left").toType.typeConstructor, scala.List(tl.tpe, tr.tpe))
-            )
-          case Right(r) =>
-            val tl = Type.of[L]
-            val tr = TypeCodec[R].toType(r)
-            UntypedType.toTyped(
-              c.universe.appliedType(
-                c.mirror.staticClass("scala.util.Right").toType.typeConstructor,
-                scala.List(tl.tpe, tr.tpe)
-              )
-            )
+          case l: Left[L @unchecked, R @unchecked]  => leftCodec.toType(l).asInstanceOf[Type[B]]
+          case r: Right[L @unchecked, R @unchecked] => rightCodec.toType(r).asInstanceOf[Type[B]]
         }
-        override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Either[L, R], Id]] = {
-          val tpe = B.tpe.dealias
-          // Try matching as Left[L, R] or Right[L, R]
-          tpe.typeArgs match {
-            case scala.List(a, b) =>
-              val leftSym = c.mirror.staticClass("scala.util.Left")
-              val rightSym = c.mirror.staticClass("scala.util.Right")
-              if (tpe.typeSymbol == leftSym)
-                TypeCodec[L].fromType(UntypedType.toTyped(a)).map { v =>
-                  Existential.UpperBounded[Either[L, R], Id, Either[L, R]](Left(v.value.asInstanceOf[L]))(using
-                    B.asInstanceOf[Type[Either[L, R]]]
-                  )
-                }
-              else if (tpe.typeSymbol == rightSym)
-                TypeCodec[R].fromType(UntypedType.toTyped(b)).map { v =>
-                  Existential.UpperBounded[Either[L, R], Id, Either[L, R]](Right(v.value.asInstanceOf[R]))(using
-                    B.asInstanceOf[Type[Either[L, R]]]
-                  )
-                }
-              else None
-            case _ => None
-          }
-        }
+        override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Either[L, R], Id]] =
+          leftCodec
+            .fromType(B)
+            .map(_.asInstanceOf[Existential.UpperBounded[Either[L, R], Id]])
+            .orElse(rightCodec.fromType(B).map(_.asInstanceOf[Existential.UpperBounded[Either[L, R], Id]]))
       }
 
     override def LeftCodec[L: TypeCodec: Type, R: TypeCodec: Type]: TypeCodec[Left[L, R]] =

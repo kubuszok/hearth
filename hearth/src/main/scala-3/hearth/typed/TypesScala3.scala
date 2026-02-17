@@ -1879,29 +1879,23 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
 
     override def OptionCodec[A: TypeCodec]: TypeCodec[Option[A]] =
       new TypeCodec[Option[A]] {
+        private val someCodec = SomeCodec[A]
+        private val noneCodec = NoneCodec
         override def toType[B <: Option[A]](value: B): Type[B] = value match {
-          case Some(a) =>
-            val ta = TypeCodec[A].toType(a)
-            import ta.Underlying as A0
-            quoted.Type.of[Some[A0]].asInstanceOf[Type[B]]
-          case None =>
-            quoted.Type.of[None.type].asInstanceOf[Type[B]]
+          case s: Some[A @unchecked] => someCodec.toType(s).asInstanceOf[Type[B]]
+          case None                  => noneCodec.toType(None).asInstanceOf[Type[B]]
         }
         override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Option[A], Id]] =
-          B match {
-            case '[None.type] =>
-              Some(Existential.UpperBounded[Option[A], Id, Option[A]](None)(using B.asInstanceOf[Type[Option[A]]]))
-            case '[Some[a]] =>
-              TypeCodec[A].fromType(summon[Type[a]]).map { v =>
-                Existential.UpperBounded[Option[A], Id, Option[A]](Some(v.value.asInstanceOf[A]))(using
-                  B.asInstanceOf[Type[Option[A]]]
-                )
-              }
-            case '[Option[a]] =>
-              // Cannot decode Option[A] without knowing if it is Some or None
-              None
-            case _ => None
-          }
+          noneCodec
+            .fromType(B)
+            .map(_.asInstanceOf[Existential.UpperBounded[Option[A], Id]])
+            .orElse(someCodec.fromType(B).map(_.asInstanceOf[Existential.UpperBounded[Option[A], Id]]))
+            .orElse(B match {
+              case '[Option[a]] =>
+                // Cannot decode Option[A] without knowing if it is Some or None
+                None
+              case _ => None
+            })
       }
 
     override def SomeCodec[A: TypeCodec]: TypeCodec[Some[A]] =
@@ -1935,32 +1929,17 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
 
     override def EitherCodec[L: TypeCodec: Type, R: TypeCodec: Type]: TypeCodec[Either[L, R]] =
       new TypeCodec[Either[L, R]] {
+        private val leftCodec = LeftCodec[L, R]
+        private val rightCodec = RightCodec[L, R]
         override def toType[B <: Either[L, R]](value: B): Type[B] = value match {
-          case Left(l) =>
-            val tl = TypeCodec[L].toType(l)
-            import tl.Underlying as L0
-            quoted.Type.of[Left[L0, R]].asInstanceOf[Type[B]]
-          case Right(r) =>
-            val tr = TypeCodec[R].toType(r)
-            import tr.Underlying as R0
-            quoted.Type.of[Right[L, R0]].asInstanceOf[Type[B]]
+          case l: Left[L @unchecked, R @unchecked]  => leftCodec.toType(l).asInstanceOf[Type[B]]
+          case r: Right[L @unchecked, R @unchecked] => rightCodec.toType(r).asInstanceOf[Type[B]]
         }
         override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Either[L, R], Id]] =
-          B match {
-            case '[Left[l, ?]] =>
-              TypeCodec[L].fromType(summon[Type[l]]).map { v =>
-                Existential.UpperBounded[Either[L, R], Id, Either[L, R]](Left(v.value.asInstanceOf[L]))(using
-                  B.asInstanceOf[Type[Either[L, R]]]
-                )
-              }
-            case '[Right[?, r]] =>
-              TypeCodec[R].fromType(summon[Type[r]]).map { v =>
-                Existential.UpperBounded[Either[L, R], Id, Either[L, R]](Right(v.value.asInstanceOf[R]))(using
-                  B.asInstanceOf[Type[Either[L, R]]]
-                )
-              }
-            case _ => None
-          }
+          leftCodec
+            .fromType(B)
+            .map(_.asInstanceOf[Existential.UpperBounded[Either[L, R], Id]])
+            .orElse(rightCodec.fromType(B).map(_.asInstanceOf[Existential.UpperBounded[Either[L, R], Id]]))
       }
 
     override def LeftCodec[L: TypeCodec: Type, R: TypeCodec: Type]: TypeCodec[Left[L, R]] =

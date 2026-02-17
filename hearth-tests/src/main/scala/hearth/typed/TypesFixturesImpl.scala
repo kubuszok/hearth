@@ -144,6 +144,46 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
         "Tuple1(1)" -> roundtrip(Tuple1(1)),
         "(1, a)" -> roundtrip((1, "a")),
         "(1, a, true)" -> roundtrip((1, "a", true)),
+        "(1, a, true, 2L)" -> roundtrip((1, "a", true, 2L)),
+        "(1, a, true, 2L, 3)" -> roundtrip((1, "a", true, 2L, 3)),
+        "(1, a, true, 2L, 3, b)" -> roundtrip((1, "a", true, 2L, 3, "b")),
+        "(1, a, true, 2L, 3, b, false)" -> roundtrip((1, "a", true, 2L, 3, "b", false)),
+        "(1, a, true, 2L, 3, b, false, 4L)" -> roundtrip((1, "a", true, 2L, 3, "b", false, 4L)),
+        "(1, a, true, 2L, 3, b, false, 4L, 5)" -> roundtrip((1, "a", true, 2L, 3, "b", false, 4L, 5)),
+        "(1, a, true, 2L, 3, b, false, 4L, 5, c)" ->
+          roundtrip((1, "a", true, 2L, 3, "b", false, 4L, 5, "c")),
+        "(1, a, true, 2L, 3, b, false, 4L, 5, c, true)" ->
+          roundtrip((1, "a", true, 2L, 3, "b", false, 4L, 5, "c", true)),
+        "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L)" ->
+          roundtrip((1, "a", true, 2L, 3, "b", false, 4L, 5, "c", true, 6L)),
+        "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7)" ->
+          roundtrip((1, "a", true, 2L, 3, "b", false, 4L, 5, "c", true, 6L, 7)),
+        "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d)" ->
+          roundtrip((1, "a", true, 2L, 3, "b", false, 4L, 5, "c", true, 6L, 7, "d")),
+        "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false)" ->
+          roundtrip((1, "a", true, 2L, 3, "b", false, 4L, 5, "c", true, 6L, 7, "d", false)),
+        "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false, 8L)" ->
+          roundtrip((1, "a", true, 2L, 3, "b", false, 4L, 5, "c", true, 6L, 7, "d", false, 8L)),
+        "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false, 8L, 9)" ->
+          roundtrip((1, "a", true, 2L, 3, "b", false, 4L, 5, "c", true, 6L, 7, "d", false, 8L, 9)),
+        "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false, 8L, 9, e)" ->
+          roundtrip((1, "a", true, 2L, 3, "b", false, 4L, 5, "c", true, 6L, 7, "d", false, 8L, 9, "e")),
+        "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false, 8L, 9, e, true)" ->
+          roundtrip(
+            (1, "a", true, 2L, 3, "b", false, 4L, 5, "c", true, 6L, 7, "d", false, 8L, 9, "e", true)
+          ),
+        "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false, 8L, 9, e, true, 10L)" ->
+          roundtrip(
+            (1, "a", true, 2L, 3, "b", false, 4L, 5, "c", true, 6L, 7, "d", false, 8L, 9, "e", true, 10L)
+          ),
+        "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false, 8L, 9, e, true, 10L, 11)" ->
+          roundtrip(
+            (1, "a", true, 2L, 3, "b", false, 4L, 5, "c", true, 6L, 7, "d", false, 8L, 9, "e", true, 10L, 11)
+          ),
+        "(1, a, true, 2L, 3, b, false, 4L, 5, c, true, 6L, 7, d, false, 8L, 9, e, true, 10L, 11, f)" ->
+          roundtrip(
+            (1, "a", true, 2L, 3, "b", false, 4L, 5, "c", true, 6L, 7, "d", false, 8L, 9, "e", true, 10L, 11, "f")
+          ),
         "Some(1)" -> roundtrip(Some(1)),
         "None" -> roundtrip[Option[Int]](None),
         "Left(1)" -> roundtrip[Either[Int, String]](Left(1)),
