@@ -3738,6 +3738,16 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         stub
       }
 
+      def storeVarArgs(expr: Tree, tpe: Tree): Tree = {
+        val printedExpr = renderCode(expr)
+        val printedTpe = renderCode(tpe)
+
+        val stub = Ident(freshName("expressionStub"))
+        caches += (stub.toString() ->
+          s"..$${ {$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]].tree.children.tail }")
+        stub
+      }
+
       def toReplace = caches.view.collect { case (stub, expr) =>
         val stubString = stub.toString
         (stubString, Pattern.quote(stubString), Matcher.quoteReplacement(expr))
@@ -3745,7 +3755,35 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def toCheck = caches.keys.toSet
     }
 
+    private val WildcardStar = typeNames.WILDCARD_STAR
+
     override def transform(tree: Tree): Tree = tree match {
+      /* Replaces:
+       *   Expr.splice[Seq[A]](a): _*
+       * with:
+       *   ..${{a}.asInstanceOf[ctx.Expr[Seq[A]]].tree.children.tail}
+       * This avoids the redundant Seq(...): _* wrapping when using VarArgs.
+       */
+      case Typed(
+            Apply(
+              TypeApply(
+                Select(Select(This(_) | Ident(_), TermName("Expr")), TermName("splice")),
+                List(tpe)
+              ),
+              List(expr)
+            ),
+            Ident(WildcardStar)
+          ) =>
+        val result = Splices.storeVarArgs(expr, tpe)
+
+        log(
+          s"""Cross-quotes ${paintExclDot(Console.BLUE)("Expr.splice")} VarArgs expansion:
+             |From: ${paintExclDot(Console.BLUE)("Expr.splice")}(${pp(expr)})*
+             |To: ${indent(pp(result))}""".stripMargin
+        )
+
+        result
+
       /* Replaces:
        *   Expr.splice[A](a)
        * with:
