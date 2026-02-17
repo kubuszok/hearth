@@ -4,26 +4,29 @@ Debug utilities help you inspect macro expansions during compilation. They allow
 
  - the final code (after all macro expansions, implicit summoning, etc.)
  - the final code resolved as `implicit`/`given` for some type
+ - the inferred type of an expression
  - or the AST (Abstract Syntax Tree) of such code
 
 !!! important "Compiler Diagnostics, Not Runtime Logging"
     These utilities use **compiler reporting mechanisms** (`Environment.reportInfo`), not structured logging or runtime output. The output appears:
-    
+
     - As **IDE hints** (blue squiggly lines in VS Code/IntelliJ - hover to see the output)
     - In **compilation logs** (when compiling from command line)
     - In **Scastie** (as hover hints)
-    
+
     The output is **only visible during compilation**, not at runtime. This makes them perfect for debugging macro implementations without modifying your macro code.
 
 ## When to Use What
 
 - **`withFinalCodeInIDE`**: Use to see the final expanded code after all macro transformations. Shows human-readable Scala code.
 - **`withFinalASTInIDE`**: Use to see the AST structure of the final expanded code. Useful for understanding the internal representation.
+- **`withInferredTypeInIDE`**: Use to see what type the compiler infers for an expression. Shows the dealiased type representation. Inspired by [typeLogger](https://github.com/Kordyjan/typeLogger).
 - **`withGivenCodeInIDE[T]`**: Use to see what implicit/given value is being summoned for type `T`. Shows the code that implements the implicit.
 - **`withGivenASTInIDE[T]`**: Use to see the AST structure of the implicit/given value being summoned.
+- **`withGivenTypeInIDE[T]`**: Use to see the concrete type of the implicit/given value summoned for type `T`.
 
 !!! tip
-    Start with `withFinalCodeInIDE` or `withGivenCodeInIDE` for most debugging scenarios. Use the AST variants (`withFinalASTInIDE`, `withGivenASTInIDE`) when you need to understand the internal tree structure, such as when debugging macro implementations.
+    Start with `withFinalCodeInIDE` or `withGivenCodeInIDE` for most debugging scenarios. Use `withInferredTypeInIDE` when you want to check what type the compiler infers without looking at the full code or AST. Use the AST variants (`withFinalASTInIDE`, `withGivenASTInIDE`) when you need to understand the internal tree structure, such as when debugging macro implementations.
 
 !!! example "`Debug` utilities - Scala 2"
 
@@ -45,10 +48,17 @@ Debug utilities help you inspect macro expansions during compilation. They allow
       s"Another example: $a"
     }
 
+    // Preview inferred type
+    Debug.withInferredTypeInIDE {
+      List(1, 2, 3)
+    }
+
     // Preview implicit/given resolution
     Debug.withGivenCodeInIDE[scala.collection.Factory[Int, List[Int]]]
 
     Debug.withGivenASTInIDE[scala.collection.Factory[Int, List[Int]]]
+
+    Debug.withGivenTypeInIDE[scala.collection.Factory[Int, List[Int]]]
     ```
 
 
@@ -72,6 +82,11 @@ Debug utilities help you inspect macro expansions during compilation. They allow
       s"Another example: $a"
     }
 
+    // Preview inferred type
+    Debug.withInferredTypeInIDE {
+      List(1, 2, 3)
+    }
+
     // Preview macro expansion inside inline methods
     inline def example[A]: String = {
       Debug.withFinalCodeInIDE {
@@ -90,7 +105,63 @@ Debug utilities help you inspect macro expansions during compilation. They allow
     Debug.withGivenCodeInIDE[scala.collection.Factory[Int, List[Int]]]
 
     Debug.withGivenASTInIDE[scala.collection.Factory[Int, List[Int]]]
+
+    Debug.withGivenTypeInIDE[scala.collection.Factory[Int, List[Int]]]
     ```
+
+## Extension Methods (Dot Notation)
+
+All expression-wrapping `Debug` methods are also available as extension methods through `DebugOps`.
+This allows you to use dot notation instead of wrapping expressions in `Debug.*` calls.
+
+!!! example "Extension methods - Scala 2"
+
+    ```scala
+    //> using scala {{ scala.2_13 }}
+    //> using dep com.kubuszok::hearth::{{ hearth_version() }}
+    import hearth.debug.Debug
+    import hearth.debug.DebugOps._
+
+    // These pairs are equivalent:
+
+    // Object method vs extension method for code preview
+    Debug.withFinalCodeInIDE { "hello" }
+    "hello".withFinalCodeInIDE
+
+    // Object method vs extension method for AST preview
+    Debug.withFinalASTInIDE { 42 }
+    42.withFinalASTInIDE
+
+    // Object method vs extension method for type preview
+    Debug.withInferredTypeInIDE { List(1, 2, 3) }
+    List(1, 2, 3).withInferredTypeInIDE
+    ```
+
+!!! example "Extension methods - Scala 3"
+
+    ```scala
+    //> using scala {{ scala.3 }}
+    //> using dep com.kubuszok::hearth::{{ hearth_version() }}
+    import hearth.debug.Debug
+    import hearth.debug.DebugOps.*
+
+    // These pairs are equivalent:
+
+    // Object method vs extension method for code preview
+    Debug.withFinalCodeInIDE { "hello" }
+    "hello".withFinalCodeInIDE
+
+    // Object method vs extension method for AST preview
+    Debug.withFinalASTInIDE { 42 }
+    42.withFinalASTInIDE
+
+    // Object method vs extension method for type preview
+    Debug.withInferredTypeInIDE { List(1, 2, 3) }
+    List(1, 2, 3).withInferredTypeInIDE
+    ```
+
+!!! note
+    Extension methods are only available for methods that take an expression argument (`withFinalCodeInIDE`, `withFinalASTInIDE`, `withInferredTypeInIDE`). Methods that only take a type parameter (`withGivenCodeInIDE`, `withGivenASTInIDE`, `withGivenTypeInIDE`) are only available on the `Debug` object.
 
 ## How It Works
 
@@ -100,6 +171,7 @@ The output appears as compiler informational messages, which IDEs and build tool
 
 - **Debugging macro expansions** without adding `println` statements
 - **Understanding implicit resolution** by seeing what code is actually being used
+- **Inspecting inferred types** to understand what types the compiler sees
 - **Learning macro internals** by inspecting AST structures
 - **Temporary debugging** - you can add these utilities temporarily to understand code, then remove them
 
@@ -117,6 +189,7 @@ Even if you don't want to use Hearth for your macros, you can still use these ut
 **Q: The output is too verbose**
 
 - Use `withFinalCodeInIDE` instead of `withFinalASTInIDE` for more readable output
+- Use `withInferredTypeInIDE` if you only care about the type, not the full code
 - The AST variants show the full tree structure, which can be very detailed
 
 **Q: Can I use this in production code?**

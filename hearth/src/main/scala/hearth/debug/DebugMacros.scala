@@ -24,4 +24,15 @@ private[debug] trait DebugMacros { this: MacroCommons =>
     case Right(expr) => withFinalASTInIDE(expr)
     case Left(error) => Environment.reportErrorAndAbort(error)
   }
+
+  def withInferredTypeInIDE[A: Type](expr: Expr[A]): Expr[A] = {
+    val preview = Type.prettyPrint[A]
+    Environment.reportInfo(s"Inferred type:\n$preview")
+    expr
+  }
+
+  def withGivenTypeInIDE[A: Type]: Expr[A] = Expr.summonImplicit[A].toEither match {
+    case Right(expr) => withInferredTypeInIDE(expr)
+    case Left(error) => Environment.reportErrorAndAbort(error)
+  }
 }

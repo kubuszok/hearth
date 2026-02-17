@@ -12,6 +12,8 @@ final private class Debug(val c: blackbox.Context) extends MacroCommonsScala2 wi
   def withFinalASTInIDEImpl[A](expr: c.Expr[A]): c.Expr[A] = withFinalASTInIDE(expr)
   def withGivenCodeInIDEImpl[A: c.WeakTypeTag]: c.Expr[A] = withGivenCodeInIDE[A]
   def withGivenASTInIDEImpl[A: c.WeakTypeTag]: c.Expr[A] = withGivenASTInIDE[A]
+  def withInferredTypeInIDEImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[A] = withInferredTypeInIDE(expr)
+  def withGivenTypeInIDEImpl[A: c.WeakTypeTag]: c.Expr[A] = withGivenTypeInIDE[A]
 }
 
 /** Utilities for debugging macros.
@@ -37,6 +39,12 @@ final private class Debug(val c: blackbox.Context) extends MacroCommonsScala2 wi
   *   - like above, but with its AST:
   *     {{{
   *     Debug.withGivenASTInIDE[TypeClass[A]]
+  *     }}}
+  *   - previewing the inferred type of some expression:
+  *     {{{
+  *     Debug.withInferredTypeInIDE {
+  *       someExpression
+  *     }
   *     }}}
   *
   * @since 0.1.0
@@ -66,4 +74,16 @@ object Debug {
     * @since 0.1.0
     */
   def withGivenASTInIDE[A]: A = macro Debug.withGivenASTInIDEImpl[A]
+
+  /** Passes expression unchanged, but displays its inferred type in IDE as a hint.
+    *
+    * @since 0.3.0
+    */
+  def withInferredTypeInIDE[A](expr: A): A = macro Debug.withInferredTypeInIDEImpl[A]
+
+  /** Summons value of type A, and displays its inferred type in IDE as a hint.
+    *
+    * @since 0.3.0
+    */
+  def withGivenTypeInIDE[A]: A = macro Debug.withGivenTypeInIDEImpl[A]
 }
