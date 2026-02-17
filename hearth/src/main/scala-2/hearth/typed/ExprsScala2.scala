@@ -136,6 +136,16 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = c.Expr[Unit](q"val _ = $expr; ()")
 
+    override def singletonOf[A: Type]: Option[Expr[A]] = {
+      val sym = Type[A].tpe.typeSymbol
+      if (sym.isModuleClass) {
+        val moduleSym = sym.asClass.module
+        Some(c.Expr[A](c.universe.internal.gen.mkAttributedRef(moduleSym)))
+      } else if (sym.isModule) {
+        Some(c.Expr[A](c.universe.internal.gen.mkAttributedRef(sym)))
+      } else None
+    }
+
     override lazy val NullExprCodec: ExprCodec[Null] = {
       implicit val liftable: Liftable[Null] = Liftable[Null](_ => q"null")
       implicit val unliftable: Unliftable[Null] = Unliftable[Null] { case _ => null }
@@ -517,6 +527,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
   object MatchCase extends MatchCaseModule {
 
     final private case class TypeMatch[A](name: TermName, expr: Expr_??, result: A) extends MatchCase[A]
+    final private case class EqValue[A](name: TermName, matchedExpr: Expr_??, valueExpr: Expr_??, result: A)
+        extends MatchCase[A]
 
     override def typeMatch[A: Type](freshName: FreshName): MatchCase[Expr[A]] = {
       val name = freshTerm[A](freshName, null)
@@ -524,10 +536,32 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       TypeMatch(name, expr.as_??, expr)
     }
 
+    override def eqValue[A: Type](expr: Expr[A], freshName: FreshName): MatchCase[Expr[A]] = {
+      val name = freshTerm[A](freshName, expr)
+      val matched: Expr[A] = c.Expr[A](q"$name")
+      EqValue(name, matched.as_??, expr.as_??, matched)
+    }
+
     override def matchOn[A: Type, B: Type](toMatch: Expr[A])(cases: NonEmptyVector[MatchCase[Expr[B]]]): Expr[B] = {
-      val caseTrees = cases.toVector.map { case TypeMatch(name, expr, result) =>
-        import expr.{Underlying as Matched, value as toSuppress}
-        cq"""$name : $Matched => { val _ = $toSuppress; $result }"""
+      val caseTrees = cases.toVector.map {
+        case TypeMatch(name, expr, result) =>
+          import expr.{Underlying as Matched, value as toSuppress}
+          cq"""$name : $Matched => { val _ = $toSuppress; $result }"""
+        case EqValue(name, matchedExpr, valueExpr, result) =>
+          import matchedExpr.value as toSuppress
+          val valueTree = valueExpr.value.tree
+          val body = q"{ val _ = $toSuppress; $result }"
+          valueTree match {
+            case Literal(_) =>
+              cq"${pq"$name @ $valueTree"} => $body"
+            case _ if valueTree.symbol != null && valueTree.symbol.isModule =>
+              cq"${pq"$name @ $valueTree"} => $body"
+            case _
+                if valueTree.symbol != null && valueTree.symbol.isStatic &&
+                  valueTree.symbol.isTerm && valueTree.symbol.asTerm.isStable =>
+              cq"${pq"$name @ $valueTree"} => $body"
+            case _ => cq"$name if $name == $valueTree => $body"
+          }
       }.toList
       c.Expr[B](q"$toMatch match { case ..$caseTrees }")
     }
@@ -539,40 +573,53 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
             case Left(value)  => Left(TypeMatch(name, expr, value))
             case Right(value) => Right(TypeMatch(name, expr, value))
           }
+        case EqValue(name, matchedExpr, valueExpr, result) =>
+          f(result) match {
+            case Left(value)  => Left(EqValue(name, matchedExpr, valueExpr, value))
+            case Right(value) => Right(EqValue(name, matchedExpr, valueExpr, value))
+          }
       }
 
     override val traverse: fp.Traverse[MatchCase] = new fp.Traverse[MatchCase] {
 
       override def traverse[G[_]: fp.Applicative, A, B](fa: MatchCase[A])(f: A => G[B]): G[MatchCase[B]] =
         fa match {
-          case TypeMatch(name, expr, a) => f(a).map(b => TypeMatch(name, expr, b))
+          case TypeMatch(name, expr, a)                 => f(a).map(b => TypeMatch(name, expr, b))
+          case EqValue(name, matchedExpr, valueExpr, a) => f(a).map(b => EqValue(name, matchedExpr, valueExpr, b))
         }
 
       override def parTraverse[G[_]: fp.Parallel, A, B](fa: MatchCase[A])(f: A => G[B]): G[MatchCase[B]] =
         fa match {
-          case TypeMatch(name, expr, a) => f(a).map(b => TypeMatch(name, expr, b))
+          case TypeMatch(name, expr, a)                 => f(a).map(b => TypeMatch(name, expr, b))
+          case EqValue(name, matchedExpr, valueExpr, a) => f(a).map(b => EqValue(name, matchedExpr, valueExpr, b))
         }
     }
 
     override val directStyle: fp.DirectStyle[MatchCase] = new fp.DirectStyle[MatchCase] {
-      private val saved = scala.collection.mutable.Map.empty[Any, (TermName, Expr_??)]
+      private val saved = scala.collection.mutable.Map.empty[Any, (TermName, Expr_??, Option[Expr_??])]
 
       override protected def scopedUnsafe[A](owner: fp.DirectStyle.ScopeOwner[MatchCase])(thunk: => A): MatchCase[A] = {
         val result = fp.effect.DirectStyleExecutor(thunk)
-        val (name, expr) = saved
+        val (name, expr, valueExprOpt) = saved
           .remove(owner)
           // $COVERAGE-OFF$
           .getOrElse(
             hearthRequirementFailed("MatchCase.directStyle: runSafe was not called inside scoped")
           )
         // $COVERAGE-ON$
-        TypeMatch(name, expr, result)
+        valueExprOpt match {
+          case Some(valueExpr) => EqValue(name, expr, valueExpr, result)
+          case None            => TypeMatch(name, expr, result)
+        }
       }
 
       override protected def runUnsafe[A](owner: fp.DirectStyle.ScopeOwner[MatchCase])(value: => MatchCase[A]): A =
         fp.effect.DirectStyleExecutor(value) match {
           case TypeMatch(name, expr, result) =>
-            saved(owner) = (name, expr)
+            saved(owner) = (name, expr, None)
+            result.asInstanceOf[A]
+          case EqValue(name, matchedExpr, valueExpr, result) =>
+            saved(owner) = (name, matchedExpr, Some(valueExpr))
             result.asInstanceOf[A]
         }
     }

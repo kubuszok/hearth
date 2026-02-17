@@ -59,6 +59,10 @@ object ExprsFixtures {
   private def testMatchCaseTypeMatchImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testMatchCaseTypeMatch[A](expr)
 
+  inline def testMatchCaseEqValue[A](inline expr: A): Data = ${ testMatchCaseEqValueImpl[A]('expr) }
+  private def testMatchCaseEqValueImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testMatchCaseEqValue[A](expr)
+
   inline def testMatchCasePartition[A, B](inline expr: A): B = ${ testMatchCasePartitionImpl[A, B]('expr) }
   private def testMatchCasePartitionImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
     new ExprsFixtures(q).testMatchCasePartition[A, B](expr)

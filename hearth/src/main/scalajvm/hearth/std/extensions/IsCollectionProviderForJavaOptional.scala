@@ -11,7 +11,7 @@ package extensions
   *
   * This is separate from [[IsOptionProviderForJavaOptional]] which implements [[StdExtensions.IsOptionOf]].
   *
-  * @since 0.4.0
+  * @since 0.3.0
   */
 final class IsCollectionProviderForJavaOptional extends StandardMacroExtension {
 

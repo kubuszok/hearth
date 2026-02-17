@@ -169,7 +169,16 @@ trait Classes { this: MacroCommons =>
         .traverse { case (name, child) =>
           DirectStyle[F].scoped { runSafe =>
             import child.Underlying as A0
-            MatchCase.typeMatch[A0](name).map { matched =>
+            // Use eqValue for enum vals with erased types (Scala 3 parameterless enum cases, Java enum vals)
+            // but NOT for case objects where typeMatch preserves exhaustivity checking
+            val mc: MatchCase[Expr[A0]] =
+              if (Type.isVal[A0] && !Type.isObject[A0])
+                Expr.singletonOf[A0] match {
+                  case Some(singleton) => MatchCase.eqValue[A0](singleton, name)
+                  case None            => MatchCase.typeMatch[A0](name)
+                }
+              else MatchCase.typeMatch[A0](name)
+            mc.map { matched =>
               runSafe(handle(matched.as_??<:[A]))
             }
           }
@@ -187,7 +196,16 @@ trait Classes { this: MacroCommons =>
         .parTraverse { case (name, child) =>
           DirectStyle[F].scoped { runSafe =>
             import child.Underlying as A0
-            MatchCase.typeMatch[A0](name).map { matched =>
+            // Use eqValue for enum vals with erased types (Scala 3 parameterless enum cases, Java enum vals)
+            // but NOT for case objects where typeMatch preserves exhaustivity checking
+            val mc: MatchCase[Expr[A0]] =
+              if (Type.isVal[A0] && !Type.isObject[A0])
+                Expr.singletonOf[A0] match {
+                  case Some(singleton) => MatchCase.eqValue[A0](singleton, name)
+                  case None            => MatchCase.typeMatch[A0](name)
+                }
+              else MatchCase.typeMatch[A0](name)
+            mc.map { matched =>
               runSafe(handle(matched.as_??<:[A]))
             }
           }

@@ -8,7 +8,7 @@ package extensions
   * [[scala.collection.immutable.WrappedString]], and provides a [[scala.collection.Factory]] implementation using
   * [[StringBuilder]]. Treats it as a type without smart constructors.
   *
-  * @since 0.4.0
+  * @since 0.3.0
   */
 final class IsCollectionProviderForString extends StandardMacroExtension {
 
