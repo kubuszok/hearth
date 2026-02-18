@@ -2389,4 +2389,1641 @@ trait CrossCtorInjectionFixturesImpl { this: MacroCommons =>
         "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
       )
     )
+
+  // ===== GENERATED CODE - Task 1: testCtorSetApplyUnapply =====
+
+  /** Test: Type.CtorN.setA/setLast.apply/unapply for arities 2-8. */
+  def testCtorSetApplyUnapply2to8: Expr[Data] = {
+    val EitherCtor: Type.Ctor2[Either] = Type.Ctor2.of[Either]
+    val Arity3Ctor: Type.Ctor3[Arity3] = Type.Ctor3.of[Arity3]
+    val Arity4Ctor: Type.Ctor4[Arity4] = Type.Ctor4.of[Arity4]
+    val Arity5Ctor: Type.Ctor5[Arity5] = Type.Ctor5.of[Arity5]
+    val Arity6Ctor: Type.Ctor6[Arity6] = Type.Ctor6.of[Arity6]
+    val Arity7Ctor: Type.Ctor7[Arity7] = Type.Ctor7.of[Arity7]
+    val Arity8Ctor: Type.Ctor8[Arity8] = Type.Ctor8.of[Arity8]
+
+    Expr(
+      Data.map(
+        "eitherSetAApply" -> Data(EitherCtor.setA[Int](using Type.of[Int]).apply[Int](using Type.of[Int]).plainPrint),
+        "eitherSetAUnapplyMatch" -> Data(
+          EitherCtor.setA[Int](using Type.of[Int]).unapply(Type.of[Either[Int, Int]]).isDefined.toString
+        ),
+        "eitherSetAUnapplyNoMatch" -> Data(
+          EitherCtor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "eitherSetBApply" -> Data(EitherCtor.setB[Int](using Type.of[Int]).apply[Int](using Type.of[Int]).plainPrint),
+        "eitherSetBUnapplyMatch" -> Data(
+          EitherCtor.setB[Int](using Type.of[Int]).unapply(Type.of[Either[Int, Int]]).isDefined.toString
+        ),
+        "eitherSetBUnapplyNoMatch" -> Data(
+          EitherCtor.setB[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity3SetAApply" -> Data(
+          Arity3Ctor.setA[Int](using Type.of[Int]).apply[Int, Int](using Type.of[Int], Type.of[Int]).plainPrint
+        ),
+        "arity3SetAUnapplyMatch" -> Data(
+          Arity3Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Arity3[Int, Int, Int]]).isDefined.toString
+        ),
+        "arity3SetAUnapplyNoMatch" -> Data(
+          Arity3Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity3SetCApply" -> Data(
+          Arity3Ctor.setC[Int](using Type.of[Int]).apply[Int, Int](using Type.of[Int], Type.of[Int]).plainPrint
+        ),
+        "arity3SetCUnapplyMatch" -> Data(
+          Arity3Ctor.setC[Int](using Type.of[Int]).unapply(Type.of[Arity3[Int, Int, Int]]).isDefined.toString
+        ),
+        "arity3SetCUnapplyNoMatch" -> Data(
+          Arity3Ctor.setC[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity4SetAApply" -> Data(
+          Arity4Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int](using Type.of[Int], Type.of[Int], Type.of[Int])
+            .plainPrint
+        ),
+        "arity4SetAUnapplyMatch" -> Data(
+          Arity4Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Arity4[Int, Int, Int, Int]]).isDefined.toString
+        ),
+        "arity4SetAUnapplyNoMatch" -> Data(
+          Arity4Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity4SetDApply" -> Data(
+          Arity4Ctor
+            .setD[Int](using Type.of[Int])
+            .apply[Int, Int, Int](using Type.of[Int], Type.of[Int], Type.of[Int])
+            .plainPrint
+        ),
+        "arity4SetDUnapplyMatch" -> Data(
+          Arity4Ctor.setD[Int](using Type.of[Int]).unapply(Type.of[Arity4[Int, Int, Int, Int]]).isDefined.toString
+        ),
+        "arity4SetDUnapplyNoMatch" -> Data(
+          Arity4Ctor.setD[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity5SetAApply" -> Data(
+          Arity5Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int](using Type.of[Int], Type.of[Int], Type.of[Int], Type.of[Int])
+            .plainPrint
+        ),
+        "arity5SetAUnapplyMatch" -> Data(
+          Arity5Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Arity5[Int, Int, Int, Int, Int]]).isDefined.toString
+        ),
+        "arity5SetAUnapplyNoMatch" -> Data(
+          Arity5Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity5SetEApply" -> Data(
+          Arity5Ctor
+            .setE[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int](using Type.of[Int], Type.of[Int], Type.of[Int], Type.of[Int])
+            .plainPrint
+        ),
+        "arity5SetEUnapplyMatch" -> Data(
+          Arity5Ctor.setE[Int](using Type.of[Int]).unapply(Type.of[Arity5[Int, Int, Int, Int, Int]]).isDefined.toString
+        ),
+        "arity5SetEUnapplyNoMatch" -> Data(
+          Arity5Ctor.setE[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity6SetAApply" -> Data(
+          Arity6Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int](using Type.of[Int], Type.of[Int], Type.of[Int], Type.of[Int], Type.of[Int])
+            .plainPrint
+        ),
+        "arity6SetAUnapplyMatch" -> Data(
+          Arity6Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(Type.of[Arity6[Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity6SetAUnapplyNoMatch" -> Data(
+          Arity6Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity6SetFApply" -> Data(
+          Arity6Ctor
+            .setF[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int](using Type.of[Int], Type.of[Int], Type.of[Int], Type.of[Int], Type.of[Int])
+            .plainPrint
+        ),
+        "arity6SetFUnapplyMatch" -> Data(
+          Arity6Ctor
+            .setF[Int](using Type.of[Int])
+            .unapply(Type.of[Arity6[Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity6SetFUnapplyNoMatch" -> Data(
+          Arity6Ctor.setF[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity7SetAApply" -> Data(
+          Arity7Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity7SetAUnapplyMatch" -> Data(
+          Arity7Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(Type.of[Arity7[Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity7SetAUnapplyNoMatch" -> Data(
+          Arity7Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity7SetGApply" -> Data(
+          Arity7Ctor
+            .setG[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity7SetGUnapplyMatch" -> Data(
+          Arity7Ctor
+            .setG[Int](using Type.of[Int])
+            .unapply(Type.of[Arity7[Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity7SetGUnapplyNoMatch" -> Data(
+          Arity7Ctor.setG[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity8SetAApply" -> Data(
+          Arity8Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity8SetAUnapplyMatch" -> Data(
+          Arity8Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(Type.of[Arity8[Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity8SetAUnapplyNoMatch" -> Data(
+          Arity8Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity8SetHApply" -> Data(
+          Arity8Ctor
+            .setH[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity8SetHUnapplyMatch" -> Data(
+          Arity8Ctor
+            .setH[Int](using Type.of[Int])
+            .unapply(Type.of[Arity8[Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity8SetHUnapplyNoMatch" -> Data(
+          Arity8Ctor.setH[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        )
+      )
+    )
+  }
+
+  /** Test: Type.CtorN.setA/setLast.apply/unapply for arities 9-15. */
+  def testCtorSetApplyUnapply9to15: Expr[Data] = {
+    val Arity9Ctor: Type.Ctor9[Arity9] = Type.Ctor9.of[Arity9]
+    val Arity10Ctor: Type.Ctor10[Arity10] = Type.Ctor10.of[Arity10]
+    val Arity11Ctor: Type.Ctor11[Arity11] = Type.Ctor11.of[Arity11]
+    val Arity12Ctor: Type.Ctor12[Arity12] = Type.Ctor12.of[Arity12]
+    val Arity13Ctor: Type.Ctor13[Arity13] = Type.Ctor13.of[Arity13]
+    val Arity14Ctor: Type.Ctor14[Arity14] = Type.Ctor14.of[Arity14]
+    val Arity15Ctor: Type.Ctor15[Arity15] = Type.Ctor15.of[Arity15]
+
+    Expr(
+      Data.map(
+        "arity9SetAApply" -> Data(
+          Arity9Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity9SetAUnapplyMatch" -> Data(
+          Arity9Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(Type.of[Arity9[Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity9SetAUnapplyNoMatch" -> Data(
+          Arity9Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity9SetIApply" -> Data(
+          Arity9Ctor
+            .setI[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity9SetIUnapplyMatch" -> Data(
+          Arity9Ctor
+            .setI[Int](using Type.of[Int])
+            .unapply(Type.of[Arity9[Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity9SetIUnapplyNoMatch" -> Data(
+          Arity9Ctor.setI[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity10SetAApply" -> Data(
+          Arity10Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity10SetAUnapplyMatch" -> Data(
+          Arity10Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(Type.of[Arity10[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity10SetAUnapplyNoMatch" -> Data(
+          Arity10Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity10SetJApply" -> Data(
+          Arity10Ctor
+            .setJ[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity10SetJUnapplyMatch" -> Data(
+          Arity10Ctor
+            .setJ[Int](using Type.of[Int])
+            .unapply(Type.of[Arity10[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity10SetJUnapplyNoMatch" -> Data(
+          Arity10Ctor.setJ[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity11SetAApply" -> Data(
+          Arity11Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity11SetAUnapplyMatch" -> Data(
+          Arity11Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(Type.of[Arity11[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity11SetAUnapplyNoMatch" -> Data(
+          Arity11Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity11SetKApply" -> Data(
+          Arity11Ctor
+            .setK[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity11SetKUnapplyMatch" -> Data(
+          Arity11Ctor
+            .setK[Int](using Type.of[Int])
+            .unapply(Type.of[Arity11[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity11SetKUnapplyNoMatch" -> Data(
+          Arity11Ctor.setK[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity12SetAApply" -> Data(
+          Arity12Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity12SetAUnapplyMatch" -> Data(
+          Arity12Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(Type.of[Arity12[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity12SetAUnapplyNoMatch" -> Data(
+          Arity12Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity12SetLApply" -> Data(
+          Arity12Ctor
+            .setL[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity12SetLUnapplyMatch" -> Data(
+          Arity12Ctor
+            .setL[Int](using Type.of[Int])
+            .unapply(Type.of[Arity12[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity12SetLUnapplyNoMatch" -> Data(
+          Arity12Ctor.setL[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity13SetAApply" -> Data(
+          Arity13Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity13SetAUnapplyMatch" -> Data(
+          Arity13Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(Type.of[Arity13[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity13SetAUnapplyNoMatch" -> Data(
+          Arity13Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity13SetMApply" -> Data(
+          Arity13Ctor
+            .setM[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity13SetMUnapplyMatch" -> Data(
+          Arity13Ctor
+            .setM[Int](using Type.of[Int])
+            .unapply(Type.of[Arity13[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity13SetMUnapplyNoMatch" -> Data(
+          Arity13Ctor.setM[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity14SetAApply" -> Data(
+          Arity14Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity14SetAUnapplyMatch" -> Data(
+          Arity14Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(Type.of[Arity14[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity14SetAUnapplyNoMatch" -> Data(
+          Arity14Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity14SetNApply" -> Data(
+          Arity14Ctor
+            .setN[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity14SetNUnapplyMatch" -> Data(
+          Arity14Ctor
+            .setN[Int](using Type.of[Int])
+            .unapply(Type.of[Arity14[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity14SetNUnapplyNoMatch" -> Data(
+          Arity14Ctor.setN[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity15SetAApply" -> Data(
+          Arity15Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity15SetAUnapplyMatch" -> Data(
+          Arity15Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(Type.of[Arity15[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity15SetAUnapplyNoMatch" -> Data(
+          Arity15Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity15SetOApply" -> Data(
+          Arity15Ctor
+            .setO[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity15SetOUnapplyMatch" -> Data(
+          Arity15Ctor
+            .setO[Int](using Type.of[Int])
+            .unapply(Type.of[Arity15[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity15SetOUnapplyNoMatch" -> Data(
+          Arity15Ctor.setO[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        )
+      )
+    )
+  }
+
+  /** Test: Type.CtorN.setA/setLast.apply/unapply for arities 16-22. */
+  def testCtorSetApplyUnapply16to22: Expr[Data] = {
+    val Arity16Ctor: Type.Ctor16[Arity16] = Type.Ctor16.of[Arity16]
+    val Arity17Ctor: Type.Ctor17[Arity17] = Type.Ctor17.of[Arity17]
+    val Arity18Ctor: Type.Ctor18[Arity18] = Type.Ctor18.of[Arity18]
+    val Arity19Ctor: Type.Ctor19[Arity19] = Type.Ctor19.of[Arity19]
+    val Arity20Ctor: Type.Ctor20[Arity20] = Type.Ctor20.of[Arity20]
+    val Arity21Ctor: Type.Ctor21[Arity21] = Type.Ctor21.of[Arity21]
+    val Arity22Ctor: Type.Ctor22[Arity22] = Type.Ctor22.of[Arity22]
+
+    Expr(
+      Data.map(
+        "arity16SetAApply" -> Data(
+          Arity16Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity16SetAUnapplyMatch" -> Data(
+          Arity16Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(Type.of[Arity16[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity16SetAUnapplyNoMatch" -> Data(
+          Arity16Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity16SetPApply" -> Data(
+          Arity16Ctor
+            .setP[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity16SetPUnapplyMatch" -> Data(
+          Arity16Ctor
+            .setP[Int](using Type.of[Int])
+            .unapply(Type.of[Arity16[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity16SetPUnapplyNoMatch" -> Data(
+          Arity16Ctor.setP[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity17SetAApply" -> Data(
+          Arity17Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity17SetAUnapplyMatch" -> Data(
+          Arity17Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(
+              Type.of[Arity17[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity17SetAUnapplyNoMatch" -> Data(
+          Arity17Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity17SetQApply" -> Data(
+          Arity17Ctor
+            .setQ[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity17SetQUnapplyMatch" -> Data(
+          Arity17Ctor
+            .setQ[Int](using Type.of[Int])
+            .unapply(
+              Type.of[Arity17[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity17SetQUnapplyNoMatch" -> Data(
+          Arity17Ctor.setQ[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity18SetAApply" -> Data(
+          Arity18Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity18SetAUnapplyMatch" -> Data(
+          Arity18Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(
+              Type.of[Arity18[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity18SetAUnapplyNoMatch" -> Data(
+          Arity18Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity18SetRApply" -> Data(
+          Arity18Ctor
+            .setR[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity18SetRUnapplyMatch" -> Data(
+          Arity18Ctor
+            .setR[Int](using Type.of[Int])
+            .unapply(
+              Type.of[Arity18[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity18SetRUnapplyNoMatch" -> Data(
+          Arity18Ctor.setR[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity19SetAApply" -> Data(
+          Arity19Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity19SetAUnapplyMatch" -> Data(
+          Arity19Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(
+              Type.of[
+                Arity19[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+              ]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity19SetAUnapplyNoMatch" -> Data(
+          Arity19Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity19SetSApply" -> Data(
+          Arity19Ctor
+            .setS[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity19SetSUnapplyMatch" -> Data(
+          Arity19Ctor
+            .setS[Int](using Type.of[Int])
+            .unapply(
+              Type.of[
+                Arity19[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+              ]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity19SetSUnapplyNoMatch" -> Data(
+          Arity19Ctor.setS[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity20SetAApply" -> Data(
+          Arity20Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity20SetAUnapplyMatch" -> Data(
+          Arity20Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(
+              Type.of[Arity20[
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int
+              ]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity20SetAUnapplyNoMatch" -> Data(
+          Arity20Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity20SetTApply" -> Data(
+          Arity20Ctor
+            .setT[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity20SetTUnapplyMatch" -> Data(
+          Arity20Ctor
+            .setT[Int](using Type.of[Int])
+            .unapply(
+              Type.of[Arity20[
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int
+              ]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity20SetTUnapplyNoMatch" -> Data(
+          Arity20Ctor.setT[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity21SetAApply" -> Data(
+          Arity21Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity21SetAUnapplyMatch" -> Data(
+          Arity21Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(
+              Type.of[Arity21[
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int
+              ]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity21SetAUnapplyNoMatch" -> Data(
+          Arity21Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity21SetUApply" -> Data(
+          Arity21Ctor
+            .setU[Int](using Type.of[Int])
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity21SetUUnapplyMatch" -> Data(
+          Arity21Ctor
+            .setU[Int](using Type.of[Int])
+            .unapply(
+              Type.of[Arity21[
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int
+              ]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity21SetUUnapplyNoMatch" -> Data(
+          Arity21Ctor.setU[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity22SetAApply" -> Data(
+          Arity22Ctor
+            .setA[Int](using Type.of[Int])
+            .apply[
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int
+            ](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity22SetAUnapplyMatch" -> Data(
+          Arity22Ctor
+            .setA[Int](using Type.of[Int])
+            .unapply(
+              Type.of[Arity22[
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int
+              ]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity22SetAUnapplyNoMatch" -> Data(
+          Arity22Ctor.setA[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        ),
+        "arity22SetVApply" -> Data(
+          Arity22Ctor
+            .setV[Int](using Type.of[Int])
+            .apply[
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int
+            ](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity22SetVUnapplyMatch" -> Data(
+          Arity22Ctor
+            .setV[Int](using Type.of[Int])
+            .unapply(
+              Type.of[Arity22[
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int
+              ]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity22SetVUnapplyNoMatch" -> Data(
+          Arity22Ctor.setV[Int](using Type.of[Int]).unapply(Type.of[Option[String]]).isDefined.toString
+        )
+      )
+    )
+  }
+
+  /** Test: Type.CtorN.setMiddle.asUntyped for arities 3-7. */
+  def testCtorSetMiddleAsUntyped3to7: Expr[Data] = {
+    val Arity3Ctor: Type.Ctor3[Arity3] = Type.Ctor3.of[Arity3]
+    val Arity4Ctor: Type.Ctor4[Arity4] = Type.Ctor4.of[Arity4]
+    val Arity5Ctor: Type.Ctor5[Arity5] = Type.Ctor5.of[Arity5]
+    val Arity6Ctor: Type.Ctor6[Arity6] = Type.Ctor6.of[Arity6]
+    val Arity7Ctor: Type.Ctor7[Arity7] = Type.Ctor7.of[Arity7]
+
+    Expr(
+      Data.map(
+        "arity3SetBUntyped" -> Data(UntypedType.plainPrint(Arity3Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity4SetBUntyped" -> Data(UntypedType.plainPrint(Arity4Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity4SetCUntyped" -> Data(UntypedType.plainPrint(Arity4Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity5SetBUntyped" -> Data(UntypedType.plainPrint(Arity5Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity5SetCUntyped" -> Data(UntypedType.plainPrint(Arity5Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity5SetDUntyped" -> Data(UntypedType.plainPrint(Arity5Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity6SetBUntyped" -> Data(UntypedType.plainPrint(Arity6Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity6SetCUntyped" -> Data(UntypedType.plainPrint(Arity6Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity6SetDUntyped" -> Data(UntypedType.plainPrint(Arity6Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity6SetEUntyped" -> Data(UntypedType.plainPrint(Arity6Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity7SetBUntyped" -> Data(UntypedType.plainPrint(Arity7Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity7SetCUntyped" -> Data(UntypedType.plainPrint(Arity7Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity7SetDUntyped" -> Data(UntypedType.plainPrint(Arity7Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity7SetEUntyped" -> Data(UntypedType.plainPrint(Arity7Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity7SetFUntyped" -> Data(UntypedType.plainPrint(Arity7Ctor.setF[Int](using Type.of[Int]).asUntyped))
+      )
+    )
+  }
+
+  /** Test: Type.CtorN.setMiddle.asUntyped for arities 8-12. */
+  def testCtorSetMiddleAsUntyped8to12: Expr[Data] = {
+    val Arity8Ctor: Type.Ctor8[Arity8] = Type.Ctor8.of[Arity8]
+    val Arity9Ctor: Type.Ctor9[Arity9] = Type.Ctor9.of[Arity9]
+    val Arity10Ctor: Type.Ctor10[Arity10] = Type.Ctor10.of[Arity10]
+    val Arity11Ctor: Type.Ctor11[Arity11] = Type.Ctor11.of[Arity11]
+    val Arity12Ctor: Type.Ctor12[Arity12] = Type.Ctor12.of[Arity12]
+
+    Expr(
+      Data.map(
+        "arity8SetBUntyped" -> Data(UntypedType.plainPrint(Arity8Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity8SetCUntyped" -> Data(UntypedType.plainPrint(Arity8Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity8SetDUntyped" -> Data(UntypedType.plainPrint(Arity8Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity8SetEUntyped" -> Data(UntypedType.plainPrint(Arity8Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity8SetFUntyped" -> Data(UntypedType.plainPrint(Arity8Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity8SetGUntyped" -> Data(UntypedType.plainPrint(Arity8Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity9SetBUntyped" -> Data(UntypedType.plainPrint(Arity9Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity9SetCUntyped" -> Data(UntypedType.plainPrint(Arity9Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity9SetDUntyped" -> Data(UntypedType.plainPrint(Arity9Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity9SetEUntyped" -> Data(UntypedType.plainPrint(Arity9Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity9SetFUntyped" -> Data(UntypedType.plainPrint(Arity9Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity9SetGUntyped" -> Data(UntypedType.plainPrint(Arity9Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity9SetHUntyped" -> Data(UntypedType.plainPrint(Arity9Ctor.setH[Int](using Type.of[Int]).asUntyped)),
+        "arity10SetBUntyped" -> Data(UntypedType.plainPrint(Arity10Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity10SetCUntyped" -> Data(UntypedType.plainPrint(Arity10Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity10SetDUntyped" -> Data(UntypedType.plainPrint(Arity10Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity10SetEUntyped" -> Data(UntypedType.plainPrint(Arity10Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity10SetFUntyped" -> Data(UntypedType.plainPrint(Arity10Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity10SetGUntyped" -> Data(UntypedType.plainPrint(Arity10Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity10SetHUntyped" -> Data(UntypedType.plainPrint(Arity10Ctor.setH[Int](using Type.of[Int]).asUntyped)),
+        "arity10SetIUntyped" -> Data(UntypedType.plainPrint(Arity10Ctor.setI[Int](using Type.of[Int]).asUntyped)),
+        "arity11SetBUntyped" -> Data(UntypedType.plainPrint(Arity11Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity11SetCUntyped" -> Data(UntypedType.plainPrint(Arity11Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity11SetDUntyped" -> Data(UntypedType.plainPrint(Arity11Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity11SetEUntyped" -> Data(UntypedType.plainPrint(Arity11Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity11SetFUntyped" -> Data(UntypedType.plainPrint(Arity11Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity11SetGUntyped" -> Data(UntypedType.plainPrint(Arity11Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity11SetHUntyped" -> Data(UntypedType.plainPrint(Arity11Ctor.setH[Int](using Type.of[Int]).asUntyped)),
+        "arity11SetIUntyped" -> Data(UntypedType.plainPrint(Arity11Ctor.setI[Int](using Type.of[Int]).asUntyped)),
+        "arity11SetJUntyped" -> Data(UntypedType.plainPrint(Arity11Ctor.setJ[Int](using Type.of[Int]).asUntyped)),
+        "arity12SetBUntyped" -> Data(UntypedType.plainPrint(Arity12Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity12SetCUntyped" -> Data(UntypedType.plainPrint(Arity12Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity12SetDUntyped" -> Data(UntypedType.plainPrint(Arity12Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity12SetEUntyped" -> Data(UntypedType.plainPrint(Arity12Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity12SetFUntyped" -> Data(UntypedType.plainPrint(Arity12Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity12SetGUntyped" -> Data(UntypedType.plainPrint(Arity12Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity12SetHUntyped" -> Data(UntypedType.plainPrint(Arity12Ctor.setH[Int](using Type.of[Int]).asUntyped)),
+        "arity12SetIUntyped" -> Data(UntypedType.plainPrint(Arity12Ctor.setI[Int](using Type.of[Int]).asUntyped)),
+        "arity12SetJUntyped" -> Data(UntypedType.plainPrint(Arity12Ctor.setJ[Int](using Type.of[Int]).asUntyped)),
+        "arity12SetKUntyped" -> Data(UntypedType.plainPrint(Arity12Ctor.setK[Int](using Type.of[Int]).asUntyped))
+      )
+    )
+  }
+
+  /** Test: Type.CtorN.setMiddle.asUntyped for arities 13-17. */
+  def testCtorSetMiddleAsUntyped13to17: Expr[Data] = {
+    val Arity13Ctor: Type.Ctor13[Arity13] = Type.Ctor13.of[Arity13]
+    val Arity14Ctor: Type.Ctor14[Arity14] = Type.Ctor14.of[Arity14]
+    val Arity15Ctor: Type.Ctor15[Arity15] = Type.Ctor15.of[Arity15]
+    val Arity16Ctor: Type.Ctor16[Arity16] = Type.Ctor16.of[Arity16]
+    val Arity17Ctor: Type.Ctor17[Arity17] = Type.Ctor17.of[Arity17]
+
+    Expr(
+      Data.map(
+        "arity13SetBUntyped" -> Data(UntypedType.plainPrint(Arity13Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity13SetCUntyped" -> Data(UntypedType.plainPrint(Arity13Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity13SetDUntyped" -> Data(UntypedType.plainPrint(Arity13Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity13SetEUntyped" -> Data(UntypedType.plainPrint(Arity13Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity13SetFUntyped" -> Data(UntypedType.plainPrint(Arity13Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity13SetGUntyped" -> Data(UntypedType.plainPrint(Arity13Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity13SetHUntyped" -> Data(UntypedType.plainPrint(Arity13Ctor.setH[Int](using Type.of[Int]).asUntyped)),
+        "arity13SetIUntyped" -> Data(UntypedType.plainPrint(Arity13Ctor.setI[Int](using Type.of[Int]).asUntyped)),
+        "arity13SetJUntyped" -> Data(UntypedType.plainPrint(Arity13Ctor.setJ[Int](using Type.of[Int]).asUntyped)),
+        "arity13SetKUntyped" -> Data(UntypedType.plainPrint(Arity13Ctor.setK[Int](using Type.of[Int]).asUntyped)),
+        "arity13SetLUntyped" -> Data(UntypedType.plainPrint(Arity13Ctor.setL[Int](using Type.of[Int]).asUntyped)),
+        "arity14SetBUntyped" -> Data(UntypedType.plainPrint(Arity14Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity14SetCUntyped" -> Data(UntypedType.plainPrint(Arity14Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity14SetDUntyped" -> Data(UntypedType.plainPrint(Arity14Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity14SetEUntyped" -> Data(UntypedType.plainPrint(Arity14Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity14SetFUntyped" -> Data(UntypedType.plainPrint(Arity14Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity14SetGUntyped" -> Data(UntypedType.plainPrint(Arity14Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity14SetHUntyped" -> Data(UntypedType.plainPrint(Arity14Ctor.setH[Int](using Type.of[Int]).asUntyped)),
+        "arity14SetIUntyped" -> Data(UntypedType.plainPrint(Arity14Ctor.setI[Int](using Type.of[Int]).asUntyped)),
+        "arity14SetJUntyped" -> Data(UntypedType.plainPrint(Arity14Ctor.setJ[Int](using Type.of[Int]).asUntyped)),
+        "arity14SetKUntyped" -> Data(UntypedType.plainPrint(Arity14Ctor.setK[Int](using Type.of[Int]).asUntyped)),
+        "arity14SetLUntyped" -> Data(UntypedType.plainPrint(Arity14Ctor.setL[Int](using Type.of[Int]).asUntyped)),
+        "arity14SetMUntyped" -> Data(UntypedType.plainPrint(Arity14Ctor.setM[Int](using Type.of[Int]).asUntyped)),
+        "arity15SetBUntyped" -> Data(UntypedType.plainPrint(Arity15Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity15SetCUntyped" -> Data(UntypedType.plainPrint(Arity15Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity15SetDUntyped" -> Data(UntypedType.plainPrint(Arity15Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity15SetEUntyped" -> Data(UntypedType.plainPrint(Arity15Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity15SetFUntyped" -> Data(UntypedType.plainPrint(Arity15Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity15SetGUntyped" -> Data(UntypedType.plainPrint(Arity15Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity15SetHUntyped" -> Data(UntypedType.plainPrint(Arity15Ctor.setH[Int](using Type.of[Int]).asUntyped)),
+        "arity15SetIUntyped" -> Data(UntypedType.plainPrint(Arity15Ctor.setI[Int](using Type.of[Int]).asUntyped)),
+        "arity15SetJUntyped" -> Data(UntypedType.plainPrint(Arity15Ctor.setJ[Int](using Type.of[Int]).asUntyped)),
+        "arity15SetKUntyped" -> Data(UntypedType.plainPrint(Arity15Ctor.setK[Int](using Type.of[Int]).asUntyped)),
+        "arity15SetLUntyped" -> Data(UntypedType.plainPrint(Arity15Ctor.setL[Int](using Type.of[Int]).asUntyped)),
+        "arity15SetMUntyped" -> Data(UntypedType.plainPrint(Arity15Ctor.setM[Int](using Type.of[Int]).asUntyped)),
+        "arity15SetNUntyped" -> Data(UntypedType.plainPrint(Arity15Ctor.setN[Int](using Type.of[Int]).asUntyped)),
+        "arity16SetBUntyped" -> Data(UntypedType.plainPrint(Arity16Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity16SetCUntyped" -> Data(UntypedType.plainPrint(Arity16Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity16SetDUntyped" -> Data(UntypedType.plainPrint(Arity16Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity16SetEUntyped" -> Data(UntypedType.plainPrint(Arity16Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity16SetFUntyped" -> Data(UntypedType.plainPrint(Arity16Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity16SetGUntyped" -> Data(UntypedType.plainPrint(Arity16Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity16SetHUntyped" -> Data(UntypedType.plainPrint(Arity16Ctor.setH[Int](using Type.of[Int]).asUntyped)),
+        "arity16SetIUntyped" -> Data(UntypedType.plainPrint(Arity16Ctor.setI[Int](using Type.of[Int]).asUntyped)),
+        "arity16SetJUntyped" -> Data(UntypedType.plainPrint(Arity16Ctor.setJ[Int](using Type.of[Int]).asUntyped)),
+        "arity16SetKUntyped" -> Data(UntypedType.plainPrint(Arity16Ctor.setK[Int](using Type.of[Int]).asUntyped)),
+        "arity16SetLUntyped" -> Data(UntypedType.plainPrint(Arity16Ctor.setL[Int](using Type.of[Int]).asUntyped)),
+        "arity16SetMUntyped" -> Data(UntypedType.plainPrint(Arity16Ctor.setM[Int](using Type.of[Int]).asUntyped)),
+        "arity16SetNUntyped" -> Data(UntypedType.plainPrint(Arity16Ctor.setN[Int](using Type.of[Int]).asUntyped)),
+        "arity16SetOUntyped" -> Data(UntypedType.plainPrint(Arity16Ctor.setO[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetBUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetCUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetDUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetEUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetFUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetGUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetHUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setH[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetIUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setI[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetJUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setJ[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetKUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setK[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetLUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setL[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetMUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setM[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetNUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setN[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetOUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setO[Int](using Type.of[Int]).asUntyped)),
+        "arity17SetPUntyped" -> Data(UntypedType.plainPrint(Arity17Ctor.setP[Int](using Type.of[Int]).asUntyped))
+      )
+    )
+  }
+
+  /** Test: Type.CtorN.setMiddle.asUntyped for arities 18-22. */
+  def testCtorSetMiddleAsUntyped18to22: Expr[Data] = {
+    val Arity18Ctor: Type.Ctor18[Arity18] = Type.Ctor18.of[Arity18]
+    val Arity19Ctor: Type.Ctor19[Arity19] = Type.Ctor19.of[Arity19]
+    val Arity20Ctor: Type.Ctor20[Arity20] = Type.Ctor20.of[Arity20]
+    val Arity21Ctor: Type.Ctor21[Arity21] = Type.Ctor21.of[Arity21]
+    val Arity22Ctor: Type.Ctor22[Arity22] = Type.Ctor22.of[Arity22]
+
+    Expr(
+      Data.map(
+        "arity18SetBUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetCUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetDUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetEUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetFUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetGUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetHUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setH[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetIUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setI[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetJUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setJ[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetKUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setK[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetLUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setL[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetMUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setM[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetNUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setN[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetOUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setO[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetPUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setP[Int](using Type.of[Int]).asUntyped)),
+        "arity18SetQUntyped" -> Data(UntypedType.plainPrint(Arity18Ctor.setQ[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetBUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetCUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetDUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetEUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetFUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetGUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetHUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setH[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetIUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setI[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetJUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setJ[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetKUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setK[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetLUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setL[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetMUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setM[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetNUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setN[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetOUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setO[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetPUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setP[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetQUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setQ[Int](using Type.of[Int]).asUntyped)),
+        "arity19SetRUntyped" -> Data(UntypedType.plainPrint(Arity19Ctor.setR[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetBUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetCUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetDUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetEUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetFUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetGUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetHUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setH[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetIUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setI[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetJUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setJ[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetKUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setK[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetLUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setL[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetMUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setM[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetNUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setN[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetOUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setO[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetPUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setP[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetQUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setQ[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetRUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setR[Int](using Type.of[Int]).asUntyped)),
+        "arity20SetSUntyped" -> Data(UntypedType.plainPrint(Arity20Ctor.setS[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetBUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetCUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetDUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetEUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetFUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetGUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetHUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setH[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetIUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setI[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetJUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setJ[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetKUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setK[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetLUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setL[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetMUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setM[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetNUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setN[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetOUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setO[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetPUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setP[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetQUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setQ[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetRUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setR[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetSUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setS[Int](using Type.of[Int]).asUntyped)),
+        "arity21SetTUntyped" -> Data(UntypedType.plainPrint(Arity21Ctor.setT[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetBUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setB[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetCUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setC[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetDUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setD[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetEUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setE[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetFUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setF[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetGUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setG[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetHUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setH[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetIUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setI[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetJUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setJ[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetKUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setK[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetLUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setL[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetMUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setM[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetNUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setN[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetOUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setO[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetPUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setP[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetQUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setQ[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetRUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setR[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetSUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setS[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetTUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setT[Int](using Type.of[Int]).asUntyped)),
+        "arity22SetUUntyped" -> Data(UntypedType.plainPrint(Arity22Ctor.setU[Int](using Type.of[Int]).asUntyped))
+      )
+    )
+  }
+
+  /** Test: Type.identityCtor1Untyped returns valid UntypedType. */
+  def testIdentityCtor1Untyped: Expr[Data] =
+    Expr(
+      Data.map(
+        "identityCtor1Untyped" -> Data(UntypedType.plainPrint(Type.identityCtor1Untyped))
+      )
+    )
+
 }

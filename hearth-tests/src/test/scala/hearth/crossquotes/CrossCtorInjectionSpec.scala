@@ -1151,5 +1151,1352 @@ final class CrossCtorInjectionSpec extends MacroSuite {
       }
 
     }
+
+    group("for Type.CtorN.setX.apply/unapply") {
+
+      test("should verify apply/unapply for Ctor2-Ctor8 setA/setLast") {
+        CrossCtorInjectionFixtures.testCtorSetApplyUnapply2to8 <==> Data.map(
+          "eitherSetAApply" -> Data(
+            "scala.util.Either[scala.Int, scala.Int]"
+          ),
+          "eitherSetAUnapplyMatch" -> Data("true"),
+          "eitherSetAUnapplyNoMatch" -> Data("false"),
+          "eitherSetBApply" -> Data(
+            "scala.util.Either[scala.Int, scala.Int]"
+          ),
+          "eitherSetBUnapplyMatch" -> Data("true"),
+          "eitherSetBUnapplyNoMatch" -> Data("false"),
+          "arity3SetAApply" -> Data(
+            "hearth.examples.kinds.Arity3[scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity3SetAUnapplyMatch" -> Data("true"),
+          "arity3SetAUnapplyNoMatch" -> Data("false"),
+          "arity3SetCApply" -> Data(
+            "hearth.examples.kinds.Arity3[scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity3SetCUnapplyMatch" -> Data("true"),
+          "arity3SetCUnapplyNoMatch" -> Data("false"),
+          "arity4SetAApply" -> Data(
+            "hearth.examples.kinds.Arity4[scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity4SetAUnapplyMatch" -> Data("true"),
+          "arity4SetAUnapplyNoMatch" -> Data("false"),
+          "arity4SetDApply" -> Data(
+            "hearth.examples.kinds.Arity4[scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity4SetDUnapplyMatch" -> Data("true"),
+          "arity4SetDUnapplyNoMatch" -> Data("false"),
+          "arity5SetAApply" -> Data(
+            "hearth.examples.kinds.Arity5[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity5SetAUnapplyMatch" -> Data("true"),
+          "arity5SetAUnapplyNoMatch" -> Data("false"),
+          "arity5SetEApply" -> Data(
+            "hearth.examples.kinds.Arity5[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity5SetEUnapplyMatch" -> Data("true"),
+          "arity5SetEUnapplyNoMatch" -> Data("false"),
+          "arity6SetAApply" -> Data(
+            "hearth.examples.kinds.Arity6[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity6SetAUnapplyMatch" -> Data("true"),
+          "arity6SetAUnapplyNoMatch" -> Data("false"),
+          "arity6SetFApply" -> Data(
+            "hearth.examples.kinds.Arity6[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity6SetFUnapplyMatch" -> Data("true"),
+          "arity6SetFUnapplyNoMatch" -> Data("false"),
+          "arity7SetAApply" -> Data(
+            "hearth.examples.kinds.Arity7[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity7SetAUnapplyMatch" -> Data("true"),
+          "arity7SetAUnapplyNoMatch" -> Data("false"),
+          "arity7SetGApply" -> Data(
+            "hearth.examples.kinds.Arity7[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity7SetGUnapplyMatch" -> Data("true"),
+          "arity7SetGUnapplyNoMatch" -> Data("false"),
+          "arity8SetAApply" -> Data(
+            "hearth.examples.kinds.Arity8[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity8SetAUnapplyMatch" -> Data("true"),
+          "arity8SetAUnapplyNoMatch" -> Data("false"),
+          "arity8SetHApply" -> Data(
+            "hearth.examples.kinds.Arity8[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity8SetHUnapplyMatch" -> Data("true"),
+          "arity8SetHUnapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should verify apply/unapply for Ctor9-Ctor15 setA/setLast") {
+        CrossCtorInjectionFixtures.testCtorSetApplyUnapply9to15 <==> Data.map(
+          "arity9SetAApply" -> Data(
+            "hearth.examples.kinds.Arity9[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity9SetAUnapplyMatch" -> Data("true"),
+          "arity9SetAUnapplyNoMatch" -> Data("false"),
+          "arity9SetIApply" -> Data(
+            "hearth.examples.kinds.Arity9[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity9SetIUnapplyMatch" -> Data("true"),
+          "arity9SetIUnapplyNoMatch" -> Data("false"),
+          "arity10SetAApply" -> Data(
+            "hearth.examples.kinds.Arity10[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity10SetAUnapplyMatch" -> Data("true"),
+          "arity10SetAUnapplyNoMatch" -> Data("false"),
+          "arity10SetJApply" -> Data(
+            "hearth.examples.kinds.Arity10[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity10SetJUnapplyMatch" -> Data("true"),
+          "arity10SetJUnapplyNoMatch" -> Data("false"),
+          "arity11SetAApply" -> Data(
+            "hearth.examples.kinds.Arity11[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity11SetAUnapplyMatch" -> Data("true"),
+          "arity11SetAUnapplyNoMatch" -> Data("false"),
+          "arity11SetKApply" -> Data(
+            "hearth.examples.kinds.Arity11[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity11SetKUnapplyMatch" -> Data("true"),
+          "arity11SetKUnapplyNoMatch" -> Data("false"),
+          "arity12SetAApply" -> Data(
+            "hearth.examples.kinds.Arity12[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity12SetAUnapplyMatch" -> Data("true"),
+          "arity12SetAUnapplyNoMatch" -> Data("false"),
+          "arity12SetLApply" -> Data(
+            "hearth.examples.kinds.Arity12[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity12SetLUnapplyMatch" -> Data("true"),
+          "arity12SetLUnapplyNoMatch" -> Data("false"),
+          "arity13SetAApply" -> Data(
+            "hearth.examples.kinds.Arity13[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity13SetAUnapplyMatch" -> Data("true"),
+          "arity13SetAUnapplyNoMatch" -> Data("false"),
+          "arity13SetMApply" -> Data(
+            "hearth.examples.kinds.Arity13[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity13SetMUnapplyMatch" -> Data("true"),
+          "arity13SetMUnapplyNoMatch" -> Data("false"),
+          "arity14SetAApply" -> Data(
+            "hearth.examples.kinds.Arity14[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity14SetAUnapplyMatch" -> Data("true"),
+          "arity14SetAUnapplyNoMatch" -> Data("false"),
+          "arity14SetNApply" -> Data(
+            "hearth.examples.kinds.Arity14[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity14SetNUnapplyMatch" -> Data("true"),
+          "arity14SetNUnapplyNoMatch" -> Data("false"),
+          "arity15SetAApply" -> Data(
+            "hearth.examples.kinds.Arity15[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity15SetAUnapplyMatch" -> Data("true"),
+          "arity15SetAUnapplyNoMatch" -> Data("false"),
+          "arity15SetOApply" -> Data(
+            "hearth.examples.kinds.Arity15[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity15SetOUnapplyMatch" -> Data("true"),
+          "arity15SetOUnapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should verify apply/unapply for Ctor16-Ctor22 setA/setLast") {
+        CrossCtorInjectionFixtures.testCtorSetApplyUnapply16to22 <==> Data.map(
+          "arity16SetAApply" -> Data(
+            "hearth.examples.kinds.Arity16[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity16SetAUnapplyMatch" -> Data("true"),
+          "arity16SetAUnapplyNoMatch" -> Data("false"),
+          "arity16SetPApply" -> Data(
+            "hearth.examples.kinds.Arity16[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity16SetPUnapplyMatch" -> Data("true"),
+          "arity16SetPUnapplyNoMatch" -> Data("false"),
+          "arity17SetAApply" -> Data(
+            "hearth.examples.kinds.Arity17[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity17SetAUnapplyMatch" -> Data("true"),
+          "arity17SetAUnapplyNoMatch" -> Data("false"),
+          "arity17SetQApply" -> Data(
+            "hearth.examples.kinds.Arity17[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity17SetQUnapplyMatch" -> Data("true"),
+          "arity17SetQUnapplyNoMatch" -> Data("false"),
+          "arity18SetAApply" -> Data(
+            "hearth.examples.kinds.Arity18[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity18SetAUnapplyMatch" -> Data("true"),
+          "arity18SetAUnapplyNoMatch" -> Data("false"),
+          "arity18SetRApply" -> Data(
+            "hearth.examples.kinds.Arity18[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity18SetRUnapplyMatch" -> Data("true"),
+          "arity18SetRUnapplyNoMatch" -> Data("false"),
+          "arity19SetAApply" -> Data(
+            "hearth.examples.kinds.Arity19[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity19SetAUnapplyMatch" -> Data("true"),
+          "arity19SetAUnapplyNoMatch" -> Data("false"),
+          "arity19SetSApply" -> Data(
+            "hearth.examples.kinds.Arity19[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity19SetSUnapplyMatch" -> Data("true"),
+          "arity19SetSUnapplyNoMatch" -> Data("false"),
+          "arity20SetAApply" -> Data(
+            "hearth.examples.kinds.Arity20[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity20SetAUnapplyMatch" -> Data("true"),
+          "arity20SetAUnapplyNoMatch" -> Data("false"),
+          "arity20SetTApply" -> Data(
+            "hearth.examples.kinds.Arity20[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity20SetTUnapplyMatch" -> Data("true"),
+          "arity20SetTUnapplyNoMatch" -> Data("false"),
+          "arity21SetAApply" -> Data(
+            "hearth.examples.kinds.Arity21[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity21SetAUnapplyMatch" -> Data("true"),
+          "arity21SetAUnapplyNoMatch" -> Data("false"),
+          "arity21SetUApply" -> Data(
+            "hearth.examples.kinds.Arity21[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity21SetUUnapplyMatch" -> Data("true"),
+          "arity21SetUUnapplyNoMatch" -> Data("false"),
+          "arity22SetAApply" -> Data(
+            "hearth.examples.kinds.Arity22[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity22SetAUnapplyMatch" -> Data("true"),
+          "arity22SetAUnapplyNoMatch" -> Data("false"),
+          "arity22SetVApply" -> Data(
+            "hearth.examples.kinds.Arity22[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity22SetVUnapplyMatch" -> Data("true"),
+          "arity22SetVUnapplyNoMatch" -> Data("false")
+        )
+      }
+
+    }
+
+    group("for Type.CtorN.setMiddle.asUntyped") {
+
+      test("should verify middle setters asUntyped for Ctor3-Ctor7") {
+        val isScala3 = LanguageVersion.byHearth.isScala3
+        CrossCtorInjectionFixtures.testCtorSetMiddleAsUntyped3to7 <==> Data.map(
+          "arity3SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity3[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity3[_$1, scala.Int, _$2]"
+            else "({type λ[A, C] = hearth.examples.kinds.Arity3})#λ"
+          ),
+          "arity4SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity4[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity4[_$1, scala.Int, _$2, _$3]"
+            else "({type λ[A, C, D] = hearth.examples.kinds.Arity4})#λ"
+          ),
+          "arity4SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity4[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity4[_$1, _$2, scala.Int, _$3]"
+            else "({type λ[A, B, D] = hearth.examples.kinds.Arity4})#λ"
+          ),
+          "arity5SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity5[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity5[_$1, scala.Int, _$2, _$3, _$4]"
+            else "({type λ[A, C, D, E] = hearth.examples.kinds.Arity5})#λ"
+          ),
+          "arity5SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity5[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity5[_$1, _$2, scala.Int, _$3, _$4]"
+            else "({type λ[A, B, D, E] = hearth.examples.kinds.Arity5})#λ"
+          ),
+          "arity5SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity5[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity5[_$1, _$2, _$3, scala.Int, _$4]"
+            else "({type λ[A, B, C, E] = hearth.examples.kinds.Arity5})#λ"
+          ),
+          "arity6SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity6[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity6[_$1, scala.Int, _$2, _$3, _$4, _$5]"
+            else "({type λ[A, C, D, E, F] = hearth.examples.kinds.Arity6})#λ"
+          ),
+          "arity6SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity6[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity6[_$1, _$2, scala.Int, _$3, _$4, _$5]"
+            else "({type λ[A, B, D, E, F] = hearth.examples.kinds.Arity6})#λ"
+          ),
+          "arity6SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity6[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity6[_$1, _$2, _$3, scala.Int, _$4, _$5]"
+            else "({type λ[A, B, C, E, F] = hearth.examples.kinds.Arity6})#λ"
+          ),
+          "arity6SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity6[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity6[_$1, _$2, _$3, _$4, scala.Int, _$5]"
+            else "({type λ[A, B, C, D, F] = hearth.examples.kinds.Arity6})#λ"
+          ),
+          "arity7SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity7[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity7[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6]"
+            else "({type λ[A, C, D, E, F, G] = hearth.examples.kinds.Arity7})#λ"
+          ),
+          "arity7SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity7[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity7[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6]"
+            else "({type λ[A, B, D, E, F, G] = hearth.examples.kinds.Arity7})#λ"
+          ),
+          "arity7SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity7[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity7[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6]"
+            else "({type λ[A, B, C, E, F, G] = hearth.examples.kinds.Arity7})#λ"
+          ),
+          "arity7SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity7[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity7[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6]"
+            else "({type λ[A, B, C, D, F, G] = hearth.examples.kinds.Arity7})#λ"
+          ),
+          "arity7SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity7[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity7[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6]"
+            else "({type λ[A, B, C, D, E, G] = hearth.examples.kinds.Arity7})#λ"
+          )
+        )
+      }
+
+      test("should verify middle setters asUntyped for Ctor8-Ctor12") {
+        val isScala3 = LanguageVersion.byHearth.isScala3
+        CrossCtorInjectionFixtures.testCtorSetMiddleAsUntyped8to12 <==> Data.map(
+          "arity8SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity8[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity8[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7]"
+            else "({type λ[A, C, D, E, F, G, H] = hearth.examples.kinds.Arity8})#λ"
+          ),
+          "arity8SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity8[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity8[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7]"
+            else "({type λ[A, B, D, E, F, G, H] = hearth.examples.kinds.Arity8})#λ"
+          ),
+          "arity8SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity8[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity8[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7]"
+            else "({type λ[A, B, C, E, F, G, H] = hearth.examples.kinds.Arity8})#λ"
+          ),
+          "arity8SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity8[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity8[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7]"
+            else "({type λ[A, B, C, D, F, G, H] = hearth.examples.kinds.Arity8})#λ"
+          ),
+          "arity8SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity8[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity8[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7]"
+            else "({type λ[A, B, C, D, E, G, H] = hearth.examples.kinds.Arity8})#λ"
+          ),
+          "arity8SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity8[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity8[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7]"
+            else "({type λ[A, B, C, D, E, F, H] = hearth.examples.kinds.Arity8})#λ"
+          ),
+          "arity9SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity9[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity9[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7, _$8]"
+            else "({type λ[A, C, D, E, F, G, H, I] = hearth.examples.kinds.Arity9})#λ"
+          ),
+          "arity9SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity9[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity9[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7, _$8]"
+            else "({type λ[A, B, D, E, F, G, H, I] = hearth.examples.kinds.Arity9})#λ"
+          ),
+          "arity9SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity9[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity9[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7, _$8]"
+            else "({type λ[A, B, C, E, F, G, H, I] = hearth.examples.kinds.Arity9})#λ"
+          ),
+          "arity9SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity9[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity9[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7, _$8]"
+            else "({type λ[A, B, C, D, F, G, H, I] = hearth.examples.kinds.Arity9})#λ"
+          ),
+          "arity9SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity9[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity9[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7, _$8]"
+            else "({type λ[A, B, C, D, E, G, H, I] = hearth.examples.kinds.Arity9})#λ"
+          ),
+          "arity9SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity9[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity9[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7, _$8]"
+            else "({type λ[A, B, C, D, E, F, H, I] = hearth.examples.kinds.Arity9})#λ"
+          ),
+          "arity9SetHUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity9[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity9[_$1, _$2, _$3, _$4, _$5, _$6, _$7, scala.Int, _$8]"
+            else "({type λ[A, B, C, D, E, F, G, I] = hearth.examples.kinds.Arity9})#λ"
+          ),
+          "arity10SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity10[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity10[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9]"
+            else "({type λ[A, C, D, E, F, G, H, I, J] = hearth.examples.kinds.Arity10})#λ"
+          ),
+          "arity10SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity10[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity10[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7, _$8, _$9]"
+            else "({type λ[A, B, D, E, F, G, H, I, J] = hearth.examples.kinds.Arity10})#λ"
+          ),
+          "arity10SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity10[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity10[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7, _$8, _$9]"
+            else "({type λ[A, B, C, E, F, G, H, I, J] = hearth.examples.kinds.Arity10})#λ"
+          ),
+          "arity10SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity10[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity10[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7, _$8, _$9]"
+            else "({type λ[A, B, C, D, F, G, H, I, J] = hearth.examples.kinds.Arity10})#λ"
+          ),
+          "arity10SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity10[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity10[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7, _$8, _$9]"
+            else "({type λ[A, B, C, D, E, G, H, I, J] = hearth.examples.kinds.Arity10})#λ"
+          ),
+          "arity10SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity10[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity10[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7, _$8, _$9]"
+            else "({type λ[A, B, C, D, E, F, H, I, J] = hearth.examples.kinds.Arity10})#λ"
+          ),
+          "arity10SetHUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity10[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity10[_$1, _$2, _$3, _$4, _$5, _$6, _$7, scala.Int, _$8, _$9]"
+            else "({type λ[A, B, C, D, E, F, G, I, J] = hearth.examples.kinds.Arity10})#λ"
+          ),
+          "arity10SetIUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity10[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity10[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, scala.Int, _$9]"
+            else "({type λ[A, B, C, D, E, F, G, H, J] = hearth.examples.kinds.Arity10})#λ"
+          ),
+          "arity11SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity11[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity11[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10]"
+            else "({type λ[A, C, D, E, F, G, H, I, J, K] = hearth.examples.kinds.Arity11})#λ"
+          ),
+          "arity11SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity11[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity11[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10]"
+            else "({type λ[A, B, D, E, F, G, H, I, J, K] = hearth.examples.kinds.Arity11})#λ"
+          ),
+          "arity11SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity11[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity11[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7, _$8, _$9, _$10]"
+            else "({type λ[A, B, C, E, F, G, H, I, J, K] = hearth.examples.kinds.Arity11})#λ"
+          ),
+          "arity11SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity11[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity11[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7, _$8, _$9, _$10]"
+            else "({type λ[A, B, C, D, F, G, H, I, J, K] = hearth.examples.kinds.Arity11})#λ"
+          ),
+          "arity11SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity11[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity11[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7, _$8, _$9, _$10]"
+            else "({type λ[A, B, C, D, E, G, H, I, J, K] = hearth.examples.kinds.Arity11})#λ"
+          ),
+          "arity11SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity11[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity11[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7, _$8, _$9, _$10]"
+            else "({type λ[A, B, C, D, E, F, H, I, J, K] = hearth.examples.kinds.Arity11})#λ"
+          ),
+          "arity11SetHUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity11[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity11[_$1, _$2, _$3, _$4, _$5, _$6, _$7, scala.Int, _$8, _$9, _$10]"
+            else "({type λ[A, B, C, D, E, F, G, I, J, K] = hearth.examples.kinds.Arity11})#λ"
+          ),
+          "arity11SetIUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity11[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity11[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, scala.Int, _$9, _$10]"
+            else "({type λ[A, B, C, D, E, F, G, H, J, K] = hearth.examples.kinds.Arity11})#λ"
+          ),
+          "arity11SetJUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity11[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity11[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, scala.Int, _$10]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, K] = hearth.examples.kinds.Arity11})#λ"
+          ),
+          "arity12SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity12[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity12[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11]"
+            else "({type λ[A, C, D, E, F, G, H, I, J, K, L] = hearth.examples.kinds.Arity12})#λ"
+          ),
+          "arity12SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity12[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity12[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11]"
+            else "({type λ[A, B, D, E, F, G, H, I, J, K, L] = hearth.examples.kinds.Arity12})#λ"
+          ),
+          "arity12SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity12[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity12[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11]"
+            else "({type λ[A, B, C, E, F, G, H, I, J, K, L] = hearth.examples.kinds.Arity12})#λ"
+          ),
+          "arity12SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity12[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity12[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7, _$8, _$9, _$10, _$11]"
+            else "({type λ[A, B, C, D, F, G, H, I, J, K, L] = hearth.examples.kinds.Arity12})#λ"
+          ),
+          "arity12SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity12[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity12[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7, _$8, _$9, _$10, _$11]"
+            else "({type λ[A, B, C, D, E, G, H, I, J, K, L] = hearth.examples.kinds.Arity12})#λ"
+          ),
+          "arity12SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity12[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity12[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7, _$8, _$9, _$10, _$11]"
+            else "({type λ[A, B, C, D, E, F, H, I, J, K, L] = hearth.examples.kinds.Arity12})#λ"
+          ),
+          "arity12SetHUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity12[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity12[_$1, _$2, _$3, _$4, _$5, _$6, _$7, scala.Int, _$8, _$9, _$10, _$11]"
+            else "({type λ[A, B, C, D, E, F, G, I, J, K, L] = hearth.examples.kinds.Arity12})#λ"
+          ),
+          "arity12SetIUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity12[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity12[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, scala.Int, _$9, _$10, _$11]"
+            else "({type λ[A, B, C, D, E, F, G, H, J, K, L] = hearth.examples.kinds.Arity12})#λ"
+          ),
+          "arity12SetJUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity12[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity12[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, scala.Int, _$10, _$11]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, K, L] = hearth.examples.kinds.Arity12})#λ"
+          ),
+          "arity12SetKUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity12[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity12[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, scala.Int, _$11]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, L] = hearth.examples.kinds.Arity12})#λ"
+          )
+        )
+      }
+
+      test("should verify middle setters asUntyped for Ctor13-Ctor17") {
+        val isScala3 = LanguageVersion.byHearth.isScala3
+        CrossCtorInjectionFixtures.testCtorSetMiddleAsUntyped13to17 <==> Data.map(
+          "arity13SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity13[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity13[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12]"
+            else "({type λ[A, C, D, E, F, G, H, I, J, K, L, M] = hearth.examples.kinds.Arity13})#λ"
+          ),
+          "arity13SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity13[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity13[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12]"
+            else "({type λ[A, B, D, E, F, G, H, I, J, K, L, M] = hearth.examples.kinds.Arity13})#λ"
+          ),
+          "arity13SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity13[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity13[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12]"
+            else "({type λ[A, B, C, E, F, G, H, I, J, K, L, M] = hearth.examples.kinds.Arity13})#λ"
+          ),
+          "arity13SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity13[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity13[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12]"
+            else "({type λ[A, B, C, D, F, G, H, I, J, K, L, M] = hearth.examples.kinds.Arity13})#λ"
+          ),
+          "arity13SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity13[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity13[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7, _$8, _$9, _$10, _$11, _$12]"
+            else "({type λ[A, B, C, D, E, G, H, I, J, K, L, M] = hearth.examples.kinds.Arity13})#λ"
+          ),
+          "arity13SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity13[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity13[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7, _$8, _$9, _$10, _$11, _$12]"
+            else "({type λ[A, B, C, D, E, F, H, I, J, K, L, M] = hearth.examples.kinds.Arity13})#λ"
+          ),
+          "arity13SetHUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity13[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity13[_$1, _$2, _$3, _$4, _$5, _$6, _$7, scala.Int, _$8, _$9, _$10, _$11, _$12]"
+            else "({type λ[A, B, C, D, E, F, G, I, J, K, L, M] = hearth.examples.kinds.Arity13})#λ"
+          ),
+          "arity13SetIUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity13[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity13[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, scala.Int, _$9, _$10, _$11, _$12]"
+            else "({type λ[A, B, C, D, E, F, G, H, J, K, L, M] = hearth.examples.kinds.Arity13})#λ"
+          ),
+          "arity13SetJUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity13[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity13[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, scala.Int, _$10, _$11, _$12]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, K, L, M] = hearth.examples.kinds.Arity13})#λ"
+          ),
+          "arity13SetKUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity13[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity13[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, scala.Int, _$11, _$12]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, L, M] = hearth.examples.kinds.Arity13})#λ"
+          ),
+          "arity13SetLUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity13[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity13[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, scala.Int, _$12]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, M] = hearth.examples.kinds.Arity13})#λ"
+          ),
+          "arity14SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity14[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity14[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13]"
+            else "({type λ[A, C, D, E, F, G, H, I, J, K, L, M, N] = hearth.examples.kinds.Arity14})#λ"
+          ),
+          "arity14SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity14[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity14[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13]"
+            else "({type λ[A, B, D, E, F, G, H, I, J, K, L, M, N] = hearth.examples.kinds.Arity14})#λ"
+          ),
+          "arity14SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity14[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity14[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13]"
+            else "({type λ[A, B, C, E, F, G, H, I, J, K, L, M, N] = hearth.examples.kinds.Arity14})#λ"
+          ),
+          "arity14SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity14[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity14[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13]"
+            else "({type λ[A, B, C, D, F, G, H, I, J, K, L, M, N] = hearth.examples.kinds.Arity14})#λ"
+          ),
+          "arity14SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity14[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity14[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13]"
+            else "({type λ[A, B, C, D, E, G, H, I, J, K, L, M, N] = hearth.examples.kinds.Arity14})#λ"
+          ),
+          "arity14SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity14[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity14[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7, _$8, _$9, _$10, _$11, _$12, _$13]"
+            else "({type λ[A, B, C, D, E, F, H, I, J, K, L, M, N] = hearth.examples.kinds.Arity14})#λ"
+          ),
+          "arity14SetHUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity14[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity14[_$1, _$2, _$3, _$4, _$5, _$6, _$7, scala.Int, _$8, _$9, _$10, _$11, _$12, _$13]"
+            else "({type λ[A, B, C, D, E, F, G, I, J, K, L, M, N] = hearth.examples.kinds.Arity14})#λ"
+          ),
+          "arity14SetIUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity14[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity14[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, scala.Int, _$9, _$10, _$11, _$12, _$13]"
+            else "({type λ[A, B, C, D, E, F, G, H, J, K, L, M, N] = hearth.examples.kinds.Arity14})#λ"
+          ),
+          "arity14SetJUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity14[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity14[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, scala.Int, _$10, _$11, _$12, _$13]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, K, L, M, N] = hearth.examples.kinds.Arity14})#λ"
+          ),
+          "arity14SetKUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity14[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity14[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, scala.Int, _$11, _$12, _$13]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, L, M, N] = hearth.examples.kinds.Arity14})#λ"
+          ),
+          "arity14SetLUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity14[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity14[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, scala.Int, _$12, _$13]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, M, N] = hearth.examples.kinds.Arity14})#λ"
+          ),
+          "arity14SetMUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity14[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity14[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, scala.Int, _$13]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, N] = hearth.examples.kinds.Arity14})#λ"
+          ),
+          "arity15SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity15[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity15[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14]"
+            else "({type λ[A, C, D, E, F, G, H, I, J, K, L, M, N, O] = hearth.examples.kinds.Arity15})#λ"
+          ),
+          "arity15SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity15[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity15[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14]"
+            else "({type λ[A, B, D, E, F, G, H, I, J, K, L, M, N, O] = hearth.examples.kinds.Arity15})#λ"
+          ),
+          "arity15SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity15[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity15[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14]"
+            else "({type λ[A, B, C, E, F, G, H, I, J, K, L, M, N, O] = hearth.examples.kinds.Arity15})#λ"
+          ),
+          "arity15SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity15[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity15[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14]"
+            else "({type λ[A, B, C, D, F, G, H, I, J, K, L, M, N, O] = hearth.examples.kinds.Arity15})#λ"
+          ),
+          "arity15SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity15[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity15[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14]"
+            else "({type λ[A, B, C, D, E, G, H, I, J, K, L, M, N, O] = hearth.examples.kinds.Arity15})#λ"
+          ),
+          "arity15SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity15[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity15[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14]"
+            else "({type λ[A, B, C, D, E, F, H, I, J, K, L, M, N, O] = hearth.examples.kinds.Arity15})#λ"
+          ),
+          "arity15SetHUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity15[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity15[_$1, _$2, _$3, _$4, _$5, _$6, _$7, scala.Int, _$8, _$9, _$10, _$11, _$12, _$13, _$14]"
+            else "({type λ[A, B, C, D, E, F, G, I, J, K, L, M, N, O] = hearth.examples.kinds.Arity15})#λ"
+          ),
+          "arity15SetIUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity15[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity15[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, scala.Int, _$9, _$10, _$11, _$12, _$13, _$14]"
+            else "({type λ[A, B, C, D, E, F, G, H, J, K, L, M, N, O] = hearth.examples.kinds.Arity15})#λ"
+          ),
+          "arity15SetJUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity15[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity15[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, scala.Int, _$10, _$11, _$12, _$13, _$14]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, K, L, M, N, O] = hearth.examples.kinds.Arity15})#λ"
+          ),
+          "arity15SetKUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity15[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity15[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, scala.Int, _$11, _$12, _$13, _$14]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, L, M, N, O] = hearth.examples.kinds.Arity15})#λ"
+          ),
+          "arity15SetLUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity15[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity15[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, scala.Int, _$12, _$13, _$14]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, M, N, O] = hearth.examples.kinds.Arity15})#λ"
+          ),
+          "arity15SetMUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity15[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity15[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, scala.Int, _$13, _$14]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, N, O] = hearth.examples.kinds.Arity15})#λ"
+          ),
+          "arity15SetNUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity15[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity15[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, scala.Int, _$14]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, O] = hearth.examples.kinds.Arity15})#λ"
+          ),
+          "arity16SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15]"
+            else "({type λ[A, C, D, E, F, G, H, I, J, K, L, M, N, O, P] = hearth.examples.kinds.Arity16})#λ"
+          ),
+          "arity16SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15]"
+            else "({type λ[A, B, D, E, F, G, H, I, J, K, L, M, N, O, P] = hearth.examples.kinds.Arity16})#λ"
+          ),
+          "arity16SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15]"
+            else "({type λ[A, B, C, E, F, G, H, I, J, K, L, M, N, O, P] = hearth.examples.kinds.Arity16})#λ"
+          ),
+          "arity16SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15]"
+            else "({type λ[A, B, C, D, F, G, H, I, J, K, L, M, N, O, P] = hearth.examples.kinds.Arity16})#λ"
+          ),
+          "arity16SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15]"
+            else "({type λ[A, B, C, D, E, G, H, I, J, K, L, M, N, O, P] = hearth.examples.kinds.Arity16})#λ"
+          ),
+          "arity16SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15]"
+            else "({type λ[A, B, C, D, E, F, H, I, J, K, L, M, N, O, P] = hearth.examples.kinds.Arity16})#λ"
+          ),
+          "arity16SetHUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[_$1, _$2, _$3, _$4, _$5, _$6, _$7, scala.Int, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15]"
+            else "({type λ[A, B, C, D, E, F, G, I, J, K, L, M, N, O, P] = hearth.examples.kinds.Arity16})#λ"
+          ),
+          "arity16SetIUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, scala.Int, _$9, _$10, _$11, _$12, _$13, _$14, _$15]"
+            else "({type λ[A, B, C, D, E, F, G, H, J, K, L, M, N, O, P] = hearth.examples.kinds.Arity16})#λ"
+          ),
+          "arity16SetJUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, scala.Int, _$10, _$11, _$12, _$13, _$14, _$15]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, K, L, M, N, O, P] = hearth.examples.kinds.Arity16})#λ"
+          ),
+          "arity16SetKUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, scala.Int, _$11, _$12, _$13, _$14, _$15]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, L, M, N, O, P] = hearth.examples.kinds.Arity16})#λ"
+          ),
+          "arity16SetLUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, scala.Int, _$12, _$13, _$14, _$15]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, M, N, O, P] = hearth.examples.kinds.Arity16})#λ"
+          ),
+          "arity16SetMUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, scala.Int, _$13, _$14, _$15]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, N, O, P] = hearth.examples.kinds.Arity16})#λ"
+          ),
+          "arity16SetNUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, scala.Int, _$14, _$15]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, O, P] = hearth.examples.kinds.Arity16})#λ"
+          ),
+          "arity16SetOUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, scala.Int, _$15]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, P] = hearth.examples.kinds.Arity16})#λ"
+          ),
+          "arity17SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16]"
+            else "({type λ[A, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q] = hearth.examples.kinds.Arity17})#λ"
+          ),
+          "arity17SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16]"
+            else "({type λ[A, B, D, E, F, G, H, I, J, K, L, M, N, O, P, Q] = hearth.examples.kinds.Arity17})#λ"
+          ),
+          "arity17SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16]"
+            else "({type λ[A, B, C, E, F, G, H, I, J, K, L, M, N, O, P, Q] = hearth.examples.kinds.Arity17})#λ"
+          ),
+          "arity17SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16]"
+            else "({type λ[A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q] = hearth.examples.kinds.Arity17})#λ"
+          ),
+          "arity17SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16]"
+            else "({type λ[A, B, C, D, E, G, H, I, J, K, L, M, N, O, P, Q] = hearth.examples.kinds.Arity17})#λ"
+          ),
+          "arity17SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16]"
+            else "({type λ[A, B, C, D, E, F, H, I, J, K, L, M, N, O, P, Q] = hearth.examples.kinds.Arity17})#λ"
+          ),
+          "arity17SetHUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, _$2, _$3, _$4, _$5, _$6, _$7, scala.Int, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16]"
+            else "({type λ[A, B, C, D, E, F, G, I, J, K, L, M, N, O, P, Q] = hearth.examples.kinds.Arity17})#λ"
+          ),
+          "arity17SetIUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, scala.Int, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16]"
+            else "({type λ[A, B, C, D, E, F, G, H, J, K, L, M, N, O, P, Q] = hearth.examples.kinds.Arity17})#λ"
+          ),
+          "arity17SetJUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, scala.Int, _$10, _$11, _$12, _$13, _$14, _$15, _$16]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, K, L, M, N, O, P, Q] = hearth.examples.kinds.Arity17})#λ"
+          ),
+          "arity17SetKUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, scala.Int, _$11, _$12, _$13, _$14, _$15, _$16]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, L, M, N, O, P, Q] = hearth.examples.kinds.Arity17})#λ"
+          ),
+          "arity17SetLUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, scala.Int, _$12, _$13, _$14, _$15, _$16]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, M, N, O, P, Q] = hearth.examples.kinds.Arity17})#λ"
+          ),
+          "arity17SetMUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, scala.Int, _$13, _$14, _$15, _$16]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, N, O, P, Q] = hearth.examples.kinds.Arity17})#λ"
+          ),
+          "arity17SetNUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, scala.Int, _$14, _$15, _$16]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, O, P, Q] = hearth.examples.kinds.Arity17})#λ"
+          ),
+          "arity17SetOUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, scala.Int, _$15, _$16]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, P, Q] = hearth.examples.kinds.Arity17})#λ"
+          ),
+          "arity17SetPUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, scala.Int, _$16]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, Q] = hearth.examples.kinds.Arity17})#λ"
+          )
+        )
+      }
+
+      test("should verify middle setters asUntyped for Ctor18-Ctor22") {
+        val isScala3 = LanguageVersion.byHearth.isScala3
+        CrossCtorInjectionFixtures.testCtorSetMiddleAsUntyped18to22 <==> Data.map(
+          "arity18SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17]"
+            else "({type λ[A, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17]"
+            else "({type λ[A, B, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17]"
+            else "({type λ[A, B, C, E, F, G, H, I, J, K, L, M, N, O, P, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17]"
+            else "({type λ[A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17]"
+            else "({type λ[A, B, C, D, E, G, H, I, J, K, L, M, N, O, P, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17]"
+            else "({type λ[A, B, C, D, E, F, H, I, J, K, L, M, N, O, P, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetHUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, _$3, _$4, _$5, _$6, _$7, scala.Int, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17]"
+            else "({type λ[A, B, C, D, E, F, G, I, J, K, L, M, N, O, P, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetIUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, scala.Int, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17]"
+            else "({type λ[A, B, C, D, E, F, G, H, J, K, L, M, N, O, P, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetJUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, scala.Int, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, K, L, M, N, O, P, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetKUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, scala.Int, _$11, _$12, _$13, _$14, _$15, _$16, _$17]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, L, M, N, O, P, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetLUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, scala.Int, _$12, _$13, _$14, _$15, _$16, _$17]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, M, N, O, P, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetMUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, scala.Int, _$13, _$14, _$15, _$16, _$17]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, N, O, P, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetNUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, scala.Int, _$14, _$15, _$16, _$17]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, O, P, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetOUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, scala.Int, _$15, _$16, _$17]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, P, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetPUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, scala.Int, _$16, _$17]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, Q, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity18SetQUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, scala.Int, _$17]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R] = hearth.examples.kinds.Arity18})#λ"
+          ),
+          "arity19SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18]"
+            else "({type λ[A, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18]"
+            else "({type λ[A, B, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18]"
+            else "({type λ[A, B, C, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18]"
+            else "({type λ[A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18]"
+            else "({type λ[A, B, C, D, E, G, H, I, J, K, L, M, N, O, P, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18]"
+            else "({type λ[A, B, C, D, E, F, H, I, J, K, L, M, N, O, P, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetHUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, _$4, _$5, _$6, _$7, scala.Int, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18]"
+            else "({type λ[A, B, C, D, E, F, G, I, J, K, L, M, N, O, P, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetIUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, scala.Int, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18]"
+            else "({type λ[A, B, C, D, E, F, G, H, J, K, L, M, N, O, P, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetJUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, scala.Int, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, K, L, M, N, O, P, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetKUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, scala.Int, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, L, M, N, O, P, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetLUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, scala.Int, _$12, _$13, _$14, _$15, _$16, _$17, _$18]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, M, N, O, P, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetMUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, scala.Int, _$13, _$14, _$15, _$16, _$17, _$18]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, N, O, P, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetNUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, scala.Int, _$14, _$15, _$16, _$17, _$18]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, O, P, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetOUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, scala.Int, _$15, _$16, _$17, _$18]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, P, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetPUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, scala.Int, _$16, _$17, _$18]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, Q, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetQUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, scala.Int, _$17, _$18]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity19SetRUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, scala.Int, _$18]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S] = hearth.examples.kinds.Arity19})#λ"
+          ),
+          "arity20SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, B, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, B, C, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, B, C, D, E, G, H, I, J, K, L, M, N, O, P, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, B, C, D, E, F, H, I, J, K, L, M, N, O, P, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetHUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, _$5, _$6, _$7, scala.Int, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, B, C, D, E, F, G, I, J, K, L, M, N, O, P, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetIUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, scala.Int, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, B, C, D, E, F, G, H, J, K, L, M, N, O, P, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetJUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, scala.Int, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, K, L, M, N, O, P, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetKUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, scala.Int, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, L, M, N, O, P, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetLUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, scala.Int, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, M, N, O, P, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetMUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, scala.Int, _$13, _$14, _$15, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, N, O, P, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetNUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, scala.Int, _$14, _$15, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, O, P, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetOUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, scala.Int, _$15, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, P, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetPUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, scala.Int, _$16, _$17, _$18, _$19]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, Q, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetQUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, scala.Int, _$17, _$18, _$19]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetRUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, scala.Int, _$18, _$19]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity20SetSUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, scala.Int, _$19]"
+            else "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, T] = hearth.examples.kinds.Arity20})#λ"
+          ),
+          "arity21SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, E, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, E, F, H, I, J, K, L, M, N, O, P, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetHUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, _$6, _$7, scala.Int, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, E, F, G, I, J, K, L, M, N, O, P, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetIUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, scala.Int, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, J, K, L, M, N, O, P, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetJUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, scala.Int, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, K, L, M, N, O, P, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetKUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, scala.Int, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, L, M, N, O, P, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetLUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, scala.Int, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, M, N, O, P, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetMUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, scala.Int, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, N, O, P, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetNUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, scala.Int, _$14, _$15, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, O, P, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetOUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, scala.Int, _$15, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, P, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetPUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, scala.Int, _$16, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, Q, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetQUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, scala.Int, _$17, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetRUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, scala.Int, _$18, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetSUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, scala.Int, _$19, _$20]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, T, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity21SetTUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, scala.Int, _$20]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, U] = hearth.examples.kinds.Arity21})#λ"
+          ),
+          "arity22SetBUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, scala.Int, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetCUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, scala.Int, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetDUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, scala.Int, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetEUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, scala.Int, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetFUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, scala.Int, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetGUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, scala.Int, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetHUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, _$7, scala.Int, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, G, I, J, K, L, M, N, O, P, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetIUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, scala.Int, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, J, K, L, M, N, O, P, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetJUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, scala.Int, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, K, L, M, N, O, P, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetKUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, scala.Int, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, L, M, N, O, P, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetLUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, scala.Int, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, M, N, O, P, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetMUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, scala.Int, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, N, O, P, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetNUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, scala.Int, _$14, _$15, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, O, P, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetOUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, scala.Int, _$15, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, P, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetPUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, scala.Int, _$16, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, Q, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetQUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, scala.Int, _$17, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, R, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetRUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, scala.Int, _$18, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, S, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetSUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, scala.Int, _$19, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, T, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetTUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, scala.Int, _$20, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, U, V] = hearth.examples.kinds.Arity22})#λ"
+          ),
+          "arity22SetUUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[_$1 >: scala.Nothing <: scala.Any, _$2 >: scala.Nothing <: scala.Any, _$3 >: scala.Nothing <: scala.Any, _$4 >: scala.Nothing <: scala.Any, _$5 >: scala.Nothing <: scala.Any, _$6 >: scala.Nothing <: scala.Any, _$7 >: scala.Nothing <: scala.Any, _$8 >: scala.Nothing <: scala.Any, _$9 >: scala.Nothing <: scala.Any, _$10 >: scala.Nothing <: scala.Any, _$11 >: scala.Nothing <: scala.Any, _$12 >: scala.Nothing <: scala.Any, _$13 >: scala.Nothing <: scala.Any, _$14 >: scala.Nothing <: scala.Any, _$15 >: scala.Nothing <: scala.Any, _$16 >: scala.Nothing <: scala.Any, _$17 >: scala.Nothing <: scala.Any, _$18 >: scala.Nothing <: scala.Any, _$19 >: scala.Nothing <: scala.Any, _$20 >: scala.Nothing <: scala.Any, _$21 >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[_$1, _$2, _$3, _$4, _$5, _$6, _$7, _$8, _$9, _$10, _$11, _$12, _$13, _$14, _$15, _$16, _$17, _$18, _$19, _$20, scala.Int, _$21]"
+            else
+              "({type λ[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, V] = hearth.examples.kinds.Arity22})#λ"
+          )
+        )
+      }
+
+    }
+
   }
 }

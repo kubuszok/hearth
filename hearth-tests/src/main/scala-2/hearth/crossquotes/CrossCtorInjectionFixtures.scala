@@ -306,6 +306,22 @@ final private class CrossCtorInjectionFixtures(val c: blackbox.Context)
     verifyExtractedCtor22Arity22(arity22Ctor)
   }
 
+  // ===== GENERATED CODE =====
+
+  def testCtorSetApplyUnapply2to8Impl: c.Expr[Data] = testCtorSetApplyUnapply2to8
+
+  def testCtorSetApplyUnapply9to15Impl: c.Expr[Data] = testCtorSetApplyUnapply9to15
+
+  def testCtorSetApplyUnapply16to22Impl: c.Expr[Data] = testCtorSetApplyUnapply16to22
+
+  def testCtorSetMiddleAsUntyped3to7Impl: c.Expr[Data] = testCtorSetMiddleAsUntyped3to7
+
+  def testCtorSetMiddleAsUntyped8to12Impl: c.Expr[Data] = testCtorSetMiddleAsUntyped8to12
+
+  def testCtorSetMiddleAsUntyped13to17Impl: c.Expr[Data] = testCtorSetMiddleAsUntyped13to17
+
+  def testCtorSetMiddleAsUntyped18to22Impl: c.Expr[Data] = testCtorSetMiddleAsUntyped18to22
+
 }
 
 object CrossCtorInjectionFixtures {
@@ -449,5 +465,21 @@ object CrossCtorInjectionFixtures {
   def testCtorExtract21: Data = macro CrossCtorInjectionFixtures.testCtorExtract21Impl
 
   def testCtorExtract22: Data = macro CrossCtorInjectionFixtures.testCtorExtract22Impl
+
+  // ===== GENERATED CODE =====
+
+  def testCtorSetApplyUnapply2to8: Data = macro CrossCtorInjectionFixtures.testCtorSetApplyUnapply2to8Impl
+
+  def testCtorSetApplyUnapply9to15: Data = macro CrossCtorInjectionFixtures.testCtorSetApplyUnapply9to15Impl
+
+  def testCtorSetApplyUnapply16to22: Data = macro CrossCtorInjectionFixtures.testCtorSetApplyUnapply16to22Impl
+
+  def testCtorSetMiddleAsUntyped3to7: Data = macro CrossCtorInjectionFixtures.testCtorSetMiddleAsUntyped3to7Impl
+
+  def testCtorSetMiddleAsUntyped8to12: Data = macro CrossCtorInjectionFixtures.testCtorSetMiddleAsUntyped8to12Impl
+
+  def testCtorSetMiddleAsUntyped13to17: Data = macro CrossCtorInjectionFixtures.testCtorSetMiddleAsUntyped13to17Impl
+
+  def testCtorSetMiddleAsUntyped18to22: Data = macro CrossCtorInjectionFixtures.testCtorSetMiddleAsUntyped18to22Impl
 
 }
