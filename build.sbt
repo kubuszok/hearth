@@ -628,8 +628,9 @@ lazy val hearthTests = projectMatrix
       ArityGen.writeIfChanged(implGen, CrossCtorTestGen.generate())
       // Version-specific bridge (one file, different content per Scala version)
       val bridge = outDir / "hearth" / "crossquotes" / "CrossCtorInjectionFixtures.scala"
-      val bridgeContent = if (isScala3) CrossCtorTestGen.generateScala3Bridge()
-                          else CrossCtorTestGen.generateScala2Bridge()
+      val bridgeContent =
+        if (isScala3) CrossCtorTestGen.generateScala3Bridge()
+        else CrossCtorTestGen.generateScala2Bridge()
       ArityGen.writeIfChanged(bridge, bridgeContent)
       Seq(implGen, bridge)
     },
