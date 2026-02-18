@@ -512,7 +512,7 @@ lazy val hearthBetterPrinters = projectMatrix
 lazy val hearthCrossQuotes = projectMatrix
   .in(file("hearth-cross-quotes"))
   .someVariations(versions.scalas, versions.platforms)((defineCrossQuotes ++ only1VersionInIDE) *)
-  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .enablePlugins(GitVersioning, GitBranchPrompt, SourceGenPlugin)
   .disablePlugins(WelcomePlugin, MimaPlugin)
   .settings(
     moduleName := "hearth-cross-quotes",
@@ -521,7 +521,18 @@ lazy val hearthCrossQuotes = projectMatrix
     libraryDependencies ++= versions.fold(scalaVersion.value)(
       for3 = Seq("org.scala-lang" %% "scala3-compiler" % scalaVersion.value),
       for2_13 = Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value)
-    )
+    ),
+    SourceGenPlugin.autoImport.generateHearthSources := {
+      val outDir = (Compile / sourceManaged).value
+      val isScala3 = scalaVersion.value.startsWith("3.")
+      if (isScala3) Seq.empty[File]
+      else {
+        val content = CrossQuotesMacrosGen.generate()
+        val file = outDir / "hearth" / "cq" / "CrossQuotesMacrosCtorMethods.scala"
+        ArityGen.writeIfChanged(file, content)
+        Seq(file)
+      }
+    }
   )
   .settings(settings *)
   .settings(versionSchemeSettings *)
@@ -551,12 +562,20 @@ lazy val hearthMicroFp = projectMatrix
 lazy val hearth = projectMatrix
   .in(file("hearth"))
   .someVariations(versions.scalas, versions.platforms)(((only1VersionInIDE ++ useCrossQuotes)) *)
-  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .enablePlugins(GitVersioning, GitBranchPrompt, SourceGenPlugin)
   .disablePlugins(WelcomePlugin)
   .settings(
     moduleName := "hearth",
     name := "hearth",
-    description := "Utilities for writing cross-platform macro logic"
+    description := "Utilities for writing cross-platform macro logic",
+    SourceGenPlugin.autoImport.generateHearthSources := {
+      val outDir = (Compile / sourceManaged).value
+      val isScala3 = scalaVersion.value.startsWith("3.")
+      val content = if (isScala3) TypeConstructorsGen.scala3() else TypeConstructorsGen.scala2()
+      val file = outDir / "hearth" / "typed" / "TypeConstructors.scala"
+      ArityGen.writeIfChanged(file, content)
+      Seq(file)
+    }
   )
   .settings(settings *)
   .settings(versionSchemeSettings *)
