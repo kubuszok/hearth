@@ -26,6 +26,14 @@ This instruction covers adding new utilities or extending support for new types 
 
 [Instruction for developing a basic utility](instruction-for-developing-basic-utility.md).
 
+### Instruction for developing type constructors
+
+This instruction covers adding new features, fixing bugs, or extending `Type.CtorN` (type constructors).
+It documents the code generation architecture, naming conventions, build wiring, and known pitfalls
+(dollar sign escaping, Scala 3 synthetic parameter naming, etc.).
+
+[Instruction for developing type constructors](instruction-for-developing-type-constructors.md).
+
 ### Instruction for testing documentation snippets
 
 Ideally, all utilities should have a section/subsection with examples showing how they can be used with a macro code.
