@@ -48,4 +48,35 @@ trait CrossCtorInjectionFixturesImpl extends CrossCtorInjectionFixturesImplGen {
       )
     )
 
+  /** Test: Type.of resolves types when implicit val/def Type.CtorN is declared directly in the block body.
+    *
+    * On Scala 3, this exercises the `.orElse(TypeCtorAppliedTypeTree.unapply(...))` branches in
+    * CrossQuotesPlugin.blockGivenCandidates — specifically the `ValDef` handler (implicit val with Type.CtorN) and the
+    * `DefDef` handler (implicit def with Type.CtorN). These branches handle `implicit val/def` returning
+    * `Type.CtorN[HKT]` directly in the enclosing block (not via imports).
+    */
+  def testTypeOfWithDirectCtorValDef[A: Type]: Expr[Data] = {
+    // Create ctors outside the block that uses Type.of, to avoid the infinite loop
+    // from the plugin injecting a given that references the val being initialized.
+    val optCtor = makeOptionCtor
+    val eitherCtor = makeEitherCtor
+    // Declare as implicit val/def in the block body — this triggers the plugin's
+    // .orElse(TypeCtorAppliedTypeTree.unapply) branches for ValDef and DefDef.
+    implicit val OptionCtor: Type.Ctor1[Option] = optCtor
+    implicit def EitherCtor: Type.Ctor2[Either] = eitherCtor
+    hearth.fp.ignore(OptionCtor, EitherCtor) // suppress unused warnings on Scala 2
+    Expr(
+      Data.map(
+        "optionOfA" -> Data(Type.of[Option[A]].plainPrint),
+        "eitherOfStringAndA" -> Data(Type.of[Either[String, A]].plainPrint)
+      )
+    )
+  }
+
+  /** Factory for Option ctor — outside the test block to avoid circular initialization. */
+  protected def makeOptionCtor: Type.Ctor1[Option] = Type.Ctor1.of[Option]
+
+  /** Factory for Either ctor — outside the test block to avoid circular initialization. */
+  protected def makeEitherCtor: Type.Ctor2[Either] = Type.Ctor2.of[Either]
+
 }

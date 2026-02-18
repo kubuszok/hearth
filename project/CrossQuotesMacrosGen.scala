@@ -51,6 +51,7 @@ object CrossQuotesMacrosGen {
        |package cq
        |
        |// AUTO-GENERATED — DO NOT EDIT
+       |// $$COVERAGE-OFF$$
        |// format: off
        |trait CrossQuotesMacrosCtorMethods { this: CrossQuotesMacros =>
        |
