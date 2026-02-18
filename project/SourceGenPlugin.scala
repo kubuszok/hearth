@@ -3,8 +3,8 @@ import sbt.Keys.*
 
 /** AutoPlugin for generating arity-based Hearth source files.
   *
-  * Enable on modules that need generated sources (e.g. `hearth`, `hearthCrossQuotes`, `hearthTests`).
-  * Override the `generateHearthSources` task to specify which generators to run.
+  * Enable on modules that need generated sources (e.g. `hearth`, `hearthCrossQuotes`, `hearthTests`). Override the
+  * `generateHearthSources` task to specify which generators to run.
   */
 object SourceGenPlugin extends AutoPlugin {
   object autoImport {
