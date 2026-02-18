@@ -583,6 +583,9 @@ object CrossCtorTestGen {
     // testIdentityCtor1UntypedImpl forwarder
     sb ++= "  def testIdentityCtor1UntypedImpl: c.Expr[Data] = testIdentityCtor1Untyped\n\n"
 
+    // testTypeOfWithDirectCtorValDefImpl forwarder (has type parameter)
+    sb ++= "  def testTypeOfWithDirectCtorValDefImpl[A: c.WeakTypeTag]: c.Expr[Data] = testTypeOfWithDirectCtorValDef[A]\n\n"
+
     // testCtorExtractNImpl - substantive methods
     for (n <- 1 to maxArity) {
       sb ++= genScala2ExtractMethod(n)
@@ -619,6 +622,7 @@ object CrossCtorTestGen {
     sb ++= "  def testCtorFromUntyped: Data = macro CrossCtorInjectionFixtures.testCtorFromUntypedImpl\n\n"
 
     sb ++= "  def testIdentityCtor1Untyped: Data = macro CrossCtorInjectionFixtures.testIdentityCtor1UntypedImpl\n\n"
+    sb ++= "  def testTypeOfWithDirectCtorValDef[A]: Data = macro CrossCtorInjectionFixtures.testTypeOfWithDirectCtorValDefImpl[A]\n\n"
 
     for (n <- 1 to maxArity) {
       sb ++= s"  def testCtorExtract$n: Data = macro CrossCtorInjectionFixtures.testCtorExtract${n}Impl\n\n"
@@ -742,6 +746,11 @@ object CrossCtorTestGen {
 
     sb ++= genScala3InlineSplice("testCtorFromUntyped")
     sb ++= genScala3InlineSplice("testIdentityCtor1Untyped")
+
+    // testTypeOfWithDirectCtorValDef - special: has type parameter
+    sb ++= "  inline def testTypeOfWithDirectCtorValDef[A]: Data = ${ testTypeOfWithDirectCtorValDefImpl[A] }\n"
+    sb ++= "  private def testTypeOfWithDirectCtorValDefImpl[A: Type](using q: Quotes): Expr[Data] =\n"
+    sb ++= "    new CrossCtorInjectionFixtures(q).testTypeOfWithDirectCtorValDef[A]\n\n"
 
     for (n <- 1 to maxArity) {
       sb ++= genScala3InlineSplice(s"testCtorExtract$n")
@@ -887,6 +896,10 @@ object CrossCtorTestGen {
     sb ++= genSpecCtorSetMiddleAsUntyped(maxArity)
     sb ++= "\n"
 
+    // Group 10: testTypeOfWithDirectCtorValDef
+    sb ++= genSpecDirectCtorValDef()
+    sb ++= "\n"
+
     sb ++= "  }\n\n"
     sb ++= "}\n"
     sb.toString
@@ -908,6 +921,25 @@ object CrossCtorTestGen {
        |          "resultOfInt" -> Data("scala.util.Either[java.lang.String, scala.Int]"),
        |          "resultOfString" -> Data("scala.util.Either[java.lang.String, java.lang.String]"),
        |          "resultOfA" -> Data("scala.util.Either[java.lang.String, java.lang.String]")
+       |        )
+       |      }
+       |    }
+       |""".stripMargin
+
+  private def genSpecDirectCtorValDef(): String =
+    s"""    group("for Type.of with direct implicit val/def Type.CtorN in block body") {
+       |
+       |      test("should resolve Option[A] and Either[String, A] with Int type parameter") {
+       |        CrossCtorInjectionFixtures.testTypeOfWithDirectCtorValDef[Int] <==> Data.map(
+       |          "optionOfA" -> Data("scala.Option[scala.Int]"),
+       |          "eitherOfStringAndA" -> Data("scala.util.Either[java.lang.String, scala.Int]")
+       |        )
+       |      }
+       |
+       |      test("should resolve Option[A] and Either[String, A] with String type parameter") {
+       |        CrossCtorInjectionFixtures.testTypeOfWithDirectCtorValDef[String] <==> Data.map(
+       |          "optionOfA" -> Data("scala.Option[java.lang.String]"),
+       |          "eitherOfStringAndA" -> Data("scala.util.Either[java.lang.String, java.lang.String]")
        |        )
        |      }
        |    }

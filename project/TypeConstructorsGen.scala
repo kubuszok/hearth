@@ -68,6 +68,7 @@ object TypeConstructorsGen {
     s"""|package hearth
         |package typed
         |
+        |// $$COVERAGE-OFF$$
         |private[typed] trait TypeConstructors { this: MacroCommons =>
         |
         |  trait Ctors { this: Type.type =>
@@ -400,6 +401,7 @@ object TypeConstructorsGen {
     s"""|package hearth
         |package typed
         |
+        |// $$COVERAGE-OFF$$
         |import hearth.cq.CrossQuotesMacros
         |import scala.language.experimental.macros
         |
