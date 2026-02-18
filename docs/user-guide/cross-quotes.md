@@ -181,6 +181,61 @@ You can also specify bounds:
     val bounded = Type.Ctor1.Bounded.of[Nothing, String, Option]
     ```
 
+#### Partial Application with `setA`, `setB`, ..., `setLast`
+
+For type constructors with 2 or more type parameters, you can fix one parameter at a time to produce a smaller type constructor:
+
+!!! example "Partial application of type constructors"
+
+    ```scala
+    val eitherCtor: Type.Ctor2[Either] = Type.Ctor2.of[Either]
+
+    // Fix the first parameter (A) to String:
+    // Returns a Ctor1 for Either[String, _]
+    val eitherStringCtor: Type.Ctor1[Either[String, *]] = eitherCtor.setA[String]
+
+    // Fix the last parameter to Int:
+    // Returns a Ctor1 for Either[*, Int]
+    val eitherIntCtor: Type.Ctor1[Either[*, Int]] = eitherCtor.setLast[Int]
+    ```
+
+The `setX` methods use the naming convention where type parameters are named `A`, `B`, `C`, ..., so `setA` fixes the first, `setB` the second, etc.
+
+!!! tip "Order of partial application"
+
+    When applying multiple parameters, apply them from the back (last parameter first). This way their names (positions) stay unchanged during partial application:
+
+    ```scala
+    // Good: names stay stable
+    val ctor = Type.Ctor3.of[MyType]
+    val result = ctor.setC[Double].setB[String].setA[Int]
+
+    // Less predictable: after setA, the remaining params shift
+    val result2 = ctor.setA[Int].setA[String].setA[Double]
+    ```
+
+#### Converting Between Typed and Untyped Representations
+
+Type constructors can be converted to and from their untyped (platform-specific) representation:
+
+!!! example "`asUntyped` and `fromUntyped`"
+
+    ```scala
+    val optionCtor: Type.Ctor1[Option] = Type.Ctor1.of[Option]
+
+    // Convert to platform-specific representation
+    // (c.universe.Type on Scala 2, TypeRepr on Scala 3)
+    val untyped: UntypedType = optionCtor.asUntyped
+
+    // Reconstruct from untyped (e.g. after receiving from another API)
+    val reconstructed: Type.Ctor1[Option] = Type.Ctor1.fromUntyped[Option](untyped)
+
+    // The reconstructed ctor works identically:
+    val optionInt: Type[Option[Int]] = reconstructed[Int]
+    ```
+
+This is useful when you need to pass type constructors through APIs that work with untyped representations, or when extracting a type constructor from a `TypeRepr`/`c.universe.Type` that you obtained through reflection.
+
 ### Expression Quoting and Splicing
 
 #### `Expr.quote`
@@ -507,6 +562,84 @@ Nested expressions are also correctly handled by Cross Quotes:
         assertEquals(Example.analyzeTuple[(Int, String)], "Tuple2[scala.Int, java.lang.String]")
         assertEquals(Example.analyzeTuple[(Int, String, Double)], "Tuple3[scala.Int, java.lang.String, scala.Double]")
         assertEquals(Example.analyzeTuple[(Int, String, Double, Long)], "Not a supported tuple")
+      }
+    }
+    ```
+
+### Partial Application of Type Constructors
+
+!!! example
+
+    ```scala
+    // file: src/main/scala/TypeAnalysis.scala - part of Partial Application example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    trait PartialApplication { this: hearth.MacroTypedCommons =>
+
+      /** Checks if a type matches F[_, _] with the first parameter fixed to Fixed. */
+      def isFixedEither[Fixed: Type, In: Type]: Expr[Boolean] = {
+        // Fix the first type parameter of Either to Fixed
+        val eitherFixedCtor = Type.Ctor2.of[Either].setA[Fixed]
+
+        Type[In] match {
+          case eitherFixedCtor(_) => Expr(true)
+          case _                  => Expr(false)
+        }
+      }
+    }
+
+    object Stub { def main(args: Array[String]): Unit = () }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/project.scala - part of Partial Application example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    class Example(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with PartialApplication {
+
+      def isFixedEitherImpl[Fixed: c.WeakTypeTag, In: c.WeakTypeTag]: c.Expr[Boolean] = isFixedEither[Fixed, In]
+    }
+    object Example {
+
+      def isFixedEither[Fixed, In]: Boolean = macro Example.isFixedEitherImpl[Fixed, In]
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/project.scala - part of Partial Application example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    class Example(q: Quotes) extends hearth.MacroCommonsScala3(using q), PartialApplication
+
+    object Example {
+
+      inline def isFixedEither[Fixed, In]: Boolean = ${ isFixedEitherImpl[Fixed, In] }
+
+      def isFixedEitherImpl[Fixed: Type, In: Type](using q: Quotes): Expr[Boolean] =
+        new Example(q).isFixedEither[Fixed, In]
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/ExampleSpec.scala - part of Partial Application example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("should match Either[String, _] using partial application") {
+
+        assertEquals(Example.isFixedEither[String, Either[String, Int]], true)
+        assertEquals(Example.isFixedEither[String, Either[String, Double]], true)
+        assertEquals(Example.isFixedEither[String, Either[Int, String]], false)
+        assertEquals(Example.isFixedEither[String, Option[String]], false)
       }
     }
     ```
