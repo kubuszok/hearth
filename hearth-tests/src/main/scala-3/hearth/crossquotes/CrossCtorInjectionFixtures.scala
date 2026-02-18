@@ -583,4 +583,34 @@ object CrossCtorInjectionFixtures {
   private def testCtorExtract22Impl(using q: Quotes): Expr[Data] =
     new CrossCtorInjectionFixtures(q).testCtorExtract22
 
+  // ===== GENERATED CODE =====
+
+  inline def testCtorSetApplyUnapply2to8: Data = ${ testCtorSetApplyUnapply2to8Impl }
+  private def testCtorSetApplyUnapply2to8Impl(using q: Quotes): Expr[Data] =
+    new CrossCtorInjectionFixtures(q).testCtorSetApplyUnapply2to8
+
+  inline def testCtorSetApplyUnapply9to15: Data = ${ testCtorSetApplyUnapply9to15Impl }
+  private def testCtorSetApplyUnapply9to15Impl(using q: Quotes): Expr[Data] =
+    new CrossCtorInjectionFixtures(q).testCtorSetApplyUnapply9to15
+
+  inline def testCtorSetApplyUnapply16to22: Data = ${ testCtorSetApplyUnapply16to22Impl }
+  private def testCtorSetApplyUnapply16to22Impl(using q: Quotes): Expr[Data] =
+    new CrossCtorInjectionFixtures(q).testCtorSetApplyUnapply16to22
+
+  inline def testCtorSetMiddleAsUntyped3to7: Data = ${ testCtorSetMiddleAsUntyped3to7Impl }
+  private def testCtorSetMiddleAsUntyped3to7Impl(using q: Quotes): Expr[Data] =
+    new CrossCtorInjectionFixtures(q).testCtorSetMiddleAsUntyped3to7
+
+  inline def testCtorSetMiddleAsUntyped8to12: Data = ${ testCtorSetMiddleAsUntyped8to12Impl }
+  private def testCtorSetMiddleAsUntyped8to12Impl(using q: Quotes): Expr[Data] =
+    new CrossCtorInjectionFixtures(q).testCtorSetMiddleAsUntyped8to12
+
+  inline def testCtorSetMiddleAsUntyped13to17: Data = ${ testCtorSetMiddleAsUntyped13to17Impl }
+  private def testCtorSetMiddleAsUntyped13to17Impl(using q: Quotes): Expr[Data] =
+    new CrossCtorInjectionFixtures(q).testCtorSetMiddleAsUntyped13to17
+
+  inline def testCtorSetMiddleAsUntyped18to22: Data = ${ testCtorSetMiddleAsUntyped18to22Impl }
+  private def testCtorSetMiddleAsUntyped18to22Impl(using q: Quotes): Expr[Data] =
+    new CrossCtorInjectionFixtures(q).testCtorSetMiddleAsUntyped18to22
+
 }
