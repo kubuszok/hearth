@@ -876,4 +876,1517 @@ trait CrossCtorInjectionFixturesImpl { this: MacroCommons =>
     implicit val Result: Type.Ctor22[Result] = ctor.asInstanceOf[Type.Ctor22[Result]]
   }
 
+  /** Test: Type.CtorN.fromUntyped roundtrip - of -> asUntyped -> fromUntyped -> verify. */
+  def testCtorFromUntyped: Expr[Data] = {
+    val optionOf = Type.Ctor1.of[Option]
+    val optionUntyped = optionOf.asUntyped
+    val optionFrom = Type.Ctor1.fromUntyped[Option](optionUntyped)
+    val eitherOf = Type.Ctor2.of[Either]
+    val eitherUntyped = eitherOf.asUntyped
+    val eitherFrom = Type.Ctor2.fromUntyped[Either](eitherUntyped)
+    val arity3Of = Type.Ctor3.of[Arity3]
+    val arity3Untyped = arity3Of.asUntyped
+    val arity3From = Type.Ctor3.fromUntyped[Arity3](arity3Untyped)
+    val arity4Of = Type.Ctor4.of[Arity4]
+    val arity4Untyped = arity4Of.asUntyped
+    val arity4From = Type.Ctor4.fromUntyped[Arity4](arity4Untyped)
+    val arity5Of = Type.Ctor5.of[Arity5]
+    val arity5Untyped = arity5Of.asUntyped
+    val arity5From = Type.Ctor5.fromUntyped[Arity5](arity5Untyped)
+    val arity6Of = Type.Ctor6.of[Arity6]
+    val arity6Untyped = arity6Of.asUntyped
+    val arity6From = Type.Ctor6.fromUntyped[Arity6](arity6Untyped)
+    val arity7Of = Type.Ctor7.of[Arity7]
+    val arity7Untyped = arity7Of.asUntyped
+    val arity7From = Type.Ctor7.fromUntyped[Arity7](arity7Untyped)
+    val arity8Of = Type.Ctor8.of[Arity8]
+    val arity8Untyped = arity8Of.asUntyped
+    val arity8From = Type.Ctor8.fromUntyped[Arity8](arity8Untyped)
+    val arity9Of = Type.Ctor9.of[Arity9]
+    val arity9Untyped = arity9Of.asUntyped
+    val arity9From = Type.Ctor9.fromUntyped[Arity9](arity9Untyped)
+    val arity10Of = Type.Ctor10.of[Arity10]
+    val arity10Untyped = arity10Of.asUntyped
+    val arity10From = Type.Ctor10.fromUntyped[Arity10](arity10Untyped)
+    val arity11Of = Type.Ctor11.of[Arity11]
+    val arity11Untyped = arity11Of.asUntyped
+    val arity11From = Type.Ctor11.fromUntyped[Arity11](arity11Untyped)
+    val arity12Of = Type.Ctor12.of[Arity12]
+    val arity12Untyped = arity12Of.asUntyped
+    val arity12From = Type.Ctor12.fromUntyped[Arity12](arity12Untyped)
+    val arity13Of = Type.Ctor13.of[Arity13]
+    val arity13Untyped = arity13Of.asUntyped
+    val arity13From = Type.Ctor13.fromUntyped[Arity13](arity13Untyped)
+    val arity14Of = Type.Ctor14.of[Arity14]
+    val arity14Untyped = arity14Of.asUntyped
+    val arity14From = Type.Ctor14.fromUntyped[Arity14](arity14Untyped)
+    val arity15Of = Type.Ctor15.of[Arity15]
+    val arity15Untyped = arity15Of.asUntyped
+    val arity15From = Type.Ctor15.fromUntyped[Arity15](arity15Untyped)
+    val arity16Of = Type.Ctor16.of[Arity16]
+    val arity16Untyped = arity16Of.asUntyped
+    val arity16From = Type.Ctor16.fromUntyped[Arity16](arity16Untyped)
+    val arity17Of = Type.Ctor17.of[Arity17]
+    val arity17Untyped = arity17Of.asUntyped
+    val arity17From = Type.Ctor17.fromUntyped[Arity17](arity17Untyped)
+    val arity18Of = Type.Ctor18.of[Arity18]
+    val arity18Untyped = arity18Of.asUntyped
+    val arity18From = Type.Ctor18.fromUntyped[Arity18](arity18Untyped)
+    val arity19Of = Type.Ctor19.of[Arity19]
+    val arity19Untyped = arity19Of.asUntyped
+    val arity19From = Type.Ctor19.fromUntyped[Arity19](arity19Untyped)
+    val arity20Of = Type.Ctor20.of[Arity20]
+    val arity20Untyped = arity20Of.asUntyped
+    val arity20From = Type.Ctor20.fromUntyped[Arity20](arity20Untyped)
+    val arity21Of = Type.Ctor21.of[Arity21]
+    val arity21Untyped = arity21Of.asUntyped
+    val arity21From = Type.Ctor21.fromUntyped[Arity21](arity21Untyped)
+    val arity22Of = Type.Ctor22.of[Arity22]
+    val arity22Untyped = arity22Of.asUntyped
+    val arity22From = Type.Ctor22.fromUntyped[Arity22](arity22Untyped)
+
+    Expr(
+      Data.map(
+        "optionApply" -> Data(optionFrom.apply[Int](using Type.of[Int]).plainPrint),
+        "optionUnapplyMatch" -> Data(optionFrom.unapply(Type.of[Option[String]]).isDefined.toString),
+        "optionUnapplyNoMatch" -> Data(optionFrom.unapply(Type.of[List[String]]).isDefined.toString),
+        "optionAsUntyped" -> Data(UntypedType.plainPrint(optionFrom.asUntyped)),
+        "eitherApply" -> Data(eitherFrom.apply[String, Int](using Type.of[String], Type.of[Int]).plainPrint),
+        "eitherUnapplyMatch" -> Data(eitherFrom.unapply(Type.of[Either[String, Int]]).isDefined.toString),
+        "eitherUnapplyNoMatch" -> Data(eitherFrom.unapply(Type.of[Option[String]]).isDefined.toString),
+        "eitherAsUntyped" -> Data(UntypedType.plainPrint(eitherFrom.asUntyped)),
+        "arity3Apply" -> Data(
+          arity3From.apply[Int, Int, Int](using Type.of[Int], Type.of[Int], Type.of[Int]).plainPrint
+        ),
+        "arity3UnapplyMatch" -> Data(arity3From.unapply(Type.of[Arity3[Int, Int, Int]]).isDefined.toString),
+        "arity3UnapplyNoMatch" -> Data(arity3From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity3AsUntyped" -> Data(UntypedType.plainPrint(arity3From.asUntyped)),
+        "arity4Apply" -> Data(
+          arity4From.apply[Int, Int, Int, Int](using Type.of[Int], Type.of[Int], Type.of[Int], Type.of[Int]).plainPrint
+        ),
+        "arity4UnapplyMatch" -> Data(arity4From.unapply(Type.of[Arity4[Int, Int, Int, Int]]).isDefined.toString),
+        "arity4UnapplyNoMatch" -> Data(arity4From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity4AsUntyped" -> Data(UntypedType.plainPrint(arity4From.asUntyped)),
+        "arity5Apply" -> Data(
+          arity5From
+            .apply[Int, Int, Int, Int, Int](using Type.of[Int], Type.of[Int], Type.of[Int], Type.of[Int], Type.of[Int])
+            .plainPrint
+        ),
+        "arity5UnapplyMatch" -> Data(arity5From.unapply(Type.of[Arity5[Int, Int, Int, Int, Int]]).isDefined.toString),
+        "arity5UnapplyNoMatch" -> Data(arity5From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity5AsUntyped" -> Data(UntypedType.plainPrint(arity5From.asUntyped)),
+        "arity6Apply" -> Data(
+          arity6From
+            .apply[Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity6UnapplyMatch" -> Data(
+          arity6From.unapply(Type.of[Arity6[Int, Int, Int, Int, Int, Int]]).isDefined.toString
+        ),
+        "arity6UnapplyNoMatch" -> Data(arity6From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity6AsUntyped" -> Data(UntypedType.plainPrint(arity6From.asUntyped)),
+        "arity7Apply" -> Data(
+          arity7From
+            .apply[Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity7UnapplyMatch" -> Data(
+          arity7From.unapply(Type.of[Arity7[Int, Int, Int, Int, Int, Int, Int]]).isDefined.toString
+        ),
+        "arity7UnapplyNoMatch" -> Data(arity7From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity7AsUntyped" -> Data(UntypedType.plainPrint(arity7From.asUntyped)),
+        "arity8Apply" -> Data(
+          arity8From
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity8UnapplyMatch" -> Data(
+          arity8From.unapply(Type.of[Arity8[Int, Int, Int, Int, Int, Int, Int, Int]]).isDefined.toString
+        ),
+        "arity8UnapplyNoMatch" -> Data(arity8From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity8AsUntyped" -> Data(UntypedType.plainPrint(arity8From.asUntyped)),
+        "arity9Apply" -> Data(
+          arity9From
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity9UnapplyMatch" -> Data(
+          arity9From.unapply(Type.of[Arity9[Int, Int, Int, Int, Int, Int, Int, Int, Int]]).isDefined.toString
+        ),
+        "arity9UnapplyNoMatch" -> Data(arity9From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity9AsUntyped" -> Data(UntypedType.plainPrint(arity9From.asUntyped)),
+        "arity10Apply" -> Data(
+          arity10From
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity10UnapplyMatch" -> Data(
+          arity10From.unapply(Type.of[Arity10[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]]).isDefined.toString
+        ),
+        "arity10UnapplyNoMatch" -> Data(arity10From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity10AsUntyped" -> Data(UntypedType.plainPrint(arity10From.asUntyped)),
+        "arity11Apply" -> Data(
+          arity11From
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity11UnapplyMatch" -> Data(
+          arity11From
+            .unapply(Type.of[Arity11[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity11UnapplyNoMatch" -> Data(arity11From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity11AsUntyped" -> Data(UntypedType.plainPrint(arity11From.asUntyped)),
+        "arity12Apply" -> Data(
+          arity12From
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity12UnapplyMatch" -> Data(
+          arity12From
+            .unapply(Type.of[Arity12[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity12UnapplyNoMatch" -> Data(arity12From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity12AsUntyped" -> Data(UntypedType.plainPrint(arity12From.asUntyped)),
+        "arity13Apply" -> Data(
+          arity13From
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity13UnapplyMatch" -> Data(
+          arity13From
+            .unapply(Type.of[Arity13[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity13UnapplyNoMatch" -> Data(arity13From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity13AsUntyped" -> Data(UntypedType.plainPrint(arity13From.asUntyped)),
+        "arity14Apply" -> Data(
+          arity14From
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity14UnapplyMatch" -> Data(
+          arity14From
+            .unapply(Type.of[Arity14[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity14UnapplyNoMatch" -> Data(arity14From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity14AsUntyped" -> Data(UntypedType.plainPrint(arity14From.asUntyped)),
+        "arity15Apply" -> Data(
+          arity15From
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity15UnapplyMatch" -> Data(
+          arity15From
+            .unapply(Type.of[Arity15[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity15UnapplyNoMatch" -> Data(arity15From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity15AsUntyped" -> Data(UntypedType.plainPrint(arity15From.asUntyped)),
+        "arity16Apply" -> Data(
+          arity16From
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity16UnapplyMatch" -> Data(
+          arity16From
+            .unapply(Type.of[Arity16[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "arity16UnapplyNoMatch" -> Data(arity16From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity16AsUntyped" -> Data(UntypedType.plainPrint(arity16From.asUntyped)),
+        "arity17Apply" -> Data(
+          arity17From
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity17UnapplyMatch" -> Data(
+          arity17From
+            .unapply(
+              Type.of[Arity17[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity17UnapplyNoMatch" -> Data(arity17From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity17AsUntyped" -> Data(UntypedType.plainPrint(arity17From.asUntyped)),
+        "arity18Apply" -> Data(
+          arity18From
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity18UnapplyMatch" -> Data(
+          arity18From
+            .unapply(
+              Type.of[Arity18[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity18UnapplyNoMatch" -> Data(arity18From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity18AsUntyped" -> Data(UntypedType.plainPrint(arity18From.asUntyped)),
+        "arity19Apply" -> Data(
+          arity19From
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity19UnapplyMatch" -> Data(
+          arity19From
+            .unapply(
+              Type.of[
+                Arity19[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+              ]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity19UnapplyNoMatch" -> Data(arity19From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity19AsUntyped" -> Data(UntypedType.plainPrint(arity19From.asUntyped)),
+        "arity20Apply" -> Data(
+          arity20From
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity20UnapplyMatch" -> Data(
+          arity20From
+            .unapply(
+              Type.of[Arity20[
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int
+              ]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity20UnapplyNoMatch" -> Data(arity20From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity20AsUntyped" -> Data(UntypedType.plainPrint(arity20From.asUntyped)),
+        "arity21Apply" -> Data(
+          arity21From
+            .apply[
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int
+            ](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity21UnapplyMatch" -> Data(
+          arity21From
+            .unapply(
+              Type.of[Arity21[
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int
+              ]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity21UnapplyNoMatch" -> Data(arity21From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity21AsUntyped" -> Data(UntypedType.plainPrint(arity21From.asUntyped)),
+        "arity22Apply" -> Data(
+          arity22From
+            .apply[
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int
+            ](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "arity22UnapplyMatch" -> Data(
+          arity22From
+            .unapply(
+              Type.of[Arity22[
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int
+              ]]
+            )
+            .isDefined
+            .toString
+        ),
+        "arity22UnapplyNoMatch" -> Data(arity22From.unapply(Type.of[Option[String]]).isDefined.toString),
+        "arity22AsUntyped" -> Data(UntypedType.plainPrint(arity22From.asUntyped))
+      )
+    )
+  }
+
+  /** Verify a Ctor1[Option] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor1Option(ctor: Type.Ctor1[Option]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(ctor.apply[Int](using Type.of[Int]).plainPrint),
+        "unapplyMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[List[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor2[Either] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor2Either(ctor: Type.Ctor2[Either]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(ctor.apply[String, Int](using Type.of[String], Type.of[Int]).plainPrint),
+        "unapplyMatch" -> Data(ctor.unapply(Type.of[Either[String, Int]]).isDefined.toString),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor3[Arity3] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor3Arity3(ctor: Type.Ctor3[Arity3]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor.apply[Int, String, Boolean](using Type.of[Int], Type.of[String], Type.of[Boolean]).plainPrint
+        ),
+        "unapplyMatch" -> Data(ctor.unapply(Type.of[Arity3[Int, String, Boolean]]).isDefined.toString),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor4[Arity4] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor4Arity4(ctor: Type.Ctor4[Arity4]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor.apply[Int, Int, Int, Int](using Type.of[Int], Type.of[Int], Type.of[Int], Type.of[Int]).plainPrint
+        ),
+        "unapplyMatch" -> Data(ctor.unapply(Type.of[Arity4[Int, Int, Int, Int]]).isDefined.toString),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor5[Arity5] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor5Arity5(ctor: Type.Ctor5[Arity5]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[Int, Int, Int, Int, Int](using Type.of[Int], Type.of[Int], Type.of[Int], Type.of[Int], Type.of[Int])
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(ctor.unapply(Type.of[Arity5[Int, Int, Int, Int, Int]]).isDefined.toString),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor6[Arity6] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor6Arity6(ctor: Type.Ctor6[Arity6]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(ctor.unapply(Type.of[Arity6[Int, Int, Int, Int, Int, Int]]).isDefined.toString),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor7[Arity7] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor7Arity7(ctor: Type.Ctor7[Arity7]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor.unapply(Type.of[Arity7[Int, Int, Int, Int, Int, Int, Int]]).isDefined.toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor8[Arity8] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor8Arity8(ctor: Type.Ctor8[Arity8]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor.unapply(Type.of[Arity8[Int, Int, Int, Int, Int, Int, Int, Int]]).isDefined.toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor9[Arity9] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor9Arity9(ctor: Type.Ctor9[Arity9]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor
+            .unapply(Type.of[Arity9[Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor10[Arity10] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor10Arity10(ctor: Type.Ctor10[Arity10]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor
+            .unapply(Type.of[Arity10[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor11[Arity11] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor11Arity11(ctor: Type.Ctor11[Arity11]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor
+            .unapply(Type.of[Arity11[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor12[Arity12] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor12Arity12(ctor: Type.Ctor12[Arity12]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor
+            .unapply(Type.of[Arity12[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor13[Arity13] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor13Arity13(ctor: Type.Ctor13[Arity13]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor
+            .unapply(Type.of[Arity13[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor14[Arity14] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor14Arity14(ctor: Type.Ctor14[Arity14]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor
+            .unapply(Type.of[Arity14[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]])
+            .isDefined
+            .toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor15[Arity15] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor15Arity15(ctor: Type.Ctor15[Arity15]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor
+            .unapply(
+              Type.of[Arity15[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]]
+            )
+            .isDefined
+            .toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor16[Arity16] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor16Arity16(ctor: Type.Ctor16[Arity16]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor
+            .unapply(
+              Type.of[Arity16[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]]
+            )
+            .isDefined
+            .toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor17[Arity17] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor17Arity17(ctor: Type.Ctor17[Arity17]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor
+            .unapply(
+              Type.of[
+                Arity17[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+              ]
+            )
+            .isDefined
+            .toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor18[Arity18] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor18Arity18(ctor: Type.Ctor18[Arity18]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor
+            .unapply(
+              Type.of[
+                Arity18[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+              ]
+            )
+            .isDefined
+            .toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor19[Arity19] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor19Arity19(ctor: Type.Ctor19[Arity19]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int
+            ](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor
+            .unapply(
+              Type.of[
+                Arity19[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+              ]
+            )
+            .isDefined
+            .toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor20[Arity20] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor20Arity20(ctor: Type.Ctor20[Arity20]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int
+            ](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor
+            .unapply(
+              Type.of[
+                Arity20[
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int
+                ]
+              ]
+            )
+            .isDefined
+            .toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor21[Arity21] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor21Arity21(ctor: Type.Ctor21[Arity21]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int
+            ](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor
+            .unapply(
+              Type.of[
+                Arity21[
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int,
+                  Int
+                ]
+              ]
+            )
+            .isDefined
+            .toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
+
+  /** Verify a Ctor22[Arity22] that was constructed via fromUntyped using a platform-extracted UntypedType. */
+  def verifyExtractedCtor22Arity22(ctor: Type.Ctor22[Arity22]): Expr[Data] =
+    Expr(
+      Data.map(
+        "apply" -> Data(
+          ctor
+            .apply[
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int,
+              Int
+            ](
+              using
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int],
+              Type.of[Int]
+            )
+            .plainPrint
+        ),
+        "unapplyMatch" -> Data(
+          ctor
+            .unapply(
+              Type.of[Arity22[
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int,
+                Int
+              ]]
+            )
+            .isDefined
+            .toString
+        ),
+        "unapplyNoMatch" -> Data(ctor.unapply(Type.of[Option[String]]).isDefined.toString)
+      )
+    )
 }

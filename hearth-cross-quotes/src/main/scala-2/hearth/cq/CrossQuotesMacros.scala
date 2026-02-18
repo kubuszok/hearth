@@ -235,15 +235,18 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type]: Type[$appliedHKT] =
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1)] =
+        _root_.scala.Some($ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1])
+
       def unapply[$A](A: Type[$A]): Option[$L1 <:??<: $U1] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1)) =>
-            _root_.scala.Some($ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1])
+            matchResult(tp1)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 1) {
               val Seq(tp1) = A0.typeArgs
-              _root_.scala.Some($ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1])
+              matchResult(tp1)
             }
             else None
         }
@@ -303,23 +306,21 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type]: Type[$appliedHKT] =
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2]
-              )
-            )
+            matchResult(tp1, tp2)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 2) {
               val Seq(tp1, tp2) = A0.typeArgs
-              _root_.scala.Some(
-                ($ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2])
-              )
+              matchResult(tp1, tp2)
             }
             else None
         }
@@ -384,27 +385,22 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type]: Type[$appliedHKT] =
         $typeValue  
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3]
-              )
-            )
+            matchResult(tp1, tp2, tp3)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 3) {
               val Seq(tp1, tp2, tp3) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3]
-                )
-              )
+              matchResult(tp1, tp2, tp3)
             }
             else None
         }
@@ -472,29 +468,23 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 4) {
               val Seq(tp1, tp2, tp3, tp4) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4)
             }
             else None
         }
@@ -567,31 +557,24 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 5) {
               val Seq(tp1, tp2, tp3, tp4, tp5) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5)
             }
             else None
         }
@@ -668,33 +651,25 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 6) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6)
             }
             else None
         }
@@ -774,35 +749,26 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 7) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7)
             }
             else None
         }
@@ -887,37 +853,27 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 8) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8)
             }
             else None
         }
@@ -1005,39 +961,28 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+              $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 9) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9)
             }
             else None
         }
@@ -1128,41 +1073,29 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+              $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+              $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 10) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10)
             }
             else None
         }
@@ -1256,43 +1189,30 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+              $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+              $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+              $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 11) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11)
             }
             else None
         }
@@ -1391,45 +1311,31 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+              $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+              $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+              $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+              $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 12) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12)
             }
             else None
         }
@@ -1531,47 +1437,32 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+              $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+              $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+              $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+              $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+              $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 13) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13)
             }
             else None
         }
@@ -1673,49 +1564,33 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+              $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+              $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+              $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+              $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+              $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+              $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 14) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14)
             }
             else None
         }
@@ -1821,51 +1696,34 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+              $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+              $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+              $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+              $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+              $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+              $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+              $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 15) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                  $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15)
             }
             else None
         }
@@ -1974,53 +1832,35 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type, tp16: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+              $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+              $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+              $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+              $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+              $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+              $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+              $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
+              $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
-                $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 16) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                  $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
-                  $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16)
             }
             else None
         }
@@ -2132,55 +1972,36 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type, tp16: $ctx.Type, tp17: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+              $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+              $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+              $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+              $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+              $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+              $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+              $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
+              $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
+              $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
-                $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
-                $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 17) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                  $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
-                  $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
-                  $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17)
             }
             else None
         }
@@ -2295,57 +2116,37 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type, tp16: $ctx.Type, tp17: $ctx.Type, tp18: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+              $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+              $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+              $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+              $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+              $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+              $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+              $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
+              $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
+              $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
+              $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
-                $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
-                $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
-                $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 18) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                  $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
-                  $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
-                  $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
-                  $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18)
             }
             else None
         }
@@ -2466,59 +2267,38 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type, tp16: $ctx.Type, tp17: $ctx.Type, tp18: $ctx.Type, tp19: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+              $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+              $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+              $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+              $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+              $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+              $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+              $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
+              $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
+              $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
+              $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18],
+              $ctx.WeakTypeTag(tp19.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L19, $U19]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
-                $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
-                $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
-                $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18],
-                $ctx.WeakTypeTag(tp19.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L19, $U19]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 19) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                  $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
-                  $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
-                  $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
-                  $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18],
-                  $ctx.WeakTypeTag(tp19.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L19, $U19]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19)
             }
             else None
         }
@@ -2642,61 +2422,39 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type, $T >: $L20 <: $U20: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type, tp16: $ctx.Type, tp17: $ctx.Type, tp18: $ctx.Type, tp19: $ctx.Type, tp20: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+              $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+              $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+              $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+              $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+              $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+              $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+              $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
+              $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
+              $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
+              $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18],
+              $ctx.WeakTypeTag(tp19.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L19, $U19],
+              $ctx.WeakTypeTag(tp20.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L20, $U20]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
-                $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
-                $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
-                $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18],
-                $ctx.WeakTypeTag(tp19.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L19, $U19],
-                $ctx.WeakTypeTag(tp20.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L20, $U20]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 20) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                  $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
-                  $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
-                  $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
-                  $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18],
-                  $ctx.WeakTypeTag(tp19.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L19, $U19],
-                  $ctx.WeakTypeTag(tp20.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L20, $U20]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20)
             }
             else None
         }
@@ -2823,63 +2581,40 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type, $T >: $L20 <: $U20: Type, $U >: $L21 <: $U21: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type, tp16: $ctx.Type, tp17: $ctx.Type, tp18: $ctx.Type, tp19: $ctx.Type, tp20: $ctx.Type, tp21: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20, $L21 <:??<: $U21)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+              $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+              $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+              $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+              $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+              $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+              $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+              $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
+              $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
+              $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
+              $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18],
+              $ctx.WeakTypeTag(tp19.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L19, $U19],
+              $ctx.WeakTypeTag(tp20.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L20, $U20],
+              $ctx.WeakTypeTag(tp21.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L21, $U21]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20, $L21 <:??<: $U21)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
-                $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
-                $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
-                $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18],
-                $ctx.WeakTypeTag(tp19.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L19, $U19],
-                $ctx.WeakTypeTag(tp20.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L20, $U20],
-                $ctx.WeakTypeTag(tp21.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L21, $U21]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 21) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21) = A0.typeArgs
-              _root_.scala.Some(
-                (
-                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                  $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
-                  $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
-                  $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
-                  $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18],
-                  $ctx.WeakTypeTag(tp19.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L19, $U19],
-                  $ctx.WeakTypeTag(tp20.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L20, $U20],
-                  $ctx.WeakTypeTag(tp21.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L21, $U21]
-                )
-              )
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21)
             }
             else None
         }
@@ -3011,41 +2746,2517 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type, $T >: $L20 <: $U20: Type, $U >: $L21 <: $U21: Type, $V >: $L22 <: $U22: Type]: Type[$appliedHKT] = 
         $typeValue
 
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type, tp16: $ctx.Type, tp17: $ctx.Type, tp18: $ctx.Type, tp19: $ctx.Type, tp20: $ctx.Type, tp21: $ctx.Type, tp22: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20, $L21 <:??<: $U21, $L22 <:??<: $U22)] =
+        _root_.scala.Some((
+              $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+              $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+              $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+              $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+              $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+              $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+              $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+              $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+              $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+              $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+              $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+              $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+              $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+              $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+              $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
+              $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
+              $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
+              $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18],
+              $ctx.WeakTypeTag(tp19.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L19, $U19],
+              $ctx.WeakTypeTag(tp20.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L20, $U20],
+              $ctx.WeakTypeTag(tp21.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L21, $U21],
+              $ctx.WeakTypeTag(tp22.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L22, $U22]
+            ))
+
       def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20, $L21 <:??<: $U21, $L22 <:??<: $U22)] = {
         val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
         A0.dealias.widen.baseType(HKT.typeSymbol) match {
           case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21, tp22)) =>
-            _root_.scala.Some(
-              (
-                $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
-                $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
-                $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
-                $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
-                $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
-                $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
-                $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
-                $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
-                $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
-                $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
-                $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
-                $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
-                $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
-                $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
-                $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
-                $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
-                $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
-                $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18],
-                $ctx.WeakTypeTag(tp19.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L19, $U19],
-                $ctx.WeakTypeTag(tp20.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L20, $U20],
-                $ctx.WeakTypeTag(tp21.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L21, $U21],
-                $ctx.WeakTypeTag(tp22.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L22, $U22]
-              )
-            )
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21, tp22)
           case _ =>
             if (A0.typeConstructor == HKT && A0.typeArgs.size == 22) {
               val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21, tp22) = A0.typeArgs
-              _root_.scala.Some(
-                (
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21, tp22)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor22.of")} expansion:
+         |From: ${paintExclDot(Console.BLUE)(
+          "Type.Ctor22.of"
+        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, ${L19.tpe}, ${U19.tpe}, ${L20.tpe}, ${U20.tpe}, ${L21.tpe}, ${U21.tpe}, ${L22.tpe}, ${U22.tpe}, $HKT]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor1.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor1FromUntypedImpl[L1, U1 >: L1, HKT[_ >: L1 <: U1]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      HKTE: c.WeakTypeTag[HKT[?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val appliedHKT = tq"Type.Ctor1.Apply[$L1, $U1, $HKT, $A]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor1.Bounded[$L1, $U1, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1)] =
+        _root_.scala.Some($ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1])
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1)) =>
+            matchResult(tp1)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 1) {
+              val Seq(tp1) = A0.typeArgs
+              matchResult(tp1)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor1.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor1.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor2.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor2FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, HKT[_ >: L1 <: U1, _ >: L2 <: U2]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      HKTE: c.WeakTypeTag[HKT[?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val appliedHKT = tq"Type.Ctor2.Apply[$L1, $U1, $L2, $U2, $HKT, $A, $B]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor2.Bounded[$L1, $U1, $L2, $U2, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2)) =>
+            matchResult(tp1, tp2)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 2) {
+              val Seq(tp1, tp2) = A0.typeArgs
+              matchResult(tp1, tp2)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor2.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor2.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor3.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor3FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val appliedHKT = tq"Type.Ctor3.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $HKT, $A, $B, $C]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor3.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3)) =>
+            matchResult(tp1, tp2, tp3)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 3) {
+              val Seq(tp1, tp2, tp3) = A0.typeArgs
+              matchResult(tp1, tp2, tp3)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor3.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor3.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor4.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor4FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val appliedHKT = tq"Type.Ctor4.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $HKT, $A, $B, $C, $D]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor4.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4)) =>
+            matchResult(tp1, tp2, tp3, tp4)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 4) {
+              val Seq(tp1, tp2, tp3, tp4) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor4.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor4.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor5.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor5FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val appliedHKT = tq"Type.Ctor5.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $HKT, $A, $B, $C, $D, $E]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor5.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 5) {
+              val Seq(tp1, tp2, tp3, tp4, tp5) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor5.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor5.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor6.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor6FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val appliedHKT =
+      tq"Type.Ctor6.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $HKT, $A, $B, $C, $D, $E, $F]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor6.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 6) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor6.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor6.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor7.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor7FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val appliedHKT =
+      tq"Type.Ctor7.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $HKT, $A, $B, $C, $D, $E, $F, $G]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor7.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 7) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor7.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor7.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor8.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor8FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val appliedHKT =
+      tq"Type.Ctor8.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $HKT, $A, $B, $C, $D, $E, $F, $G, $H]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor8.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 8) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor8.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor8.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor9.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor9FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      L9: c.WeakTypeTag[L9],
+      U9: c.WeakTypeTag[U9],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val appliedHKT =
+      tq"Type.Ctor9.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor9.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe, implicitly[Type[$I]].asInstanceOf[$ctx.WeakTypeTag[$I]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 9) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor9.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor9.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(
+          L9.tpe
+        )}, ${pp(U9.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor10.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor10FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      L9: c.WeakTypeTag[L9],
+      U9: c.WeakTypeTag[U9],
+      L10: c.WeakTypeTag[L10],
+      U10: c.WeakTypeTag[U10],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val appliedHKT =
+      tq"Type.Ctor10.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor10.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe, implicitly[Type[$I]].asInstanceOf[$ctx.WeakTypeTag[$I]].tpe, implicitly[Type[$J]].asInstanceOf[$ctx.WeakTypeTag[$J]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 10) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor10.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor10.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(
+          L9.tpe
+        )}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor11.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor11FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      L9: c.WeakTypeTag[L9],
+      U9: c.WeakTypeTag[U9],
+      L10: c.WeakTypeTag[L10],
+      U10: c.WeakTypeTag[U10],
+      L11: c.WeakTypeTag[L11],
+      U11: c.WeakTypeTag[U11],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val appliedHKT =
+      tq"Type.Ctor11.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor11.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe, implicitly[Type[$I]].asInstanceOf[$ctx.WeakTypeTag[$I]].tpe, implicitly[Type[$J]].asInstanceOf[$ctx.WeakTypeTag[$J]].tpe, implicitly[Type[$K]].asInstanceOf[$ctx.WeakTypeTag[$K]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 11) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor11.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor11.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(
+          L9.tpe
+        )}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(L11.tpe)}, ${pp(U11.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor12.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor12FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      L9: c.WeakTypeTag[L9],
+      U9: c.WeakTypeTag[U9],
+      L10: c.WeakTypeTag[L10],
+      U10: c.WeakTypeTag[U10],
+      L11: c.WeakTypeTag[L11],
+      U11: c.WeakTypeTag[U11],
+      L12: c.WeakTypeTag[L12],
+      U12: c.WeakTypeTag[U12],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val appliedHKT =
+      tq"Type.Ctor12.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor12.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe, implicitly[Type[$I]].asInstanceOf[$ctx.WeakTypeTag[$I]].tpe, implicitly[Type[$J]].asInstanceOf[$ctx.WeakTypeTag[$J]].tpe, implicitly[Type[$K]].asInstanceOf[$ctx.WeakTypeTag[$K]].tpe, implicitly[Type[$L]].asInstanceOf[$ctx.WeakTypeTag[$L]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 12) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor12.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor12.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(
+          L9.tpe
+        )}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(L11.tpe)}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(
+          U12.tpe
+        )}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor13.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor13FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      L9: c.WeakTypeTag[L9],
+      U9: c.WeakTypeTag[U9],
+      L10: c.WeakTypeTag[L10],
+      U10: c.WeakTypeTag[U10],
+      L11: c.WeakTypeTag[L11],
+      U11: c.WeakTypeTag[U11],
+      L12: c.WeakTypeTag[L12],
+      U12: c.WeakTypeTag[U12],
+      L13: c.WeakTypeTag[L13],
+      U13: c.WeakTypeTag[U13],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val appliedHKT =
+      tq"Type.Ctor13.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor13.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe, implicitly[Type[$I]].asInstanceOf[$ctx.WeakTypeTag[$I]].tpe, implicitly[Type[$J]].asInstanceOf[$ctx.WeakTypeTag[$J]].tpe, implicitly[Type[$K]].asInstanceOf[$ctx.WeakTypeTag[$K]].tpe, implicitly[Type[$L]].asInstanceOf[$ctx.WeakTypeTag[$L]].tpe, implicitly[Type[$M]].asInstanceOf[$ctx.WeakTypeTag[$M]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 13) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor13.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor13.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(
+          L9.tpe
+        )}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(L11.tpe)}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(
+          U12.tpe
+        )}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor14.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor14FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      L9: c.WeakTypeTag[L9],
+      U9: c.WeakTypeTag[U9],
+      L10: c.WeakTypeTag[L10],
+      U10: c.WeakTypeTag[U10],
+      L11: c.WeakTypeTag[L11],
+      U11: c.WeakTypeTag[U11],
+      L12: c.WeakTypeTag[L12],
+      U12: c.WeakTypeTag[U12],
+      L13: c.WeakTypeTag[L13],
+      U13: c.WeakTypeTag[U13],
+      L14: c.WeakTypeTag[L14],
+      U14: c.WeakTypeTag[U14],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val appliedHKT =
+      tq"Type.Ctor14.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor14.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe, implicitly[Type[$I]].asInstanceOf[$ctx.WeakTypeTag[$I]].tpe, implicitly[Type[$J]].asInstanceOf[$ctx.WeakTypeTag[$J]].tpe, implicitly[Type[$K]].asInstanceOf[$ctx.WeakTypeTag[$K]].tpe, implicitly[Type[$L]].asInstanceOf[$ctx.WeakTypeTag[$L]].tpe, implicitly[Type[$M]].asInstanceOf[$ctx.WeakTypeTag[$M]].tpe, implicitly[Type[$N]].asInstanceOf[$ctx.WeakTypeTag[$N]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 14) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor14.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor14.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(
+          L9.tpe
+        )}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(L11.tpe)}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(
+          U12.tpe
+        )}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(U14.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor15.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor15FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      L9: c.WeakTypeTag[L9],
+      U9: c.WeakTypeTag[U9],
+      L10: c.WeakTypeTag[L10],
+      U10: c.WeakTypeTag[U10],
+      L11: c.WeakTypeTag[L11],
+      U11: c.WeakTypeTag[U11],
+      L12: c.WeakTypeTag[L12],
+      U12: c.WeakTypeTag[U12],
+      L13: c.WeakTypeTag[L13],
+      U13: c.WeakTypeTag[U13],
+      L14: c.WeakTypeTag[L14],
+      U14: c.WeakTypeTag[U14],
+      L15: c.WeakTypeTag[L15],
+      U15: c.WeakTypeTag[U15],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val appliedHKT =
+      tq"Type.Ctor15.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor15.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe, implicitly[Type[$I]].asInstanceOf[$ctx.WeakTypeTag[$I]].tpe, implicitly[Type[$J]].asInstanceOf[$ctx.WeakTypeTag[$J]].tpe, implicitly[Type[$K]].asInstanceOf[$ctx.WeakTypeTag[$K]].tpe, implicitly[Type[$L]].asInstanceOf[$ctx.WeakTypeTag[$L]].tpe, implicitly[Type[$M]].asInstanceOf[$ctx.WeakTypeTag[$M]].tpe, implicitly[Type[$N]].asInstanceOf[$ctx.WeakTypeTag[$N]].tpe, implicitly[Type[$O]].asInstanceOf[$ctx.WeakTypeTag[$O]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+                  $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 15) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor15.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor15.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(
+          L9.tpe
+        )}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(L11.tpe)}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(
+          U12.tpe
+        )}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(U14.tpe)}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor16.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor16FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      L9: c.WeakTypeTag[L9],
+      U9: c.WeakTypeTag[U9],
+      L10: c.WeakTypeTag[L10],
+      U10: c.WeakTypeTag[U10],
+      L11: c.WeakTypeTag[L11],
+      U11: c.WeakTypeTag[U11],
+      L12: c.WeakTypeTag[L12],
+      U12: c.WeakTypeTag[U12],
+      L13: c.WeakTypeTag[L13],
+      U13: c.WeakTypeTag[U13],
+      L14: c.WeakTypeTag[L14],
+      U14: c.WeakTypeTag[U14],
+      L15: c.WeakTypeTag[L15],
+      U15: c.WeakTypeTag[U15],
+      L16: c.WeakTypeTag[L16],
+      U16: c.WeakTypeTag[U16],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val P = freshTypeName("P") // 16
+    val appliedHKT =
+      tq"Type.Ctor16.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor16.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe, implicitly[Type[$I]].asInstanceOf[$ctx.WeakTypeTag[$I]].tpe, implicitly[Type[$J]].asInstanceOf[$ctx.WeakTypeTag[$J]].tpe, implicitly[Type[$K]].asInstanceOf[$ctx.WeakTypeTag[$K]].tpe, implicitly[Type[$L]].asInstanceOf[$ctx.WeakTypeTag[$L]].tpe, implicitly[Type[$M]].asInstanceOf[$ctx.WeakTypeTag[$M]].tpe, implicitly[Type[$N]].asInstanceOf[$ctx.WeakTypeTag[$N]].tpe, implicitly[Type[$O]].asInstanceOf[$ctx.WeakTypeTag[$O]].tpe, implicitly[Type[$P]].asInstanceOf[$ctx.WeakTypeTag[$P]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type, tp16: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+                  $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
+                  $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 16) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor16.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor16.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(
+          L9.tpe
+        )}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(L11.tpe)}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(
+          U12.tpe
+        )}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(U14.tpe)}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(
+          L16.tpe
+        )}, ${pp(U16.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor17.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor17FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      L9: c.WeakTypeTag[L9],
+      U9: c.WeakTypeTag[U9],
+      L10: c.WeakTypeTag[L10],
+      U10: c.WeakTypeTag[U10],
+      L11: c.WeakTypeTag[L11],
+      U11: c.WeakTypeTag[U11],
+      L12: c.WeakTypeTag[L12],
+      U12: c.WeakTypeTag[U12],
+      L13: c.WeakTypeTag[L13],
+      U13: c.WeakTypeTag[U13],
+      L14: c.WeakTypeTag[L14],
+      U14: c.WeakTypeTag[U14],
+      L15: c.WeakTypeTag[L15],
+      U15: c.WeakTypeTag[U15],
+      L16: c.WeakTypeTag[L16],
+      U16: c.WeakTypeTag[U16],
+      L17: c.WeakTypeTag[L17],
+      U17: c.WeakTypeTag[U17],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val P = freshTypeName("P") // 16
+    val Q = freshTypeName("Q") // 17
+    val appliedHKT =
+      tq"Type.Ctor17.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor17.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe, implicitly[Type[$I]].asInstanceOf[$ctx.WeakTypeTag[$I]].tpe, implicitly[Type[$J]].asInstanceOf[$ctx.WeakTypeTag[$J]].tpe, implicitly[Type[$K]].asInstanceOf[$ctx.WeakTypeTag[$K]].tpe, implicitly[Type[$L]].asInstanceOf[$ctx.WeakTypeTag[$L]].tpe, implicitly[Type[$M]].asInstanceOf[$ctx.WeakTypeTag[$M]].tpe, implicitly[Type[$N]].asInstanceOf[$ctx.WeakTypeTag[$N]].tpe, implicitly[Type[$O]].asInstanceOf[$ctx.WeakTypeTag[$O]].tpe, implicitly[Type[$P]].asInstanceOf[$ctx.WeakTypeTag[$P]].tpe, implicitly[Type[$Q]].asInstanceOf[$ctx.WeakTypeTag[$Q]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type, tp16: $ctx.Type, tp17: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+                  $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
+                  $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
+                  $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 17) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor17.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor17.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(
+          L9.tpe
+        )}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(L11.tpe)}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(
+          U12.tpe
+        )}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(U14.tpe)}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(
+          L16.tpe
+        )}, ${pp(U16.tpe)}, ${pp(L17.tpe)}, ${pp(U17.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor18.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor18FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      L9: c.WeakTypeTag[L9],
+      U9: c.WeakTypeTag[U9],
+      L10: c.WeakTypeTag[L10],
+      U10: c.WeakTypeTag[U10],
+      L11: c.WeakTypeTag[L11],
+      U11: c.WeakTypeTag[U11],
+      L12: c.WeakTypeTag[L12],
+      U12: c.WeakTypeTag[U12],
+      L13: c.WeakTypeTag[L13],
+      U13: c.WeakTypeTag[U13],
+      L14: c.WeakTypeTag[L14],
+      U14: c.WeakTypeTag[U14],
+      L15: c.WeakTypeTag[L15],
+      U15: c.WeakTypeTag[U15],
+      L16: c.WeakTypeTag[L16],
+      U16: c.WeakTypeTag[U16],
+      L17: c.WeakTypeTag[L17],
+      U17: c.WeakTypeTag[U17],
+      L18: c.WeakTypeTag[L18],
+      U18: c.WeakTypeTag[U18],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val P = freshTypeName("P") // 16
+    val Q = freshTypeName("Q") // 17
+    val R = freshTypeName("R") // 18
+    val appliedHKT =
+      tq"Type.Ctor18.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor18.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe, implicitly[Type[$I]].asInstanceOf[$ctx.WeakTypeTag[$I]].tpe, implicitly[Type[$J]].asInstanceOf[$ctx.WeakTypeTag[$J]].tpe, implicitly[Type[$K]].asInstanceOf[$ctx.WeakTypeTag[$K]].tpe, implicitly[Type[$L]].asInstanceOf[$ctx.WeakTypeTag[$L]].tpe, implicitly[Type[$M]].asInstanceOf[$ctx.WeakTypeTag[$M]].tpe, implicitly[Type[$N]].asInstanceOf[$ctx.WeakTypeTag[$N]].tpe, implicitly[Type[$O]].asInstanceOf[$ctx.WeakTypeTag[$O]].tpe, implicitly[Type[$P]].asInstanceOf[$ctx.WeakTypeTag[$P]].tpe, implicitly[Type[$Q]].asInstanceOf[$ctx.WeakTypeTag[$Q]].tpe, implicitly[Type[$R]].asInstanceOf[$ctx.WeakTypeTag[$R]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type, tp16: $ctx.Type, tp17: $ctx.Type, tp18: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+                  $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
+                  $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
+                  $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
+                  $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 18) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor18.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor18.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(
+          L9.tpe
+        )}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(L11.tpe)}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(
+          U12.tpe
+        )}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(U14.tpe)}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(
+          L16.tpe
+        )}, ${pp(U16.tpe)}, ${pp(L17.tpe)}, ${pp(U17.tpe)}, ${pp(L18.tpe)}, ${pp(U18.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor19.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor19FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      L9: c.WeakTypeTag[L9],
+      U9: c.WeakTypeTag[U9],
+      L10: c.WeakTypeTag[L10],
+      U10: c.WeakTypeTag[U10],
+      L11: c.WeakTypeTag[L11],
+      U11: c.WeakTypeTag[U11],
+      L12: c.WeakTypeTag[L12],
+      U12: c.WeakTypeTag[U12],
+      L13: c.WeakTypeTag[L13],
+      U13: c.WeakTypeTag[U13],
+      L14: c.WeakTypeTag[L14],
+      U14: c.WeakTypeTag[U14],
+      L15: c.WeakTypeTag[L15],
+      U15: c.WeakTypeTag[U15],
+      L16: c.WeakTypeTag[L16],
+      U16: c.WeakTypeTag[U16],
+      L17: c.WeakTypeTag[L17],
+      U17: c.WeakTypeTag[U17],
+      L18: c.WeakTypeTag[L18],
+      U18: c.WeakTypeTag[U18],
+      L19: c.WeakTypeTag[L19],
+      U19: c.WeakTypeTag[U19],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val P = freshTypeName("P") // 16
+    val Q = freshTypeName("Q") // 17
+    val R = freshTypeName("R") // 18
+    val S = freshTypeName("S") // 19
+    val appliedHKT =
+      tq"Type.Ctor19.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R, $S]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor19.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe, implicitly[Type[$I]].asInstanceOf[$ctx.WeakTypeTag[$I]].tpe, implicitly[Type[$J]].asInstanceOf[$ctx.WeakTypeTag[$J]].tpe, implicitly[Type[$K]].asInstanceOf[$ctx.WeakTypeTag[$K]].tpe, implicitly[Type[$L]].asInstanceOf[$ctx.WeakTypeTag[$L]].tpe, implicitly[Type[$M]].asInstanceOf[$ctx.WeakTypeTag[$M]].tpe, implicitly[Type[$N]].asInstanceOf[$ctx.WeakTypeTag[$N]].tpe, implicitly[Type[$O]].asInstanceOf[$ctx.WeakTypeTag[$O]].tpe, implicitly[Type[$P]].asInstanceOf[$ctx.WeakTypeTag[$P]].tpe, implicitly[Type[$Q]].asInstanceOf[$ctx.WeakTypeTag[$Q]].tpe, implicitly[Type[$R]].asInstanceOf[$ctx.WeakTypeTag[$R]].tpe, implicitly[Type[$S]].asInstanceOf[$ctx.WeakTypeTag[$S]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type, tp16: $ctx.Type, tp17: $ctx.Type, tp18: $ctx.Type, tp19: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+                  $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
+                  $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
+                  $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
+                  $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18],
+                  $ctx.WeakTypeTag(tp19.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L19, $U19]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 19) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor19.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor19.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(
+          L9.tpe
+        )}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(L11.tpe)}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(
+          U12.tpe
+        )}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(U14.tpe)}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(
+          L16.tpe
+        )}, ${pp(U16.tpe)}, ${pp(L17.tpe)}, ${pp(U17.tpe)}, ${pp(L18.tpe)}, ${pp(U18.tpe)}, ${pp(L19.tpe)}, ${pp(
+          U19.tpe
+        )}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor20.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor20FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      L9: c.WeakTypeTag[L9],
+      U9: c.WeakTypeTag[U9],
+      L10: c.WeakTypeTag[L10],
+      U10: c.WeakTypeTag[U10],
+      L11: c.WeakTypeTag[L11],
+      U11: c.WeakTypeTag[U11],
+      L12: c.WeakTypeTag[L12],
+      U12: c.WeakTypeTag[U12],
+      L13: c.WeakTypeTag[L13],
+      U13: c.WeakTypeTag[U13],
+      L14: c.WeakTypeTag[L14],
+      U14: c.WeakTypeTag[U14],
+      L15: c.WeakTypeTag[L15],
+      U15: c.WeakTypeTag[U15],
+      L16: c.WeakTypeTag[L16],
+      U16: c.WeakTypeTag[U16],
+      L17: c.WeakTypeTag[L17],
+      U17: c.WeakTypeTag[U17],
+      L18: c.WeakTypeTag[L18],
+      U18: c.WeakTypeTag[U18],
+      L19: c.WeakTypeTag[L19],
+      U19: c.WeakTypeTag[U19],
+      L20: c.WeakTypeTag[L20],
+      U20: c.WeakTypeTag[U20],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val P = freshTypeName("P") // 16
+    val Q = freshTypeName("Q") // 17
+    val R = freshTypeName("R") // 18
+    val S = freshTypeName("S") // 19
+    val T = freshTypeName("T") // 20
+    val appliedHKT =
+      tq"Type.Ctor20.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R, $S, $T]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor20.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type, $T >: $L20 <: $U20: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe, implicitly[Type[$I]].asInstanceOf[$ctx.WeakTypeTag[$I]].tpe, implicitly[Type[$J]].asInstanceOf[$ctx.WeakTypeTag[$J]].tpe, implicitly[Type[$K]].asInstanceOf[$ctx.WeakTypeTag[$K]].tpe, implicitly[Type[$L]].asInstanceOf[$ctx.WeakTypeTag[$L]].tpe, implicitly[Type[$M]].asInstanceOf[$ctx.WeakTypeTag[$M]].tpe, implicitly[Type[$N]].asInstanceOf[$ctx.WeakTypeTag[$N]].tpe, implicitly[Type[$O]].asInstanceOf[$ctx.WeakTypeTag[$O]].tpe, implicitly[Type[$P]].asInstanceOf[$ctx.WeakTypeTag[$P]].tpe, implicitly[Type[$Q]].asInstanceOf[$ctx.WeakTypeTag[$Q]].tpe, implicitly[Type[$R]].asInstanceOf[$ctx.WeakTypeTag[$R]].tpe, implicitly[Type[$S]].asInstanceOf[$ctx.WeakTypeTag[$S]].tpe, implicitly[Type[$T]].asInstanceOf[$ctx.WeakTypeTag[$T]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type, tp16: $ctx.Type, tp17: $ctx.Type, tp18: $ctx.Type, tp19: $ctx.Type, tp20: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+                  $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
+                  $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
+                  $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
+                  $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18],
+                  $ctx.WeakTypeTag(tp19.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L19, $U19],
+                  $ctx.WeakTypeTag(tp20.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L20, $U20]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 20) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor20.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor20.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(
+          L9.tpe
+        )}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(L11.tpe)}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(
+          U12.tpe
+        )}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(U14.tpe)}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(
+          L16.tpe
+        )}, ${pp(U16.tpe)}, ${pp(L17.tpe)}, ${pp(U17.tpe)}, ${pp(L18.tpe)}, ${pp(U18.tpe)}, ${pp(L19.tpe)}, ${pp(
+          U19.tpe
+        )}, ${pp(L20.tpe)}, ${pp(U20.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor21.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor21FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, L21, U21 >: L21, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20, _ >: L21 <: U21]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      L9: c.WeakTypeTag[L9],
+      U9: c.WeakTypeTag[U9],
+      L10: c.WeakTypeTag[L10],
+      U10: c.WeakTypeTag[U10],
+      L11: c.WeakTypeTag[L11],
+      U11: c.WeakTypeTag[U11],
+      L12: c.WeakTypeTag[L12],
+      U12: c.WeakTypeTag[U12],
+      L13: c.WeakTypeTag[L13],
+      U13: c.WeakTypeTag[U13],
+      L14: c.WeakTypeTag[L14],
+      U14: c.WeakTypeTag[U14],
+      L15: c.WeakTypeTag[L15],
+      U15: c.WeakTypeTag[U15],
+      L16: c.WeakTypeTag[L16],
+      U16: c.WeakTypeTag[U16],
+      L17: c.WeakTypeTag[L17],
+      U17: c.WeakTypeTag[U17],
+      L18: c.WeakTypeTag[L18],
+      U18: c.WeakTypeTag[U18],
+      L19: c.WeakTypeTag[L19],
+      U19: c.WeakTypeTag[U19],
+      L20: c.WeakTypeTag[L20],
+      U20: c.WeakTypeTag[U20],
+      L21: c.WeakTypeTag[L21],
+      U21: c.WeakTypeTag[U21],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val P = freshTypeName("P") // 16
+    val Q = freshTypeName("Q") // 17
+    val R = freshTypeName("R") // 18
+    val S = freshTypeName("S") // 19
+    val T = freshTypeName("T") // 20
+    val U = freshTypeName("U") // 21
+    val appliedHKT =
+      tq"Type.Ctor21.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $L21, $U21, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R, $S, $T, $U]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor21.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $L21, $U21, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type, $T >: $L20 <: $U20: Type, $U >: $L21 <: $U21: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe, implicitly[Type[$I]].asInstanceOf[$ctx.WeakTypeTag[$I]].tpe, implicitly[Type[$J]].asInstanceOf[$ctx.WeakTypeTag[$J]].tpe, implicitly[Type[$K]].asInstanceOf[$ctx.WeakTypeTag[$K]].tpe, implicitly[Type[$L]].asInstanceOf[$ctx.WeakTypeTag[$L]].tpe, implicitly[Type[$M]].asInstanceOf[$ctx.WeakTypeTag[$M]].tpe, implicitly[Type[$N]].asInstanceOf[$ctx.WeakTypeTag[$N]].tpe, implicitly[Type[$O]].asInstanceOf[$ctx.WeakTypeTag[$O]].tpe, implicitly[Type[$P]].asInstanceOf[$ctx.WeakTypeTag[$P]].tpe, implicitly[Type[$Q]].asInstanceOf[$ctx.WeakTypeTag[$Q]].tpe, implicitly[Type[$R]].asInstanceOf[$ctx.WeakTypeTag[$R]].tpe, implicitly[Type[$S]].asInstanceOf[$ctx.WeakTypeTag[$S]].tpe, implicitly[Type[$T]].asInstanceOf[$ctx.WeakTypeTag[$T]].tpe, implicitly[Type[$U]].asInstanceOf[$ctx.WeakTypeTag[$U]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type, tp16: $ctx.Type, tp17: $ctx.Type, tp18: $ctx.Type, tp19: $ctx.Type, tp20: $ctx.Type, tp21: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20, $L21 <:??<: $U21)] =
+        _root_.scala.Some((
+                  $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
+                  $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
+                  $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
+                  $ctx.WeakTypeTag(tp4.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L4, $U4],
+                  $ctx.WeakTypeTag(tp5.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L5, $U5],
+                  $ctx.WeakTypeTag(tp6.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L6, $U6],
+                  $ctx.WeakTypeTag(tp7.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L7, $U7],
+                  $ctx.WeakTypeTag(tp8.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L8, $U8],
+                  $ctx.WeakTypeTag(tp9.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L9, $U9],
+                  $ctx.WeakTypeTag(tp10.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L10, $U10],
+                  $ctx.WeakTypeTag(tp11.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L11, $U11],
+                  $ctx.WeakTypeTag(tp12.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L12, $U12],
+                  $ctx.WeakTypeTag(tp13.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L13, $U13],
+                  $ctx.WeakTypeTag(tp14.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L14, $U14],
+                  $ctx.WeakTypeTag(tp15.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L15, $U15],
+                  $ctx.WeakTypeTag(tp16.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L16, $U16],
+                  $ctx.WeakTypeTag(tp17.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L17, $U17],
+                  $ctx.WeakTypeTag(tp18.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L18, $U18],
+                  $ctx.WeakTypeTag(tp19.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L19, $U19],
+                  $ctx.WeakTypeTag(tp20.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L20, $U20],
+                  $ctx.WeakTypeTag(tp21.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L21, $U21]
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20, $L21 <:??<: $U21)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 21) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21)
+            }
+            else None
+        }
+      }
+    }
+    """
+
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor21.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor21.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(
+          L9.tpe
+        )}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(L11.tpe)}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(
+          U12.tpe
+        )}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(U14.tpe)}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(
+          L16.tpe
+        )}, ${pp(U16.tpe)}, ${pp(L17.tpe)}, ${pp(U17.tpe)}, ${pp(L18.tpe)}, ${pp(U18.tpe)}, ${pp(L19.tpe)}, ${pp(
+          U19.tpe
+        )}, ${pp(L20.tpe)}, ${pp(U20.tpe)}, ${pp(L21.tpe)}, ${pp(U21.tpe)}, ${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  /* Creates:
+   *   Type.Ctor22.fromUntyped[HKT](untyped)
+   */
+  // format: off
+  def typeCtor22FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, L21, U21 >: L21, L22, U22 >: L22, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20, _ >: L21 <: U21, _ >: L22 <: U22]](untyped: c.Expr[Any])(implicit
+  // format: on
+      L1: c.WeakTypeTag[L1],
+      U1: c.WeakTypeTag[U1],
+      L2: c.WeakTypeTag[L2],
+      U2: c.WeakTypeTag[U2],
+      L3: c.WeakTypeTag[L3],
+      U3: c.WeakTypeTag[U3],
+      L4: c.WeakTypeTag[L4],
+      U4: c.WeakTypeTag[U4],
+      L5: c.WeakTypeTag[L5],
+      U5: c.WeakTypeTag[U5],
+      L6: c.WeakTypeTag[L6],
+      U6: c.WeakTypeTag[U6],
+      L7: c.WeakTypeTag[L7],
+      U7: c.WeakTypeTag[U7],
+      L8: c.WeakTypeTag[L8],
+      U8: c.WeakTypeTag[U8],
+      L9: c.WeakTypeTag[L9],
+      U9: c.WeakTypeTag[U9],
+      L10: c.WeakTypeTag[L10],
+      U10: c.WeakTypeTag[U10],
+      L11: c.WeakTypeTag[L11],
+      U11: c.WeakTypeTag[U11],
+      L12: c.WeakTypeTag[L12],
+      U12: c.WeakTypeTag[U12],
+      L13: c.WeakTypeTag[L13],
+      U13: c.WeakTypeTag[U13],
+      L14: c.WeakTypeTag[L14],
+      U14: c.WeakTypeTag[U14],
+      L15: c.WeakTypeTag[L15],
+      U15: c.WeakTypeTag[U15],
+      L16: c.WeakTypeTag[L16],
+      U16: c.WeakTypeTag[U16],
+      L17: c.WeakTypeTag[L17],
+      U17: c.WeakTypeTag[U17],
+      L18: c.WeakTypeTag[L18],
+      U18: c.WeakTypeTag[U18],
+      L19: c.WeakTypeTag[L19],
+      U19: c.WeakTypeTag[U19],
+      L20: c.WeakTypeTag[L20],
+      U20: c.WeakTypeTag[U20],
+      L21: c.WeakTypeTag[L21],
+      U21: c.WeakTypeTag[U21],
+      L22: c.WeakTypeTag[L22],
+      U22: c.WeakTypeTag[U22],
+      HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]
+  ): c.Tree = try {
+    val HKT = HKTE.tpe.typeConstructor
+    val A = freshTypeName("A") // 1
+    val B = freshTypeName("B") // 2
+    val C = freshTypeName("C") // 3
+    val D = freshTypeName("D") // 4
+    val E = freshTypeName("E") // 5
+    val F = freshTypeName("F") // 6
+    val G = freshTypeName("G") // 7
+    val H = freshTypeName("H") // 8
+    val I = freshTypeName("I") // 9
+    val J = freshTypeName("J") // 10
+    val K = freshTypeName("K") // 11
+    val L = freshTypeName("L") // 12
+    val M = freshTypeName("M") // 13
+    val N = freshTypeName("N") // 14
+    val O = freshTypeName("O") // 15
+    val P = freshTypeName("P") // 16
+    val Q = freshTypeName("Q") // 17
+    val R = freshTypeName("R") // 18
+    val S = freshTypeName("S") // 19
+    val T = freshTypeName("T") // 20
+    val U = freshTypeName("U") // 21
+    val V = freshTypeName("V") // 22
+    val appliedHKT =
+      tq"Type.Ctor22.Apply[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $L21, $U21, $L22, $U22, $HKT, $A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R, $S, $T, $U, $V]"
+
+    val ctx = freshName("ctx")
+    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
+    val termInner = freshName("Inner")
+    val typeInner = TypeName(freshName("Inner").toString)
+
+    val unchecked = q"""
+    new Type.Ctor22.Bounded[$L1, $U1, $L2, $U2, $L3, $U3, $L4, $U4, $L5, $U5, $L6, $U6, $L7, $U7, $L8, $U8, $L9, $U9, $L10, $U10, $L11, $U11, $L12, $U12, $L13, $U13, $L14, $U14, $L15, $U15, $L16, $U16, $L17, $U17, $L18, $U18, $L19, $U19, $L20, $U20, $L21, $U21, $L22, $U22, $HKT] {
+      private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+      private implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
+        $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
+      import $ctx.universe.{ TypeRef, TypeRefTag }
+
+      private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]
+
+      def apply[$A >: $L1 <: $U1: Type, $B >: $L2 <: $U2: Type, $C >: $L3 <: $U3: Type, $D >: $L4 <: $U4: Type, $E >: $L5 <: $U5: Type, $F >: $L6 <: $U6: Type, $G >: $L7 <: $U7: Type, $H >: $L8 <: $U8: Type, $I >: $L9 <: $U9: Type, $J >: $L10 <: $U10: Type, $K >: $L11 <: $U11: Type, $L >: $L12 <: $U12: Type, $M >: $L13 <: $U13: Type, $N >: $L14 <: $U14: Type, $O >: $L15 <: $U15: Type, $P >: $L16 <: $U16: Type, $Q >: $L17 <: $U17: Type, $R >: $L18 <: $U18: Type, $S >: $L19 <: $U19: Type, $T >: $L20 <: $U20: Type, $U >: $L21 <: $U21: Type, $V >: $L22 <: $U22: Type]: Type[$appliedHKT] =
+        $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+          _root_.scala.List(implicitly[Type[$A]].asInstanceOf[$ctx.WeakTypeTag[$A]].tpe, implicitly[Type[$B]].asInstanceOf[$ctx.WeakTypeTag[$B]].tpe, implicitly[Type[$C]].asInstanceOf[$ctx.WeakTypeTag[$C]].tpe, implicitly[Type[$D]].asInstanceOf[$ctx.WeakTypeTag[$D]].tpe, implicitly[Type[$E]].asInstanceOf[$ctx.WeakTypeTag[$E]].tpe, implicitly[Type[$F]].asInstanceOf[$ctx.WeakTypeTag[$F]].tpe, implicitly[Type[$G]].asInstanceOf[$ctx.WeakTypeTag[$G]].tpe, implicitly[Type[$H]].asInstanceOf[$ctx.WeakTypeTag[$H]].tpe, implicitly[Type[$I]].asInstanceOf[$ctx.WeakTypeTag[$I]].tpe, implicitly[Type[$J]].asInstanceOf[$ctx.WeakTypeTag[$J]].tpe, implicitly[Type[$K]].asInstanceOf[$ctx.WeakTypeTag[$K]].tpe, implicitly[Type[$L]].asInstanceOf[$ctx.WeakTypeTag[$L]].tpe, implicitly[Type[$M]].asInstanceOf[$ctx.WeakTypeTag[$M]].tpe, implicitly[Type[$N]].asInstanceOf[$ctx.WeakTypeTag[$N]].tpe, implicitly[Type[$O]].asInstanceOf[$ctx.WeakTypeTag[$O]].tpe, implicitly[Type[$P]].asInstanceOf[$ctx.WeakTypeTag[$P]].tpe, implicitly[Type[$Q]].asInstanceOf[$ctx.WeakTypeTag[$Q]].tpe, implicitly[Type[$R]].asInstanceOf[$ctx.WeakTypeTag[$R]].tpe, implicitly[Type[$S]].asInstanceOf[$ctx.WeakTypeTag[$S]].tpe, implicitly[Type[$T]].asInstanceOf[$ctx.WeakTypeTag[$T]].tpe, implicitly[Type[$U]].asInstanceOf[$ctx.WeakTypeTag[$U]].tpe, implicitly[Type[$V]].asInstanceOf[$ctx.WeakTypeTag[$V]].tpe)
+        )).asInstanceOf[Type[$appliedHKT]]
+
+      private def matchResult(tp1: $ctx.Type, tp2: $ctx.Type, tp3: $ctx.Type, tp4: $ctx.Type, tp5: $ctx.Type, tp6: $ctx.Type, tp7: $ctx.Type, tp8: $ctx.Type, tp9: $ctx.Type, tp10: $ctx.Type, tp11: $ctx.Type, tp12: $ctx.Type, tp13: $ctx.Type, tp14: $ctx.Type, tp15: $ctx.Type, tp16: $ctx.Type, tp17: $ctx.Type, tp18: $ctx.Type, tp19: $ctx.Type, tp20: $ctx.Type, tp21: $ctx.Type, tp22: $ctx.Type): _root_.scala.Some[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20, $L21 <:??<: $U21, $L22 <:??<: $U22)] =
+        _root_.scala.Some((
                   $ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L1, $U1],
                   $ctx.WeakTypeTag(tp2.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L2, $U2],
                   $ctx.WeakTypeTag(tp3.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L3, $U3],
@@ -3068,8 +5279,17 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
                   $ctx.WeakTypeTag(tp20.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L20, $U20],
                   $ctx.WeakTypeTag(tp21.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L21, $U21],
                   $ctx.WeakTypeTag(tp22.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$L22, $U22]
-                )
-              )
+                ))
+
+      def unapply[$A](A: Type[$A]): Option[($L1 <:??<: $U1, $L2 <:??<: $U2, $L3 <:??<: $U3, $L4 <:??<: $U4, $L5 <:??<: $U5, $L6 <:??<: $U6, $L7 <:??<: $U7, $L8 <:??<: $U8, $L9 <:??<: $U9, $L10 <:??<: $U10, $L11 <:??<: $U11, $L12 <:??<: $U12, $L13 <:??<: $U13, $L14 <:??<: $U14, $L15 <:??<: $U15, $L16 <:??<: $U16, $L17 <:??<: $U17, $L18 <:??<: $U18, $L19 <:??<: $U19, $L20 <:??<: $U20, $L21 <:??<: $U21, $L22 <:??<: $U22)] = {
+        val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+        A0.dealias.widen.baseType(HKT.typeSymbol) match {
+          case TypeRef(_, _, List(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21, tp22)) =>
+            matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21, tp22)
+          case _ =>
+            if (A0.typeConstructor == HKT && A0.typeArgs.size == 22) {
+              val Seq(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21, tp22) = A0.typeArgs
+              matchResult(tp1, tp2, tp3, tp4, tp5, tp6, tp7, tp8, tp9, tp10, tp11, tp12, tp13, tp14, tp15, tp16, tp17, tp18, tp19, tp20, tp21, tp22)
             }
             else None
         }
@@ -3080,16 +5300,25 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     val result = suppressWarnings(c.typecheck(unchecked))
 
     log(
-      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor22.of")} expansion:
-         |From: ${paintExclDot(Console.BLUE)(
-          "Type.Ctor22.of"
-        )}[${L1.tpe}, ${U1.tpe}, ${L2.tpe}, ${U2.tpe}, ${L3.tpe}, ${U3.tpe}, ${L4.tpe}, ${U4.tpe}, ${L5.tpe}, ${U5.tpe}, ${L6.tpe}, ${U6.tpe}, ${L7.tpe}, ${U7.tpe}, ${L8.tpe}, ${U8.tpe}, ${L9.tpe}, ${U9.tpe}, ${L10.tpe}, ${U10.tpe}, ${L11.tpe}, ${U11.tpe}, ${L12.tpe}, ${U12.tpe}, ${L13.tpe}, ${U13.tpe}, ${L14.tpe}, ${U14.tpe}, ${L15.tpe}, ${U15.tpe}, ${L16.tpe}, ${U16.tpe}, ${L17.tpe}, ${U17.tpe}, ${L18.tpe}, ${U18.tpe}, ${L19.tpe}, ${U19.tpe}, ${L20.tpe}, ${U20.tpe}, ${L21.tpe}, ${U21.tpe}, ${L22.tpe}, ${U22.tpe}, $HKT]
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.Ctor22.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.Ctor22.fromUntyped")}[${pp(L1.tpe)}, ${pp(U1.tpe)}, ${pp(
+          L2.tpe
+        )}, ${pp(U2.tpe)}, ${pp(L3.tpe)}, ${pp(U3.tpe)}, ${pp(L4.tpe)}, ${pp(U4.tpe)}, ${pp(L5.tpe)}, ${pp(
+          U5.tpe
+        )}, ${pp(L6.tpe)}, ${pp(U6.tpe)}, ${pp(L7.tpe)}, ${pp(U7.tpe)}, ${pp(L8.tpe)}, ${pp(U8.tpe)}, ${pp(
+          L9.tpe
+        )}, ${pp(U9.tpe)}, ${pp(L10.tpe)}, ${pp(U10.tpe)}, ${pp(L11.tpe)}, ${pp(U11.tpe)}, ${pp(L12.tpe)}, ${pp(
+          U12.tpe
+        )}, ${pp(L13.tpe)}, ${pp(U13.tpe)}, ${pp(L14.tpe)}, ${pp(U14.tpe)}, ${pp(L15.tpe)}, ${pp(U15.tpe)}, ${pp(
+          L16.tpe
+        )}, ${pp(U16.tpe)}, ${pp(L17.tpe)}, ${pp(U17.tpe)}, ${pp(L18.tpe)}, ${pp(U18.tpe)}, ${pp(L19.tpe)}, ${pp(
+          U19.tpe
+        )}, ${pp(L20.tpe)}, ${pp(U20.tpe)}, ${pp(L21.tpe)}, ${pp(U21.tpe)}, ${pp(L22.tpe)}, ${pp(U22.tpe)}, ${pp(HKT)}]
          |To: ${indent(pp(result))}""".stripMargin
     )
 
     result
   } catch { case e: Throwable => reportIssue(e) }
-
   /* Replaces:
    *   Expr.quote[A](a)
    * with:

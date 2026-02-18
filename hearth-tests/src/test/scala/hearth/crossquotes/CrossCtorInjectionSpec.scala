@@ -715,5 +715,441 @@ final class CrossCtorInjectionSpec extends MacroSuite {
       }
 
     }
+    group("for Type.CtorN.fromUntyped") {
+
+      test("should roundtrip of -> asUntyped -> fromUntyped for all arities") {
+        val isScala3 = LanguageVersion.byHearth.isScala3
+        CrossCtorInjectionFixtures.testCtorFromUntyped <==> Data.map(
+          "optionApply" -> Data("scala.Option[scala.Int]"),
+          "optionUnapplyMatch" -> Data("true"),
+          "optionUnapplyNoMatch" -> Data("false"),
+          "optionAsUntyped" -> Data(
+            if (isScala3) "scala.Option[A >: scala.Nothing <: scala.Any] => scala.Option[A]"
+            else "scala.Option"
+          ),
+          "eitherApply" -> Data("scala.util.Either[java.lang.String, scala.Int]"),
+          "eitherUnapplyMatch" -> Data("true"),
+          "eitherUnapplyNoMatch" -> Data("false"),
+          "eitherAsUntyped" -> Data(
+            if (isScala3)
+              "scala.util.Either[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any] => scala.util.Either[A, B]"
+            else "scala.Either"
+          ),
+          "arity3Apply" -> Data("hearth.examples.kinds.Arity3[scala.Int, scala.Int, scala.Int]"),
+          "arity3UnapplyMatch" -> Data("true"),
+          "arity3UnapplyNoMatch" -> Data("false"),
+          "arity3AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity3[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity3[A, B, C]"
+            else "hearth.examples.kinds.Arity3"
+          ),
+          "arity4Apply" -> Data("hearth.examples.kinds.Arity4[scala.Int, scala.Int, scala.Int, scala.Int]"),
+          "arity4UnapplyMatch" -> Data("true"),
+          "arity4UnapplyNoMatch" -> Data("false"),
+          "arity4AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity4[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity4[A, B, C, D]"
+            else "hearth.examples.kinds.Arity4"
+          ),
+          "arity5Apply" -> Data("hearth.examples.kinds.Arity5[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"),
+          "arity5UnapplyMatch" -> Data("true"),
+          "arity5UnapplyNoMatch" -> Data("false"),
+          "arity5AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity5[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity5[A, B, C, D, E]"
+            else "hearth.examples.kinds.Arity5"
+          ),
+          "arity6Apply" -> Data(
+            "hearth.examples.kinds.Arity6[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity6UnapplyMatch" -> Data("true"),
+          "arity6UnapplyNoMatch" -> Data("false"),
+          "arity6AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity6[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity6[A, B, C, D, E, F]"
+            else "hearth.examples.kinds.Arity6"
+          ),
+          "arity7Apply" -> Data(
+            "hearth.examples.kinds.Arity7[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity7UnapplyMatch" -> Data("true"),
+          "arity7UnapplyNoMatch" -> Data("false"),
+          "arity7AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity7[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity7[A, B, C, D, E, F, G]"
+            else "hearth.examples.kinds.Arity7"
+          ),
+          "arity8Apply" -> Data(
+            "hearth.examples.kinds.Arity8[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity8UnapplyMatch" -> Data("true"),
+          "arity8UnapplyNoMatch" -> Data("false"),
+          "arity8AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity8[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity8[A, B, C, D, E, F, G, H]"
+            else "hearth.examples.kinds.Arity8"
+          ),
+          "arity9Apply" -> Data(
+            "hearth.examples.kinds.Arity9[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity9UnapplyMatch" -> Data("true"),
+          "arity9UnapplyNoMatch" -> Data("false"),
+          "arity9AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity9[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any, I >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity9[A, B, C, D, E, F, G, H, I]"
+            else "hearth.examples.kinds.Arity9"
+          ),
+          "arity10Apply" -> Data(
+            "hearth.examples.kinds.Arity10[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity10UnapplyMatch" -> Data("true"),
+          "arity10UnapplyNoMatch" -> Data("false"),
+          "arity10AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity10[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any, I >: scala.Nothing <: scala.Any, J >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity10[A, B, C, D, E, F, G, H, I, J]"
+            else "hearth.examples.kinds.Arity10"
+          ),
+          "arity11Apply" -> Data(
+            "hearth.examples.kinds.Arity11[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity11UnapplyMatch" -> Data("true"),
+          "arity11UnapplyNoMatch" -> Data("false"),
+          "arity11AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity11[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any, I >: scala.Nothing <: scala.Any, J >: scala.Nothing <: scala.Any, K >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity11[A, B, C, D, E, F, G, H, I, J, K]"
+            else "hearth.examples.kinds.Arity11"
+          ),
+          "arity12Apply" -> Data(
+            "hearth.examples.kinds.Arity12[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity12UnapplyMatch" -> Data("true"),
+          "arity12UnapplyNoMatch" -> Data("false"),
+          "arity12AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity12[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any, I >: scala.Nothing <: scala.Any, J >: scala.Nothing <: scala.Any, K >: scala.Nothing <: scala.Any, L >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity12[A, B, C, D, E, F, G, H, I, J, K, L]"
+            else "hearth.examples.kinds.Arity12"
+          ),
+          "arity13Apply" -> Data(
+            "hearth.examples.kinds.Arity13[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity13UnapplyMatch" -> Data("true"),
+          "arity13UnapplyNoMatch" -> Data("false"),
+          "arity13AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity13[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any, I >: scala.Nothing <: scala.Any, J >: scala.Nothing <: scala.Any, K >: scala.Nothing <: scala.Any, L >: scala.Nothing <: scala.Any, M >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity13[A, B, C, D, E, F, G, H, I, J, K, L, M]"
+            else "hearth.examples.kinds.Arity13"
+          ),
+          "arity14Apply" -> Data(
+            "hearth.examples.kinds.Arity14[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity14UnapplyMatch" -> Data("true"),
+          "arity14UnapplyNoMatch" -> Data("false"),
+          "arity14AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity14[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any, I >: scala.Nothing <: scala.Any, J >: scala.Nothing <: scala.Any, K >: scala.Nothing <: scala.Any, L >: scala.Nothing <: scala.Any, M >: scala.Nothing <: scala.Any, N >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]"
+            else "hearth.examples.kinds.Arity14"
+          ),
+          "arity15Apply" -> Data(
+            "hearth.examples.kinds.Arity15[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity15UnapplyMatch" -> Data("true"),
+          "arity15UnapplyNoMatch" -> Data("false"),
+          "arity15AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity15[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any, I >: scala.Nothing <: scala.Any, J >: scala.Nothing <: scala.Any, K >: scala.Nothing <: scala.Any, L >: scala.Nothing <: scala.Any, M >: scala.Nothing <: scala.Any, N >: scala.Nothing <: scala.Any, O >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]"
+            else "hearth.examples.kinds.Arity15"
+          ),
+          "arity16Apply" -> Data(
+            "hearth.examples.kinds.Arity16[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity16UnapplyMatch" -> Data("true"),
+          "arity16UnapplyNoMatch" -> Data("false"),
+          "arity16AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity16[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any, I >: scala.Nothing <: scala.Any, J >: scala.Nothing <: scala.Any, K >: scala.Nothing <: scala.Any, L >: scala.Nothing <: scala.Any, M >: scala.Nothing <: scala.Any, N >: scala.Nothing <: scala.Any, O >: scala.Nothing <: scala.Any, P >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]"
+            else "hearth.examples.kinds.Arity16"
+          ),
+          "arity17Apply" -> Data(
+            "hearth.examples.kinds.Arity17[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity17UnapplyMatch" -> Data("true"),
+          "arity17UnapplyNoMatch" -> Data("false"),
+          "arity17AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity17[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any, I >: scala.Nothing <: scala.Any, J >: scala.Nothing <: scala.Any, K >: scala.Nothing <: scala.Any, L >: scala.Nothing <: scala.Any, M >: scala.Nothing <: scala.Any, N >: scala.Nothing <: scala.Any, O >: scala.Nothing <: scala.Any, P >: scala.Nothing <: scala.Any, Q >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity17[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]"
+            else "hearth.examples.kinds.Arity17"
+          ),
+          "arity18Apply" -> Data(
+            "hearth.examples.kinds.Arity18[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity18UnapplyMatch" -> Data("true"),
+          "arity18UnapplyNoMatch" -> Data("false"),
+          "arity18AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity18[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any, I >: scala.Nothing <: scala.Any, J >: scala.Nothing <: scala.Any, K >: scala.Nothing <: scala.Any, L >: scala.Nothing <: scala.Any, M >: scala.Nothing <: scala.Any, N >: scala.Nothing <: scala.Any, O >: scala.Nothing <: scala.Any, P >: scala.Nothing <: scala.Any, Q >: scala.Nothing <: scala.Any, R >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity18[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]"
+            else "hearth.examples.kinds.Arity18"
+          ),
+          "arity19Apply" -> Data(
+            "hearth.examples.kinds.Arity19[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity19UnapplyMatch" -> Data("true"),
+          "arity19UnapplyNoMatch" -> Data("false"),
+          "arity19AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity19[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any, I >: scala.Nothing <: scala.Any, J >: scala.Nothing <: scala.Any, K >: scala.Nothing <: scala.Any, L >: scala.Nothing <: scala.Any, M >: scala.Nothing <: scala.Any, N >: scala.Nothing <: scala.Any, O >: scala.Nothing <: scala.Any, P >: scala.Nothing <: scala.Any, Q >: scala.Nothing <: scala.Any, R >: scala.Nothing <: scala.Any, S >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity19[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]"
+            else "hearth.examples.kinds.Arity19"
+          ),
+          "arity20Apply" -> Data(
+            "hearth.examples.kinds.Arity20[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity20UnapplyMatch" -> Data("true"),
+          "arity20UnapplyNoMatch" -> Data("false"),
+          "arity20AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity20[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any, I >: scala.Nothing <: scala.Any, J >: scala.Nothing <: scala.Any, K >: scala.Nothing <: scala.Any, L >: scala.Nothing <: scala.Any, M >: scala.Nothing <: scala.Any, N >: scala.Nothing <: scala.Any, O >: scala.Nothing <: scala.Any, P >: scala.Nothing <: scala.Any, Q >: scala.Nothing <: scala.Any, R >: scala.Nothing <: scala.Any, S >: scala.Nothing <: scala.Any, T >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity20[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]"
+            else "hearth.examples.kinds.Arity20"
+          ),
+          "arity21Apply" -> Data(
+            "hearth.examples.kinds.Arity21[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity21UnapplyMatch" -> Data("true"),
+          "arity21UnapplyNoMatch" -> Data("false"),
+          "arity21AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity21[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any, I >: scala.Nothing <: scala.Any, J >: scala.Nothing <: scala.Any, K >: scala.Nothing <: scala.Any, L >: scala.Nothing <: scala.Any, M >: scala.Nothing <: scala.Any, N >: scala.Nothing <: scala.Any, O >: scala.Nothing <: scala.Any, P >: scala.Nothing <: scala.Any, Q >: scala.Nothing <: scala.Any, R >: scala.Nothing <: scala.Any, S >: scala.Nothing <: scala.Any, T >: scala.Nothing <: scala.Any, U >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity21[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]"
+            else "hearth.examples.kinds.Arity21"
+          ),
+          "arity22Apply" -> Data(
+            "hearth.examples.kinds.Arity22[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "arity22UnapplyMatch" -> Data("true"),
+          "arity22UnapplyNoMatch" -> Data("false"),
+          "arity22AsUntyped" -> Data(
+            if (isScala3)
+              "hearth.examples.kinds.Arity22[A >: scala.Nothing <: scala.Any, B >: scala.Nothing <: scala.Any, C >: scala.Nothing <: scala.Any, D >: scala.Nothing <: scala.Any, E >: scala.Nothing <: scala.Any, F >: scala.Nothing <: scala.Any, G >: scala.Nothing <: scala.Any, H >: scala.Nothing <: scala.Any, I >: scala.Nothing <: scala.Any, J >: scala.Nothing <: scala.Any, K >: scala.Nothing <: scala.Any, L >: scala.Nothing <: scala.Any, M >: scala.Nothing <: scala.Any, N >: scala.Nothing <: scala.Any, O >: scala.Nothing <: scala.Any, P >: scala.Nothing <: scala.Any, Q >: scala.Nothing <: scala.Any, R >: scala.Nothing <: scala.Any, S >: scala.Nothing <: scala.Any, T >: scala.Nothing <: scala.Any, U >: scala.Nothing <: scala.Any, V >: scala.Nothing <: scala.Any] => hearth.examples.kinds.Arity22[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]"
+            else "hearth.examples.kinds.Arity22"
+          )
+        )
+      }
+
+    }
+
+    group("for Type.CtorN.fromUntyped extraction") {
+
+      test("should work for Ctor1 extracted from Option[Int]") {
+        CrossCtorInjectionFixtures.testCtorExtract1 <==> Data.map(
+          "apply" -> Data("scala.Option[scala.Int]"),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor2 extracted from Either[String, Int]") {
+        CrossCtorInjectionFixtures.testCtorExtract2 <==> Data.map(
+          "apply" -> Data("scala.util.Either[java.lang.String, scala.Int]"),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor3 extracted from Arity3[Int, String, Boolean]") {
+        CrossCtorInjectionFixtures.testCtorExtract3 <==> Data.map(
+          "apply" -> Data("hearth.examples.kinds.Arity3[scala.Int, java.lang.String, scala.Boolean]"),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor4 extracted from Arity4[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract4 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity4[scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor5 extracted from Arity5[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract5 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity5[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor6 extracted from Arity6[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract6 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity6[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor7 extracted from Arity7[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract7 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity7[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor8 extracted from Arity8[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract8 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity8[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor9 extracted from Arity9[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract9 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity9[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor10 extracted from Arity10[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract10 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity10[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor11 extracted from Arity11[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract11 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity11[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor12 extracted from Arity12[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract12 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity12[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor13 extracted from Arity13[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract13 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity13[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor14 extracted from Arity14[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract14 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity14[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor15 extracted from Arity15[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract15 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity15[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor16 extracted from Arity16[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract16 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity16[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor17 extracted from Arity17[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract17 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity17[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor18 extracted from Arity18[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract18 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity18[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor19 extracted from Arity19[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract19 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity19[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor20 extracted from Arity20[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract20 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity20[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor21 extracted from Arity21[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract21 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity21[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+      test("should work for Ctor22 extracted from Arity22[Int, ...]") {
+        CrossCtorInjectionFixtures.testCtorExtract22 <==> Data.map(
+          "apply" -> Data(
+            "hearth.examples.kinds.Arity22[scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int, scala.Int]"
+          ),
+          "unapplyMatch" -> Data("true"),
+          "unapplyNoMatch" -> Data("false")
+        )
+      }
+
+    }
   }
 }
