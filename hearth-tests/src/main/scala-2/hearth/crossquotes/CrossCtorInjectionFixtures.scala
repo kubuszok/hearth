@@ -104,6 +104,208 @@ final private class CrossCtorInjectionFixtures(val c: blackbox.Context)
 
   def testExprQuoteWithCtor22BodyImpl: c.Expr[Data] = testExprQuoteWithCtor22Body
 
+  def testCtorFromUntypedImpl: c.Expr[Data] = testCtorFromUntyped
+
+  def testCtorExtract1Impl: c.Expr[Data] = {
+    val ctor: UntypedType = c.weakTypeOf[Option[Int]].typeConstructor
+    val optionCtor = Type.Ctor1.fromUntyped[Option](ctor)
+    verifyExtractedCtor1Option(optionCtor)
+  }
+
+  def testCtorExtract2Impl: c.Expr[Data] = {
+    val ctor: UntypedType = c.weakTypeOf[Either[String, Int]].typeConstructor
+    val eitherCtor = Type.Ctor2.fromUntyped[Either](ctor)
+    verifyExtractedCtor2Either(eitherCtor)
+  }
+
+  def testCtorExtract3Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity3
+    val ctor: UntypedType = c.weakTypeOf[Arity3[Int, String, Boolean]].typeConstructor
+    val arity3Ctor = Type.Ctor3.fromUntyped[Arity3](ctor)
+    verifyExtractedCtor3Arity3(arity3Ctor)
+  }
+
+  def testCtorExtract4Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity4
+    val ctor: UntypedType = c.weakTypeOf[Arity4[Int, Int, Int, Int]].typeConstructor
+    val arity4Ctor = Type.Ctor4.fromUntyped[Arity4](ctor)
+    verifyExtractedCtor4Arity4(arity4Ctor)
+  }
+
+  def testCtorExtract5Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity5
+    val ctor: UntypedType = c.weakTypeOf[Arity5[Int, Int, Int, Int, Int]].typeConstructor
+    val arity5Ctor = Type.Ctor5.fromUntyped[Arity5](ctor)
+    verifyExtractedCtor5Arity5(arity5Ctor)
+  }
+
+  def testCtorExtract6Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity6
+    val ctor: UntypedType = c.weakTypeOf[Arity6[Int, Int, Int, Int, Int, Int]].typeConstructor
+    val arity6Ctor = Type.Ctor6.fromUntyped[Arity6](ctor)
+    verifyExtractedCtor6Arity6(arity6Ctor)
+  }
+
+  def testCtorExtract7Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity7
+    val ctor: UntypedType = c.weakTypeOf[Arity7[Int, Int, Int, Int, Int, Int, Int]].typeConstructor
+    val arity7Ctor = Type.Ctor7.fromUntyped[Arity7](ctor)
+    verifyExtractedCtor7Arity7(arity7Ctor)
+  }
+
+  def testCtorExtract8Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity8
+    val ctor: UntypedType = c.weakTypeOf[Arity8[Int, Int, Int, Int, Int, Int, Int, Int]].typeConstructor
+    val arity8Ctor = Type.Ctor8.fromUntyped[Arity8](ctor)
+    verifyExtractedCtor8Arity8(arity8Ctor)
+  }
+
+  def testCtorExtract9Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity9
+    val ctor: UntypedType = c.weakTypeOf[Arity9[Int, Int, Int, Int, Int, Int, Int, Int, Int]].typeConstructor
+    val arity9Ctor = Type.Ctor9.fromUntyped[Arity9](ctor)
+    verifyExtractedCtor9Arity9(arity9Ctor)
+  }
+
+  def testCtorExtract10Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity10
+    val ctor: UntypedType = c.weakTypeOf[Arity10[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]].typeConstructor
+    val arity10Ctor = Type.Ctor10.fromUntyped[Arity10](ctor)
+    verifyExtractedCtor10Arity10(arity10Ctor)
+  }
+
+  def testCtorExtract11Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity11
+    val ctor: UntypedType = c.weakTypeOf[Arity11[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]].typeConstructor
+    val arity11Ctor = Type.Ctor11.fromUntyped[Arity11](ctor)
+    verifyExtractedCtor11Arity11(arity11Ctor)
+  }
+
+  def testCtorExtract12Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity12
+    val ctor: UntypedType =
+      c.weakTypeOf[Arity12[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]].typeConstructor
+    val arity12Ctor = Type.Ctor12.fromUntyped[Arity12](ctor)
+    verifyExtractedCtor12Arity12(arity12Ctor)
+  }
+
+  def testCtorExtract13Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity13
+    val ctor: UntypedType =
+      c.weakTypeOf[Arity13[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]].typeConstructor
+    val arity13Ctor = Type.Ctor13.fromUntyped[Arity13](ctor)
+    verifyExtractedCtor13Arity13(arity13Ctor)
+  }
+
+  def testCtorExtract14Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity14
+    val ctor: UntypedType =
+      c.weakTypeOf[Arity14[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]].typeConstructor
+    val arity14Ctor = Type.Ctor14.fromUntyped[Arity14](ctor)
+    verifyExtractedCtor14Arity14(arity14Ctor)
+  }
+
+  def testCtorExtract15Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity15
+    val ctor: UntypedType =
+      c.weakTypeOf[Arity15[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]].typeConstructor
+    val arity15Ctor = Type.Ctor15.fromUntyped[Arity15](ctor)
+    verifyExtractedCtor15Arity15(arity15Ctor)
+  }
+
+  def testCtorExtract16Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity16
+    val ctor: UntypedType = c
+      .weakTypeOf[Arity16[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]]
+      .typeConstructor
+    val arity16Ctor = Type.Ctor16.fromUntyped[Arity16](ctor)
+    verifyExtractedCtor16Arity16(arity16Ctor)
+  }
+
+  def testCtorExtract17Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity17
+    val ctor: UntypedType = c
+      .weakTypeOf[Arity17[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]]
+      .typeConstructor
+    val arity17Ctor = Type.Ctor17.fromUntyped[Arity17](ctor)
+    verifyExtractedCtor17Arity17(arity17Ctor)
+  }
+
+  def testCtorExtract18Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity18
+    val ctor: UntypedType = c
+      .weakTypeOf[Arity18[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]]
+      .typeConstructor
+    val arity18Ctor = Type.Ctor18.fromUntyped[Arity18](ctor)
+    verifyExtractedCtor18Arity18(arity18Ctor)
+  }
+
+  def testCtorExtract19Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity19
+    val ctor: UntypedType = c
+      .weakTypeOf[
+        Arity19[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+      ]
+      .typeConstructor
+    val arity19Ctor = Type.Ctor19.fromUntyped[Arity19](ctor)
+    verifyExtractedCtor19Arity19(arity19Ctor)
+  }
+
+  def testCtorExtract20Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity20
+    val ctor: UntypedType = c
+      .weakTypeOf[
+        Arity20[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+      ]
+      .typeConstructor
+    val arity20Ctor = Type.Ctor20.fromUntyped[Arity20](ctor)
+    verifyExtractedCtor20Arity20(arity20Ctor)
+  }
+
+  def testCtorExtract21Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity21
+    val ctor: UntypedType = c
+      .weakTypeOf[
+        Arity21[Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int]
+      ]
+      .typeConstructor
+    val arity21Ctor = Type.Ctor21.fromUntyped[Arity21](ctor)
+    verifyExtractedCtor21Arity21(arity21Ctor)
+  }
+
+  def testCtorExtract22Impl: c.Expr[Data] = {
+    import hearth.examples.kinds.Arity22
+    val ctor: UntypedType =
+      c.weakTypeOf[
+        Arity22[
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int,
+          Int
+        ]
+      ].typeConstructor
+    val arity22Ctor = Type.Ctor22.fromUntyped[Arity22](ctor)
+    verifyExtractedCtor22Arity22(arity22Ctor)
+  }
+
 }
 
 object CrossCtorInjectionFixtures {
@@ -201,5 +403,51 @@ object CrossCtorInjectionFixtures {
   def testExprQuoteWithCtor21Body: Data = macro CrossCtorInjectionFixtures.testExprQuoteWithCtor21BodyImpl
 
   def testExprQuoteWithCtor22Body: Data = macro CrossCtorInjectionFixtures.testExprQuoteWithCtor22BodyImpl
+
+  def testCtorFromUntyped: Data = macro CrossCtorInjectionFixtures.testCtorFromUntypedImpl
+
+  def testCtorExtract1: Data = macro CrossCtorInjectionFixtures.testCtorExtract1Impl
+
+  def testCtorExtract2: Data = macro CrossCtorInjectionFixtures.testCtorExtract2Impl
+
+  def testCtorExtract3: Data = macro CrossCtorInjectionFixtures.testCtorExtract3Impl
+
+  def testCtorExtract4: Data = macro CrossCtorInjectionFixtures.testCtorExtract4Impl
+
+  def testCtorExtract5: Data = macro CrossCtorInjectionFixtures.testCtorExtract5Impl
+
+  def testCtorExtract6: Data = macro CrossCtorInjectionFixtures.testCtorExtract6Impl
+
+  def testCtorExtract7: Data = macro CrossCtorInjectionFixtures.testCtorExtract7Impl
+
+  def testCtorExtract8: Data = macro CrossCtorInjectionFixtures.testCtorExtract8Impl
+
+  def testCtorExtract9: Data = macro CrossCtorInjectionFixtures.testCtorExtract9Impl
+
+  def testCtorExtract10: Data = macro CrossCtorInjectionFixtures.testCtorExtract10Impl
+
+  def testCtorExtract11: Data = macro CrossCtorInjectionFixtures.testCtorExtract11Impl
+
+  def testCtorExtract12: Data = macro CrossCtorInjectionFixtures.testCtorExtract12Impl
+
+  def testCtorExtract13: Data = macro CrossCtorInjectionFixtures.testCtorExtract13Impl
+
+  def testCtorExtract14: Data = macro CrossCtorInjectionFixtures.testCtorExtract14Impl
+
+  def testCtorExtract15: Data = macro CrossCtorInjectionFixtures.testCtorExtract15Impl
+
+  def testCtorExtract16: Data = macro CrossCtorInjectionFixtures.testCtorExtract16Impl
+
+  def testCtorExtract17: Data = macro CrossCtorInjectionFixtures.testCtorExtract17Impl
+
+  def testCtorExtract18: Data = macro CrossCtorInjectionFixtures.testCtorExtract18Impl
+
+  def testCtorExtract19: Data = macro CrossCtorInjectionFixtures.testCtorExtract19Impl
+
+  def testCtorExtract20: Data = macro CrossCtorInjectionFixtures.testCtorExtract20Impl
+
+  def testCtorExtract21: Data = macro CrossCtorInjectionFixtures.testCtorExtract21Impl
+
+  def testCtorExtract22: Data = macro CrossCtorInjectionFixtures.testCtorExtract22Impl
 
 }

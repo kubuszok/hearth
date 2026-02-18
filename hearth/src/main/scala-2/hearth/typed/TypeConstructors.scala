@@ -19,6 +19,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
 
       def of[HKT[_]]: Ctor1[HKT] = macro CrossQuotesMacros.typeCtor1Impl[Nothing, Any, HKT]
 
+      def fromUntyped[HKT[_]](untyped: UntypedType): Ctor1[HKT] = macro CrossQuotesMacros.typeCtor1FromUntypedImpl[Nothing, Any, HKT]
+
       /** Allow applying and extracting some types `L1 <:< ? <:< U1` */
       trait Bounded[L1, U1 >: L1, HKT[_ >: L1 <: U1]] {
 
@@ -59,6 +61,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor2 {
 
       def of[HKT[_, _]]: Ctor2[HKT] = macro CrossQuotesMacros.typeCtor2Impl[Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _]](untyped: UntypedType): Ctor2[HKT] = macro CrossQuotesMacros.typeCtor2FromUntypedImpl[Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, HKT[_ >: L1 <: U1, _ >: L2 <: U2]] { ctor =>
@@ -129,6 +133,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor3 {
 
       def of[HKT[_, _, _]]: Ctor3[HKT] = macro CrossQuotesMacros.typeCtor3Impl[Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _]](untyped: UntypedType): Ctor3[HKT] = macro CrossQuotesMacros.typeCtor3FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3]] { ctor =>
@@ -218,6 +224,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor4 {
 
       def of[HKT[_, _, _, _]]: Ctor4[HKT] = macro CrossQuotesMacros.typeCtor4Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _]](untyped: UntypedType): Ctor4[HKT] = macro CrossQuotesMacros.typeCtor4FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4]] { ctor =>
@@ -327,6 +335,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor5 {
 
       def of[HKT[_, _, _, _, _]]: Ctor5[HKT] = macro CrossQuotesMacros.typeCtor5Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _]](untyped: UntypedType): Ctor5[HKT] = macro CrossQuotesMacros.typeCtor5FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5]] { ctor =>
@@ -455,6 +465,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor6 {
 
       def of[HKT[_, _, _, _, _, _]]: Ctor6[HKT] = macro CrossQuotesMacros.typeCtor6Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _]](untyped: UntypedType): Ctor6[HKT] = macro CrossQuotesMacros.typeCtor6FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6]] { ctor =>
@@ -602,6 +614,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor7 {
 
       def of[HKT[_, _, _, _, _, _, _]]: Ctor7[HKT] = macro CrossQuotesMacros.typeCtor7Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _]](untyped: UntypedType): Ctor7[HKT] = macro CrossQuotesMacros.typeCtor7FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7]] { ctor =>
@@ -768,6 +782,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor8 {
 
       def of[HKT[_, _, _, _, _, _, _, _]]: Ctor8[HKT] = macro CrossQuotesMacros.typeCtor8Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor8[HKT] = macro CrossQuotesMacros.typeCtor8FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8]] { ctor =>
@@ -953,6 +969,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor9 {
 
       def of[HKT[_, _, _, _, _, _, _, _, _]]: Ctor9[HKT] = macro CrossQuotesMacros.typeCtor9Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor9[HKT] = macro CrossQuotesMacros.typeCtor9FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8, L9 <:< ? <:< U9` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9]] { ctor =>
@@ -1157,6 +1175,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor10 {
 
       def of[HKT[_, _, _, _, _, _, _, _, _, _]]: Ctor10[HKT] = macro CrossQuotesMacros.typeCtor10Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor10[HKT] = macro CrossQuotesMacros.typeCtor10FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8, L9 <:< ? <:< U9, L10 <:< ? <:< U10` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10]] { ctor =>
@@ -1380,6 +1400,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor11 {
 
       def of[HKT[_, _, _, _, _, _, _, _, _, _, _]]: Ctor11[HKT] = macro CrossQuotesMacros.typeCtor11Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor11[HKT] = macro CrossQuotesMacros.typeCtor11FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8, L9 <:< ? <:< U9, L10 <:< ? <:< U10, L11 <:< ? <:< U11` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11]] { ctor =>
@@ -1622,6 +1644,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor12 {
 
       def of[HKT[_, _, _, _, _, _, _, _, _, _, _, _]]: Ctor12[HKT] = macro CrossQuotesMacros.typeCtor12Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor12[HKT] = macro CrossQuotesMacros.typeCtor12FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8, L9 <:< ? <:< U9, L10 <:< ? <:< U10, L11 <:< ? <:< U11, L12 <:< ? <:< U12` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12]] { ctor =>
@@ -1883,6 +1907,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor13 {
 
       def of[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _]]: Ctor13[HKT] = macro CrossQuotesMacros.typeCtor13Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor13[HKT] = macro CrossQuotesMacros.typeCtor13FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8, L9 <:< ? <:< U9, L10 <:< ? <:< U10, L11 <:< ? <:< U11, L12 <:< ? <:< U12, L13 <:< ? <:< U13` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13]] { ctor =>
@@ -2163,6 +2189,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor14 {
 
       def of[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _]]: Ctor14[HKT] = macro CrossQuotesMacros.typeCtor14Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor14[HKT] = macro CrossQuotesMacros.typeCtor14FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8, L9 <:< ? <:< U9, L10 <:< ? <:< U10, L11 <:< ? <:< U11, L12 <:< ? <:< U12, L13 <:< ? <:< U13, L14 <:< ? <:< U14` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14]] { ctor =>
@@ -2462,6 +2490,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor15 {
 
       def of[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]: Ctor15[HKT] = macro CrossQuotesMacros.typeCtor15Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor15[HKT] = macro CrossQuotesMacros.typeCtor15FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8, L9 <:< ? <:< U9, L10 <:< ? <:< U10, L11 <:< ? <:< U11, L12 <:< ? <:< U12, L13 <:< ? <:< U13, L14 <:< ? <:< U14, L15 <:< ? <:< U15` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15]] { ctor =>
@@ -2780,6 +2810,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor16 {
 
       def of[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]: Ctor16[HKT] = macro CrossQuotesMacros.typeCtor16Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor16[HKT] = macro CrossQuotesMacros.typeCtor16FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8, L9 <:< ? <:< U9, L10 <:< ? <:< U10, L11 <:< ? <:< U11, L12 <:< ? <:< U12, L13 <:< ? <:< U13, L14 <:< ? <:< U14, L15 <:< ? <:< U15, L16 <:< ? <:< U16` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16]] { ctor =>
@@ -3117,6 +3149,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor17 {
 
       def of[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]: Ctor17[HKT] = macro CrossQuotesMacros.typeCtor17Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor17[HKT] = macro CrossQuotesMacros.typeCtor17FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8, L9 <:< ? <:< U9, L10 <:< ? <:< U10, L11 <:< ? <:< U11, L12 <:< ? <:< U12, L13 <:< ? <:< U13, L14 <:< ? <:< U14, L15 <:< ? <:< U15, L16 <:< ? <:< U16, L17 <:< ? <:< U17` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17]] { ctor =>
@@ -3472,6 +3506,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor18 {
 
       def of[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]: Ctor18[HKT] = macro CrossQuotesMacros.typeCtor18Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor18[HKT] = macro CrossQuotesMacros.typeCtor18FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8, L9 <:< ? <:< U9, L10 <:< ? <:< U10, L11 <:< ? <:< U11, L12 <:< ? <:< U12, L13 <:< ? <:< U13, L14 <:< ? <:< U14, L15 <:< ? <:< U15, L16 <:< ? <:< U16, L17 <:< ? <:< U17, L18 <:< ? <:< U18` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18]] { ctor =>
@@ -3846,6 +3882,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor19 {
 
       def of[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]: Ctor19[HKT] = macro CrossQuotesMacros.typeCtor19Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor19[HKT] = macro CrossQuotesMacros.typeCtor19FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8, L9 <:< ? <:< U9, L10 <:< ? <:< U10, L11 <:< ? <:< U11, L12 <:< ? <:< U12, L13 <:< ? <:< U13, L14 <:< ? <:< U14, L15 <:< ? <:< U15, L16 <:< ? <:< U16, L17 <:< ? <:< U17, L18 <:< ? <:< U18, L19 <:< ? <:< U19` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19]] { ctor =>
@@ -4239,6 +4277,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor20 {
 
       def of[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]: Ctor20[HKT] = macro CrossQuotesMacros.typeCtor20Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor20[HKT] = macro CrossQuotesMacros.typeCtor20FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8, L9 <:< ? <:< U9, L10 <:< ? <:< U10, L11 <:< ? <:< U11, L12 <:< ? <:< U12, L13 <:< ? <:< U13, L14 <:< ? <:< U14, L15 <:< ? <:< U15, L16 <:< ? <:< U16, L17 <:< ? <:< U17, L18 <:< ? <:< U18, L19 <:< ? <:< U19, L20 <:< ? <:< U20` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20]] { ctor =>
@@ -4651,6 +4691,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor21 {
 
       def of[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]: Ctor21[HKT] = macro CrossQuotesMacros.typeCtor21Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor21[HKT] = macro CrossQuotesMacros.typeCtor21FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8, L9 <:< ? <:< U9, L10 <:< ? <:< U10, L11 <:< ? <:< U11, L12 <:< ? <:< U12, L13 <:< ? <:< U13, L14 <:< ? <:< U14, L15 <:< ? <:< U15, L16 <:< ? <:< U16, L17 <:< ? <:< U17, L18 <:< ? <:< U18, L19 <:< ? <:< U19, L20 <:< ? <:< U20, L21 <:< ? <:< U21` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, L21, U21 >: L21, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20, _ >: L21 <: U21]] { ctor =>
@@ -5082,6 +5124,8 @@ private[typed] trait TypeConstructors { this: MacroCommons =>
     object Ctor22 {
 
       def of[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]]: Ctor22[HKT] = macro CrossQuotesMacros.typeCtor22Impl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
+
+      def fromUntyped[HKT[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]](untyped: UntypedType): Ctor22[HKT] = macro CrossQuotesMacros.typeCtor22FromUntypedImpl[Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, Nothing, Any, HKT]
 
       /** Allow applying and extracting some types `L1 <:< ? <:< U1, L2 <:< ? <:< U2, L3 <:< ? <:< U3, L4 <:< ? <:< U4, L5 <:< ? <:< U5, L6 <:< ? <:< U6, L7 <:< ? <:< U7, L8 <:< ? <:< U8, L9 <:< ? <:< U9, L10 <:< ? <:< U10, L11 <:< ? <:< U11, L12 <:< ? <:< U12, L13 <:< ? <:< U13, L14 <:< ? <:< U14, L15 <:< ? <:< U15, L16 <:< ? <:< U16, L17 <:< ? <:< U17, L18 <:< ? <:< U18, L19 <:< ? <:< U19, L20 <:< ? <:< U20, L21 <:< ? <:< U21, L22 <:< ? <:< U22` */
       trait Bounded[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, L21, U21 >: L21, L22, U22 >: L22, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20, _ >: L21 <: U21, _ >: L22 <: U22]] { ctor =>
