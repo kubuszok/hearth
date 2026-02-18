@@ -614,12 +614,31 @@ lazy val hearthMunit = projectMatrix
 lazy val hearthTests = projectMatrix
   .in(file("hearth-tests"))
   .someVariations(versions.scalas, versions.platforms)((only1VersionInIDE ++ useCrossQuotes) *)
-  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .enablePlugins(GitVersioning, GitBranchPrompt, SourceGenPlugin)
   .disablePlugins(WelcomePlugin)
   .settings(
     moduleName := "hearth-tests",
     name := "hearth-tests",
     description := "Tests for hearth utilities",
+    SourceGenPlugin.autoImport.generateHearthSources := {
+      val outDir = (Compile / sourceManaged).value
+      val isScala3 = scalaVersion.value.startsWith("3.")
+      // Shared impl gen trait
+      val implGen = outDir / "hearth" / "crossquotes" / "CrossCtorInjectionFixturesImplGen.scala"
+      ArityGen.writeIfChanged(implGen, CrossCtorTestGen.generate())
+      // Version-specific bridge (one file, different content per Scala version)
+      val bridge = outDir / "hearth" / "crossquotes" / "CrossCtorInjectionFixtures.scala"
+      val bridgeContent = if (isScala3) CrossCtorTestGen.generateScala3Bridge()
+                          else CrossCtorTestGen.generateScala2Bridge()
+      ArityGen.writeIfChanged(bridge, bridgeContent)
+      Seq(implGen, bridge)
+    },
+    Test / sourceGenerators += Def.task {
+      val outDir = (Test / sourceManaged).value
+      val spec = outDir / "hearth" / "crossquotes" / "CrossCtorInjectionSpec.scala"
+      ArityGen.writeIfChanged(spec, CrossCtorTestGen.generateSpec())
+      Seq(spec)
+    }.taskValue,
     // Required for Scala 2.13 to test parsing of Scala XML.
     libraryDependencies ++= versions.fold(scalaVersion.value)(
       for3 = Seq(),
