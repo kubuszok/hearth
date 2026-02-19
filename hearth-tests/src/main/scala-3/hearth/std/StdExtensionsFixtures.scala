@@ -12,7 +12,7 @@ final private class StdExtensionsFixtures(q: Quotes)
 
 object StdExtensionsFixtures {
 
-  // TODO: create macro annotation which would allow to do the following
+  // [hearth#176]
 
   inline def testIsCollection[A](inline value: A): Data = ${ testIsCollectionImpl[A]('value) }
   private def testIsCollectionImpl[A: Type](value: Expr[A])(using q: Quotes): Expr[Data] =

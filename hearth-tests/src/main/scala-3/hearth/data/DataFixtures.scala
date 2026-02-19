@@ -7,7 +7,7 @@ final private class DataFixtures(q: Quotes) extends MacroCommonsScala3(using q),
 
 object DataFixtures {
 
-  // TODO: create macro annotation which would allow to do the following
+  // [hearth#176]
 
   inline def example: Data = ${ exampleImpl }
   private def exampleImpl(using q: Quotes): Expr[Data] = new DataFixtures(q).example

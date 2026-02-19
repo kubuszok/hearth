@@ -8,7 +8,7 @@ import scala.reflect.macros.blackbox
 
 final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommonsScala2 with MethodsFixturesImpl {
 
-  // TODO: create macro annotation which would allow to do the following
+  // [hearth#176]
 
   def testConstructorsExtractionImpl[A: c.WeakTypeTag]: c.Expr[Data] =
     testConstructorsExtraction[A]
