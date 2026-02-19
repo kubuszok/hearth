@@ -1256,3 +1256,233 @@ This design allows standard extensions to work with both:
 - **Validated types** (like from validation libraries) that might fail during construction
 
 All while providing a single, uniform interface. This makes it possible to extend support for custom types (like `Validated[E, A]` from Cats) by providing new `CtorLikeOf` implementations, without changing the core API.
+
+### Debugging with `parse` and `lastUnapplyFailure`
+
+When using pattern matching with `IsCollection`, `IsOption`, `IsEither`, `IsValueType`, or `CtorLikes`, you get back an `Option` — either `Some(matched)` or `None`. This is convenient for pattern matching, but when a type isn't recognized, `None` gives you no information about _why_ it wasn't recognized.
+
+There are two ways to get detailed skip reasons, depending on how you structure your code.
+
+#### `parse` — when you focus on a single extractor
+
+If you only need to check one extractor, use `parse` directly instead of `unapply`. It returns a `ProviderResult[A]` which tells you either the matched value or which providers skipped and why:
+
+```scala
+IsCollection.parse[A] match {
+  case ProviderResult.Matched(isCollection) =>
+    import isCollection.{Underlying as Item, value as isCollectionOf}
+    // use isCollectionOf...
+  case ProviderResult.Skipped(reasons) =>
+    // reasons: NonEmptyMap[String, Either[Throwable, String]]
+    // Each entry maps a provider's fully-qualified class name to either:
+    //   Right(message) — the provider skipped this type with a reason
+    //   Left(throwable) — the provider failed with an error
+    val summary = reasons.toList.map {
+      case (provider, Right(msg)) => s"$provider: $msg"
+      case (provider, Left(err))  => s"$provider: error: ${err.getMessage}"
+    }.mkString("\n")
+    Environment.reportErrorAndAbort(s"Type ${Type[A].prettyPrint} is not a collection:\n$summary")
+}
+```
+
+`ProviderResult` is a sealed trait with two cases:
+
+- `ProviderResult.Matched(value)` — a provider recognized the type and returned a result
+- `ProviderResult.Skipped(reasons)` — no provider recognized the type; `reasons` is a `NonEmptyMap[String, Either[Throwable, String]]` mapping each provider's name to its skip reason
+
+`ProviderResult` supports `map`, `flatMap`, and `toOption` for composability.
+
+#### `lastUnapplyFailure` — when you match against multiple extractors
+
+When you match `Type[A]` against several extractors using `unapply`, each failed match stores its skip reasons in `lastUnapplyFailure`. In the `case _ =>` branch you can inspect all of them to understand why none matched:
+
+```scala
+Type[A] match {
+  case IsCollection(isCollection) =>
+    // handle collection...
+  case IsOption(isOption) =>
+    // handle option...
+  case IsEither(isEither) =>
+    // handle either...
+  case _ =>
+    // None of the extractors matched.
+    // Each one stored its skip reasons in lastUnapplyFailure:
+    val collectionReasons = Option(IsCollection.lastUnapplyFailure)
+    val optionReasons = Option(IsOption.lastUnapplyFailure)
+    val eitherReasons = Option(IsEither.lastUnapplyFailure)
+
+    def formatReasons(reasons: Option[NonEmptyMap[String, Either[Throwable, String]]]): String =
+      reasons.fold("(no providers registered)") { r =>
+        r.toList.map {
+          case (provider, Right(msg)) => s"  - $provider: $msg"
+          case (provider, Left(err))  => s"  - $provider: error: ${err.getMessage}"
+        }.mkString("\n")
+      }
+
+    Environment.reportErrorAndAbort(
+      s"${Type[A].prettyPrint} is not supported:\n" +
+      s"Not a collection:\n${formatReasons(collectionReasons)}\n" +
+      s"Not an option:\n${formatReasons(optionReasons)}\n" +
+      s"Not an either:\n${formatReasons(eitherReasons)}"
+    )
+}
+```
+
+`lastUnapplyFailure` is a `NonEmptyMap[String, Either[Throwable, String]]` (or `null` after a successful match). It is available on `IsCollection`, `IsOption`, `IsEither`, `IsValueType`, `IsMap`, and `CtorLikes`.
+
+!!! tip
+    Use `parse` when you focus on a single extractor and want to handle both matched and skipped cases directly.
+    Use `lastUnapplyFailure` when you chain multiple `unapply` pattern matches and need to report why none of them matched.
+
+!!! example "Cross-compilable `parse` and `lastUnapplyFailure`"
+
+    We can write a macro that uses `parse` and `lastUnapplyFailure` to provide diagnostic information:
+
+    ```scala
+    // file: src/main/scala/example/DiagnosticsLogic.scala - part of Diagnostics example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth::{{ hearth_version() }}
+    package example
+
+    import hearth.MacroCommons
+    import hearth.std.{ProviderResult, StdExtensions}
+
+    // Shared macro logic
+    trait DiagnosticsLogic { this: MacroCommons & StdExtensions =>
+
+      Environment.loadStandardExtensions() match {
+        case ExtensionLoadingResult.LoaderFailed(error) =>
+          Environment.reportErrorAndAbort("Failed to resolve extensions: " + error.toString)
+        case ExtensionLoadingResult.SomeFailed(extensions, errors) =>
+          Environment.reportErrorAndAbort(
+            "Failed to load standard extensions: " + errors.toNonEmptyVector.map(_._2).mkString("\n")
+          )
+        case _ =>
+      }
+
+      private val StringType = Type.of[String]
+
+      /** Uses `parse` to get detailed results from a single extractor. */
+      def describeWithParse[A: Type]: Expr[String] = {
+        implicit val string: Type[String] = StringType
+        IsCollection.parse[A] match {
+          case ProviderResult.Matched(isCollection) =>
+            import isCollection.Underlying as Item
+            Expr(s"Matched: collection of ${Item.prettyPrint}")
+          case ProviderResult.Skipped(reasons) =>
+            val summary = reasons.toList.map {
+              case (_, Right(msg)) => msg
+              case (_, Left(err))  => s"error: ${err.getMessage}"
+            }.mkString("; ")
+            Expr("Skipped: " + summary)
+        }
+      }
+
+      /** Uses `unapply` + `lastUnapplyFailure` to diagnose multiple extractors. */
+      def describeWithUnapply[A: Type]: Expr[String] = {
+        implicit val string: Type[String] = StringType
+        Type[A] match {
+          case IsOption(isOption) =>
+            import isOption.Underlying as Item
+            Expr(s"option of ${Item.prettyPrint}")
+          case IsCollection(isCollection) =>
+            import isCollection.Underlying as Item
+            Expr(s"collection of ${Item.prettyPrint}")
+          case _ =>
+            val collSkips = Option(IsCollection.lastUnapplyFailure).map(_.toList.size).getOrElse(0)
+            val optSkips = Option(IsOption.lastUnapplyFailure).map(_.toList.size).getOrElse(0)
+            Expr(s"unrecognized (collection providers: $collSkips, option providers: $optSkips)")
+        }
+      }
+    }
+    ```
+
+    Then we create platform-specific adapters:
+
+    ```scala
+    // file: src/main/scala-2/example/Diagnostics.scala - part of Diagnostics example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+    package example
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    import hearth.MacroCommonsScala2
+
+    class Diagnostics(val c: blackbox.Context) extends MacroCommonsScala2 with DiagnosticsLogic {
+
+      def describeWithParseImpl[A: c.WeakTypeTag]: c.Expr[String] =
+        describeWithParse[A]
+      def describeWithUnapplyImpl[A: c.WeakTypeTag]: c.Expr[String] =
+        describeWithUnapply[A]
+    }
+
+    object Diagnostics {
+      def describeWithParse[A]: String = macro Diagnostics.describeWithParseImpl[A]
+      def describeWithUnapply[A]: String = macro Diagnostics.describeWithUnapplyImpl[A]
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/Diagnostics.scala - part of Diagnostics example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+    package example
+
+    import scala.quoted.*
+
+    import hearth.MacroCommonsScala3
+
+    class Diagnostics(q: Quotes) extends MacroCommonsScala3(using q) with DiagnosticsLogic
+
+    object Diagnostics {
+
+      inline def describeWithParse[A]: String = ${ describeWithParseImpl[A] }
+      private def describeWithParseImpl[A: Type](using q: Quotes): Expr[String] =
+        new Diagnostics(q).describeWithParse[A]
+
+      inline def describeWithUnapply[A]: String = ${ describeWithUnapplyImpl[A] }
+      private def describeWithUnapplyImpl[A: Type](using q: Quotes): Expr[String] =
+        new Diagnostics(q).describeWithUnapply[A]
+    }
+    ```
+
+    And finally we can expand the macro in our tests:
+
+    ```scala
+    // file: src/test/scala/example/DiagnosticsSpec.scala - part of Diagnostics example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+    package example
+
+    final class DiagnosticsSpec extends munit.FunSuite {
+
+      test("parse returns Matched for List[String]") {
+        val result = Diagnostics.describeWithParse[List[String]]
+        assert(result.startsWith("Matched:"), result)
+        assert(result.contains("String"), result)
+      }
+
+      test("parse returns Skipped for Int") {
+        val result = Diagnostics.describeWithParse[Int]
+        assert(result.startsWith("Skipped:"), result)
+      }
+
+      test("unapply recognizes List as collection") {
+        val result = Diagnostics.describeWithUnapply[List[String]]
+        assert(result.startsWith("collection of"), result)
+      }
+
+      test("unapply recognizes Option as option") {
+        val result = Diagnostics.describeWithUnapply[Option[Int]]
+        assert(result.startsWith("option of"), result)
+      }
+
+      test("unapply reports provider counts for unrecognized type") {
+        val result = Diagnostics.describeWithUnapply[Int]
+        assert(result.startsWith("unrecognized"), result)
+        assert(result.contains("collection providers:"), result)
+        assert(result.contains("option providers:"), result)
+      }
+    }
+    ```
