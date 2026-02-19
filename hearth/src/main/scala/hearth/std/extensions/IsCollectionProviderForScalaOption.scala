@@ -12,13 +12,15 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsCollectionProviderForScalaOption extends StandardMacroExtension {
+final class IsCollectionProviderForScalaOption extends StandardMacroExtension { loader =>
 
   @scala.annotation.nowarn
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsCollection.registerProvider(new IsCollection.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val Option = Type.Ctor1.of[scala.Option]
       private lazy val Some = Type.Ctor1.of[scala.Some]
@@ -60,14 +62,14 @@ final class IsCollectionProviderForScalaOption extends StandardMacroExtension {
         })
       }
 
-      override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {
-        case Some(_) => scala.None // Some is a special case, cannot be empty
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
+        case Some(_)                                                 => skipped("Some[_] cannot be empty")
         case Option(item) if !(item.Underlying =:= Type.of[Nothing]) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
           implicit val OptionItem: Type[scala.Option[Item]] = Option[Item]
-          scala.Some(isOption[A, Item](_.upcast[scala.Option[Item]], _.upcast[A]))
-        case _ => None
+          ProviderResult.Matched(isOption[A, Item](_.upcast[scala.Option[Item]], _.upcast[A]))
+        case _ => skipped(s"${tpe.prettyPrint} is not Option[_]")
       }
     })
   }

@@ -9,12 +9,14 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsCollectionProviderForScalaCollection extends StandardMacroExtension {
+final class IsCollectionProviderForScalaCollection extends StandardMacroExtension { loader =>
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsCollection.registerProvider(new IsCollection.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val Iterable = Type.Ctor1.of[Iterable]
       private lazy val Map = Type.Ctor2.of[scala.collection.Map]
@@ -77,15 +79,15 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
         Expr.summonImplicit(using Type.of[scala.collection.Factory[Item, A]])
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         // Scala collections are Iterables with Factories, we're start by finding the item type...
         case Iterable(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
 
           // ...then we can summon the Factory...
-          findFactory[A, Item].toOption
-            .map { factoryExpr =>
+          findFactory[A, Item].toOption match {
+            case Some(factoryExpr) =>
               // ...and use it to build the collection.
               val buildExpr: Expr[scala.collection.mutable.Builder[Item, A]] => Expr[A] =
                 builder => Expr.quote(Expr.splice(builder).result())
@@ -96,14 +98,16 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
                   import value.Underlying as Value
                   assert(Item =:= Tuple2[Key, Value])
 
-                  isMap(A, factoryExpr, buildExpr, Key, Value)
+                  ProviderResult.Matched(isMap(A, factoryExpr, buildExpr, Key, Value))
                 case _ =>
-                  isCollection(A, factoryExpr, buildExpr)
+                  ProviderResult.Matched(isCollection(A, factoryExpr, buildExpr))
               }
-            }
+            case None =>
+              skipped(s"${tpe.prettyPrint} is <: Iterable[${Item.prettyPrint}] but Factory not found")
+          }
 
         // Other types are not (Scala built-in) collections - if they should be supported, another extension can take care of it.
-        case _ => None
+        case _ => skipped(s"${tpe.prettyPrint} is not <: Iterable[_]")
       }
     })
   }

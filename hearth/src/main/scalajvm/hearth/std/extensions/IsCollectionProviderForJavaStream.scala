@@ -12,13 +12,15 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
+final class IsCollectionProviderForJavaStream extends StandardMacroExtension { loader =>
 
   @scala.annotation.nowarn
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsCollection.registerProvider(new IsCollection.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val juStream = Type.Ctor1.of[java.util.stream.Stream]
       private lazy val juIntStream = Type.of[java.util.stream.IntStream]
@@ -187,33 +189,53 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension {
             )
         })(using Double)
 
-      override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case _ if tpe =:= juIntStream =>
           implicit val A: Type[A] = tpe
-          Expr.summonImplicit(using accumulatorFactoryInfo(using Int)).toOption.map { accumulatorFactoryInfoExpr =>
-            implicit val IntStream: Type[java.util.stream.IntStream] = juIntStream
-            isIntStream[A](A, _.upcast[java.util.stream.IntStream], accumulatorFactoryInfoExpr)
+          Expr.summonImplicit(using accumulatorFactoryInfo(using Int)).toOption match {
+            case Some(accumulatorFactoryInfoExpr) =>
+              implicit val IntStream: Type[java.util.stream.IntStream] = juIntStream
+              ProviderResult.Matched(
+                isIntStream[A](A, _.upcast[java.util.stream.IntStream], accumulatorFactoryInfoExpr)
+              )
+            case None =>
+              skipped(s"${tpe.prettyPrint} is IntStream but AccumulatorFactoryInfo not found")
           }
         case _ if tpe =:= juLongStream =>
           implicit val A: Type[A] = tpe
-          Expr.summonImplicit(using accumulatorFactoryInfo(using Long)).toOption.map { accumulatorFactoryInfoExpr =>
-            implicit val LongStream: Type[java.util.stream.LongStream] = juLongStream
-            isLongStream[A](A, _.upcast[java.util.stream.LongStream], accumulatorFactoryInfoExpr)
+          Expr.summonImplicit(using accumulatorFactoryInfo(using Long)).toOption match {
+            case Some(accumulatorFactoryInfoExpr) =>
+              implicit val LongStream: Type[java.util.stream.LongStream] = juLongStream
+              ProviderResult.Matched(
+                isLongStream[A](A, _.upcast[java.util.stream.LongStream], accumulatorFactoryInfoExpr)
+              )
+            case None =>
+              skipped(s"${tpe.prettyPrint} is LongStream but AccumulatorFactoryInfo not found")
           }
         case _ if tpe =:= juDoubleStream =>
           implicit val A: Type[A] = tpe
-          Expr.summonImplicit(using accumulatorFactoryInfo(using Double)).toOption.map { accumulatorFactoryInfoExpr =>
-            implicit val DoubleStream: Type[java.util.stream.DoubleStream] = juDoubleStream
-            isDoubleStream[A](A, _.upcast[java.util.stream.DoubleStream], accumulatorFactoryInfoExpr)
+          Expr.summonImplicit(using accumulatorFactoryInfo(using Double)).toOption match {
+            case Some(accumulatorFactoryInfoExpr) =>
+              implicit val DoubleStream: Type[java.util.stream.DoubleStream] = juDoubleStream
+              ProviderResult.Matched(
+                isDoubleStream[A](A, _.upcast[java.util.stream.DoubleStream], accumulatorFactoryInfoExpr)
+              )
+            case None =>
+              skipped(s"${tpe.prettyPrint} is DoubleStream but AccumulatorFactoryInfo not found")
           }
         case juStream(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
-          Expr.summonImplicit(using accumulatorFactoryInfo[Item]).toOption.map { accumulatorFactoryInfoExpr =>
-            implicit val StreamItem: Type[java.util.stream.Stream[Item]] = juStream[Item]
-            isStream[A, Item](A, _.upcast[java.util.stream.Stream[Item]], accumulatorFactoryInfoExpr)
+          Expr.summonImplicit(using accumulatorFactoryInfo[Item]).toOption match {
+            case Some(accumulatorFactoryInfoExpr) =>
+              implicit val StreamItem: Type[java.util.stream.Stream[Item]] = juStream[Item]
+              ProviderResult.Matched(
+                isStream[A, Item](A, _.upcast[java.util.stream.Stream[Item]], accumulatorFactoryInfoExpr)
+              )
+            case None =>
+              skipped(s"${tpe.prettyPrint} is Stream[${Item.prettyPrint}] but AccumulatorFactoryInfo not found")
           }
-        case _ => None
+        case _ => skipped(s"${tpe.prettyPrint} is not a java.util.stream type")
       }
     })
   }

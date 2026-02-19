@@ -22,6 +22,10 @@ final private class StdExtensionsFixtures(val c: blackbox.Context)
   def testIsValueTypeImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[Data] = testIsValueType[A](value)
 
   def testCtorLikesImpl[A: c.WeakTypeTag]: c.Expr[Data] = testCtorLikes[A]
+
+  def testParseImpl[A: c.WeakTypeTag]: c.Expr[Data] = testParse[A]
+
+  def testLastUnapplyFailureImpl[A: c.WeakTypeTag]: c.Expr[Data] = testLastUnapplyFailure[A]
 }
 
 object StdExtensionsFixtures {
@@ -35,4 +39,8 @@ object StdExtensionsFixtures {
   def testIsValueType[A](value: A): Data = macro StdExtensionsFixtures.testIsValueTypeImpl[A]
 
   def testCtorLikes[A]: Data = macro StdExtensionsFixtures.testCtorLikesImpl[A]
+
+  def testParse[A]: Data = macro StdExtensionsFixtures.testParseImpl[A]
+
+  def testLastUnapplyFailure[A]: Data = macro StdExtensionsFixtures.testLastUnapplyFailureImpl[A]
 }

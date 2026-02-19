@@ -10,7 +10,7 @@ import hearth.fp.data.NonEmptyList
   *
   * @since 0.3.0
   */
-final class CtorLikeProviderForEitherStringOrValue extends StandardMacroExtension {
+final class CtorLikeProviderForEitherStringOrValue extends StandardMacroExtension { loader =>
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
@@ -19,7 +19,8 @@ final class CtorLikeProviderForEitherStringOrValue extends StandardMacroExtensio
     import CtorLikes.*
 
     CtorLikes.registerProvider(new CtorLikes.Provider {
-      override def unapply[A](tpe: Type[A]): Option[CtorLikes[A]] = {
+      override def name: String = loader.getClass.getName
+      override def unapply[A](tpe: Type[A]): ProviderResult[CtorLikes[A]] = {
         implicit val A: Type[A] = tpe
         import EitherStringOrValue.Result
         implicit val ResultA: Type[Result[A]] = Result[A]
@@ -31,7 +32,10 @@ final class CtorLikeProviderForEitherStringOrValue extends StandardMacroExtensio
             ): CtorLikeOf[Input, A] =
               EitherStringOrValue[Input, A](ctor, Some(method))
           })
-        )
+        ) match {
+          case Some(ctors) => ProviderResult.Matched(ctors)
+          case None        => skipped(s"no Either[String, A] constructors found for ${tpe.prettyPrint}")
+        }
       }
     })
   }

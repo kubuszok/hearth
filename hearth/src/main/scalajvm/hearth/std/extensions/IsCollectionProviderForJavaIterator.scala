@@ -10,12 +10,14 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsCollectionProviderForJavaIterator extends StandardMacroExtension {
+final class IsCollectionProviderForJavaIterator extends StandardMacroExtension { loader =>
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsCollection.registerProvider(new IsCollection.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val Iterator = Type.Ctor1.of[java.util.Iterator]
 
@@ -56,16 +58,16 @@ final class IsCollectionProviderForJavaIterator extends StandardMacroExtension {
         })
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         // All Java iterators can be converted to Iterable.
         case Iterator(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
           implicit val IteratorItem: Type[java.util.Iterator[Item]] = Iterator[Item]
-          Some(isCollection[A, Item](A, _.upcast[java.util.Iterator[Item]], _.upcast[A]))
+          ProviderResult.Matched(isCollection[A, Item](A, _.upcast[java.util.Iterator[Item]], _.upcast[A]))
 
         // Other types are not Java iterators - if they should be supported, another extension can take care of it.
-        case _ => None
+        case _ => skipped(s"${tpe.prettyPrint} is not <: java.util.Iterator[_]")
       }
     })
   }

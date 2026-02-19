@@ -11,12 +11,14 @@ import hearth.fp.data.NonEmptyList
   *
   * @since 0.3.0
   */
-final class IsValueTypeProviderForAnyVal extends StandardMacroExtension {
+final class IsValueTypeProviderForAnyVal extends StandardMacroExtension { loader =>
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsValueType.registerProvider(new IsValueType.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val AnyVal = Type.of[AnyVal]
 
@@ -33,8 +35,8 @@ final class IsValueTypeProviderForAnyVal extends StandardMacroExtension {
             CtorLikes.unapply(Type[A]).getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, A], Inner](wrap)))
         })
 
-      override def unapply[A](tpe: Type[A]): Option[IsValueType[A]] = if (tpe <:< AnyVal) {
-        for {
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsValueType[A]] = if (tpe <:< AnyVal) {
+        val result = for {
           // Since we've already checked that the type is an AnyVal, let's see if we can wrap/unwrap it here.
           // We're looking for a primary constructor that is available at call site and has exactly one parameter.
           ctor <- tpe.primaryConstructor.filter { ctor =>
@@ -66,7 +68,11 @@ final class IsValueTypeProviderForAnyVal extends StandardMacroExtension {
             }
           isValueType[A, Inner](unwrapExpr, wrapExpr, ctor)
         }
-      } else None
+        result match {
+          case Some(value) => ProviderResult.Matched(value)
+          case None => skipped(s"${tpe.prettyPrint} is <: AnyVal but no suitable single-param public constructor found")
+        }
+      } else skipped(s"${tpe.prettyPrint} is not <: AnyVal")
     })
   }
 }

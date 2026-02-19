@@ -11,12 +11,14 @@ import scala.util.{Failure, Success, Try}
   *
   * @since 0.3.0
   */
-final class IsEitherProviderForScalaTry extends StandardMacroExtension {
+final class IsEitherProviderForScalaTry extends StandardMacroExtension { loader =>
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsEither.registerProvider(new IsEither.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val Try = Type.Ctor1.of[Try]
       private lazy val Throwable = Type.of[Throwable]
@@ -69,13 +71,13 @@ final class IsEitherProviderForScalaTry extends StandardMacroExtension {
       }
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): Option[IsEither[A]] = tpe match {
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsEither[A]] = tpe match {
         case Try(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
           implicit val TryItem: Type[Try[Item]] = Try[Item]
-          Some(isTry[A, Item](_.upcast[Try[Item]], _.upcast[A]))
-        case _ => None
+          ProviderResult.Matched(isTry[A, Item](_.upcast[Try[Item]], _.upcast[A]))
+        case _ => skipped(s"${tpe.prettyPrint} is not Try[_]")
       }
     })
   }

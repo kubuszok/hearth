@@ -646,5 +646,67 @@ final class StdExtensionsSpec extends MacroSuite {
         )
       }
     }
+
+    group("ProviderResult via parse") {
+      import StdExtensionsFixtures.testParse
+
+      test("for List[String], IsCollection is matched") {
+        val result = testParse[List[String]]
+        assert(result.get("IsCollection").contains(Data("matched")))
+      }
+
+      test("for Option[String], IsOption is matched") {
+        val result = testParse[Option[String]]
+        assert(result.get("IsOption").contains(Data("matched")))
+      }
+
+      test("for Either[String, Int], IsEither is matched") {
+        val result = testParse[Either[String, Int]]
+        assert(result.get("IsEither").contains(Data("matched")))
+      }
+
+      test("for Int, all extractors return skipped") {
+        val result = testParse[Int]
+        assert(
+          !result.get("IsCollection").contains(Data("matched")),
+          s"IsCollection should be skipped for Int: ${result.render}"
+        )
+        assert(
+          !result.get("IsOption").contains(Data("matched")),
+          s"IsOption should be skipped for Int: ${result.render}"
+        )
+        assert(
+          !result.get("IsEither").contains(Data("matched")),
+          s"IsEither should be skipped for Int: ${result.render}"
+        )
+      }
+
+      test("skipped results contain provider count") {
+        val result = testParse[Int]
+        val isCollection = result.get("IsCollection")
+        // IsCollection should be skipped and have at least 1 provider that reported a reason
+        assert(isCollection.flatMap(_.get("status")).contains(Data("skipped")))
+        assert(
+          isCollection.flatMap(_.get("count")).exists(c => c != Data(0)),
+          s"Expected non-zero provider count in skipped result: ${result.render}"
+        )
+      }
+    }
+
+    group("lastUnapplyFailure tracking") {
+      import StdExtensionsFixtures.testLastUnapplyFailure
+
+      test("is set after failed unapply") {
+        val result = testLastUnapplyFailure[Int]
+        assert(result.get("status").contains(Data("skipped")))
+        assert(result.get("hasFailure").contains(Data(true)))
+      }
+
+      test("is cleared after successful unapply") {
+        val result = testLastUnapplyFailure[List[String]]
+        assert(result.get("status").contains(Data("matched")))
+        assert(result.get("hasFailure").contains(Data(false)))
+      }
+    }
   }
 }

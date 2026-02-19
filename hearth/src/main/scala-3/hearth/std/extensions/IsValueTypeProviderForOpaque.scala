@@ -12,7 +12,7 @@ import scala.quoted.Quotes
   * @since 0.3.0
   */
 @scala.annotation.experimental
-final class IsValueTypeProviderForOpaque extends StandardMacroExtension {
+final class IsValueTypeProviderForOpaque extends StandardMacroExtension { loader =>
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = ctx match {
     case ctx3: (MacroCommonsScala3 & StdExtensions) =>
@@ -69,8 +69,10 @@ final class IsValueTypeProviderForOpaque extends StandardMacroExtension {
 
     IsValueType.registerProvider(new IsValueType.Provider {
 
-      override def unapply[A](tpe: Type[A]): Option[IsValueType[A]] =
-        if !tpe.isOpaqueType then None
+      override def name: String = loader.getClass.getName
+
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
+        if !tpe.isOpaqueType then skipped(s"${tpe.prettyPrint} is not an opaque type")
         else {
           implicit val A: Type[A] = tpe
           val repr: UntypedType = UntypedType.fromTyped[A]
@@ -90,17 +92,21 @@ final class IsValueTypeProviderForOpaque extends StandardMacroExtension {
                   Input <:< Inner
                 }
                 .map(_ -> ctors)
-            }
-            .map { case (ctor, allCtors) =>
+            } match {
+            case Some((ctor, allCtors)) =>
               import ctor.value as wrapCtor
               val unwrapExpr: Expr[A] => Expr[Inner] =
                 outer => Expr.quote(Expr.splice(outer).asInstanceOf[Inner])
-              Existential[IsValueTypeOf[A, *], Inner](new IsValueTypeOf[A, Inner] {
-                override val unwrap: Expr[A] => Expr[Inner] = unwrapExpr
-                override val wrap: CtorLikeOf[Inner, A] = wrapCtor.asInstanceOf[CtorLikeOf[Inner, A]]
-                override val ctors: CtorLikes[A] = allCtors
-              })
-            }
+              ProviderResult.Matched(
+                Existential[IsValueTypeOf[A, *], Inner](new IsValueTypeOf[A, Inner] {
+                  override val unwrap: Expr[A] => Expr[Inner] = unwrapExpr
+                  override val wrap: CtorLikeOf[Inner, A] = wrapCtor.asInstanceOf[CtorLikeOf[Inner, A]]
+                  override val ctors: CtorLikes[A] = allCtors
+                })
+              )
+            case None =>
+              skipped(s"${tpe.prettyPrint} is an opaque type but no suitable constructor found")
+          }
         }
     })
   }

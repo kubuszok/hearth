@@ -9,12 +9,14 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsEitherProviderForScalaEither extends StandardMacroExtension {
+final class IsEitherProviderForScalaEither extends StandardMacroExtension { loader =>
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsEither.registerProvider(new IsEither.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val Either = Type.Ctor2.of[Either]
 
@@ -67,14 +69,16 @@ final class IsEitherProviderForScalaEither extends StandardMacroExtension {
       }
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): Option[IsEither[A]] = tpe match {
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsEither[A]] = tpe match {
         case Either(left, right) =>
           import left.Underlying as LeftValue
           import right.Underlying as RightValue
           implicit val A: Type[A] = tpe
           implicit val EitherLR: Type[Either[LeftValue, RightValue]] = Either[LeftValue, RightValue]
-          Some(isEither[A, LeftValue, RightValue](_.upcast[Either[LeftValue, RightValue]], _.upcast[A]))
-        case _ => None
+          ProviderResult.Matched(
+            isEither[A, LeftValue, RightValue](_.upcast[Either[LeftValue, RightValue]], _.upcast[A])
+          )
+        case _ => skipped(s"${tpe.prettyPrint} is not Either[_, _]")
       }
     })
   }
