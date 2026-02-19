@@ -13,13 +13,15 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsCollectionProviderForJavaOptional extends StandardMacroExtension {
+final class IsCollectionProviderForJavaOptional extends StandardMacroExtension { loader =>
 
   @scala.annotation.nowarn
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsCollection.registerProvider(new IsCollection.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val Optional = Type.Ctor1.of[java.util.Optional]
       private lazy val ListType = Type.Ctor1.of[List]
@@ -71,13 +73,13 @@ final class IsCollectionProviderForJavaOptional extends StandardMacroExtension {
         })
       }
 
-      override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case Optional(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
           implicit val OptionalItem: Type[java.util.Optional[Item]] = Optional[Item]
-          Some(isOptional[A, Item](_.upcast[java.util.Optional[Item]], _.upcast[A]))
-        case _ => None
+          ProviderResult.Matched(isOptional[A, Item](_.upcast[java.util.Optional[Item]], _.upcast[A]))
+        case _ => skipped(s"${tpe.prettyPrint} is not Optional[_]")
       }
     })
   }

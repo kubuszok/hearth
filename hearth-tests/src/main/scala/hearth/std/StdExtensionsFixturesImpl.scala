@@ -357,4 +357,43 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       case None =>
         Expr(Data("<no ctors>"))
     }
+
+  def testParse[A: Type]: Expr[Data] = {
+    def resultToData[B](result: ProviderResult[B]): Data = result match {
+      case _: ProviderResult.Matched[?]    => Data("matched")
+      case ProviderResult.Skipped(reasons) =>
+        Data.map(
+          "status" -> Data("skipped"),
+          "count" -> Data(reasons.toList.size)
+        )
+    }
+
+    Expr(
+      Data.map(
+        "IsCollection" -> resultToData(IsCollection.parse(Type[A])),
+        "IsOption" -> resultToData(IsOption.parse(Type[A])),
+        "IsEither" -> resultToData(IsEither.parse(Type[A])),
+        "IsValueType" -> resultToData(IsValueType.parse(Type[A])),
+        "CtorLikes" -> resultToData(CtorLikes.parse(Type[A]))
+      )
+    )
+  }
+
+  def testLastUnapplyFailure[A: Type]: Expr[Data] = {
+    val _ = IsCollection.unapply(Type[A])
+    val failure = Option(IsCollection.lastUnapplyFailure)
+
+    failure match {
+      case None =>
+        Expr(Data.map("status" -> Data("matched"), "hasFailure" -> Data(false)))
+      case Some(reasons) =>
+        Expr(
+          Data.map(
+            "status" -> Data("skipped"),
+            "hasFailure" -> Data(true),
+            "providerCount" -> Data(reasons.toList.size)
+          )
+        )
+    }
+  }
 }

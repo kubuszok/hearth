@@ -35,6 +35,11 @@ final case class NonEmptyMap[K, +V](head: (K, V), tail: ListMap[K, V]) {
   def toNonEmptyList: NonEmptyList[(K, V)] = NonEmptyList(head, tail.toList)
   def toNonEmptyVector: NonEmptyVector[(K, V)] = NonEmptyVector(head, tail.toVector)
 
+  def ++[V2 >: V](other: NonEmptyMap[K, V2]): NonEmptyMap[K, V2] = {
+    val combined = this.toListMap ++ other.toListMap
+    NonEmptyMap.fromListMap(combined).get // safe: both non-empty
+  }
+
   def size: Int = 1 + tail.size
 
   def mkString(sep: String): String = iterator.mkString(sep)

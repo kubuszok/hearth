@@ -9,13 +9,15 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsOptionProviderForJavaOptional extends StandardMacroExtension {
+final class IsOptionProviderForJavaOptional extends StandardMacroExtension { loader =>
 
   @scala.annotation.nowarn
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsOption.registerProvider(new IsOption.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val Optional = Type.Ctor1.of[java.util.Optional]
       private lazy val juOptionalInt = Type.of[java.util.OptionalInt]
@@ -133,25 +135,25 @@ final class IsOptionProviderForJavaOptional extends StandardMacroExtension {
         })(using Double)
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): Option[IsOption[A]] = tpe match {
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsOption[A]] = tpe match {
         case _ if tpe =:= juOptionalInt =>
           implicit val A: Type[A] = tpe
           implicit val OptionalInt: Type[java.util.OptionalInt] = juOptionalInt
-          Some(isOptionalInt[A](A, _.upcast[java.util.OptionalInt], _.upcast[A]))
+          ProviderResult.Matched(isOptionalInt[A](A, _.upcast[java.util.OptionalInt], _.upcast[A]))
         case _ if tpe =:= juOptionalLong =>
           implicit val A: Type[A] = tpe
           implicit val OptionalLong: Type[java.util.OptionalLong] = juOptionalLong
-          Some(isOptionalLong[A](A, _.upcast[java.util.OptionalLong], _.upcast[A]))
+          ProviderResult.Matched(isOptionalLong[A](A, _.upcast[java.util.OptionalLong], _.upcast[A]))
         case _ if tpe =:= juOptionalDouble =>
           implicit val A: Type[A] = tpe
           implicit val OptionalDouble: Type[java.util.OptionalDouble] = juOptionalDouble
-          Some(isOptionalDouble[A](A, _.upcast[java.util.OptionalDouble], _.upcast[A]))
+          ProviderResult.Matched(isOptionalDouble[A](A, _.upcast[java.util.OptionalDouble], _.upcast[A]))
         case Optional(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
           implicit val OptionalItem: Type[java.util.Optional[Item]] = Optional[Item]
-          Some(isOption[A, Item](_.upcast[java.util.Optional[Item]], _.upcast[A]))
-        case _ => None
+          ProviderResult.Matched(isOption[A, Item](_.upcast[java.util.Optional[Item]], _.upcast[A]))
+        case _ => skipped(s"${tpe.prettyPrint} is not Optional/OptionalInt/OptionalLong/OptionalDouble")
       }
     })
   }

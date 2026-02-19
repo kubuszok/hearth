@@ -10,12 +10,14 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsCollectionProviderForJavaEnumeration extends StandardMacroExtension {
+final class IsCollectionProviderForJavaEnumeration extends StandardMacroExtension { loader =>
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsCollection.registerProvider(new IsCollection.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val Enumeration = Type.Ctor1.of[java.util.Enumeration]
 
@@ -56,16 +58,16 @@ final class IsCollectionProviderForJavaEnumeration extends StandardMacroExtensio
         })
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         // All Java enumerations can be converted to Iterable.
         case Enumeration(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
           implicit val EnumerationItem: Type[java.util.Enumeration[Item]] = Enumeration[Item]
-          Some(isCollection[A, Item](A, _.upcast[java.util.Enumeration[Item]], _.upcast[A]))
+          ProviderResult.Matched(isCollection[A, Item](A, _.upcast[java.util.Enumeration[Item]], _.upcast[A]))
 
         // Other types are not Java enumerations - if they should be supported, another extension can take care of it.
-        case _ => None
+        case _ => skipped(s"${tpe.prettyPrint} is not <: java.util.Enumeration[_]")
       }
     })
   }

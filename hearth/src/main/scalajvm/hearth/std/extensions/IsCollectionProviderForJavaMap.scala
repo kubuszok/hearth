@@ -10,13 +10,15 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
+final class IsCollectionProviderForJavaMap extends StandardMacroExtension { loader =>
 
   @scala.annotation.nowarn
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsCollection.registerProvider(new IsCollection.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val Ordering = Type.Ctor1.of[Ordering]
 
@@ -143,7 +145,7 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
         })
       }
 
-      override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = {
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = {
         def isMapOf[Map0[K, V] <: java.util.Map[K, V], Key: Type, Value: Type, Map1[K, V] <: Map0[K, V]](
             map: Type.Ctor2[Map0],
             emptyMapExpr: => Expr[Map1[Key, Value]],
@@ -241,8 +243,11 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension {
                 }
             }
 
-            classHierarchy orElse interfaceHierarchy
-          case _ => None
+            (classHierarchy orElse interfaceHierarchy) match {
+              case Some(result) => ProviderResult.Matched(result)
+              case None => skipped(s"${tpe.prettyPrint} is <: java.util.Map[_, _] but no matching concrete type found")
+            }
+          case _ => skipped(s"${tpe.prettyPrint} is not <: java.util.Map[_, _]")
         }
       }
     })

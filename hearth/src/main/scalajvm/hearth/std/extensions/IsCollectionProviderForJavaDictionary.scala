@@ -10,13 +10,15 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension {
+final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension { loader =>
 
   @scala.annotation.nowarn
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsCollection.registerProvider(new IsCollection.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val juDictionary = Type.Ctor2.of[java.util.Dictionary]
       private lazy val juHashtable = Type.Ctor2.of[java.util.Hashtable]
@@ -145,7 +147,7 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
         )(using Tuple2(using String, String))
       }
 
-      override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = {
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = {
         def isDictionaryOf[Dict0[K, V] <: java.util.Dictionary[K, V], Key, Value, Dict1[K, V] <: Dict0[K, V]](
             dict: Type.Ctor2[Dict0], // just for type inference
             emptyDictExpr: Expr[Dict1[Key, Value]]
@@ -192,8 +194,11 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
                 if (tpe =:= juProperties) Some(isProperties.asInstanceOf[IsCollection[A]])
                 else None
               }
+            } match {
+              case Some(result) => ProviderResult.Matched(result)
+              case None         => skipped(s"${tpe.prettyPrint} is <: java.util.Dictionary[_, _] but no matching concrete type found")
             }
-          case _ => None
+          case _ => skipped(s"${tpe.prettyPrint} is not <: java.util.Dictionary[_, _]")
         }
         // format: on
       }

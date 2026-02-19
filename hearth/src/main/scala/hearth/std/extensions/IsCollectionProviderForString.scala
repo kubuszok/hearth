@@ -10,13 +10,15 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsCollectionProviderForString extends StandardMacroExtension {
+final class IsCollectionProviderForString extends StandardMacroExtension { loader =>
 
   @scala.annotation.nowarn
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsCollection.registerProvider(new IsCollection.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val StringType = Type.of[String]
       private lazy val Char = Type.of[Char]
@@ -48,9 +50,9 @@ final class IsCollectionProviderForString extends StandardMacroExtension {
             )
         })(using Char)
 
-      override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {
-        case _ if tpe =:= StringType => Some(isString(tpe))
-        case _                       => None
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
+        case _ if tpe =:= StringType => ProviderResult.Matched(isString(tpe))
+        case _                       => skipped(s"${tpe.prettyPrint} is not =:= String")
       }
     })
   }

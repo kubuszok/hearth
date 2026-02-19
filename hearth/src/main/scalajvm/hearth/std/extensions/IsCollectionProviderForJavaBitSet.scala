@@ -10,13 +10,15 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension {
+final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension { loader =>
 
   @scala.annotation.nowarn
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsCollection.registerProvider(new IsCollection.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val juBitSet = Type.of[java.util.BitSet]
       private lazy val Int = Type.of[Int]
@@ -53,9 +55,9 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension {
             )
         })(using Int)
 
-      override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {
-        case _ if tpe =:= juBitSet => Some(isBitSet(tpe))
-        case _                     => None
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
+        case _ if tpe =:= juBitSet => ProviderResult.Matched(isBitSet(tpe))
+        case _                     => skipped(s"${tpe.prettyPrint} is not =:= java.util.BitSet")
       }
     })
   }

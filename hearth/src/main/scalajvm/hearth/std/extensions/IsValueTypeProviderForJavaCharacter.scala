@@ -10,12 +10,14 @@ import hearth.fp.data.NonEmptyList
   *
   * @since 0.3.0
   */
-final class IsValueTypeProviderForJavaCharacter extends StandardMacroExtension {
+final class IsValueTypeProviderForJavaCharacter extends StandardMacroExtension { loader =>
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsValueType.registerProvider(new IsValueType.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val Char = Type.of[Char]
       private lazy val JCharacter = Type.of[java.lang.Character]
@@ -38,9 +40,9 @@ final class IsValueTypeProviderForJavaCharacter extends StandardMacroExtension {
         })
       }
 
-      override def unapply[A](tpe: Type[A]): Option[IsValueType[A]] =
-        if (tpe <:< JCharacter) Some(isValueType.asInstanceOf[IsValueType[A]])
-        else None
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
+        if (tpe <:< JCharacter) ProviderResult.Matched(isValueType.asInstanceOf[IsValueType[A]])
+        else skipped(s"${tpe.prettyPrint} is not <: java.lang.Character")
     })
   }
 }

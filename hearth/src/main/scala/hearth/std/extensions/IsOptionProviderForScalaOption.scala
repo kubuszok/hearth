@@ -8,12 +8,14 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsOptionProviderForScalaOption extends StandardMacroExtension {
+final class IsOptionProviderForScalaOption extends StandardMacroExtension { loader =>
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsOption.registerProvider(new IsOption.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val Option = Type.Ctor1.of[scala.Option]
       private lazy val Some = Type.Ctor1.of[scala.Some]
@@ -40,15 +42,15 @@ final class IsOptionProviderForScalaOption extends StandardMacroExtension {
         })
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): Option[IsOption[A]] = tpe match {
-        case Some(_) => scala.None // Some is a special case, cannot be empty
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsOption[A]] = tpe match {
+        case Some(_) => skipped("Some[_] cannot be empty")
         case Option(item)
             if !(item.Underlying =:= Type.of[Nothing]) /* Nothing is a special case, cannot be of something */ =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
           implicit val OptionItem: Type[Option[Item]] = Option[Item]
-          scala.Some(isOption[A, Item](_.upcast[Option[Item]], _.upcast[A]))
-        case _ => None
+          ProviderResult.Matched(isOption[A, Item](_.upcast[Option[Item]], _.upcast[A]))
+        case _ => skipped(s"${tpe.prettyPrint} is not Option[_]")
       }
     })
   }

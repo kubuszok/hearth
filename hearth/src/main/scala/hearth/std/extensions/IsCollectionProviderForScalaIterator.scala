@@ -12,12 +12,14 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsCollectionProviderForScalaIterator extends StandardMacroExtension {
+final class IsCollectionProviderForScalaIterator extends StandardMacroExtension { loader =>
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsCollection.registerProvider(new IsCollection.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val Iterator = Type.Ctor1.of[scala.collection.Iterator]
 
@@ -57,13 +59,13 @@ final class IsCollectionProviderForScalaIterator extends StandardMacroExtension 
         })
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case Iterator(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
           implicit val IteratorItem: Type[scala.collection.Iterator[Item]] = Iterator[Item]
-          scala.Some(isIterator[A, Item](tpe, _.upcast[scala.collection.Iterator[Item]], _.upcast[A]))
-        case _ => None
+          ProviderResult.Matched(isIterator[A, Item](tpe, _.upcast[scala.collection.Iterator[Item]], _.upcast[A]))
+        case _ => skipped(s"${tpe.prettyPrint} is not Iterator[_]")
       }
     })
   }

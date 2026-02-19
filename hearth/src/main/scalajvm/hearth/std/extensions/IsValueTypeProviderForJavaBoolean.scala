@@ -10,12 +10,14 @@ import hearth.fp.data.NonEmptyList
   *
   * @since 0.3.0
   */
-final class IsValueTypeProviderForJavaBoolean extends StandardMacroExtension {
+final class IsValueTypeProviderForJavaBoolean extends StandardMacroExtension { loader =>
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsValueType.registerProvider(new IsValueType.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val Boolean = Type.of[Boolean]
       private lazy val JBoolean = Type.of[java.lang.Boolean]
@@ -38,9 +40,9 @@ final class IsValueTypeProviderForJavaBoolean extends StandardMacroExtension {
         })
       }
 
-      override def unapply[A](tpe: Type[A]): Option[IsValueType[A]] =
-        if (tpe <:< JBoolean) Some(isValueType.asInstanceOf[IsValueType[A]])
-        else None
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
+        if (tpe <:< JBoolean) ProviderResult.Matched(isValueType.asInstanceOf[IsValueType[A]])
+        else skipped(s"${tpe.prettyPrint} is not <: java.lang.Boolean")
     })
   }
 }

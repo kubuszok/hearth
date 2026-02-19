@@ -10,12 +10,14 @@ package extensions
   *
   * @since 0.3.0
   */
-final class IsCollectionProviderForIArray extends StandardMacroExtension {
+final class IsCollectionProviderForIArray extends StandardMacroExtension { loader =>
 
   override def extend(ctx: MacroCommons & StdExtensions): Unit = {
     import ctx.*
 
     IsCollection.registerProvider(new IsCollection.Provider {
+
+      override def name: String = loader.getClass.getName
 
       private lazy val IArray = Type.Ctor1.of[IArray]
 
@@ -47,7 +49,7 @@ final class IsCollectionProviderForIArray extends StandardMacroExtension {
             CtorLikeOf.PlainValue(buildExpr, None)
         })
 
-      override def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = tpe match {
+      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         // All IArrays can be converted to Iterable...
         case IArray(item) =>
           import item.Underlying as Item
@@ -56,8 +58,8 @@ final class IsCollectionProviderForIArray extends StandardMacroExtension {
           // ...but for making Factory we need to access ClassTag...
           Expr
             .summonImplicit(using Type.of[scala.reflect.ClassTag[Item]])
-            .toOption
-            .map { classTagExpr =>
+            .toOption match {
+            case Some(classTagExpr) =>
               // ...and use it to build the collection.
               val factoryExpr: Expr[scala.collection.Factory[Item, A]] = Expr
                 .quote {
@@ -141,11 +143,13 @@ final class IsCollectionProviderForIArray extends StandardMacroExtension {
                   }
                 }
               }
-              isCollection(A, toIterable, factoryExpr, buildExpr)
-            }
+              ProviderResult.Matched(isCollection(A, toIterable, factoryExpr, buildExpr))
+            case None =>
+              skipped(s"${tpe.prettyPrint} is IArray[${Item.prettyPrint}] but ClassTag not found")
+          }
 
         // Other types are not (Scala built-in) collections - if they should be supported, another extension can take care of it.
-        case _ => None
+        case _ => skipped(s"${tpe.prettyPrint} is not IArray[_]")
       }
     })
   }

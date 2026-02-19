@@ -33,4 +33,12 @@ object StdExtensionsFixtures {
   inline def testCtorLikes[A]: Data = ${ testCtorLikesImpl[A] }
   private def testCtorLikesImpl[A: Type](using q: Quotes): Expr[Data] =
     new StdExtensionsFixtures(q).testCtorLikes[A]
+
+  inline def testParse[A]: Data = ${ testParseImpl[A] }
+  private def testParseImpl[A: Type](using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testParse[A]
+
+  inline def testLastUnapplyFailure[A]: Data = ${ testLastUnapplyFailureImpl[A] }
+  private def testLastUnapplyFailureImpl[A: Type](using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testLastUnapplyFailure[A]
 }
