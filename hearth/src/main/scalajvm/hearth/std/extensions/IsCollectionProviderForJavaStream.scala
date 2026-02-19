@@ -189,7 +189,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
             )
         })(using Double)
 
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case _ if tpe =:= juIntStream =>
           implicit val A: Type[A] = tpe
           Expr.summonImplicit(using accumulatorFactoryInfo(using Int)).toOption match {

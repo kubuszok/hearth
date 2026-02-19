@@ -8,6 +8,48 @@ import scala.collection.immutable.ListMap
 
 trait StdExtensions { this: MacroCommons =>
 
+  /** Base trait for companion objects that aggregate results from registered providers.
+    *
+    * Provides common infrastructure: a mutable list of providers, `registerProvider`, abstract `parse`, concrete
+    * `unapply` (for pattern matching) that delegates to `parse` and stores failure reasons in `lastUnapplyFailure`.
+    *
+    * @tparam Provided
+    *   the type constructor that providers produce (e.g. `IsCollection`, `IsOption`)
+    *
+    * @since 0.3.0
+    */
+  trait ProvidedCompanion[Provided[_]] {
+    protected val providers: scala.collection.mutable.ListBuffer[Provider] =
+      scala.collection.mutable.ListBuffer[Provider]()
+
+    var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, String]] = _
+
+    trait Provider {
+
+      def name: String
+      def parse[A](tpe: Type[A]): ProviderResult[Provided[A]]
+
+      final protected def skipped(reason: String): ProviderResult[Nothing] =
+        ProviderResult.skipped(name, reason)
+      final protected def failed(error: Throwable): ProviderResult[Nothing] =
+        ProviderResult.failed(name, error)
+    }
+
+    def registerProvider(provider: Provider): Unit =
+      providers += provider
+
+    def parse[A: Type]: ProviderResult[Provided[A]]
+
+    def unapply[A](tpe: Type[A]): Option[Provided[A]] = parse(using tpe) match {
+      case ProviderResult.Matched(value) =>
+        lastUnapplyFailure = null
+        Some(value)
+      case ProviderResult.Skipped(reasons) =>
+        lastUnapplyFailure = reasons
+        None
+    }
+  }
+
   /** Represents a possible smart constructor for the given input and output types.
     *
     * Comes with a set of predefined possible smart constructors for common types:
@@ -131,30 +173,13 @@ trait StdExtensions { this: MacroCommons =>
   type CtorLike[A] = Existential[CtorLikeOf[*, A]]
 
   type CtorLikes[A] = NonEmptyList[CtorLike[A]]
-  object CtorLikes {
-    private val providers = scala.collection.mutable.ListBuffer[Provider]()
+  object CtorLikes extends ProvidedCompanion[CtorLikes] {
 
-    var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, String]] = _
-
-    trait Provider {
-
-      def name: String
-      def unapply[A](tpe: Type[A]): ProviderResult[CtorLikes[A]]
-
-      final protected def skipped(reason: String): ProviderResult[Nothing] =
-        ProviderResult.skipped(name, reason)
-      final protected def failed(error: Throwable): ProviderResult[Nothing] =
-        ProviderResult.failed(name, error)
-    }
-
-    def registerProvider(provider: Provider): Unit =
-      providers += provider
-
-    def parse[A](tpe: Type[A]): ProviderResult[CtorLikes[A]] = {
+    override def parse[A: Type]: ProviderResult[CtorLikes[A]] = {
       var matched: Option[CtorLikes[A]] = None
       var skippedReasons = ListMap.empty[String, Either[Throwable, String]]
       providers.foreach { provider =>
-        provider.unapply(tpe) match {
+        provider.parse(Type[A]) match {
           case ProviderResult.Matched(value) =>
             matched = matched match {
               case Some(existing) => Some(existing ++ value)
@@ -172,15 +197,6 @@ trait StdExtensions { this: MacroCommons =>
             case None      => ProviderResult.skipped("CtorLikes", "No providers registered")
           }
       }
-    }
-
-    def unapply[A](tpe: Type[A]): Option[CtorLikes[A]] = parse(tpe) match {
-      case ProviderResult.Matched(value) =>
-        lastUnapplyFailure = null
-        Some(value)
-      case ProviderResult.Skipped(reasons) =>
-        lastUnapplyFailure = reasons
-        None
     }
 
     /** Builder trait for creating CtorLike from an existential input type. Used instead of polymorphic function types
@@ -274,31 +290,14 @@ trait StdExtensions { this: MacroCommons =>
     * @since 0.3.0
     */
   type IsCollection[A] = Existential[IsCollectionOf[A, *]]
-  object IsCollection {
-    private val providers = scala.collection.mutable.ListBuffer[Provider]()
+  object IsCollection extends ProvidedCompanion[IsCollection] {
 
-    var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, String]] = _
-
-    trait Provider {
-
-      def name: String
-      def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]]
-
-      final protected def skipped(reason: String): ProviderResult[Nothing] =
-        ProviderResult.skipped(name, reason)
-      final protected def failed(error: Throwable): ProviderResult[Nothing] =
-        ProviderResult.failed(name, error)
-    }
-
-    def registerProvider(provider: Provider): Unit =
-      providers += provider
-
-    def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = {
+    override def parse[A: Type]: ProviderResult[IsCollection[A]] = {
       var skippedReasons = ListMap.empty[String, Either[Throwable, String]]
       val it = providers.iterator
       while (it.hasNext) {
         val provider = it.next()
-        provider.unapply(tpe) match {
+        provider.parse(Type[A]) match {
           case matched: ProviderResult.Matched[IsCollection[A] @unchecked] => return matched
           case ProviderResult.Skipped(reasons)                             => skippedReasons ++= reasons.iterator
         }
@@ -307,15 +306,6 @@ trait StdExtensions { this: MacroCommons =>
         case Some(nem) => ProviderResult.Skipped(nem)
         case None      => ProviderResult.skipped("IsCollection", "No providers registered")
       }
-    }
-
-    def unapply[A](tpe: Type[A]): Option[IsCollection[A]] = parse(tpe) match {
-      case ProviderResult.Matched(value) =>
-        lastUnapplyFailure = null
-        Some(value)
-      case ProviderResult.Skipped(reasons) =>
-        lastUnapplyFailure = reasons
-        None
     }
   }
 
@@ -363,16 +353,16 @@ trait StdExtensions { this: MacroCommons =>
 
     var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, String]] = _
 
-    def parse[A](tpe: Type[A]): ProviderResult[IsMap[A]] =
-      IsCollection.parse(tpe) match {
+    def parse[A: Type]: ProviderResult[IsMap[A]] =
+      IsCollection.parse[A] match {
         case ProviderResult.Matched(isCollection) if isCollection.value.isInstanceOf[IsMapOf[?, ?]] =>
           ProviderResult.Matched(isCollection.asInstanceOf[IsMap[A]])
         case ProviderResult.Matched(_) =>
-          ProviderResult.skipped("IsMap", s"${tpe.prettyPrint} is a collection but not a Map")
+          ProviderResult.skipped("IsMap", s"${Type[A].prettyPrint} is a collection but not a Map")
         case s: ProviderResult.Skipped => s
       }
 
-    def unapply[A](tpe: Type[A]): Option[IsMap[A]] = parse(tpe) match {
+    def unapply[A](tpe: Type[A]): Option[IsMap[A]] = parse(using tpe) match {
       case ProviderResult.Matched(value) =>
         lastUnapplyFailure = null
         Some(value)
@@ -419,31 +409,14 @@ trait StdExtensions { this: MacroCommons =>
     * @since 0.3.0
     */
   type IsOption[A] = Existential[IsOptionOf[A, *]]
-  object IsOption {
-    private val providers = scala.collection.mutable.ListBuffer[Provider]()
+  object IsOption extends ProvidedCompanion[IsOption] {
 
-    var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, String]] = _
-
-    trait Provider {
-
-      def name: String
-      def unapply[A](tpe: Type[A]): ProviderResult[IsOption[A]]
-
-      final protected def skipped(reason: String): ProviderResult[Nothing] =
-        ProviderResult.skipped(name, reason)
-      final protected def failed(error: Throwable): ProviderResult[Nothing] =
-        ProviderResult.failed(name, error)
-    }
-
-    def registerProvider(provider: Provider): Unit =
-      providers += provider
-
-    def parse[A](tpe: Type[A]): ProviderResult[IsOption[A]] = {
+    override def parse[A: Type]: ProviderResult[IsOption[A]] = {
       var skippedReasons = ListMap.empty[String, Either[Throwable, String]]
       val it = providers.iterator
       while (it.hasNext) {
         val provider = it.next()
-        provider.unapply(tpe) match {
+        provider.parse(Type[A]) match {
           case matched: ProviderResult.Matched[IsOption[A] @unchecked] => return matched
           case ProviderResult.Skipped(reasons)                         => skippedReasons ++= reasons.iterator
         }
@@ -452,15 +425,6 @@ trait StdExtensions { this: MacroCommons =>
         case Some(nem) => ProviderResult.Skipped(nem)
         case None      => ProviderResult.skipped("IsOption", "No providers registered")
       }
-    }
-
-    def unapply[A](tpe: Type[A]): Option[IsOption[A]] = parse(tpe) match {
-      case ProviderResult.Matched(value) =>
-        lastUnapplyFailure = null
-        Some(value)
-      case ProviderResult.Skipped(reasons) =>
-        lastUnapplyFailure = reasons
-        None
     }
   }
 
@@ -516,31 +480,14 @@ trait StdExtensions { this: MacroCommons =>
 
     def value: IsEitherOf[EitherLR, LeftValue, RightValue]
   }
-  object IsEither {
-    private val providers = scala.collection.mutable.ListBuffer[Provider]()
+  object IsEither extends ProvidedCompanion[IsEither] {
 
-    var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, String]] = _
-
-    trait Provider {
-
-      def name: String
-      def unapply[A](tpe: Type[A]): ProviderResult[IsEither[A]]
-
-      final protected def skipped(reason: String): ProviderResult[Nothing] =
-        ProviderResult.skipped(name, reason)
-      final protected def failed(error: Throwable): ProviderResult[Nothing] =
-        ProviderResult.failed(name, error)
-    }
-
-    def registerProvider(provider: Provider): Unit =
-      providers += provider
-
-    def parse[A](tpe: Type[A]): ProviderResult[IsEither[A]] = {
+    override def parse[A: Type]: ProviderResult[IsEither[A]] = {
       var skippedReasons = ListMap.empty[String, Either[Throwable, String]]
       val it = providers.iterator
       while (it.hasNext) {
         val provider = it.next()
-        provider.unapply(tpe) match {
+        provider.parse(Type[A]) match {
           case matched: ProviderResult.Matched[IsEither[A] @unchecked] => return matched
           case ProviderResult.Skipped(reasons)                         => skippedReasons ++= reasons.iterator
         }
@@ -549,15 +496,6 @@ trait StdExtensions { this: MacroCommons =>
         case Some(nem) => ProviderResult.Skipped(nem)
         case None      => ProviderResult.skipped("IsEither", "No providers registered")
       }
-    }
-
-    def unapply[A](tpe: Type[A]): Option[IsEither[A]] = parse(tpe) match {
-      case ProviderResult.Matched(value) =>
-        lastUnapplyFailure = null
-        Some(value)
-      case ProviderResult.Skipped(reasons) =>
-        lastUnapplyFailure = reasons
-        None
     }
   }
 
@@ -595,31 +533,14 @@ trait StdExtensions { this: MacroCommons =>
     * @since 0.3.0
     */
   type IsValueType[A] = Existential[IsValueTypeOf[A, *]]
-  object IsValueType {
-    private val providers = scala.collection.mutable.ListBuffer[Provider]()
+  object IsValueType extends ProvidedCompanion[IsValueType] {
 
-    var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, String]] = _
-
-    trait Provider {
-
-      def name: String
-      def unapply[A](tpe: Type[A]): ProviderResult[IsValueType[A]]
-
-      final protected def skipped(reason: String): ProviderResult[Nothing] =
-        ProviderResult.skipped(name, reason)
-      final protected def failed(error: Throwable): ProviderResult[Nothing] =
-        ProviderResult.failed(name, error)
-    }
-
-    def registerProvider(provider: Provider): Unit =
-      providers += provider
-
-    def parse[A](tpe: Type[A]): ProviderResult[IsValueType[A]] = {
+    override def parse[A: Type]: ProviderResult[IsValueType[A]] = {
       var skippedReasons = ListMap.empty[String, Either[Throwable, String]]
       val it = providers.iterator
       while (it.hasNext) {
         val provider = it.next()
-        provider.unapply(tpe) match {
+        provider.parse(Type[A]) match {
           case matched: ProviderResult.Matched[IsValueType[A] @unchecked] => return matched
           case ProviderResult.Skipped(reasons)                            => skippedReasons ++= reasons.iterator
         }
@@ -628,15 +549,6 @@ trait StdExtensions { this: MacroCommons =>
         case Some(nem) => ProviderResult.Skipped(nem)
         case None      => ProviderResult.skipped("IsValueType", "No providers registered")
       }
-    }
-
-    def unapply[A](tpe: Type[A]): Option[IsValueType[A]] = parse(tpe) match {
-      case ProviderResult.Matched(value) =>
-        lastUnapplyFailure = null
-        Some(value)
-      case ProviderResult.Skipped(reasons) =>
-        lastUnapplyFailure = reasons
-        None
     }
   }
 

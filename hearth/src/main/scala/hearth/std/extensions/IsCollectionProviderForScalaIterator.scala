@@ -59,7 +59,7 @@ final class IsCollectionProviderForScalaIterator extends StandardMacroExtension 
         })
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case Iterator(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe

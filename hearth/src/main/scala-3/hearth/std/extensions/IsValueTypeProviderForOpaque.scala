@@ -71,7 +71,7 @@ final class IsValueTypeProviderForOpaque extends StandardMacroExtension { loader
 
       override def name: String = loader.getClass.getName
 
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
+      override def parse[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
         if !tpe.isOpaqueType then skipped(s"${tpe.prettyPrint} is not an opaque type")
         else {
           implicit val A: Type[A] = tpe

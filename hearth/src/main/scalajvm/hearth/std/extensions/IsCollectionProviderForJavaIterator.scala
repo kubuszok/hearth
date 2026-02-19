@@ -58,7 +58,7 @@ final class IsCollectionProviderForJavaIterator extends StandardMacroExtension {
         })
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         // All Java iterators can be converted to Iterable.
         case Iterator(item) =>
           import item.Underlying as Item

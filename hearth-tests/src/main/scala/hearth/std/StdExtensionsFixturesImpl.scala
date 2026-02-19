@@ -370,11 +370,11 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
 
     Expr(
       Data.map(
-        "IsCollection" -> resultToData(IsCollection.parse(Type[A])),
-        "IsOption" -> resultToData(IsOption.parse(Type[A])),
-        "IsEither" -> resultToData(IsEither.parse(Type[A])),
-        "IsValueType" -> resultToData(IsValueType.parse(Type[A])),
-        "CtorLikes" -> resultToData(CtorLikes.parse(Type[A]))
+        "IsCollection" -> resultToData(IsCollection.parse[A]),
+        "IsOption" -> resultToData(IsOption.parse[A]),
+        "IsEither" -> resultToData(IsEither.parse[A]),
+        "IsValueType" -> resultToData(IsValueType.parse[A]),
+        "CtorLikes" -> resultToData(CtorLikes.parse[A])
       )
     )
   }

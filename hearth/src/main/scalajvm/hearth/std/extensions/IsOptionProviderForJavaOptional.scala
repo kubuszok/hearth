@@ -135,7 +135,7 @@ final class IsOptionProviderForJavaOptional extends StandardMacroExtension { loa
         })(using Double)
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsOption[A]] = tpe match {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsOption[A]] = tpe match {
         case _ if tpe =:= juOptionalInt =>
           implicit val A: Type[A] = tpe
           implicit val OptionalInt: Type[java.util.OptionalInt] = juOptionalInt

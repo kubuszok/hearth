@@ -71,7 +71,7 @@ final class IsEitherProviderForScalaTry extends StandardMacroExtension { loader 
       }
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsEither[A]] = tpe match {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsEither[A]] = tpe match {
         case Try(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe

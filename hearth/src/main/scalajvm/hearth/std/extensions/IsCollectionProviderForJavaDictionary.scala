@@ -147,7 +147,7 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
         )(using Tuple2(using String, String))
       }
 
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = {
         def isDictionaryOf[Dict0[K, V] <: java.util.Dictionary[K, V], Key, Value, Dict1[K, V] <: Dict0[K, V]](
             dict: Type.Ctor2[Dict0], // just for type inference
             emptyDictExpr: Expr[Dict1[Key, Value]]

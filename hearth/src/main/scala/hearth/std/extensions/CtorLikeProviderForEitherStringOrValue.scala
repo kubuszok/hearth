@@ -20,7 +20,7 @@ final class CtorLikeProviderForEitherStringOrValue extends StandardMacroExtensio
 
     CtorLikes.registerProvider(new CtorLikes.Provider {
       override def name: String = loader.getClass.getName
-      override def unapply[A](tpe: Type[A]): ProviderResult[CtorLikes[A]] = {
+      override def parse[A](tpe: Type[A]): ProviderResult[CtorLikes[A]] = {
         implicit val A: Type[A] = tpe
         import EitherStringOrValue.Result
         implicit val ResultA: Type[Result[A]] = Result[A]

@@ -69,7 +69,7 @@ final class IsEitherProviderForScalaEither extends StandardMacroExtension { load
       }
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsEither[A]] = tpe match {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsEither[A]] = tpe match {
         case Either(left, right) =>
           import left.Underlying as LeftValue
           import right.Underlying as RightValue

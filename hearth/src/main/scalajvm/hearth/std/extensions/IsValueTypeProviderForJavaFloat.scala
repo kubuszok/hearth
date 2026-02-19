@@ -40,7 +40,7 @@ final class IsValueTypeProviderForJavaFloat extends StandardMacroExtension { loa
         })
       }
 
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
+      override def parse[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
         if (tpe <:< JFloat) ProviderResult.Matched(isValueType.asInstanceOf[IsValueType[A]])
         else skipped(s"${tpe.prettyPrint} is not <: java.lang.Float")
     })

@@ -145,7 +145,7 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
         })
       }
 
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = {
         def isMapOf[Map0[K, V] <: java.util.Map[K, V], Key: Type, Value: Type, Map1[K, V] <: Map0[K, V]](
             map: Type.Ctor2[Map0],
             emptyMapExpr: => Expr[Map1[Key, Value]],
