@@ -326,7 +326,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     lazy val noInjectResult = q"""$ctx.weakTypeTag[$weakTypeTagOf].asInstanceOf[Type[$weakTypeTagOf]]"""
     lazy val ctx2 = freshName("ctx2")
 
-    val candidates: List[(Type, String)] = importedUnderlyingTypes
+    val candidates: List[(Type, String)] = importedUnderlyingTypes ++ enclosingMethodImplicitTypes
     val excludingSet: Set[String] = excluding.view.map(_.decodedName.toString).toSet
     val importedUnderlying = candidates.view
       .filterNot { case (_, renamed) => excludingSet(renamed) }
@@ -580,6 +580,53 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     result.toList
   } catch { case _: Throwable => Nil }
 
+  /** Collects implicit vals of type Type[X] from the enclosing method body, where X is a type parameter.
+    *
+    * Unlike `sameClassImplicitTypes`, these are local variables without `ThisType` prefixes, so they can safely be fed
+    * into `TypeWithUnderlyingInjected`. Unlike `importedUnderlyingTypes`, these are not filtered by
+    * `ImportedCrossTypeImplicit` names, allowing detection of any local `implicit val A: Type[A]`.
+    *
+    * Only type parameters are included (not concrete types like `java.lang.Boolean`) because concrete types don't need
+    * injection — they're globally available and resolve correctly without the workaround mechanism.
+    */
+  private def enclosingMethodImplicitTypes: List[(Type, String)] = try {
+    val result = scala.collection.mutable.ListBuffer[(Type, String)]()
+    val expansionPos = c.enclosingPosition
+
+    def isBeforeExpansionPoint(pos: Position): Boolean =
+      pos != NoPosition &&
+        (pos.line < expansionPos.line ||
+          (pos.line == expansionPos.line && pos.column < expansionPos.column))
+
+    @scala.annotation.nowarn
+    val enclosingMethod = c.enclosingMethod
+    if (enclosingMethod != EmptyTree) {
+      object finder extends Traverser {
+        override def traverse(tree: Tree): Unit = tree match {
+          case vd: ValDef
+              if vd.mods.hasFlag(Flag.IMPLICIT) &&
+                !vd.name.isImportedCrossTypeImplicit &&
+                isBeforeExpansionPoint(vd.pos) &&
+                vd.symbol != null =>
+            scala.util
+              .Try {
+                vd.symbol.info match {
+                  case TypeRef(_, _, List(innerType)) if !innerType.typeSymbol.isClass => innerType
+                }
+              }
+              .toOption
+              .foreach { tpeToReplace =>
+                result += (tpeToReplace -> vd.name.decodedName.toString)
+              }
+          case _ => super.traverse(tree)
+        }
+      }
+      finder.traverse(enclosingMethod)
+    }
+
+    result.toList
+  } catch { case _: Throwable => Nil }
+
   // Expr utilities
 
   private def convert(ctx: TermName)(tree: c.Tree): c.Tree = {
@@ -730,19 +777,20 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       // Combine imported types with same-class implicit vals (issue #168).
       // Same-class implicit vals are only used here (not in TypeWithUnderlyingInjected) because
       // their ThisType prefixes cause issues in the WeakTypeTag workaround mechanism.
-      private val caches = (importedUnderlyingTypes ++ sameClassImplicitTypes).flatMap { case (tpe, name) =>
-        def byName = Cache.forTypeName(name)
-        def byType = try
-          Cache.forTypeName(renderCode(tpe))
-        catch {
-          case _: Throwable => None
-        }
-        byType.orElse(byName).map { cache =>
-          cachesAliases += (name -> cache)
-          cachesAliases += (s"$name.type" -> cache)
-          cachesAliases += (renderCode(tpe) -> cache)
-          tpe -> cache
-        }
+      private val caches = (importedUnderlyingTypes ++ enclosingMethodImplicitTypes ++ sameClassImplicitTypes).flatMap {
+        case (tpe, name) =>
+          def byName = Cache.forTypeName(name)
+          def byType = try
+            Cache.forTypeName(renderCode(tpe))
+          catch {
+            case _: Throwable => None
+          }
+          byType.orElse(byName).map { cache =>
+            cachesAliases += (name -> cache)
+            cachesAliases += (s"$name.type" -> cache)
+            cachesAliases += (renderCode(tpe) -> cache)
+            tpe -> cache
+          }
       }.toMap
 
       // It's riddiculous but:

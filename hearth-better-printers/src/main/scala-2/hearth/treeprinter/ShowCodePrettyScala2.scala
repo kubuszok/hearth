@@ -1064,7 +1064,7 @@ trait ShowCodePrettyScala2 {
         //   printTypePrefix(NoPrefix, importedSym)
         // Probably something was imported and if we stopped now, we would be missing the prefix, so we should recreate it.
         case NoType =>
-          val reconstructedPrefix = sym.fullName.split('.').init.filterNot(Set("`<root>`", "`package`"))
+          val reconstructedPrefix = sym.fullName.split('.').init.filterNot(Set("`<root>`", "`package`", "<none>"))
           if (reconstructedPrefix.nonEmpty) print(reconstructedPrefix.mkString("."), ".")
         // Normal case - just print the prefix.
         case _ =>

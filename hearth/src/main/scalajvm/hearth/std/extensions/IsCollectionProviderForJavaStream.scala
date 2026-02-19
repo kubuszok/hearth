@@ -31,17 +31,8 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
       private lazy val Long = Type.of[Long]
       private lazy val Double = Type.of[Double]
 
-      // FIXME: we have a bug in Type.Ctor:
-      // When I do Type.Ctor2.of[scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo]
-      // and then apply it, it is printed as:
-      //   scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo[Item, Iterable[Item]]
-      // BUT
-      //   it's resolved in implicit resolution as:
-      //     scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo.noAccumulatorFactoryInfo[Item, Type.Ctor1.Apply[Any, Nothing, Iterable, Item]]
-      // for some reason Type.Ctor1.Apply is not dealiased, I've spent several hours on that with no progress, so for now I am making a workaround.
-      private def accumulatorFactoryInfo[Item: Type]
-          : Type[scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo[Item, Iterable[Item]]] =
-        Type.of[scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo[Item, Iterable[Item]]]
+      private lazy val AccumulatorFactoryInfo =
+        Type.Ctor2.of[scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo]
 
       private def isStream[A, Item: Type](
           A: Type[A],
@@ -51,10 +42,6 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
           ]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
-          // FIXME: Investigate why the resolved implicit is shown as:
-          //   (StreamExtensions.this.AccumulatorFactoryInfo.noAccumulatorFactoryInfo[java.lang.String, scala.collection.Iterable[java.lang.String]])
-          // when it should be:
-          //   (scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo....).
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
             new scala.jdk.StreamConverters.StreamHasToScala(Expr.splice(toStreamExpr(value)))
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
@@ -192,7 +179,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case _ if tpe =:= juIntStream =>
           implicit val A: Type[A] = tpe
-          Expr.summonImplicit(using accumulatorFactoryInfo(using Int)).toOption match {
+          Expr.summonImplicit(using AccumulatorFactoryInfo(using Int, Type.of[Iterable[Int]])).toOption match {
             case Some(accumulatorFactoryInfoExpr) =>
               implicit val IntStream: Type[java.util.stream.IntStream] = juIntStream
               ProviderResult.Matched(
@@ -203,7 +190,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
           }
         case _ if tpe =:= juLongStream =>
           implicit val A: Type[A] = tpe
-          Expr.summonImplicit(using accumulatorFactoryInfo(using Long)).toOption match {
+          Expr.summonImplicit(using AccumulatorFactoryInfo(using Long, Type.of[Iterable[Long]])).toOption match {
             case Some(accumulatorFactoryInfoExpr) =>
               implicit val LongStream: Type[java.util.stream.LongStream] = juLongStream
               ProviderResult.Matched(
@@ -214,7 +201,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
           }
         case _ if tpe =:= juDoubleStream =>
           implicit val A: Type[A] = tpe
-          Expr.summonImplicit(using accumulatorFactoryInfo(using Double)).toOption match {
+          Expr.summonImplicit(using AccumulatorFactoryInfo(using Double, Type.of[Iterable[Double]])).toOption match {
             case Some(accumulatorFactoryInfoExpr) =>
               implicit val DoubleStream: Type[java.util.stream.DoubleStream] = juDoubleStream
               ProviderResult.Matched(
@@ -226,7 +213,9 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
         case juStream(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
-          Expr.summonImplicit(using accumulatorFactoryInfo[Item]).toOption match {
+          Expr
+            .summonImplicit(using AccumulatorFactoryInfo(using implicitly[Type[Item]], Type.of[Iterable[Item]]))
+            .toOption match {
             case Some(accumulatorFactoryInfoExpr) =>
               implicit val StreamItem: Type[java.util.stream.Stream[Item]] = juStream[Item]
               ProviderResult.Matched(

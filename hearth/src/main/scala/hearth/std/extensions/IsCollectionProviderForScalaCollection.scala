@@ -72,12 +72,6 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
             Expr.quote((Expr.splice(key), Expr.splice(value))).asInstanceOf[Expr[Pair]]
         })
 
-      // FIXME: we had to make a workaround because we got:
-      //   scala.collection.Factory[scala.Tuple2[java.lang.String, scala.Int], <none>.A]
-      // when it was inlined. We should find a proper solution for this.
-      private def findFactory[A: Type, Item: Type]: SummoningResult[scala.collection.Factory[Item, A]] =
-        Expr.summonImplicit(using Type.of[scala.collection.Factory[Item, A]])
-
       @scala.annotation.nowarn
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         // Scala collections are Iterables with Factories, we're start by finding the item type...
@@ -86,7 +80,7 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           implicit val A: Type[A] = tpe
 
           // ...then we can summon the Factory...
-          findFactory[A, Item].toOption match {
+          Expr.summonImplicit(using Type.of[scala.collection.Factory[Item, A]]).toOption match {
             case Some(factoryExpr) =>
               // ...and use it to build the collection.
               val buildExpr: Expr[scala.collection.mutable.Builder[Item, A]] => Expr[A] =

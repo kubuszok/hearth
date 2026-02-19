@@ -109,8 +109,6 @@ object CrossQuotesMacrosGen {
 
     // Fresh names
     sb ++= s"""    val ctx = freshName("ctx")\n"""
-    val typeWithUnderlyingArgs = (0 until n).map(i => s", ${ArityGen.paramName(i)}").mkString
-    sb ++= s"    val typeValue = TypeWithUnderlyingInjected(ctx, appliedHKT$typeWithUnderlyingArgs)\n"
     sb ++= s"""    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")\n"""
     sb ++= s"""    val termInner = freshName("Inner")\n"""
     sb ++= s"""    val typeInner = TypeName(freshName("Inner").toString)\n"""
@@ -129,14 +127,24 @@ object CrossQuotesMacrosGen {
     sb ++= s"    }\n"
     sb ++= s"\n"
 
-    // def buildApplyDef(): builds the apply method
+    // def buildApplyDef(): builds the apply method (uses appliedType to avoid TypeCreator issues with aliased form)
+    // Uses context bounds + convertProvidedTypesForCrossQuotes to access the evidence
     val applyParams = (0 until n).map { i =>
       val p = ArityGen.paramName(i)
       val j = i + 1
       s"$$${p} >: $$${ArityGen.lower(j)} <: $$${ArityGen.upper(j)}: Type"
     }.mkString(", ")
+    val appliedTypeArgs = (0 until n).map { i =>
+      val p = ArityGen.paramName(i)
+      s"$$convertProvidedTypesForCrossQuotes[$$${p}].tpe"
+    }.mkString(", ")
     sb ++= s"    def buildApplyDef(): c.Tree =\n"
-    sb ++= s"""      q${tq}def apply[$applyParams]: Type[$$appliedHKT] = $$typeValue${tq}\n"""
+    sb ++= s"""      q${tq}\n"""
+    sb ++= s"      def apply[$applyParams]: Type[$$appliedHKT] =\n"
+    sb ++= s"        $$ctx.WeakTypeTag($$ctx.universe.appliedType(HKT,\n"
+    sb ++= s"          _root_.scala.List($appliedTypeArgs)\n"
+    sb ++= s"        ).dealias).asInstanceOf[Type[$$appliedHKT]]\n"
+    sb ++= s"      $tq\n"
     sb ++= s"\n"
 
     // def buildUnapplyDefs(): builds matchResult and unapply
@@ -251,21 +259,22 @@ object CrossQuotesMacrosGen {
     sb ++= s"\n"
 
     // def buildApplyDef(): builds the apply method (fromUntyped uses appliedType)
+    // Uses context bounds + convertProvidedTypesForCrossQuotes to access the evidence
     val applyParams = (0 until n).map { i =>
       val p = ArityGen.paramName(i)
       val j = i + 1
       s"$$${p} >: $$${ArityGen.lower(j)} <: $$${ArityGen.upper(j)}: Type"
     }.mkString(", ")
-    val implicitlyArgs = (0 until n).map { i =>
+    val appliedTypeArgs = (0 until n).map { i =>
       val p = ArityGen.paramName(i)
-      s"implicitly[Type[$$${p}]].asInstanceOf[$$ctx.WeakTypeTag[$$${p}]].tpe"
+      s"$$convertProvidedTypesForCrossQuotes[$$${p}].tpe"
     }.mkString(", ")
     sb ++= s"    def buildApplyDef(): c.Tree =\n"
     sb ++= s"""      q${tq}\n"""
     sb ++= s"      def apply[$applyParams]: Type[$$appliedHKT] =\n"
     sb ++= s"        $$ctx.WeakTypeTag($$ctx.universe.appliedType(HKT,\n"
-    sb ++= s"          _root_.scala.List($implicitlyArgs)\n"
-    sb ++= s"        )).asInstanceOf[Type[$$appliedHKT]]\n"
+    sb ++= s"          _root_.scala.List($appliedTypeArgs)\n"
+    sb ++= s"        ).dealias).asInstanceOf[Type[$$appliedHKT]]\n"
     sb ++= s"      $tq\n"
     sb ++= s"\n"
 

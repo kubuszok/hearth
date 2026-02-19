@@ -37,10 +37,6 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
 
       private lazy val juEnumType = Type.of[java.lang.Enum[?]]
 
-      // FIXME: Same issue as in IsCollectionProviderForJavaStream.scala: we have a bug in Type.Ctor.
-      // private lazy val Entry = Type.Ctor2.of[java.util.Map.Entry]
-      private def Entry[A: Type, B: Type]: Type[java.util.Map.Entry[A, B]] = Type.of[java.util.Map.Entry[A, B]]
-
       private lazy val Entry = Type.Ctor2.of[java.util.Map.Entry]
 
       // Helper for EnumMap: mirrors isMap but without requiring Type.Ctor2 (which can't express EnumMap bounds).
