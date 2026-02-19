@@ -82,7 +82,7 @@ final private class TypesFixtures(q: Quotes) extends MacroCommonsScala3(using q)
 
 object TypesFixtures {
 
-  // TODO: create macro annotation which would allow to do the following
+  // [hearth#176]
 
   inline def testNamesPrinters[A]: Data = ${ testNamesPrintersImpl[A] }
   private def testNamesPrintersImpl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testNamesPrinters[A]

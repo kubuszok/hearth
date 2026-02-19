@@ -9,7 +9,7 @@ final private class ClassesFixtures(q: Quotes) extends MacroCommonsScala3(using 
 
 object ClassesFixtures {
 
-  // TODO: create macro annotation which would allow to do the following
+  // [hearth#176]
 
   inline def testClass[A](inline excluding: String*): Data = ${ testClassImpl[A]('excluding) }
   private def testClassImpl[A: Type](excluding: Expr[Seq[String]])(using q: Quotes): Expr[Data] =

@@ -8,7 +8,7 @@ import scala.reflect.macros.blackbox
 
 final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsScala2 with ExprsFixturesImpl {
 
-  // TODO: create macro annotation which would allow to do the following
+  // [hearth#176]
 
   def testExprPrintersImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] = testExprPrinters[A](expr)
 

@@ -40,7 +40,7 @@ final private class Debug(q: Quotes) extends MacroCommonsScala3(using q), DebugM
   */
 object Debug {
 
-  // TODO: create macro annotation which would allow to do the following
+  // [hearth#176]
 
   /** Passes expression unchanged, but displays its code in IDE as a hint.
     *

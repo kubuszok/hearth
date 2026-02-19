@@ -6,7 +6,7 @@ import scala.reflect.macros.blackbox
 
 final private class Debug(val c: blackbox.Context) extends MacroCommonsScala2 with DebugMacros {
 
-  // TODO: create macro annotation which would allow to do the following
+  // [hearth#176]
 
   def withFinalCodeInIDEImpl[A](expr: c.Expr[A]): c.Expr[A] = withFinalCodeInIDE(expr)
   def withFinalASTInIDEImpl[A](expr: c.Expr[A]): c.Expr[A] = withFinalASTInIDE(expr)

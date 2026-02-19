@@ -8,7 +8,7 @@ final private class ShowCodePrettyFixtures(val c: blackbox.Context)
     extends MacroCommonsScala2
     with ShowCodePrettyFixturesImpl {
 
-  // TODO: create macro annotation which would allow to do the following
+  // [hearth#176]
   def testExprPrettyPrintImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] = testExprPrettyPrint[A](expr)
 
   def testExprPlainPrintImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] = testExprPlainPrint[A](expr)

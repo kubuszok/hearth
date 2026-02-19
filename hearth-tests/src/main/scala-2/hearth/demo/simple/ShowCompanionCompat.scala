@@ -17,7 +17,7 @@ private[demo] trait ShowCompanionCompat { this: Show.type =>
 
 private[demo] class ShowMacros(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ShowMacrosImpl {
 
-  // TODO: create macro annotation which would allow to do the following
+  // [hearth#176]
 
   def deriveTypeClassImpl[A: c.WeakTypeTag]: c.Expr[Show.AutoDerived[A]] = deriveTypeClass[A]
 

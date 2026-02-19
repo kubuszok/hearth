@@ -9,7 +9,7 @@ final private class MethodsFixtures(q: Quotes) extends MacroCommonsScala3(using 
 
 object MethodsFixtures {
 
-  // TODO: create macro annotation which would allow to do the following
+  // [hearth#176]
 
   inline def testConstructorsExtraction[A]: Data = ${ testConstructorsExtractionImpl[A] }
   private def testConstructorsExtractionImpl[A: Type](using q: Quotes): Expr[Data] =

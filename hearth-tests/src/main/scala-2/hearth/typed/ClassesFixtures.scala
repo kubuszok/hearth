@@ -8,7 +8,7 @@ import scala.reflect.macros.blackbox
 
 final private class ClassesFixtures(val c: blackbox.Context) extends MacroCommonsScala2 with ClassesFixturesImpl {
 
-  // TODO: create macro annotation which would allow to do the following
+  // [hearth#176]
 
   def testClassImpl[A: c.WeakTypeTag](excluding: c.Expr[String]*): c.Expr[Data] = testClass[A](excluding)
 
