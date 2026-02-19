@@ -62,7 +62,7 @@ final class IsCollectionProviderForScalaOption extends StandardMacroExtension { 
         })
       }
 
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case Some(_)                                                 => skipped("Some[_] cannot be empty")
         case Option(item) if !(item.Underlying =:= Type.of[Nothing]) =>
           import item.Underlying as Item

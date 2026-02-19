@@ -101,6 +101,34 @@ final class NonEmptyMapSpec extends ScalaCheckSuite with Laws {
       result.tail === ListMap.empty
       result.toList === List(("a", 10))
     }
+
+    test("++ should combine two NonEmptyMaps") {
+      val nem1 = NonEmptyMap(("a", 1), ("b", 2))
+      val nem2 = NonEmptyMap(("c", 3), ("d", 4))
+      val result = nem1 ++ nem2
+      result.toList === List(("a", 1), ("b", 2), ("c", 3), ("d", 4))
+    }
+
+    test("++ should let right-hand side override duplicate keys") {
+      val nem1 = NonEmptyMap(("a", 1), ("b", 2))
+      val nem2 = NonEmptyMap(("b", 20), ("c", 3))
+      val result = nem1 ++ nem2
+      result.toList === List(("a", 1), ("b", 20), ("c", 3))
+    }
+
+    test("++ should handle single-element maps") {
+      val nem1 = NonEmptyMap.one(("a", 1))
+      val nem2 = NonEmptyMap.one(("b", 2))
+      val result = nem1 ++ nem2
+      result.toList === List(("a", 1), ("b", 2))
+    }
+
+    test("++ should handle complete overlap") {
+      val nem1 = NonEmptyMap(("a", 1), ("b", 2))
+      val nem2 = NonEmptyMap(("a", 10), ("b", 20))
+      val result = nem1 ++ nem2
+      result.toList === List(("a", 10), ("b", 20))
+    }
   }
 
   group("Conversion Methods") {
@@ -274,6 +302,29 @@ final class NonEmptyMapSpec extends ScalaCheckSuite with Laws {
         val prepended = (key, value) +: nem
         val appended = nem :+ (key, value)
         prepended.toList.nonEmpty && appended.toList.nonEmpty
+      }
+    }
+
+    property("++ should produce non-empty result") {
+      forAll { (nem1: NonEmptyMap[String, Int], nem2: NonEmptyMap[String, Int]) =>
+        val combined = nem1 ++ nem2
+        combined.toList.nonEmpty
+      }
+    }
+
+    property("++ should contain all keys from both maps") {
+      forAll { (nem1: NonEmptyMap[String, Int], nem2: NonEmptyMap[String, Int]) =>
+        val combined = nem1 ++ nem2
+        val combinedKeys = combined.toList.map(_._1).toSet
+        val allKeys = nem1.toList.map(_._1).toSet ++ nem2.toList.map(_._1).toSet
+        combinedKeys == allKeys
+      }
+    }
+
+    property("++ should be equivalent to ListMap concatenation") {
+      forAll { (nem1: NonEmptyMap[String, Int], nem2: NonEmptyMap[String, Int]) =>
+        val combined = nem1 ++ nem2
+        combined.toListMap == (nem1.toListMap ++ nem2.toListMap)
       }
     }
   }

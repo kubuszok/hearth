@@ -50,7 +50,7 @@ final class IsCollectionProviderForString extends StandardMacroExtension { loade
             )
         })(using Char)
 
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case _ if tpe =:= StringType => ProviderResult.Matched(isString(tpe))
         case _                       => skipped(s"${tpe.prettyPrint} is not =:= String")
       }

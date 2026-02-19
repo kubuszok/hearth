@@ -42,7 +42,7 @@ final class IsOptionProviderForScalaOption extends StandardMacroExtension { load
         })
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsOption[A]] = tpe match {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsOption[A]] = tpe match {
         case Some(_) => skipped("Some[_] cannot be empty")
         case Option(item)
             if !(item.Underlying =:= Type.of[Nothing]) /* Nothing is a special case, cannot be of something */ =>

@@ -58,7 +58,7 @@ final class IsCollectionProviderForJavaEnumeration extends StandardMacroExtensio
         })
 
       @scala.annotation.nowarn
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         // All Java enumerations can be converted to Iterable.
         case Enumeration(item) =>
           import item.Underlying as Item

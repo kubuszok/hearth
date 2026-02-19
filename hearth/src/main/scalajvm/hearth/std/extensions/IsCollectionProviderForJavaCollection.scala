@@ -82,7 +82,7 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
             )
         })
 
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = {
         def isCollectionOf[Coll[I] <: java.util.Collection[I], Item: Type, Coll2[I] <: Coll[I]](
             coll: Type.Ctor1[Coll],
             emptyCollExpr: Expr[Coll2[Item]]

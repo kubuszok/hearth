@@ -39,7 +39,7 @@ final class IsValueTypeProviderForJavaByte extends StandardMacroExtension { load
         })(using Byte)
       }
 
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
+      override def parse[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
         if (tpe <:< JByte) ProviderResult.Matched(isValueType.asInstanceOf[IsValueType[A]])
         else skipped(s"${tpe.prettyPrint} is not <: java.lang.Byte")
     })

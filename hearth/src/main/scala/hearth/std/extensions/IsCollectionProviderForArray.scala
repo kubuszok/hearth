@@ -48,7 +48,7 @@ final class IsCollectionProviderForArray extends StandardMacroExtension { loader
             CtorLikeOf.PlainValue(buildExpr, None)
         })
 
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         // All Arrays can be converted to Iterable...
         case Array(item) =>
           import item.Underlying as Item

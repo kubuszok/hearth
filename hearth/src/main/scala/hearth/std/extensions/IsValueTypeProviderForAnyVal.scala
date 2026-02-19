@@ -35,7 +35,7 @@ final class IsValueTypeProviderForAnyVal extends StandardMacroExtension { loader
             CtorLikes.unapply(Type[A]).getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, A], Inner](wrap)))
         })
 
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsValueType[A]] = if (tpe <:< AnyVal) {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsValueType[A]] = if (tpe <:< AnyVal) {
         val result = for {
           // Since we've already checked that the type is an AnyVal, let's see if we can wrap/unwrap it here.
           // We're looking for a primary constructor that is available at call site and has exactly one parameter.

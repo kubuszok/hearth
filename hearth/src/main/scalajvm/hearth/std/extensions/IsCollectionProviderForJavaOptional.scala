@@ -73,7 +73,7 @@ final class IsCollectionProviderForJavaOptional extends StandardMacroExtension {
         })
       }
 
-      override def unapply[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
+      override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case Optional(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
