@@ -1302,5 +1302,45 @@ final class MethodsSpec extends MacroSuite {
         }
       }
     }
+
+    group("method ordering") {
+
+      test("constructor arguments should appear before declared methods") {
+        import MethodsFixtures.testMethodOrdering
+
+        val result = testMethodOrdering[examples.methods.WithCompanion]
+        val names = result.asList.get.map(_.asString.get)
+        // "arg" is the constructor argument, "method" is declared
+        val argIdx = names.indexOf("arg")
+        val methodIdx = names.indexOf("method")
+        assert(argIdx >= 0, s"Constructor arg 'arg' should be in methods: $names")
+        assert(methodIdx >= 0, s"Declared method 'method' should be in methods: $names")
+        assert(
+          argIdx < methodIdx,
+          s"Constructor arg 'arg' (idx=$argIdx) should appear before 'method' (idx=$methodIdx): $names"
+        )
+      }
+
+      test("multiple constructor arguments should preserve declaration order") {
+        import MethodsFixtures.testMethodOrdering
+
+        val result = testMethodOrdering[examples.methods.ScopeVisibility]
+        val names = result.asList.get.map(_.asString.get)
+        val privateCtorIdx = names.indexOf("privateCtorArg")
+        val publicCtorIdx = names.indexOf("publicCtorArg")
+        assert(privateCtorIdx >= 0, s"'privateCtorArg' should be in methods: $names")
+        assert(publicCtorIdx >= 0, s"'publicCtorArg' should be in methods: $names")
+        assert(
+          privateCtorIdx < publicCtorIdx,
+          s"'privateCtorArg' (idx=$privateCtorIdx) should appear before 'publicCtorArg' (idx=$publicCtorIdx): $names"
+        )
+        // Both should appear before declared methods
+        val publicMethodIdx = names.indexOf("publicMethod")
+        assert(
+          publicCtorIdx < publicMethodIdx,
+          s"Constructor args should appear before declared methods: $names"
+        )
+      }
+    }
   }
 }

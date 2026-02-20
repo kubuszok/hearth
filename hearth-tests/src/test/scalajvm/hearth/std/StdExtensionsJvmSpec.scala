@@ -700,5 +700,42 @@ final class StdExtensionsJvmSpec extends MacroSuite {
         )
       }
     }
+
+    group("class: CtorLikes[A], Java boxed types should include valueOf method reference") {
+      import StdExtensionsFixtures.testCtorLikes
+
+      // Helper to check if a Data contains a ctor with the given type and method name
+      def containsCtor(data: Data, ctorType: String, methodName: String): Boolean =
+        data.get("ctors").flatMap(_.asList).exists { ctors =>
+          ctors.exists { ctor =>
+            ctor.get("type").contains(Data(ctorType)) &&
+            ctor.get("method").contains(Data(methodName))
+          }
+        }
+
+      test("for java.lang.Boolean") {
+        val result = testCtorLikes[java.lang.Boolean]
+        assert(
+          containsCtor(result, "PlainValue", "valueOf"),
+          s"Expected PlainValue ctor with 'valueOf', got: ${result.render}"
+        )
+      }
+
+      test("for java.lang.Integer") {
+        val result = testCtorLikes[java.lang.Integer]
+        assert(
+          containsCtor(result, "PlainValue", "valueOf"),
+          s"Expected PlainValue ctor with 'valueOf', got: ${result.render}"
+        )
+      }
+
+      test("for java.lang.Long") {
+        val result = testCtorLikes[java.lang.Long]
+        assert(
+          containsCtor(result, "PlainValue", "valueOf"),
+          s"Expected PlainValue ctor with 'valueOf', got: ${result.render}"
+        )
+      }
+    }
   }
 }

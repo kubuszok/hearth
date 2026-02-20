@@ -112,6 +112,10 @@ object TypesFixtures {
   inline def testBidirectionalCodecs: Data = ${ testBidirectionalCodecsImpl }
   private def testBidirectionalCodecsImpl(using q: Quotes): Expr[Data] = new TypesFixtures(q).testBidirectionalCodecs
 
+  inline def testNilAsCollectionCodecs: Data = ${ testNilAsCollectionCodecsImpl }
+  private def testNilAsCollectionCodecsImpl(using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testNilAsCollectionCodecs
+
   inline def testOneWayCodecs: Data = ${ testOneWayCodecsImpl }
   private def testOneWayCodecsImpl(using q: Quotes): Expr[Data] = new TypesFixtures(q).testOneWayCodecs
 

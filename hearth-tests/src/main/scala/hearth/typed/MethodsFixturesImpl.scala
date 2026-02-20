@@ -138,6 +138,12 @@ trait MethodsFixturesImpl { this: MacroCommons =>
         .mkString
     )
 
+  def testMethodOrdering[A: Type]: Expr[Data] = {
+    val methods = Type[A].methods
+    val names = methods.map(_.value.name)
+    Expr(Data(names.map(Data(_))))
+  }
+
   private val IntType: Type[Int] = Type.of[Int]
   private val StringType: Type[String] = Type.of[String]
   private val ProductType: Type[Product] = Type.of[Product]

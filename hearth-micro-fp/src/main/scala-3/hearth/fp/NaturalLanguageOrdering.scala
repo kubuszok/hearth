@@ -75,8 +75,8 @@ final class NaturalLanguageOrdering private (caseSensitive: Boolean) extends Ord
       val aChar = a.guardedCharAt(aIdx)
       val bChar = b.guardedCharAt(bIdx)
 
-      val notADigit = !aChar.isSpaceOrSeparator
-      val notBDigit = !bChar.isSpaceOrSeparator
+      val notADigit = !aChar.isDigit
+      val notBDigit = !bChar.isDigit
 
       if notADigit && notBDigit then bias
       else if notADigit then -1
@@ -103,7 +103,8 @@ final class NaturalLanguageOrdering private (caseSensitive: Boolean) extends Ord
       aNumber: StringBuilder,
       bNumber: StringBuilder
   ): Int =
-    if !aNumber.sameContent(bNumber) then aNumber.compareAsDouble(bNumber)
+    if aNumber.nonEmpty && bNumber.nonEmpty && !aNumber.sameContent(bNumber) then aNumber.compareAsDouble(bNumber)
+    else if aNumber.length != bNumber.length then aNumber.length - bNumber.length
     else if aZeroes - bZeroes != 0 then aZeroes - bZeroes
     else if a.length != b.length then a.length - b.length
     else if caseSensitive then a.compareTo(b)
@@ -117,7 +118,7 @@ final class NaturalLanguageOrdering private (caseSensitive: Boolean) extends Ord
   }
 
   extension (inline sb: StringBuilder) {
-    private inline def sameContent(inline sb2: StringBuilder): Boolean = sb.underlying.compareTo(sb2.underlying) == 0
+    private inline def sameContent(inline sb2: StringBuilder): Boolean = sb.toString == sb2.toString
     private inline def compareAsDouble(inline sb2: StringBuilder): Int = toDouble.compareTo(sb2.toDouble)
     private inline def toDouble: Double = sb.toString.toDouble
   }

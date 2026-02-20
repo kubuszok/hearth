@@ -2240,6 +2240,27 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
       Environment.reportErrorAndAbort(e.getMessage)
   }
 
+  def testVersionCodecsRoundtrip: Expr[Data] = try {
+    def roundtrip[A: ExprCodec](value: A): Data = {
+      val encoded = Expr(value)
+      val decoded = Expr.unapply(encoded)
+      Data(decoded.fold("not decoded")(s => s"$s"))
+    }
+    Expr(
+      Data.map(
+        "LanguageVersion" -> roundtrip[LanguageVersion](LanguageVersion.Scala3),
+        "Platform" -> roundtrip[Platform](Platform.Jvm),
+        "JDKVersion" -> roundtrip(JDKVersion(1, 17)),
+        "ScalaVersion" -> roundtrip(ScalaVersion(3, 3, 0)),
+        "HearthVersion" -> roundtrip(HearthVersion("0.1.0", LanguageVersion.Scala3, Platform.Jvm))
+      )
+    )
+  } catch {
+    case e: Throwable =>
+      e.printStackTrace()
+      Environment.reportErrorAndAbort(e.getMessage)
+  }
+
   // DirectStyle tests
 
   def testMatchCaseDirectStyle[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
