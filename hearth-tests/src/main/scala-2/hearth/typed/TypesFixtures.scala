@@ -28,6 +28,8 @@ final private class TypesFixtures(val c: blackbox.Context) extends MacroCommonsS
 
   def testBidirectionalCodecsImpl: c.Expr[Data] = testBidirectionalCodecs
 
+  def testNilAsCollectionCodecsImpl: c.Expr[Data] = testNilAsCollectionCodecs
+
   def testOneWayCodecsImpl: c.Expr[Data] = testOneWayCodecs
 }
 
@@ -50,6 +52,8 @@ object TypesFixtures {
   def testComparisons[A, B]: Data = macro TypesFixtures.testComparisonsImpl[A, B]
 
   def testBidirectionalCodecs: Data = macro TypesFixtures.testBidirectionalCodecsImpl
+
+  def testNilAsCollectionCodecs: Data = macro TypesFixtures.testNilAsCollectionCodecsImpl
 
   def testOneWayCodecs: Data = macro TypesFixtures.testOneWayCodecsImpl
 }

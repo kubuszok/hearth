@@ -45,6 +45,10 @@ object MethodsFixtures {
   )(using q: Quotes): Expr[Int] =
     new MethodsFixtures(q).testCallInstanceIntMethod[A](instance)(methodName)(params)
 
+  inline def testMethodOrdering[A]: Data = ${ testMethodOrderingImpl[A] }
+  private def testMethodOrderingImpl[A: Type](using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testMethodOrdering[A]
+
   inline def testConstructNamedTuple[A]: Data = ${ testConstructNamedTupleImpl[A] }
   private def testConstructNamedTupleImpl[A: Type](using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testConstructNamedTuple[A]

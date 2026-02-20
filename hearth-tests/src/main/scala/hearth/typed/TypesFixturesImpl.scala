@@ -187,7 +187,25 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
         "Some(1)" -> roundtrip(Some(1)),
         "None" -> roundtrip[Option[Int]](None),
         "Left(1)" -> roundtrip[Either[Int, String]](Left(1)),
-        "Right(a)" -> roundtrip[Either[Int, String]](Right("a"))
+        "Right(a)" -> roundtrip[Either[Int, String]](Right("a")),
+        "Nil" -> roundtrip[Nil.type](Nil),
+        "Class[Int]" -> roundtrip(classOf[Int]),
+        "ClassTag[Int]" -> roundtrip(scala.reflect.classTag[Int])
+      )
+    )
+  }
+
+  def testNilAsCollectionCodecs: Expr[Data] = {
+    implicit val it: Type[Int] = intType
+    val nilTpe = Type.of[Nil.type]
+    def decodeNilAs[A: TypeCodec](name: String): (String, Data) = {
+      val result = TypeCodec[A].fromType(nilTpe.asInstanceOf[Type[A]])
+      name -> Data(result.isDefined.toString)
+    }
+    Expr(
+      Data.map(
+        decodeNilAs[Seq[Int]]("Seq[Int]"),
+        decodeNilAs[List[Int]]("List[Int]")
       )
     )
   }

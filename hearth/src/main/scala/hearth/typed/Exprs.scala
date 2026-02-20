@@ -126,7 +126,9 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
           Expr.quote(hearth.data.Data(Expr.splice(inner)))
         }
       )
+      // $COVERAGE-OFF$ not yet implemented
       def fromExpr(expr: Expr[data.Data]): Option[data.Data] = None
+      // $COVERAGE-ON$
     }
 
     def HearthVersionExprCodec: ExprCodec[HearthVersion]

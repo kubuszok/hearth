@@ -1792,7 +1792,30 @@ final class TypesSpec extends MacroSuite {
           "Right(a)" -> Data.map(
             "encoded" -> Data("scala.util.Right[scala.Int, \"a\"]"),
             "decoded" -> Data("Right(a)")
+          ),
+          "Nil" -> Data.map(
+            "encoded" -> Data("scala.Nil.type"),
+            "decoded" -> Data("List()")
+          ),
+          "Class[Int]" -> Data.map(
+            "encoded" -> Data("java.lang.Class[scala.Int]"),
+            "decoded" -> Data("int")
+          ),
+          "ClassTag[Int]" -> Data.map(
+            "encoded" -> Data("scala.reflect.ClassTag[scala.Int]"),
+            "decoded" -> Data("Int")
           )
+        )
+      }
+
+      test(
+        "methods TypeCodec.fromType should decode Nil.type as Seq and List"
+      ) {
+        import TypesFixtures.testNilAsCollectionCodecs
+
+        testNilAsCollectionCodecs <==> Data.map(
+          "Seq[Int]" -> Data("true"),
+          "List[Int]" -> Data("true")
         )
       }
 

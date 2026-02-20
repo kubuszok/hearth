@@ -918,6 +918,20 @@ final class ExprsSpec extends MacroSuite {
           )
         )
       }
+
+      test(
+        "methods ExprCodec.{toExpr, fromExpr} should allow roundtripping version types (LanguageVersion, Platform, JDKVersion, ScalaVersion, HearthVersion)"
+      ) {
+        import ExprsFixtures.testVersionCodecsRoundtrip
+
+        testVersionCodecsRoundtrip <==> Data.map(
+          "LanguageVersion" -> Data("Scala 3"),
+          "Platform" -> Data("Jvm"),
+          "JDKVersion" -> Data("JDK 1.17"),
+          "ScalaVersion" -> Data("Scala 3.3.0"),
+          "HearthVersion" -> Data("Hearth 0.1.0 (Scala 3, Jvm)")
+        )
+      }
     }
   }
 }
