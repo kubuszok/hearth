@@ -22,6 +22,16 @@ final class IsValueTypeProviderForJavaCharacter extends StandardMacroExtension {
       private lazy val Char = Type.of[Char]
       private lazy val JCharacter = Type.of[java.lang.Character]
 
+      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Character]] = {
+        implicit val jCharacter: Type[java.lang.Character] = JCharacter
+        Method.methodsOf[java.lang.Character].collectFirst {
+          case Method.NoInstance(m)
+              if m.name == "valueOf" && m.isUnary &&
+                m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Char } =>
+            m.asReturning
+        }
+      }
+
       @scala.annotation.nowarn
       private val isValueType: IsValueType[java.lang.Character] = {
         implicit val char: Type[Char] = Char
@@ -32,7 +42,7 @@ final class IsValueTypeProviderForJavaCharacter extends StandardMacroExtension {
           override val wrap: CtorLikeOf[Char, java.lang.Character] =
             CtorLikeOf.PlainValue(
               (expr: Expr[Char]) => Expr.quote(java.lang.Character.valueOf(Expr.splice(expr))),
-              None // TODO: we should provide a method for this
+              valueOfMethod
             )
           override lazy val ctors: CtorLikes[java.lang.Character] = CtorLikes
             .unapply(JCharacter)

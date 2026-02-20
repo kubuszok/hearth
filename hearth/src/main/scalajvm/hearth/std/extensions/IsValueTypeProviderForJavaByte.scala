@@ -22,6 +22,16 @@ final class IsValueTypeProviderForJavaByte extends StandardMacroExtension { load
       private lazy val Byte = Type.of[Byte]
       private lazy val JByte = Type.of[java.lang.Byte]
 
+      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Byte]] = {
+        implicit val jByte: Type[java.lang.Byte] = JByte
+        Method.methodsOf[java.lang.Byte].collectFirst {
+          case Method.NoInstance(m)
+              if m.name == "valueOf" && m.isUnary &&
+                m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Byte } =>
+            m.asReturning
+        }
+      }
+
       @scala.annotation.nowarn
       private val isValueType: IsValueType[java.lang.Byte] = {
         implicit val byte: Type[Byte] = Byte
@@ -32,7 +42,7 @@ final class IsValueTypeProviderForJavaByte extends StandardMacroExtension { load
           override val wrap: CtorLikeOf[Byte, java.lang.Byte] =
             CtorLikeOf.PlainValue(
               (expr: Expr[Byte]) => Expr.quote(java.lang.Byte.valueOf(Expr.splice(expr))),
-              None // TODO: we should provide a method for this
+              valueOfMethod
             )
           override lazy val ctors: CtorLikes[java.lang.Byte] =
             CtorLikes.unapply(JByte).getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, java.lang.Byte], Byte](wrap)))

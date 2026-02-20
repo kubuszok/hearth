@@ -25,14 +25,31 @@ private[typed] trait TypesCompat { this: MacroCommons =>
 
     final lazy val EmptyTupleCodec: TypeCodec[EmptyTuple] = new TypeCodec[EmptyTuple] {
       override def toType[B <: EmptyTuple](value: B): Type[B] = emptyTupleType.asInstanceOf[Type[B]]
-      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[EmptyTuple, Id]] = None // TODO
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[EmptyTuple, Id]] =
+        if B =:= Type.of[EmptyTuple] then Some(
+          Existential.UpperBounded[EmptyTuple, Id, EmptyTuple](EmptyTuple)(using B.asInstanceOf[Type[EmptyTuple]])
+        )
+        else None
     }
 
     @scala.annotation.nowarn
-    final def TupleConsCodec[H: Type, T <: Tuple: Type]: TypeCodec[H *: T] = new TypeCodec[H *: T] {
-      override def toType[B <: H *: T](value: B): Type[B] = tupleConsType[H, T].asInstanceOf[Type[B]]
-      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[H *: T, Id]] = None // TODO
-    }
+    final def TupleConsCodec[H: Type: TypeCodec, T <: Tuple: Type: TypeCodec]: TypeCodec[H *: T] =
+      new TypeCodec[H *: T] {
+        override def toType[B <: H *: T](value: B): Type[B] = tupleConsType[H, T].asInstanceOf[Type[B]]
+        override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[H *: T, Id]] = {
+          given quotes: scala.quoted.Quotes = CrossQuotes.ctx
+          B.asInstanceOf[scala.quoted.Type[B]] match {
+            case '[h *: t] =>
+              for {
+                vh <- TypeCodec[H].fromType(summon[scala.quoted.Type[h]].asInstanceOf[Type[h]])
+                vt <- TypeCodec[T].fromType(summon[scala.quoted.Type[t]].asInstanceOf[Type[t]])
+              } yield Existential.UpperBounded[H *: T, Id, H *: T](
+                vh.value.asInstanceOf[H] *: vt.value.asInstanceOf[T]
+              )(using B.asInstanceOf[Type[H *: T]])
+            case _ => None
+          }
+        }
+      }
   }
 
   // Low-priority implicits for TypeCodec - inherited by object TypeCodec,
@@ -42,6 +59,7 @@ private[typed] trait TypesCompat { this: MacroCommons =>
   // via Type.EmptyTupleCodec if needed. TupleConsCodec only needs Type[EmptyTuple]
   // (via emptyTupleType), not TypeCodec[EmptyTuple].
   trait TypeCodecCompat {
-    implicit def TupleConsCodec[H: Type, T <: Tuple: Type]: TypeCodec[H *: T] = Type.TupleConsCodec[H, T]
+    implicit def TupleConsCodec[H: Type: TypeCodec, T <: Tuple: Type: TypeCodec]: TypeCodec[H *: T] =
+      Type.TupleConsCodec[H, T]
   }
 }

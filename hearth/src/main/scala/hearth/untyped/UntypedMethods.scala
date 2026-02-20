@@ -151,19 +151,25 @@ trait UntypedMethods { this: MacroCommons =>
       *   - inherited methods can come from multiple parental classes, sorting them primarily by position doesn't make
       *     sense (especially if some of these parents might give us empty [[Position]]s)
       *   - so for non-declared methods we sort by name, but for declared methods we sort by position
-      *   - TODO: decide how we should order inherited methods with overloaded names
+      *
+      * Constructor arguments come first, ordered by their position in the primary constructor. Then declared
+      * non-constructor-argument methods, ordered by source position. Then inherited/synthetic methods, ordered by name
+      * using [[hearth.fp.NaturalLanguageOrdering]] (which handles _1, _2, ..., _10, _11 correctly).
       */
     final protected def sortMethods(methods: List[UntypedMethod]): List[UntypedMethod] = {
-      val (declared, others) = methods.partitionMap { method =>
+      val (ctorArgs, rest) = methods.partition(_.isConstructorArgument)
+      val sortedCtorArgs = ctorArgs.sortBy(_.constructorArgumentIndex.getOrElse(Int.MaxValue))
+
+      val (declared, others) = rest.partitionMap { method =>
         method.position match {
           case Some(position) if method.isDeclared => Left(position -> method)
-          case _                                   => Right(method.name -> method)
+          case _                                   => Right(method)
         }
       }
-      // TODO: Use smarter name sorting  (e.g. one that would keep _1, _2, ..., _10, _11, ...)
-      // TODO: Check if declared is empty :/, if it is, and we have a Scala class.
-      //       Probably we should filter by declared and keep the original order?
-      declared.sortBy(_._1).map(_._2) ++ others.sortBy(_._1).map(_._2)
+      val sortedDeclared = declared.sortBy(_._1).map(_._2)
+      val sortedOthers = others.sortBy(_.name)(hearth.fp.NaturalLanguageOrdering.caseInsensitive)
+
+      sortedCtorArgs ++ sortedDeclared ++ sortedOthers
     }
 
     // Defaults methods' positions are 1-indexed. They are named `methodName$default$indexOfParameter`.
@@ -202,6 +208,7 @@ trait UntypedMethods { this: MacroCommons =>
     def isConstructor: Boolean
 
     def isConstructorArgument: Boolean
+    def constructorArgumentIndex: Option[Int]
     def isCaseField: Boolean
 
     def isVal: Boolean
@@ -216,8 +223,11 @@ trait UntypedMethods { this: MacroCommons =>
     def isAvailable(scope: Accessible): Boolean
   }
 
-  implicit final lazy val UntypedMethodOrdering: Ordering[UntypedMethod] =
+  implicit final lazy val UntypedMethodOrdering: Ordering[UntypedMethod] = {
     // Stabilize order in case of https://github.com/scala/scala3/issues/21672 (does not solve the warnings!)
-    // TODO: order Strings using lexicographic order
-    Ordering[Option[Position]].on[UntypedMethod](_.position).orElseBy(_.name)
+    implicit val nameOrdering: Ordering[String] = hearth.fp.NaturalLanguageOrdering.caseInsensitive
+    Ordering.by[UntypedMethod, (Option[Int], Option[Position], String)](m =>
+      (m.constructorArgumentIndex, m.position, m.name)
+    )
+  }
 }

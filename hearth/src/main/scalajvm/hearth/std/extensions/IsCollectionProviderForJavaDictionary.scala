@@ -25,6 +25,7 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
       private lazy val juProperties = Type.of[java.util.Properties]
 
       private lazy val Tuple2 = Type.Ctor2.of[Tuple2]
+      private lazy val Builder = Type.Ctor2.of[scala.collection.mutable.Builder]
 
       private lazy val String = Type.of[String]
 
@@ -74,12 +75,20 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
               override def fromSpecific(it: IterableOnce[Pair]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, CtorResult], A] =
+          @scala.annotation.nowarn
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, CtorResult], A] = {
+            implicit val builderType: Type[scala.collection.mutable.Builder[Pair, CtorResult]] =
+              Builder[Pair, CtorResult]
+            val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Pair, CtorResult]].collectFirst {
+              case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
+                m.value.asReturning.asInstanceOf[Method.Returning[A]]
+            }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Pair, CtorResult]]) =>
                 Expr.quote(Expr.splice(expr).result()),
-              None // TODO: we should provide a method for this
+              resultMethod
             )
+          }
           override def key(pair: Expr[Pair]): Expr[Key] = Expr.quote(Expr.splice(pair)._1)
           override def value(pair: Expr[Pair]): Expr[Value] = Expr.quote(Expr.splice(pair)._2)
           override def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair] =
@@ -131,13 +140,27 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
             override val Value: Type[Value] = String
             // Key =:= Value, so here we have ambiguous implicit resolution.
             override def factory: Expr[scala.collection.Factory[(String, String), java.util.Properties]] = factoryExpr
+            @scala.annotation.nowarn
             override def build: CtorLikeOf[
               scala.collection.mutable.Builder[(String, String), java.util.Properties],
               java.util.Properties
-            ] = CtorLikeOf.PlainValue(
-              buildExpr,
-              None // TODO: we should provide a method for this
-            )
+            ] = {
+              implicit val stringType: Type[String] = String
+              implicit val pairType: Type[(String, String)] = Tuple2[String, String]
+              implicit val builderType: Type[scala.collection.mutable.Builder[(String, String), java.util.Properties]] =
+                Builder[(String, String), java.util.Properties]
+              val resultMethod =
+                Method
+                  .methodsOf[scala.collection.mutable.Builder[(String, String), java.util.Properties]]
+                  .collectFirst {
+                    case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
+                      m.value.asReturning.asInstanceOf[Method.Returning[java.util.Properties]]
+                  }
+              CtorLikeOf.PlainValue(
+                buildExpr,
+                resultMethod
+              )
+            }
             override def key(pair: Expr[(String, String)]): Expr[String] = keyExpr(pair)
             override def value(pair: Expr[(String, String)]): Expr[String] = valueExpr(pair)
             override def pair(key: Expr[String], value: Expr[String]): Expr[(String, String)] = pairExpr(key, value)

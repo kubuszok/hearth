@@ -107,6 +107,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       val invocation: Invocation,
       val isDeclared: Boolean,
       val isConstructorArgument: Boolean,
+      val constructorArgumentIndex: Option[Int],
       val isCaseField: Boolean
   ) extends UntypedMethodMethods {
 
@@ -204,6 +205,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         invocation = Invocation.Constructor,
         isDeclared = true,
         isConstructorArgument = false,
+        constructorArgumentIndex = None,
         isCaseField = false
       ) {
 
@@ -307,6 +309,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     private def parse(
         isDeclared: Boolean,
         isConstructorArgument: Boolean,
+        constructorArgumentIndex: Option[Int],
         isCaseField: Boolean,
         module: Option[UntypedExpr]
     )(
@@ -320,6 +323,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
             else module.map(Invocation.OnModule.apply).getOrElse(Invocation.OnInstance),
           isDeclared = isDeclared,
           isConstructorArgument = isConstructorArgument,
+          constructorArgumentIndex = constructorArgumentIndex,
           isCaseField = isCaseField
         )
       )
@@ -327,13 +331,20 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     private def parseOption(
         isDeclared: Boolean,
         isConstructorArgument: Boolean,
+        constructorArgumentIndex: Option[Int],
         isCaseField: Boolean,
         module: Option[UntypedExpr]
     )(symbol: Symbol): Option[UntypedMethod] =
-      parse(isDeclared, isConstructorArgument, isCaseField, module)(symbol).toOption
+      parse(isDeclared, isConstructorArgument, constructorArgumentIndex, isCaseField, module)(symbol).toOption
 
     private val parseCtorOption =
-      parseOption(isDeclared = true, isConstructorArgument = false, isCaseField = false, module = None)
+      parseOption(
+        isDeclared = true,
+        isConstructorArgument = false,
+        constructorArgumentIndex = None,
+        isCaseField = false,
+        module = None
+      )
 
     override def toTyped[Instance: Type](untyped: UntypedMethod): Method.Of[Instance] = {
       val Instance = UntypedType.fromTyped[Instance]
@@ -386,7 +397,13 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
             .filterNot(_.isNoSymbol)
             .flatMap(
               UntypedMethod
-                .parseOption(isDeclared = true, isConstructorArgument = false, isCaseField = false, module = None)
+                .parseOption(
+                  isDeclared = true,
+                  isConstructorArgument = false,
+                  constructorArgumentIndex = None,
+                  isCaseField = false,
+                  module = None
+                )
             )
       }
     override def constructors(instanceTpe: UntypedType): List[UntypedMethod] =
@@ -398,7 +415,13 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
             .filter(_.isClassConstructor)
             .flatMap(
               UntypedMethod
-                .parseOption(isDeclared = true, isConstructorArgument = false, isCaseField = false, module = None)
+                .parseOption(
+                  isDeclared = true,
+                  isConstructorArgument = false,
+                  constructorArgumentIndex = None,
+                  isCaseField = false,
+                  module = None
+                )
             )
       }
     override def methods(instanceTpe: UntypedType): List[UntypedMethod] = {
@@ -427,11 +450,11 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         }
         .getOrElse((classMembers, classDeclared, Map.empty[Symbol, UntypedExpr]))
 
-      val constructorArguments = (for {
+      val constructorArguments: Map[String, Int] = (for {
         primaryConstructor <- Option(symbol.primaryConstructor).toList
         if !primaryConstructor.isNoSymbol
-        argument <- primaryConstructor.paramSymss.flatten
-      } yield argument.name).toSet
+        (argument, idx) <- primaryConstructor.paramSymss.filterNot(_.exists(_.isType)).flatten.zipWithIndex
+      } yield argument.name -> idx).toMap
       val caseFields = (for {
         field <- symbol.caseFields
         if !field.isNoSymbol
@@ -456,7 +479,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
             val module = moduleBySymbol.get(s)
             UntypedMethod.parseOption(
               isDeclared = declared(s) && !methodsConsideredSynthetic(s),
-              isConstructorArgument = constructorArguments(fieldName),
+              isConstructorArgument = constructorArguments.contains(fieldName),
+              constructorArgumentIndex = constructorArguments.get(fieldName),
               isCaseField = caseFields(fieldName),
               module = module
             )(s)
@@ -503,6 +527,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           invocation = invocation,
           isDeclared = param.method.isDeclared,
           isConstructorArgument = false,
+          constructorArgumentIndex = None,
           isCaseField = false
         )
       }

@@ -355,7 +355,19 @@ Cross Quotes handles type parameters automatically:
 
 The `[A: Type]` context bound gets automatically converted to the appropriate syntax for each Scala version.
 
-!!! note "TODO: explain how quotes handle inserting implicit `Type[A]` into the generated code"
+!!! info "How `Type[A]` works inside cross-quotes"
+
+    When you write `Expr.quote { ... }` with a type parameter `[A: Type]`, Cross Quotes needs to make
+    that type information available inside the generated code. How this works differs between Scala versions:
+
+    - **Scala 2**: `Type[A]` is backed by `c.WeakTypeTag[A]`. Cross Quotes generates an implicit conversion
+      (`convertProvidedTypesForCrossQuotes`) that transforms Hearth's `Type[A]` into the `WeakTypeTag[A]`
+      required by Scala 2 quasiquotes.
+    - **Scala 3**: `Type[A]` is backed by `scala.quoted.Type[A]`. Scala 3 `'{ ... }` blocks natively accept
+      `given Type[A]` in scope, so no conversion is needed.
+
+    The `[A: Type]` context bound provides type information to both platforms transparently. You write your
+    code once using Hearth's `Type[A]`, and Cross Quotes ensures it compiles correctly on both Scala 2 and 3.
 
 ### Pattern Matching on Types
 

@@ -33,6 +33,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
 
       private lazy val AccumulatorFactoryInfo =
         Type.Ctor2.of[scala.collection.convert.StreamExtensions.AccumulatorFactoryInfo]
+      private lazy val Builder = Type.Ctor2.of[scala.collection.mutable.Builder]
 
       private def isStream[A, Item: Type](
           A: Type[A],
@@ -61,12 +62,20 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
               override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], A] =
+          @scala.annotation.nowarn
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], A] = {
+            implicit val builderType: Type[scala.collection.mutable.Builder[Item, CtorResult]] =
+              Builder[Item, CtorResult]
+            val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Item, CtorResult]].collectFirst {
+              case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
+                m.value.asReturning.asInstanceOf[Method.Returning[A]]
+            }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Item, CtorResult]]) =>
                 Expr.quote(Expr.splice(expr).result()),
-              None // TODO: we should provide a method for this
+              resultMethod
             )
+          }
         })
 
       private def isIntStream[A](
@@ -97,11 +106,20 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
               override def fromSpecific(it: IterableOnce[Int]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Int, CtorResult], A] =
+          @scala.annotation.nowarn
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Int, CtorResult], A] = {
+            implicit val intType: Type[Int] = Int
+            implicit val builderType: Type[scala.collection.mutable.Builder[Int, CtorResult]] =
+              Builder[Int, CtorResult]
+            val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Int, CtorResult]].collectFirst {
+              case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
+                m.value.asReturning.asInstanceOf[Method.Returning[A]]
+            }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Int, CtorResult]]) => Expr.quote(Expr.splice(expr).result()),
-              None // TODO: we should provide a method for this
+              resultMethod
             )
+          }
         })(using Int)
 
       private def isLongStream[A](
@@ -132,12 +150,21 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
               override def fromSpecific(it: IterableOnce[Long]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Long, CtorResult], A] =
+          @scala.annotation.nowarn
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Long, CtorResult], A] = {
+            implicit val longType: Type[Long] = Long
+            implicit val builderType: Type[scala.collection.mutable.Builder[Long, CtorResult]] =
+              Builder[Long, CtorResult]
+            val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Long, CtorResult]].collectFirst {
+              case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
+                m.value.asReturning.asInstanceOf[Method.Returning[A]]
+            }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Long, CtorResult]]) =>
                 Expr.quote(Expr.splice(expr).result()),
-              None // TODO: we should provide a method for this
+              resultMethod
             )
+          }
         })(using Long)
 
       private def isDoubleStream[A](
@@ -168,12 +195,22 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
               override def fromSpecific(it: IterableOnce[Double]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Double, CtorResult], A] =
+          @scala.annotation.nowarn
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Double, CtorResult], A] = {
+            implicit val doubleType: Type[Double] = Double
+            implicit val builderType: Type[scala.collection.mutable.Builder[Double, CtorResult]] =
+              Builder[Double, CtorResult]
+            val resultMethod =
+              Method.methodsOf[scala.collection.mutable.Builder[Double, CtorResult]].collectFirst {
+                case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
+                  m.value.asReturning.asInstanceOf[Method.Returning[A]]
+              }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Double, CtorResult]]) =>
                 Expr.quote(Expr.splice(expr).result()),
-              None // TODO: we should provide a method for this
+              resultMethod
             )
+          }
         })(using Double)
 
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {

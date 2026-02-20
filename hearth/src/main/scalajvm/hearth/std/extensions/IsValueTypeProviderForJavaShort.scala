@@ -22,6 +22,16 @@ final class IsValueTypeProviderForJavaShort extends StandardMacroExtension { loa
       private lazy val Short = Type.of[Short]
       private lazy val JShort = Type.of[java.lang.Short]
 
+      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Short]] = {
+        implicit val jShort: Type[java.lang.Short] = JShort
+        Method.methodsOf[java.lang.Short].collectFirst {
+          case Method.NoInstance(m)
+              if m.name == "valueOf" && m.isUnary &&
+                m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Short } =>
+            m.asReturning
+        }
+      }
+
       @scala.annotation.nowarn
       private val isValueType: IsValueType[java.lang.Short] = {
         implicit val short: Type[Short] = Short
@@ -32,7 +42,7 @@ final class IsValueTypeProviderForJavaShort extends StandardMacroExtension { loa
           override val wrap: CtorLikeOf[Short, java.lang.Short] =
             CtorLikeOf.PlainValue(
               (expr: Expr[Short]) => Expr.quote(java.lang.Short.valueOf(Expr.splice(expr))),
-              None // TODO: we should provide a method for this
+              valueOfMethod
             )
           override lazy val ctors: CtorLikes[java.lang.Short] = CtorLikes
             .unapply(JShort)

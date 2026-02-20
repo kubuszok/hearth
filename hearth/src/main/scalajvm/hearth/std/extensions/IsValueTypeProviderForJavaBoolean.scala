@@ -22,6 +22,16 @@ final class IsValueTypeProviderForJavaBoolean extends StandardMacroExtension { l
       private lazy val Boolean = Type.of[Boolean]
       private lazy val JBoolean = Type.of[java.lang.Boolean]
 
+      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Boolean]] = {
+        implicit val jBoolean: Type[java.lang.Boolean] = JBoolean
+        Method.methodsOf[java.lang.Boolean].collectFirst {
+          case Method.NoInstance(m)
+              if m.name == "valueOf" && m.isUnary &&
+                m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Boolean } =>
+            m.asReturning
+        }
+      }
+
       @scala.annotation.nowarn
       private val isValueType: IsValueType[java.lang.Boolean] = {
         implicit val boolean: Type[Boolean] = Boolean
@@ -32,8 +42,8 @@ final class IsValueTypeProviderForJavaBoolean extends StandardMacroExtension { l
           override val wrap: CtorLikeOf[Boolean, java.lang.Boolean] =
             CtorLikeOf.PlainValue(
               (expr: Expr[Boolean]) => Expr.quote(java.lang.Boolean.valueOf(Expr.splice(expr))),
-              None
-            ) // TODO: we should provide a method for this
+              valueOfMethod
+            )
           override val ctors: CtorLikes[java.lang.Boolean] = CtorLikes
             .unapply(JBoolean)
             .getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, java.lang.Boolean], Boolean](wrap)))
