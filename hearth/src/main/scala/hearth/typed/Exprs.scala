@@ -126,50 +126,14 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
           Expr.quote(hearth.data.Data(Expr.splice(inner)))
         }
       )
-      def fromExpr(expr: Expr[data.Data]): Option[data.Data] = None // TODO
+      def fromExpr(expr: Expr[data.Data]): Option[data.Data] = None
     }
 
-    def HearthVersionExprCodec: ExprCodec[HearthVersion] = new ExprCodec[HearthVersion] {
-      def toExpr(value: HearthVersion): Expr[HearthVersion] = Expr.quote {
-        HearthVersion(
-          Expr.splice(Expr(value.version)),
-          Expr.splice(Expr(value.languageVersion)),
-          Expr.splice(Expr(value.platform))
-        )
-      }
-      def fromExpr(expr: Expr[HearthVersion]): Option[HearthVersion] = None // TODO
-    }
-
-    def JDKVersionExprCodec: ExprCodec[JDKVersion] = new ExprCodec[JDKVersion] {
-      def toExpr(value: JDKVersion): Expr[JDKVersion] = Expr.quote {
-        JDKVersion(Expr.splice(Expr(value.major)), Expr.splice(Expr(value.minor)))
-      }
-      def fromExpr(expr: Expr[JDKVersion]): Option[JDKVersion] = None // TODO
-    }
-
-    def ScalaVersionExprCodec: ExprCodec[ScalaVersion] = new ExprCodec[ScalaVersion] {
-      def toExpr(value: ScalaVersion): Expr[ScalaVersion] = Expr.quote {
-        ScalaVersion(Expr.splice(Expr(value.major)), Expr.splice(Expr(value.minor)), Expr.splice(Expr(value.patch)))
-      }
-      def fromExpr(expr: Expr[ScalaVersion]): Option[ScalaVersion] = None // TODO
-    }
-
-    def LanguageVersionExprCodec: ExprCodec[LanguageVersion] = new ExprCodec[LanguageVersion] {
-      def toExpr(value: LanguageVersion): Expr[LanguageVersion] = value match {
-        case LanguageVersion.Scala2_13 => Expr.quote(LanguageVersion.Scala2_13: LanguageVersion)
-        case LanguageVersion.Scala3    => Expr.quote(LanguageVersion.Scala3: LanguageVersion)
-      }
-      def fromExpr(expr: Expr[LanguageVersion]): Option[LanguageVersion] = None // TODO
-    }
-
-    def PlatformExprCodec: ExprCodec[Platform] = new ExprCodec[Platform] {
-      def toExpr(value: Platform): Expr[Platform] = value match {
-        case Platform.Jvm    => Expr.quote(Platform.Jvm: Platform)
-        case Platform.Js     => Expr.quote(Platform.Js: Platform)
-        case Platform.Native => Expr.quote(Platform.Native: Platform)
-      }
-      def fromExpr(expr: Expr[Platform]): Option[Platform] = None // TODO
-    }
+    def HearthVersionExprCodec: ExprCodec[HearthVersion]
+    def JDKVersionExprCodec: ExprCodec[JDKVersion]
+    def ScalaVersionExprCodec: ExprCodec[ScalaVersion]
+    def LanguageVersionExprCodec: ExprCodec[LanguageVersion]
+    def PlatformExprCodec: ExprCodec[Platform]
   }
 
   implicit final class ExprMethods[A](private val expr: Expr[A]) {

@@ -21,6 +21,7 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
       override def name: String = loader.getClass.getName
 
       private lazy val Ordering = Type.Ctor1.of[Ordering]
+      private lazy val Builder = Type.Ctor2.of[scala.collection.mutable.Builder]
 
       private lazy val juCollection = Type.Ctor1.of[java.util.Collection]
       private lazy val juAbstractCollection = Type.Ctor1.of[java.util.AbstractCollection]
@@ -74,12 +75,20 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
               override def fromSpecific(it: IterableOnce[Item]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], A] =
+          @scala.annotation.nowarn
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], A] = {
+            implicit val builderType: Type[scala.collection.mutable.Builder[Item, CtorResult]] =
+              Builder[Item, CtorResult]
+            val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Item, CtorResult]].collectFirst {
+              case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
+                m.value.asReturning.asInstanceOf[Method.Returning[A]]
+            }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Item, CtorResult]]) =>
                 Expr.quote(Expr.splice(expr).result()),
-              None // TODO: we should provide a method for this
+              resultMethod
             )
+          }
         })
 
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = {

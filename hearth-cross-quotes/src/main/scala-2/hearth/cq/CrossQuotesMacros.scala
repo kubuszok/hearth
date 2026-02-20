@@ -283,11 +283,11 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       }
     val quasiquote = convert(ctx)(expr.tree)
 
-    // TODO: generate freshTerm for quasiquotes and then {Quasiquote => $FreshTerm}
+    val quasiquoteFresh = freshName("Quasiquote")
     val unchecked = q"""
     val $wtt = $typeA
     val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
-    import $ctx.universe.Quasiquote
+    import $ctx.universe.{Quasiquote => $quasiquoteFresh}
     @_root_.scala.annotation.nowarn
     implicit def $convertProvidedTypesForCrossQuotes[$typeInner](implicit $termInner: Type[$typeInner]): $ctx.WeakTypeTag[$typeInner] =
       $termInner.asInstanceOf[$ctx.WeakTypeTag[$typeInner]]
@@ -903,7 +903,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           AbstractTypes.find(sym).map(_.typeRef).getOrElse(tpe)
         case TypeRef(pre, sym, args) =>
           newTypeRef(pre, sym, args.map(transformType))
-        // TODO: maybe also transform other types
         case _ => tpe
       }
     }

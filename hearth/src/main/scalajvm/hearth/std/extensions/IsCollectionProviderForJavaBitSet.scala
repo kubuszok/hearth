@@ -22,6 +22,7 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension { l
 
       private lazy val juBitSet = Type.of[java.util.BitSet]
       private lazy val Int = Type.of[Int]
+      private lazy val Builder = Type.Ctor2.of[scala.collection.mutable.Builder]
 
       private def isBitSet[A](A: Type[A]): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Int](new IsCollectionOf[A, Int] {
@@ -48,11 +49,20 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension { l
               override def fromSpecific(it: IterableOnce[Int]): A = newBuilder.addAll(it).result()
             }
           }
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Int, CtorResult], A] =
+          @scala.annotation.nowarn
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Int, CtorResult], A] = {
+            implicit val intType: Type[Int] = Int
+            implicit val builderType: Type[scala.collection.mutable.Builder[Int, CtorResult]] =
+              Builder[Int, CtorResult]
+            val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Int, CtorResult]].collectFirst {
+              case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
+                m.value.asReturning.asInstanceOf[Method.Returning[A]]
+            }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Int, CtorResult]]) => Expr.quote(Expr.splice(expr).result()),
-              None // TODO: we should provide a method for this
+              resultMethod
             )
+          }
         })(using Int)
 
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {

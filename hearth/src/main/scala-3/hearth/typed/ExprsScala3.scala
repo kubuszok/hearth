@@ -517,6 +517,116 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       given ToExpr[R] = platformSpecific.implicits.ExprCodecIsToExpr[R]
       ExprCodec.make[Right[L, R]]
     }
+
+    override lazy val LanguageVersionExprCodec: ExprCodec[LanguageVersion] = {
+      given FromExpr[LanguageVersion] = new {
+        override def unapply(expr: Expr[LanguageVersion])(using scala.quoted.Quotes): Option[LanguageVersion] =
+          expr match {
+            case '{ LanguageVersion.Scala2_13 }                    => Some(LanguageVersion.Scala2_13)
+            case '{ LanguageVersion.Scala3 }                       => Some(LanguageVersion.Scala3)
+            case '{ (LanguageVersion.Scala2_13: LanguageVersion) } => Some(LanguageVersion.Scala2_13)
+            case '{ (LanguageVersion.Scala3: LanguageVersion) }    => Some(LanguageVersion.Scala3)
+            case _                                                 => None
+          }
+      }
+      given ToExpr[LanguageVersion] = new {
+        override def apply(value: LanguageVersion)(using scala.quoted.Quotes): Expr[LanguageVersion] = value match {
+          case LanguageVersion.Scala2_13 => '{ LanguageVersion.Scala2_13: LanguageVersion }
+          case LanguageVersion.Scala3    => '{ LanguageVersion.Scala3: LanguageVersion }
+        }
+      }
+      ExprCodec.make[LanguageVersion]
+    }
+
+    override lazy val PlatformExprCodec: ExprCodec[Platform] = {
+      given FromExpr[Platform] = new {
+        override def unapply(expr: Expr[Platform])(using scala.quoted.Quotes): Option[Platform] = expr match {
+          case '{ Platform.Jvm }                => Some(Platform.Jvm)
+          case '{ Platform.Js }                 => Some(Platform.Js)
+          case '{ Platform.Native }             => Some(Platform.Native)
+          case '{ (Platform.Jvm: Platform) }    => Some(Platform.Jvm)
+          case '{ (Platform.Js: Platform) }     => Some(Platform.Js)
+          case '{ (Platform.Native: Platform) } => Some(Platform.Native)
+          case _                                => None
+        }
+      }
+      given ToExpr[Platform] = new {
+        override def apply(value: Platform)(using scala.quoted.Quotes): Expr[Platform] = value match {
+          case Platform.Jvm    => '{ Platform.Jvm: Platform }
+          case Platform.Js     => '{ Platform.Js: Platform }
+          case Platform.Native => '{ Platform.Native: Platform }
+        }
+      }
+      ExprCodec.make[Platform]
+    }
+
+    override lazy val JDKVersionExprCodec: ExprCodec[JDKVersion] = {
+      given FromExpr[JDKVersion] = new {
+        override def unapply(expr: Expr[JDKVersion])(using scala.quoted.Quotes): Option[JDKVersion] = expr match {
+          case '{ JDKVersion(${ Expr(major) }, ${ Expr(minor) }) }       => Some(JDKVersion(major, minor))
+          case '{ JDKVersion.apply(${ Expr(major) }, ${ Expr(minor) }) } => Some(JDKVersion(major, minor))
+          case '{ new JDKVersion(${ Expr(major) }, ${ Expr(minor) }) }   => Some(JDKVersion(major, minor))
+          case _                                                         => None
+        }
+      }
+      given ToExpr[JDKVersion] = new {
+        override def apply(value: JDKVersion)(using scala.quoted.Quotes): Expr[JDKVersion] = {
+          val major = value.major
+          val minor = value.minor
+          '{ JDKVersion(${ Expr(major) }, ${ Expr(minor) }) }
+        }
+      }
+      ExprCodec.make[JDKVersion]
+    }
+
+    override lazy val ScalaVersionExprCodec: ExprCodec[ScalaVersion] = {
+      given FromExpr[ScalaVersion] = new {
+        override def unapply(expr: Expr[ScalaVersion])(using scala.quoted.Quotes): Option[ScalaVersion] = expr match {
+          case '{ ScalaVersion(${ Expr(major) }, ${ Expr(minor) }, ${ Expr(patch) }) } =>
+            Some(ScalaVersion(major, minor, patch))
+          case '{ ScalaVersion.apply(${ Expr(major) }, ${ Expr(minor) }, ${ Expr(patch) }) } =>
+            Some(ScalaVersion(major, minor, patch))
+          case '{ new ScalaVersion(${ Expr(major) }, ${ Expr(minor) }, ${ Expr(patch) }) } =>
+            Some(ScalaVersion(major, minor, patch))
+          case _ => None
+        }
+      }
+      given ToExpr[ScalaVersion] = new {
+        override def apply(value: ScalaVersion)(using scala.quoted.Quotes): Expr[ScalaVersion] = {
+          val major = value.major
+          val minor = value.minor
+          val patch = value.patch
+          '{ ScalaVersion(${ Expr(major) }, ${ Expr(minor) }, ${ Expr(patch) }) }
+        }
+      }
+      ExprCodec.make[ScalaVersion]
+    }
+
+    // Expr(lang) and Expr(plat) in quoted patterns/splices go through Hearth's ExprCodec,
+    // not standard FromExpr/ToExpr, so no local givens needed for LanguageVersion/Platform.
+    override lazy val HearthVersionExprCodec: ExprCodec[HearthVersion] = {
+      given FromExpr[HearthVersion] = new {
+        override def unapply(expr: Expr[HearthVersion])(using scala.quoted.Quotes): Option[HearthVersion] = expr match {
+          case '{ HearthVersion(${ Expr(version) }, ${ Expr(lang) }, ${ Expr(plat) }) } =>
+            Some(HearthVersion(version, lang, plat))
+          case '{ HearthVersion.apply(${ Expr(version) }, ${ Expr(lang) }, ${ Expr(plat) }) } =>
+            Some(HearthVersion(version, lang, plat))
+          case '{ new HearthVersion(${ Expr(version) }, ${ Expr(lang) }, ${ Expr(plat) }) } =>
+            Some(HearthVersion(version, lang, plat))
+          case _ => None
+        }
+      }
+      given ToExpr[HearthVersion] = new {
+        override def apply(value: HearthVersion)(using scala.quoted.Quotes): Expr[HearthVersion] = {
+          val version = value.version
+          val lang = value.languageVersion
+          val plat = value.platform
+          '{ HearthVersion(${ Expr(version) }, ${ Expr(lang) }, ${ Expr(plat) }) }
+        }
+      }
+      ExprCodec.make[HearthVersion]
+    }
+
   }
 
   final override type VarArgs[A] = Expr[Seq[A]]

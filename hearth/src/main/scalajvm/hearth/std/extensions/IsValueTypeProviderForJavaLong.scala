@@ -22,6 +22,16 @@ final class IsValueTypeProviderForJavaLong extends StandardMacroExtension { load
       private lazy val Long = Type.of[Long]
       private lazy val JLong = Type.of[java.lang.Long]
 
+      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Long]] = {
+        implicit val jLong: Type[java.lang.Long] = JLong
+        Method.methodsOf[java.lang.Long].collectFirst {
+          case Method.NoInstance(m)
+              if m.name == "valueOf" && m.isUnary &&
+                m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Long } =>
+            m.asReturning
+        }
+      }
+
       @scala.annotation.nowarn
       private val isValueType: IsValueType[java.lang.Long] = {
         implicit val long: Type[Long] = Long
@@ -32,7 +42,7 @@ final class IsValueTypeProviderForJavaLong extends StandardMacroExtension { load
           override val wrap: CtorLikeOf[Long, java.lang.Long] =
             CtorLikeOf.PlainValue(
               (expr: Expr[Long]) => Expr.quote(java.lang.Long.valueOf(Expr.splice(expr))),
-              None // TODO: we should provide a method for this
+              valueOfMethod
             )
           override lazy val ctors: CtorLikes[java.lang.Long] =
             CtorLikes.unapply(JLong).getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, java.lang.Long], Long](wrap)))

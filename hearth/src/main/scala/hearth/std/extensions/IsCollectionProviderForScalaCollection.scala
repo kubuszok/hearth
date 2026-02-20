@@ -21,6 +21,7 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
       private lazy val Iterable = Type.Ctor1.of[Iterable]
       private lazy val Map = Type.Ctor2.of[scala.collection.Map]
       private lazy val Tuple2 = Type.Ctor2.of[Tuple2]
+      private lazy val Builder = Type.Ctor2.of[scala.collection.mutable.Builder]
 
       private def isCollection[A, Item: Type](
           A: Type[A],
@@ -34,11 +35,19 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
           override def factory: Expr[scala.collection.Factory[Item, CtorResult]] = factoryExpr
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], A] =
+          @scala.annotation.nowarn
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], A] = {
+            implicit val builderType: Type[scala.collection.mutable.Builder[Item, CtorResult]] =
+              Builder[Item, CtorResult]
+            val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Item, CtorResult]].collectFirst {
+              case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
+                m.value.asReturning.asInstanceOf[Method.Returning[A]]
+            }
             CtorLikeOf.PlainValue(
               buildExpr,
-              None // TODO: we should provide a method for this
+              resultMethod
             )
+          }
         })
 
       private def isMap[A, Pair: Type, Key0, Value0](
@@ -55,11 +64,19 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
           override def factory: Expr[scala.collection.Factory[Pair, CtorResult]] = factoryExpr
-          override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, CtorResult], A] =
+          @scala.annotation.nowarn
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, CtorResult], A] = {
+            implicit val builderType: Type[scala.collection.mutable.Builder[Pair, CtorResult]] =
+              Builder[Pair, CtorResult]
+            val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Pair, CtorResult]].collectFirst {
+              case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
+                m.value.asReturning.asInstanceOf[Method.Returning[A]]
+            }
             CtorLikeOf.PlainValue(
               buildExpr,
-              None // TODO: we should provide a method for this
+              resultMethod
             )
+          }
           override type Key = Key0
           implicit override val Key: Type[Key] = keyType
           override type Value = Value0

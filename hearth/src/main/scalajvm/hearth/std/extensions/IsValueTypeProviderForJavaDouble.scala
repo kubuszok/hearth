@@ -22,6 +22,16 @@ final class IsValueTypeProviderForJavaDouble extends StandardMacroExtension { lo
       private lazy val Double = Type.of[Double]
       private lazy val JDouble = Type.of[java.lang.Double]
 
+      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Double]] = {
+        implicit val jDouble: Type[java.lang.Double] = JDouble
+        Method.methodsOf[java.lang.Double].collectFirst {
+          case Method.NoInstance(m)
+              if m.name == "valueOf" && m.isUnary &&
+                m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Double } =>
+            m.asReturning
+        }
+      }
+
       @scala.annotation.nowarn
       private val isValueType: IsValueType[java.lang.Double] = {
         implicit val double: Type[Double] = Double
@@ -32,7 +42,7 @@ final class IsValueTypeProviderForJavaDouble extends StandardMacroExtension { lo
           override val wrap: CtorLikeOf[Double, java.lang.Double] =
             CtorLikeOf.PlainValue(
               (expr: Expr[Double]) => Expr.quote(java.lang.Double.valueOf(Expr.splice(expr))),
-              None // TODO: we should provide a method for this
+              valueOfMethod
             )
           override lazy val ctors: CtorLikes[java.lang.Double] = CtorLikes
             .unapply(JDouble)

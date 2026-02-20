@@ -81,8 +81,6 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
       }
     }
 
-    // TODO: edge cases
-
     // Reproduces the issue we had when trying to chain Expr.splice on a StringBuilder
     def chainingOnSplice(sb: Expr[StringBuilder], name: Expr[String]): Expr[Data] =
       Expr.quote {
@@ -222,8 +220,6 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
         )
       }
     }
-
-    // TODO: string interpolation in quotes
 
     Expr.quote {
       Data.map(

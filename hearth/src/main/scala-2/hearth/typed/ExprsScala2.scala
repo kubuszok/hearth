@@ -514,6 +514,142 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       }
       ExprCodec.make[Right[L, R]]
     }
+
+    override lazy val LanguageVersionExprCodec: ExprCodec[LanguageVersion] = {
+      implicit val liftable: Liftable[LanguageVersion] = Liftable[LanguageVersion] {
+        case LanguageVersion.Scala2_13 =>
+          q"_root_.hearth.LanguageVersion.Scala2_13: _root_.hearth.LanguageVersion"
+        case LanguageVersion.Scala3 =>
+          q"_root_.hearth.LanguageVersion.Scala3: _root_.hearth.LanguageVersion"
+      }
+      implicit val unliftable: Unliftable[LanguageVersion] = new Unliftable[LanguageVersion] {
+        def unapply(tree: Tree): Option[LanguageVersion] = {
+          val inner = tree match { case Typed(e, _) => e; case e => e }
+          inner match {
+            case q"_root_.hearth.LanguageVersion.Scala2_13" => Some(LanguageVersion.Scala2_13)
+            case q"hearth.LanguageVersion.Scala2_13"        => Some(LanguageVersion.Scala2_13)
+            case q"LanguageVersion.Scala2_13"               => Some(LanguageVersion.Scala2_13)
+            case q"_root_.hearth.LanguageVersion.Scala3"    => Some(LanguageVersion.Scala3)
+            case q"hearth.LanguageVersion.Scala3"           => Some(LanguageVersion.Scala3)
+            case q"LanguageVersion.Scala3"                  => Some(LanguageVersion.Scala3)
+            case _                                          => None
+          }
+        }
+      }
+      ExprCodec.make[LanguageVersion]
+    }
+
+    override lazy val PlatformExprCodec: ExprCodec[Platform] = {
+      implicit val liftable: Liftable[Platform] = Liftable[Platform] {
+        case Platform.Jvm    => q"_root_.hearth.Platform.Jvm: _root_.hearth.Platform"
+        case Platform.Js     => q"_root_.hearth.Platform.Js: _root_.hearth.Platform"
+        case Platform.Native => q"_root_.hearth.Platform.Native: _root_.hearth.Platform"
+      }
+      implicit val unliftable: Unliftable[Platform] = new Unliftable[Platform] {
+        def unapply(tree: Tree): Option[Platform] = {
+          val inner = tree match { case Typed(e, _) => e; case e => e }
+          inner match {
+            case q"_root_.hearth.Platform.Jvm"    => Some(Platform.Jvm)
+            case q"hearth.Platform.Jvm"           => Some(Platform.Jvm)
+            case q"Platform.Jvm"                  => Some(Platform.Jvm)
+            case q"_root_.hearth.Platform.Js"     => Some(Platform.Js)
+            case q"hearth.Platform.Js"            => Some(Platform.Js)
+            case q"Platform.Js"                   => Some(Platform.Js)
+            case q"_root_.hearth.Platform.Native" => Some(Platform.Native)
+            case q"hearth.Platform.Native"        => Some(Platform.Native)
+            case q"Platform.Native"               => Some(Platform.Native)
+            case _                                => None
+          }
+        }
+      }
+      ExprCodec.make[Platform]
+    }
+
+    override lazy val JDKVersionExprCodec: ExprCodec[JDKVersion] = {
+      implicit val liftable: Liftable[JDKVersion] = Liftable[JDKVersion] { v =>
+        q"new _root_.hearth.JDKVersion(${v.major}, ${v.minor})"
+      }
+      implicit val unliftable: Unliftable[JDKVersion] = new Unliftable[JDKVersion] {
+        private def extract(major: Tree, minor: Tree): Option[JDKVersion] =
+          (major, minor) match {
+            case (Literal(Constant(ma: Int)), Literal(Constant(mi: Int))) => Some(JDKVersion(ma, mi))
+            case _                                                        => None
+          }
+        def unapply(tree: Tree): Option[JDKVersion] = tree match {
+          case q"new _root_.hearth.JDKVersion($ma, $mi)"   => extract(ma, mi)
+          case q"_root_.hearth.JDKVersion.apply($ma, $mi)" => extract(ma, mi)
+          case q"_root_.hearth.JDKVersion($ma, $mi)"       => extract(ma, mi)
+          case q"new hearth.JDKVersion($ma, $mi)"          => extract(ma, mi)
+          case q"hearth.JDKVersion.apply($ma, $mi)"        => extract(ma, mi)
+          case q"hearth.JDKVersion($ma, $mi)"              => extract(ma, mi)
+          case q"new JDKVersion($ma, $mi)"                 => extract(ma, mi)
+          case q"JDKVersion.apply($ma, $mi)"               => extract(ma, mi)
+          case q"JDKVersion($ma, $mi)"                     => extract(ma, mi)
+          case _                                           => None
+        }
+      }
+      ExprCodec.make[JDKVersion]
+    }
+
+    override lazy val ScalaVersionExprCodec: ExprCodec[ScalaVersion] = {
+      implicit val liftable: Liftable[ScalaVersion] = Liftable[ScalaVersion] { v =>
+        q"new _root_.hearth.ScalaVersion(${v.major}, ${v.minor}, ${v.patch})"
+      }
+      implicit val unliftable: Unliftable[ScalaVersion] = new Unliftable[ScalaVersion] {
+        private def extract(major: Tree, minor: Tree, patch: Tree): Option[ScalaVersion] =
+          (major, minor, patch) match {
+            case (Literal(Constant(ma: Int)), Literal(Constant(mi: Int)), Literal(Constant(pa: Int))) =>
+              Some(ScalaVersion(ma, mi, pa))
+            case _ => None
+          }
+        def unapply(tree: Tree): Option[ScalaVersion] = tree match {
+          case q"new _root_.hearth.ScalaVersion($ma, $mi, $pa)"   => extract(ma, mi, pa)
+          case q"_root_.hearth.ScalaVersion.apply($ma, $mi, $pa)" => extract(ma, mi, pa)
+          case q"_root_.hearth.ScalaVersion($ma, $mi, $pa)"       => extract(ma, mi, pa)
+          case q"new hearth.ScalaVersion($ma, $mi, $pa)"          => extract(ma, mi, pa)
+          case q"hearth.ScalaVersion.apply($ma, $mi, $pa)"        => extract(ma, mi, pa)
+          case q"hearth.ScalaVersion($ma, $mi, $pa)"              => extract(ma, mi, pa)
+          case q"new ScalaVersion($ma, $mi, $pa)"                 => extract(ma, mi, pa)
+          case q"ScalaVersion.apply($ma, $mi, $pa)"               => extract(ma, mi, pa)
+          case q"ScalaVersion($ma, $mi, $pa)"                     => extract(ma, mi, pa)
+          case _                                                  => None
+        }
+      }
+      ExprCodec.make[ScalaVersion]
+    }
+
+    override lazy val HearthVersionExprCodec: ExprCodec[HearthVersion] = {
+      implicit val liftableLV: Liftable[LanguageVersion] = platformSpecific.implicits.ExprCodecLiftable[LanguageVersion]
+      implicit val liftableP: Liftable[Platform] = platformSpecific.implicits.ExprCodecLiftable[Platform]
+      implicit val liftable: Liftable[HearthVersion] = Liftable[HearthVersion] { v =>
+        q"new _root_.hearth.HearthVersion(${v.version}, ${liftableLV(v.languageVersion)}, ${liftableP(v.platform)})"
+      }
+      implicit val unliftableLV: Unliftable[LanguageVersion] =
+        platformSpecific.implicits.ExprCodecUnliftable[LanguageVersion]
+      implicit val unliftableP: Unliftable[Platform] = platformSpecific.implicits.ExprCodecUnliftable[Platform]
+      implicit val unliftable: Unliftable[HearthVersion] = new Unliftable[HearthVersion] {
+        private def extract(version: Tree, lang: Tree, plat: Tree): Option[HearthVersion] =
+          for {
+            v <- implicitly[Unliftable[String]].unapply(version)
+            l <- unliftableLV.unapply(lang)
+            p <- unliftableP.unapply(plat)
+          } yield HearthVersion(v, l, p)
+        def unapply(tree: Tree): Option[HearthVersion] = tree match {
+          case q"new _root_.hearth.HearthVersion($v, $l, $p)"   => extract(v, l, p)
+          case q"_root_.hearth.HearthVersion.apply($v, $l, $p)" => extract(v, l, p)
+          case q"_root_.hearth.HearthVersion($v, $l, $p)"       => extract(v, l, p)
+          case q"new hearth.HearthVersion($v, $l, $p)"          => extract(v, l, p)
+          case q"hearth.HearthVersion.apply($v, $l, $p)"        => extract(v, l, p)
+          case q"hearth.HearthVersion($v, $l, $p)"              => extract(v, l, p)
+          case q"new HearthVersion($v, $l, $p)"                 => extract(v, l, p)
+          case q"HearthVersion.apply($v, $l, $p)"               => extract(v, l, p)
+          case q"HearthVersion($v, $l, $p)"                     => extract(v, l, p)
+          case _                                                => None
+        }
+      }
+      ExprCodec.make[HearthVersion]
+    }
+
   }
 
   final override type VarArgs[A] = Seq[Expr[A]]

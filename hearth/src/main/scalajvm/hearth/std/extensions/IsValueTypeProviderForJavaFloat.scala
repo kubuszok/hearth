@@ -22,6 +22,16 @@ final class IsValueTypeProviderForJavaFloat extends StandardMacroExtension { loa
       private lazy val Float = Type.of[Float]
       private lazy val JFloat = Type.of[java.lang.Float]
 
+      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Float]] = {
+        implicit val jFloat: Type[java.lang.Float] = JFloat
+        Method.methodsOf[java.lang.Float].collectFirst {
+          case Method.NoInstance(m)
+              if m.name == "valueOf" && m.isUnary &&
+                m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Float } =>
+            m.asReturning
+        }
+      }
+
       @scala.annotation.nowarn
       private val isValueType: IsValueType[java.lang.Float] = {
         implicit val float: Type[Float] = Float
@@ -32,7 +42,7 @@ final class IsValueTypeProviderForJavaFloat extends StandardMacroExtension { loa
           override val wrap: CtorLikeOf[Float, java.lang.Float] =
             CtorLikeOf.PlainValue(
               (expr: Expr[Float]) => Expr.quote(java.lang.Float.valueOf(Expr.splice(expr))),
-              None // TODO: we should provide a method for this
+              valueOfMethod
             )
           override lazy val ctors: CtorLikes[java.lang.Float] = CtorLikes
             .unapply(JFloat)

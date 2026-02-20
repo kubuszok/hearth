@@ -184,14 +184,23 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     final def ClassCodec[A: Type]: TypeCodec[java.lang.Class[A]] = new TypeCodec[java.lang.Class[A]] {
       override def toType[B <: java.lang.Class[A]](value: B): Type[B] =
         Type.of[java.lang.Class[A]].asInstanceOf[Type[B]]
-      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[java.lang.Class[A], Id]] = None // TODO
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[java.lang.Class[A], Id]] =
+        Type.classOfType[A].map { clazz =>
+          Existential.UpperBounded[java.lang.Class[A], Id, java.lang.Class[A]](clazz)(using
+            B.asInstanceOf[Type[java.lang.Class[A]]]
+          )
+        }
     }
     final def ClassTagCodec[A: Type]: TypeCodec[scala.reflect.ClassTag[A]] =
       new TypeCodec[scala.reflect.ClassTag[A]] {
         override def toType[B <: scala.reflect.ClassTag[A]](value: B): Type[B] =
           Type.of[scala.reflect.ClassTag[A]].asInstanceOf[Type[B]]
         override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[scala.reflect.ClassTag[A], Id]] =
-          None // TODO
+          Type.classOfType[A].map { clazz =>
+            Existential.UpperBounded[scala.reflect.ClassTag[A], Id, scala.reflect.ClassTag[A]](
+              scala.reflect.ClassTag(clazz)
+            )(using B.asInstanceOf[Type[scala.reflect.ClassTag[A]]])
+          }
       }
 
     // Tuple codecs
@@ -469,34 +478,114 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     ]: TypeCodec[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22)]
 
     // TODO: specialize for primitive types
-    final def ArrayCodec[A: Type]: TypeCodec[Array[A]] = new TypeCodec[Array[A]] {
-      override def toType[B <: Array[A]](value: B): Type[B] = Type.of[Array[A]].asInstanceOf[Type[B]]
-      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Array[A], Id]] = None // TODO
+    final def ArrayCodec[A: Type: TypeCodec]: TypeCodec[Array[A]] = new TypeCodec[Array[A]] {
+      private lazy val ArrayCtor = Type.Ctor1.of[Array]
+      override def toType[B <: Array[A]](value: B): Type[B] = ArrayCtor[A].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Array[A], Id]] =
+        B match {
+          case ArrayCtor(elem) =>
+            import elem.Underlying as Elem
+            for {
+              ct <- Type.classOfType[A].map(scala.reflect.ClassTag[A](_))
+              v <- TypeCodec[A].fromType(Type[Elem])
+            } yield {
+              implicit val classTag: scala.reflect.ClassTag[A] = ct
+              Existential.UpperBounded[Array[A], Id, Array[A]](
+                Array(v.value.asInstanceOf[A])
+              )(using B.asInstanceOf[Type[Array[A]]])
+            }
+          case _ => None
+        }
     }
-    // TODO: specialize for: List, Vector, Nil, at least the types that are available in the standard library, etc
-    final def SeqCodec[A: Type]: TypeCodec[Seq[A]] = new TypeCodec[Seq[A]] {
-      override def toType[B <: Seq[A]](value: B): Type[B] = Type.of[Seq[A]].asInstanceOf[Type[B]]
-      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Seq[A], Id]] = None // TODO
+    final def SeqCodec[A: Type: TypeCodec]: TypeCodec[Seq[A]] = new TypeCodec[Seq[A]] {
+      private lazy val SeqCtor = Type.Ctor1.of[Seq]
+      override def toType[B <: Seq[A]](value: B): Type[B] = SeqCtor[A].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Seq[A], Id]] =
+        if (B =:= Type.of[Nil.type])
+          Some(Existential.UpperBounded[Seq[A], Id, Seq[A]](Nil)(using B.asInstanceOf[Type[Seq[A]]]))
+        else
+          B match {
+            case SeqCtor(elem) =>
+              import elem.Underlying as Elem
+              TypeCodec[A].fromType(Type[Elem]).map { v =>
+                Existential.UpperBounded[Seq[A], Id, Seq[A]](
+                  Seq(v.value.asInstanceOf[A])
+                )(using B.asInstanceOf[Type[Seq[A]]])
+              }
+            case _ => None
+          }
     }
-    final def ListCodec[A: Type]: TypeCodec[List[A]] = new TypeCodec[List[A]] {
-      override def toType[B <: List[A]](value: B): Type[B] = Type.of[List[A]].asInstanceOf[Type[B]]
-      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[List[A], Id]] = None // TODO
+    final def ListCodec[A: Type: TypeCodec]: TypeCodec[List[A]] = new TypeCodec[List[A]] {
+      private lazy val ListCtor = Type.Ctor1.of[List]
+      override def toType[B <: List[A]](value: B): Type[B] = ListCtor[A].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[List[A], Id]] =
+        if (B =:= Type.of[Nil.type])
+          Some(Existential.UpperBounded[List[A], Id, List[A]](Nil)(using B.asInstanceOf[Type[List[A]]]))
+        else
+          B match {
+            case ListCtor(elem) =>
+              import elem.Underlying as Elem
+              TypeCodec[A].fromType(Type[Elem]).map { v =>
+                Existential.UpperBounded[List[A], Id, List[A]](
+                  List(v.value.asInstanceOf[A])
+                )(using B.asInstanceOf[Type[List[A]]])
+              }
+            case _ => None
+          }
     }
     final lazy val NilCodec: TypeCodec[Nil.type] = new TypeCodec[Nil.type] {
       override def toType[B <: Nil.type](value: B): Type[B] = Type.of[Nil.type].asInstanceOf[Type[B]]
-      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Nil.type, Id]] = None // TODO
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Nil.type, Id]] =
+        if (B =:= Type.of[Nil.type])
+          Some(Existential.UpperBounded[Nil.type, Id, Nil.type](Nil)(using B.asInstanceOf[Type[Nil.type]]))
+        else None
     }
-    final def VectorCodec[A: Type]: TypeCodec[Vector[A]] = new TypeCodec[Vector[A]] {
-      override def toType[B <: Vector[A]](value: B): Type[B] = Type.of[Vector[A]].asInstanceOf[Type[B]]
-      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Vector[A], Id]] = None // TODO
+    final def VectorCodec[A: Type: TypeCodec]: TypeCodec[Vector[A]] = new TypeCodec[Vector[A]] {
+      private lazy val VectorCtor = Type.Ctor1.of[Vector]
+      override def toType[B <: Vector[A]](value: B): Type[B] = VectorCtor[A].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Vector[A], Id]] =
+        B match {
+          case VectorCtor(elem) =>
+            import elem.Underlying as Elem
+            TypeCodec[A].fromType(Type[Elem]).map { v =>
+              Existential.UpperBounded[Vector[A], Id, Vector[A]](
+                Vector(v.value.asInstanceOf[A])
+              )(using B.asInstanceOf[Type[Vector[A]]])
+            }
+          case _ => None
+        }
     }
-    final def MapCodec[K: Type, V: Type]: TypeCodec[Map[K, V]] = new TypeCodec[Map[K, V]] {
-      override def toType[B <: Map[K, V]](value: B): Type[B] = Type.of[Map[K, V]].asInstanceOf[Type[B]]
-      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Map[K, V], Id]] = None // TODO
+    final def MapCodec[K: Type: TypeCodec, V: Type: TypeCodec]: TypeCodec[Map[K, V]] = new TypeCodec[Map[K, V]] {
+      private lazy val MapCtor = Type.Ctor2.of[Map]
+      override def toType[B <: Map[K, V]](value: B): Type[B] = MapCtor[K, V].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Map[K, V], Id]] =
+        B match {
+          case MapCtor(k, v) =>
+            import k.Underlying as K0
+            import v.Underlying as V0
+            for {
+              dk <- TypeCodec[K].fromType(Type[K0])
+              dv <- TypeCodec[V].fromType(Type[V0])
+            } yield Existential.UpperBounded[Map[K, V], Id, Map[K, V]](
+              Map(dk.value.asInstanceOf[K] -> dv.value.asInstanceOf[V])
+            )(using B.asInstanceOf[Type[Map[K, V]]])
+          case _ => None
+        }
     }
-    final def SetCodec[A: Type]: TypeCodec[Set[A]] = new TypeCodec[Set[A]] {
-      override def toType[B <: Set[A]](value: B): Type[B] = Type.of[Set[A]].asInstanceOf[Type[B]]
-      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Set[A], Id]] = None // TODO
+    final def SetCodec[A: Type: TypeCodec]: TypeCodec[Set[A]] = new TypeCodec[Set[A]] {
+      private lazy val SetCtor = Type.Ctor1.of[Set]
+      override def toType[B <: Set[A]](value: B): Type[B] = SetCtor[A].asInstanceOf[Type[B]]
+      override def fromType[B](B: Type[B]): Option[Existential.UpperBounded[Set[A], Id]] =
+        B match {
+          case SetCtor(elem) =>
+            import elem.Underlying as Elem
+            TypeCodec[A].fromType(Type[Elem]).map { v =>
+              Existential.UpperBounded[Set[A], Id, Set[A]](
+                Set(v.value.asInstanceOf[A])
+              )(using B.asInstanceOf[Type[Set[A]]])
+            }
+          case _ => None
+        }
     }
     def OptionCodec[A: TypeCodec]: TypeCodec[Option[A]]
     def SomeCodec[A: TypeCodec]: TypeCodec[Some[A]]
@@ -649,13 +738,13 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     implicit def ClassCodec[A: Type]: TypeCodec[java.lang.Class[A]] = Type.ClassCodec[A]
     implicit def ClassTagCodec[A: Type]: TypeCodec[scala.reflect.ClassTag[A]] = Type.ClassTagCodec[A]
 
-    implicit def ArrayCodec[A: Type]: TypeCodec[Array[A]] = Type.ArrayCodec[A]
-    implicit def SeqCodec[A: Type]: TypeCodec[Seq[A]] = Type.SeqCodec[A]
-    implicit def ListCodec[A: Type]: TypeCodec[List[A]] = Type.ListCodec[A]
+    implicit def ArrayCodec[A: Type: TypeCodec]: TypeCodec[Array[A]] = Type.ArrayCodec[A]
+    implicit def SeqCodec[A: Type: TypeCodec]: TypeCodec[Seq[A]] = Type.SeqCodec[A]
+    implicit def ListCodec[A: Type: TypeCodec]: TypeCodec[List[A]] = Type.ListCodec[A]
     implicit lazy val NilCodec: TypeCodec[Nil.type] = Type.NilCodec
-    implicit def VectorCodec[A: Type]: TypeCodec[Vector[A]] = Type.VectorCodec[A]
-    implicit def MapCodec[K: Type, V: Type]: TypeCodec[Map[K, V]] = Type.MapCodec[K, V]
-    implicit def SetCodec[A: Type]: TypeCodec[Set[A]] = Type.SetCodec[A]
+    implicit def VectorCodec[A: Type: TypeCodec]: TypeCodec[Vector[A]] = Type.VectorCodec[A]
+    implicit def MapCodec[K: Type: TypeCodec, V: Type: TypeCodec]: TypeCodec[Map[K, V]] = Type.MapCodec[K, V]
+    implicit def SetCodec[A: Type: TypeCodec]: TypeCodec[Set[A]] = Type.SetCodec[A]
     implicit def OptionCodec[A: TypeCodec]: TypeCodec[Option[A]] = Type.OptionCodec[A]
     implicit def SomeCodec[A: TypeCodec]: TypeCodec[Some[A]] = Type.SomeCodec[A]
     implicit lazy val NoneCodec: TypeCodec[None.type] = Type.NoneCodec

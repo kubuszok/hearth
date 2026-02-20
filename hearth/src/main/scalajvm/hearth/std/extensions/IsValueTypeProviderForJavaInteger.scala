@@ -22,6 +22,16 @@ final class IsValueTypeProviderForJavaInteger extends StandardMacroExtension { l
       private lazy val Int = Type.of[Int]
       private lazy val JInteger = Type.of[java.lang.Integer]
 
+      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Integer]] = {
+        implicit val jInteger: Type[java.lang.Integer] = JInteger
+        Method.methodsOf[java.lang.Integer].collectFirst {
+          case Method.NoInstance(m)
+              if m.name == "valueOf" && m.isUnary &&
+                m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Int } =>
+            m.asReturning
+        }
+      }
+
       @scala.annotation.nowarn
       private val isValueType: IsValueType[java.lang.Integer] = {
         implicit val int: Type[Int] = Int
@@ -32,7 +42,7 @@ final class IsValueTypeProviderForJavaInteger extends StandardMacroExtension { l
           override val wrap: CtorLikeOf[Int, java.lang.Integer] =
             CtorLikeOf.PlainValue(
               (expr: Expr[Int]) => Expr.quote(java.lang.Integer.valueOf(Expr.splice(expr))),
-              None // TODO: we should provide a method for this
+              valueOfMethod
             )
           override lazy val ctors: CtorLikes[java.lang.Integer] = CtorLikes
             .unapply(JInteger)

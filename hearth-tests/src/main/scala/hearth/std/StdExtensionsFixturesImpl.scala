@@ -317,8 +317,30 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
             case Left(err)    => Data(s"error: $err")
           }
         }
-    // TODO: the rest of known smart constructors
-    case _ => _ => Expr(Data("<unhandled smart constructor>"))
+    case CtorLikeOf.EitherIterableStringOrValue(ctor, _) =>
+      (in: Expr[Input]) =>
+        Expr.quote {
+          Expr.splice(ctor(in)) match {
+            case Right(value) => Expr.splice(onValid(Expr.quote(value)))
+            case Left(errs)   => Data(s"errors: ${errs.mkString(", ")}")
+          }
+        }
+    case CtorLikeOf.EitherThrowableOrValue(ctor, _) =>
+      (in: Expr[Input]) =>
+        Expr.quote {
+          Expr.splice(ctor(in)) match {
+            case Right(value) => Expr.splice(onValid(Expr.quote(value)))
+            case Left(err)    => Data(s"error: ${err.getMessage}")
+          }
+        }
+    case CtorLikeOf.EitherIterableThrowableOrValue(ctor, _) =>
+      (in: Expr[Input]) =>
+        Expr.quote {
+          Expr.splice(ctor(in)) match {
+            case Right(value) => Expr.splice(onValid(Expr.quote(value)))
+            case Left(errs)   => Data(s"errors: ${errs.map(_.getMessage).mkString(", ")}")
+          }
+        }
   }
 
   def testCtorLikes[A: Type]: Expr[Data] =
