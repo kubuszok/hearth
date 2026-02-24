@@ -179,7 +179,7 @@ trait UntypedMethods { this: MacroCommons =>
     final protected val possibleConstructorNames: List[String] = List(
       "<init>", // Ctor of non-case class (no `apply`) has `<init>$default$idx` default (on Scala 2, unencoded).
       "apply", // Ctor of case class on Scala 2 has `apply$default$idx` default (= `apply` method).
-      "$lessinit$greater$apply" // Ctor of case class on Scala 3 has `$lessinit$greater$default$idx`(no `apply` but encoded).
+      "$lessinit$greater" // Ctor of case class on Scala 3 has `$lessinit$greater$default$idx` (no `apply` but encoded).
     )
   }
 

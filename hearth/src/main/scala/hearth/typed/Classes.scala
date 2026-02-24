@@ -48,31 +48,66 @@ trait Classes { this: MacroCommons =>
     *
     * It's a specialization of a [[Class]] that's aware, that some of its methods are case fields.
     *
+    * Also handles case objects, parameterless Scala 3 enum cases, and other singleton case types. For singletons,
+    * `construct` and `parConstruct` return the singleton instance directly (via [[Expr.singletonOf]]) rather than
+    * calling the constructor.
+    *
     * @since 0.1.0
     */
   final class CaseClass[A] private (
       tpe0: Type[A],
-      val primaryConstructor: Method.NoInstance[A]
+      private val primaryConstructor0: Option[Method.NoInstance[A]]
   ) extends Class[A]()(using tpe0) {
 
-    lazy val nonPrimaryConstructors: List[Method.NoInstance[A]] = constructors.filter(_ != primaryConstructor)
+    /** The primary constructor.
+      *
+      * For singletons without a real constructor (e.g. parameterless Scala 3 enum cases), this throws
+      * [[UnsupportedOperationException]]. Use `construct`/`parConstruct` instead, which handle singletons
+      * automatically.
+      *
+      * @since 0.1.0
+      */
+    lazy val primaryConstructor: Method.NoInstance[A] = primaryConstructor0.getOrElse {
+      throw new UnsupportedOperationException(
+        s"${tpe.prettyPrint} is a singleton and has no primary constructor. Use construct/parConstruct instead."
+      )
+    }
+
+    /** Whether this CaseClass represents a singleton (case object or parameterless enum case).
+      *
+      * @since 0.6.0
+      */
+    lazy val isSingleton: Boolean = Expr.singletonOf[A].isDefined
+
+    lazy val nonPrimaryConstructors: List[Method.NoInstance[A]] =
+      primaryConstructor0.fold(constructors)(pc => constructors.filter(_ != pc))
     lazy val caseFields: List[Method.Of[A]] = methods.filter(_.value.isCaseField)
 
     def construct[F[_]: DirectStyle: Applicative](makeArgument: CaseClass.ConstructField[F]): F[Option[Expr[A]]] =
-      if (!primaryConstructor.isAvailable(Everywhere)) Option.empty[Expr[A]].pure[F]
-      else {
-        callConstructor(primaryConstructor.parameters.flatten.toList.traverse(buildFieldResults(makeArgument)))
+      Expr.singletonOf[A] match {
+        case Some(singleton) => (Some(singleton): Option[Expr[A]]).pure[F]
+        case None            =>
+          primaryConstructor0 match {
+            case Some(ctor) if ctor.isAvailable(Everywhere) =>
+              callConstructor(ctor)(ctor.parameters.flatten.toList.traverse(buildFieldResults(makeArgument)))
+            case _ => Option.empty[Expr[A]].pure[F]
+          }
       }
     def construct[F[_]: DirectStyle: Applicative](makeArgument: Parameter => F[Expr_??]): F[Option[Expr[A]]] =
       construct(CaseClass.ConstructField.apply[F](makeArgument))
 
     def parConstruct[F[_]: DirectStyle: Parallel](makeArgument: CaseClass.ConstructField[F]): F[Option[Expr[A]]] =
-      if (!primaryConstructor.isAvailable(Everywhere)) Option.empty[Expr[A]].pure[F]
-      else {
-        callConstructor(primaryConstructor.parameters.flatten.toList.parTraverse(buildFieldResults(makeArgument)))
+      Expr.singletonOf[A] match {
+        case Some(singleton) => (Some(singleton): Option[Expr[A]]).pure[F]
+        case None            =>
+          primaryConstructor0 match {
+            case Some(ctor) if ctor.isAvailable(Everywhere) =>
+              callConstructor(ctor)(ctor.parameters.flatten.toList.parTraverse(buildFieldResults(makeArgument)))
+            case _ => Option.empty[Expr[A]].pure[F]
+          }
       }
     def parConstruct[F[_]: DirectStyle: Parallel](makeArgument: Parameter => F[Expr_??]): F[Option[Expr[A]]] =
-      construct(CaseClass.ConstructField.apply[F](makeArgument))
+      parConstruct(CaseClass.ConstructField.apply[F](makeArgument))
 
     private def buildFieldResults[F[_]: DirectStyle](
         makeArgument: CaseClass.ConstructField[F]
@@ -83,9 +118,11 @@ trait Classes { this: MacroCommons =>
       }
     }
 
-    private def callConstructor[F[_]: DirectStyle](fieldResults: F[List[(String, Expr_??)]]): F[Option[Expr[A]]] =
+    private def callConstructor[F[_]: DirectStyle](
+        ctor: Method.NoInstance[A]
+    )(fieldResults: F[List[(String, Expr_??)]]): F[Option[Expr[A]]] =
       DirectStyle[F].scoped { runSafe =>
-        primaryConstructor(runSafe(fieldResults).toMap) match {
+        ctor(runSafe(fieldResults).toMap) match {
           case Right(value) => Some(value)
           case Left(error)  =>
             throw new AssertionError(s"Failed to call the primary constructor of ${tpe.prettyPrint}: $error")
@@ -120,7 +157,14 @@ trait Classes { this: MacroCommons =>
   object CaseClass {
 
     def unapply[A](tpe: Type[A]): Option[CaseClass[A]] =
-      if (tpe.isCase) tpe.primaryConstructor.map(new CaseClass(tpe, _))
+      if (tpe.isCase)
+        tpe.primaryConstructor match {
+          case Some(ctor) => Some(new CaseClass(tpe, Some(ctor)))
+          case None       =>
+            // Singletons without a real constructor (e.g. parameterless Scala 3 enum cases)
+            if (tpe.isCaseObject || tpe.isCaseVal) Some(new CaseClass(tpe, None))
+            else None
+        }
       else None
     def parse[A: Type]: Option[CaseClass[A]] = unapply(Type[A])
 

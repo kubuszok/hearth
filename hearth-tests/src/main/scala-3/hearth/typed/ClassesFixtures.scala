@@ -31,6 +31,10 @@ object ClassesFixtures {
   private def testEnumMatchOnAndParMatchOnImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
     new ClassesFixtures(q).testEnumMatchOnAndParMatchOn[A](expr)
 
+  inline def testCaseClassDefaultValues[A]: String = ${ testCaseClassDefaultValuesImpl[A] }
+  private def testCaseClassDefaultValuesImpl[A: Type](using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testCaseClassDefaultValues[A]
+
   inline def testJavaBeanConstructWithSettersAndParConstructWithSetters[A]: String = ${
     testJavaBeanConstructWithSettersAndParConstructWithSettersImpl[A]
   }
