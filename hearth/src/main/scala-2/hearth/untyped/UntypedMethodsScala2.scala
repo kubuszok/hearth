@@ -311,9 +311,15 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
             val decls = instanceTpe.decls
             (names, invocation, decls)
           case Invocation.OnModule(module) =>
-            val names = List(param.method.name)
+            // For `apply` on case class companions, also try constructor names since they may share defaults
+            val names =
+              if (param.method.name == "apply") possibleConstructorNames
+              else List(param.method.name)
             val invocation = Invocation.OnModule(module)
-            val decls = module.as_??.Underlying.tpe.decls
+            // Use companionObject for proper type resolution - module.as_?? may fail for synthetic companions
+            val decls = instanceTpe.companionObject
+              .map(_._1.decls)
+              .getOrElse(module.as_??.Underlying.tpe.decls)
             (names, invocation, decls)
         }
 

@@ -332,7 +332,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
     override def annotations(untyped: UntypedType): List[UntypedExpr] =
       untyped.typeSymbol.annotations.map { ann =>
-        c.untypecheck(ann.tree) // TODO: check if this is necessary
+        c.untypecheck(ann.tree)
       }
   }
 }

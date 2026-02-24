@@ -203,6 +203,98 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** Builds a partial [[Arguments]] map from the provided [[VarArgs]], leaving out parameters that have defaults. */
+  private def buildPartialArguments(parameters: Parameters, providedParams: Vector[Expr[Int]]): Arguments = {
+    implicit val IntType: Type[Int] = this.IntType
+    parameters.flatten.zipWithIndex.flatMap { case ((name, param), index) =>
+      import param.tpe.Underlying
+      if (!(Underlying <:< Type.of[Int]))
+        Environment.reportErrorAndAbort(s"unsupported parameter type ${param.tpe.Underlying.prettyPrint}")
+      providedParams.lift(index) match {
+        case Some(value)              => Some(name -> value.as_??)
+        case None if param.hasDefault => None
+        case _                        => Environment.reportErrorAndAbort(s"missing parameter for $name (no default)")
+      }
+    }.toMap
+  }
+
+  /** Constructs an instance via primary constructor, using default values for omitted parameters.
+    *
+    * Uses the untyped `unsafeApply` API which resolves defaults through `adaptToParams`.
+    */
+  def testConstructWithDefaults[A: Type](params: VarArgs[Int]): Expr[Data] =
+    Type[A].primaryConstructor match {
+      case Some(constructor) =>
+        val arguments = buildPartialArguments(constructor.parameters, params.toVector)
+        val instanceTpe = UntypedType.fromTyped[A]
+        val result = constructor.asUntyped.unsafeApplyNoInstance(instanceTpe)(UntypedArguments.fromTyped(arguments))
+        Expr.quote(Data(Expr.splice(UntypedExpr.toTyped[A](result)).toString))
+      case None => Expr(Data("<no primary constructor>"))
+    }
+
+  /** Calls a no-instance method (e.g. companion `apply`), using default values for omitted parameters.
+    *
+    * Uses the untyped `unsafeApply` API which resolves defaults through `adaptToParams`.
+    */
+  def testCallNoInstanceMethodWithDefaults[A: Type](methodName: Expr[String])(params: VarArgs[Int]): Expr[Data] = {
+    val name = Expr
+      .unapply(methodName)
+      .getOrElse(
+        Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+      )
+    Type[A].methods.filter(_.value.name == name) match {
+      case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
+      case method :: Nil =>
+        import method.Underlying as Returned
+        method.value match {
+          case noInstance: Method.NoInstance[Returned] @unchecked =>
+            val arguments = buildPartialArguments(noInstance.parameters, params.toVector)
+            val instanceTpe = UntypedType.fromTyped[A]
+            val result =
+              noInstance.asUntyped.unsafeApplyNoInstance(instanceTpe)(UntypedArguments.fromTyped(arguments))
+            Expr.quote(Data(Expr.splice(UntypedExpr.toTyped[Returned](result)).toString))
+          case _: Method.OfInstance[?, ?] =>
+            Environment.reportErrorAndAbort(s"Method $name is not a no-instance method")
+          case unsupported: Method.Unsupported[?, ?] =>
+            Environment.reportErrorAndAbort(s"Method $name is unsupported: ${unsupported.reasonForUnsupported}")
+        }
+      case _ => Environment.reportErrorAndAbort(s"Method $name is ambiguous")
+    }
+  }
+
+  /** Calls an instance method, using default values for omitted parameters.
+    *
+    * Uses the untyped `unsafeApply` API which resolves defaults through `adaptToParams`.
+    */
+  def testCallInstanceMethodWithDefaults[A: Type](instance: Expr[A])(methodName: Expr[String])(
+      params: VarArgs[Int]
+  ): Expr[Data] = {
+    val name = Expr
+      .unapply(methodName)
+      .getOrElse(
+        Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+      )
+    Type[A].methods.filter(_.value.name == name) match {
+      case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
+      case method :: Nil =>
+        import method.Underlying as Returned
+        method.value match {
+          case ofInstance: Method.OfInstance[A, Returned] @unchecked =>
+            val arguments = buildPartialArguments(ofInstance.parameters, params.toVector)
+            val instanceTpe = UntypedType.fromTyped[A]
+            val result =
+              ofInstance.asUntyped
+                .unsafeApplyInstance(instanceTpe)(instance.asUntyped, UntypedArguments.fromTyped(arguments))
+            Expr.quote(Data(Expr.splice(UntypedExpr.toTyped[Returned](result)).toString))
+          case _: Method.NoInstance[?] =>
+            Environment.reportErrorAndAbort(s"Method $name is not an instance method")
+          case unsupported: Method.Unsupported[?, ?] =>
+            Environment.reportErrorAndAbort(s"Method $name is unsupported: ${unsupported.reasonForUnsupported}")
+        }
+      case _ => Environment.reportErrorAndAbort(s"Method $name is ambiguous")
+    }
+  }
+
   def testCallNoInstanceIntMethod[A: Type](methodName: Expr[String])(params: VarArgs[Int]): Expr[Int] = {
     implicit val IntType: Type[Int] = this.IntType
     val name = Expr

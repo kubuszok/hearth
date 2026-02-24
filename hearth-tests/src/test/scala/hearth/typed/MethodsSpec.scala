@@ -1301,6 +1301,46 @@ final class MethodsSpec extends MacroSuite {
           ) ==> (new examples.methods.NoCompanionClass).methodWithDefault()
         }
       }
+
+      group("default value splicing") {
+        import MethodsFixtures.testConstructWithDefaults
+        import MethodsFixtures.testCallNoInstanceMethodWithDefaults
+        import MethodsFixtures.testCallInstanceMethodWithDefaults
+
+        test("constructor with default values") {
+          testConstructWithDefaults[examples.methods.WithConstructorDefaults](5) <==> Data(
+            "WithConstructorDefaults(5, 10)"
+          )
+        }
+
+        test("case class constructor with default values") {
+          testConstructWithDefaults[examples.methods.CaseWithDefaults](5) <==> Data(
+            "CaseWithDefaults(5,20)"
+          )
+        }
+
+        test("companion apply with default values") {
+          testCallNoInstanceMethodWithDefaults[examples.methods.WithCompanionDefaults]("apply")(5) <==> Data(
+            "WithCompanionDefaults(5, 15)"
+          )
+        }
+
+        test("instance method with default values (no args provided)") {
+          testCallInstanceMethodWithDefaults[examples.methods.NoCompanionClass](
+            new examples.methods.NoCompanionClass
+          )("methodWithDefault")() <==> Data(
+            (new examples.methods.NoCompanionClass).methodWithDefault().toString
+          )
+        }
+
+        test("case class instance method with default values") {
+          testCallInstanceMethodWithDefaults[examples.methods.CaseWithDefaults](
+            examples.methods.CaseWithDefaults(5, 20)
+          )("methodWithDefault")() <==> Data(
+            examples.methods.CaseWithDefaults(5, 20).methodWithDefault().toString
+          )
+        }
+      }
     }
 
     group("method ordering") {

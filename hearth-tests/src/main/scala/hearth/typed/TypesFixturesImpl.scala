@@ -46,6 +46,24 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
     )
   )
 
+  def testAnnotationTypeComparison[A: Type]: Expr[Data] = {
+    val exampleAnnotationType = Type.of[examples.methods.ExampleAnnotation]
+    val exampleAnnotation2Type = Type.of[examples.methods.ExampleAnnotation2]
+    val anns = Type.annotations[A]
+    val results = anns.map { ann =>
+      import ann.Underlying as AnnType
+      Data.map(
+        "prettyPrint" -> Data(removeAnsiColors(ann.prettyPrint)),
+        "type" -> Data(AnnType.plainPrint),
+        "<:< ExampleAnnotation" -> Data(AnnType <:< exampleAnnotationType),
+        "=:= ExampleAnnotation" -> Data(AnnType =:= exampleAnnotationType),
+        "<:< ExampleAnnotation2" -> Data(AnnType <:< exampleAnnotation2Type),
+        "=:= ExampleAnnotation2" -> Data(AnnType =:= exampleAnnotation2Type)
+      )
+    }
+    Expr(Data.map("annotations" -> Data.list(results*)))
+  }
+
   def testFlags[A: Type]: Expr[Data] = Expr(
     Data.map(
       "Type.isPrimitive" -> Data(Type[A].isPrimitive),

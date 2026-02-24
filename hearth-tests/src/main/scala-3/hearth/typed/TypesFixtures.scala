@@ -99,6 +99,10 @@ object TypesFixtures {
   inline def testAnnotations[A]: Data = ${ testAnnotationsImpl[A] }
   private def testAnnotationsImpl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testAnnotations[A]
 
+  inline def testAnnotationTypeComparison[A]: Data = ${ testAnnotationTypeComparisonImpl[A] }
+  private def testAnnotationTypeComparisonImpl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testAnnotationTypeComparison[A]
+
   inline def testFlags[A]: Data = ${ testFlagsImpl[A] }
   private def testFlagsImpl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testFlags[A]
 

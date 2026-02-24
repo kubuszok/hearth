@@ -27,6 +27,32 @@ object MethodsFixtures {
   private def testMethodDefaultsImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testMethodDefaults[A](methodName)
 
+  inline def testConstructWithDefaults[A](inline params: Int*): Data = ${
+    testConstructWithDefaultsImpl[A]('params)
+  }
+  private def testConstructWithDefaultsImpl[A: Type](params: Expr[Seq[Int]])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testConstructWithDefaults[A](params)
+
+  inline def testCallNoInstanceMethodWithDefaults[A](inline methodName: String)(inline params: Int*): Data = ${
+    testCallNoInstanceMethodWithDefaultsImpl[A]('methodName, 'params)
+  }
+  private def testCallNoInstanceMethodWithDefaultsImpl[A: Type](methodName: Expr[String], params: Expr[Seq[Int]])(using
+      q: Quotes
+  ): Expr[Data] =
+    new MethodsFixtures(q).testCallNoInstanceMethodWithDefaults[A](methodName)(params)
+
+  inline def testCallInstanceMethodWithDefaults[A](inline instance: A)(inline methodName: String)(
+      inline params: Int*
+  ): Data = ${
+    testCallInstanceMethodWithDefaultsImpl[A]('instance, 'methodName, 'params)
+  }
+  private def testCallInstanceMethodWithDefaultsImpl[A: Type](
+      instance: Expr[A],
+      methodName: Expr[String],
+      params: Expr[Seq[Int]]
+  )(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testCallInstanceMethodWithDefaults[A](instance)(methodName)(params)
+
   inline def testCallNoInstanceIntMethod[A](inline methodName: String)(inline params: Int*): Int = ${
     testCallNoInstanceIntMethodImpl[A]('methodName, 'params)
   }

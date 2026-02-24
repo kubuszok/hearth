@@ -508,9 +508,15 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
             val decls = instanceTpe.typeSymbol
             (names, invocation, decls)
           case Invocation.OnModule(module) =>
-            val names = List(param.method.name)
+            // For `apply` on case class companions, also try constructor names since they may share defaults
+            val names =
+              if param.method.name == "apply" then possibleConstructorNames
+              else List(param.method.name)
             val invocation = Invocation.OnModule(module)
-            val decls = module.as_??.Underlying.asUntyped.typeSymbol
+            // Use companionObject for proper type resolution - module.as_?? may fail for synthetic companions
+            val decls = instanceTpe.companionObject
+              .map(_._1.typeSymbol)
+              .getOrElse(module.as_??.Underlying.asUntyped.typeSymbol)
             (names, invocation, decls)
         }
 

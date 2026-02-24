@@ -46,6 +46,21 @@ object WithCompanion {
   def call(arg: Int, arg2: Int): Int = apply(arg).method(arg2)
 }
 
+class WithConstructorDefaults(val a: Int, val b: Int = 10) {
+  override def toString(): String = s"WithConstructorDefaults($a, $b)"
+}
+
+case class CaseWithDefaults(a: Int, b: Int = 20) {
+  def methodWithDefault(c: Int = 30): Int = a + b + c
+}
+
+final class WithCompanionDefaults(val a: Int, val b: Int) {
+  override def toString(): String = s"WithCompanionDefaults($a, $b)"
+}
+object WithCompanionDefaults {
+  def apply(a: Int, b: Int = 15): WithCompanionDefaults = new WithCompanionDefaults(a, b)
+}
+
 @scala.annotation.nowarn
 abstract class ScopeVisibility(privateCtorArg: Int, val publicCtorArg: Int) {
 
