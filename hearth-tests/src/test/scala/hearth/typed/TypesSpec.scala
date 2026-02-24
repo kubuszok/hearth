@@ -761,6 +761,40 @@ final class TypesSpec extends MacroSuite {
         }
       }
 
+      test("methods: Type.annotations type comparison") {
+        import TypesFixtures.testAnnotationTypeComparison
+
+        test("ExampleAnnotation is recognized by type") {
+          testAnnotationTypeComparison[examples.methods.Trait] <==> Data.map(
+            "annotations" -> Data.list(
+              Data.map(
+                "prettyPrint" -> Data("hearth.examples.methods.ExampleAnnotation"),
+                "type" -> Data("hearth.examples.methods.ExampleAnnotation"),
+                "<:< ExampleAnnotation" -> Data(true),
+                "=:= ExampleAnnotation" -> Data(true),
+                "<:< ExampleAnnotation2" -> Data(false),
+                "=:= ExampleAnnotation2" -> Data(false)
+              )
+            )
+          )
+        }
+
+        test("ExampleAnnotation2 is recognized by type") {
+          testAnnotationTypeComparison[examples.methods.NoCompanionClass] <==> Data.map(
+            "annotations" -> Data.list(
+              Data.map(
+                "prettyPrint" -> Data("hearth.examples.methods.ExampleAnnotation2"),
+                "type" -> Data("hearth.examples.methods.ExampleAnnotation2"),
+                "<:< ExampleAnnotation" -> Data(false),
+                "=:= ExampleAnnotation" -> Data(false),
+                "<:< ExampleAnnotation2" -> Data(true),
+                "=:= ExampleAnnotation2" -> Data(true)
+              )
+            )
+          )
+        }
+      }
+
       group(
         "methods: Type.{isPrimitive, isJvmBuiltIn, isAbstract, isFinal, isClass, isTuple, notJvmBuiltInClass, isPlainOldJavaObject, isJavaBean, isSealed, isJavaEnum, isJavaEnumValue, isCase, isObject, isVal, isCaseClass, isCaseObject, isCaseVal, isAvailableHere}, expected behavior"
       ) {

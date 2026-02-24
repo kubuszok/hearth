@@ -19,6 +19,19 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
   def testMethodDefaultsImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
     testMethodDefaults[A](methodName)
 
+  def testConstructWithDefaultsImpl[A: c.WeakTypeTag](params: c.Expr[Int]*): c.Expr[Data] =
+    testConstructWithDefaults[A](params)
+
+  def testCallNoInstanceMethodWithDefaultsImpl[A: c.WeakTypeTag](methodName: c.Expr[String])(
+      params: c.Expr[Int]*
+  ): c.Expr[Data] =
+    testCallNoInstanceMethodWithDefaults[A](methodName)(params)
+
+  def testCallInstanceMethodWithDefaultsImpl[A: c.WeakTypeTag](instance: c.Expr[A])(methodName: c.Expr[String])(
+      params: c.Expr[Int]*
+  ): c.Expr[Data] =
+    testCallInstanceMethodWithDefaults[A](instance)(methodName)(params)
+
   def testCallNoInstanceIntMethodImpl[A: c.WeakTypeTag](methodName: c.Expr[String])(params: c.Expr[Int]*): c.Expr[Int] =
     testCallNoInstanceIntMethod[A](methodName)(params)
 
@@ -38,6 +51,15 @@ object MethodsFixtures {
 
   def testMethodDefaults[A](methodName: String): Data =
     macro MethodsFixtures.testMethodDefaultsImpl[A]
+
+  def testConstructWithDefaults[A](params: Int*): Data =
+    macro MethodsFixtures.testConstructWithDefaultsImpl[A]
+
+  def testCallNoInstanceMethodWithDefaults[A](methodName: String)(params: Int*): Data =
+    macro MethodsFixtures.testCallNoInstanceMethodWithDefaultsImpl[A]
+
+  def testCallInstanceMethodWithDefaults[A](instance: A)(methodName: String)(params: Int*): Data =
+    macro MethodsFixtures.testCallInstanceMethodWithDefaultsImpl[A]
 
   def testCallNoInstanceIntMethod[A](methodName: String)(params: Int*): Int =
     macro MethodsFixtures.testCallNoInstanceIntMethodImpl[A]
