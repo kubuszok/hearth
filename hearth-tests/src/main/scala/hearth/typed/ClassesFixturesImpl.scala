@@ -155,6 +155,22 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         .fold(errors => Expr(s"<failed to construct: ${errors.mkString(", ")}>"), identity)
     }
 
+  def testCaseClassDefaultValues[A: Type]: Expr[String] = Expr {
+    CaseClass.parse[A].fold("<no case class>") { caseClass =>
+      caseClass.primaryConstructor.parameters.flatten.toList
+        .map { case (name, param) =>
+          val defaultStr = if (param.hasDefault) {
+            param.defaultValue match {
+              case Some(_) => "resolved"
+              case None    => "<default missing>"
+            }
+          } else "<no default>"
+          s"$name: hasDefault=${param.hasDefault}, default=$defaultStr"
+        }
+        .mkString(", ")
+    }
+  }
+
   def testJavaBeanConstructWithSettersAndParConstructWithSetters[A: Type]: Expr[String] = Expr {
     JavaBean.parse[A].fold("<no java bean>") { javaBean =>
       val setField: (String, Parameter) => MIO[Expr_??] = (name, input) => {

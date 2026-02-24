@@ -199,11 +199,28 @@ final class ClassesSpec extends MacroSuite {
         "sequential: new hearth.examples.classes.ExampleCaseClass(0), parallel: new hearth.examples.classes.ExampleCaseClass(0)"
     }
 
+    test("CaseClass[A].{construct and parConstruct} should construct a case object singleton") {
+      import ClassesFixtures.testCaseClassConstructAndParConstruct
+
+      val result =
+        testCaseClassConstructAndParConstruct[examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type]
+      assert(result.startsWith("sequential: "), s"Expected 'sequential: ...' but got: $result")
+      assert(result.contains("ExampleSealedTraitObject"), s"Expected singleton reference but got: $result")
+      assert(!result.contains("new "), s"Expected singleton reference (no 'new') but got: $result")
+    }
+
     test("CaseClass[A].caseFieldValuesAt should extract fields of the case class") {
       import ClassesFixtures.testCaseClassCaseFieldValuesAt
 
       testCaseClassCaseFieldValuesAt(hearth.examples.classes.ExampleCaseClass(0)) <==>
         "(a: hearth.examples.classes.ExampleCaseClass.apply(0).a)"
+    }
+
+    test("CaseClass[A] should detect default values on constructor parameters") {
+      import ClassesFixtures.testCaseClassDefaultValues
+
+      testCaseClassDefaultValues[examples.classes.ExampleCaseClassWithDefaults] <==>
+        "a: hasDefault=false, default=<no default>, b: hasDefault=true, default=resolved"
     }
 
     test("Enum[A].{matchOn and parMatchOn} should match on the sealed trait") {
