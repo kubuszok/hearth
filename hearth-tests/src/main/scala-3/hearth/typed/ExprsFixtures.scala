@@ -67,6 +67,10 @@ object ExprsFixtures {
   private def testMatchCaseEqValueSingletonImpl[A: Type](using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testMatchCaseEqValueSingleton[A]
 
+  inline def testChildrenSingletonOf[A]: Data = ${ testChildrenSingletonOfImpl[A] }
+  private def testChildrenSingletonOfImpl[A: Type](using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testChildrenSingletonOf[A]
+
   inline def testMatchCaseEqValuePartition[A, B](inline expr: A): B = ${
     testMatchCaseEqValuePartitionImpl[A, B]('expr)
   }

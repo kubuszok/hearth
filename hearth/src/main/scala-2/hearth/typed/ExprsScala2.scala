@@ -137,7 +137,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = c.Expr[Unit](q"val _ = $expr; ()")
 
     override def singletonOf[A: Type]: Option[Expr[A]] = {
-      val sym = Type[A].tpe.typeSymbol
+      val tpe = Type[A].tpe
+      val sym = tpe.typeSymbol
       if (sym.isModuleClass) {
         val moduleSym = sym.asClass.module
         Some(c.Expr[A](c.universe.internal.gen.mkAttributedRef(moduleSym)))
@@ -147,7 +148,23 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         Some(c.Expr[A](c.universe.internal.gen.mkAttributedRef(sym)))
       }
       // $COVERAGE-ON$
-      else None
+      else {
+        // For singleton types of stable terms (e.g. Enumeration values like WeekDay.Mon.type)
+        val termSym = tpe.termSymbol
+        if (termSym != NoSymbol) Some(c.Expr[A](c.universe.internal.gen.mkAttributedRef(termSym)))
+        // For Java enum value types like ExampleJavaEnum(VALUE1) from directChildren
+        else if (UntypedType.isJavaEnumValue(tpe)) {
+          import Type.platformSpecific.javaEnumRegexpFormat
+          tpe.toString match {
+            case javaEnumRegexpFormat(_, valueName) =>
+              val enumClassType = sym.asType.toType
+              enumClassType.companion.decls
+                .find(s => s.isJavaEnum && s.name.toString == valueName)
+                .map(vs => c.Expr[A](c.universe.internal.gen.mkAttributedRef(vs.asTerm)))
+            case _ => None
+          }
+        } else None
+      }
     }
 
     override lazy val NullExprCodec: ExprCodec[Null] = {

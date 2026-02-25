@@ -150,6 +150,36 @@ final class ExprsSpec extends MacroSuite {
         )
       }
 
+      test("method MatchCase.eqValue should work with singletons (Enumeration values)") {
+        import ExprsFixtures.testMatchCaseEqValueSingleton
+
+        // Enumeration value singleton: singletonOf returns Some, eqValue matches
+        @scala.annotation.nowarn // suppress "unreachable code"
+        def runEnumValue =
+          testMatchCaseEqValueSingleton[
+            examples.enums.WeekDay.Mon.type
+          ] <==> Data.map(
+            "singletonOf" -> Data("found"),
+            "matched" -> Data("matched")
+          )
+        runEnumValue
+      }
+
+      test("method Expr.singletonOf should work for Enumeration children via directChildren") {
+        import ExprsFixtures.testChildrenSingletonOf
+
+        // Tests the actual derivation workflow: directChildren → singletonOf for each child
+        testChildrenSingletonOf[examples.enums.WeekDay.Value] <==> Data.map(
+          "Fri" -> Data("found"),
+          "Mon" -> Data("found"),
+          "Sat" -> Data("found"),
+          "Sun" -> Data("found"),
+          "Thu" -> Data("found"),
+          "Tue" -> Data("found"),
+          "Wed" -> Data("found")
+        )
+      }
+
       test("method MatchCase.eqValue should work with partition") {
         import ExprsFixtures.testMatchCaseEqValuePartition
 

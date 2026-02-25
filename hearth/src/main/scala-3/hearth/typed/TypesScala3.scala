@@ -26,15 +26,22 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
     }
     import platformSpecific.*
 
-    override def shortName[A: Type]: String =
-      if Type[A].isVal then {
+    override def shortName[A: Type]: String = {
+      val repr = TypeRepr.of[A]
+      // Use show-based extraction for vals (Java/Scala 3 enum values) and for singleton types of
+      // non-module terms (e.g. Enumeration values like WeekDay.Mon.type, where isVal returns false
+      // but the term symbol gives the correct name)
+      val termSym = repr.termSymbol
+      val useTermName = Type[A].isVal || (!termSym.isNoSymbol && !termSym.flags.is(Flags.Module))
+      if useTermName then {
         // Type symbol approach for case val would upcast it to the enum type.
-        val name = TypeRepr.of[A].dealias.show(using Printer.TypeReprCode)
+        val name = repr.dealias.show(using Printer.TypeReprCode)
         name.lastIndexOf('.') match {
           case -1  => name
           case idx => name.substring(idx + 1)
         }
-      } else (TypeRepr.of[A].dealias.typeSymbol.name: String).replaceAll("\\$", "")
+      } else (repr.dealias.typeSymbol.name: String).replaceAll("\\$", "")
+    }
 
     override def plainPrint[A: Type]: String = removeAnsiColors(prettyPrint[A])
     override def prettyPrint[A: Type]: String = {
