@@ -102,6 +102,9 @@ object TypesFixtures {
   inline def testFlags[A]: Data = ${ testFlagsImpl[A] }
   private def testFlagsImpl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testFlags[A]
 
+  inline def testChildrenNames[A]: Data = ${ testChildrenNamesImpl[A] }
+  private def testChildrenNamesImpl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testChildrenNames[A]
+
   inline def testChildrenFlags[A]: Data = ${ testChildrenFlagsImpl[A] }
   private def testChildrenFlagsImpl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testChildrenFlags[A]
 

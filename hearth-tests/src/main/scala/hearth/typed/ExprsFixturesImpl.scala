@@ -166,6 +166,20 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
     }
   }
 
+  // Tests singletonOf on the children of a parent type (exercises directChildren + singletonOf integration)
+  def testChildrenSingletonOf[A: Type]: Expr[Data] =
+    Type[A].directChildren match {
+      case Some(children) =>
+        val entries = children.map { case (name, child) =>
+          import child.Underlying as Child
+          val singletonOpt = Expr.singletonOf[child.Underlying]
+          name -> Data(if (singletonOpt.isDefined) "found" else "none")
+        }
+        Expr(Data(entries.toMap))
+      case None =>
+        Expr(Data("<no children>"))
+    }
+
   // Tests eqValue with partition — exercises the partition EqValue branch and default FreshName
   def testMatchCaseEqValuePartition[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
     val matched = MatchCase.typeMatch[B]("matched")

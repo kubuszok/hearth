@@ -204,6 +204,42 @@ final class TypesSpec extends MacroSuite {
             )
           }
         }
+
+        test("for enumeration value singletons") {
+          // Singleton types of Enumeration vals should use the val name, not "Value"
+          List(
+            testNamesPrinters[examples.enums.WeekDay.Mon.type] -> ((
+              "Mon",
+              "WeekDay.Mon.type"
+            )),
+            testNamesPrinters[examples.enums.WeekDay.Tue.type] -> ((
+              "Tue",
+              "WeekDay.Tue.type"
+            ))
+          ).foreach { case (actual, (shortName, longName)) =>
+            actual <==> Data.map(
+              "Type.shortName" -> Data(shortName),
+              "Type.fqcn" -> Data(s"hearth.examples.enums.$longName"),
+              "Type.plainPrint" -> Data(s"hearth.examples.enums.$longName"),
+              "Type.prettyPrint" -> Data(s"hearth.examples.enums.$longName")
+            )
+          }
+        }
+
+        test("for enumeration children (shortName via directChildren)") {
+          import TypesFixtures.testChildrenNames
+
+          // Tests shortName for children types as produced by directChildren (the actual derivation workflow)
+          testChildrenNames[examples.enums.WeekDay.Value] <==> Data.map(
+            "Fri" -> Data("Fri"),
+            "Mon" -> Data("Mon"),
+            "Sat" -> Data("Sat"),
+            "Sun" -> Data("Sun"),
+            "Thu" -> Data("Thu"),
+            "Tue" -> Data("Tue"),
+            "Wed" -> Data("Wed")
+          )
+        }
       }
 
       group("methods: Type.{classOfType} expected behavior") {

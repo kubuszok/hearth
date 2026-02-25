@@ -44,6 +44,21 @@ final class TypesJvmSpec extends MacroSuite {
             )
           }
         }
+
+        test("for Java enumeration children (shortName via directChildren)") {
+          import TypesFixtures.testChildrenNames
+
+          // Tests shortName for children types as produced by directChildren (the actual derivation workflow).
+          // Note: ExampleJavaEnum.VALUE1.type collapses to ExampleJavaEnum on Scala 2, so we test via directChildren.
+          testChildrenNames[examples.enums.ExampleJavaEnum] <==> Data.map(
+            "VALUE1" -> Data("VALUE1"),
+            "VALUE2" -> Data("VALUE2")
+          )
+          testChildrenNames[examples.enums.ExampleJavaEnumWithMethods] <==> Data.map(
+            "VALUE1" -> Data("VALUE1"),
+            "VALUE2" -> Data("VALUE2")
+          )
+        }
       }
 
       group("methods: Type.{classOfType} expected behavior") {

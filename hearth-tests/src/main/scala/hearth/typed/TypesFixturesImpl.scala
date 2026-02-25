@@ -77,6 +77,17 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
     )
   )
 
+  def testChildrenNames[A: Type]: Expr[Data] = Expr(
+    Type[A].directChildren
+      .map { children =>
+        Data(children.view.map { case (name, child) =>
+          import child.Underlying as Child
+          name -> Data(Child.shortName)
+        }.toMap)
+      }
+      .getOrElse(Data("<no direct children>"))
+  )
+
   def testChildrenFlags[A: Type]: Expr[Data] = Expr(
     Type[A].directChildren
       .map { children =>

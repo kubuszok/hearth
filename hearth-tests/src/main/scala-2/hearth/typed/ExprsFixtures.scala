@@ -33,6 +33,9 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
   def testMatchCaseEqValueSingletonImpl[A: c.WeakTypeTag]: c.Expr[Data] =
     testMatchCaseEqValueSingleton[A]
 
+  def testChildrenSingletonOfImpl[A: c.WeakTypeTag]: c.Expr[Data] =
+    testChildrenSingletonOf[A]
+
   def testMatchCaseEqValuePartitionImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
     testMatchCaseEqValuePartition[A, B](expr)
 
@@ -167,6 +170,8 @@ object ExprsFixtures {
   def testMatchCaseEqValue[A](expr: A): Data = macro ExprsFixtures.testMatchCaseEqValueImpl[A]
 
   def testMatchCaseEqValueSingleton[A]: Data = macro ExprsFixtures.testMatchCaseEqValueSingletonImpl[A]
+
+  def testChildrenSingletonOf[A]: Data = macro ExprsFixtures.testChildrenSingletonOfImpl[A]
 
   def testMatchCaseEqValuePartition[A, B](expr: A): B =
     macro ExprsFixtures.testMatchCaseEqValuePartitionImpl[A, B]

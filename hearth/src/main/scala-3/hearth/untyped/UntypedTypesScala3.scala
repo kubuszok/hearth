@@ -160,14 +160,17 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       val A = instanceTpe.typeSymbol
       !A.isNoSymbol && A.flags.is(Flags.Sealed)
     }
-    override def isJavaEnum(instanceTpe: UntypedType): Boolean =
-      isEnumOrEnumValue(instanceTpe) && !instanceTpe.typeSymbol.flags.is(Flags.JavaStatic)
-    override def isJavaEnumValue(instanceTpe: UntypedType): Boolean =
-      isEnumOrEnumValue(instanceTpe) && instanceTpe.typeSymbol.flags.is(Flags.JavaStatic)
-    private def isEnumOrEnumValue(instanceTpe: UntypedType): Boolean =
-      instanceTpe <:< fromTyped[java.lang.Enum[?]] && instanceTpe.typeSymbol.flags.is(
-        Flags.Enum | Flags.Final | Flags.JavaDefined
-      )
+    override def isJavaEnum(instanceTpe: UntypedType): Boolean = {
+      val flags = instanceTpe.typeSymbol.flags
+      // Java enum classes have Enum | JavaDefined but may not have Final (e.g. enums with abstract methods)
+      instanceTpe <:< fromTyped[java.lang.Enum[?]] && flags.is(Flags.Enum | Flags.JavaDefined) &&
+      !flags.is(Flags.JavaStatic)
+    }
+    override def isJavaEnumValue(instanceTpe: UntypedType): Boolean = {
+      val flags = instanceTpe.typeSymbol.flags
+      instanceTpe <:< fromTyped[java.lang.Enum[?]] && flags.is(Flags.Enum | Flags.JavaDefined) &&
+      flags.is(Flags.JavaStatic)
+    }
     override def isEnumeration(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       if A.isNoSymbol then false

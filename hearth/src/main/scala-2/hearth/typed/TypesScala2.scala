@@ -53,7 +53,12 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
       val tpe = Type[A].tpe
       tpe.toString match {
         case javaEnumRegexpFormat(_, valueName) if tpe.typeSymbol.isJavaEnum => valueName
-        case _                                                               => tpe.dealias.typeSymbol.name.toString
+        case _                                                               =>
+          // For singleton types of stable terms (e.g. Enumeration values like WeekDay.Mon.type),
+          // use the term symbol name instead of dealiasing (which would give "Value")
+          val termSym = tpe.termSymbol
+          if (termSym != NoSymbol && !termSym.isModule) termSym.name.toString
+          else tpe.dealias.typeSymbol.name.toString
       }
     }
     override def plainPrint[A: Type]: String = showCodePretty(Type[A].tpe.dealias, SyntaxHighlight.plain)
