@@ -50,9 +50,18 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       lazy val method = untyped.head.head._2.method // If params are empty it would throw... unless we don't use it.
 
       // Constructor methods still have to have their type parameters manually applied, even if we know the exact type of their class.
-      lazy val appliedIfNecessary =
-        if instanceTpe.typeArgs.isEmpty && method.symbol.isClassConstructor then instanceTpe.memberType(method.symbol)
-        else instanceTpe.memberType(method.symbol).appliedTo(instanceTpe.typeArgs)
+      lazy val appliedIfNecessary = {
+        val raw =
+          if instanceTpe.typeArgs.isEmpty && method.symbol.isClassConstructor then instanceTpe.memberType(method.symbol)
+          else instanceTpe.memberType(method.symbol).appliedTo(instanceTpe.typeArgs)
+        // Extension methods have a receiver parameter as the first value parameter list in their type,
+        // which was already dropped from `parameters` — skip it here too to keep names aligned.
+        if method.symbol.flags.is(Flags.ExtensionMethod) then raw match {
+          case MethodType(_, _, inner) => inner
+          case other                   => other
+        }
+        else raw
+      }
       lazy val typesByParamName = appliedIfNecessary match {
         // Monomorphic type - no type parameters to re-apply
         case MethodType(names, types, _) => names.zip(types).toMap
@@ -144,7 +153,10 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override lazy val hasTypeParameters: Boolean = symbol.paramSymss.exists(_.exists(_.isType))
 
     override lazy val parameters: UntypedParameters = {
-      val paramss = symbol.paramSymss.filterNot(_.exists(_.isType))
+      val paramss0 = symbol.paramSymss.filterNot(_.exists(_.isType))
+      // Extension methods have a receiver parameter as the first value parameter list,
+      // which doesn't have Flags.Param and would fail UntypedParameter.parse
+      val paramss = if symbol.flags.is(Flags.ExtensionMethod) then paramss0.drop(1) else paramss0
       val indices = paramss.flatten.zipWithIndex.toMap
       paramss
         .map(inner =>
