@@ -145,6 +145,18 @@ final class MethodsScala3Spec extends MacroSuite {
           // but NOT _1/_2 (those belong to *: which is not what typeSymbol resolves to)
         }
       }
+
+      group("methods: extension methods on Scala 3 types") {
+        import MethodsFixtures.testMethodProperties
+
+        test("for IArray[Int] extension method (should not crash)") {
+          // Regression test: extension methods' receiver parameter must be correctly handled
+          // (dropped from parameters and type resolution) to avoid crashes during macro expansion.
+          val methods = testMethodProperties[IArray[Int]]("length")
+          val methodsMap = methods.asMap.get
+          assert(methodsMap.nonEmpty, "IArray[Int] should have 'length' extension method")
+        }
+      }
     }
   }
 }
