@@ -18,14 +18,14 @@ object unions {
   type StringOrIntOrBoolean = String | Int | Boolean
 
   // --- NOT disjoint (should return None) ---
-  type StringOrAnyRef = String | AnyRef             // subtype overlap
+  type StringOrAnyRef = String | AnyRef // subtype overlap
   type ListIntOrListString = List[Int] | List[String] // same erasure
-  type NothingOrString = Nothing | String             // Nothing simplifies away → < 2 members
-  type StringOrString = String | String               // duplicate → < 2 members
-  type IntOrAnyVal = Int | AnyVal                     // subtype overlap
+  type NothingOrString = Nothing | String // Nothing simplifies away → < 2 members
+  type StringOrString = String | String // duplicate → < 2 members
+  type IntOrAnyVal = Int | AnyVal // subtype overlap
 
   // --- Opaque types (conservative → None) ---
-  type OpaqueIdOrString = OpaqueId | String           // can't prove disjoint at runtime
-  type OpaqueIdOrLong = OpaqueId | Long               // same runtime erasure (both Long)
-  type OpaqueIdOrOpaqueName = OpaqueId | OpaqueName   // two opaques, can't prove disjoint
+  type OpaqueIdOrString = OpaqueId | String // can't prove disjoint at runtime
+  type OpaqueIdOrLong = OpaqueId | Long // same runtime erasure (both Long)
+  type OpaqueIdOrOpaqueName = OpaqueId | OpaqueName // two opaques, can't prove disjoint
 }

@@ -64,6 +64,25 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
     override def plainPrint[A: Type]: String = showCodePretty(Type[A].tpe.dealias, SyntaxHighlight.plain)
     override def prettyPrint[A: Type]: String = showCodePretty(Type[A].tpe.dealias, SyntaxHighlight.ANSI)
 
+    override def runtimePlainPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String] =
+      runtimeAwareTypePrint(
+        Type[A].tpe.dealias,
+        rawTpe => overrideForType(UntypedType.toTyped[Any](rawTpe).as_??),
+        tpe => showCodePretty(tpe.dealias, SyntaxHighlight.plain)
+      )
+    override def runtimePrettyPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String] =
+      runtimeAwareTypePrint(
+        Type[A].tpe.dealias,
+        rawTpe => overrideForType(UntypedType.toTyped[Any](rawTpe).as_??),
+        tpe => showCodePretty(tpe.dealias, SyntaxHighlight.ANSI)
+      )
+    override def runtimeShortPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String] =
+      runtimeAwareTypePrint(
+        Type[A].tpe.dealias,
+        rawTpe => overrideForType(UntypedType.toTyped[Any](rawTpe).as_??),
+        tpe => tpe.dealias.typeSymbol.name.toString
+      )
+
     override lazy val NullCodec: TypeCodec[Null] = new LiteralCodec[Null]
     override lazy val UnitCodec: TypeCodec[Unit] = new LiteralCodec[Unit]
     override lazy val BooleanCodec: TypeCodec[Boolean] = new LiteralCodec[Boolean]

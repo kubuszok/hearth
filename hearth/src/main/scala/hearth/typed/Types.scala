@@ -42,6 +42,25 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def plainPrint[A: Type]: String
     def prettyPrint[A: Type]: String
 
+    /** Builds a runtime expression that prints the type name, substituting overridden type arguments with runtime
+      * values. Non-overridden parts produce output identical to [[plainPrint]].
+      *
+      * @since 0.8.0
+      */
+    def runtimePlainPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String]
+
+    /** Like [[runtimePlainPrint]] but the non-overridden parts use ANSI-colored output (like [[prettyPrint]]).
+      *
+      * @since 0.8.0
+      */
+    def runtimePrettyPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String]
+
+    /** Like [[runtimePlainPrint]] but the non-overridden parts use short names (like [[shortName]]).
+      *
+      * @since 0.8.0
+      */
+    def runtimeShortPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String]
+
     /** This can only work if the type is available in the classpath, so it's not a good idea to use it for e.g. types
       * from the current project.
       */
@@ -636,6 +655,13 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def plainPrint: String = Type.plainPrint(using tpe)
     def prettyPrint: String = Type.prettyPrint(using tpe)
 
+    def runtimePlainPrint(overrideForType: ?? => Option[Expr[String]]): Expr[String] =
+      Type.runtimePlainPrint(overrideForType)(using tpe)
+    def runtimePrettyPrint(overrideForType: ?? => Option[Expr[String]]): Expr[String] =
+      Type.runtimePrettyPrint(overrideForType)(using tpe)
+    def runtimeShortPrint(overrideForType: ?? => Option[Expr[String]]): Expr[String] =
+      Type.runtimeShortPrint(overrideForType)(using tpe)
+
     def position: Option[Position] = Type.position(using tpe)
 
     def getRuntimeClass: Option[java.lang.Class[A]] = Type.classOfType(using tpe)
@@ -720,6 +746,13 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def fqcn: String = Type.fqcn(using tpe.Underlying)
     def plainPrint: String = Type.plainPrint(using tpe.Underlying)
     def prettyPrint: String = Type.prettyPrint(using tpe.Underlying)
+
+    def runtimePlainPrint(overrideForType: ?? => Option[Expr[String]]): Expr[String] =
+      Type.runtimePlainPrint(overrideForType)(using tpe.Underlying)
+    def runtimePrettyPrint(overrideForType: ?? => Option[Expr[String]]): Expr[String] =
+      Type.runtimePrettyPrint(overrideForType)(using tpe.Underlying)
+    def runtimeShortPrint(overrideForType: ?? => Option[Expr[String]]): Expr[String] =
+      Type.runtimeShortPrint(overrideForType)(using tpe.Underlying)
 
     def asUntyped: UntypedType = UntypedType.fromTyped(using tpe.Underlying)
   }
