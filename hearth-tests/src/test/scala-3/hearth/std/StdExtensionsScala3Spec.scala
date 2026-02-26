@@ -115,6 +115,10 @@ final class StdExtensionsScala3Spec extends MacroSuite {
           "wrapping" -> Data("<not a value type of string>")
         )
       }
+
+      test("for IArray (should not be treated as value type)") {
+        testIsValueType(IArray(1, 2, 3)) <==> Data("<no value type>")
+      }
     }
 
     group("class: CtorLikes[A], smart constructors discovery") {
