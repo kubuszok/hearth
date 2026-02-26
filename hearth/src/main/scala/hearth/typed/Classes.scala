@@ -75,7 +75,7 @@ trait Classes { this: MacroCommons =>
 
     /** Whether this CaseClass represents a singleton (case object or parameterless enum case).
       *
-      * @since 0.6.0
+      * @since 0.3.0
       */
     lazy val isSingleton: Boolean = Expr.singletonOf[A].isDefined
 
@@ -193,7 +193,7 @@ trait Classes { this: MacroCommons =>
     }
   }
 
-  /** Represents a sealed trait, Scala 3's enum or Java's enum.
+  /** Represents a sealed trait, Scala 3's enum, Java's enum, or a disjoint union type (Scala 3 only).
     *
     * It's a specialization of a [[Class]] that's aware, that there is a known set of children subtypes.
     *
@@ -276,6 +276,7 @@ trait Classes { this: MacroCommons =>
     def unapply[A](tpe: Type[A]): Option[Enum[A]] =
       if (tpe.isSealed) tpe.directChildren.map(children => new Enum(tpe, children))
       else if (tpe.isEnumeration) tpe.directChildren.map(children => new Enum(tpe, children))
+      else if (tpe.isUnionType) tpe.directChildren.map(children => new Enum(tpe, children))
       else None
     def parse[A: Type]: Option[Enum[A]] = unapply(Type[A])
   }

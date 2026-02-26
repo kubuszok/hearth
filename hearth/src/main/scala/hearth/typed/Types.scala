@@ -45,19 +45,19 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     /** Builds a runtime expression that prints the type name, substituting overridden type arguments with runtime
       * values. Non-overridden parts produce output identical to [[plainPrint]].
       *
-      * @since 0.8.0
+      * @since 0.3.0
       */
     def runtimePlainPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String]
 
     /** Like [[runtimePlainPrint]] but the non-overridden parts use ANSI-colored output (like [[prettyPrint]]).
       *
-      * @since 0.8.0
+      * @since 0.3.0
       */
     def runtimePrettyPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String]
 
     /** Like [[runtimePlainPrint]] but the non-overridden parts use short names (like [[shortName]]).
       *
-      * @since 0.8.0
+      * @since 0.3.0
       */
     def runtimeShortPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String]
 

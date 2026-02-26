@@ -12,7 +12,7 @@ package typename
   * @tparam A
   *   the type whose name is being printed
   *
-  * @since 0.8.0
+  * @since 0.3.0
   */
 trait TypeName[A] {
 

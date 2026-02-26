@@ -2368,7 +2368,7 @@ Specialized view for case classes, providing access to primary constructor and c
 
 ### `Enum[A]`
 
-Specialized view for sealed traits, Scala 3 enums, or Java enums:
+Specialized view for sealed traits, Scala 3 enums, Java enums, or disjoint union types (Scala 3 only):
 
 | Method                      | Result type                                | Description                |
 |-----------------------------|--------------------------------------------|----------------------------|
@@ -2493,7 +2493,8 @@ colorExpr match {
 ### Union types (Scala 3 only)
 
 On Scala 3, union types (`A | B`) are supported through the same `directChildren`/`exhaustiveChildren`
-pipeline used by sealed traits and enums. Use `Type.isUnionType` to detect them.
+pipeline used by sealed traits and enums. Use `Type.isUnionType` to detect them. Disjoint unions are also
+recognized by `Enum.parse`, so `matchOn`/`parMatchOn` work on them just like on sealed traits and enums.
 
 `directChildren` returns `Some` for **disjoint** unions — those whose members can be reliably
 distinguished at runtime via pattern matching:
