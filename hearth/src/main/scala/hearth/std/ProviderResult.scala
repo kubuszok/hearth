@@ -11,7 +11,7 @@ import hearth.fp.data.NonEmptyMap
   * @tparam A
   *   the type of the matched value
   *
-  * @since 0.6.0
+  * @since 0.3.0
   */
 sealed trait ProviderResult[+A] extends Product with Serializable {
 

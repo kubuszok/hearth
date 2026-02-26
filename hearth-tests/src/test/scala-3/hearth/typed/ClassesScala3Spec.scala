@@ -73,5 +73,36 @@ final class ClassesScala3Spec extends MacroSuite {
       code(hearth.examples.ExampleEnum.ExampleEnumValue) <==>
         "sequential: subtype name: hearth.examples.ExampleEnum.ExampleEnumValue.type, expr: ExampleEnumValue, parallel: subtype name: hearth.examples.ExampleEnum.ExampleEnumValue.type, expr: ExampleEnumValue"
     }
+
+    test("Enum[A].{matchOn and parMatchOn} should match on the disjoint union type (String | Int)") {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+
+      def code(input: examples.unions.StringOrInt) = testEnumMatchOnAndParMatchOn(input)
+      code("hello") <==>
+        "sequential: subtype name: java.lang.String, expr: java.lang.String, parallel: subtype name: java.lang.String, expr: java.lang.String"
+      code(42) <==>
+        "sequential: subtype name: scala.Int, expr: scala.Int, parallel: subtype name: scala.Int, expr: scala.Int"
+    }
+
+    test("Enum[A].{matchOn and parMatchOn} should match on the 3-member disjoint union type (String | Int | Boolean)") {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+
+      def code(input: examples.unions.StringOrIntOrBoolean) = testEnumMatchOnAndParMatchOn(input)
+      code("hello") <==>
+        "sequential: subtype name: java.lang.String, expr: java.lang.String, parallel: subtype name: java.lang.String, expr: java.lang.String"
+      code(42) <==>
+        "sequential: subtype name: scala.Int, expr: scala.Int, parallel: subtype name: scala.Int, expr: scala.Int"
+      code(true) <==>
+        "sequential: subtype name: scala.Boolean, expr: scala.Boolean, parallel: subtype name: scala.Boolean, expr: scala.Boolean"
+    }
+
+    test(
+      "Enum[A].{matchOn and parMatchOn} should return <no enum> for non-disjoint union type (List[Int] | List[String])"
+    ) {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+
+      def code(input: examples.unions.ListIntOrListString) = testEnumMatchOnAndParMatchOn(input)
+      code(List(1)) <==> "<no enum>"
+    }
   }
 }

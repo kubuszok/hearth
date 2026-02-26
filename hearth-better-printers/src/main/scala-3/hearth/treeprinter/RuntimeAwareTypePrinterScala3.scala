@@ -15,7 +15,7 @@ trait RuntimeAwareTypePrinterScala3 {
     *   returns `Some(expr)` when a type should be replaced by a runtime expression
     * @param printType
     *   fallback printer (e.g. `removeAnsiColors(prettyPrintRepr(...))`)
-    * @since 0.8.0
+    * @since 0.3.0
     */
   def runtimeAwareTypePrint(
       tpe: TypeRepr,
