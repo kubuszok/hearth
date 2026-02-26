@@ -116,6 +116,12 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         })
       }
 
+    override def isUnionType(instanceTpe: UntypedType): Boolean =
+      instanceTpe.dealias match {
+        case _: OrType => true
+        case _         => false
+      }
+
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       // We use =:= to check whether A is known to be exactly of the built-in type or is it some upper bound.
@@ -344,7 +350,66 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
             .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
         }
       )
-      else None
+      else if isUnionType(instanceTpe) then {
+        val nothingType = TypeRepr.of[Nothing]
+
+        // Flatten nested OrType tree
+        def flatten(tpe: TypeRepr): List[TypeRepr] = tpe.dealias match {
+          case OrType(left, right) => flatten(left) ++ flatten(right)
+          case other               => List(other)
+        }
+        val allMembers = flatten(instanceTpe.dealias)
+
+        // Filter Nothing, deduplicate
+        val members = allMembers
+          .filterNot(_ =:= nothingType)
+          .foldLeft(Vector.empty[TypeRepr]) { (acc, tpe) =>
+            if acc.exists(_ =:= tpe) then acc else acc :+ tpe
+          }
+
+        // Need >= 2 members for a meaningful union
+        if members.size < 2 then None
+        else {
+          // Check no subtype relationships between members
+          val hasSubtypeOverlap = members.exists { a =>
+            members.exists(b => !(a =:= b) && (a <:< b || b <:< a))
+          }
+          if hasSubtypeOverlap then None
+          else {
+            // Check erasure safety: no two members should erase to the same runtime class
+            def erasure(tpe: TypeRepr): Option[TypeRepr] =
+              // Opaque types hide their underlying representation, so we can't determine
+              // their runtime erasure from outside the defining scope.
+              if isOpaqueType(tpe) then None
+              else {
+                val widened = tpe.widen.dealias
+                widened match {
+                  case AppliedType(tycon, _) => Some(tycon)
+                  case other                 =>
+                    if other.classSymbol.isDefined then Some(other)
+                    else None // unknown → can't prove safety
+                }
+              }
+
+            val erasures = members.map(erasure)
+            // If any member has unknown erasure, be conservative
+            if erasures.exists(_.isEmpty) then None
+            else {
+              val knownErasures = erasures.flatten
+              val hasDuplicateErasure = knownErasures.indices.exists { i =>
+                knownErasures.indices.exists { j =>
+                  i != j && (knownErasures(i) =:= knownErasures(j))
+                }
+              }
+              if hasDuplicateErasure then None
+              else
+                Some(ListMap.from(members.map { tpe =>
+                  UntypedType.plainPrint(tpe) -> tpe
+                }))
+            }
+          }
+        }
+      } else None
 
     override def annotations(untyped: UntypedType): List[UntypedExpr] =
       untyped.typeSymbol.annotations

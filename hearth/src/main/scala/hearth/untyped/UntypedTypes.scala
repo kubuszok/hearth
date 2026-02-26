@@ -105,6 +105,7 @@ trait UntypedTypes { this: MacroCommons =>
     def isOpaqueType(instanceTpe: UntypedType): Boolean
     def isTuple(instanceTpe: UntypedType): Boolean
     def isNamedTuple(instanceTpe: UntypedType): Boolean = false
+    def isUnionType(instanceTpe: UntypedType): Boolean = false
 
     def isAbstract(instanceTpe: UntypedType): Boolean
     def isFinal(instanceTpe: UntypedType): Boolean
@@ -188,6 +189,7 @@ trait UntypedTypes { this: MacroCommons =>
     def isOpaqueType: Boolean = UntypedType.isOpaqueType(untyped)
     def isTuple: Boolean = UntypedType.isTuple(untyped)
     def isNamedTuple: Boolean = UntypedType.isNamedTuple(untyped)
+    def isUnionType: Boolean = UntypedType.isUnionType(untyped)
 
     def isAbstract: Boolean = UntypedType.isAbstract(untyped)
     def isFinal: Boolean = UntypedType.isFinal(untyped)

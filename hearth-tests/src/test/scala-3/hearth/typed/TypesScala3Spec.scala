@@ -203,6 +203,7 @@ final class TypesScala3Spec extends MacroSuite {
               "Type.isOpaqueType" -> Data(false),
               "Type.isTuple" -> Data(false),
               "Type.isNamedTuple" -> Data(false),
+              "Type.isUnionType" -> Data(false),
               "Type.notJvmBuiltInClass" -> Data(true),
               "Type.isPlainOldJavaObject" -> Data(false),
               "Type.isJavaBean" -> Data(false),
@@ -266,6 +267,7 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isOpaqueType" -> Data(false),
             "Type.isTuple" -> Data(false),
             "Type.isNamedTuple" -> Data(false),
+            "Type.isUnionType" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(true),
             "Type.isJavaBean" -> Data(false),
@@ -298,6 +300,7 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isOpaqueType" -> Data(true),
             "Type.isTuple" -> Data(false),
             "Type.isNamedTuple" -> Data(false),
+            "Type.isUnionType" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(false),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),
@@ -338,6 +341,7 @@ final class TypesScala3Spec extends MacroSuite {
               "Type.isOpaqueType" -> Data(false),
               "Type.isTuple" -> Data(true),
               "Type.isNamedTuple" -> Data(false),
+              "Type.isUnionType" -> Data(false),
               "Type.notJvmBuiltInClass" -> Data(true),
               "Type.isPlainOldJavaObject" -> Data(true),
               "Type.isJavaBean" -> Data(false),
@@ -399,6 +403,7 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isOpaqueType" -> Data(false),
             "Type.isTuple" -> Data(true),
             "Type.isNamedTuple" -> Data(false),
+            "Type.isUnionType" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(true),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),
@@ -430,6 +435,7 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isOpaqueType" -> Data(true),
             "Type.isTuple" -> Data(false),
             "Type.isNamedTuple" -> Data(false),
+            "Type.isUnionType" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(false),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),
@@ -463,6 +469,7 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isOpaqueType" -> Data(false),
             "Type.isTuple" -> Data(true),
             "Type.isNamedTuple" -> Data(false),
+            "Type.isUnionType" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(false),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),
@@ -483,6 +490,139 @@ final class TypesScala3Spec extends MacroSuite {
       }
 
       // TODO: <:< and =:= should behave the same way, let's test it another day
+
+      group("methods: Type.{isUnionType, directChildren, exhaustiveChildren} for union types") {
+        import TypesFixtures.testUnionMembers
+
+        test("for non-union types") {
+          testUnionMembers[String] <==> Data.map(
+            "Type.isUnionType" -> Data(false),
+            "Type.directChildren" -> Data("<no direct children>"),
+            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+          )
+          testUnionMembers[Int] <==> Data.map(
+            "Type.isUnionType" -> Data(false),
+            "Type.directChildren" -> Data("<no direct children>"),
+            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+          )
+        }
+
+        test("for String | Int") {
+          testUnionMembers[examples.unions.StringOrInt] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data.map(
+              "java.lang.String" -> Data("java.lang.String"),
+              "scala.Int" -> Data("scala.Int")
+            ),
+            "Type.exhaustiveChildren" -> Data.map(
+              "java.lang.String" -> Data("java.lang.String"),
+              "scala.Int" -> Data("scala.Int")
+            )
+          )
+        }
+
+        test("for Boolean | Double") {
+          testUnionMembers[examples.unions.BooleanOrDouble] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data.map(
+              "scala.Boolean" -> Data("scala.Boolean"),
+              "scala.Double" -> Data("scala.Double")
+            ),
+            "Type.exhaustiveChildren" -> Data.map(
+              "scala.Boolean" -> Data("scala.Boolean"),
+              "scala.Double" -> Data("scala.Double")
+            )
+          )
+        }
+
+        test("for Color.Red.type | Color.Blue.type (same erasure — both erase to Color)") {
+          testUnionMembers[examples.unions.RedOrBlue] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data("<no direct children>"),
+            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+          )
+        }
+
+        test("for String | Int | Boolean") {
+          testUnionMembers[examples.unions.StringOrIntOrBoolean] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data.map(
+              "java.lang.String" -> Data("java.lang.String"),
+              "scala.Int" -> Data("scala.Int"),
+              "scala.Boolean" -> Data("scala.Boolean")
+            ),
+            "Type.exhaustiveChildren" -> Data.map(
+              "java.lang.String" -> Data("java.lang.String"),
+              "scala.Int" -> Data("scala.Int"),
+              "scala.Boolean" -> Data("scala.Boolean")
+            )
+          )
+        }
+
+        test("for String | AnyRef (subtype overlap)") {
+          testUnionMembers[examples.unions.StringOrAnyRef] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data("<no direct children>"),
+            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+          )
+        }
+
+        test("for List[Int] | List[String] (same erasure)") {
+          testUnionMembers[examples.unions.ListIntOrListString] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data("<no direct children>"),
+            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+          )
+        }
+
+        test("for Nothing | String (Nothing filters out)") {
+          testUnionMembers[examples.unions.NothingOrString] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data("<no direct children>"),
+            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+          )
+        }
+
+        test("for String | String (duplicate)") {
+          testUnionMembers[examples.unions.StringOrString] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data("<no direct children>"),
+            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+          )
+        }
+
+        test("for Int | AnyVal (subtype overlap)") {
+          testUnionMembers[examples.unions.IntOrAnyVal] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data("<no direct children>"),
+            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+          )
+        }
+
+        test("for OpaqueId | String (opaque, conservative None)") {
+          testUnionMembers[examples.unions.OpaqueIdOrString] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data("<no direct children>"),
+            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+          )
+        }
+
+        test("for OpaqueId | Long (opaque + underlying type)") {
+          testUnionMembers[examples.unions.OpaqueIdOrLong] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data("<no direct children>"),
+            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+          )
+        }
+
+        test("for OpaqueId | OpaqueName (two opaques)") {
+          testUnionMembers[examples.unions.OpaqueIdOrOpaqueName] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data("<no direct children>"),
+            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+          )
+        }
+      }
     }
 
     group("type TypeCodec") {

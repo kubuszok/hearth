@@ -37,6 +37,7 @@ final class TypesNamedTupleSpec extends MacroSuite {
             "Type.isOpaqueType" -> Data(true),
             "Type.isTuple" -> Data(false),
             "Type.isNamedTuple" -> Data(true),
+            "Type.isUnionType" -> Data(false),
             "Type.notJvmBuiltInClass" -> Data(false),
             "Type.isPlainOldJavaObject" -> Data(false),
             "Type.isJavaBean" -> Data(false),

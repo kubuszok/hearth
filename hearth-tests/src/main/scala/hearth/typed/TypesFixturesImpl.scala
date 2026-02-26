@@ -77,6 +77,7 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
       "Type.isOpaqueType" -> Data(Type[A].isOpaqueType),
       "Type.isTuple" -> Data(Type[A].isTuple),
       "Type.isNamedTuple" -> Data(Type[A].isNamedTuple),
+      "Type.isUnionType" -> Data(Type[A].isUnionType),
       "Type.notJvmBuiltInClass" -> Data(Type[A].notJvmBuiltInClass),
       "Type.isPlainOldJavaObject" -> Data(Type[A].isPlainOldJavaObject),
       "Type.isJavaBean" -> Data(Type[A].isJavaBean),
@@ -92,6 +93,18 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
       "Type.isCaseVal" -> Data(Type[A].isCaseVal),
       "Type.isAvailable(Everywhere)" -> Data(Type[A].isAvailable(Everywhere)),
       "Type.isAvailable(AtCallSite)" -> Data(Type[A].isAvailable(AtCallSite))
+    )
+  )
+
+  def testUnionMembers[A: Type]: Expr[Data] = Expr(
+    Data.map(
+      "Type.isUnionType" -> Data(Type[A].isUnionType),
+      "Type.directChildren" -> Type[A].directChildren
+        .map(children => Data(children.view.mapValues(value => Data(value.plainPrint)).toMap))
+        .getOrElse(Data("<no direct children>")),
+      "Type.exhaustiveChildren" -> Type[A].exhaustiveChildren
+        .map(children => Data(children.toListMap.view.mapValues(value => Data(value.plainPrint)).toMap))
+        .getOrElse(Data("<no exhaustive children>"))
     )
   )
 
