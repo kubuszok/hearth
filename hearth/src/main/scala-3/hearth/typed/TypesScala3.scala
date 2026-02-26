@@ -43,25 +43,22 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
       } else (repr.dealias.typeSymbol.name: String).replaceAll("\\$", "")
     }
 
-    override def plainPrint[A: Type]: String = removeAnsiColors(prettyPrint[A])
-    override def prettyPrint[A: Type]: String = {
-      // In Scala 3 typeRepr.dealias dealiases only the "main" type but not types applied as type parameters,
-      // while in Scala 2 macros it dealiases everything - to keep the same behavior between them we need to
-      // apply recursive dealiasing ourselves.
-      def dealiasAll(tpe: TypeRepr): TypeRepr =
-        tpe match {
-          case AppliedType(tycon, args) => AppliedType(dealiasAll(tycon), args.map(dealiasAll(_)))
-          case _                        => tpe.dealias
-        }
+    // In Scala 3 typeRepr.dealias dealiases only the "main" type but not types applied as type parameters,
+    // while in Scala 2 macros it dealiases everything - to keep the same behavior between them we need to
+    // apply recursive dealiasing ourselves.
+    private def dealiasAll(tpe: TypeRepr): TypeRepr =
+      tpe match {
+        case AppliedType(tycon, args) => AppliedType(dealiasAll(tycon), args.map(dealiasAll(_)))
+        case _                        => tpe.dealias
+      }
 
-      val repr = dealiasAll(TypeRepr.of[A])
-
+    private def prettyPrintRepr[A: Type](repr: TypeRepr, ansi: Boolean): String =
       scala.util
         .Try {
           val symbolFullName = (repr.typeSymbol.fullName: String).replaceAll("\\$", "")
           val colorlessReprName = repr.show(using Printer.TypeReprCode)
           val colorlessReprNameWithoutParams = colorlessReprName.takeWhile(_ != '[')
-          val colorfulReprName = repr.show(using Printer.TypeReprAnsiCode)
+          val colorfulReprName = if ansi then repr.show(using Printer.TypeReprAnsiCode) else colorlessReprName
 
           // Classes defined inside a "class" or "def" have package.name.ClassName removed from the type,
           // so we have to prepend it ourselves to keep behavior consistent with Scala 2.
@@ -88,7 +85,28 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
         // Scala 3 JS/Native renders type lambdas with =>> while JVM uses =>;
         // normalize to => for consistent cross-platform output.
         .replace("=>>", "=>")
-    }
+
+    override def plainPrint[A: Type]: String = removeAnsiColors(prettyPrint[A])
+    override def prettyPrint[A: Type]: String = prettyPrintRepr[A](dealiasAll(TypeRepr.of[A]), ansi = true)
+
+    override def runtimePlainPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String] =
+      runtimeAwareTypePrint(
+        dealiasAll(TypeRepr.of[A]),
+        rawTpe => overrideForType(UntypedType.toTyped[Any](rawTpe).as_??),
+        tpe => removeAnsiColors(prettyPrintRepr[A](tpe, ansi = false))
+      )
+    override def runtimePrettyPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String] =
+      runtimeAwareTypePrint(
+        dealiasAll(TypeRepr.of[A]),
+        rawTpe => overrideForType(UntypedType.toTyped[Any](rawTpe).as_??),
+        tpe => prettyPrintRepr[A](tpe, ansi = true)
+      )
+    override def runtimeShortPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String] =
+      runtimeAwareTypePrint(
+        dealiasAll(TypeRepr.of[A]),
+        rawTpe => overrideForType(UntypedType.toTyped[Any](rawTpe).as_??),
+        tpe => (tpe.dealias.typeSymbol.name: String).replaceAll("\\$", "")
+      )
 
     override lazy val NullCodec: TypeCodec[Null] = LiteralCodec[Null](_ => NullConstant())
     override lazy val UnitCodec: TypeCodec[Unit] = LiteralCodec[Unit](_ => UnitConstant())
