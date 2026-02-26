@@ -1027,9 +1027,14 @@ This API works seamlessly with Scala `Either` and `Try`, all through the same in
 It is not only more convenient than manually handling value types, but also out-of-the-box supports types that are value types:
 
  - `AnyVal` types (with a single constructor argument)
+ - `opaque type`s in Scala 3 (with a companion smart constructor)
  - Java boxed types (on JVM): `java.lang.Integer`, `java.lang.Boolean`, `java.lang.Byte`, `java.lang.Character`, `java.lang.Short`, `java.lang.Long`, `java.lang.Float`, `java.lang.Double`
 
 with a possibility to support even more types, with the same API, just by adding a macro extension implementation to the class-path!
+
+!!! note
+    `IArray` is technically an `opaque type` in Scala 3, but it is **not** matched by `IsValueType`. Since `IArray` wraps
+    multiple elements (not a single inner value), it is handled by [`IsCollection`](#iscollection-macro-extension) instead.
 
 How could we use this API?
 
