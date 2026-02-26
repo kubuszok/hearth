@@ -126,6 +126,10 @@ object TypesFixtures {
   inline def testOneWayCodecs: Data = ${ testOneWayCodecsImpl }
   private def testOneWayCodecsImpl(using q: Quotes): Expr[Data] = new TypesFixtures(q).testOneWayCodecs
 
+  inline def testUnionMembers[A]: Data = ${ testUnionMembersImpl[A] }
+  private def testUnionMembersImpl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testUnionMembers[A]
+
   inline def testTupleXXLCodec: Data = ${ testTupleXXLCodecImpl }
   private def testTupleXXLCodecImpl(using q: Quotes): Expr[Data] = new TypesFixtures(q).testTupleXXLCodec
 }

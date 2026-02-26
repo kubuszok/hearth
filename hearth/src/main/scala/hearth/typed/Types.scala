@@ -136,6 +136,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     final def isOpaqueType[A: Type]: Boolean = UntypedType.fromTyped[A].isOpaqueType
     final def isTuple[A: Type]: Boolean = UntypedType.fromTyped[A].isTuple
     final def isNamedTuple[A: Type]: Boolean = UntypedType.fromTyped[A].isNamedTuple
+    final def isUnionType[A: Type]: Boolean = UntypedType.fromTyped[A].isUnionType
 
     final def isAbstract[A: Type]: Boolean = UntypedType.fromTyped[A].isAbstract
     final def isFinal[A: Type]: Boolean = UntypedType.fromTyped[A].isFinal
@@ -664,6 +665,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def isOpaqueType: Boolean = Type.isOpaqueType(using tpe)
     def isTuple: Boolean = Type.isTuple(using tpe)
     def isNamedTuple: Boolean = Type.isNamedTuple(using tpe)
+    def isUnionType: Boolean = Type.isUnionType(using tpe)
 
     def isAbstract: Boolean = Type.isAbstract(using tpe)
     def isFinal: Boolean = Type.isFinal(using tpe)
