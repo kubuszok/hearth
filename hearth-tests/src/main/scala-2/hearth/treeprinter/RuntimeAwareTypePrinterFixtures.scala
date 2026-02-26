@@ -16,16 +16,6 @@ final private class RuntimeAwareTypePrinterFixtures(val c: blackbox.Context)
 
   def testShortWithOverrideImpl[A: c.WeakTypeTag]: c.Expr[String] = testShortWithOverride[A]
 
-  def testWithTypeNameImpl[A: c.WeakTypeTag]: c.Expr[String] = {
-    val typeNameCtor = Type.Ctor1.of[examples.TypeName]
-    Type.runtimePlainPrint[A] { tpe =>
-      import tpe.Underlying
-      val typeNameType = typeNameCtor.apply[tpe.Underlying]
-      Expr.summonImplicit(using typeNameType).toOption.map { expr =>
-        c.Expr[String](c.universe.Select(expr.tree, c.universe.TermName("name")))
-      }
-    }
-  }
 }
 
 object RuntimeAwareTypePrinterFixtures {
@@ -37,6 +27,4 @@ object RuntimeAwareTypePrinterFixtures {
   def testPrettyWithOverride[A]: String = macro RuntimeAwareTypePrinterFixtures.testPrettyWithOverrideImpl[A]
 
   def testShortWithOverride[A]: String = macro RuntimeAwareTypePrinterFixtures.testShortWithOverrideImpl[A]
-
-  def testWithTypeName[A]: String = macro RuntimeAwareTypePrinterFixtures.testWithTypeNameImpl[A]
 }
