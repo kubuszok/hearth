@@ -158,6 +158,14 @@ Both provide indentation and formatting improvements over the built-in printers.
     }
     ```
 
+## Runtime-Aware Type Printing
+
+Better Printers also provides **runtime-aware type printing** (since 0.8.0) through `RuntimeAwareTypePrinterScala2` and `RuntimeAwareTypePrinterScala3` traits. These are mixed into `MacroCommons` automatically.
+
+Runtime-aware printing decomposes applied types (e.g., `Option[A]`) into their type constructor and arguments. For each type argument, a callback can provide a runtime `Expr[String]` to substitute in place of the compile-time name. Non-overridden parts fall back to the standard printer (plain, pretty, or short).
+
+This is used internally by `Type.runtimePlainPrint`, `Type.runtimePrettyPrint`, and `Type.runtimeShortPrint` — see [Basic Utilities](basic-utilities.md) for the API. The `TypeName[A]` type class is built on top of these methods — see [Type Name Utilities](typename-utilities.md).
+
 ## Comparison with Built-in Printers
 
 | Feature           | Scala 2 Built-in | Better Printers (Scala 2) | Scala 3 Built-in       | Better Printers (Scala 3) |

@@ -59,6 +59,7 @@ nav:
   - 'Standard Extensions': 'standard-extensions.md'
   - 'Debug Utilities': 'debug-utilities.md'
   - 'Source Utilities': 'source-utilities.md'
+  - 'Type Name Utilities': 'typename-utilities.md'
   - 'Best Practices': 'best-practices.md'
   - 'FAQ': 'faq.md'
 markdown_extensions:

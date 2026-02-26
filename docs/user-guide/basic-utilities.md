@@ -410,6 +410,20 @@ You should prefer `Type[A]` when `A: Type` is present, and only use `Type.of[A]`
 | `Type.plainPrint[Int]`  | `Type[Int].plainPrint`  | `"scala.Int"`  | with package name and type parameters, no coloring   |
 | `Type.prettyPrint[Int]` | `Type[Int].prettyPrint` | `"scala.Int"`  | with package name and type parameters, ANSI coloring |
 
+**Runtime-aware printing** (since 0.8.0):
+
+These methods build `Expr[String]` values that substitute abstract type parameters with runtime-provided expressions,
+while keeping concrete parts identical to the corresponding compile-time print:
+
+| Companion method                           | Extension method                          | Fallback style | Description                                    |
+|--------------------------------------------|-------------------------------------------|----------------|------------------------------------------------|
+| `Type.runtimePlainPrint[A](fn)`            | `Type[A].runtimePlainPrint(fn)`           | `plainPrint`   | runtime-aware plain print with overrides        |
+| `Type.runtimePrettyPrint[A](fn)`           | `Type[A].runtimePrettyPrint(fn)`          | `prettyPrint`  | runtime-aware ANSI-colored print with overrides |
+| `Type.runtimeShortPrint[A](fn)`            | `Type[A].runtimeShortPrint(fn)`           | `shortName`    | runtime-aware short print with overrides        |
+
+The `fn` parameter is a callback `?? => Option[Expr[String]]` that is called for each type and its type arguments.
+Return `Some(expr)` to override the printing for that type, or `None` to use the default.
+
 **`Type` predicates**:
 
 | Companion method                       | Extension method                       | Description                                                          |

@@ -91,38 +91,5 @@ final class RuntimeAwareTypePrinterSpec extends MacroSuite {
       }
     }
 
-    group("with TypeName type class summoning") {
-
-      implicit val stringTypeName: examples.TypeName[String] = examples.TypeName.instance[String]("MyString")
-      implicit val intTypeName: examples.TypeName[Int] = examples.TypeName.instance[Int]("MyInt")
-
-      test("simple type with TypeName instance") {
-        assertEquals(
-          RuntimeAwareTypePrinterFixtures.testWithTypeName[String],
-          "MyString"
-        )
-      }
-
-      test("Option[String] — overrides String via TypeName") {
-        assertEquals(
-          RuntimeAwareTypePrinterFixtures.testWithTypeName[Option[String]],
-          "scala.Option[MyString]"
-        )
-      }
-
-      test("Map[String, Int] — overrides both args via TypeName") {
-        assertEquals(
-          RuntimeAwareTypePrinterFixtures.testWithTypeName[Map[String, Int]],
-          "scala.collection.immutable.Map[MyString, MyInt]"
-        )
-      }
-
-      test("Boolean — no TypeName instance, falls back to plain print") {
-        assertEquals(
-          RuntimeAwareTypePrinterFixtures.testWithTypeName[Boolean],
-          "scala.Boolean"
-        )
-      }
-    }
   }
 }
