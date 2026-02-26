@@ -420,6 +420,7 @@ You should prefer `Type[A]` when `A: Type` is present, and only use `Type.of[A]`
 | `Type.isJvmBuiltIn[String]`            | `Type[String].isJvmBuiltIn`            | `true` for primitives, Unit, String, arrays                          |
 | `Type.isTypeSystemSpecial[Any]`        | `Type[Any].isTypeSystemSpecial`        | `true` for Any, AnyRef, AnyVal, Null, Nothing                        |
 | `Type.isOpaqueType[MyType]`            | `Type[MyType].isOpaqueType`            | `true` for `opaque type`s                                            |
+| `Type.isUnionType[MyType]`             | `Type[MyType].isUnionType`             | `true` for union types (`A \| B`, Scala 3 only; always `false` on 2) |
 |                                        |                                        | **Class types**                                                      |
 | `Type.isClass[MyClass]`                | `Type[MyClass].isClass`                | `true` for classes                                                   |
 | `Type.notJvmBuiltInClass[MyClass]`     | `Type[MyClass].notJvmBuiltInClass`     | `true` when `isClass && !isJvmBuiltIn`                               |
@@ -453,9 +454,14 @@ You should prefer `Type[A]` when `A: Type` is present, and only use `Type.of[A]`
 | `Type.position[MyClass]`             | `Type[MyClass].position`             | `Option[Position]`                                | where type is defined            |
 | `Type.companionObject[MyClass]`      | `Type[MyClass].companionObject`      | `Option[Expr_??]`                                 | companion object if exists       |
 | `Type.annotations[MyClass]`          | `Type[MyClass].annotations`          | `List[Expr_??]`                                   | type annotations                 |
-| `Type.directChildren[MyClass]`       | `Type[MyClass].directChildren`       | `Option[ListMap[String, ??<:[MyClass]]]`          | immediate subtypes               |
-| `Type.exhaustiveChildren[MyClass]`   | `Type[MyClass].exhaustiveChildren`   | `Option[NonEmptyMap[String, ??<:[MyClass]]]`      | all subtypes                     |
+| `Type.directChildren[MyClass]`       | `Type[MyClass].directChildren`       | `Option[ListMap[String, ??<:[MyClass]]]`          | immediate subtypes (1)           |
+| `Type.exhaustiveChildren[MyClass]`   | `Type[MyClass].exhaustiveChildren`   | `Option[NonEmptyMap[String, ??<:[MyClass]]]`      | all subtypes (1)                 |
 
+1. `directChildren` and `exhaustiveChildren` work for sealed traits, Scala 3 enums, Java enums, and
+   **disjoint union types** (Scala 3 only). For union types like `String | Int`, the flattened members
+   are returned when they are safe for exhaustive pattern matching at runtime — meaning no subtype overlap,
+   no duplicate erasures, and no opaque types. Unsafe unions (e.g. `List[Int] | List[String]`, which
+   erase to the same runtime class) return `None`.
 
 **Visibility checks**:
 
@@ -2469,6 +2475,83 @@ colorExpr match {
   case Blue => handleColor(Blue)
 }
 ```
+
+### Union types (Scala 3 only)
+
+On Scala 3, union types (`A | B`) are supported through the same `directChildren`/`exhaustiveChildren`
+pipeline used by sealed traits and enums. Use `Type.isUnionType` to detect them.
+
+`directChildren` returns `Some` for **disjoint** unions — those whose members can be reliably
+distinguished at runtime via pattern matching:
+
+| Union type              | `directChildren`           | Reason                                    |
+|-------------------------|----------------------------|-------------------------------------------|
+| `String \| Int`         | `Some(String, Int)`        | distinct runtime classes                  |
+| `Boolean \| Double`     | `Some(Boolean, Double)`    | distinct runtime classes                  |
+| `String \| Int \| Boolean` | `Some(String, Int, Boolean)` | nested unions are flattened           |
+| `String \| AnyRef`      | `None`                     | subtype overlap (`String <:< AnyRef`)     |
+| `List[Int] \| List[String]` | `None`                | same erasure (both erase to `List`)       |
+| `Nothing \| String`     | `None`                     | `Nothing` filtered out, leaving 1 member  |
+| `String \| String`      | `None`                     | duplicate, leaving 1 member               |
+| `OpaqueId \| String`    | `None`                     | opaque types have unknown runtime erasure |
+
+On Scala 2, `isUnionType` always returns `false` and `directChildren` is not affected.
+
+!!! example "Inspecting union types in a macro"
+
+    ```scala
+    // file: src/main/scala/example/UnionInspectMacro.scala - part of Union type inspection example
+    //> using scala {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    class UnionInspectMacro(q: Quotes) extends hearth.MacroCommonsScala3(using q) {
+
+      def inspectUnion[A: Type]: Expr[String] = {
+        val isUnion = Type[A].isUnionType
+        val children = Type[A].directChildren
+          .map(_.keys.mkString(", "))
+          .getOrElse("<none>")
+        Expr(s"isUnionType=${isUnion}, directChildren=${children}")
+      }
+    }
+    object UnionInspectMacro {
+
+      def inspectUnionImpl[A: Type](using q: Quotes): Expr[String] =
+        new UnionInspectMacro(q).inspectUnion[A]
+    }
+
+    object Example {
+      inline def inspectUnion[A]: String = ${ UnionInspectMacro.inspectUnionImpl[A] }
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of Union type inspection example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("disjoint union type String | Int is recognized") {
+        val result = Example.inspectUnion[String | Int]
+        assert(result.contains("isUnionType=true"))
+        assert(result.contains("java.lang.String"))
+        assert(result.contains("scala.Int"))
+      }
+
+      test("non-disjoint union List[Int] | List[String] returns no children") {
+        val result = Example.inspectUnion[List[Int] | List[String]]
+        assert(result.contains("isUnionType=true"))
+        assert(result.contains("directChildren=<none>"))
+      }
+
+      test("non-union type is not recognized as union") {
+        val result = Example.inspectUnion[String]
+        assert(result.contains("isUnionType=false"))
+      }
+    }
+    ```
 
 ### `JavaBean[A]`
 
