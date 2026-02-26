@@ -26,7 +26,7 @@ val versions = new {
 
   // Versions we can compile tests against if needed, to check for regressions.
   val scala213Newest = "2.13.18"
-  val scala3Newest = "3.8.1"
+  val scala3Newest = "3.8.3-RC1"
 
   // Which versions should be cross-compiled for publishing.
   val scalas = List(scala213, scala3)
