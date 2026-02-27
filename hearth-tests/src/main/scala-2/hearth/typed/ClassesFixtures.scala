@@ -15,6 +15,9 @@ final private class ClassesFixtures(val c: blackbox.Context) extends MacroCommon
   def testCaseClassConstructAndParConstructImpl[A: c.WeakTypeTag]: c.Expr[String] =
     testCaseClassConstructAndParConstruct[A]
 
+  def testSingletonExprImpl[A: c.WeakTypeTag]: c.Expr[String] =
+    testSingletonExpr[A]
+
   def testCaseClassCaseFieldValuesAtImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] =
     testCaseClassCaseFieldValuesAt[A](expr)
 
@@ -34,6 +37,9 @@ object ClassesFixtures {
 
   def testCaseClassConstructAndParConstruct[A]: String =
     macro ClassesFixtures.testCaseClassConstructAndParConstructImpl[A]
+
+  def testSingletonExpr[A]: String =
+    macro ClassesFixtures.testSingletonExprImpl[A]
 
   def testCaseClassCaseFieldValuesAt[A](expr: A): String = macro ClassesFixtures.testCaseClassCaseFieldValuesAtImpl[A]
 

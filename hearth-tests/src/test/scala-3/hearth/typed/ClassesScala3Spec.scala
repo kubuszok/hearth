@@ -50,6 +50,8 @@ final class ClassesScala3Spec extends MacroSuite {
               Data.map("name" -> Data("writeReplace"), "parameters" -> Data("()"))
             )
           ),
+          "asSingleton" -> Data("<no singleton>"),
+          "asNamedTuple" -> Data("<no named tuple>"),
           "asCaseClass" -> Data("<no case class>"),
           "asEnum" -> Data.map(
             "directChildren" -> Data(

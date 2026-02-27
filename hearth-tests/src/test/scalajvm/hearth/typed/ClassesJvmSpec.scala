@@ -57,6 +57,8 @@ final class ClassesJvmSpec extends MacroSuite {
             "constructors" -> Data.list(Data("()")),
             "methods" -> methods
           ),
+          "asSingleton" -> Data("<no singleton>"),
+          "asNamedTuple" -> Data("<no named tuple>"),
           "asCaseClass" -> Data("<no case class>"),
           "asEnum" -> Data("<no enum>"),
           "asJavaBean" -> Data.map(
@@ -121,6 +123,8 @@ final class ClassesJvmSpec extends MacroSuite {
             "constructors" -> constructors,
             "methods" -> methods
           ),
+          "asSingleton" -> Data("<no singleton>"),
+          "asNamedTuple" -> Data("<no named tuple>"),
           "asCaseClass" -> Data("<no case class>"),
           "asEnum" -> Data.map(
             "directChildren" -> Data(

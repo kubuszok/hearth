@@ -19,6 +19,10 @@ object ClassesFixtures {
   private def testCaseClassConstructAndParConstructImpl[A: Type](using q: Quotes): Expr[String] =
     new ClassesFixtures(q).testCaseClassConstructAndParConstruct[A]
 
+  inline def testSingletonExpr[A]: String = ${ testSingletonExprImpl[A] }
+  private def testSingletonExprImpl[A: Type](using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testSingletonExpr[A]
+
   inline def testCaseClassCaseFieldValuesAt[A](inline expr: A): String = ${
     testCaseClassCaseFieldValuesAtImpl[A]('expr)
   }

@@ -131,18 +131,20 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     final def isArray[A: Type]: Boolean = UntypedType.fromTyped[A].isArray
     final def isIArray[A: Type]: Boolean = UntypedType.fromTyped[A].isIArray
 
-    // TODO: add: java.lang.Class, java.lang.Object, java.lang.Enum, java.lang.EnumValue?
-    // TODO: add: java.lang.reflect.*, java.lang.invoke.*
-    /** Types which are either primitives or specially treated by JVM: Unit, String.
+    /** Types which are either primitives or specially treated by JVM: Unit, String, java.lang.Class.
       *
       * Arrays are also considered built-in types, but we cannot list all possible array types, so we should check for
       * isArray instead.
+      *
+      * All other `java.lang.*` types are also considered built-in (detected via [[isInJavaLangPackage]]).
       */
     final val jvmBuiltInTypes: List[??] = primitiveTypes ++ List(
       Type.of[String].as_??,
-      Type.of[Unit].as_??
+      Type.of[Unit].as_??,
+      Type.of[java.lang.Class[?]].as_??
     )
     final def isJvmBuiltIn[A: Type]: Boolean = UntypedType.fromTyped[A].isJvmBuiltIn
+    final def isInJavaLangPackage[A: Type]: Boolean = UntypedType.fromTyped[A].isInJavaLangPackage
 
     final val typeSystemSpecialTypes: List[??] = List(
       Type.of[Any].as_??,
@@ -166,8 +168,9 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       notJvmBuiltInClass[A] && !(isAbstract[A] || isSealed[A] || isJavaEnum[A] || isJavaEnumValue[A] || isEnumeration[
         A
       ])
-    final def isJavaBean[A: Type]: Boolean =
-      !isObject[A] && isPlainOldJavaObject[A] && Type[A].defaultConstructor.exists(_.isAvailable(Everywhere))
+    final def isJavaBean[A: Type]: Boolean = isJavaBean[A](Everywhere)
+    final def isJavaBean[A: Type](visibility: Accessible): Boolean =
+      !isObject[A] && isPlainOldJavaObject[A] && Type[A].defaultConstructor.exists(_.isAvailable(visibility))
 
     final def isSealed[A: Type]: Boolean = UntypedType.fromTyped[A].isSealed
     final def isJavaEnum[A: Type]: Boolean = UntypedType.fromTyped[A].isJavaEnum
@@ -686,6 +689,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def isPrimitive: Boolean = Type.isPrimitive(using tpe)
     def isArray: Boolean = Type.isArray(using tpe)
     def isIArray: Boolean = Type.isIArray(using tpe)
+    def isInJavaLangPackage: Boolean = Type.isInJavaLangPackage(using tpe)
     def isJvmBuiltIn: Boolean = Type.isJvmBuiltIn(using tpe)
     def isTypeSystemSpecial: Boolean = Type.isTypeSystemSpecial(using tpe)
     def isOpaqueType: Boolean = Type.isOpaqueType(using tpe)
@@ -700,6 +704,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def notJvmBuiltInClass: Boolean = Type.notJvmBuiltInClass(using tpe)
     def isPlainOldJavaObject: Boolean = Type.isPlainOldJavaObject(using tpe)
     def isJavaBean: Boolean = Type.isJavaBean(using tpe)
+    def isJavaBean(visibility: Accessible): Boolean = Type.isJavaBean(visibility)(using tpe)
 
     def isSealed: Boolean = Type.isSealed(using tpe)
     def isJavaEnum: Boolean = Type.isJavaEnum(using tpe)

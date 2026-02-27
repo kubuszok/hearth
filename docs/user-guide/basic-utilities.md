@@ -2166,11 +2166,13 @@ Then we would have to work with `Class[A]`, a convenient utility that aggregates
 
 `Class` also provides specialized views when applicable:
 
-| Method            | Result type                     | Description                   |
-|-------------------|---------------------------------|-------------------------------|
-| `cls.asCaseClass` | `Option[CaseClass[MyClass]]`    | case class view if applicable |
-| `cls.asEnum`      | `Option[Enum[MyClass]]`         | enum view if applicable       |
-| `cls.asJavaBean`  | `Option[JavaBean[MyClass]]`     | Java Bean view if applicable  |
+| Method            | Result type                          | Description                       |
+|-------------------|--------------------------------------|-----------------------------------|
+| `cls.asSingleton` | `Option[SingletonValue[MyClass]]`    | singleton view if applicable      |
+| `cls.asNamedTuple`| `Option[NamedTuple[MyClass]]`        | named tuple view if applicable    |
+| `cls.asCaseClass` | `Option[CaseClass[MyClass]]`         | case class view if applicable     |
+| `cls.asEnum`      | `Option[Enum[MyClass]]`              | enum view if applicable           |
+| `cls.asJavaBean`  | `Option[JavaBean[MyClass]]`          | Java Bean view if applicable      |
 
 These utilities are built on top of `Type` and `Method` - you could implement similar functionality yourself, but they provide convenient shortcuts.
 
@@ -2201,7 +2203,7 @@ Specialized view for case classes, providing access to primary constructor and c
       private val StringType = Type.of[String]
 
       def constructCaseClass[A: Type]: Expr[String] = Expr {
-        CaseClass.parse[A].fold("<no case class>") { caseClass =>
+        CaseClass.parse[A].toOption.fold("<no case class>") { caseClass =>
           val makeArgument: Parameter => MIO[Expr_??] = field => {
             import field.tpe.Underlying as FieldType
             implicit val IntType: Type[Int] = this.IntType
@@ -2295,7 +2297,7 @@ Specialized view for case classes, providing access to primary constructor and c
     trait CaseClassDeconstructMacro { this: hearth.MacroCommons =>
 
       def extractFields[A: Type](expr: Expr[A]): Expr[String] = Expr {
-        CaseClass.parse[A].fold("<no case class>") { caseClass =>
+        CaseClass.parse[A].toOption.fold("<no case class>") { caseClass =>
           caseClass
             .caseFieldValuesAt(expr)
             .toList
@@ -2391,7 +2393,7 @@ Specialized view for sealed traits, Scala 3 enums, Java enums, or disjoint union
       private val StringType = Type.of[String]
 
       def matchEnum[A: Type](expr: Expr[A]): Expr[String] =
-        Enum.parse[A].fold(Expr("<no enum>")) { enumm =>
+        Enum.parse[A].toOption.fold(Expr("<no enum>")) { enumm =>
           implicit val StringType: Type[String] = this.StringType
           val handle: Expr_??<:[A] => MIO[Expr[String]] = matched => {
             import matched.{Underlying as Subtype, value as matchedExpr}
@@ -2588,8 +2590,8 @@ Specialized view for Java Beans (POJOs with default constructor and setters):
     trait JavaBeanConstructMacro { this: hearth.MacroCommons =>
 
       def constructJavaBean[A: Type]: Expr[String] = Expr {
-        JavaBean.parse[A].fold("<no java bean>") { javaBean =>
-          javaBean.constructWithoutSetters
+        JavaBean.parse[A].toOption.fold("<no java bean>") { javaBean =>
+          javaBean.constructWithoutSetters()
             .fold("<failed to construct>")(_.plainPrint)
         }
       }
@@ -2676,7 +2678,7 @@ Specialized view for Java Beans (POJOs with default constructor and setters):
       private val stringType: Type[String] = Type.of[String]
 
       def constructWithSetters[A: Type]: Expr[String] = Expr {
-        JavaBean.parse[A].fold("<no java bean>") { javaBean =>
+        JavaBean.parse[A].toOption.fold("<no java bean>") { javaBean =>
           val setField: (String, Parameter) => MIO[Expr_??] = (name, input) => {
             import input.tpe.Underlying as FieldType
             implicit val BooleanType: Type[Boolean] = booleanType

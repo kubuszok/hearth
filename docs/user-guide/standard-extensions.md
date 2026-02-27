@@ -63,7 +63,7 @@ def asIterable[A: Type]: Option[...] = {
     case _ => None
   }
 }
-def asCaseClass[A: Type]: Option[...] = CaseClass.parse[A].map { caseClass =>
+def asCaseClass[A: Type]: Option[...] = CaseClass.parse[A].toOption.map { caseClass =>
   // ...
 }
 
@@ -387,7 +387,7 @@ Here's a more realistic example showing how you might use `Rules` to build a JSO
       /** Rule 4: Try to encode as case class */
       object AttemptAsOption extends EncoderRule("attempt as case class") {
 
-        def attempt[A](ctx: EncoderContext[A]): MIO[Rule.Applicability[Expr[Json]]] = CaseClass.parse[A] match {
+        def attempt[A](ctx: EncoderContext[A]): MIO[Rule.Applicability[Expr[Json]]] = CaseClass.parse[A].toOption match {
           case Some(caseClass) =>
             caseClass.fieldValuesAt(ctx.encodedExpr).toList.parTraverse { case (fieldName, fieldValue) =>
               fieldName.{Underlying as Field, value}

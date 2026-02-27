@@ -51,6 +51,16 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         )
       )
       .getOrElse(Data("<no enum>"))
+    val asSingleton = clazz.asSingleton
+      .map(s => Data.map("singletonExpr" -> Data(s.singletonExpr.plainPrint)))
+      .getOrElse(Data("<no singleton>"))
+    val asNamedTuple = clazz.asNamedTuple
+      .map(nt =>
+        Data.map(
+          "fields" -> Data(nt.fields.map { case (name, tpe) => s"$name: ${tpe.plainPrint}" }.mkString("(", ", ", ")"))
+        )
+      )
+      .getOrElse(Data("<no named tuple>"))
     val asJavaBean = clazz.asJavaBean
       .map(jb =>
         Data.map(
@@ -62,6 +72,8 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     Expr(
       Data.map(
         "commons" -> common,
+        "asSingleton" -> asSingleton,
+        "asNamedTuple" -> asNamedTuple,
         "asCaseClass" -> asCaseClass,
         "asEnum" -> asEnum,
         "asJavaBean" -> asJavaBean
@@ -91,7 +103,7 @@ trait ClassesFixturesImpl { this: MacroCommons =>
   private val stringType: Type[String] = Type.of[String]
 
   def testCaseClassConstructAndParConstruct[A: Type]: Expr[String] = Expr {
-    CaseClass.parse[A].fold("<no case class>") { caseClass =>
+    CaseClass.parse[A].toOption.fold("<no case class>") { caseClass =>
       val makeArgument: Parameter => MIO[Expr_??] = field => {
         import field.tpe.Underlying as FieldType
         implicit val IntType: Type[Int] = intType
@@ -117,8 +129,14 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
+  def testSingletonExpr[A: Type]: Expr[String] = Expr {
+    SingletonValue.parse[A].toOption.fold("<no singleton>") { singleton =>
+      s"singletonExpr: ${singleton.singletonExpr.plainPrint}"
+    }
+  }
+
   def testCaseClassCaseFieldValuesAt[A: Type](expr: Expr[A]): Expr[String] = Expr {
-    CaseClass.parse[A].fold("<no case class>") { caseClass =>
+    CaseClass.parse[A].toOption.fold("<no case class>") { caseClass =>
       caseClass
         .caseFieldValuesAt(expr)
         .toList
@@ -131,7 +149,7 @@ trait ClassesFixturesImpl { this: MacroCommons =>
   }
 
   def testEnumMatchOnAndParMatchOn[A: Type](expr: Expr[A]): Expr[String] =
-    Enum.parse[A].fold(Expr("<no enum>")) { enumm =>
+    Enum.parse[A].toOption.fold(Expr("<no enum>")) { enumm =>
       implicit val StringType: Type[String] = stringType
       val handle: Expr_??<:[A] => MIO[Expr[String]] = matched => {
         import matched.{Underlying as Subtype, value as matchedExpr}
@@ -156,7 +174,7 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
 
   def testCaseClassDefaultValues[A: Type]: Expr[String] = Expr {
-    CaseClass.parse[A].fold("<no case class>") { caseClass =>
+    CaseClass.parse[A].toOption.fold("<no case class>") { caseClass =>
       caseClass.primaryConstructor.parameters.flatten.toList
         .map { case (name, param) =>
           val defaultStr = if (param.hasDefault) {
@@ -172,7 +190,7 @@ trait ClassesFixturesImpl { this: MacroCommons =>
   }
 
   def testJavaBeanConstructWithSettersAndParConstructWithSetters[A: Type]: Expr[String] = Expr {
-    JavaBean.parse[A].fold("<no java bean>") { javaBean =>
+    JavaBean.parse[A].toOption.fold("<no java bean>") { javaBean =>
       val setField: (String, Parameter) => MIO[Expr_??] = (name, input) => {
         import input.tpe.Underlying as FieldType
         implicit val BooleanType: Type[Boolean] = booleanType

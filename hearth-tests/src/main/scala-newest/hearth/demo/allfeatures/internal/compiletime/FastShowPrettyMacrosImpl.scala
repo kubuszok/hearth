@@ -664,7 +664,7 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
 
     def apply[A: DerivationCtx]: MIO[Rule.Applicability[Expr[StringBuilder]]] =
       Log.info(s"Attempting to handle ${Type[A].prettyPrint} as a case class") >> {
-        CaseClass.parse[A] match {
+        CaseClass.parse[A].toOption match {
           case Some(caseClass) =>
             for {
               _ <- ctx.setHelper[A] { (sb, config, level, value) =>
@@ -763,7 +763,7 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
 
     def apply[A: DerivationCtx]: MIO[Rule.Applicability[Expr[StringBuilder]]] =
       Log.info(s"Attempting to handle ${Type[A].prettyPrint} as an enum") >> {
-        Enum.parse[A] match {
+        Enum.parse[A].toOption match {
           case Some(enumm) =>
             for {
               _ <- ctx.setHelper[A] { (sb, config, level, value) =>

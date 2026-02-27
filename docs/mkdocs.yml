@@ -1,7 +1,7 @@
-site_name: 'Hearth documentation'
+site_name: "Hearth documentation"
 repo_url: https://github.com/MateuszKubuszok/hearth
 edit_uri: edit/master/docs/user-guide/
-docs_dir: 'user-guide'
+docs_dir: "user-guide"
 strict: true # ensures that all links are valid
 theme:
   name: material
@@ -51,17 +51,17 @@ theme:
     repo: fontawesome/brands/github
   logo: assets/images/logo.svg
 nav:
-  - 'Welcome': 'index.md'
-  - 'Basic Utilities': 'basic-utilities.md'
-  - 'Better Printers': 'better-printers.md'
-  - 'Cross Quotes': 'cross-quotes.md'
-  - 'Micro FP': 'micro-fp.md'
-  - 'Standard Extensions': 'standard-extensions.md'
-  - 'Debug Utilities': 'debug-utilities.md'
-  - 'Source Utilities': 'source-utilities.md'
-  - 'Type Name Utilities': 'typename-utilities.md'
-  - 'Best Practices': 'best-practices.md'
-  - 'FAQ': 'faq.md'
+  - "Welcome": "index.md"
+  - "Basic Utilities": "basic-utilities.md"
+  - "Better Printers": "better-printers.md"
+  - "Cross Quotes": "cross-quotes.md"
+  - "Micro FP": "micro-fp.md"
+  - "Standard Extensions": "standard-extensions.md"
+  - "Debug Utilities": "debug-utilities.md"
+  - "Source Utilities": "source-utilities.md"
+  - "Type Name Utilities": "typename-utilities.md"
+  - "Best Practices": "best-practices.md"
+  - "FAQ": "faq.md"
 markdown_extensions:
   - admonition
   - pymdownx.details
@@ -95,12 +95,12 @@ extra:
       link: https://twitter.com/@MateuszKubuszok
   scala:
     2_13: "2.13.16"
-    3:    "3.3.7"
+    3: "3.3.7"
     newest_2_13: "2.13.18"
-    newest_3:    "3.8.1"
+    newest_3: "3.8.2"
   libraries:
-    kindProjector:    "0.13.4"
-    munit:            "1.2.0"
-    pprint:           "0.9.3"
+    kindProjector: "0.13.4"
+    munit: "1.2.0"
+    pprint: "0.9.3"
   local:
-    tag: !ENV [CI_LATEST_TAG, 'latest'] # used as git.tag fallback in Docker container
+    tag: !ENV [CI_LATEST_TAG, "latest"] # used as git.tag fallback in Docker container
