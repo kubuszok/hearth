@@ -141,6 +141,11 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       }
     }
 
+    override def isInJavaLangPackage(instanceTpe: UntypedType): Boolean = {
+      val sym = instanceTpe.typeSymbol
+      sym != NoSymbol && sym.owner.isPackage && sym.owner.fullName == "java.lang"
+    }
+
     override def isOpaqueType(instanceTpe: UntypedType): Boolean = false
 
     override def isTuple(instanceTpe: UntypedType): Boolean = {

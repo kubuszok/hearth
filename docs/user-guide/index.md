@@ -182,6 +182,8 @@ The majority of the macro code is shared by putting it into a mix-in trait.
         } orElse runSafe {
           attemptAsIterable[A](value)
         } orElse runSafe {
+          attemptAsSingleton[A](value)
+        } orElse runSafe {
           attemptAsCaseClass[A](value)
         } orElse runSafe {
           attemptAsEnum[A](value)
@@ -305,44 +307,53 @@ The majority of the macro code is shared by putting it into a mix-in trait.
               case None => Log.info(s"Failed to use iterable support to show value of type ${Type.prettyPrint[A]}")
             }
 
+      /** Attempts to show `A` value as a singleton (case object, enum val, etc.). */
+      private def attemptAsSingleton[A: Type](@scala.annotation.unused value: Expr[A]): Attempt[String] =
+        Log.info(s"Attempting to use singleton support to show value of type ${Type.prettyPrint[A]}") >> MIO {
+          SingletonValue.parse[A].toOption.map { _ =>
+            Expr(Type.shortName[A])
+          }
+        }.flatTap {
+          case Some(expr) =>
+            Log.info(
+              s"Successfully used singleton support to show value of type ${Type.prettyPrint[A]}:\n${expr.prettyPrint}"
+            )
+          case None => Log.info(s"Failed to use singleton support to show value of type ${Type.prettyPrint[A]}")
+        }
+
       /** Attempts to show `A` value using a case class support. */
       private def attemptAsCaseClass[A: Type](value: Expr[A]): Attempt[String] =
         Log.info(s"Attempting to use case class support to show value of type ${Type.prettyPrint[A]}") >>
           CaseClass
             .parse[A]
+            .toOption
             .parTraverse { caseClass =>
-              val nameExpr = Expr(Type.shortName[A])
-
-              if (Type[A].isCaseObject || Type[A].isCaseVal) {
-                MIO.pure(nameExpr)
-              } else {
-                caseClass
-                  .caseFieldValuesAt(value)
-                  .toList
-                  .parTraverse { case (name, fieldValue) =>
-                    import fieldValue.{Underlying as FieldType, value as fieldExpr}
-                    Log.namedScope(s"Attempting field `$name`: ${Type.prettyPrint[FieldType]} of ${Type.prettyPrint[A]}") {
-                      attemptAllRules[FieldType](fieldExpr).map { result =>
-                        Expr.quote {
-                          Expr.splice(Expr(name)) + " = " + Expr.splice(result)
-                        }
+              caseClass
+                .caseFieldValuesAt(value)
+                .toList
+                .parTraverse { case (name, fieldValue) =>
+                  import fieldValue.{Underlying as FieldType, value as fieldExpr}
+                  Log.namedScope(s"Attempting field `$name`: ${Type.prettyPrint[FieldType]} of ${Type.prettyPrint[A]}") {
+                    attemptAllRules[FieldType](fieldExpr).map { result =>
+                      Expr.quote {
+                        Expr.splice(Expr(name)) + " = " + Expr.splice(result)
                       }
                     }
                   }
-                  .map { fieldResults =>
-                    val name = Type.shortName[A]
-                    val inner = fieldResults
-                      .reduceOption { (a, b) =>
-                        Expr.quote {
-                          Expr.splice(a) + ", " + Expr.splice(b)
-                        }
+                }
+                .map { fieldResults =>
+                  val name = Type.shortName[A]
+                  val inner = fieldResults
+                    .reduceOption { (a, b) =>
+                      Expr.quote {
+                        Expr.splice(a) + ", " + Expr.splice(b)
                       }
-                      .getOrElse(Expr(""))
-                    Expr.quote {
-                      Expr.splice(Expr(name)) + "(" + Expr.splice(inner) + ")"
                     }
+                    .getOrElse(Expr(""))
+                  Expr.quote {
+                    Expr.splice(Expr(name)) + "(" + Expr.splice(inner) + ")"
                   }
-              }
+                }
             }
             .flatTap {
               case Some(expr) =>
@@ -357,6 +368,7 @@ The majority of the macro code is shared by putting it into a mix-in trait.
         Log.info(s"Attempting to use enum support to show value of type ${Type.prettyPrint[A]}") >>
           Enum
             .parse[A]
+            .toOption
             .traverse { enumm =>
               implicit val String: Type[String] = Types.String
               enumm.parMatchOn(value) { matchedSubtype =>

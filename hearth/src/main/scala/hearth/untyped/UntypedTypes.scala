@@ -75,10 +75,15 @@ trait UntypedTypes { this: MacroCommons =>
               }
             case _ =>
               toClassJvmBuiltInExtra(untyped).orElse {
-                // $COVERAGE-OFF$
-                hearthAssertionFailed(
-                  s"${untyped.prettyPrint} is recognized as built-in type, but is not handled by a built-in branch"
-                )
+                if (isInJavaLangPackage(untyped))
+                  Type.possibleClassesOfType(untyped.asTyped[Any]).collectFirst { case AvailableClass(value) =>
+                    value
+                  }
+                else
+                  // $COVERAGE-OFF$
+                  hearthAssertionFailed(
+                    s"${untyped.prettyPrint} is recognized as built-in type, but is not handled by a built-in branch"
+                  )
                 // $COVERAGE-ON$
               }
           }
@@ -98,10 +103,11 @@ trait UntypedTypes { this: MacroCommons =>
     final def isJvmBuiltIn(instanceTpe: UntypedType): Boolean =
       Type.jvmBuiltInTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying)) || isArray(
         instanceTpe
-      ) || isIArray(instanceTpe)
+      ) || isIArray(instanceTpe) || isInJavaLangPackage(instanceTpe)
     final def isTypeSystemSpecial(instanceTpe: UntypedType): Boolean =
       Type.typeSystemSpecialTypes.exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))
 
+    def isInJavaLangPackage(instanceTpe: UntypedType): Boolean
     def isOpaqueType(instanceTpe: UntypedType): Boolean
     def isTuple(instanceTpe: UntypedType): Boolean
     def isNamedTuple(instanceTpe: UntypedType): Boolean = false
@@ -184,6 +190,7 @@ trait UntypedTypes { this: MacroCommons =>
     def isPrimitive: Boolean = UntypedType.isPrimitive(untyped)
     def isArray: Boolean = UntypedType.isArray(untyped)
     def isIArray: Boolean = UntypedType.isIArray(untyped)
+    def isInJavaLangPackage: Boolean = UntypedType.isInJavaLangPackage(untyped)
     def isJvmBuiltIn: Boolean = UntypedType.isJvmBuiltIn(untyped)
     def isTypeSystemSpecial: Boolean = UntypedType.isTypeSystemSpecial(untyped)
     def isOpaqueType: Boolean = UntypedType.isOpaqueType(untyped)

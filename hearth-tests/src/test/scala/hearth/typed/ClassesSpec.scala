@@ -36,6 +36,8 @@ final class ClassesSpec extends MacroSuite {
             "constructors" -> Data.list(Data("()")),
             "methods" -> Data.list()
           ),
+          "asSingleton" -> Data("<no singleton>"),
+          "asNamedTuple" -> Data("<no named tuple>"),
           "asCaseClass" -> Data("<no case class>"),
           "asEnum" -> Data("<no enum>"),
           "asJavaBean" -> Data.map(
@@ -118,6 +120,8 @@ final class ClassesSpec extends MacroSuite {
             "constructors" -> Data.list(Data("(a: scala.Int)")),
             "methods" -> methods
           ),
+          "asSingleton" -> Data("<no singleton>"),
+          "asNamedTuple" -> Data("<no named tuple>"),
           "asCaseClass" -> Data.map(
             "primaryConstructor" -> Data("(a: scala.Int)"),
             "nonPrimaryConstructors" -> Data.list(Data("(a: scala.Int)")),
@@ -178,6 +182,8 @@ final class ClassesSpec extends MacroSuite {
             "constructors" -> constructors,
             "methods" -> methods
           ),
+          "asSingleton" -> Data("<no singleton>"),
+          "asNamedTuple" -> Data("<no named tuple>"),
           "asCaseClass" -> Data("<no case class>"),
           "asEnum" -> Data.map(
             "directChildren" -> Data(
@@ -199,14 +205,20 @@ final class ClassesSpec extends MacroSuite {
         "sequential: new hearth.examples.classes.ExampleCaseClass(0), parallel: new hearth.examples.classes.ExampleCaseClass(0)"
     }
 
-    test("CaseClass[A].{construct and parConstruct} should construct a case object singleton") {
-      import ClassesFixtures.testCaseClassConstructAndParConstruct
+    test("SingletonValue[A] should return the singleton expression for a case object") {
+      import ClassesFixtures.testSingletonExpr
 
       val result =
-        testCaseClassConstructAndParConstruct[examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type]
-      assert(result.startsWith("sequential: "), s"Expected 'sequential: ...' but got: $result")
+        testSingletonExpr[examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type]
+      assert(result.startsWith("singletonExpr: "), s"Expected 'singletonExpr: ...' but got: $result")
       assert(result.contains("ExampleSealedTraitObject"), s"Expected singleton reference but got: $result")
-      assert(!result.contains("new "), s"Expected singleton reference (no 'new') but got: $result")
+    }
+
+    test("CaseClass[A].{construct and parConstruct} should return <no case class> for a case object") {
+      import ClassesFixtures.testCaseClassConstructAndParConstruct
+
+      testCaseClassConstructAndParConstruct[examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type] <==>
+        "<no case class>"
     }
 
     test("CaseClass[A].caseFieldValuesAt should extract fields of the case class") {

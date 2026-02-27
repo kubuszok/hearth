@@ -23,6 +23,8 @@ trait Classes { this: MacroCommons =>
     final lazy val methods: List[Method.Of[A]] = tpe.methods
     final def method(name: String): List[Method.Of[A]] = methods.filter(_.value.name == name)
 
+    final def asSingleton: Option[SingletonValue[A]] = SingletonValue.unapply(tpe)
+    final def asNamedTuple: Option[NamedTuple[A]] = NamedTuple.unapply(tpe)
     final def asCaseClass: Option[CaseClass[A]] = CaseClass.unapply(tpe)
     final def asEnum: Option[Enum[A]] = Enum.unapply(tpe)
     final def asJavaBean: Option[JavaBean[A]] = JavaBean.unapply(tpe)
@@ -37,75 +39,198 @@ trait Classes { this: MacroCommons =>
   object Class {
 
     def apply[A: Type]: Class[A] = Type[A] match {
-      case CaseClass(cc) => cc
-      case Enum(e)       => e
-      case JavaBean(jb)  => jb
-      case _             => new Class()(Type[A])
+      case SingletonValue(s) => s
+      case NamedTuple(nt)    => nt
+      case CaseClass(cc)     => cc
+      case Enum(e)           => e
+      case JavaBean(jb)      => jb
+      case _                 => new Class()(Type[A])
     }
+
+    /** Parses a type as a [[Class]].
+      *
+      * Always returns [[ClassViewResult.Compatible]] since [[Class]] is the most general view.
+      *
+      * @since 0.4.0
+      */
+    def parse[A: Type]: ClassViewResult[Class[A]] = ClassViewResult.Compatible(apply[A])
+  }
+
+  /** Result of parsing a type into a class view.
+    *
+    * @since 0.4.0
+    */
+  sealed trait ClassViewResult[+V] extends Product with Serializable {
+    def toOption: Option[V]
+    def toEither: Either[String, V]
+  }
+  object ClassViewResult {
+
+    /** The type is compatible with the requested class view.
+      *
+      * @since 0.4.0
+      */
+    final case class Compatible[V](value: V) extends ClassViewResult[V] {
+      def toOption: Option[V] = Some(value)
+      def toEither: Either[String, V] = Right(value)
+    }
+
+    /** The type is incompatible with the requested class view.
+      *
+      * @since 0.4.0
+      */
+    final case class Incompatible(reason: String) extends ClassViewResult[Nothing] {
+      def toOption: Option[Nothing] = None
+      def toEither: Either[String, Nothing] = Left(reason)
+    }
+  }
+
+  /** Represents a singleton value: case objects, parameterless Scala 3 enum cases, normal objects, Java enum values, or
+    * Scala Enumeration values.
+    *
+    * @since 0.4.0
+    */
+  final class SingletonValue[A] private (
+      tpe0: Type[A],
+      val singletonExpr: Expr[A]
+  ) extends Class[A]()(using tpe0) {
+
+    override def toString: String = s"SingletonValue(${tpe.plainPrint})"
+
+    override def equals(other: Any): Boolean = other match {
+      case that: SingletonValue[?] => tpe =:= that.tpe
+      case _                       => false
+    }
+  }
+  object SingletonValue {
+
+    def unapply[A](tpe: Type[A]): Option[SingletonValue[A]] =
+      Expr.singletonOf[A](using tpe).map(new SingletonValue(tpe, _))
+
+    /** Parses a type as a [[SingletonValue]].
+      *
+      * @since 0.4.0
+      */
+    def parse[A: Type]: ClassViewResult[SingletonValue[A]] =
+      unapply(Type[A]) match {
+        case Some(s) => ClassViewResult.Compatible(s)
+        case None    => ClassViewResult.Incompatible(s"${Type.prettyPrint[A]} is not a singleton type")
+      }
+  }
+
+  /** Represents a named tuple (Scala 3.7+ only).
+    *
+    * It's a specialization of a [[Class]] that's aware that the type is a named tuple, providing access to its fields
+    * and a way to construct instances.
+    *
+    * @since 0.4.0
+    */
+  final class NamedTuple[A] private (
+      tpe0: Type[A],
+      private val primaryConstructor0: Method.NoInstance[A]
+  ) extends Class[A]()(using tpe0) {
+
+    val primaryConstructor: Method.NoInstance[A] = primaryConstructor0
+
+    lazy val fields: List[(String, ??)] = primaryConstructor.parameters.flatten.toList.map { case (name, param) =>
+      name -> param.tpe
+    }
+
+    def construct[F[_]: DirectStyle: Applicative](
+        makeArgument: CaseClass.ConstructField[F],
+        visibility: Accessible = Everywhere
+    ): F[Option[Expr[A]]] =
+      if (!primaryConstructor.isAvailable(visibility)) Option.empty[Expr[A]].pure[F]
+      else
+        DirectStyle[F].scoped { runSafe =>
+          val fieldResults = runSafe(
+            primaryConstructor.parameters.flatten.toList.traverse { case (name, parameter) =>
+              DirectStyle[F].scoped { runSafe2 =>
+                import parameter.tpe.Underlying
+                name -> runSafe2(makeArgument(parameter)).as_??
+              }
+            }
+          )
+          primaryConstructor(fieldResults.toMap) match {
+            case Right(value) => Some(value)
+            case Left(error)  =>
+              throw new AssertionError(s"Failed to call the primary constructor of ${tpe.prettyPrint}: $error")
+          }
+        }
+
+    override def toString: String = s"NamedTuple(${tpe.plainPrint})"
+
+    override def equals(other: Any): Boolean = other match {
+      case that: NamedTuple[?] => tpe =:= that.tpe
+      case _                   => false
+    }
+  }
+  object NamedTuple {
+
+    def unapply[A](tpe: Type[A]): Option[NamedTuple[A]] =
+      if (tpe.isNamedTuple) tpe.primaryConstructor.map(new NamedTuple(tpe, _))
+      else None
+
+    /** Parses a type as a [[NamedTuple]].
+      *
+      * @since 0.4.0
+      */
+    def parse[A: Type]: ClassViewResult[NamedTuple[A]] =
+      if (!Type.isNamedTuple[A])
+        ClassViewResult.Incompatible(s"${Type.prettyPrint[A]} is not a named tuple")
+      else
+        Type[A].primaryConstructor match {
+          case Some(ctor) => ClassViewResult.Compatible(new NamedTuple(Type[A], ctor))
+          case None       =>
+            ClassViewResult.Incompatible(s"${Type.prettyPrint[A]} is a named tuple but has no primary constructor")
+        }
   }
 
   /** Represents a case class.
     *
     * It's a specialization of a [[Class]] that's aware, that some of its methods are case fields.
     *
-    * Also handles case objects, parameterless Scala 3 enum cases, and other singleton case types. For singletons,
-    * `construct` and `parConstruct` return the singleton instance directly (via [[Expr.singletonOf]]) rather than
-    * calling the constructor.
+    * Singletons (case objects, parameterless enum cases) are no longer handled by this class — use [[SingletonValue]]
+    * instead.
     *
     * @since 0.1.0
     */
   final class CaseClass[A] private (
       tpe0: Type[A],
-      private val primaryConstructor0: Option[Method.NoInstance[A]]
+      private val primaryConstructor0: Method.NoInstance[A]
   ) extends Class[A]()(using tpe0) {
 
     /** The primary constructor.
       *
-      * For singletons without a real constructor (e.g. parameterless Scala 3 enum cases), this throws
-      * [[UnsupportedOperationException]]. Use `construct`/`parConstruct` instead, which handle singletons
-      * automatically.
-      *
       * @since 0.1.0
       */
-    lazy val primaryConstructor: Method.NoInstance[A] = primaryConstructor0.getOrElse {
-      throw new UnsupportedOperationException(
-        s"${tpe.prettyPrint} is a singleton and has no primary constructor. Use construct/parConstruct instead."
-      )
-    }
-
-    /** Whether this CaseClass represents a singleton (case object or parameterless enum case).
-      *
-      * @since 0.3.0
-      */
-    lazy val isSingleton: Boolean = Expr.singletonOf[A].isDefined
+    val primaryConstructor: Method.NoInstance[A] = primaryConstructor0
 
     lazy val nonPrimaryConstructors: List[Method.NoInstance[A]] =
-      primaryConstructor0.fold(constructors)(pc => constructors.filter(_ != pc))
+      constructors.filter(_ != primaryConstructor)
     lazy val caseFields: List[Method.Of[A]] = methods.filter(_.value.isCaseField)
 
-    def construct[F[_]: DirectStyle: Applicative](makeArgument: CaseClass.ConstructField[F]): F[Option[Expr[A]]] =
-      Expr.singletonOf[A] match {
-        case Some(singleton) => (Some(singleton): Option[Expr[A]]).pure[F]
-        case None            =>
-          primaryConstructor0 match {
-            case Some(ctor) if ctor.isAvailable(Everywhere) =>
-              callConstructor(ctor)(ctor.parameters.flatten.toList.traverse(buildFieldResults(makeArgument)))
-            case _ => Option.empty[Expr[A]].pure[F]
-          }
-      }
+    def construct[F[_]: DirectStyle: Applicative](
+        makeArgument: CaseClass.ConstructField[F],
+        visibility: Accessible = Everywhere
+    ): F[Option[Expr[A]]] =
+      if (!primaryConstructor.isAvailable(visibility)) Option.empty[Expr[A]].pure[F]
+      else
+        callConstructor(primaryConstructor)(
+          primaryConstructor.parameters.flatten.toList.traverse(buildFieldResults(makeArgument))
+        )
     def construct[F[_]: DirectStyle: Applicative](makeArgument: Parameter => F[Expr_??]): F[Option[Expr[A]]] =
       construct(CaseClass.ConstructField.apply[F](makeArgument))
 
-    def parConstruct[F[_]: DirectStyle: Parallel](makeArgument: CaseClass.ConstructField[F]): F[Option[Expr[A]]] =
-      Expr.singletonOf[A] match {
-        case Some(singleton) => (Some(singleton): Option[Expr[A]]).pure[F]
-        case None            =>
-          primaryConstructor0 match {
-            case Some(ctor) if ctor.isAvailable(Everywhere) =>
-              callConstructor(ctor)(ctor.parameters.flatten.toList.parTraverse(buildFieldResults(makeArgument)))
-            case _ => Option.empty[Expr[A]].pure[F]
-          }
-      }
+    def parConstruct[F[_]: DirectStyle: Parallel](
+        makeArgument: CaseClass.ConstructField[F],
+        visibility: Accessible = Everywhere
+    ): F[Option[Expr[A]]] =
+      if (!primaryConstructor.isAvailable(visibility)) Option.empty[Expr[A]].pure[F]
+      else
+        callConstructor(primaryConstructor)(
+          primaryConstructor.parameters.flatten.toList.parTraverse(buildFieldResults(makeArgument))
+        )
     def parConstruct[F[_]: DirectStyle: Parallel](makeArgument: Parameter => F[Expr_??]): F[Option[Expr[A]]] =
       parConstruct(CaseClass.ConstructField.apply[F](makeArgument))
 
@@ -157,16 +282,26 @@ trait Classes { this: MacroCommons =>
   object CaseClass {
 
     def unapply[A](tpe: Type[A]): Option[CaseClass[A]] =
-      if (tpe.isCase)
-        tpe.primaryConstructor match {
-          case Some(ctor) => Some(new CaseClass(tpe, Some(ctor)))
-          case None       =>
-            // Singletons without a real constructor (e.g. parameterless Scala 3 enum cases)
-            if (tpe.isCaseObject || tpe.isCaseVal) Some(new CaseClass(tpe, None))
-            else None
-        }
+      if (tpe.isCaseClass) tpe.primaryConstructor.map(new CaseClass(tpe, _))
       else None
-    def parse[A: Type]: Option[CaseClass[A]] = unapply(Type[A])
+
+    /** Parses a type as a [[CaseClass]].
+      *
+      * @since 0.4.0
+      */
+    def parse[A: Type]: ClassViewResult[CaseClass[A]] =
+      unapply(Type[A]) match {
+        case Some(cc) => ClassViewResult.Compatible(cc)
+        case None     =>
+          if (Type.isCaseObject[A] || Type.isCaseVal[A])
+            ClassViewResult.Incompatible(
+              s"${Type.prettyPrint[A]} is a singleton, use SingletonValue instead of CaseClass"
+            )
+          else if (!Type.isCase[A])
+            ClassViewResult.Incompatible(s"${Type.prettyPrint[A]} is not a case class")
+          else
+            ClassViewResult.Incompatible(s"${Type.prettyPrint[A]} is a case type but has no primary constructor")
+      }
 
     @FunctionalInterface
     trait ConstructField[F[_]] {
@@ -278,7 +413,24 @@ trait Classes { this: MacroCommons =>
       else if (tpe.isEnumeration) tpe.directChildren.map(children => new Enum(tpe, children))
       else if (tpe.isUnionType) tpe.directChildren.map(children => new Enum(tpe, children))
       else None
-    def parse[A: Type]: Option[Enum[A]] = unapply(Type[A])
+
+    /** Parses a type as an [[Enum]].
+      *
+      * @since 0.4.0
+      */
+    def parse[A: Type]: ClassViewResult[Enum[A]] =
+      unapply(Type[A]) match {
+        case Some(e) => ClassViewResult.Compatible(e)
+        case None    =>
+          if (Type.isSealed[A] || Type.isEnumeration[A] || Type.isUnionType[A])
+            ClassViewResult.Incompatible(
+              s"${Type.prettyPrint[A]} is sealed/enumeration/union but has no direct children"
+            )
+          else
+            ClassViewResult.Incompatible(
+              s"${Type.prettyPrint[A]} is not sealed, not an enumeration, and not a union type"
+            )
+      }
   }
 
   /** Represents a Java bean.
@@ -308,8 +460,8 @@ trait Classes { this: MacroCommons =>
         setter
       }
 
-    def constructWithoutSetters: Option[Expr[A]] =
-      if (!defaultConstructor.isAvailable(Everywhere)) Option.empty[Expr[A]]
+    def constructWithoutSetters(visibility: Accessible = Everywhere): Option[Expr[A]] =
+      if (!defaultConstructor.isAvailable(visibility)) Option.empty[Expr[A]]
       else
         Some(
           defaultConstructor
@@ -318,8 +470,11 @@ trait Classes { this: MacroCommons =>
             .upcast[A]
         )
 
-    def constructWithSetters[F[_]: DirectStyle: Applicative](setField: JavaBean.SetField[F]): F[Option[Expr[A]]] =
-      constructWithoutSetters.traverse[F, Expr[A]] { constructorExpr =>
+    def constructWithSetters[F[_]: DirectStyle: Applicative](
+        setField: JavaBean.SetField[F],
+        visibility: Accessible = Everywhere
+    ): F[Option[Expr[A]]] =
+      constructWithoutSetters(visibility).traverse[F, Expr[A]] { constructorExpr =>
         ValDefs
           .createVal(constructorExpr)
           .traverse { constructorResult =>
@@ -334,8 +489,11 @@ trait Classes { this: MacroCommons =>
     ): F[Option[Expr[A]]] =
       constructWithSetters(JavaBean.SetField.apply[F](setField))
 
-    def parConstructWithSetters[F[_]: DirectStyle: Parallel](setField: JavaBean.SetField[F]): F[Option[Expr[A]]] =
-      constructWithoutSetters.traverse[F, Expr[A]] { constructorExpr =>
+    def parConstructWithSetters[F[_]: DirectStyle: Parallel](
+        setField: JavaBean.SetField[F],
+        visibility: Accessible = Everywhere
+    ): F[Option[Expr[A]]] =
+      constructWithoutSetters(visibility).traverse[F, Expr[A]] { constructorExpr =>
         ValDefs
           .createVal(constructorExpr)
           .parTraverse { constructorResult =>
@@ -390,7 +548,22 @@ trait Classes { this: MacroCommons =>
     def unapply[A](tpe: Type[A]): Option[JavaBean[A]] =
       if (tpe.isJavaBean) tpe.defaultConstructor.map(new JavaBean(tpe, _))
       else None
-    def parse[A: Type]: Option[JavaBean[A]] = unapply(Type[A])
+
+    /** Parses a type as a [[JavaBean]].
+      *
+      * @since 0.4.0
+      */
+    def parse[A: Type]: ClassViewResult[JavaBean[A]] =
+      unapply(Type[A]) match {
+        case Some(jb) => ClassViewResult.Compatible(jb)
+        case None     =>
+          if (Type.isPlainOldJavaObject[A] && !Type.isObject[A])
+            ClassViewResult.Incompatible(
+              s"${Type.prettyPrint[A]} is a POJO but has no public default constructor"
+            )
+          else
+            ClassViewResult.Incompatible(s"${Type.prettyPrint[A]} is not a plain old Java object")
+      }
 
     @FunctionalInterface
     trait SetField[F[_]] {

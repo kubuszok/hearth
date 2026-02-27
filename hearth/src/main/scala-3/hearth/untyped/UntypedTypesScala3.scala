@@ -87,6 +87,11 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     override def fromClass(clazz: java.lang.Class[?]): UntypedType = TypeRepr.typeConstructorOf(clazz)
 
+    override def isInJavaLangPackage(instanceTpe: UntypedType): Boolean = {
+      val sym = instanceTpe.typeSymbol
+      !sym.isNoSymbol && sym.owner.isPackageDef && sym.owner.fullName == "java.lang"
+    }
+
     override def isOpaqueType(instanceTpe: UntypedType): Boolean = {
       val sym = instanceTpe.dealias.typeSymbol
       !sym.isNoSymbol && sym.flags.is(Flags.Opaque)
