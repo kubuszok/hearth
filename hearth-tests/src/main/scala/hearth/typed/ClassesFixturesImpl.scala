@@ -189,6 +189,32 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
+  def testNamedTupleConstructAndFields[A: Type]: Expr[String] = Expr {
+    NamedTuple.parse[A].toOption.fold("<no named tuple>") { namedTuple =>
+      val fieldsStr = namedTuple.fields
+        .map { case (name, tpe) => s"$name: ${tpe.plainPrint}" }
+        .mkString("(", ", ", ")")
+
+      val makeArgument: CaseClass.ConstructField[MIO] =
+        CaseClass.ConstructField[MIO] { field =>
+          import field.tpe.Underlying as FieldType
+          implicit val IntType: Type[Int] = intType
+          implicit val StringType: Type[String] = stringType
+          if (FieldType <:< Type[Int]) MIO.pure(Expr(0).as_??)
+          else if (FieldType <:< Type[String]) MIO.pure(Expr(field.name).as_??)
+          else MIO.fail(new Exception(s"Field ${field.name} has wrong type: ${field.tpe.plainPrint}"))
+        }
+      val constructed = namedTuple.construct(makeArgument).map { result =>
+        result.fold("<failed to construct>")(_.plainPrint)
+      }
+      constructed.unsafe.runSync._2
+        .fold(
+          errors => s"fields: $fieldsStr, construct: <failed: ${errors.mkString(", ")}>",
+          constructStr => s"fields: $fieldsStr, construct: $constructStr"
+        )
+    }
+  }
+
   def testJavaBeanConstructWithSettersAndParConstructWithSetters[A: Type]: Expr[String] = Expr {
     JavaBean.parse[A].toOption.fold("<no java bean>") { javaBean =>
       val setField: (String, Parameter) => MIO[Expr_??] = (name, input) => {

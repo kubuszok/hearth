@@ -51,14 +51,14 @@ trait Classes { this: MacroCommons =>
       *
       * Always returns [[ClassViewResult.Compatible]] since [[Class]] is the most general view.
       *
-      * @since 0.4.0
+      * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[Class[A]] = ClassViewResult.Compatible(apply[A])
   }
 
   /** Result of parsing a type into a class view.
     *
-    * @since 0.4.0
+    * @since 0.3.0
     */
   sealed trait ClassViewResult[+V] extends Product with Serializable {
     def toOption: Option[V]
@@ -68,7 +68,7 @@ trait Classes { this: MacroCommons =>
 
     /** The type is compatible with the requested class view.
       *
-      * @since 0.4.0
+      * @since 0.3.0
       */
     final case class Compatible[V](value: V) extends ClassViewResult[V] {
       def toOption: Option[V] = Some(value)
@@ -77,7 +77,7 @@ trait Classes { this: MacroCommons =>
 
     /** The type is incompatible with the requested class view.
       *
-      * @since 0.4.0
+      * @since 0.3.0
       */
     final case class Incompatible(reason: String) extends ClassViewResult[Nothing] {
       def toOption: Option[Nothing] = None
@@ -88,7 +88,7 @@ trait Classes { this: MacroCommons =>
   /** Represents a singleton value: case objects, parameterless Scala 3 enum cases, normal objects, Java enum values, or
     * Scala Enumeration values.
     *
-    * @since 0.4.0
+    * @since 0.3.0
     */
   final class SingletonValue[A] private (
       tpe0: Type[A],
@@ -109,7 +109,7 @@ trait Classes { this: MacroCommons =>
 
     /** Parses a type as a [[SingletonValue]].
       *
-      * @since 0.4.0
+      * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[SingletonValue[A]] =
       unapply(Type[A]) match {
@@ -123,7 +123,7 @@ trait Classes { this: MacroCommons =>
     * It's a specialization of a [[Class]] that's aware that the type is a named tuple, providing access to its fields
     * and a way to construct instances.
     *
-    * @since 0.4.0
+    * @since 0.3.0
     */
   final class NamedTuple[A] private (
       tpe0: Type[A],
@@ -173,7 +173,7 @@ trait Classes { this: MacroCommons =>
 
     /** Parses a type as a [[NamedTuple]].
       *
-      * @since 0.4.0
+      * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[NamedTuple[A]] =
       if (!Type.isNamedTuple[A])
@@ -287,7 +287,7 @@ trait Classes { this: MacroCommons =>
 
     /** Parses a type as a [[CaseClass]].
       *
-      * @since 0.4.0
+      * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[CaseClass[A]] =
       unapply(Type[A]) match {
@@ -416,7 +416,7 @@ trait Classes { this: MacroCommons =>
 
     /** Parses a type as an [[Enum]].
       *
-      * @since 0.4.0
+      * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[Enum[A]] =
       unapply(Type[A]) match {
@@ -551,7 +551,7 @@ trait Classes { this: MacroCommons =>
 
     /** Parses a type as a [[JavaBean]].
       *
-      * @since 0.4.0
+      * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[JavaBean[A]] =
       unapply(Type[A]) match {

@@ -39,6 +39,10 @@ object ClassesFixtures {
   private def testCaseClassDefaultValuesImpl[A: Type](using q: Quotes): Expr[String] =
     new ClassesFixtures(q).testCaseClassDefaultValues[A]
 
+  inline def testNamedTupleConstructAndFields[A]: String = ${ testNamedTupleConstructAndFieldsImpl[A] }
+  private def testNamedTupleConstructAndFieldsImpl[A: Type](using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testNamedTupleConstructAndFields[A]
+
   inline def testJavaBeanConstructWithSettersAndParConstructWithSetters[A]: String = ${
     testJavaBeanConstructWithSettersAndParConstructWithSettersImpl[A]
   }
