@@ -551,23 +551,23 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
 
     def apply[A: DerivationCtx]: MIO[Rule.Applicability[Expr[StringBuilder]]] =
       Log.info(s"Attempting to handle ${Type[A].prettyPrint} as a named tuple") >> {
-        if (!Type[A].isNamedTuple) yieldUnsupportedType[A]
-        else
-          Type[A].primaryConstructor match {
-            case Some(constructor) =>
-              for {
-                _ <- ctx.setHelper[A] { (sb, config, level, value) =>
-                  deriveNamedTupleFields[A](constructor)(using ctx.nestInCache(sb, value, config, level))
-                }
-                result <- ctx.getHelper[A].flatMap {
-                  case Some(helperCall) =>
-                    MIO.pure(Rule.matched(helperCall(ctx.sb, ctx.config, ctx.level, ctx.value)))
-                  case None => yieldUnsupportedType[A]
-                }
-              } yield result
+        NamedTuple.parse[A].toOption match {
+          case Some(namedTuple) =>
+            for {
+              _ <- ctx.setHelper[A] { (sb, config, level, value) =>
+                deriveNamedTupleFields[A](namedTuple.primaryConstructor)(using
+                  ctx.nestInCache(sb, value, config, level)
+                )
+              }
+              result <- ctx.getHelper[A].flatMap {
+                case Some(helperCall) =>
+                  MIO.pure(Rule.matched(helperCall(ctx.sb, ctx.config, ctx.level, ctx.value)))
+                case None => yieldUnsupportedType[A]
+              }
+            } yield result
 
-            case None => yieldUnsupportedType[A]
-          }
+          case None => yieldUnsupportedType[A]
+        }
       }
 
     @scala.annotation.nowarn("msg=is never used")

@@ -431,7 +431,7 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
 |                                        |                                        | **Primitives and built-ins**                                         |
 | `Type.isPrimitive[Int]`                | `Type[Int].isPrimitive`                | `true` for Boolean, Byte, Short, Int, Long, Float, Double, Char      |
 | `Type.isArray[Array[Int]]`             | `Type[Array[Int]].isArray`             | `true` for array types                                               |
-| `Type.isJvmBuiltIn[String]`            | `Type[String].isJvmBuiltIn`            | `true` for primitives, Unit, String, arrays                          |
+| `Type.isJvmBuiltIn[String]`            | `Type[String].isJvmBuiltIn`            | `true` for primitives, Unit, String, arrays, `java.lang.*` types     |
 | `Type.isTypeSystemSpecial[Any]`        | `Type[Any].isTypeSystemSpecial`        | `true` for Any, AnyRef, AnyVal, Null, Nothing                        |
 | `Type.isOpaqueType[MyType]`            | `Type[MyType].isOpaqueType`            | `true` for `opaque type`s                                            |
 | `Type.isUnionType[MyType]`             | `Type[MyType].isUnionType`             | `true` for union types (`A \| B`, Scala 3 only; always `false` on 2) |
@@ -2175,6 +2175,154 @@ Then we would have to work with `Class[A]`, a convenient utility that aggregates
 | `cls.asJavaBean`  | `Option[JavaBean[MyClass]]`          | Java Bean view if applicable      |
 
 These utilities are built on top of `Type` and `Method` - you could implement similar functionality yourself, but they provide convenient shortcuts.
+
+### `SingletonValue[A]`
+
+Specialized view for singleton types: case objects, parameterless Scala 3 enum cases, normal objects, Java enum values,
+or Scala Enumeration values:
+
+| Method                     | Result type                          | Description                   |
+|----------------------------|--------------------------------------|-------------------------------|
+| `sv.singletonExpr`        | `Expr[MyObject.type]`               | expression referencing the singleton |
+
+!!! example "Detecting singleton types"
+
+    ```scala
+    // file: src/main/scala/example/SingletonMacro.scala - part of Singleton detect example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    trait SingletonMacro { this: hearth.MacroCommons =>
+
+      def getSingleton[A: Type]: Expr[String] = Expr {
+        SingletonValue.parse[A].toOption.fold("<not a singleton>") { singleton =>
+          s"singleton: ${singleton.singletonExpr.plainPrint}"
+        }
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/SingletonMacroImpl.scala - part of Singleton detect example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def getSingleton[A]: String = macro SingletonMacroImpl.getSingletonImpl[A]
+    }
+
+    // Scala 2 adapter
+    class SingletonMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with SingletonMacro {
+
+      def getSingletonImpl[A: c.WeakTypeTag]: c.Expr[String] =
+        getSingleton[A]
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/SingletonMacroImpl.scala - part of Singleton detect example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    object Example {
+      inline def getSingleton[A]: String = ${ SingletonMacroImpl.getSingletonImpl[A] }
+    }
+
+    // Scala 3 adapter
+    class SingletonMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), SingletonMacro
+    object SingletonMacroImpl {
+
+      def getSingletonImpl[A: Type](using q: Quotes): Expr[String] =
+        new SingletonMacroImpl(q).getSingleton[A]
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of Singleton detect example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    sealed trait Color
+    object Color {
+      case class Red(value: Int) extends Color
+      case object Blue extends Color
+    }
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.getSingleton should detect case objects") {
+        val result = Example.getSingleton[Color.Blue.type]
+        assert(result.startsWith("singleton: "), s"Expected 'singleton: ...' but got: $result")
+        assert(result.contains("Blue"), s"Expected Blue reference but got: $result")
+      }
+
+      test("Example.getSingleton should not detect case classes") {
+        val result = Example.getSingleton[Color.Red]
+        assert(result == "<not a singleton>", s"Expected '<not a singleton>' but got: $result")
+      }
+    }
+    ```
+
+### `NamedTuple[A]`
+
+Specialized view for named tuples (Scala 3.7+ only), providing access to fields and construction:
+
+| Method                     | Result type                          | Description                   |
+|----------------------------|--------------------------------------|-------------------------------|
+| `nt.primaryConstructor`   | `Method.NoInstance[MyTuple]`         | primary constructor           |
+| `nt.fields`               | `List[(String, ??)]`                 | field names and types         |
+
+!!! example "Inspecting named tuple fields"
+
+    ```scala
+    // file: src/main/scala/example/NamedTupleMacro.scala - part of NamedTuple inspect example
+    //> using scala {{ scala.newest_3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    import scala.quoted.*
+
+    class NamedTupleMacro(q: Quotes) extends hearth.MacroCommonsScala3(using q) {
+
+      def inspectNamedTuple[A: Type]: Expr[String] = Expr {
+        NamedTuple.parse[A].toOption.fold("<not a named tuple>") { nt =>
+          val fields = nt.fields.map { case (name, tpe) => s"$name: ${tpe.plainPrint}" }.mkString(", ")
+          s"fields: ($fields)"
+        }
+      }
+    }
+    object NamedTupleMacro {
+
+      def inspectNamedTupleImpl[A: Type](using q: Quotes): Expr[String] =
+        new NamedTupleMacro(q).inspectNamedTuple[A]
+    }
+
+    object Example {
+      inline def inspectNamedTuple[A]: String = ${ NamedTupleMacro.inspectNamedTupleImpl[A] }
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of NamedTuple inspect example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("named tuple fields are detected") {
+        val result = Example.inspectNamedTuple[(name: String, age: Int)]
+        assert(result.contains("name"), s"Expected 'name' but got: $result")
+        assert(result.contains("age"), s"Expected 'age' but got: $result")
+      }
+
+      test("non-named-tuple is not detected") {
+        val result = Example.inspectNamedTuple[String]
+        assert(result == "<not a named tuple>", s"Expected '<not a named tuple>' but got: $result")
+      }
+    }
+    ```
 
 ### `CaseClass[A]`
 
