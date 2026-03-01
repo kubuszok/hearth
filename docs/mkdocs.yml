@@ -44,7 +44,7 @@ theme:
     - navigation.tabs.sticky
     - search.highlight
     - search.suggest
-    - toc.integrate
+
   font:
     code: Fira Code
   icon:
@@ -61,6 +61,9 @@ nav:
   - "Source Utilities": "source-utilities.md"
   - "Type Name Utilities": "typename-utilities.md"
   - "Best Practices": "best-practices.md"
+  - "Derivation Checklist": "derivation-checklist.md"
+  - "Prior Art & Influences": "prior-art.md"
+  - "Resources & Further Reading": "resources.md"
   - "FAQ": "faq.md"
 markdown_extensions:
   - admonition
