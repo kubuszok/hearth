@@ -21,6 +21,8 @@ Introduces, among other things:
  * macro-extension system that allows you to extend your macros just by adding a dependency to the class path - without any additional imports!
  * and finally, a macro API that has implementations for Scala 2 and Scala 3 macro systems - you can use it with either or both!
 
+Hearth encourages [sanely-automatic type class derivation](https://kubuszok.com/2025/sanely-automatic-derivation/) — a pattern where the macro handles recursion internally, producing better error messages and supporting recursive types out of the box. To learn how the Scala ecosystem converged on this approach, see [Prior Art & Influences](prior-art.md).
+
 ## How to use the library for cross-compilable macros?
 
 As a showcase, we will build a cross-compilable `Show` derivation.

@@ -132,6 +132,10 @@ while the types are named the same way, so using Hearth is already violating the
 Changing Hearth to allow it would be possible, but it would introduce a huge burden on the maintainers without providing much value to (most) users.
 It allows sandwich, however, with macros being expanded by Scala 2.13 only or Scala 3 only (`2.13 module <- 3 module <- 2.13 module` module or `3 module <- 2.13 module <- 3 module`).
 
+!!! note "TASTy reader limitations"
+
+    Scala 3's TASTy reader can consume some Scala 2.13 artifacts, but it has significant limitations that affect macro cross-compilation strategies. For a detailed analysis of what works and what doesn't, see [The State of TASTy Reader](https://kubuszok.com/2025/state-of-tasty-reader/) and the [Resources & Further Reading](resources.md) page.
+
 ## What are the requirements to use this library?
 
 Currently Hearth is built against:
