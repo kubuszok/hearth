@@ -72,9 +72,11 @@ Here is how you can write a cross-compilable macro.
     //> using scala {{ scala.2_13 }} {{ scala.3 }}
     //> using dep com.kubuszok::hearth:{{ hearth_version() }}
     package example
+    
+    import hearth.MacroCommons
 
     // Shared part
-    trait SharedMacroLogic { this: hearth.MacroCommons =>
+    trait SharedMacroLogic { this: MacroCommons =>
 
       // Type[A] - represents information about a type A, where we know what A is:
       //           it's either some known type like `java.lang.String`, or a type parameter,
@@ -97,18 +99,21 @@ Here is how you can write a cross-compilable macro.
     //> using target.scala {{ scala.2_13 }}
     //> using options -Xsource:3
     package example
+    
+    import hearth.MacroCommonsScala2
 
     import scala.language.experimental.macros
     import scala.reflect.macros.blackbox
 
     // Scala 2 adapter
-    class YourMacro(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with SharedMacroLogic {
+    class YourMacro(val c: blackbox.Context) extends MacroCommonsScala2 with SharedMacroLogic {
 
       // Type[A] = c.WeakTypeTag[A]
 
       // Expr[A] = c.Expr[A]
 
-      // Unfortunately, while compiler is clever enough to see that the types are the same when we apply them...
+      // Unfortunately,
+      // while compiler is clever enough to see that the types are the same when we apply them...
       def yourMacroImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] = yourMacro(expr)
     }
 
@@ -123,11 +128,13 @@ Here is how you can write a cross-compilable macro.
     //> using target.scala {{ scala.3 }}
     //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
     package example
+    
+    import hearth.MacroCommonsScala3
 
     import scala.quoted.*
 
     // Scala 3 adapter
-    class YourMacro(q: Quotes) extends hearth.MacroCommonsScala3(using q), SharedMacroLogic
+    class YourMacro(q: Quotes) extends MacroCommonsScala3(using q), SharedMacroLogic
 
     object YourMacro {
 
@@ -550,8 +557,10 @@ You can see 3 different representations of expressions in the Hearth codebase:
    ```scala
    val unknownExpr: Expr_??
    import unknownExpr.{Underlying as Param, value as expr}
-   Type[Param] // now, references to Param would resolve to unknownExpr.Underlying
-   expr: Expr[Param] // and this is an Expr of Param type that we can use
+   // Now, references to Param would resolve to unknownExpr.Underlying...
+   Type[Param]
+   // ...and this is an Expr of Param type that we can use
+   expr: Expr[Param]
    ```
    which is useful when we, for example, try to call some method or constructor.
 
@@ -702,6 +711,8 @@ that convert variadic arguments into the same representation.
     // file: src/main/scala-2/example/VarArgsMacroImpl.scala - part of VarArgs example
     //> using target.scala {{ scala.2_13 }}
     //> using options -Xsource:3
+    
+    import hearth.MacroCommonsScala2
 
     import scala.language.experimental.macros
     import scala.reflect.macros.blackbox
@@ -712,7 +723,7 @@ that convert variadic arguments into the same representation.
     }
 
     // Scala 2 adapter
-    class VarArgsMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with VarArgsMacro {
+    class VarArgsMacroImpl(val c: blackbox.Context) extends MacroCommonsScala2 with VarArgsMacro {
 
       def myMacroImpl[A: c.WeakTypeTag](args: c.Expr[A]*): c.Expr[Unit] =
         myMacro[A](args)
@@ -723,6 +734,8 @@ that convert variadic arguments into the same representation.
     // file: src/main/scala-3/example/VarArgsMacroImpl.scala - part of VarArgs example
     //> using target.scala {{ scala.3 }}
     //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+    
+    import hearth.MacroCommonsScala3
 
     import scala.quoted.*
 
@@ -732,7 +745,7 @@ that convert variadic arguments into the same representation.
     }
 
     // Scala 3 adapter
-    class VarArgsMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), VarArgsMacro
+    class VarArgsMacroImpl(q: Quotes) extends MacroCommonsScala3(using q), VarArgsMacro
     object VarArgsMacroImpl {
 
       def myMacroImpl[A: Type](args: Expr[Seq[A]])(using q: Quotes): Expr[Unit] =
@@ -850,18 +863,23 @@ Then we would have to build that expression programmatically with `MatchCase`.
     // file: src/main/scala-2/example/MatchCaseMacroImpl.scala - part of MatchCase example
     //> using target.scala {{ scala.2_13 }}
     //> using options -Xsource:3
+    
+    import hearth.MacroCommonsScala2
 
     import scala.language.experimental.macros
     import scala.reflect.macros.blackbox
 
     object Example {
-      def makeMatch[L, R](either: Either[L, R]): Unit = macro MatchCaseMacroImpl.makeMatchImpl[L, R]
+      def makeMatch[L, R](either: Either[L, R]): Unit =
+        macro MatchCaseMacroImpl.makeMatchImpl[L, R]
     }
 
     // Scala 2 adapter
-    class MatchCaseMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with MatchCaseMacro {
+    class MatchCaseMacroImpl(val c: blackbox.Context) extends MacroCommonsScala2 with MatchCaseMacro{
 
-      def makeMatchImpl[L: c.WeakTypeTag, R: c.WeakTypeTag](either: c.Expr[Either[L, R]]): c.Expr[Unit] =
+      def makeMatchImpl[L: c.WeakTypeTag, R: c.WeakTypeTag](
+        either: c.Expr[Either[L, R]]
+      ): c.Expr[Unit] =
         makeMatch[L, R](either)
     }
     ```
@@ -871,18 +889,23 @@ Then we would have to build that expression programmatically with `MatchCase`.
     //> using target.scala {{ scala.3 }}
     //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
 
+    import hearth.MacroCommonsScala3
+
     import scala.quoted.*
 
     object Example {
       // Scala 3 inline def - A* becomes Expr[Seq[A]]
-      inline def makeMatch[L, R](inline either: Either[L, R]): Unit = ${ MatchCaseMacroImpl.makeMatchImpl('{ either }) }
+      inline def makeMatch[L, R](inline either: Either[L, R]): Unit =
+        ${ MatchCaseMacroImpl.makeMatchImpl('{ either }) }
     }
 
     // Scala 3 adapter
-    class MatchCaseMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), MatchCaseMacro
+    class MatchCaseMacroImpl(q: Quotes) extends MacroCommonsScala3(using q), MatchCaseMacro
     object MatchCaseMacroImpl {
 
-      def makeMatchImpl[L: Type, R: Type](either: Expr[Either[L, R]])(using q: Quotes): Expr[Unit] =
+      def makeMatchImpl[L: Type, R: Type](
+        either: Expr[Either[L, R]]
+      )(using q: Quotes): Expr[Unit] =
         new MatchCaseMacroImpl(q).makeMatch[L, R](either)
     }
     ```
@@ -959,6 +982,8 @@ would not be specific enough. `Expr.singletonOf[A]` can be used to obtain the si
     // file: src/main/scala-2/example/EqValueMacroImpl.scala - part of EqValue example
     //> using target.scala {{ scala.2_13 }}
     //> using options -Xsource:3
+    
+    import hearth.MacroCommonsScala2
 
     import scala.language.experimental.macros
     import scala.reflect.macros.blackbox
@@ -968,7 +993,7 @@ would not be specific enough. `Expr.singletonOf[A]` can be used to obtain the si
     }
 
     // Scala 2 adapter
-    class EqValueMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with EqValueMacro {
+    class EqValueMacroImpl(val c: blackbox.Context) extends MacroCommonsScala2 with EqValueMacro {
 
       def matchByValueImpl[A: c.WeakTypeTag](expr: c.Expr[A], expected: c.Expr[A]): c.Expr[String] =
         matchByValue[A](expr, expected)
@@ -979,6 +1004,8 @@ would not be specific enough. `Expr.singletonOf[A]` can be used to obtain the si
     // file: src/main/scala-3/example/EqValueMacroImpl.scala - part of EqValue example
     //> using target.scala {{ scala.3 }}
     //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+    
+    import hearth.MacroCommonsScala3
 
     import scala.quoted.*
 
@@ -988,10 +1015,10 @@ would not be specific enough. `Expr.singletonOf[A]` can be used to obtain the si
     }
 
     // Scala 3 adapter
-    class EqValueMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), EqValueMacro
+    class EqValueMacroImpl(q: Quotes) extends MacroCommonsScala3(using q), EqValueMacro
     object EqValueMacroImpl {
 
-      def matchByValueImpl[A: Type](expr: Expr[A], expected: Expr[A])(using q: Quotes): Expr[String] =
+      def matchByValueImpl[A: Type](expr: Expr[A], expected: Expr[A])(using q:Quotes): Expr[String] =
         new EqValueMacroImpl(q).matchByValue[A](expr, expected)
     }
     ```
