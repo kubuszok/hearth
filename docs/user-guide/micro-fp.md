@@ -80,7 +80,9 @@ From my experience, when writing macros you may need to:
         '{
           new TypeClass[A] {
             def implementation(arg: A): Result = ${
-              generateImpl('{ arg }) // Returns F[Expr[Result]] - how to extract Expr[Result] safely?
+              // Returns F[Expr[Result]]
+              // - how to extract Expr[Result] safely?
+              generateImpl('{ arg })
             }
           } 
         } // Expr[TypeClass[A]]
@@ -139,7 +141,8 @@ Functor
     └──────────┤                                                │
                └── ApplicativeTraverse (Applicative + Traverse) │
                    └────────────────────────────────────────────┤
-                                                                └── ParallelTraverse (Parallel + Traverse)
+                                                                └── ParallelTraverse
+                                                                   (Parallel + Traverse)
 
 DirectStyle
 ```
@@ -407,14 +410,17 @@ Provides a way to write effectful code in a direct style, similar to using `for`
     import hearth.fp.syntax.*
     import hearth.fp.instances.*
     
-    val result: Either[List[String], String] = DirectStyle[Either[List[String], *]].scoped { runSafe =>
-      val name: String = runSafe(Right("Bob"))
-      val age: Int = runSafe(Left(List("Age is required")))
-      val city: String = runSafe(Right("London"))
-      
-      // This line is never reached due to the error above
-      s"$name is $age years old and lives in $city"
-    }
+    val result: Either[List[String], String] =
+      DirectStyle[Either[List[String], *]].scoped {
+        runSafe =>
+        val name: String = runSafe(Right("Bob"))
+        val age: Int =
+          runSafe(Left(List("Age is required")))
+        val city: String = runSafe(Right("London"))
+
+        // This line is never reached due to the error above
+        s"$name is $age years old and lives in $city"
+      }
     pprint.pprintln(result)
     // expected output:
     // Left(value = List("Age is required"))
@@ -447,29 +453,40 @@ Provides a way to write effectful code in a direct style, similar to using `for`
       def generateMethodImpl[A: Type](expr: Expr[A])(using Quotes): MIO[Expr[String]] = MIO {
         '{ ${ expr }.toString }
       }
-      def generateAnotherMethodImpl[A: Type](expr: Expr[A])(using Quotes): MIO[Expr[Int]] = MIO {
+      def generateAnotherMethodImpl[A: Type](
+          expr: Expr[A]
+      )(using Quotes): MIO[Expr[Int]] = MIO {
         '{ ${ expr }.toString.size }
       }
       
       // Example of generating complex macro code
-      def generateTypeClassImpl[A: Type](using q: Quotes): Expr[TypeClass[A]] = DirectStyle[MIO].scoped { runSafe =>
-        '{
-          new TypeClass[A] {
-            def method(arg: A): String = ${
-              // Extract Expr[String] from MIO[Expr[String]]
-              runSafe(generateMethodImpl('{ arg }))
-            }
-            
-            def anotherMethod(arg: A): Int = ${
-              // Extract Expr[Int] from MIO[Expr[Int]]
-              runSafe(generateAnotherMethodImpl('{ arg }))
+      def generateTypeClassImpl[A: Type](
+          using q: Quotes
+      ): Expr[TypeClass[A]] =
+        DirectStyle[MIO].scoped { runSafe =>
+          '{
+            new TypeClass[A] {
+              def method(arg: A): String = ${
+                // Extract Expr[String] from MIO
+                runSafe(generateMethodImpl('{ arg }))
+              }
+
+              def anotherMethod(arg: A): Int = ${
+                // Extract Expr[Int] from MIO
+                runSafe(
+                  generateAnotherMethodImpl('{ arg })
+                )
+              }
             }
           }
+        }.unsafe.runSync._2.match {
+          case Left(errors) =>
+            q.reflect.report.errorAndAbort(
+              errors.map(_.getMessage).mkString(", "),
+              q.reflect.Position.ofMacroExpansion
+            )
+          case Right(expr) => expr
         }
-      }.unsafe.runSync._2.match {
-        case Left(errors) => q.reflect.report.errorAndAbort(errors.map(_.getMessage).mkString(", "), q.reflect.Position.ofMacroExpansion)
-        case Right(expr)  => expr
-      }
 
       inline def generateTypeClass[A]: TypeClass[A] = ${ generateTypeClassImpl[A] }
     }
@@ -759,7 +776,8 @@ A non-empty list that guarantees at least one element. Useful for representing c
       else Right(age)
     
     // Parallel validation aggregates all errors
-    val name: Either[NonEmptyList[String], String] = Left(NonEmptyList("Name cannot be empty", "Name too short"))
+    val name: Either[NonEmptyList[String], String] =
+      Left(NonEmptyList("Name cannot be empty", "Name too short"))
     val age: Either[NonEmptyList[String], Int] = Left(NonEmptyList.one("Age must be positive"))
     
     val result: Either[NonEmptyList[String], String] = name.parMap2(age) { (n, a) =>
@@ -890,8 +908,12 @@ A non-empty vector that provides indexed access and better performance for large
       else Right(phone)
     
     // Parallel validation aggregates all errors
-    val email: Either[NonEmptyVector[String], String] = Left(NonEmptyVector("Email cannot be empty", "Email must contain @"))
-    val phone: Either[NonEmptyVector[String], String] = Left(NonEmptyVector.one("Phone cannot be empty"))
+    val email: Either[NonEmptyVector[String], String] =
+      Left(NonEmptyVector(
+        "Email cannot be empty", "Email must contain @"
+      ))
+    val phone: Either[NonEmptyVector[String], String] =
+      Left(NonEmptyVector.one("Phone cannot be empty"))
     
     val result: Either[NonEmptyVector[String], String] = email.parMap2(phone) { (e, p) =>
       s"Contact: $e, $p"
@@ -927,7 +949,8 @@ A non-empty `ListMap` that guarantees at least one key-value pair and preserves 
     // NonEmptyMap(head = ("a", 1), tail = ListMap("b" -> 2, "c" -> 3))
     
     // Create with apply method
-    val nem2: NonEmptyMap[String, String] = NonEmptyMap("name" -> "Alice", "age" -> "30", "city" -> "New York")
+    val nem2: NonEmptyMap[String, String] =
+      NonEmptyMap("name" -> "Alice", "age" -> "30", "city" -> "New York")
     pprint.pprintln(nem2)
     // expected output:
     // NonEmptyMap(head = ("name", "Alice"), tail = ListMap("age" -> "30", "city" -> "New York"))
@@ -939,7 +962,8 @@ A non-empty `ListMap` that guarantees at least one key-value pair and preserves 
     // NonEmptyMap(head = ("key", 42), tail = ListMap())
     
     // Convert from ListMap (returns Option)
-    val fromListMap: Option[NonEmptyMap[String, Int]] = NonEmptyMap.fromListMap(ListMap("a" -> 1, "b" -> 2, "c" -> 3))
+    val fromListMap: Option[NonEmptyMap[String, Int]] =
+      NonEmptyMap.fromListMap(ListMap("a" -> 1, "b" -> 2, "c" -> 3))
     pprint.pprintln(fromListMap)
     val fromEmpty: Option[NonEmptyMap[String, Int]] = NonEmptyMap.fromListMap(ListMap.empty)
     pprint.pprintln(fromEmpty)
@@ -975,7 +999,8 @@ A non-empty `ListMap` that guarantees at least one key-value pair and preserves 
     // NonEmptyMap(head = ("a", 1), tail = ListMap("b" -> 2, "c" -> 3, "d" -> 4))
     
     // Map over key-value pairs
-    val mapped: NonEmptyMap[String, String] = nem.map { case (k, v) => (k.toUpperCase, v.toString) }
+    val mapped: NonEmptyMap[String, String] =
+      nem.map { case (k, v) => (k.toUpperCase, v.toString) }
     pprint.pprintln(mapped)
     // expected output:
     // NonEmptyMap(head = ("A", "1"), tail = ListMap("B" -> "2", "C" -> "3"))
@@ -1065,11 +1090,17 @@ A non-empty `ListMap` that guarantees at least one key-value pair and preserves 
     import hearth.fp.effect.*
     
     // Suspend with error
-    val error: MIO[Int] = MIO.suspend(Left(NonEmptyVector.one(new RuntimeException("Something went wrong"))))
+    val error: MIO[Int] = MIO.suspend(Left(
+      NonEmptyVector.one(new RuntimeException("Something went wrong"))
+    ))
     
     // Error aggregation
-    val error1: MIO[Int] = MIO.suspend(Left(NonEmptyVector.one(new RuntimeException("Error 1"))))
-    val error2: MIO[Int] = MIO.suspend(Left(NonEmptyVector.one(new RuntimeException("Error 2"))))
+    val error1: MIO[Int] = MIO.suspend(Left(
+      NonEmptyVector.one(new RuntimeException("Error 1"))
+    ))
+    val error2: MIO[Int] = MIO.suspend(Left(
+      NonEmptyVector.one(new RuntimeException("Error 2"))
+    ))
     
     val aggregated: MIO[Int] = error1.parMap2(error2)(_ + _)
     // Both errors are collected in the result
@@ -1130,7 +1161,9 @@ log and fail if necessary:
 
     ```scala
     // See our Show derivation demo in
-    // https://github.com/MateuszKubuszok/hearth/blob/{{ git.commit }}/hearth-tests/src/main/scala/hearth/demo/ShowMacrosImpl.scala
+    // https://github.com/MateuszKubuszok/hearth/blob/
+    //   {{ git.commit }}/hearth-tests/src/main/scala/
+    //   hearth/demo/ShowMacrosImpl.scala
     def deriveOrFail[A: Type](value: Expr[A], name: String): Expr[String] = Log
       .namedScope(s"Derivation for $name") {
         attemptAllRules[A](value)
@@ -1141,11 +1174,14 @@ log and fail if necessary:
         infoRendering = if (shouldWeLogDerivation) RenderFrom(Log.Level.Info) else DontRender
       ) { (errorLogs, errors) =>
         // errorLogs: String - pretty-printed log
-        // errors: NonEmptyVector[Throwable] - errors that happened during the derivation (if it succeeded, this wouldn't be called)
+        // errors: NonEmptyVector[Throwable] - errors that
+        // happened during the derivation
+        // (if it succeeded, this wouldn't be called)
 
         val errorsStr = errors.toVector
           .map {
-            case DerivationError.UnsupportedType(typeName)           => s"Derivation of $typeName is not supported"
+            case DerivationError.UnsupportedType(typeName) =>
+              s"Derivation of $typeName is not supported"
             case DerivationError.UnsupportedMethod(typeName, method) =>
               s"Derivation of $typeName.$method is not supported"
             case DerivationError.AssertionFailed(message) => s"Assertion failed: $message"

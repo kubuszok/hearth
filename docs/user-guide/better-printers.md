@@ -38,7 +38,8 @@ then you are using Better Printers already. You don't need to additionally add t
 !!! example "[sbt](https://www.scala-sbt.org/)"
 
     ```scala
-    libraryDependencies += "com.kubuszok" %% "hearth-better-printers" % "{{ hearth_version() }}"
+    libraryDependencies +=
+      "com.kubuszok" %% "hearth-better-printers" % "{{ hearth_version() }}"
     ```
 
 !!! example "[Scala CLI](https://scala-cli.virtuslab.org/)"
@@ -81,11 +82,13 @@ Both provide indentation and formatting improvements over the built-in printers.
       import c.universe._, c.internal._
 
       def previewASTImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] = c.Expr[String](
-        q"${showRawPretty(expr.tree, SyntaxHighlight.ANSI)}" // Use SyntaxHighlight.plain for plain text
+        // Use SyntaxHighlight.plain for plain text
+        q"${showRawPretty(expr.tree, SyntaxHighlight.ANSI)}"
       )
 
       def previewCodeImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] = c.Expr[String](
-        q"${showCodePretty(expr.tree, SyntaxHighlight.ANSI)}" // Use SyntaxHighlight.plain for plain text
+        // Use SyntaxHighlight.plain for plain text
+        q"${showCodePretty(expr.tree, SyntaxHighlight.ANSI)}"
       )
     }
 
@@ -127,21 +130,27 @@ Both provide indentation and formatting improvements over the built-in printers.
       import quotes.*, quotes.reflect.*
 
       def previewAST[A: Type](expr: Expr[A]): Expr[String] = Expr(
-        expr.asTerm.show(using FormattedTreeStructureAnsi) // Use FormattedTreeStructure for plain text
+        // Use FormattedTreeStructure for plain text
+        expr.asTerm.show(using FormattedTreeStructureAnsi)
       )
       
       def previewCode[A: Type](expr: Expr[A]): Expr[String] = Expr(
-        expr.asTerm.show(using Printer.TreeAnsiCode) // For code-like output, use Printer.TreeAnsiCode
+        // For code-like output, use Printer.TreeAnsiCode
+        expr.asTerm.show(using Printer.TreeAnsiCode)
       )
     }
 
     object Printers {
 
       inline def previewAST[A](inline expr: A): String = ${ previewASTImpl('{ expr }) }
-      def previewASTImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] = (new Printers).previewAST(expr)
+      def previewASTImpl[A: Type](expr: Expr[A])
+          (using q: Quotes): Expr[String] =
+        (new Printers).previewAST(expr)
 
       inline def previewCode[A](inline expr: A): String = ${ previewCodeImpl('{ expr }) }
-      def previewCodeImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] = (new Printers).previewCode(expr)
+      def previewCodeImpl[A: Type](expr: Expr[A])
+          (using q: Quotes): Expr[String] =
+        (new Printers).previewCode(expr)
     }
     ```
 

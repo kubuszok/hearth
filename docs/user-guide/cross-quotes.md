@@ -12,7 +12,9 @@ Cross Quotes is a library that provides a unified way to write quoted expression
 
     ```scala
     libraryDependencies ++= CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _)) => Seq(compilerPlugin("com.kubuszok" % "hearth-cross-quotes" % "{{ hearth_version() }}_3"))
+      case Some((3, _)) => Seq(
+        compilerPlugin("com.kubuszok" % "hearth-cross-quotes" % "{{ hearth_version() }}_3")
+      )
       case _            => Seq()
     }
     ```
@@ -331,7 +333,8 @@ This gets transformed to:
       val e2 = '{ 2 }.asInstanceOf[Expr[Int]]
       
       '{
-        val a = ${e1.asInstanceOf[scala.quoted.Expr[Int]]} + ${e2.asInstanceOf[scala.quoted.Expr[Int]]}
+        val a = ${e1.asInstanceOf[scala.quoted.Expr[Int]]} +
+          ${e2.asInstanceOf[scala.quoted.Expr[Int]]}
         a.toString
       }.asInstanceOf[Expr[String]]
     }
@@ -535,7 +538,9 @@ Nested expressions are also correctly handled by Cross Quotes:
     import scala.language.experimental.macros
     import scala.reflect.macros.blackbox
 
-    class Example (val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ComplexTypeMatching {
+    class Example(val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2
+        with ComplexTypeMatching {
 
       def analyzeTupleImpl[In: c.WeakTypeTag]: c.Expr[String] = analyzeTuple[In]
     }
@@ -558,7 +563,8 @@ Nested expressions are also correctly handled by Cross Quotes:
 
       inline def analyzeTuple[In] = ${ analyzeTupleImpl[In] }
 
-      def analyzeTupleImpl[In: Type](using q: Quotes): Expr[String] = new Example(q).analyzeTuple[In]
+      def analyzeTupleImpl[In: Type](using q: Quotes): Expr[String] =
+        new Example(q).analyzeTuple[In]
     }
     ```
 
@@ -571,9 +577,18 @@ Nested expressions are also correctly handled by Cross Quotes:
 
       test("should show type of a tuple 2 or 3") {
 
-        assertEquals(Example.analyzeTuple[(Int, String)], "Tuple2[scala.Int, java.lang.String]")
-        assertEquals(Example.analyzeTuple[(Int, String, Double)], "Tuple3[scala.Int, java.lang.String, scala.Double]")
-        assertEquals(Example.analyzeTuple[(Int, String, Double, Long)], "Not a supported tuple")
+        assertEquals(
+          Example.analyzeTuple[(Int, String)],
+          "Tuple2[scala.Int, java.lang.String]"
+        )
+        assertEquals(
+          Example.analyzeTuple[(Int, String, Double)],
+          "Tuple3[scala.Int, java.lang.String, scala.Double]"
+        )
+        assertEquals(
+          Example.analyzeTuple[(Int, String, Double, Long)],
+          "Not a supported tuple"
+        )
       }
     }
     ```
@@ -612,9 +627,12 @@ Nested expressions are also correctly handled by Cross Quotes:
     import scala.language.experimental.macros
     import scala.reflect.macros.blackbox
 
-    class Example(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with PartialApplication {
+    class Example(val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2
+        with PartialApplication {
 
-      def isFixedEitherImpl[Fixed: c.WeakTypeTag, In: c.WeakTypeTag]: c.Expr[Boolean] = isFixedEither[Fixed, In]
+      def isFixedEitherImpl[Fixed: c.WeakTypeTag, In: c.WeakTypeTag]
+          : c.Expr[Boolean] = isFixedEither[Fixed, In]
     }
     object Example {
 
@@ -783,11 +801,13 @@ You can enable logging to see how Cross Quotes transforms your code:
     ```scala
     scalacOptions ++= CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((3, _)) => Seq(
-        // set to true OR file1.scala,file2.scala,... if you want to debug cross-quotes generation on Scala 3
+        // set to true OR file1.scala,file2.scala,...
+        // to debug cross-quotes generation on Scala 3
         "-P:hearth.cross-quotes:logging=false"
       )
       case Some((2, 13)) => Seq(
-        // set to true OR file1.scala,file2.scala,... if you want to debug cross-quotes generation on Scala 2
+        // set to true OR file1.scala,file2.scala,...
+        // to debug cross-quotes generation on Scala 2
         "-Xmacro-settings:hearth.cross-quotes.logging=false"
       )
     }
@@ -797,14 +817,16 @@ You can enable logging to see how Cross Quotes transforms your code:
 
     ```scala
     //> using target.scala {{ scala.2_13 }}
-    // set to true OR file1.scala,file2.scala,... if you want to debug cross-quotes generation on Scala 2
+    // set to true OR file1.scala,file2.scala,...
+    // to debug cross-quotes generation on Scala 2
     //> using options "-Xmacro-settings:hearth.cross-quotes.logging=false"
     ```
 
     ```scala
     //> using target.scala {{ scala.3 }}
     //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
-    // set to true OR file1.scala,file2.scala,... if you want to debug cross-quotes generation on Scala 3
+    // set to true OR file1.scala,file2.scala,...
+    // to debug cross-quotes generation on Scala 3
     //> using options "-P:hearth.cross-quotes:logging=false"
     ```
 

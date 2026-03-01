@@ -989,13 +989,17 @@ would not be specific enough. `Expr.singletonOf[A]` can be used to obtain the si
     import scala.reflect.macros.blackbox
 
     object EqValueExample {
-      def matchByValue[A](expr: A, expected: A): String = macro EqValueMacroImpl.matchByValueImpl[A]
+      def matchByValue[A](expr: A, expected: A): String =
+        macro EqValueMacroImpl.matchByValueImpl[A]
     }
 
     // Scala 2 adapter
-    class EqValueMacroImpl(val c: blackbox.Context) extends MacroCommonsScala2 with EqValueMacro {
+    class EqValueMacroImpl(val c: blackbox.Context)
+        extends MacroCommonsScala2 with EqValueMacro {
 
-      def matchByValueImpl[A: c.WeakTypeTag](expr: c.Expr[A], expected: c.Expr[A]): c.Expr[String] =
+      def matchByValueImpl[A: c.WeakTypeTag](
+        expr: c.Expr[A], expected: c.Expr[A]
+      ): c.Expr[String] =
         matchByValue[A](expr, expected)
     }
     ```
@@ -1018,7 +1022,9 @@ would not be specific enough. `Expr.singletonOf[A]` can be used to obtain the si
     class EqValueMacroImpl(q: Quotes) extends MacroCommonsScala3(using q), EqValueMacro
     object EqValueMacroImpl {
 
-      def matchByValueImpl[A: Type](expr: Expr[A], expected: Expr[A])(using q:Quotes): Expr[String] =
+      def matchByValueImpl[A: Type](
+        expr: Expr[A], expected: Expr[A]
+      )(using q: Quotes): Expr[String] =
         new EqValueMacroImpl(q).matchByValue[A](expr, expected)
     }
     ```
@@ -1191,11 +1197,13 @@ Then we would have to create these definitions programmatically with automatic s
 
     object Example {
       def createAndUse(value: Int): Int = macro ValDefsMacroImpl.createAndUseImpl
-      def createCombineThenUse(value: Int): Int = macro ValDefsMacroImpl.createCombineThenUseImpl
+      def createCombineThenUse(value: Int): Int =
+        macro ValDefsMacroImpl.createCombineThenUseImpl
     }
 
     // Scala 2 adapter
-    class ValDefsMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ValDefsMacro {
+    class ValDefsMacroImpl(val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2 with ValDefsMacro {
 
       def createAndUseImpl(value: c.Expr[Int]): c.Expr[Int] =
         createAndUse(value)
@@ -1213,8 +1221,10 @@ Then we would have to create these definitions programmatically with automatic s
     import scala.quoted.*
 
     object Example {
-      inline def createAndUse(inline value: Int): Int = ${ ValDefsMacroImpl.createAndUseImpl('value) }
-      inline def createCombineThenUse(inline value: Int): Int = ${ ValDefsMacroImpl.createCombineThenUseImpl('value) }
+      inline def createAndUse(inline value: Int): Int =
+        ${ ValDefsMacroImpl.createAndUseImpl('value) }
+      inline def createCombineThenUse(inline value: Int): Int =
+        ${ ValDefsMacroImpl.createCombineThenUseImpl('value) }
     }
 
     // Scala 3 adapter
@@ -1337,7 +1347,9 @@ a support for error aggregation and recursive definitions:
     }
 
     // Scala 2 adapter
-    class ValDefBuilderMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ValDefBuilderMacro {
+    class ValDefBuilderMacroImpl(val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2
+        with ValDefBuilderMacro {
 
       def buildDefinitionsImpl: c.Expr[Int] = buildDefinitions
     }
@@ -1355,7 +1367,9 @@ a support for error aggregation and recursive definitions:
     }
 
     // Scala 3 adapter
-    class ValDefBuilderMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), ValDefBuilderMacro
+    class ValDefBuilderMacroImpl(q: Quotes)
+        extends hearth.MacroCommonsScala3(using q),
+          ValDefBuilderMacro
     object ValDefBuilderMacroImpl {
 
       def buildDefinitionsImpl(using q: Quotes): Expr[Int] =
@@ -1390,7 +1404,8 @@ a support for error aggregation and recursive definitions:
     ```scala
     import ValDefBuilder.unsafe.*
 
-    val result: ValDefBuilder[Expr[B], B, Expr[B]] = DirectStyle[ValDefBuilder[Expr[B], B, *]].scoped { runSafe =>
+    val result: ValDefBuilder[Expr[B], B, Expr[B]] =
+      DirectStyle[ValDefBuilder[Expr[B], B, *]].scoped { runSafe =>
       runSafe(ValDefBuilder.ofDef0[B]("x").map(_ => expr))
       // ...
     }
@@ -1460,7 +1475,9 @@ It would be handy to:
     }
 
     // Scala 2 adapter
-    class ValDefsCacheMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ValDefsCacheMacro {
+    class ValDefsCacheMacroImpl(val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2
+        with ValDefsCacheMacro {
 
       def buildCachedImpl: c.Expr[Int] = buildCached
     }
@@ -1478,7 +1495,9 @@ It would be handy to:
     }
 
     // Scala 3 adapter
-    class ValDefsCacheMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), ValDefsCacheMacro
+    class ValDefsCacheMacroImpl(q: Quotes)
+        extends hearth.MacroCommonsScala3(using q),
+          ValDefsCacheMacro
     object ValDefsCacheMacroImpl {
 
       def buildCachedImpl(using q: Quotes): Expr[Int] =
@@ -1528,7 +1547,8 @@ It would be handy to:
             Expr.quote(Expr.splice(a) * 10)
           }
           
-          defValue <- cacheLocal.get1Ary[Int, Int]("defKey").map(_.fold(Expr.quote(0))(_(Expr.quote(2))))
+          defValue <- cacheLocal.get1Ary[Int, Int]("defKey")
+            .map(_.fold(Expr.quote(0))(_(Expr.quote(2))))
           cache <- cacheLocal.get
         } yield cache.toValDefs.use { _ =>
           defValue
@@ -1548,11 +1568,14 @@ It would be handy to:
     import scala.reflect.macros.blackbox
 
     object Example {
-      def buildWithForwardDeclare: Int = macro ValDefsCacheMioMacroImpl.buildWithForwardDeclareImpl
+      def buildWithForwardDeclare: Int =
+        macro ValDefsCacheMioMacroImpl.buildWithForwardDeclareImpl
     }
 
     // Scala 2 adapter
-    class ValDefsCacheMioMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ValDefsCacheMioMacro {
+    class ValDefsCacheMioMacroImpl(val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2
+        with ValDefsCacheMioMacro {
 
       def buildWithForwardDeclareImpl: c.Expr[Int] = buildWithForwardDeclare
     }
@@ -1566,11 +1589,14 @@ It would be handy to:
     import scala.quoted.*
 
     object Example {
-      inline def buildWithForwardDeclare: Int = ${ ValDefsCacheMioMacroImpl.buildWithForwardDeclareImpl }
+      inline def buildWithForwardDeclare: Int =
+        ${ ValDefsCacheMioMacroImpl.buildWithForwardDeclareImpl }
     }
 
     // Scala 3 adapter
-    class ValDefsCacheMioMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), ValDefsCacheMioMacro
+    class ValDefsCacheMioMacroImpl(q: Quotes)
+        extends hearth.MacroCommonsScala3(using q),
+          ValDefsCacheMioMacro
     object ValDefsCacheMioMacroImpl {
 
       def buildWithForwardDeclareImpl(using q: Quotes): Expr[Int] =
@@ -1672,7 +1698,9 @@ Then we would have to create these lambdas programmatically using `LambdaBuilder
     }
 
     // Scala 2 adapter
-    class LambdaBuilderMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with LambdaBuilderMacro {
+    class LambdaBuilderMacroImpl(val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2
+        with LambdaBuilderMacro {
 
       def buildLambdasImpl: c.Expr[Int] = buildLambdas
     }
@@ -1690,7 +1718,9 @@ Then we would have to create these lambdas programmatically using `LambdaBuilder
     }
 
     // Scala 3 adapter
-    class LambdaBuilderMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), LambdaBuilderMacro
+    class LambdaBuilderMacroImpl(q: Quotes)
+        extends hearth.MacroCommonsScala3(using q),
+          LambdaBuilderMacro
     object LambdaBuilderMacroImpl {
 
       def buildLambdasImpl(using q: Quotes): Expr[Int] =
@@ -1728,7 +1758,8 @@ Supports up to 22 parameters (`of1` through `of22`).
     ```scala
     import LambdaBuilder.unsafe.*
 
-    val result: LambdaBuilder[Int => *, Expr[Int]] = DirectStyle[LambdaBuilder[Int => *, *]].scoped { runSafe =>
+    val result: LambdaBuilder[Int => *, Expr[Int]] =
+      DirectStyle[LambdaBuilder[Int => *, *]].scoped { runSafe =>
       runSafe(LambdaBuilder.of1[Int]("a"))
       // ...
     }
@@ -1854,26 +1885,45 @@ The recommended way to handle methods is through pattern matching:
         val name = Expr
           .unapply(methodName)
           .getOrElse(
-            Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+            Environment.reportErrorAndAbort(
+              s"Method name must be a string literal, got ${methodName.prettyPrint}"
+            )
           )
-        
-        val method: Method[A, Int] = Type[A].methods.filter(_.value.name == name) match {
-          case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
-          case method :: Nil =>
-            if (!(method.Underlying <:< Type.of[Int])) Environment.reportErrorAndAbort(s"Method $name returns not an Int")
-            else method.value.asInstanceOf[Method[A, Int]]
-          case _ => Environment.reportErrorAndAbort(s"Method $name is not unique")
-        }
-        
+
+        val method: Method[A, Int] =
+          Type[A].methods.filter(_.value.name == name) match {
+            case Nil => Environment.reportErrorAndAbort(
+              s"Method $name not found"
+            )
+            case method :: Nil =>
+              if (!(method.Underlying <:< Type.of[Int]))
+                Environment.reportErrorAndAbort(
+                  s"Method $name returns not an Int"
+                )
+              else method.value.asInstanceOf[Method[A, Int]]
+            case _ => Environment.reportErrorAndAbort(
+              s"Method $name is not unique"
+            )
+          }
+
         method match {
           case noInstance: Method.NoInstance[Int] @unchecked =>
-            Expr.quote(s"Found no-instance method ${Expr.splice(methodName)}")
-            
+            Expr.quote(
+              s"Found no-instance method ${Expr.splice(methodName)}"
+            )
+
           case ofInstance: Method.OfInstance[A, Int] @unchecked =>
-            Expr.quote(s"Found instance method ${Expr.splice(methodName)} on ${Expr.splice(Expr(Type[A].plainPrint))}")
-            
+            val tpeName = Expr(Type[A].plainPrint)
+            Expr.quote(
+              s"Found instance method ${Expr.splice(methodName)}" +
+              s" on ${Expr.splice(tpeName)}"
+            )
+
           case unsupported: Method.Unsupported[A, Int] @unchecked =>
-            Environment.reportErrorAndAbort(s"Method ${name} is unsupported: ${unsupported.reasonForUnsupported}")
+            Environment.reportErrorAndAbort(
+              s"Method ${name} is unsupported: " +
+              unsupported.reasonForUnsupported
+            )
         }
       }
     }
@@ -1888,11 +1938,14 @@ The recommended way to handle methods is through pattern matching:
     import scala.reflect.macros.blackbox
 
     object Example {
-      def handleMethod[A](methodName: String): String = macro MethodPatternMatchingMacroImpl.handleMethodImpl[A]
+      def handleMethod[A](methodName: String): String =
+        macro MethodPatternMatchingMacroImpl.handleMethodImpl[A]
     }
 
     // Scala 2 adapter
-    class MethodPatternMatchingMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with MethodPatternMatchingMacro {
+    class MethodPatternMatchingMacroImpl(val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2
+        with MethodPatternMatchingMacro {
 
       def handleMethodImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[String] =
         handleMethod[A](methodName)
@@ -1907,11 +1960,17 @@ The recommended way to handle methods is through pattern matching:
     import scala.quoted.*
 
     object Example {
-      inline def handleMethod[A](inline methodName: String): String = ${ MethodPatternMatchingMacroImpl.handleMethodImpl[A]('{ methodName }) }
+      inline def handleMethod[A](
+        inline methodName: String
+      ): String =
+        ${ MethodPatternMatchingMacroImpl
+          .handleMethodImpl[A]('{ methodName }) }
     }
 
     // Scala 3 adapter
-    class MethodPatternMatchingMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), MethodPatternMatchingMacro
+    class MethodPatternMatchingMacroImpl(q: Quotes)
+        extends hearth.MacroCommonsScala3(using q),
+          MethodPatternMatchingMacro
     object MethodPatternMatchingMacroImpl {
 
       def handleMethodImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[String] =
@@ -1933,8 +1992,15 @@ The recommended way to handle methods is through pattern matching:
           def staticMethod(x: Int): Int = x + 2
         }
         
-        assertEquals(Example.handleMethod[TestClass]("instanceMethod"), "Found instance method instanceMethod on ExampleSpec.TestClass")
-        assertEquals(Example.handleMethod[TestClass]("staticMethod"), "Found no-instance method staticMethod")
+        assertEquals(
+          Example.handleMethod[TestClass]("instanceMethod"),
+          "Found instance method instanceMethod" +
+          " on ExampleSpec.TestClass"
+        )
+        assertEquals(
+          Example.handleMethod[TestClass]("staticMethod"),
+          "Found no-instance method staticMethod"
+        )
       }
     }
     ```
@@ -2002,80 +2068,148 @@ of method it is. Once we do, we need to apply the `Arguments`
       private val IntType = Type.of[Int]
 
       // Call a no-instance method (constructor or companion method)
-      def callNoInstanceMethod[A: Type](methodName: Expr[String])(params: VarArgs[Int]): Expr[Int] = {
+      def callNoInstanceMethod[A: Type](
+        methodName: Expr[String]
+      )(params: VarArgs[Int]): Expr[Int] = {
         implicit val intType: Type[Int] = IntType
         val name = Expr
           .unapply(methodName)
           .getOrElse(
-            Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+            Environment.reportErrorAndAbort(
+              "Method name must be a string literal," +
+              s" got ${methodName.prettyPrint}"
+            )
           )
-        val method: Method[A, Int] = Type[A].methods.filter(_.value.name == name) match {
-          case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
-          case method :: Nil =>
-            import method.Underlying as Returned
-            if (!(Returned <:< Type.of[Int])) Environment.reportErrorAndAbort(s"Method $name returns not an Int")
-            else method.value.asInstanceOf[Method[A, Int]]
-          case _ => Environment.reportErrorAndAbort(s"Method $name is not unique")
-        }
+        val method: Method[A, Int] =
+          Type[A].methods
+            .filter(_.value.name == name) match {
+            case Nil =>
+              Environment.reportErrorAndAbort(
+                s"Method $name not found"
+              )
+            case method :: Nil =>
+              import method.Underlying as Returned
+              if (!(Returned <:< Type.of[Int]))
+                Environment.reportErrorAndAbort(
+                  s"Method $name returns not an Int"
+                )
+              else method.value.asInstanceOf[Method[A, Int]]
+            case _ =>
+              Environment.reportErrorAndAbort(
+                s"Method $name is not unique"
+              )
+          }
         method match {
           case noInstance: Method.NoInstance[Int] @unchecked =>
             val providedParams = params.toVector
-            val arguments = noInstance.parameters.flatten.zipWithIndex.flatMap { case ((name, param), index) =>
-              providedParams.lift(index) match {
-                case _ if !(param.tpe.Underlying <:< Type.of[Int]) =>
-                  Environment.reportErrorAndAbort(s"Parameter $name has wrong type: ${param.tpe.plainPrint} is not an Int")
-                case Some(value)              => Some(name -> value.as_??)
-                case None if param.hasDefault => None
-                case _ => Environment.reportErrorAndAbort(s"Missing parameter for $name (not default value as well)")
-              }
-            }.toMap
+            val arguments = noInstance.parameters.flatten
+              .zipWithIndex
+              .flatMap { case ((name, param), index) =>
+                providedParams.lift(index) match {
+                  case _ if !(param.tpe.Underlying <:< Type.of[Int]) =>
+                    Environment.reportErrorAndAbort(
+                      s"Parameter $name has wrong type:" +
+                      s" ${param.tpe.plainPrint} is not an Int"
+                    )
+                  case Some(value) =>
+                    Some(name -> value.as_??)
+                  case None if param.hasDefault => None
+                  case _ =>
+                    Environment.reportErrorAndAbort(
+                      s"Missing parameter for $name" +
+                      " (not default value as well)"
+                    )
+                }
+              }.toMap
             noInstance.apply(arguments) match {
               case Right(result) => result
-              case Left(error)   => Environment.reportErrorAndAbort(s"Failed to call method $name: $error")
+              case Left(error) =>
+                Environment.reportErrorAndAbort(
+                  s"Failed to call method $name: $error"
+                )
             }
           case _: Method.OfInstance[A, Int] @unchecked =>
-            Environment.reportErrorAndAbort(s"Method $name is not a no-instance method")
+            Environment.reportErrorAndAbort(
+              s"Method $name is not a no-instance method"
+            )
           case unsupported: Method.Unsupported[A, Int] @unchecked =>
-            Environment.reportErrorAndAbort(s"Method $name is unsupported: ${unsupported.reasonForUnsupported}")
+            Environment.reportErrorAndAbort(
+              s"Method $name is unsupported: " +
+              unsupported.reasonForUnsupported
+            )
         }
       }
 
       // Call an instance method
-      def callInstanceMethod[A: Type](instance: Expr[A])(methodName: Expr[String])(params: VarArgs[Int]): Expr[Int] = {
+      def callInstanceMethod[A: Type](
+        instance: Expr[A]
+      )(methodName: Expr[String])(
+        params: VarArgs[Int]
+      ): Expr[Int] = {
         implicit val intType: Type[Int] = IntType
         val name = Expr
           .unapply(methodName)
           .getOrElse(
-            Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+            Environment.reportErrorAndAbort(
+              "Method name must be a string literal," +
+              s" got ${methodName.prettyPrint}"
+            )
           )
-        val method: Method[A, Int] = Type[A].methods.filter(_.value.name == name) match {
-          case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
-          case method :: Nil =>
-            import method.Underlying as Returned
-            if (!(Returned <:< Type.of[Int])) Environment.reportErrorAndAbort(s"Method $name returns not an Int")
-            else method.value.asInstanceOf[Method[A, Int]]
-          case _ => Environment.reportErrorAndAbort(s"Method $name is not unique")
-        }
+        val method: Method[A, Int] =
+          Type[A].methods
+            .filter(_.value.name == name) match {
+            case Nil =>
+              Environment.reportErrorAndAbort(
+                s"Method $name not found"
+              )
+            case method :: Nil =>
+              import method.Underlying as Returned
+              if (!(Returned <:< Type.of[Int]))
+                Environment.reportErrorAndAbort(
+                  s"Method $name returns not an Int"
+                )
+              else method.value.asInstanceOf[Method[A, Int]]
+            case _ =>
+              Environment.reportErrorAndAbort(
+                s"Method $name is not unique"
+              )
+          }
         method match {
           case _: Method.NoInstance[Int] @unchecked =>
             Environment.reportErrorAndAbort(s"Method $name is not an instance method")
           case ofInstance: Method.OfInstance[A, Int] @unchecked =>
             val providedParams = params.toVector
-            val arguments = ofInstance.parameters.flatten.zipWithIndex.flatMap { case ((name, param), index) =>
-              providedParams.lift(index) match {
-                case _ if !(param.tpe.Underlying <:< Type.of[Int]) =>
-                  Environment.reportErrorAndAbort(s"Parameter $name has wrong type: ${param.tpe.plainPrint} is not an Int")
-                case Some(value)              => Some(name -> value.as_??)
-                case None if param.hasDefault => None
-                case _ => Environment.reportErrorAndAbort(s"Missing parameter for $name (not default value as well)")
-              }
-            }.toMap
+            val arguments = ofInstance.parameters.flatten
+              .zipWithIndex
+              .flatMap { case ((name, param), index) =>
+                providedParams.lift(index) match {
+                  case _ if !(param.tpe.Underlying <:< Type.of[Int]) =>
+                    Environment.reportErrorAndAbort(
+                      s"Parameter $name has wrong type:" +
+                      s" ${param.tpe.plainPrint} is not an Int"
+                    )
+                  case Some(value) =>
+                    Some(name -> value.as_??)
+                  case None if param.hasDefault => None
+                  case _ =>
+                    Environment.reportErrorAndAbort(
+                      s"Missing parameter for $name" +
+                      " (not default value as well)"
+                    )
+                }
+              }.toMap
             ofInstance.apply(instance, arguments) match {
               case Right(result) => result
-              case Left(error)   => Environment.reportErrorAndAbort(s"Failed to call method $name: $error")
+              case Left(error) =>
+                Environment.reportErrorAndAbort(
+                  s"Failed to call method $name: $error"
+                )
             }
           case unsupported: Method.Unsupported[A, Int] @unchecked =>
-            Environment.reportErrorAndAbort(s"Method $name is unsupported: ${unsupported.reasonForUnsupported}")
+            Environment.reportErrorAndAbort(
+              s"Method $name is unsupported: " +
+              unsupported.reasonForUnsupported
+            )
         }
       }
     }
@@ -2090,17 +2224,33 @@ of method it is. Once we do, we need to apply the `Arguments`
     import scala.reflect.macros.blackbox
 
     object Example {
-      def callNoInstanceMethod[A](methodName: String)(params: Int*): Int = macro CallingMethodsMacroImpl.callNoInstanceMethodImpl[A]
-      def callInstanceMethod[A](instance: A)(methodName: String)(params: Int*): Int = macro CallingMethodsMacroImpl.callInstanceMethodImpl[A]
+      def callNoInstanceMethod[A](
+        methodName: String
+      )(params: Int*): Int =
+        macro CallingMethodsMacroImpl
+          .callNoInstanceMethodImpl[A]
+      def callInstanceMethod[A](instance: A)(
+        methodName: String
+      )(params: Int*): Int =
+        macro CallingMethodsMacroImpl
+          .callInstanceMethodImpl[A]
     }
 
     // Scala 2 adapter
-    class CallingMethodsMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with CallingMethodsMacro {
+    class CallingMethodsMacroImpl(val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2
+        with CallingMethodsMacro {
 
-      def callNoInstanceMethodImpl[A: c.WeakTypeTag](methodName: c.Expr[String])(params: c.Expr[Int]*): c.Expr[Int] =
+      def callNoInstanceMethodImpl[A: c.WeakTypeTag](
+        methodName: c.Expr[String]
+      )(params: c.Expr[Int]*): c.Expr[Int] =
         callNoInstanceMethod[A](methodName)(params)
-      
-      def callInstanceMethodImpl[A: c.WeakTypeTag](instance: c.Expr[A])(methodName: c.Expr[String])(params: c.Expr[Int]*): c.Expr[Int] =
+
+      def callInstanceMethodImpl[A: c.WeakTypeTag](
+        instance: c.Expr[A]
+      )(methodName: c.Expr[String])(
+        params: c.Expr[Int]*
+      ): c.Expr[Int] =
         callInstanceMethod[A](instance)(methodName)(params)
     }
     ```
@@ -2113,19 +2263,46 @@ of method it is. Once we do, we need to apply the `Arguments`
     import scala.quoted.*
 
     object Example {
-      inline def callNoInstanceMethod[A](inline methodName: String)(inline params: Int*): Int = ${ CallingMethodsMacroImpl.callNoInstanceMethodImpl[A]('{ methodName }, '{ params }) }
-      inline def callInstanceMethod[A](inline instance: A)(inline methodName: String)(inline params: Int*): Int = ${ CallingMethodsMacroImpl.callInstanceMethodImpl[A]('{ instance }, '{ methodName }, '{ params }) }
+      inline def callNoInstanceMethod[A](
+        inline methodName: String
+      )(inline params: Int*): Int =
+        ${ CallingMethodsMacroImpl
+          .callNoInstanceMethodImpl[A](
+            '{ methodName }, '{ params }
+          ) }
+      inline def callInstanceMethod[A](
+        inline instance: A
+      )(inline methodName: String)(
+        inline params: Int*
+      ): Int =
+        ${ CallingMethodsMacroImpl
+          .callInstanceMethodImpl[A](
+            '{ instance }, '{ methodName }, '{ params }
+          ) }
     }
 
     // Scala 3 adapter
-    class CallingMethodsMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), CallingMethodsMacro
+    class CallingMethodsMacroImpl(q: Quotes)
+        extends hearth.MacroCommonsScala3(using q),
+          CallingMethodsMacro
     object CallingMethodsMacroImpl {
 
-      def callNoInstanceMethodImpl[A: Type](methodName: Expr[String], params: Expr[Seq[Int]])(using q: Quotes): Expr[Int] =
-        new CallingMethodsMacroImpl(q).callNoInstanceMethod[A](methodName)(params)
-      
-      def callInstanceMethodImpl[A: Type](instance: Expr[A], methodName: Expr[String], params: Expr[Seq[Int]])(using q: Quotes): Expr[Int] =
-        new CallingMethodsMacroImpl(q).callInstanceMethod[A](instance)(methodName)(params)
+      def callNoInstanceMethodImpl[A: Type](
+        methodName: Expr[String],
+        params: Expr[Seq[Int]]
+      )(using q: Quotes): Expr[Int] =
+        new CallingMethodsMacroImpl(q)
+          .callNoInstanceMethod[A](methodName)(params)
+
+      def callInstanceMethodImpl[A: Type](
+        instance: Expr[A],
+        methodName: Expr[String],
+        params: Expr[Seq[Int]]
+      )(using q: Quotes): Expr[Int] =
+        new CallingMethodsMacroImpl(q)
+          .callInstanceMethod[A](instance)(
+            methodName
+          )(params)
     }
     ```
 
@@ -2242,7 +2419,9 @@ or Scala Enumeration values:
     }
 
     // Scala 2 adapter
-    class SingletonMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with SingletonMacro {
+    class SingletonMacroImpl(val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2
+        with SingletonMacro {
 
       def getSingletonImpl[A: c.WeakTypeTag]: c.Expr[String] =
         getSingleton[A]
@@ -2261,7 +2440,9 @@ or Scala Enumeration values:
     }
 
     // Scala 3 adapter
-    class SingletonMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), SingletonMacro
+    class SingletonMacroImpl(q: Quotes)
+        extends hearth.MacroCommonsScala3(using q),
+          SingletonMacro
     object SingletonMacroImpl {
 
       def getSingletonImpl[A: Type](using q: Quotes): Expr[String] =
@@ -2316,7 +2497,11 @@ Specialized view for named tuples (Scala 3.7+ only), providing access to fields 
 
       def inspectNamedTuple[A: Type]: Expr[String] = Expr {
         NamedTuple.parse[A].toOption.fold("<not a named tuple>") { nt =>
-          val fields = nt.fields.map { case (name, tpe) => s"$name: ${tpe.plainPrint}" }.mkString(", ")
+          val fields = nt.fields
+            .map { case (name, tpe) =>
+              s"$name: ${tpe.plainPrint}"
+            }
+            .mkString(", ")
           s"fields: ($fields)"
         }
       }
@@ -2346,7 +2531,11 @@ Specialized view for named tuples (Scala 3.7+ only), providing access to fields 
 
       test("non-named-tuple is not detected") {
         val result = Example.inspectNamedTuple[String]
-        assert(result == "<not a named tuple>", s"Expected '<not a named tuple>' but got: $result")
+        assert(
+          result == "<not a named tuple>",
+          s"Expected '<not a named tuple>'" +
+          s" but got: $result"
+        )
       }
     }
     ```
@@ -2385,7 +2574,10 @@ Specialized view for case classes, providing access to primary constructor and c
             implicit val StringType: Type[String] = this.StringType
             if (FieldType <:< Type[Int]) MIO.pure(Expr(0).as_??)
             else if (FieldType <:< Type[String]) MIO.pure(Expr(field.name).as_??)
-            else MIO.fail(new Exception(s"Field ${field.name} has wrong type: ${field.tpe.plainPrint}"))
+            else MIO.fail(new Exception(
+              s"Field ${field.name} has wrong type:" +
+              s" ${field.tpe.plainPrint}"
+            ))
           }
           val sequential = caseClass.construct(makeArgument).map { result =>
             result.fold("<failed to construct sequential>")(_.plainPrint)
@@ -2415,11 +2607,16 @@ Specialized view for case classes, providing access to primary constructor and c
     import scala.reflect.macros.blackbox
 
     object Example {
-      def constructCaseClass[A]: String = macro CaseClassConstructMacroImpl.constructCaseClassImpl[A]
+      def constructCaseClass[A]: String =
+        macro CaseClassConstructMacroImpl
+          .constructCaseClassImpl[A]
     }
 
     // Scala 2 adapter
-    class CaseClassConstructMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with CaseClassConstructMacro {
+    class CaseClassConstructMacroImpl(
+        val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2
+        with CaseClassConstructMacro {
 
       def constructCaseClassImpl[A: c.WeakTypeTag]: c.Expr[String] =
         constructCaseClass[A]
@@ -2434,11 +2631,15 @@ Specialized view for case classes, providing access to primary constructor and c
     import scala.quoted.*
 
     object Example {
-      inline def constructCaseClass[A]: String = ${ CaseClassConstructMacroImpl.constructCaseClassImpl[A] }
+      inline def constructCaseClass[A]: String =
+        ${ CaseClassConstructMacroImpl
+          .constructCaseClassImpl[A] }
     }
 
     // Scala 3 adapter
-    class CaseClassConstructMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), CaseClassConstructMacro
+    class CaseClassConstructMacroImpl(q: Quotes)
+        extends hearth.MacroCommonsScala3(using q),
+          CaseClassConstructMacro
     object CaseClassConstructMacroImpl {
 
       def constructCaseClassImpl[A: Type](using q: Quotes): Expr[String] =
@@ -2495,11 +2696,16 @@ Specialized view for case classes, providing access to primary constructor and c
     import scala.reflect.macros.blackbox
 
     object Example {
-      def extractFields[A](expr: A): String = macro CaseClassDeconstructMacroImpl.extractFieldsImpl[A]
+      def extractFields[A](expr: A): String =
+        macro CaseClassDeconstructMacroImpl
+          .extractFieldsImpl[A]
     }
 
     // Scala 2 adapter
-    class CaseClassDeconstructMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with CaseClassDeconstructMacro {
+    class CaseClassDeconstructMacroImpl(
+        val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2
+        with CaseClassDeconstructMacro {
 
       def extractFieldsImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] =
         extractFields[A](expr)
@@ -2514,11 +2720,18 @@ Specialized view for case classes, providing access to primary constructor and c
     import scala.quoted.*
 
     object Example {
-      inline def extractFields[A](inline expr: A): String = ${ CaseClassDeconstructMacroImpl.extractFieldsImpl[A]('{ expr }) }
+      inline def extractFields[A](
+          inline expr: A
+      ): String =
+        ${ CaseClassDeconstructMacroImpl
+          .extractFieldsImpl[A]('{ expr }) }
     }
 
     // Scala 3 adapter
-    class CaseClassDeconstructMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), CaseClassDeconstructMacro
+    class CaseClassDeconstructMacroImpl(
+        q: Quotes)
+        extends hearth.MacroCommonsScala3(using q),
+          CaseClassDeconstructMacro
     object CaseClassDeconstructMacroImpl {
 
       def extractFieldsImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
@@ -2572,7 +2785,11 @@ Specialized view for sealed traits, Scala 3 enums, Java enums, or disjoint union
           implicit val StringType: Type[String] = this.StringType
           val handle: Expr_??<:[A] => MIO[Expr[String]] = matched => {
             import matched.{Underlying as Subtype, value as matchedExpr}
-            MIO.pure(Expr(s"subtype name: ${Subtype.plainPrint}, expr: ${matchedExpr.plainPrint}"))
+            MIO.pure(Expr(
+              s"subtype name: " +
+              s"${Subtype.plainPrint}, " +
+              s"expr: ${matchedExpr.plainPrint}"
+            ))
           }
           val sequential = enumm
             .matchOn(expr)(handle)
@@ -2607,7 +2824,10 @@ Specialized view for sealed traits, Scala 3 enums, Java enums, or disjoint union
     }
 
     // Scala 2 adapter
-    class EnumMatchMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with EnumMatchMacro {
+    class EnumMatchMacroImpl(
+        val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2
+        with EnumMatchMacro {
 
       def matchEnumImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] =
         matchEnum[A](expr)
@@ -2622,11 +2842,17 @@ Specialized view for sealed traits, Scala 3 enums, Java enums, or disjoint union
     import scala.quoted.*
 
     object Example {
-      inline def matchEnum[A](inline expr: A): String = ${ EnumMatchMacroImpl.matchEnumImpl[A]('{ expr }) }
+      inline def matchEnum[A](
+          inline expr: A
+      ): String =
+        ${ EnumMatchMacroImpl
+          .matchEnumImpl[A]('{ expr }) }
     }
 
     // Scala 3 adapter
-    class EnumMatchMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), EnumMatchMacro
+    class EnumMatchMacroImpl(q: Quotes)
+        extends hearth.MacroCommonsScala3(using q),
+          EnumMatchMacro
     object EnumMatchMacroImpl {
 
       def matchEnumImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
@@ -2782,11 +3008,16 @@ Specialized view for Java Beans (POJOs with default constructor and setters):
     import scala.reflect.macros.blackbox
 
     object Example {
-      def constructJavaBean[A]: String = macro JavaBeanConstructMacroImpl.constructJavaBeanImpl[A]
+      def constructJavaBean[A]: String =
+        macro JavaBeanConstructMacroImpl
+          .constructJavaBeanImpl[A]
     }
 
     // Scala 2 adapter
-    class JavaBeanConstructMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with JavaBeanConstructMacro {
+    class JavaBeanConstructMacroImpl(
+        val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2
+        with JavaBeanConstructMacro {
 
       def constructJavaBeanImpl[A: c.WeakTypeTag]: c.Expr[String] =
         constructJavaBean[A]
@@ -2801,11 +3032,15 @@ Specialized view for Java Beans (POJOs with default constructor and setters):
     import scala.quoted.*
 
     object Example {
-      inline def constructJavaBean[A]: String = ${ JavaBeanConstructMacroImpl.constructJavaBeanImpl[A] }
+      inline def constructJavaBean[A]: String =
+        ${ JavaBeanConstructMacroImpl
+          .constructJavaBeanImpl[A] }
     }
 
     // Scala 3 adapter
-    class JavaBeanConstructMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), JavaBeanConstructMacro
+    class JavaBeanConstructMacroImpl(q: Quotes)
+        extends hearth.MacroCommonsScala3(using q),
+          JavaBeanConstructMacro
     object JavaBeanConstructMacroImpl {
 
       def constructJavaBeanImpl[A: Type](using q: Quotes): Expr[String] =
@@ -2862,7 +3097,10 @@ Specialized view for Java Beans (POJOs with default constructor and setters):
             if (FieldType <:< Type[Boolean]) MIO.pure(Expr(true).as_??)
             else if (FieldType <:< Type[Int]) MIO.pure(Expr(0).as_??)
             else if (FieldType <:< Type[String]) MIO.pure(Expr(name).as_??)
-            else MIO.fail(new Exception(s"Field $name has wrong type: ${input.tpe.plainPrint}"))
+            else MIO.fail(new Exception(
+              s"Field $name has wrong type:" +
+              s" ${input.tpe.plainPrint}"
+            ))
           }
           val sequential = javaBean.constructWithSetters(setField).map { result =>
             result.fold("<failed to construct with setters>")(_.plainPrint)
@@ -2892,11 +3130,16 @@ Specialized view for Java Beans (POJOs with default constructor and setters):
     import scala.reflect.macros.blackbox
 
     object Example {
-      def constructWithSetters[A]: String = macro JavaBeanSettersMacroImpl.constructWithSettersImpl[A]
+      def constructWithSetters[A]: String =
+        macro JavaBeanSettersMacroImpl
+          .constructWithSettersImpl[A]
     }
 
     // Scala 2 adapter
-    class JavaBeanSettersMacroImpl(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with JavaBeanSettersMacro {
+    class JavaBeanSettersMacroImpl(
+        val c: blackbox.Context)
+        extends hearth.MacroCommonsScala2
+        with JavaBeanSettersMacro {
 
       def constructWithSettersImpl[A: c.WeakTypeTag]: c.Expr[String] =
         constructWithSetters[A]
@@ -2911,11 +3154,15 @@ Specialized view for Java Beans (POJOs with default constructor and setters):
     import scala.quoted.*
 
     object Example {
-      inline def constructWithSetters[A]: String = ${ JavaBeanSettersMacroImpl.constructWithSettersImpl[A] }
+      inline def constructWithSetters[A]: String =
+        ${ JavaBeanSettersMacroImpl
+          .constructWithSettersImpl[A] }
     }
 
     // Scala 3 adapter
-    class JavaBeanSettersMacroImpl(q: Quotes) extends hearth.MacroCommonsScala3(using q), JavaBeanSettersMacro
+    class JavaBeanSettersMacroImpl(q: Quotes)
+        extends hearth.MacroCommonsScala3(using q),
+          JavaBeanSettersMacro
     object JavaBeanSettersMacroImpl {
 
       def constructWithSettersImpl[A: Type](using q: Quotes): Expr[String] =
@@ -3004,7 +3251,8 @@ positions.sorted  // sorts by file path, then offset
        someInstance.someMacroMethod
        //           ^ position of macro expansion on Scala 3 when nullary
        someInstance.someMacroMethodWithArgs(argument)
-       //                                   ^ position of macro expansion on Scala 3 when non-nullary
+       //                                   ^
+       // Scala 3 macro position (non-nullary)
        ```
 
     Hearth makes sure that the behavior is consistent and sane and aligns it to always point
@@ -3047,7 +3295,10 @@ Determines whether we have Scala 2.13 or Scala 3 in the current macro expansion.
 !!! example
 
     ```scala
-    hearth.ScalaVersion.byJVMRuntime.toLanguageVersion // LanguageVersion.Scala2_13 or LanguageVersion.Scala3
+    // LanguageVersion.Scala2_13
+    // or LanguageVersion.Scala3
+    hearth.ScalaVersion.byJVMRuntime
+      .toLanguageVersion
     hearth.LanguageVersion.byHearth
     ```
 
@@ -3072,7 +3323,11 @@ Determines Hearth's version number, [`LanguageVersion`](#languageversion) and [`
 !!! example
 
     ```scala
-    HearthVersion.byHearthLibrary // HearthVersion(version = "{{ hearth_version() }}", languageVersion = LanguageVersion.Scala2_13, Platform.JVM)
+    // HearthVersion(
+    //   version = "{{ hearth_version() }}",
+    //   languageVersion = ...,
+    //   Platform.JVM)
+    HearthVersion.byHearthLibrary
     ```
 
 Useful for e.g. error reporting.
@@ -3122,7 +3377,9 @@ Pass settings to macros via `-Xmacro-settings:key=value`:
 
     Environment.XMacroSettings  // List[String] - all settings as strings
 
-    Environment.typedSettings   // Either[String, hearth.data.Data] - parsed as JSON-like structure
+    // Either[String, hearth.data.Data]
+    // parsed as JSON-like structure
+    Environment.typedSettings
     Environment.typedSettings.toOption.flatMap(_.get("myMacro")).flatMap(_.get("debug"))
     ```
 

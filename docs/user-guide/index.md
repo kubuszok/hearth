@@ -34,18 +34,23 @@ As a showcase, we will build a cross-compilable `Show` derivation.
 
     // Add the cross-quotes compiler plugin (but only on Scala 3, Scala 2.13 uses macros)
     libraryDependencies ++= CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _)) => Seq(compilerPlugin("com.kubuszok" % "hearth-cross-quotes" % "{{ hearth_version() }}_3"))
+      case Some((3, _)) => Seq(compilerPlugin(
+        "com.kubuszok" % "hearth-cross-quotes" % "{{ hearth_version() }}_3"
+      ))
       case _            => Seq()
     }
 
-    // If you want to enable debugging of cross-quotes, pass the right option to the macro/compiler plugin
+    // If you want to enable debugging of cross-quotes,
+    // pass the right option to the macro/compiler plugin
     scalacOptions ++= CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((3, _)) => Seq(
-        // set to true OR file1.scala,file2.scala,... if you want to debug cross-quotes generation on Scala 3
+        // set to true OR file1.scala,file2.scala,...
+        // to debug cross-quotes generation on Scala 3
         "-P:hearth.cross-quotes:logging=false"
       )
       case Some((2, 13)) => Seq(
-        // set to true OR file1.scala,file2.scala,... if you want to debug cross-quotes generation on Scala 2
+        // set to true OR file1.scala,file2.scala,...
+        // to debug cross-quotes generation on Scala 2
         "-Xmacro-settings:hearth.cross-quotes.logging=false"
       )
     }
@@ -67,12 +72,15 @@ The majority of the macro code is shared by putting it into a mix-in trait.
       def show(value: A): String
     }
 
-    /** Companion will contain the derivation adapted specifically to Scala language version. */
+    /** Companion will contain the derivation adapted
+      * specifically to Scala language version.
+      */
     object Show extends ShowCompanionCompat {
 
       def apply[A](implicit show: Show[A]): Show[A] = show
 
-      /** Special type - if its implicit is in scope, then macros will log the derivation process.
+      /** Special type - if its implicit is in scope,
+        * then macros will log the derivation process.
         *
         * @see
         *   [[hearth.demo_sanely_automatic.debug.logDerivation]] for details
@@ -105,9 +113,15 @@ The majority of the macro code is shared by putting it into a mix-in trait.
         }
       }
 
-      /** Derives a `String` representation of a given value of type `A` (inlined `Show[A].show`). */
+      /** Derives a `String` representation of a given
+        * value of type `A` (inlined `Show[A].show`).
+        */
       def deriveShowString[A: Type](value: Expr[A]): Expr[String] =
-        deriveOrFail[A](value, s"${Types.Show[A].prettyPrint}.show(${value.prettyPrint}) result")
+        deriveOrFail[A](
+          value,
+          s"${Types.Show[A].prettyPrint}" +
+            s".show(${value.prettyPrint}) result"
+        )
 
       /** Converts the [[MIO]] results into an [[Expr]] or error message. */
       private def deriveOrFail[A: Type](value: Expr[A], name: String): Expr[String] = Log
@@ -120,15 +134,20 @@ The majority of the macro code is shared by putting it into a mix-in trait.
           infoRendering = if (shouldWeLogDerivation) RenderFrom(Log.Level.Info) else DontRender
         ) { (errorLogs, errors) =>
           // errorLogs: String - pretty-printed log
-          // errors: NonEmptyVector[Throwable] - errors that happened during the derivation (if it succeeded, this wouldn't be called)
+          // errors: NonEmptyVector[Throwable] - errors
+          // that happened during the derivation
+          // (if it succeeded, this wouldn't be called)
 
           val errorsStr = errors.toVector
             .map {
-              case DerivationError.UnsupportedType(typeName)           => s"Derivation of $typeName is not supported"
+              case DerivationError.UnsupportedType(typeName) =>
+                s"Derivation of $typeName is not supported"
               case DerivationError.UnsupportedMethod(typeName, method) =>
                 s"Derivation of $typeName.$method is not supported"
               case DerivationError.AssertionFailed(message) => s"Assertion failed: $message"
-              case e => s"Unexpected error: ${e.getMessage}:\n${e.getStackTrace.mkString("\n")}"
+              case e =>
+                s"Unexpected error: ${e.getMessage}:" +
+                  s"\n${e.getStackTrace.mkString("\n")}"
             }
             .mkString("\n")
 
@@ -157,25 +176,37 @@ The majority of the macro code is shared by putting it into a mix-in trait.
           data <- Environment.typedSettings.toOption
           show <- data.get("show")
           shouldLog <- show.get("logDerivation").flatMap(_.asBoolean)
-        } yield shouldLog).getOrElse(false) // We don't want to fail the derivation if we can't parse the settings.
+        // We don't want to fail the derivation
+        // if we can't parse the settings.
+        } yield shouldLog).getOrElse(false)
 
         logDerivationImported || logDerivationSetGlobally
       }
 
       // All methods below implement the rules for deriving a `Show[A]` type class instance.
 
-      /** The idea here is that we are attempting one derivation rule after another, and if one fails, we try the next one.
+      /** The idea here is that we are attempting one
+        * derivation rule after another, and if one fails,
+        * we try the next one.
         *
-        *   - successful MIO with Some(expr) -> derivation succeeded according to the rule
-        *   - successful MIO with None -> the rule does not apply, we should try the next one
-        *   - failed MIO -> the rule does apply but it failed, we should fail the whole derivation
+        *   - successful MIO with Some(expr) ->
+        *     derivation succeeded according to the rule
+        *   - successful MIO with None ->
+        *     the rule does not apply, try the next one
+        *   - failed MIO ->
+        *     the rule does apply but it failed,
+        *     we should fail the whole derivation
         *
         * If none of the rules matched, then we fail derivation as well.
         */
       private type Attempt[A] = MIO[Option[Expr[A]]]
 
-      /** Attempts one derivation rule after another, if none of them apply, we fail the derivation. */
-      private def attemptAllRules[A: Type](value: Expr[A]): MIO[Expr[String]] = MIO.scoped { runSafe =>
+      /** Attempts one derivation rule after another,
+        * if none of them apply, we fail the derivation.
+        */
+      private def attemptAllRules[A: Type](
+          value: Expr[A]
+      ): MIO[Expr[String]] = MIO.scoped { runSafe =>
         runSafe {
           attemptUsingImplicit[A](value)
         } orElse runSafe {
@@ -206,7 +237,10 @@ The majority of the macro code is shared by putting it into a mix-in trait.
 
       /** Attempts to show `A` value using an implicit `Show[A]` value. */
       private def attemptUsingImplicit[A: Type](value: Expr[A]): Attempt[String] =
-        Log.info(s"Attempting summoning implicit ${Types.Show[A].prettyPrint} to show value") >> MIO {
+        Log.info(
+          s"Attempting summoning implicit " +
+            s"${Types.Show[A].prettyPrint} to show value"
+        ) >> MIO {
           implicit val showA: Type[Show[A]] = Types.Show[A]
           Expr.summonImplicitIgnoring[Show[A]](ignoredImplicits*).toOption.map { show =>
             Expr.quote {
@@ -214,13 +248,21 @@ The majority of the macro code is shared by putting it into a mix-in trait.
             }
           }
         }.flatTap {
-          case Some(expr) => Log.info(s"Successfully summoned ${Types.Show[A].prettyPrint}:\n${expr.prettyPrint}")
+          case Some(expr) => Log.info(
+            s"Successfully summoned " +
+              s"${Types.Show[A].prettyPrint}:" +
+              s"\n${expr.prettyPrint}"
+          )
           case None       => Log.info(s"Failed to summon ${Types.Show[A].prettyPrint}")
         }
 
       /** Attempts to show `A` value using a built-in handlers for primitive types. */
       private def attemptAsBuiltIn[A: Type](value: Expr[A]): Attempt[String] =
-        Log.info(s"Attempting to use built-in support to show value of type ${Type.prettyPrint[A]}") >> MIO {
+        Log.info(
+          s"Attempting to use built-in support " +
+            s"to show value of type " +
+            s"${Type.prettyPrint[A]}"
+        ) >> MIO {
           if (Type[A] <:< Type.of[Boolean]) Some(Expr.quote {
             Expr.splice(value).toString
           })
@@ -238,13 +280,17 @@ The majority of the macro code is shared by putting it into a mix-in trait.
           })
           else if (Type[A] <:< Type.of[Float]) Some(Expr.quote {
             val result = Expr.splice(value).toString
-            // Workaround for https://www.scala-js.org/doc/semantics.html#tostring-of-float-double-and-unit
+            // Workaround for scala-js.org/doc/
+            //   semantics.html
+            //   #tostring-of-float-double-and-unit
             val workaround = if (result.contains(".")) result else (result + ".0")
             workaround + "f"
           })
           else if (Type[A] <:< Type.of[Double]) Some(Expr.quote {
             val result = Expr.splice(value).toString
-            // Workaround for https://www.scala-js.org/doc/semantics.html#tostring-of-float-double-and-unit
+            // Workaround for scala-js.org/doc/
+            //   semantics.html
+            //   #tostring-of-float-double-and-unit
             val workaround = if (result.contains(".")) result else (result + ".0")
             workaround
           })
@@ -258,19 +304,34 @@ The majority of the macro code is shared by putting it into a mix-in trait.
         }.flatTap {
           case Some(expr) =>
             Log.info(
-              s"Successfully used built-in support to show value of type ${Type.prettyPrint[A]}:\n${expr.prettyPrint}"
+              s"Successfully used built-in support" +
+                s" to show value of type " +
+                s"${Type.prettyPrint[A]}:" +
+                s"\n${expr.prettyPrint}"
             )
-          case None => Log.info(s"Failed to use built-in support to show value of type ${Type.prettyPrint[A]}")
+          case None => Log.info(
+            s"Failed to use built-in support" +
+              s" to show value of type " +
+              s"${Type.prettyPrint[A]}"
+          )
         }
 
       /** Attempts to show `A` value using a iterable support. */
       private def attemptAsIterable[A: Type](value: Expr[A]): Attempt[String] =
-        Log.info(s"Attempting to use iterable support to show value of type ${Type.prettyPrint[A]}") >>
+        Log.info(
+          s"Attempting to use iterable support" +
+            s" to show value of type " +
+            s"${Type.prettyPrint[A]}"
+        ) >>
           Types.Iterable
             .unapply(Type[A])
             .traverse { innerType =>
-              // It is currently required to have a separate method with `B: Type` for Scala 2 to find the implicit `Type[B]`.
-              // (Scala 2 doesn't find implicit `Type[B]` if provided in another way, and we are PoC-quality now).
+              // It is currently required to have a
+              // separate method with `B: Type` for
+              // Scala 2 to find the implicit `Type[B]`.
+              // (Scala 2 doesn't find implicit `Type[B]`
+              // if provided in another way, and we are
+              // PoC-quality now).
               def showIterable[B: Type](
                   iterableExpr: Expr[Iterable[B]]
               )(f: Expr[B] => Expr[String]): Expr[String] =
@@ -289,7 +350,9 @@ The majority of the macro code is shared by putting it into a mix-in trait.
 
               MIO.scoped { runSafe =>
                 import innerType.Underlying as B
-                implicit val IterableB: Type[Iterable[B]] = Types.Iterable[B] // for .upcast[Iterable[B]]
+                // for .upcast[Iterable[B]]
+                implicit val IterableB: Type[Iterable[B]] =
+                  Types.Iterable[B]
 
                 showIterable[B](value.upcast[Iterable[B]]) { item =>
                   runSafe {
@@ -303,28 +366,52 @@ The majority of the macro code is shared by putting it into a mix-in trait.
             .flatTap {
               case Some(expr) =>
                 Log.info(
-                  s"Successfully used iterable support to show value of type ${Type.prettyPrint[A]}:\n${expr.prettyPrint}"
+                  s"Successfully used iterable support" +
+                    s" to show value of type " +
+                    s"${Type.prettyPrint[A]}:" +
+                    s"\n${expr.prettyPrint}"
                 )
-              case None => Log.info(s"Failed to use iterable support to show value of type ${Type.prettyPrint[A]}")
+              case None => Log.info(
+                s"Failed to use iterable support" +
+                  s" to show value of type " +
+                  s"${Type.prettyPrint[A]}"
+              )
             }
 
       /** Attempts to show `A` value as a singleton (case object, enum val, etc.). */
-      private def attemptAsSingleton[A: Type](@scala.annotation.unused value: Expr[A]): Attempt[String] =
-        Log.info(s"Attempting to use singleton support to show value of type ${Type.prettyPrint[A]}") >> MIO {
+      private def attemptAsSingleton[A: Type](
+          @scala.annotation.unused value: Expr[A]
+      ): Attempt[String] =
+        Log.info(
+          s"Attempting to use singleton support" +
+            s" to show value of type " +
+            s"${Type.prettyPrint[A]}"
+        ) >> MIO {
           SingletonValue.parse[A].toOption.map { _ =>
             Expr(Type.shortName[A])
           }
         }.flatTap {
           case Some(expr) =>
             Log.info(
-              s"Successfully used singleton support to show value of type ${Type.prettyPrint[A]}:\n${expr.prettyPrint}"
+              s"Successfully used singleton support" +
+                s" to show value of type " +
+                s"${Type.prettyPrint[A]}:" +
+                s"\n${expr.prettyPrint}"
             )
-          case None => Log.info(s"Failed to use singleton support to show value of type ${Type.prettyPrint[A]}")
+          case None => Log.info(
+            s"Failed to use singleton support" +
+              s" to show value of type " +
+              s"${Type.prettyPrint[A]}"
+          )
         }
 
       /** Attempts to show `A` value using a case class support. */
       private def attemptAsCaseClass[A: Type](value: Expr[A]): Attempt[String] =
-        Log.info(s"Attempting to use case class support to show value of type ${Type.prettyPrint[A]}") >>
+        Log.info(
+          s"Attempting to use case class support" +
+            s" to show value of type " +
+            s"${Type.prettyPrint[A]}"
+        ) >>
           CaseClass
             .parse[A]
             .toOption
@@ -334,7 +421,11 @@ The majority of the macro code is shared by putting it into a mix-in trait.
                 .toList
                 .parTraverse { case (name, fieldValue) =>
                   import fieldValue.{Underlying as FieldType, value as fieldExpr}
-                  Log.namedScope(s"Attempting field `$name`: ${Type.prettyPrint[FieldType]} of ${Type.prettyPrint[A]}") {
+                  Log.namedScope(
+                    s"Attempting field `$name`: " +
+                      s"${Type.prettyPrint[FieldType]}" +
+                      s" of ${Type.prettyPrint[A]}"
+                  ) {
                     attemptAllRules[FieldType](fieldExpr).map { result =>
                       Expr.quote {
                         Expr.splice(Expr(name)) + " = " + Expr.splice(result)
@@ -359,14 +450,25 @@ The majority of the macro code is shared by putting it into a mix-in trait.
             .flatTap {
               case Some(expr) =>
                 Log.info(
-                  s"Successfully used case class support to show value of type ${Type.prettyPrint[A]}:\n${expr.prettyPrint}"
+                  s"Successfully used case class " +
+                    s"support to show value of type " +
+                    s"${Type.prettyPrint[A]}:" +
+                    s"\n${expr.prettyPrint}"
                 )
-              case None => Log.info(s"Failed to use case class support to show value of type ${Type.prettyPrint[A]}")
+              case None => Log.info(
+                s"Failed to use case class support" +
+                  s" to show value of type " +
+                  s"${Type.prettyPrint[A]}"
+              )
             }
 
       /** Attempts to show `A` value using an enum support. */
       private def attemptAsEnum[A: Type](value: Expr[A]): Attempt[String] =
-        Log.info(s"Attempting to use enum support to show value of type ${Type.prettyPrint[A]}") >>
+        Log.info(
+          s"Attempting to use enum support " +
+            s"to show value of type " +
+            s"${Type.prettyPrint[A]}"
+        ) >>
           Enum
             .parse[A]
             .toOption
@@ -374,7 +476,11 @@ The majority of the macro code is shared by putting it into a mix-in trait.
               implicit val String: Type[String] = Types.String
               enumm.parMatchOn(value) { matchedSubtype =>
                 import matchedSubtype.{Underlying as B, value as matchedExpr}
-                Log.namedScope(s"Attempting subtype ${Type.prettyPrint[B]} <: ${Type.prettyPrint[A]}") {
+                Log.namedScope(
+                  s"Attempting subtype " +
+                    s"${Type.prettyPrint[B]}" +
+                    s" <: ${Type.prettyPrint[A]}"
+                ) {
                   attemptAllRules[B](matchedExpr)
                 }
               }
@@ -383,30 +489,48 @@ The majority of the macro code is shared by putting it into a mix-in trait.
             .flatTap {
               case Some(expr) =>
                 Log.info(
-                  s"Successfully used enum support to show value of type ${Type.prettyPrint[A]}:\n${expr.prettyPrint}"
+                  s"Successfully used enum support" +
+                    s" to show value of type " +
+                    s"${Type.prettyPrint[A]}:" +
+                    s"\n${expr.prettyPrint}"
                 )
-              case None => Log.info(s"Failed to use enum support to show value of type ${Type.prettyPrint[A]}")
+              case None => Log.info(
+                s"Failed to use enum support" +
+                  s" to show value of type " +
+                  s"${Type.prettyPrint[A]}"
+              )
             }
 
-      /** We cannot make these implicits "global", or they would resolve to themselves. So we put them here and refer to
-        * them inside methods when we need them.
+      /** We cannot make these implicits "global", or
+        * they would resolve to themselves. So we put
+        * them here and refer to them inside methods
+        * when we need them.
         */
       private object Types {
 
-        val LogDerivation: Type[demo_sanely_automatic.Show.LogDerivation] = Type.of[demo_sanely_automatic.Show.LogDerivation]
+        val LogDerivation
+            : Type[demo_sanely_automatic.Show.LogDerivation] =
+          Type.of[demo_sanely_automatic.Show.LogDerivation]
         val String: Type[String] = Type.of[String]
         val Show: Type.Ctor1[Show] = Type.Ctor1.of[Show]
         val Iterable: Type.Ctor1[Iterable] = Type.Ctor1.of[Iterable]
       }
     }
 
-    /** We can define our own ADT for errors, they are better than bunch of strings when we want to build a single, nice
-      * error message.
+    /** We can define our own ADT for errors, they are
+      * better than bunch of strings when we want to
+      * build a single, nice error message.
       */
-    sealed private[demo_sanely_automatic] trait DerivationError extends scala.util.control.NoStackTrace with Product with Serializable
+    sealed private[demo_sanely_automatic] trait
+        DerivationError
+        extends scala.util.control.NoStackTrace
+        with Product
+        with Serializable
     private[demo_sanely_automatic] object DerivationError {
       final case class UnsupportedType(typeName: String) extends DerivationError
-      final case class UnsupportedMethod(typeName: String, field: String) extends DerivationError
+      final case class UnsupportedMethod(
+          typeName: String, field: String
+      ) extends DerivationError
       final case class AssertionFailed(message: String) extends DerivationError
     }
     ```
@@ -432,11 +556,16 @@ Then in Scala 2 and Scala 3-specific code you would write only adapters.
     }
 
     // I hope that one day most of it could be automated, but for now we have to bear.
-    private[demo_sanely_automatic] class ShowMacros(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with ShowMacrosImpl {
+    private[demo_sanely_automatic] class ShowMacros(
+        val c: blackbox.Context
+    ) extends hearth.MacroCommonsScala2
+        with ShowMacrosImpl {
 
       def deriveTypeClassImpl[A: c.WeakTypeTag]: c.Expr[Show[A]] = deriveTypeClass[A]
 
-      def deriveShowStringImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[String] = deriveShowString[A](value)
+      def deriveShowStringImpl[A: c.WeakTypeTag](
+          value: c.Expr[A]
+      ): c.Expr[String] = deriveShowString[A](value)
     }
     ```
 
@@ -458,11 +587,16 @@ Then in Scala 2 and Scala 3-specific code you would write only adapters.
     }
 
     // I hope that one day most of it could be automated, but for now we have to bear.
-    private[demo_sanely_automatic] class ShowMacros(q: Quotes) extends hearth.MacroCommonsScala3(using q), ShowMacrosImpl
+    private[demo_sanely_automatic] class ShowMacros(
+        q: Quotes
+    ) extends hearth.MacroCommonsScala3(using q),
+          ShowMacrosImpl
 
     private[demo_sanely_automatic] object ShowMacros {
 
-      def deriveTypeClass[A: Type](using q: Quotes): Expr[Show[A]] = new ShowMacros(q).deriveTypeClass[A]
+      def deriveTypeClass[A: Type](using q: Quotes)
+          : Expr[Show[A]] =
+        new ShowMacros(q).deriveTypeClass[A]
 
       def deriveShowString[A: Type](value: Expr[A])(using q: Quotes): Expr[String] =
         new ShowMacros(q).deriveShowString[A](value)
@@ -480,7 +614,9 @@ Then in Scala 2 and Scala 3-specific code you would write only adapters.
     final class ShowSpec extends munit.FunSuite {
 
       test("Show should be able to derive type class for values with built-in support") {
-        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
+        // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic
+        //   .debug.logDerivation
 
         assertEquals(Show.derived[Boolean].show(true), "true")
         assertEquals(Show.derived[Byte].show(1.toByte), "1.toByte")
@@ -494,20 +630,26 @@ Then in Scala 2 and Scala 3-specific code you would write only adapters.
       }
 
       test("Show should be able to derive type class for values with iterable support") {
-        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
+        // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic
+        //   .debug.logDerivation
 
         assertEquals(Show.derived[Iterable[Int]].show(List(1, 2, 3)), "List(1, 2, 3)")
       }
 
       test("Show should be able to derive type class for values with case class support") {
-        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
+        // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic
+        //   .debug.logDerivation
 
         case class Person(name: String, age: Int)
         assertEquals(Show.show(Person("John", 30)), "Person(name = \"John\", age = 30)")
       }
 
       test("Show should be able to derive type class for values with enum support") {
-        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
+        // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic
+        //   .debug.logDerivation
 
         sealed trait Color
         case object Red extends Color
@@ -521,7 +663,9 @@ Then in Scala 2 and Scala 3-specific code you would write only adapters.
       }
 
       test("Show should be able to inline showing for values with built-in support") {
-        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
+        // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic
+        //   .debug.logDerivation
 
         assertEquals(Show.show(true), "true")
         assertEquals(Show.show(1.toByte), "1.toByte")
@@ -535,20 +679,29 @@ Then in Scala 2 and Scala 3-specific code you would write only adapters.
       }
 
       test("Show should be able to inline showing for values with iterable support") {
-        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
+        // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic
+        //   .debug.logDerivation
 
         assertEquals(Show.show(List(1, 2, 3)), "List(1, 2, 3)")
       }
 
       test("Show should be able to inline showing for values with case class support") {
-        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
+        // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic
+        //   .debug.logDerivation
 
         case class Person(name: String, age: Int)
-        assertEquals(Show.derived[Person].show(Person("John", 30)), "Person(name = \"John\", age = 30)")
+        assertEquals(
+          Show.derived[Person].show(Person("John", 30)),
+          "Person(name = \"John\", age = 30)"
+        )
       }
 
       test("Show should be able to inline showing for values with enum support") {
-        // import hearth.demo_sanely_automatic.debug.logDerivation // Uncomment to see how the derivation is done.
+        // Uncomment to see how the derivation is done.
+        // import hearth.demo_sanely_automatic
+        //   .debug.logDerivation
 
         sealed trait Color
         case object Red extends Color

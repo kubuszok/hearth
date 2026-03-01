@@ -224,7 +224,9 @@ scala.quoted.runtime.impl.ScopeException:
 or, at the call site:
 
 ```
-[error] .../SomeFile.scala:42:9: Cannot call `asTerm` on an `Expr` that was defined in a different `Quotes` context.
+[error] .../SomeFile.scala:42:9:
+  Cannot call `asTerm` on an `Expr` that was
+  defined in a different `Quotes` context.
 ```
 
 **Most likely cause:** you are using native Scala 3 quotes (`'{ ... }` / `${ ... }`) in a Scala 3-only codebase without wrapping

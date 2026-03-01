@@ -69,7 +69,10 @@ And we can always make:
     //> using dep com.kubuszok::hearth-micro-fp:{{ hearth_version() }}
     import hearth.fp.data.NonEmptyVector
 
-    sealed trait DerivationError extends scala.util.control.NoStackTrace with Product with Serializable
+    sealed trait DerivationError
+        extends scala.util.control.NoStackTrace
+        with Product
+        with Serializable
     object DerivationError {
       final case class NotSupported(msg: String) extends DerivationError
       final case class Private(arg: String) extends DerivationError
@@ -170,7 +173,9 @@ or an implicit which would enable these hints whenever it's imported into the sc
         data <- Environment.typedSettings.toOption
         show <- data.get("show")
         shouldLog <- show.get("logDerivation").flatMap(_.asBoolean)
-      } yield shouldLog).getOrElse(false) // We don't want to fail the derivation if we can't parse the settings.
+      // We don't want to fail the derivation
+      // if we can't parse the settings.
+      } yield shouldLog).getOrElse(false)
 
       logDerivationImported || logDerivationSetGlobally
     }
@@ -203,7 +208,8 @@ Consider generating code looking more or less like:
 ```scala
 {
   @scala.annotation.nowarn // suppress the compiler's linters
-  @SuppressWarnings("org.wartremover.warts.All", "all") // suppress Wartremover and Scapegoat lints
+  // suppress Wartremover and Scapegoat lints
+  @SuppressWarnings("org.wartremover.warts.All", "all")
   val result = ...
   result
 }
@@ -278,7 +284,8 @@ need to use actual IO in macros. However:
         val counter = MLocal(initial = 0, fork = i => i + 1, join = (a, b) => a max b)
       
         // This is just a recipe for computation, it's not executed yet.
-        // In this recipe we are reading the current value of the counter, and logging it to 3 different levels.
+        // In this recipe we are reading the current value
+        // of the counter, and logging it to 3 different levels.
         val printSth = for {
           i <- counter.get
           _ <- Log.info("Print info: counter is now $i")
@@ -314,7 +321,8 @@ need to use actual IO in macros. However:
             new Show[A] {
 
               def show(a: A): String = Expr.splice {
-                await( errorReturningMethod(Expr.quote { a }) ) // good luck handling it with for-comprehension
+                // good luck handling it with for-comprehension
+                await( errorReturningMethod(Expr.quote { a }) )
               }
             }
           }
