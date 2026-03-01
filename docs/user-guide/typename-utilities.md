@@ -106,7 +106,9 @@ def logType[A: TypeName](value: A): Unit =
 // Inside a macro:
 val name = Type.plainPrint[A]  // compile-time string
 // vs.
-val nameExpr: Expr[String] = Expr.quote(TypeName[A].plainPrint)  // runtime string, with injection
+// runtime string, with injection
+val nameExpr: Expr[String] =
+  Expr.quote(TypeName[A].plainPrint)
 ```
 
 ## How It Works

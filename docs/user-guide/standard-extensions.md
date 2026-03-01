@@ -194,7 +194,11 @@ In this example, `Rules` tries `rule1` first, which yields (doesn't match). Then
     import scala.util.{Failure, Success, Try}
 
     // Rule that might fail when attempting
-    final case class EffectfulRule(name: String, shouldMatch: Boolean, result: Int) extends Rule {
+    final case class EffectfulRule(
+        name: String,
+        shouldMatch: Boolean,
+        result: Int
+    ) extends Rule {
       def attempt: Option[Rule.Applicability[Int]] = {
         if (shouldMatch) Some(Rule.Applicability.Matched(result))
         else Some(Rule.Applicability.Yielded(Vector("Condition not met")))
@@ -280,13 +284,19 @@ Here's a more realistic example showing how you might use `Rules` to build a JSO
       def deriveEncoderExpr[A: Type]: Expr[Encoder[A]] = MIO.scoped { runSafe =>
         Expr.quote {
           new Encoder[A] {
-            def encode(value: A): Json = Expr.splice(runSafe(deriveExprRecursivel(EncodingContext(Expr.quote(value), Type[A]))))
+            def encode(value: A): Json =
+              Expr.splice(runSafe(
+                deriveExprRecursivel(
+                  EncodingContext(Expr.quote(value), Type[A])
+                )
+              ))
           }
         }
       }
         .runToExprOrFail("deriveEncoder")(renderFailure)
 
-      // The actual macro implementation: we'll start with defining types that we'll use to express our logic.
+      // The actual macro implementation: we'll start with
+      // defining types that we'll use to express our logic.
 
       /** To pass around: types, expressions, flags, etc */
       case class EncodingContext[A](
@@ -338,7 +348,10 @@ Here's a more realistic example showing how you might use `Rules` to build a JSO
       /** Rule 2: Try to encode as Option */
       object AttemptAsOption extends EncoderRule("attempt as Option") {
 
-        def attempt[A](ctx: EncoderContext[A]): MIO[Rule.Applicability[Expr[Json]]] = ctx.encoder match {
+        def attempt[A](
+            ctx: EncoderContext[A]
+        ): MIO[Rule.Applicability[Expr[Json]]] =
+          ctx.encoder match {
           lazy val OptionType = Type.Ctor1.of[Option]
 
           // There are better ways to implement it, see IsOption section!
@@ -364,7 +377,10 @@ Here's a more realistic example showing how you might use `Rules` to build a JSO
       object AttemptAsIterable extends EncoderRule("attempt as Iterable") {
         lazy val IterableType = Type.Ctor1.of[Iterable]
 
-        def attempt[A](ctx: EncoderContext[A]): MIO[Rule.Applicability[Expr[Json]]] = ctx.encoder match {
+        def attempt[A](
+            ctx: EncoderContext[A]
+        ): MIO[Rule.Applicability[Expr[Json]]] =
+          ctx.encoder match {
           // There are better ways to implement it, see IsCollection section!
           case IterableType(item) =>
             import item.Underlying as Item
@@ -380,16 +396,24 @@ Here's a more realistic example showing how you might use `Rules` to build a JSO
                   Json.arr(Expr.splice(iterable).map(Expr.splice(lambda)))
                 }
               }
-          case _ => MIO.pure(Rule.yielded(s"${ctx.encodedType.prettyPrint} is not an Iterable"))
+          case _ =>
+            MIO.pure(Rule.yielded(
+              s"${ctx.encodedType.prettyPrint} is not an Iterable"
+            ))
         }
       }
 
       /** Rule 4: Try to encode as case class */
       object AttemptAsOption extends EncoderRule("attempt as case class") {
 
-        def attempt[A](ctx: EncoderContext[A]): MIO[Rule.Applicability[Expr[Json]]] = CaseClass.parse[A].toOption match {
+        def attempt[A](
+            ctx: EncoderContext[A]
+        ): MIO[Rule.Applicability[Expr[Json]]] =
+          CaseClass.parse[A].toOption match {
           case Some(caseClass) =>
-            caseClass.fieldValuesAt(ctx.encodedExpr).toList.parTraverse { case (fieldName, fieldValue) =>
+            caseClass.fieldValuesAt(ctx.encodedExpr)
+              .toList.parTraverse {
+                case (fieldName, fieldValue) =>
               fieldName.{Underlying as Field, value}
               deriveExprRecursively(EncodingContext(value, Field)).map { jsonExpr =>
                 val keyExpr = Expr(fieldName)
@@ -402,11 +426,16 @@ Here's a more realistic example showing how you might use `Rules` to build a JSO
                 Json.obj(Expr.splice(VarArgs.from(exprList))*)
               }
             }
-          case None => MIO.pure(Rule.yielded(s"${ctx.encodedType.prettyPrint} is not a case class"))
+          case None =>
+            MIO.pure(Rule.yielded(
+              s"${ctx.encodedType.prettyPrint} is not a case class"
+            ))
         }
       }
 
-      lazy val renderFailure: (String, fp.data.NonEmptyVector[Throwable]) => String = (_, errors) => {
+      lazy val renderFailure
+          : (String, fp.data.NonEmptyVector[Throwable]) => String =
+        (_, errors) => {
         errors.map {
           case EncodingFailure(ruleName, reasons) =>
             if (reasons.isEmpty)
@@ -488,7 +517,8 @@ How could we use this API?
           Environment.reportErrorAndAbort("Failed to resolve extensions: " + error.toString)
         case ExtensionLoadingResult.SomeFailed(extensions, errors) =>
           Environment.reportErrorAndAbort(
-            "Failed to load standard extensions: " + errors.toNonEmptyVector.map(_._2).mkString("\n")
+            "Failed to load standard extensions: " +
+              errors.toNonEmptyVector.map(_._2).mkString("\n")
           )
         case _ =>
       }
@@ -497,7 +527,8 @@ How could we use this API?
 
       def processCollection[A: Type](collection: Expr[A]): Expr[String] = Type[A] match {
         case IsCollection(isCollection) =>
-          // This import let us refer to the collection's Item and puts implicit Type[Item] in the scope.
+          // This import let us refer to the collection's Item
+          // and puts implicit Type[Item] in the scope.
           import isCollection.Underlying as Item
           // This import describes the Type of result of isCollection.value.factory
           import isCollection.value.CtorResult
@@ -552,14 +583,17 @@ How could we use this API?
     import hearth.MacroCommonsScala2
 
     // Scala 2 adapter
-    class CollectionUtils(val c: blackbox.Context) extends MacroCommonsScala2 with CollectionUtilsLogic {
+    class CollectionUtils(val c: blackbox.Context)
+        extends MacroCommonsScala2
+        with CollectionUtilsLogic {
 
       def processCollectionImpl[A: c.WeakTypeTag](collection: c.Expr[A]): c.Expr[String] =
         processCollection(collection)
     }
 
     object CollectionUtils {
-      def processCollection[A](collection: A): String = macro CollectionUtils.processCollectionImpl[A]
+      def processCollection[A](collection: A): String =
+        macro CollectionUtils.processCollectionImpl[A]
     }
     ```
 
@@ -574,12 +608,19 @@ How could we use this API?
     import hearth.MacroCommonsScala3
 
     // Scala 3 adapter
-    class CollectionUtils(q: Quotes) extends MacroCommonsScala3(using q) with CollectionUtilsLogic
+    class CollectionUtils(q: Quotes)
+        extends MacroCommonsScala3(using q)
+        with CollectionUtilsLogic
 
     object CollectionUtils {
 
-      inline def processCollection[A](inline collection: A): String = ${ processCollectionImpl[A]('{ collection }) }
-      private def processCollectionImpl[A: Type](collection: Expr[A])(using q: Quotes): Expr[String] =
+      inline def processCollection[A](
+          inline collection: A
+      ): String =
+        ${ processCollectionImpl[A]('{ collection }) }
+      private def processCollectionImpl[A: Type](
+          collection: Expr[A]
+      )(using q: Quotes): Expr[String] =
         new CollectionUtils(q).processCollection(collection)
     }
     ```
@@ -667,7 +708,8 @@ How could we use this API?
           Environment.reportErrorAndAbort("Failed to resolve extensions: " + error.toString)
         case ExtensionLoadingResult.SomeFailed(extensions, errors) =>
           Environment.reportErrorAndAbort(
-            "Failed to load standard extensions: " + errors.toNonEmptyVector.map(_._2).mkString("\n")
+            "Failed to load standard extensions: " +
+              errors.toNonEmptyVector.map(_._2).mkString("\n")
           )
         case _ =>
       }
@@ -676,7 +718,8 @@ How could we use this API?
 
       def processOption[A: Type](option: Expr[A]): Expr[String] = Type[A] match {
         case IsOption(isOption) =>
-          // This import let us refer to the option's Item and puts implicit Type[Item] in the scope.
+          // This import let us refer to the option's Item
+          // and puts implicit Type[Item] in the scope.
           import isOption.Underlying as Item
           
           implicit val String: Type[String] = StringType
@@ -718,7 +761,9 @@ How could we use this API?
           else Expr("<not an option of string>")
 
           Expr.quote {
-            Expr.splice(foldingExample) + ", " + Expr.splice(getOrElseExample) + ", " + Expr.splice(buildingExample)
+            Expr.splice(foldingExample) + ", " +
+              Expr.splice(getOrElseExample) + ", " +
+              Expr.splice(buildingExample)
           }
         case _ =>
           Expr(s"Not an option: ${Type[A].plainPrint}")
@@ -740,7 +785,9 @@ How could we use this API?
     import hearth.MacroCommonsScala2
 
     // Scala 2 adapter
-    class OptionUtils(val c: blackbox.Context) extends MacroCommonsScala2 with OptionUtilsLogic {
+    class OptionUtils(val c: blackbox.Context)
+        extends MacroCommonsScala2
+        with OptionUtilsLogic {
 
       def processOptionImpl[A: c.WeakTypeTag](option: c.Expr[A]): c.Expr[String] =
         processOption(option)
@@ -766,7 +813,10 @@ How could we use this API?
 
     object OptionUtils {
 
-      inline def processOption[A](inline option: A): String = ${ processOptionImpl[A]('{ option }) }
+      inline def processOption[A](
+          inline option: A
+      ): String =
+        ${ processOptionImpl[A]('{ option }) }
       private def processOptionImpl[A: Type](option: Expr[A])(using q: Quotes): Expr[String] =
         new OptionUtils(q).processOption(option)
     }
@@ -853,7 +903,8 @@ How could we use this API?
           Environment.reportErrorAndAbort("Failed to resolve extensions: " + error.toString)
         case ExtensionLoadingResult.SomeFailed(extensions, errors) =>
           Environment.reportErrorAndAbort(
-            "Failed to load standard extensions: " + errors.toNonEmptyVector.map(_._2).mkString("\n")
+            "Failed to load standard extensions: " +
+              errors.toNonEmptyVector.map(_._2).mkString("\n")
           )
         case _ =>
       }
@@ -912,7 +963,9 @@ How could we use this API?
           else Expr("<not an either of string and int>")
 
           Expr.quote {
-            Expr.splice(foldingExample) + ", " + Expr.splice(getOrElseExample) + ", " + Expr.splice(buildingExample)
+            Expr.splice(foldingExample) + ", " +
+              Expr.splice(getOrElseExample) + ", " +
+              Expr.splice(buildingExample)
           }
         case _ =>
           Expr(s"Not an either: ${Type[A].plainPrint}")
@@ -934,7 +987,9 @@ How could we use this API?
     import hearth.MacroCommonsScala2
 
     // Scala 2 adapter
-    class EitherUtils(val c: blackbox.Context) extends MacroCommonsScala2 with EitherUtilsLogic {
+    class EitherUtils(val c: blackbox.Context)
+        extends MacroCommonsScala2
+        with EitherUtilsLogic {
 
       def processEitherImpl[A: c.WeakTypeTag](either: c.Expr[A]): c.Expr[String] =
         processEither(either)
@@ -960,7 +1015,10 @@ How could we use this API?
 
     object EitherUtils {
 
-      inline def processEither[A](inline either: A): String = ${ processEitherImpl[A]('{ either }) }
+      inline def processEither[A](
+          inline either: A
+      ): String =
+        ${ processEitherImpl[A]('{ either }) }
       private def processEitherImpl[A: Type](either: Expr[A])(using q: Quotes): Expr[String] =
         new EitherUtils(q).processEither(either)
     }
@@ -988,12 +1046,17 @@ How could we use this API?
       }
 
       test("processEither works with Try Success") {
-        val result = EitherUtils.processEither(scala.util.Success("value"): scala.util.Try[String])
+        val result = EitherUtils.processEither(
+          scala.util.Success("value"): scala.util.Try[String]
+        )
         assert(result.contains("right: value"))
       }
 
       test("processEither works with Try Failure") {
-        val result = EitherUtils.processEither(scala.util.Failure(new Exception("error")): scala.util.Try[String])
+        val result = EitherUtils.processEither(
+          scala.util.Failure(new Exception("error"))
+            : scala.util.Try[String]
+        )
         assert(result.contains("left:"))
         assert(result.contains("Exception"))
       }
@@ -1061,7 +1124,8 @@ How could we use this API?
           Environment.reportErrorAndAbort("Failed to resolve extensions: " + error.toString)
         case ExtensionLoadingResult.SomeFailed(extensions, errors) =>
           Environment.reportErrorAndAbort(
-            "Failed to load standard extensions: " + errors.toNonEmptyVector.map(_._2).mkString("\n")
+            "Failed to load standard extensions: " +
+              errors.toNonEmptyVector.map(_._2).mkString("\n")
           )
         case _ =>
       }
@@ -1070,7 +1134,8 @@ How could we use this API?
 
       def processValueType[A: Type](value: Expr[A]): Expr[String] = Type[A] match {
         case IsValueType(isValueType) =>
-          // This import let us refer to the value type's Inner and puts implicit Type[Inner] in the scope.
+          // This import let us refer to the value type's Inner
+          // and puts implicit Type[Inner] in the scope.
           import isValueType.Underlying as Inner
           
           implicit val String: Type[String] = StringType
@@ -1120,7 +1185,9 @@ How could we use this API?
     import hearth.MacroCommonsScala2
 
     // Scala 2 adapter
-    class ValueTypeUtils(val c: blackbox.Context) extends MacroCommonsScala2 with ValueTypeUtilsLogic {
+    class ValueTypeUtils(val c: blackbox.Context)
+        extends MacroCommonsScala2
+        with ValueTypeUtilsLogic {
 
       def processValueTypeImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[String] =
         processValueType(value)
@@ -1142,12 +1209,19 @@ How could we use this API?
     import hearth.MacroCommonsScala3
 
     // Scala 3 adapter
-    class ValueTypeUtils(q: Quotes) extends MacroCommonsScala3(using q) with ValueTypeUtilsLogic
+    class ValueTypeUtils(q: Quotes)
+        extends MacroCommonsScala3(using q)
+        with ValueTypeUtilsLogic
 
     object ValueTypeUtils {
 
-      inline def processValueType[A](inline value: A): String = ${ processValueTypeImpl[A]('{ value }) }
-      private def processValueTypeImpl[A: Type](value: Expr[A])(using q: Quotes): Expr[String] =
+      inline def processValueType[A](
+          inline value: A
+      ): String =
+        ${ processValueTypeImpl[A]('{ value }) }
+      private def processValueTypeImpl[A: Type](
+          value: Expr[A]
+      )(using q: Quotes): Expr[String] =
         new ValueTypeUtils(q).processValueType(value)
     }
     ```
@@ -1286,7 +1360,9 @@ IsCollection.parse[A] match {
       case (provider, Right(msg)) => s"$provider: $msg"
       case (provider, Left(err))  => s"$provider: error: ${err.getMessage}"
     }.mkString("\n")
-    Environment.reportErrorAndAbort(s"Type ${Type[A].prettyPrint} is not a collection:\n$summary")
+    Environment.reportErrorAndAbort(
+      s"Type ${Type[A].prettyPrint} is not a collection:\n$summary"
+    )
 }
 ```
 
@@ -1316,7 +1392,9 @@ Type[A] match {
     val optionReasons = Option(IsOption.lastUnapplyFailure)
     val eitherReasons = Option(IsEither.lastUnapplyFailure)
 
-    def formatReasons(reasons: Option[NonEmptyMap[String, Either[Throwable, String]]]): String =
+    def formatReasons(
+        reasons: Option[NonEmptyMap[String, Either[Throwable, String]]]
+    ): String =
       reasons.fold("(no providers registered)") { r =>
         r.toList.map {
           case (provider, Right(msg)) => s"  - $provider: $msg"
@@ -1360,7 +1438,8 @@ Type[A] match {
           Environment.reportErrorAndAbort("Failed to resolve extensions: " + error.toString)
         case ExtensionLoadingResult.SomeFailed(extensions, errors) =>
           Environment.reportErrorAndAbort(
-            "Failed to load standard extensions: " + errors.toNonEmptyVector.map(_._2).mkString("\n")
+            "Failed to load standard extensions: " +
+              errors.toNonEmptyVector.map(_._2).mkString("\n")
           )
         case _ =>
       }
@@ -1394,9 +1473,13 @@ Type[A] match {
             import isCollection.Underlying as Item
             Expr(s"collection of ${Item.prettyPrint}")
           case _ =>
-            val collSkips = Option(IsCollection.lastUnapplyFailure).map(_.toList.size).getOrElse(0)
+            val collSkips = Option(IsCollection.lastUnapplyFailure)
+              .map(_.toList.size).getOrElse(0)
             val optSkips = Option(IsOption.lastUnapplyFailure).map(_.toList.size).getOrElse(0)
-            Expr(s"unrecognized (collection providers: $collSkips, option providers: $optSkips)")
+            Expr(
+              s"unrecognized (collection providers: $collSkips," +
+              s" option providers: $optSkips)"
+            )
         }
       }
     }
@@ -1415,7 +1498,9 @@ Type[A] match {
 
     import hearth.MacroCommonsScala2
 
-    class Diagnostics(val c: blackbox.Context) extends MacroCommonsScala2 with DiagnosticsLogic {
+    class Diagnostics(val c: blackbox.Context)
+        extends MacroCommonsScala2
+        with DiagnosticsLogic {
 
       def describeWithParseImpl[A: c.WeakTypeTag]: c.Expr[String] =
         describeWithParse[A]
