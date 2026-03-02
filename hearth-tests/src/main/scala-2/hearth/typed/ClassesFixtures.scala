@@ -30,6 +30,18 @@ final private class ClassesFixtures(val c: blackbox.Context) extends MacroCommon
   def testNamedTupleConstructAndFieldsImpl[A: c.WeakTypeTag]: c.Expr[String] =
     testNamedTupleConstructAndFields[A]
 
+  def testCaseClassConstructRoundTripImpl[A: c.WeakTypeTag]: c.Expr[String] =
+    testCaseClassConstructRoundTrip[A]
+
+  def testSingletonRoundTripImpl[A: c.WeakTypeTag]: c.Expr[String] =
+    testSingletonRoundTrip[A]
+
+  def testJavaBeanConstructRoundTripImpl[A: c.WeakTypeTag]: c.Expr[String] =
+    testJavaBeanConstructRoundTrip[A]
+
+  def testNamedTupleConstructRoundTripImpl[A: c.WeakTypeTag]: c.Expr[String] =
+    testNamedTupleConstructRoundTrip[A]
+
   def testJavaBeanConstructWithSettersAndParConstructWithSettersImpl[A: c.WeakTypeTag]: c.Expr[String] =
     testJavaBeanConstructWithSettersAndParConstructWithSetters[A]
 }
@@ -53,6 +65,18 @@ object ClassesFixtures {
 
   def testNamedTupleConstructAndFields[A]: String =
     macro ClassesFixtures.testNamedTupleConstructAndFieldsImpl[A]
+
+  def testCaseClassConstructRoundTrip[A]: String =
+    macro ClassesFixtures.testCaseClassConstructRoundTripImpl[A]
+
+  def testSingletonRoundTrip[A]: String =
+    macro ClassesFixtures.testSingletonRoundTripImpl[A]
+
+  def testJavaBeanConstructRoundTrip[A]: String =
+    macro ClassesFixtures.testJavaBeanConstructRoundTripImpl[A]
+
+  def testNamedTupleConstructRoundTrip[A]: String =
+    macro ClassesFixtures.testNamedTupleConstructRoundTripImpl[A]
 
   def testJavaBeanConstructWithSettersAndParConstructWithSetters[A]: String =
     macro ClassesFixtures.testJavaBeanConstructWithSettersAndParConstructWithSettersImpl[A]
