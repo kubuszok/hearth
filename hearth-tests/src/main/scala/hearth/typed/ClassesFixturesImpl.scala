@@ -101,6 +101,7 @@ trait ClassesFixturesImpl { this: MacroCommons =>
   private val booleanType: Type[Boolean] = Type.of[Boolean]
   private val intType: Type[Int] = Type.of[Int]
   private val stringType: Type[String] = Type.of[String]
+  private val productType: Type[Product] = Type.of[Product]
 
   def testCaseClassConstructAndParConstruct[A: Type]: Expr[String] = Expr {
     CaseClass.parse[A].toOption.fold("<no case class>") { caseClass =>
@@ -212,6 +213,121 @@ trait ClassesFixturesImpl { this: MacroCommons =>
           errors => s"fields: $fieldsStr, construct: <failed: ${errors.mkString(", ")}>",
           constructStr => s"fields: $fieldsStr, construct: $constructStr"
         )
+    }
+  }
+
+  /** Constructs a case class via [[CaseClass.construct]], extracts field values via [[CaseClass.caseFieldValuesAt]],
+    * and evaluates everything at runtime.
+    *
+    * Returns a string like `"a=42"` or `"a=42, b=hello"`.
+    */
+  def testCaseClassConstructRoundTrip[A: Type]: Expr[String] = {
+    implicit val StringType: Type[String] = stringType
+    CaseClass.parse[A].toOption.fold(Expr("<no case class>")) { caseClass =>
+      val makeArgument: CaseClass.ConstructField[MIO] =
+        CaseClass.ConstructField[MIO] { field =>
+          import field.tpe.Underlying as FieldType
+          implicit val IntType: Type[Int] = intType
+          implicit val StringType: Type[String] = stringType
+          if (FieldType <:< Type[Int]) MIO.pure(Expr(42).as_??)
+          else if (FieldType <:< Type[String]) MIO.pure(Expr("hello").as_??)
+          else MIO.fail(new Exception(s"Unsupported type: ${field.tpe.plainPrint}"))
+        }
+      caseClass.construct(makeArgument).unsafe.runSync._2 match {
+        case Right(Some(constructedExpr)) =>
+          val fieldValues = caseClass.caseFieldValuesAt(constructedExpr)
+          val parts: List[Expr[String]] = fieldValues.toList.map { case (name, fieldExpr) =>
+            import fieldExpr.{Underlying, value}
+            val nameExpr = Expr(name)
+            Expr.quote {
+              Expr.splice(nameExpr) + "=" + Expr.splice(value).toString
+            }
+          }
+          if (parts.isEmpty) Expr("<no fields>")
+          else
+            parts.reduceLeft { (acc, part) =>
+              Expr.quote(Expr.splice(acc) + ", " + Expr.splice(part))
+            }
+        case Right(None)  => Expr("<not constructible>")
+        case Left(errors) => Expr(s"<failed: ${errors.mkString(", ")}>")
+      }
+    }
+  }
+
+  /** Evaluates the singleton expression at runtime and returns its `.toString`.
+    */
+  def testSingletonRoundTrip[A: Type]: Expr[String] =
+    SingletonValue.parse[A].toOption.fold(Expr("<no singleton>")) { singleton =>
+      Expr.quote {
+        Expr.splice(singleton.singletonExpr).toString
+      }
+    }
+
+  /** Constructs a Java bean via [[JavaBean.constructWithSetters]] and evaluates `.toString` at runtime.
+    */
+  def testJavaBeanConstructRoundTrip[A: Type]: Expr[String] = {
+    implicit val StringType: Type[String] = stringType
+    JavaBean.parse[A].toOption.fold(Expr("<no java bean>")) { javaBean =>
+      val setField: (String, Parameter) => MIO[Expr_??] = (_, input) => {
+        import input.tpe.Underlying as FieldType
+        implicit val BooleanType: Type[Boolean] = booleanType
+        implicit val IntType: Type[Int] = intType
+        implicit val StringType: Type[String] = stringType
+        if (FieldType <:< Type[Boolean]) MIO.pure(Expr(true).as_??)
+        else if (FieldType <:< Type[Int]) MIO.pure(Expr(42).as_??)
+        else if (FieldType <:< Type[String]) MIO.pure(Expr("hello").as_??)
+        else MIO.fail(new Exception(s"Unsupported type: ${input.tpe.plainPrint}"))
+      }
+      javaBean.constructWithSetters(setField).unsafe.runSync._2 match {
+        case Right(Some(constructedExpr)) =>
+          Expr.quote {
+            Expr.splice(constructedExpr).toString
+          }
+        case Right(None)  => Expr("<not constructible>")
+        case Left(errors) => Expr(s"<failed: ${errors.mkString(", ")}>")
+      }
+    }
+  }
+
+  /** Constructs a named tuple via [[NamedTuple.construct]], extracts field values via `Product.productElement`, and
+    * evaluates everything at runtime.
+    *
+    * Returns a string like `"name=hello, age=42"`.
+    */
+  @scala.annotation.nowarn("msg=is never used")
+  def testNamedTupleConstructRoundTrip[A: Type]: Expr[String] = {
+    implicit val IntType: Type[Int] = intType
+    implicit val StringType: Type[String] = stringType
+    implicit val ProductType: Type[Product] = productType
+    NamedTuple.parse[A].toOption.fold(Expr("<no named tuple>")) { namedTuple =>
+      val makeArgument: CaseClass.ConstructField[MIO] =
+        CaseClass.ConstructField[MIO] { field =>
+          import field.tpe.Underlying as FieldType
+          implicit val IntType: Type[Int] = intType
+          implicit val StringType: Type[String] = stringType
+          if (FieldType <:< Type[Int]) MIO.pure(Expr(42).as_??)
+          else if (FieldType <:< Type[String]) MIO.pure(Expr("hello").as_??)
+          else MIO.fail(new Exception(s"Unsupported type: ${field.tpe.plainPrint}"))
+        }
+      namedTuple.construct(makeArgument).unsafe.runSync._2 match {
+        case Right(Some(constructedExpr)) =>
+          val fields = namedTuple.primaryConstructor.parameters.flatten.toList
+          val parts: List[Expr[String]] = fields.map { case (name, param) =>
+            val nameExpr = Expr(name)
+            val idx = Expr(param.index)
+            Expr.quote {
+              val product = Expr.splice(constructedExpr).asInstanceOf[Product]
+              Expr.splice(nameExpr) + "=" + product.productElement(Expr.splice(idx)).toString
+            }
+          }
+          if (parts.isEmpty) Expr("<no fields>")
+          else
+            parts.reduceLeft { (acc, part) =>
+              Expr.quote(Expr.splice(acc) + ", " + Expr.splice(part))
+            }
+        case Right(None)  => Expr("<not constructible>")
+        case Left(errors) => Expr(s"<failed: ${errors.mkString(", ")}>")
+      }
     }
   }
 

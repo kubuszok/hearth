@@ -149,6 +149,13 @@ final class ClassesJvmSpec extends MacroSuite {
         "sequential: subtype name: hearth.examples.enums.ExampleJavaEnum.VALUE2.type, expr: VALUE2, parallel: subtype name: hearth.examples.enums.ExampleJavaEnum.VALUE2.type, expr: VALUE2"
     }
 
+    test("JavaBean round-trip: construct with setters and evaluate at runtime") {
+      import ClassesFixtures.testJavaBeanConstructRoundTrip
+
+      testJavaBeanConstructRoundTrip[examples.classes.ExampleJavaClass] <==>
+        "ExampleJavaClass(hello, 42, true)"
+    }
+
     test(
       "JavaBean[A].{constructWithSetters and parConstructWithSetters} should construct an instance of the Java bean"
     ) {

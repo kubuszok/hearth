@@ -43,6 +43,22 @@ object ClassesFixtures {
   private def testNamedTupleConstructAndFieldsImpl[A: Type](using q: Quotes): Expr[String] =
     new ClassesFixtures(q).testNamedTupleConstructAndFields[A]
 
+  inline def testCaseClassConstructRoundTrip[A]: String = ${ testCaseClassConstructRoundTripImpl[A] }
+  private def testCaseClassConstructRoundTripImpl[A: Type](using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testCaseClassConstructRoundTrip[A]
+
+  inline def testSingletonRoundTrip[A]: String = ${ testSingletonRoundTripImpl[A] }
+  private def testSingletonRoundTripImpl[A: Type](using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testSingletonRoundTrip[A]
+
+  inline def testJavaBeanConstructRoundTrip[A]: String = ${ testJavaBeanConstructRoundTripImpl[A] }
+  private def testJavaBeanConstructRoundTripImpl[A: Type](using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testJavaBeanConstructRoundTrip[A]
+
+  inline def testNamedTupleConstructRoundTrip[A]: String = ${ testNamedTupleConstructRoundTripImpl[A] }
+  private def testNamedTupleConstructRoundTripImpl[A: Type](using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testNamedTupleConstructRoundTrip[A]
+
   inline def testJavaBeanConstructWithSettersAndParConstructWithSetters[A]: String = ${
     testJavaBeanConstructWithSettersAndParConstructWithSettersImpl[A]
   }

@@ -92,6 +92,12 @@ final class ClassesScala3NewestSpec extends MacroSuite {
       assert(!result.contains("<failed"), s"Expected successful construction: $result")
     }
 
+    test("NamedTuple round-trip: construct and extract field values at runtime") {
+      import ClassesFixtures.testNamedTupleConstructRoundTrip
+
+      testNamedTupleConstructRoundTrip[(name: String, age: Int)] <==> "name=hello, age=42"
+    }
+
     test("NamedTuple[A].{construct and fields} should return <no named tuple> for non-named-tuple types") {
       import ClassesFixtures.testNamedTupleConstructAndFields
 

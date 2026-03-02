@@ -235,6 +235,19 @@ final class ClassesSpec extends MacroSuite {
         "a: hasDefault=false, default=<no default>, b: hasDefault=true, default=resolved"
     }
 
+    test("CaseClass round-trip: construct and extract field values at runtime") {
+      import ClassesFixtures.testCaseClassConstructRoundTrip
+
+      testCaseClassConstructRoundTrip[examples.classes.ExampleCaseClass] <==> "a=42"
+    }
+
+    test("SingletonValue round-trip: evaluate singleton expression at runtime") {
+      import ClassesFixtures.testSingletonRoundTrip
+
+      testSingletonRoundTrip[examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type] <==>
+        "ExampleSealedTraitObject"
+    }
+
     test("Enum[A].{matchOn and parMatchOn} should match on the sealed trait") {
       import ClassesFixtures.testEnumMatchOnAndParMatchOn
 
