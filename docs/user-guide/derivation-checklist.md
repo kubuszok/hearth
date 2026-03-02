@@ -24,6 +24,10 @@ For detailed guidance on each topic, see [Best Practices](best-practices.md) and
 
 - [ ] Always prefer user-provided implicits — check for existing instances before deriving from scratch, so users can override the default behavior
 - [ ] Ignore self-summoning — exclude the `derived` method (and, for subtype type classes, the parent library's auto-derivation methods) from implicit search to prevent infinite macro expansion
+
+    - [ ] Additionally, exclude the current type class's type from implicit search, to prevent infinite recursion on `implicit val foo: TypeClass[Foo] = TypeClass.derive[Foo]`
+    - [ ] However, if you allow inlined derivation, like `val result = TypeClass.inlined(foo)`, do not exclude the current type from non-autoderived instances, it will let you keep the same behavior as the derivation was not inlined (using user-provided implicit if available, falling back to autoderivation otherwise)
+
 - [ ] Cache every resolved implicit as a `lazy val` — do not summon or allocate the same instance multiple times in the generated code
 - [ ] Handle generic contexts — derivation should work correctly when invoked inside a generic function where type parameters are not yet known
 
@@ -45,12 +49,17 @@ For detailed guidance on each topic, see [Best Practices](best-practices.md) and
 - [ ] Provide two mechanisms for enabling logging: an import-based approach (e.g., `import mymodule.debug.logDerivation`) and a scalac option (e.g., `-Xmacro-settings:myModule.logDerivation=true`)
 - [ ] Log every rule attempt, match, yield, cache hit, and recursive descent — wrap each derivation step in a named scope so the log tells the full story of what happened
 
+    - [ ] Since logging can be expensive, make all logging calls `lazy`/by-name so they are only evaluated when the logging is enabled
+
 ## Generated Code Quality
 
 - [ ] Suppress compiler warnings on generated code so users of `-Xfatal-warnings` never need `@nowarn` annotations for code they didn't write
+
+    - [ ] Compile with `-Xfatal-warnings` (at least on CI) and with as much linters enabled as possible - some of your users will surely have them turned on
+
 - [ ] Check runtime utilities with [MiMa](https://github.com/lightbend-labs/mima) — see also the [Library Author Guide](https://docs.scala-lang.org/overviews/contributors/index.html)
 
-## Cross-Compilation
+## Cross-Compilation (Hearth-specific)
 
 - [ ] Put shared macro logic in a mix-in trait (`src/main/scala/`) that extends `MacroCommons`
 - [ ] Write Scala 2 and Scala 3 adapters in platform-specific source directories
@@ -60,7 +69,8 @@ For detailed guidance on each topic, see [Best Practices](best-practices.md) and
 ## Testing
 
 - [ ] Test each supported type category: primitives, value types, optionals, collections, maps, case classes (zero-field, single-field, nested), sealed traits and enums (with case objects and case classes), tuples, recursive data structures
-- [ ] Test Scala 3-only types (Scala 3 `enum` declarations, named tuples, opaque types) in `src/test/scala-3/`
+- [ ] Test Scala 3-only types (Scala 3 `enum` declarations, named tuples, opaque types) in `src/test/scala-3/` (sbt-projectmatrix/sbt 2.0 convention)
 - [ ] Test that user-provided implicits are preferred over derived ones
 - [ ] Test that unsupported types produce clear compile-time error messages with all reasons aggregated
 - [ ] Test that recursive types work transparently — no `lazy val`, no manual instance, no tricks
+- [ ] Test that semiautomatic derivation does not causes infinite recursion

@@ -1872,7 +1872,7 @@ The recommended way to handle methods is through pattern matching:
 !!! example "How to handle a `Method.Of[Instance]`"
 
     ```scala
-    // file: src/main/scala/example/MethodPatternMatchingMacro.scala - part of Method pattern matching example
+    // file: src/main/scala/example/MethodPatternMatchingMacro.scala - part of Method matching example
     //> using scala {{ scala.2_13 }} {{ scala.3 }}
     //> using dep com.kubuszok::hearth:{{ hearth_version() }}
 
@@ -1930,7 +1930,7 @@ The recommended way to handle methods is through pattern matching:
     ```
 
     ```scala
-    // file: src/main/scala-2/example/MethodPatternMatchingMacroImpl.scala - part of Method pattern matching example
+    // file: src/main/scala-2/example/MethodPatternMatchingMacroImpl.scala - part of Method matching example
     //> using target.scala {{ scala.2_13 }}
     //> using options -Xsource:3
 
@@ -1953,7 +1953,7 @@ The recommended way to handle methods is through pattern matching:
     ```
 
     ```scala
-    // file: src/main/scala-3/example/MethodPatternMatchingMacroImpl.scala - part of Method pattern matching example
+    // file: src/main/scala-3/example/MethodPatternMatchingMacroImpl.scala - part of Method matching example
     //> using target.scala {{ scala.3 }}
     //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
 
@@ -1979,7 +1979,7 @@ The recommended way to handle methods is through pattern matching:
     ```
 
     ```scala
-    // file: src/test/scala/example/ExampleSpec.scala - part of Method pattern matching example
+    // file: src/test/scala/example/ExampleSpec.scala - part of Method matching example
     //> using test.dep org.scalameta::munit::{{ libraries.munit }}
 
     final class ExampleSpec extends munit.FunSuite {
@@ -2553,7 +2553,7 @@ Specialized view for case classes, providing access to primary constructor and c
 !!! example "Constructing case class instances"
 
     ```scala
-    // file: src/main/scala/example/CaseClassConstructMacro.scala - part of CaseClass construct example
+    // file: src/main/scala/example/CaseClassConstructMacro.scala - part of CaseClass ctor example
     //> using scala {{ scala.2_13 }} {{ scala.3 }}
     //> using dep com.kubuszok::hearth:{{ hearth_version() }}
 
@@ -2599,7 +2599,7 @@ Specialized view for case classes, providing access to primary constructor and c
     ```
 
     ```scala
-    // file: src/main/scala-2/example/CaseClassConstructMacroImpl.scala - part of CaseClass construct example
+    // file: src/main/scala-2/example/CaseClassConstructMacroImpl.scala - part of CaseClass ctor example
     //> using target.scala {{ scala.2_13 }}
     //> using options -Xsource:3
 
@@ -2624,7 +2624,7 @@ Specialized view for case classes, providing access to primary constructor and c
     ```
 
     ```scala
-    // file: src/main/scala-3/example/CaseClassConstructMacroImpl.scala - part of CaseClass construct example
+    // file: src/main/scala-3/example/CaseClassConstructMacroImpl.scala - part of CaseClass ctor example
     //> using target.scala {{ scala.3 }}
     //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
 
@@ -2648,7 +2648,7 @@ Specialized view for case classes, providing access to primary constructor and c
     ```
 
     ```scala
-    // file: src/test/scala/example/ExampleSpec.scala - part of CaseClass construct example
+    // file: src/test/scala/example/ExampleSpec.scala - part of CaseClass ctor example
     //> using test.dep org.scalameta::munit::{{ libraries.munit }}
 
     final class ExampleSpec extends munit.FunSuite {
@@ -2984,7 +2984,7 @@ Specialized view for Java Beans (POJOs with default constructor and setters):
 !!! example "Constructing JavaBean without setters"
 
     ```scala
-    // file: src/main/scala/example/JavaBeanConstructMacro.scala - part of JavaBean construct example
+    // file: src/main/scala/example/JavaBeanConstructMacro.scala - part of JavaBean ctor example
     //> using scala {{ scala.2_13 }} {{ scala.3 }}
     //> using dep com.kubuszok::hearth:{{ hearth_version() }}
 
@@ -3000,7 +3000,7 @@ Specialized view for Java Beans (POJOs with default constructor and setters):
     ```
 
     ```scala
-    // file: src/main/scala-2/example/JavaBeanConstructMacroImpl.scala - part of JavaBean construct example
+    // file: src/main/scala-2/example/JavaBeanConstructMacroImpl.scala - part of JavaBean ctor example
     //> using target.scala {{ scala.2_13 }}
     //> using options -Xsource:3
 
@@ -3025,7 +3025,7 @@ Specialized view for Java Beans (POJOs with default constructor and setters):
     ```
 
     ```scala
-    // file: src/main/scala-3/example/JavaBeanConstructMacroImpl.scala - part of JavaBean construct example
+    // file: src/main/scala-3/example/JavaBeanConstructMacroImpl.scala - part of JavaBean ctor example
     //> using target.scala {{ scala.3 }}
     //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
 
@@ -3049,7 +3049,7 @@ Specialized view for Java Beans (POJOs with default constructor and setters):
     ```
 
     ```java
-    // file: src/test/java/example/PersonBean.java - part of JavaBean construct example
+    // file: src/test/java/example/PersonBean.java - part of JavaBean ctor example
     //> using target.scope test
 
     class PersonBean {
@@ -3058,7 +3058,7 @@ Specialized view for Java Beans (POJOs with default constructor and setters):
     ```
 
     ```scala
-    // file: src/test/scala/example/ExampleSpec.scala - part of JavaBean construct example
+    // file: src/test/scala/example/ExampleSpec.scala - part of JavaBean ctor example
     //> using test.dep org.scalameta::munit::{{ libraries.munit }}
 
     final class ExampleSpec extends munit.FunSuite {

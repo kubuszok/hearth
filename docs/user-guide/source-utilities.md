@@ -53,64 +53,72 @@ Source utilities expose the following information as `implicit`/`given` values:
 
 ### 1. Enhanced Error Messages
 
-Add source location information to error messages for better debugging:
+!!! example
 
-```scala
-import hearth.source.*
+    Add source location information to error messages for better debugging:
 
-def validateInput[A](value: A)(implicit loc: Location): Either[String, A] = {
-  if (value == null) {
-    Left(s"Validation failed at ${loc}: value cannot be null")
-  } else {
-    Right(value)
-  }
-}
-```
+    ```scala
+    import hearth.source.*
+    
+    def validateInput[A](value: A)(implicit loc: Location): Either[String, A] = {
+      if (value == null) {
+        Left(s"Validation failed at ${loc}: value cannot be null")
+      } else {
+        Right(value)
+      }
+    }
+    ```
 
 ### 2. Debug Logging
 
-Include source location in debug output:
+!!! example
 
-```scala
-import hearth.source.*
+    Include source location in debug output:
 
-def debugLog(message: String)(implicit method: MethodName, line: Line): Unit = {
-  println(s"[DEBUG] ${method}(${line}): ${message}")
-}
-```
+    ```scala
+    import hearth.source.*
+    
+    def debugLog(message: String)(implicit method: MethodName, line: Line): Unit = {
+      println(s"[DEBUG] ${method}(${line}): ${message}")
+    }
+    ```
 
 ### 3. Automatic Diagnostics
 
-Automatically capture source context for diagnostics:
+!!! example
 
-```scala
-import hearth.source.*
-
-def processData(data: List[Int])(implicit loc: Location): List[Int] = {
-  if (data.isEmpty) {
-    throw new IllegalArgumentException(s"Empty data at ${loc}")
-  }
-  data.map(_ * 2)
-}
-```
+    Automatically capture source context for diagnostics:
+    
+    ```scala
+    import hearth.source.*
+    
+    def processData(data: List[Int])(implicit loc: Location): List[Int] = {
+      if (data.isEmpty) {
+        throw new IllegalArgumentException(s"Empty data at ${loc}")
+      }
+      data.map(_ * 2)
+    }
+    ```
 
 ### 4. Location Tracking
 
-The `Location` type combines file and line information:
+!!! example
 
-```scala
-import hearth.source.*
-
-def trackLocation[A](value: A)(implicit loc: Location): A = {
-  println(s"Processing value at ${loc}")
-  value
-}
-
-// Location also provides convenient access to fileName
-def logWithFileName(message: String)(implicit loc: Location): Unit = {
-  println(s"[${loc.fileName}:${loc.line}] $message")
-}
-```
+    The `Location` type combines file and line information:
+    
+    ```scala
+    import hearth.source.*
+    
+    def trackLocation[A](value: A)(implicit loc: Location): A = {
+      println(s"Processing value at ${loc}")
+      value
+    }
+    
+    // Location also provides convenient access to fileName
+    def logWithFileName(message: String)(implicit loc: Location): Unit = {
+      println(s"[${loc.fileName}:${loc.line}] $message")
+    }
+    ```
 
 ## Understanding the Types
 

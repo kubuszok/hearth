@@ -699,9 +699,11 @@ Since Cross-Quotes rewrites some code into the native macro representations of e
     However, it does not ignore type parameters and their implicits:
 
     ```scala
-    def someMethod[A: WeakTypeTag] = weakTypeTag[Option[A]]
+    def someMethod[A: WeakTypeTag] =
+      weakTypeTag[Option[A]]
 
-    def anotherMethod[B](implicit val B: WeakTypeTag[B]) = weakTypeTag[Either[String, B]]
+    def anotherMethod[B](implicit val B: WeakTypeTag[B]) =
+      weakTypeTag[Either[String, B]]
     ```
 
     So Cross-Quotes tries to detect such situations and rewrites `Type.of[...]` to use that workaround under the hood.
