@@ -134,7 +134,7 @@ It allows sandwich, however, with macros being expanded by Scala 2.13 only or Sc
 
 !!! note "TASTy reader limitations"
 
-    Scala 3's TASTy reader can consume some Scala 2.13 artifacts, but it has significant limitations that affect macro cross-compilation strategies. For a detailed analysis of what works and what doesn't, see [The State of TASTy Reader](https://kubuszok.com/2025/state-of-tasty-reader/) and the [Resources & Further Reading](resources.md) page.
+    Scala 3's TASTy reader can consume some Scala 2.13 artifacts, but it has significant limitations that affect macro cross-compilation strategies. For a detailed analysis of what works and what doesn't, see [The State of TASTy Reader](https://www.scala-lang.org/blog/state-of-tasty-reader.html) and the [Resources & Further Reading](resources.md) page.
 
 ## What are the requirements to use this library?
 
@@ -214,20 +214,20 @@ While it's a bit mundane, it makes it rather explicit which types we are using o
 This error occurs when native Scala 3 `'{ ... }` / `${ ... }` syntax is used with Hearth's builders (e.g. `LambdaBuilder`,
 `ValDefBuilder`) without properly managing the `scala.quoted.Quotes` context.
 
-The full error message looks like:
+!!! example "The full error message example"
 
-```
-scala.quoted.runtime.impl.ScopeException:
-  Cannot call `asTerm` on an `Expr` that was defined in a different `Quotes` context.
-```
+    ```
+    scala.quoted.runtime.impl.ScopeException:
+      Cannot call `asTerm` on an `Expr` that was defined in a different `Quotes` context.
+    ```
 
-or, at the call site:
+!!! example "The call site error example"
 
-```
-[error] .../SomeFile.scala:42:9:
-  Cannot call `asTerm` on an `Expr` that was
-  defined in a different `Quotes` context.
-```
+    ```
+    [error] .../SomeFile.scala:42:9:
+      Cannot call `asTerm` on an `Expr` that was
+      defined in a different `Quotes` context.
+    ```
 
 **Most likely cause:** you are using native Scala 3 quotes (`'{ ... }` / `${ ... }`) in a Scala 3-only codebase without wrapping
 them with `passQuotes` and `withQuotes`. Hearth builders store closures that may execute in a different `Quotes` context than the
@@ -235,16 +235,18 @@ one captured from the lexical scope, causing a mismatch.
 
 **Fix:** wrap every `${ ... }` splice that calls Hearth utilities with `passQuotes`, and every `'{ ... }` quote with `withQuotes`:
 
-```scala
-withQuotes {
-  '{
-    val x = ${ passQuotes {
-      // Hearth builder code here
-    } }
-    x
-  }
-}
-```
+!!! example "Wrapping with `passQuotes` and `withQuotes`"
+
+    ```scala
+    withQuotes {
+      '{
+        val x = ${ passQuotes {
+          // Hearth builder code here
+        } }
+        x
+      }
+    }
+    ```
 
 See [`passQuotes` and `withQuotes`](basic-utilities.md#passquotes-and-withquotes-scala-3-only) for a full explanation and runnable example.
 

@@ -134,15 +134,16 @@ The micro-fp library provides a minimal set of type classes for functional progr
 Functor
 ├── Applicative
 │   ├── Parallel
-│   │   └───────────────────────────────────────────────────────┐
-│   └──────────┐                                                │
-│              │                                                │        
-└── Traverse   │                                                │
-    └──────────┤                                                │
-               └── ApplicativeTraverse (Applicative + Traverse) │
-                   └────────────────────────────────────────────┤
-                                                                └── ParallelTraverse
-                                                                   (Parallel + Traverse)
+│   │   └────────────────────────────────────┐
+│   └──────────┐                             │
+│              │                             │        
+└── Traverse   │                             │
+    └──────────┤                             │
+               └── ApplicativeTraverse       │
+                   (Applicative + Traverse)  │
+                   └─────────────────────────┤
+                                             └── ParallelTraverse
+                                                 (Parallel + Traverse)
 
 DirectStyle
 ```

@@ -19,52 +19,49 @@ The `hearth.typename` package provides `TypeName[A]` — a type class that produ
 
 Instances are **auto-derived** — no boilerplate needed:
 
-```scala
-import hearth.typename.TypeName
+!!! example
 
-// Scala 3 — TypeName is resolved via `inline given`
-val tn = TypeName[Option[String]]
-println(tn.plainPrint)  // "scala.Option[java.lang.String]"
-println(tn.simplePrint) // "Option[String]"
-println(tn.shortPrint)  // "Option"
-```
+    ```scala
+    import hearth.typename.TypeName
 
-```scala
-import hearth.typename.TypeName
-
-// Scala 2 — TypeName is resolved via `implicit def`
-val tn = TypeName[Option[String]]
-println(tn.plainPrint)  // "scala.Option[java.lang.String]"
-println(tn.simplePrint) // "Option[String]"
-println(tn.shortPrint)  // "Option"
-```
-
+    // Scala 2 — TypeName is resolved via `implicit def`
+    // Scala 3 — TypeName is resolved via `inline given`
+    val tn = TypeName[Option[String]]
+    println(tn.plainPrint)  // "scala.Option[java.lang.String]"
+    println(tn.simplePrint) // "Option[String]"
+    println(tn.shortPrint)  // "Option"
+    ```
+    
 ## Injection from Existing Instances
 
 When a `TypeName` instance exists for a type argument, the derived instance uses it instead of the default printing.
 This allows you to customize how types appear inside larger type expressions:
 
-```scala
-implicit val customStr: TypeName[String] = new TypeName[String] {
-  def prettyPrint = "Str"
-  def plainPrint  = "Str"
-  def simplePrint = "Str"
-  def shortPrint  = "Str"
-}
+!!! example
 
-// The derived TypeName[Option[String]] picks up the custom TypeName[String]
-TypeName[Option[String]].plainPrint // "scala.Option[Str]"
-```
+    ```scala
+    implicit val customStr: TypeName[String] = new TypeName[String] {
+      def prettyPrint = "Str"
+      def plainPrint  = "Str"
+      def simplePrint = "Str"
+      def shortPrint  = "Str"
+    }
+    
+    // The derived TypeName[Option[String]] picks up the custom TypeName[String]
+    TypeName[Option[String]].plainPrint // "scala.Option[Str]"
+    ```
 
 ### Context Bound Injection
 
 The injection pattern is especially useful with context bounds — when deriving a `TypeName` for a type with
 abstract type parameters, existing `TypeName` instances for those parameters are injected automatically:
 
-```scala
-def typeName[A: TypeName]: TypeName[List[A]] = TypeName.derived
-typeName[String].plainPrint // "scala.collection.immutable.List[java.lang.String]"
-```
+!!! example
+
+    ```scala
+    def typeName[A: TypeName]: TypeName[List[A]] = TypeName.derived
+    typeName[String].plainPrint // "scala.collection.immutable.List[java.lang.String]"
+    ```
 
 !!! warning "Scala Version Requirements for Injection"
     **Injection from existing `TypeName` instances requires:**
@@ -85,31 +82,37 @@ typeName[String].plainPrint // "scala.collection.immutable.List[java.lang.String
 
 ### 1. Error Messages
 
-```scala
-def validate[A: TypeName](value: A): Either[String, A] =
-  if (isValid(value)) Right(value)
-  else Left(s"Invalid ${TypeName[A].simplePrint}: $value")
-```
+!!! example
+
+    ```scala
+    def validate[A: TypeName](value: A): Either[String, A] =
+      if (isValid(value)) Right(value)
+      else Left(s"Invalid ${TypeName[A].simplePrint}: $value")
+    ```
 
 ### 2. Debug Logging
 
-```scala
-def logType[A: TypeName](value: A): Unit =
-  println(s"[${TypeName[A].shortPrint}] $value")
-```
+!!! example
+
+    ```scala
+    def logType[A: TypeName](value: A): Unit =
+      println(s"[${TypeName[A].shortPrint}] $value")
+    ```
 
 ### 3. Type Class Derivation Libraries
 
-`TypeName[A]` can be used inside macro-derived type class instances to produce better error messages:
+!!! example
 
-```scala
-// Inside a macro:
-val name = Type.plainPrint[A]  // compile-time string
-// vs.
-// runtime string, with injection
-val nameExpr: Expr[String] =
-  Expr.quote(TypeName[A].plainPrint)
-```
+    `TypeName[A]` can be used inside macro-derived type class instances to produce better error messages:
+
+    ```scala
+    // Inside a macro:
+    val name = Type.plainPrint[A]  // compile-time string
+    // vs.
+    // runtime string, with injection
+    val nameExpr: Expr[String] =
+      Expr.quote(TypeName[A].plainPrint)
+    ```
 
 ## How It Works
 

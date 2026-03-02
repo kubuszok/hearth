@@ -63,8 +63,9 @@ def asIterable[A: Type]: Option[...] = {
     case _ => None
   }
 }
-def asCaseClass[A: Type]: Option[...] = CaseClass.parse[A].toOption.map { caseClass =>
-  // ...
+def asCaseClass[A: Type]: Option[...] = CaseClass.parse[A].toOption.map {
+  caseClass =>
+    // ...
 }
 
 def deriveRecursively[A: Type] =
@@ -1397,8 +1398,10 @@ Type[A] match {
     ): String =
       reasons.fold("(no providers registered)") { r =>
         r.toList.map {
-          case (provider, Right(msg)) => s"  - $provider: $msg"
-          case (provider, Left(err))  => s"  - $provider: error: ${err.getMessage}"
+          case (provider, Right(msg)) =>
+            s"  - $provider: $msg"
+          case (provider, Left(err)) =>
+            s"  - $provider: error: ${err.getMessage}"
         }.mkString("\n")
       }
 
