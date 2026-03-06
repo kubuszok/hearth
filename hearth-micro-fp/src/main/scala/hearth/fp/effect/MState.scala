@@ -52,8 +52,8 @@ final case class MState private[effect] (
     MState(locals + (local -> Value(a, local.nextVersion)), logs)
 
   private[effect] def log(log: Log): MState = MState(locals, logs :+ log)
-  private[effect] def nameLogsScope(name: String, previous: MState): MState =
-    MState(locals, recursiveNestedLogsMerge(previous.logs, logs, name))
+  private[effect] def nameLogsScope(name: String, start: Log.Timestamp, end: Log.Timestamp, previous: MState): MState =
+    MState(locals, recursiveNestedLogsMerge(previous.logs, logs, name, start, end))
 
   // ----------------------------------------------- MLocal operations ------------------------------------------------
 
@@ -115,8 +115,8 @@ final case class MState private[effect] (
     else if (logs1.isEmpty) logs2
     else {
       def appendLastScopeToNew = logs2 match {
-        case Vector(Log.Scope(name, nestedLogs)) if nestedLogs.exists(logs1.contains) =>
-          Some(Vector(Log.Scope(name, recursiveNestedLogsMerge(logs1, nestedLogs, name))))
+        case Vector(Log.Scope(name, nestedLogs, start, end)) if nestedLogs.exists(logs1.contains) =>
+          Some(Vector(Log.Scope(name, recursiveNestedLogsMerge(logs1, nestedLogs, name, start, end), start, end)))
         case _ =>
           None
       }
@@ -128,25 +128,31 @@ final case class MState private[effect] (
       // It was PITA trying to fix this properly, so instead we just make sure _here_, that we don't repeat nested logs.
       // We need to compate by reference to avoid removing _reused_ logs (e.g. same MIO put into multiple named scopes).
       result.reverse.collectFirst {
-        case Log.Scope(name, nestedLogs) if nestedLogs.exists(l => result.exists(_ eq l)) =>
+        case Log.Scope(name, nestedLogs, _, _) if nestedLogs.exists(l => result.exists(_ eq l)) =>
           result.filterNot(l => nestedLogs.exists(_ eq l))
       } getOrElse result
     }
 
-  private def recursiveNestedLogsMerge(previous: Vector[Log], current: Vector[Log], name: String): Vector[Log] = {
+  private def recursiveNestedLogsMerge(
+      previous: Vector[Log],
+      current: Vector[Log],
+      name: String,
+      startFallback: Log.Timestamp,
+      endFallback: Log.Timestamp
+  ): Vector[Log] = {
     var foundInPrevous = false
     val common = previous.view
       .map {
-        case Log.Scope(`name`, nestedPrevious) =>
+        case Log.Scope(`name`, nestedPrevious, start, end) =>
           foundInPrevous = true
-          Log.Scope(`name`, recursiveNestedLogsMerge(nestedPrevious, current, name))
+          Log.Scope(`name`, recursiveNestedLogsMerge(nestedPrevious, current, name, start, end), start, end)
         case otherwise => otherwise
       }
       .zip(current)
       .map {
-        case (l1, l2) if l1 == l2                                 => Some(l1)
-        case (Log.Scope(n1, ls1), Log.Scope(n2, ls2)) if n1 == n2 =>
-          Some(Log.Scope(n1, recursiveNestedLogsMerge(ls1, ls2, n1)))
+        case (l1, l2) if l1 == l2                                                   => Some(l1)
+        case (Log.Scope(n1, ls1, start, end), Log.Scope(n2, ls2, _, _)) if n1 == n2 =>
+          Some(Log.Scope(n1, recursiveNestedLogsMerge(ls1, ls2, n1, start, end), start, end))
         case _ => None
       }
       .takeWhile(_.isDefined)
@@ -155,8 +161,8 @@ final case class MState private[effect] (
     lazy val newPrevious = previous.drop(common.length)
     lazy val newCurrent = current.drop(common.length)
     if (foundInPrevous) common ++ newPrevious
-    else if (common.isEmpty) newPrevious ++ Vector(Log.Scope(name, newCurrent))
-    else common ++ recursiveNestedLogsMerge(newPrevious, newCurrent, name)
+    else if (common.isEmpty) newPrevious ++ Vector(Log.Scope(name, newCurrent, startFallback, endFallback))
+    else common ++ recursiveNestedLogsMerge(newPrevious, newCurrent, name, startFallback, endFallback)
   }
 }
 object MState {

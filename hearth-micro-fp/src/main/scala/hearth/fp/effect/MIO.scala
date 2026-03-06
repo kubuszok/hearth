@@ -242,6 +242,9 @@ object MIO {
 
   def scoped[A](runSafe: DirectStyle.RunSafe[MIO] => A): MIO[A] = DirectStyleForMio.scoped(runSafe)
 
+  /** Whether each Log.scoped should also benchmark the scope duration. */
+  var benchmarkScopes: Boolean = false
+
   // --------------------------------------------- Implementation details ---------------------------------------------
 
   private def lift[A](result: MResult[A]): MIO[A] = defer(Pure(MState.empty, result))
@@ -276,8 +279,10 @@ object MIO {
     (void :+ { (s0, _) =>
       Pure(s0, Right(s0))
     }).flatMap { s0 =>
+      val start = if (benchmarkScopes) Log.Timestamp.now else Log.Timestamp.empty
       io :+ { (s, r) =>
-        Pure(s.nameLogsScope(name, s0), r)
+        val end = if (benchmarkScopes) Log.Timestamp.now else Log.Timestamp.empty
+        Pure(s.nameLogsScope(name, start, end, s0), r)
       }
     }
 

@@ -71,16 +71,21 @@ object Log {
     *
     * @since 0.1.0
     */
-  final case class Scope(name: String, entries: Logs) extends Log {
+  final case class Scope(name: String, entries: Logs, start: Log.Timestamp, end: Log.Timestamp) extends Log {
 
-    override def toString: String = render(name, entries)(_ => true)
+    override def toString: String = render(name, entries, start, end)(_ => true)
   }
 
   // --------------------------------------------- Implementation details ---------------------------------------------
 
   /** Render structured [[Logs]] into a String, in a stack-safe way. */
-  private[effect] def render(rootScopeName: String, logs: Logs)(filter: Level => Boolean): String =
-    renderLevels(new StringBuilder, Vector(Item(Scope(rootScopeName, filterLevels(logs, filter).run), "", "")))
+  private[effect] def render(rootScopeName: String, logs: Logs, start: Log.Timestamp, end: Log.Timestamp)(
+      filter: Level => Boolean
+  ): String =
+    renderLevels(
+      new StringBuilder,
+      Vector(Item(Scope(rootScopeName, filterLevels(logs, filter).run, start, end), "", ""))
+    )
 
   /** Filter out arbitrarily large nested logs without stack overflow. */
   private def filterLevels(logs: Logs, filter: Level => Boolean): MEval[Logs] = MEval.defer {
@@ -88,9 +93,9 @@ object Log {
       filteredLogs <- logs.traverse[MEval, Vector[Log]] {
         case entry: Entry if filter(entry.level) => MEval.pure(Vector(entry))
         case _: Entry                            => MEval.pure(Vector.empty[Log])
-        case Scope(name, entries)                =>
+        case Scope(name, entries, start, end)    =>
           filterLevels(entries, filter).map {
-            case filteredEntries if filteredEntries.nonEmpty => Vector(Scope(name, filteredEntries))
+            case filteredEntries if filteredEntries.nonEmpty => Vector(Scope(name, filteredEntries, start, end))
             case _                                           => Vector.empty[Log]
           }
       }
@@ -117,8 +122,9 @@ object Log {
         sb.append(indentHead).append(level.prefix).append(msg.head).append("\n")
         msg.tail.foreach(line => sb.append(indentTail).append("        ").append(line).append("\n"))
         Vector.empty
-      case Scope(name, entries) =>
-        val msg = (name + ":").split("\n")
+      case Scope(name, entries, start, end) =>
+        val duration = if (start != Log.Timestamp.empty && end != Log.Timestamp.empty) s" (${end - start}ns)" else ""
+        val msg = (name + duration + ":").split("\n")
         sb.append(indentHead).append(msg.head).append("\n")
         msg.tail.foreach(line => sb.append(indentTail).append(line).append("\n"))
 
@@ -128,5 +134,11 @@ object Log {
           case _ => init(entries) ++ last(entries)
         }
     }
+  }
+
+  type Timestamp = Long
+  object Timestamp {
+    def now: Timestamp = System.nanoTime()
+    val empty: Timestamp = Long.MinValue
   }
 }

@@ -36,6 +36,7 @@ trait MIOIntegrations { this: MacroTypedCommons =>
     )(
         renderFailure: (String, fp.data.NonEmptyVector[Throwable]) => String
     ): Expr[A] = Environment.handleMioTerminationException {
+      Environment.configureMioBenchmarking()
       val (state, result) = io.unsafe.runSync
       result match {
         case Right(expr) =>

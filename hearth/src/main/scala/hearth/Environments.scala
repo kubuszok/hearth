@@ -151,6 +151,26 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
         }
     }
 
+    /** Sets up MIO to use benchmark scopes based on the hearth.mioBenchmarkScopes setting.
+      *
+      * It would add to MIO logging output the duration for each scope execution if enabled by
+      * `-Xmacro-settings:hearth.mioBenchmarkScopes=true|false` option (false by default).
+      *
+      * It additionally enables generating flame graphs for benchmarked scopes.
+      *
+      * @since 3.0
+      */
+    final def configureMioBenchmarking(): Unit = {
+      val shouldBenchmark = for {
+        data <- typedSettings.toOption
+        hearth <- data.get("hearth")
+        mioTerminationShouldUseReportError <- hearth.get("mioBenchmarkScopes")
+        value <- mioTerminationShouldUseReportError.asBoolean
+      } yield value
+
+      fp.effect.MIO.benchmarkScopes = shouldBenchmark.getOrElse(false)
+    }
+
     /** Loads all the macro extensions for the given extension type.
       *
       * @since 0.1.0
