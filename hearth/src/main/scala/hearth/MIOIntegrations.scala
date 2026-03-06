@@ -38,16 +38,21 @@ trait MIOIntegrations { this: MacroTypedCommons =>
     ): Expr[A] = Environment.handleMioTerminationException {
       Environment.configureMioBenchmarking()
       val (state, result) = io.unsafe.runSync
+      val flameGraphError = writeFlameGraphIfConfigured(macroName, state)
       result match {
         case Right(expr) =>
           state.logs
             .render(macroName, infoRendering)
             .filter(_.length - 2 > macroName.length)
             .foreach(Environment.reportInfo)
-          state.logs
-            .render(macroName, warnRendering)
-            .filter(_.length - 2 > macroName.length)
-            .foreach(Environment.reportWarn)
+          val warnMsg = (
+            state.logs.render(macroName, warnRendering).filter(_.length - 2 > macroName.length),
+            flameGraphError
+          ) match {
+            case (Some(warn), Some(fgErr)) => Some(s"$warn\n$fgErr")
+            case (warn, fgErr)             => warn.orElse(fgErr)
+          }
+          warnMsg.foreach(Environment.reportWarn)
           state.logs
             .render(macroName, errorRendering)
             .filter(_.length - 2 > macroName.length && failOnErrorLog)
@@ -70,6 +75,30 @@ trait MIOIntegrations { this: MacroTypedCommons =>
       }
     }
   }
+
+  private def writeFlameGraphIfConfigured(macroName: String, state: fp.effect.MState): Option[String] =
+    if (fp.effect.MIO.benchmarkScopes && fp.effect.MIO.macroStartTimestamp != fp.effect.Log.Timestamp.empty)
+      Environment.mioBenchmarkFlameGraphDir.flatMap { dir =>
+        val pos = Environment.currentPosition
+        val fileName = Position.fileName(pos).getOrElse("unknown")
+        val strippedName = macroName.replaceAll("\u001b\\[[0-9;]*m", "")
+        val sanitized = s"${fileName}_${pos.line}_${pos.column}_${strippedName.replaceAll("[^a-zA-Z0-9._-]", "_")}"
+        val truncated = if (sanitized.length > 200) sanitized.take(200) else sanitized
+        val path = java.nio.file.Paths.get(dir).resolve(s"$truncated.speedscope.json")
+
+        fp.effect.FlameGraph.renderSpeedscope(strippedName, state.logs, fp.effect.MIO.macroStartTimestamp).flatMap {
+          json =>
+            try {
+              java.nio.file.Files.createDirectories(path.getParent)
+              java.nio.file.Files.write(path, json.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+              None
+            } catch {
+              case e: java.io.IOException =>
+                Some(s"Failed to write flame graph to $path: ${e.getMessage}")
+            }
+        }
+      }
+    else None
 
   implicit final class MLocalCacheOps(private val cache: MLocal[ValDefsCache]) {
 

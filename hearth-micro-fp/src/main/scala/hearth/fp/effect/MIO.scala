@@ -245,6 +245,11 @@ object MIO {
   /** Whether each Log.scoped should also benchmark the scope duration. */
   var benchmarkScopes: Boolean = false
 
+  /** Reference timestamp captured at the start of macro expansion. Used to convert absolute nanoTime values to
+    * relative-to-start values for flame graph rendering.
+    */
+  var macroStartTimestamp: Log.Timestamp = Log.Timestamp.empty
+
   // --------------------------------------------- Implementation details ---------------------------------------------
 
   private def lift[A](result: MResult[A]): MIO[A] = defer(Pure(MState.empty, result))

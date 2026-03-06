@@ -164,12 +164,27 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
       val shouldBenchmark = for {
         data <- typedSettings.toOption
         hearth <- data.get("hearth")
-        mioTerminationShouldUseReportError <- hearth.get("mioBenchmarkScopes")
-        value <- mioTerminationShouldUseReportError.asBoolean
+        setting <- hearth.get("mioBenchmarkScopes")
+        value <- setting.asBoolean
       } yield value
 
       fp.effect.MIO.benchmarkScopes = shouldBenchmark.getOrElse(false)
+      if (fp.effect.MIO.benchmarkScopes) {
+        fp.effect.MIO.macroStartTimestamp = fp.effect.Log.Timestamp.now
+      }
     }
+
+    /** Returns the flame graph output directory configured via
+      * `-Xmacro-settings:hearth.mioBenchmarkFlameGraphDir=<path>`.
+      *
+      * @since 3.0
+      */
+    final def mioBenchmarkFlameGraphDir: Option[String] = for {
+      data <- typedSettings.toOption
+      hearth <- data.get("hearth")
+      setting <- hearth.get("mioBenchmarkFlameGraphDir")
+      value <- setting.asString
+    } yield value
 
     /** Loads all the macro extensions for the given extension type.
       *
