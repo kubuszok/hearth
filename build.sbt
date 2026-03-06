@@ -659,7 +659,10 @@ lazy val hearthTests = projectMatrix
       "-Xmacro-settings:hearth-tests.primitives.double=2.71828",
       "-Xmacro-settings:hearth-tests.primitives.boolean=true",
       "-Xmacro-settings:hearth-tests.primitives.explicit-string=\"hello\"",
-      "-Xmacro-settings:hearth-tests.primitives.implicit-string=hello"
+      "-Xmacro-settings:hearth-tests.primitives.implicit-string=hello",
+      // Enable MIO scope benchmarking and flame graph generation
+      "-Xmacro-settings:hearth.mioBenchmarkScopes=true",
+      s"-Xmacro-settings:hearth.mioBenchmarkFlameGraphDir=${crossTarget.value / "flame-graphs"}"
     )
   )
   .settings(settings *)

@@ -34,6 +34,22 @@ package object effect {
       def onlyInfo(rootScopeName: String): String = render(rootScopeName)(_ == Log.Level.Info)
       def onlyWarn(rootScopeName: String): String = render(rootScopeName)(_ == Log.Level.Warn)
       def onlyError(rootScopeName: String): String = render(rootScopeName)(_ == Log.Level.Error)
+
+      /** Render as a speedscope-compatible JSON flame graph.
+        *
+        * Requires benchmarked scopes (via `MIO.benchmarkScopes = true`). The output can be opened at
+        * https://www.speedscope.app/.
+        *
+        * @param name
+        *   profile name
+        * @param macroStart
+        *   reference timestamp from the start of macro expansion
+        * @return
+        *   Some(json) if there are benchmarked scopes, None otherwise
+        * @since 3.0
+        */
+      def speedscopeFlameGraph(name: String, macroStart: Log.Timestamp): Option[String] =
+        FlameGraph.renderSpeedscope(name, logs, macroStart)
     }
   }
 

@@ -1204,6 +1204,69 @@ log and fail if necessary:
       }
     ```
 
+### Benchmarking Scopes and Flame Graphs
+
+When developing macros, it can be useful to measure how long each named scope takes during expansion.
+Hearth provides built-in support for benchmarking scopes and generating flame graphs.
+
+#### Enabling Scope Benchmarking
+
+Set `MIO.benchmarkScopes = true` to capture nanosecond timestamps for each `Log.namedScope`.
+When using `runToExprOrFail`, this is automatically controlled via the
+`-Xmacro-settings:hearth.mioBenchmarkScopes=true` compiler option.
+
+When enabled, the rendered log output will include duration annotations on each scope:
+
+```
+MyMacro:
+├ validation (12345ns):
+│ ├ [Info]  Validating input
+│ └ [Info]  Validation complete
+└ code generation (67890ns):
+  └ [Info]  Generating code
+```
+
+#### Generating Flame Graphs
+
+Hearth can generate [speedscope](https://www.speedscope.app/)-compatible flame graphs from benchmarked scope data.
+This is useful for visualizing where time is spent during macro expansion.
+
+**Automatic generation via `runToExprOrFail`:**
+
+Add the following compiler options to automatically generate flame graphs during compilation:
+
+```
+-Xmacro-settings:hearth.mioBenchmarkScopes=true
+-Xmacro-settings:hearth.mioBenchmarkFlameGraphDir=/path/to/output
+```
+
+This will write `.speedscope.json` files to the specified directory, named after the source file position
+and macro name. Open these files at [speedscope.app](https://www.speedscope.app/) to visualize the flame graph.
+
+**Manual generation:**
+
+```scala
+import hearth.fp.effect.*
+
+MIO.benchmarkScopes = true
+val macroStart = Log.Timestamp.now
+
+val mio = Log.namedScope("outer") {
+  Log.namedScope("inner") {
+    MIO.pure(42)
+  }
+}
+
+val (state, result) = mio.unsafe.runSync
+state.logs.render.speedscopeFlameGraph("my-macro", macroStart).foreach { json =>
+  // Write json to a file, then open at https://www.speedscope.app/
+  println(json)
+}
+```
+
+The generated JSON uses the [speedscope evented format](https://github.com/jlfwong/speedscope/wiki/Importing-from-custom-sources)
+with nanosecond precision, recording open/close events for each named scope relative to the macro expansion start time.
+
 ### Running `MIO`
 
 !!! example "Running `MIO` computations"
