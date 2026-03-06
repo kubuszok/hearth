@@ -18,7 +18,8 @@ package object effect {
       */
     object render {
 
-      def apply(rootScopeName: String)(filter: Log.Level => Boolean): String = Log.render(rootScopeName, logs)(filter)
+      def apply(rootScopeName: String)(filter: Log.Level => Boolean): String =
+        Log.render(rootScopeName, logs, Log.Timestamp.empty, Log.Timestamp.empty)(filter)
 
       def apply(rootScopeName: String, rendering: LogRendering): Option[String] = rendering match {
         case DontRender        => None
