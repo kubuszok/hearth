@@ -86,16 +86,28 @@ trait MIOIntegrations { this: MacroTypedCommons =>
         val truncated = if (sanitized.length > 200) sanitized.take(200) else sanitized
         val path = java.nio.file.Paths.get(dir).resolve(s"$truncated.speedscope.json")
 
-        fp.effect.FlameGraph.renderSpeedscope(strippedName, state.logs, fp.effect.MIO.macroStartTimestamp).flatMap {
-          json =>
-            try {
-              java.nio.file.Files.createDirectories(path.getParent)
-              java.nio.file.Files.write(path, json.getBytes(java.nio.charset.StandardCharsets.UTF_8))
-              None
-            } catch {
-              case e: java.io.IOException =>
-                Some(s"Failed to write flame graph to $path: ${e.getMessage}")
+        try {
+          java.nio.file.Files.createDirectories(path.getParent)
+          // Write directly to file via streaming to avoid holding the entire JSON in memory
+          val writer = java.nio.file.Files.newBufferedWriter(path, java.nio.charset.StandardCharsets.UTF_8)
+          try {
+            val written =
+              fp.effect.FlameGraph.renderSpeedscopeTo(
+                writer,
+                strippedName,
+                state.logs,
+                fp.effect.MIO.macroStartTimestamp
+              )
+            writer.flush()
+            if (!written) {
+              // No events were written, clean up the empty file
+              java.nio.file.Files.deleteIfExists(path): Unit
             }
+            None
+          } finally writer.close()
+        } catch {
+          case e: java.io.IOException =>
+            Some(s"Failed to write flame graph to $path: ${e.getMessage}")
         }
       }
     else None
