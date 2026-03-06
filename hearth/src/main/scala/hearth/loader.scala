@@ -68,7 +68,7 @@ private[hearth] object platformSpecificServiceLoader extends platformSpecificSer
         if (stream.hasNext) {
           val provider = stream.next()
           if (condition(provider.`type`)) {
-            getService(provider) match {
+            getService(classLoader, provider) match {
               case Right(service) => loop(acc :+ service)
               case Left(error)    => Left(error)
             }
@@ -84,12 +84,48 @@ private[hearth] object platformSpecificServiceLoader extends platformSpecificSer
   }
 
   // Caches previous results within the same class loader (compilation unit).
+  //
+  // We use WeakHashMap keyed on ClassLoader (not Class) because Class objects loaded by short-lived
+  // classloaders (common in sbt/compiler plugin contexts) can be garbage collected between macro
+  // expansions, defeating the cache. The ClassLoader stays alive for the entire compilation unit,
+  // so keying on it ensures the cache persists throughout. String class names are used as inner keys
+  // since they are stable and won't be collected.
 
-  private val serviceLoaders = scala.collection.mutable.WeakHashMap.empty[Class[?], Tried[ServiceLoader[?]]]
-  private def getServiceLoader[T](clazz: Class[T], classLoader: ClassLoader): Tried[ServiceLoader[T]] =
-    serviceLoaders.getOrElseUpdate(clazz, createServiceLoader(clazz, classLoader)).asInstanceOf[Tried[ServiceLoader[T]]]
+  private val serviceLoadersByClassLoader =
+    new java.util.WeakHashMap[ClassLoader, java.util.HashMap[String, Tried[ServiceLoader[?]]]]()
 
-  private val services = scala.collection.mutable.WeakHashMap.empty[Class[?], Tried[Any]]
-  private def getService[T](provider: ServiceLoader.Provider[T]): Tried[T] =
-    services.getOrElseUpdate(provider.`type`, Tried(provider.get())).asInstanceOf[Tried[T]]
+  private def getServiceLoader[T](clazz: Class[T], classLoader: ClassLoader): Tried[ServiceLoader[T]] = {
+    var inner = serviceLoadersByClassLoader.get(classLoader)
+    if (inner == null) {
+      inner = new java.util.HashMap()
+      serviceLoadersByClassLoader.put(classLoader, inner): Unit
+    }
+    val key = clazz.getName
+    val cached = inner.get(key)
+    if (cached != null) cached.asInstanceOf[Tried[ServiceLoader[T]]]
+    else {
+      val result = createServiceLoader(clazz, classLoader)
+      inner.put(key, result): Unit
+      result.asInstanceOf[Tried[ServiceLoader[T]]]
+    }
+  }
+
+  private val servicesByClassLoader =
+    new java.util.WeakHashMap[ClassLoader, java.util.HashMap[String, Tried[Any]]]()
+
+  private def getService[T](classLoader: ClassLoader, provider: ServiceLoader.Provider[T]): Tried[T] = {
+    var inner = servicesByClassLoader.get(classLoader)
+    if (inner == null) {
+      inner = new java.util.HashMap()
+      servicesByClassLoader.put(classLoader, inner): Unit
+    }
+    val key = provider.`type`.getName
+    val cached = inner.get(key)
+    if (cached != null) cached.asInstanceOf[Tried[T]]
+    else {
+      val result = Tried(provider.get())
+      inner.put(key, result)
+      result.asInstanceOf[Tried[T]]
+    }
+  }
 }

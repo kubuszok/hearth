@@ -50,6 +50,23 @@ package object effect {
         */
       def speedscopeFlameGraph(name: String, macroStart: Log.Timestamp): Option[String] =
         FlameGraph.renderSpeedscope(name, logs, macroStart)
+
+      /** Render as a speedscope-compatible JSON flame graph directly to an [[Appendable]].
+        *
+        * This avoids building the entire JSON in memory, which is important for large flame graphs.
+        *
+        * @param out
+        *   the output to write to (e.g. Writer, StringBuilder)
+        * @param name
+        *   profile name
+        * @param macroStart
+        *   reference timestamp from the start of macro expansion
+        * @return
+        *   true if events were written, false otherwise
+        * @since 3.0
+        */
+      def speedscopeFlameGraphTo(out: java.lang.Appendable, name: String, macroStart: Log.Timestamp): Boolean =
+        FlameGraph.renderSpeedscopeTo(out, name, logs, macroStart)
     }
   }
 

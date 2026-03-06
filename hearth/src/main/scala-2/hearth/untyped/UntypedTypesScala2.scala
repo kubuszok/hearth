@@ -244,8 +244,70 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     override def isAvailable(instanceTpe: UntypedType, scope: Accessible): Boolean =
       symbolAvailable(instanceTpe.typeSymbol, scope)
 
-    override def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean = subtype <:< supertype
-    override def isSameAs(a: UntypedType, b: UntypedType): Boolean = a =:= b
+    // Cache for type comparison results, using identity-based lookup.
+    // Type objects are typically reused for the same type within a macro expansion (e.g. lazy val Type.of[Int]),
+    // so identity-based caching effectively deduplicates repeated comparisons across different provider/rule calls.
+    private val subtypeCache =
+      new java.util.IdentityHashMap[UntypedType, java.util.IdentityHashMap[UntypedType, java.lang.Boolean]]()
+    private val sameTypeCache =
+      new java.util.IdentityHashMap[UntypedType, java.util.IdentityHashMap[UntypedType, java.lang.Boolean]]()
+
+    override def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean = {
+      // Fast path: reference equality means identical types
+      if (subtype eq supertype) return true
+      // Fast negative: if the dealiased subtype is a simple TypeRef (not a refinement, constant, or
+      // existential type) and the supertype is final with a different symbol, they can't be in a subtype
+      // relationship (except for bottom types Nothing/Null). We must dealias + match on TypeRef to avoid
+      // false negatives for type aliases that expand to intersection types (e.g. `type Byte1 = 1 with Byte`).
+      subtype.dealias match {
+        case TypeRef(_, subSym, Nil) =>
+          val supSym = supertype.typeSymbol
+          if (
+            subSym != supSym && supSym != NoSymbol &&
+            (supSym.isFinal || supSym.isModuleClass) && supertype.typeArgs.isEmpty &&
+            subSym != c.universe.definitions.NothingClass && subSym != c.universe.definitions.NullClass
+          ) return false
+        case _ =>
+      }
+      // Check cache before expensive compiler check
+      var inner = subtypeCache.get(subtype)
+      if (inner == null) {
+        inner = new java.util.IdentityHashMap()
+        subtypeCache.put(subtype, inner)
+      }
+      val cached = inner.get(supertype)
+      if (cached != null) return cached.booleanValue()
+      val result = subtype <:< supertype
+      inner.put(supertype, java.lang.Boolean.valueOf(result))
+      result
+    }
+
+    override def isSameAs(a: UntypedType, b: UntypedType): Boolean = {
+      // Fast path: reference equality
+      if (a eq b) return true
+      // Dealias for fast comparison (dealias is cheap — just follows alias chain)
+      val ad = a.dealias
+      val bd = b.dealias
+      if (ad eq bd) return true
+      val adSym = ad.typeSymbol
+      val bdSym = bd.typeSymbol
+      // Fast negative: different non-NoSymbol dealiased symbols means definitely different types.
+      // We do NOT use a fast positive here because same symbol doesn't guarantee same type
+      // (e.g. singleton/literal types like `true` vs `Boolean`, or path-dependent types like
+      // `WeekDay.Value` vs `Planet.Value`).
+      if (adSym != bdSym && adSym != NoSymbol && bdSym != NoSymbol) return false
+      // Check cache before expensive compiler check
+      var inner = sameTypeCache.get(a)
+      if (inner == null) {
+        inner = new java.util.IdentityHashMap()
+        sameTypeCache.put(a, inner)
+      }
+      val cached = inner.get(b)
+      if (cached != null) return cached.booleanValue()
+      val result = a =:= b
+      inner.put(b, java.lang.Boolean.valueOf(result))
+      result
+    }
 
     override def companionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] =
       if (untyped.typeSymbol.isModuleClass) None

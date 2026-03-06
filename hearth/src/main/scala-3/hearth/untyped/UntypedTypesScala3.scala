@@ -252,10 +252,70 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def isAvailable(instanceTpe: UntypedType, scope: Accessible): Boolean =
       symbolAvailable(instanceTpe.typeSymbol, scope)
 
-    override def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean =
-      quotes.reflect.TypeReprMethods.<:<(subtype)(supertype)
-    override def isSameAs(a: UntypedType, b: UntypedType): Boolean =
-      quotes.reflect.TypeReprMethods.=:=(a)(b)
+    // Cache for type comparison results, using identity-based lookup.
+    // TypeRepr objects are typically reused for the same type within a macro expansion (e.g. lazy val Type.of[Int]),
+    // so identity-based caching effectively deduplicates repeated comparisons across different provider/rule calls.
+    private val subtypeCache =
+      new java.util.IdentityHashMap[UntypedType, java.util.IdentityHashMap[UntypedType, java.lang.Boolean]]()
+    private val sameTypeCache =
+      new java.util.IdentityHashMap[UntypedType, java.util.IdentityHashMap[UntypedType, java.lang.Boolean]]()
+
+    override def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean = {
+      // Fast path: reference equality means identical types
+      if subtype eq supertype then return true
+      // Fast negative: if the dealiased subtype is a simple class type (not an AndType, ConstantType, or
+      // other compound type) and the supertype is final with a different symbol, they can't be in a subtype
+      // relationship (except for bottom types Nothing/Null). We must dealias to avoid false negatives for
+      // type aliases that expand to intersection types (e.g. `type Byte1 = 1 with Byte`).
+      // We avoid pattern matching on TypeRef because its unapply in some Scala 3 versions throws
+      // ClassCastException for enum value types (SimpleName cannot be cast to TypeName).
+      val dealiased = subtype.dealias
+      val subSym = dealiased.typeSymbol
+      if !subSym.isNoSymbol && subSym.isClassDef && dealiased.typeArgs.isEmpty then {
+        val supSym = supertype.typeSymbol
+        if subSym != supSym && !supSym.isNoSymbol &&
+        supSym.flags.is(Flags.Final) && supertype.typeArgs.isEmpty &&
+        subSym != defn.NothingClass && subSym != defn.NullClass then return false
+      }
+      // Check cache before expensive compiler check
+      var inner = subtypeCache.get(subtype)
+      if inner == null then {
+        inner = new java.util.IdentityHashMap()
+        subtypeCache.put(subtype, inner): Unit
+      }
+      val cached = inner.get(supertype)
+      if cached != null then return cached.booleanValue()
+      val result = quotes.reflect.TypeReprMethods.<:<(subtype)(supertype)
+      inner.put(supertype, java.lang.Boolean.valueOf(result)): Unit
+      result
+    }
+
+    override def isSameAs(a: UntypedType, b: UntypedType): Boolean = {
+      // Fast path: reference equality
+      if a eq b then return true
+      // Dealias for fast comparison (dealias is cheap — just follows alias chain)
+      val ad = a.dealias
+      val bd = b.dealias
+      if ad eq bd then return true
+      val adSym = ad.typeSymbol
+      val bdSym = bd.typeSymbol
+      // Fast negative: different non-NoSymbol dealiased symbols means definitely different types.
+      // We do NOT use a fast positive here because same symbol doesn't guarantee same type
+      // (e.g. singleton/literal types like `true` vs `Boolean`, or path-dependent types like
+      // `WeekDay.Value` vs `Planet.Value`).
+      if adSym != bdSym && !adSym.isNoSymbol && !bdSym.isNoSymbol then return false
+      // Check cache before expensive compiler check
+      var inner = sameTypeCache.get(a)
+      if inner == null then {
+        inner = new java.util.IdentityHashMap()
+        sameTypeCache.put(a, inner): Unit
+      }
+      val cached = inner.get(b)
+      if cached != null then return cached.booleanValue()
+      val result = quotes.reflect.TypeReprMethods.=:=(a)(b)
+      inner.put(b, java.lang.Boolean.valueOf(result)): Unit
+      result
+    }
 
     override def companionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] =
       if untyped.isObject then None
