@@ -1071,16 +1071,124 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     */
   private class SpliceReplacer(ctx: TermName) extends Transformer {
 
+    /** Local type params from DefDef nodes currently in scope during tree traversal. */
+    private var localTypeParamsInScope = Map.empty[Symbol, String]
+
+    /** Finds local type param symbols referenced in a tree.
+      *
+      * Checks TypeTrees (which have `.tpe`) and Idents for references to any of the tracked local type param symbols.
+      */
+    private def findLocalTypeParamRefs(tree: Tree): Set[(Symbol, String)] = {
+      val refs = scala.collection.mutable.Set.empty[(Symbol, String)]
+      object finder extends Traverser {
+        override def traverse(t: Tree): Unit = {
+          t match {
+            case tt: TypeTree if tt.tpe != null =>
+              tt.tpe.foreach { tpe =>
+                localTypeParamsInScope.get(tpe.typeSymbol).foreach(name => refs += (tpe.typeSymbol -> name))
+              }
+            case id @ Ident(_) if id.symbol != null && id.symbol.isType =>
+              localTypeParamsInScope.get(id.symbol).foreach(n => refs += (id.symbol -> n))
+            case _ => ()
+          }
+          super.traverse(t)
+        }
+      }
+      finder.traverse(tree)
+      refs.toSet
+    }
+
+    /** Generates the free type construction code for a local type param.
+      *
+      * Creates a `Type[Any]` value that wraps a free type symbol named after the original type param. The quasiquote
+      * system resolves free types by name, connecting them to the actual type params in the generated code.
+      */
+    private def freeTypeCode(paramName: String): String =
+      s"""{
+         |  val __ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+         |  val __sym = __ctx.universe.internal.reificationSupport.newFreeType("$paramName")
+         |  __ctx.WeakTypeTag(__ctx.internal.typeRef(__ctx.universe.NoPrefix, __sym, _root_.scala.Nil))
+         |    .asInstanceOf[$ctx.WeakTypeTag[Any]]
+         |}""".stripMargin
+
     object Splices {
       private val caches = scala.collection.mutable.Map.empty[String, String]
 
       def store(expr: Tree, tpe: Tree): Tree = {
-        // This code can contain $ which has to be escaped before printing, also we should use better printers for all such things.
+        val localRefs = findLocalTypeParamRefs(expr)
+
+        if (localRefs.isEmpty) {
+          // Simple case: no local type params referenced
+          val printedExpr = renderCode(expr)
+          val printedTpe = renderCode(tpe)
+          val stub = Ident(freshName("expressionStub"))
+          caches += (stub.toString() -> s"$${ {$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]] }")
+          stub
+        } else {
+          // Workaround case: splice references local type params
+          storeWithWorkaround(expr, tpe, localRefs)
+        }
+      }
+
+      /** Generates a workaround method for splices that reference local type params.
+        *
+        * Instead of `$${ expr.asInstanceOf[ctx.Expr[A]] }`, generates:
+        * {{{
+        * $${
+        *   def workaround[A: ctx.WeakTypeTag] = {
+        *     <original expr unchanged>
+        *   }
+        *   workaround[Any](<freeType("A")>).asInstanceOf[ctx.Expr[Any]]
+        * }
+        * }}}
+        *
+        * Key insight: the workaround method uses the SAME type param names as the originals. The rendered expression
+        * code (via showCodePretty) contains references to `A` — by defining a type param `A` on the workaround method,
+        * these references resolve to the workaround's `A`, which receives a free-type-based WeakTypeTag. This avoids
+        * the need to rewrite tree nodes (which is fragile because showCodePretty uses TypeTree.original fields).
+        */
+      private def storeWithWorkaround(
+          expr: Tree,
+          tpe: Tree,
+          localRefs: Set[(Symbol, String)]
+      ): Tree = {
+        val sortedRefs = localRefs.toList.sortBy(_._2)
+        val workaroundName = freshName("workaround")
+
+        // Render the original expression as-is — references to local type params (e.g. `A`)
+        // will be resolved by the workaround method's own type params with the same names.
         val printedExpr = renderCode(expr)
-        val printedTpe = renderCode(tpe)
+
+        // Build the workaround method type params: [A: ctx.WeakTypeTag, ...]
+        // Using implicit WeakTypeTag context bounds so the expression's implicit lookups resolve.
+        val typeParamDecls = sortedRefs
+          .map { case (_, name) => s"$name: $ctx.WeakTypeTag" }
+          .mkString(", ")
+
+        // Build the type args for calling: [Any, Any, ...]
+        val typeArgs = sortedRefs.map(_ => "Any").mkString(", ")
+
+        // Build the free type arguments: one for each local type param
+        val freeTypeArgs = sortedRefs.map { case (_, name) => freeTypeCode(name) }.mkString(", ")
+
+        val workaroundStr = workaroundName.decodedName.toString
+
+        val code =
+          s"""$${ {
+             |  def $workaroundStr[$typeParamDecls] = {
+             |    $printedExpr
+             |  }
+             |  $workaroundStr[$typeArgs]($freeTypeArgs).asInstanceOf[$ctx.Expr[Any]]
+             |} }""".stripMargin
+
+        log(
+          s"""Cross-quotes ${paintExclDot(Console.BLUE)("Expr.splice")} workaround for local type params:
+             |Type params: ${sortedRefs.map(_._2).mkString(", ")}
+             |Code: ${indent(code)}""".stripMargin
+        )
 
         val stub = Ident(freshName("expressionStub"))
-        caches += (stub.toString() -> s"$${ {$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]] }")
+        caches += (stub.toString() -> code)
         stub
       }
 
@@ -1104,6 +1212,17 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     private val WildcardStar = typeNames.WILDCARD_STAR
 
     override def transform(tree: Tree): Tree = tree match {
+      /* Track local type params from DefDef nodes inside the quote body. */
+      case dd: DefDef if dd.tparams.nonEmpty =>
+        val newParams = dd.tparams.flatMap { tp =>
+          if (tp.symbol != null) Some(tp.symbol -> tp.name.decodedName.toString)
+          else None
+        }.toMap
+        val oldScope = localTypeParamsInScope
+        localTypeParamsInScope = oldScope ++ newParams
+        try super.transform(tree)
+        finally localTypeParamsInScope = oldScope
+
       /* Replaces:
        *   Expr.splice[Seq[A]](a): _*
        * with:

@@ -121,4 +121,14 @@ trait CrossCtorInjectionFixturesImpl extends CrossCtorInjectionFixturesImplGen {
     Expr(Data(fOfA.plainPrint))
   }
 
+  /** Test: Type.of[A] inside Expr.splice inside Expr.quote, where A is a local type param. */
+  def testTypeOfLocalParamInSplice: Expr[Data] =
+    Expr.quote {
+      def helper[A]: String = Expr.splice {
+        hearth.fp.ignore(Type.of[A]) // verify Type.of[A] is obtainable for local type param
+        Expr("ok")
+      }
+      Data(helper[Int])
+    }
+
 }
