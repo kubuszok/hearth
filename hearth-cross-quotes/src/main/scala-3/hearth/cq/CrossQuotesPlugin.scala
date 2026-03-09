@@ -253,6 +253,33 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
         }
       }
 
+      // Test if TypeDef has a context bound like [F[_]: Type.Ctor1], defending against changes across Scala versions.
+      private object CtxBoundsCtorTypeTree {
+
+        def unapply(tree: untpd.Tree): Option[(Name, Name, Option[TermName])] = tree match {
+          // Scala 3.3 representation: AppliedTypeTree(Select(Ident("Type"), "Ctor1"), List(Ident("F")))
+          case AppliedTypeTree(Select(Ident(tpeName), ctorName), List(Ident(hktName)))
+              if tpeName.show == "Type" && isCtor(ctorName.show) =>
+            Some((ctorName, hktName, None))
+          // Scala 3.7 representation: ContextBoundTypeTree(Select(Ident("Type"), "Ctor1"), F, evidence$N)
+          // using reflection to keep compiling on Scala 3.3
+          case contextBoundTypeTree
+              if contextBoundTypeTree.productPrefix == "ContextBoundTypeTree" &&
+                contextBoundTypeTree.productArity == 3 &&
+                contextBoundTypeTree.productElement(0).isInstanceOf[Select] &&
+                contextBoundTypeTree.productElement(1).isInstanceOf[TypeName] &&
+                contextBoundTypeTree.productElement(2).isInstanceOf[TermName] =>
+            val Select(Ident(tpeName), ctorName) =
+              (contextBoundTypeTree.productElement(0).asInstanceOf[Select]: @unchecked)
+            if tpeName.show == "Type" && isCtor(ctorName.show) then {
+              val hktName = contextBoundTypeTree.productElement(1).asInstanceOf[Name]
+              val evidenceName = contextBoundTypeTree.productElement(2).asInstanceOf[TermName]
+              Some((ctorName, hktName, Some(evidenceName)))
+            } else None
+          case _ => None
+        }
+      }
+
       // Helper to extract Type[A] from AppliedTypeTree
       private object TypeAppliedTypeTree {
         def unapply(tree: untpd.Tree): Option[untpd.Tree] = tree match {
@@ -413,6 +440,17 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
                 if /* tpe.show == "Type" && */ name.show == name2.show =>
               Some(makeGiven(name.mangledString, untpd.Ident(name)))
 
+            // [F[_]: Type.Ctor1] context bound (Scala 3.7 with evidence)
+            case TypeDef(name, untpd.ContextBounds(_, List(CtxBoundsCtorTypeTree(_ /*ctorName*/, name2, evidenceOpt))))
+                if name.show == name2.show =>
+              evidenceOpt match {
+                case Some(evidenceName) =>
+                  Some(makeGivenFromUntyped(name.mangledString, untpd.Ident(name), untpd.Ident(evidenceName)))
+                case None =>
+                  // Scala 3.3: the evidence is a desugared ValDef, handled in the ValDef case below
+                  None
+              }
+
             /* If parameters is
              *   [A](implicit a: Type[A])
              * or
@@ -421,11 +459,20 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
              *   given castedA: scala.quoted.Type[A] = Type[A].asInstanceOf[scala.quoted.Type[A]]
              */
             case vd: untpd.ValDef if vd.isImplicit =>
-              TypeAppliedTypeTree.unapply(vd.tpt).map { innerType =>
-                // Use the parameter name for the given name, but reference the inner type
-                val paramName = vd.name.show
-                makeGiven(paramName, innerType)
-              }
+              TypeAppliedTypeTree
+                .unapply(vd.tpt)
+                .map { innerType =>
+                  // Use the parameter name for the given name, but reference the inner type
+                  val paramName = vd.name.show
+                  makeGiven(paramName, innerType)
+                }
+                .orElse(
+                  // Handle (implicit FC: Type.CtorN[F]) parameter
+                  TypeCtorAppliedTypeTree.unapply(vd.tpt).map { hkt =>
+                    val name = vd.name.show
+                    makeGivenFromUntyped(name, hkt, untpd.Ident(termName(name)))
+                  }
+                )
 
             case _ => None
           }
