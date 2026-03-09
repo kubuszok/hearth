@@ -640,6 +640,8 @@ object CrossCtorTestGen {
 
     // Local type param in splice tests
     sb ++= "  def testTypeOfLocalParamInSpliceImpl: c.Expr[Data] = testTypeOfLocalParamInSplice\n\n"
+    sb ++= "  def testSpliceWithMultipleLocalParamsImpl: c.Expr[Data] = testSpliceWithMultipleLocalParams\n\n"
+    sb ++= "  def testFunctorSkeletonImpl: c.Expr[Data] = testFunctorSkeleton[List](Type.Ctor1.of[List])\n\n"
 
     sb ++= "}\n\n"
 
@@ -687,6 +689,8 @@ object CrossCtorTestGen {
 
     // Local type param in splice tests
     sb ++= "  def testTypeOfLocalParamInSplice: Data = macro CrossCtorInjectionFixtures.testTypeOfLocalParamInSpliceImpl\n\n"
+    sb ++= "  def testSpliceWithMultipleLocalParams: Data = macro CrossCtorInjectionFixtures.testSpliceWithMultipleLocalParamsImpl\n\n"
+    sb ++= "  def testFunctorSkeleton: Data = macro CrossCtorInjectionFixtures.testFunctorSkeletonImpl\n\n"
 
     sb ++= "}\n"
     sb.toString
@@ -788,6 +792,10 @@ object CrossCtorTestGen {
     sb ++= "  def testTypeOfWithCtorHKTApplied: Expr[Data] = testTypeOfWithCtorHKTApplied[Option](using optionCtor1)\n\n"
     sb ++= "  def testTypeOfWithCtorHKTAndTypeParam[A: Type]: Expr[Data] = testTypeOfWithCtorHKTAndTypeParam[Option, A](using optionCtor1, summon[Type[A]])\n\n"
 
+    // Local type param in splice tests - class body methods for methods with type params
+    sb ++= "  private lazy val listCtor1: Type.Ctor1[List] = Type.Ctor1.of[List]\n\n"
+    sb ++= "  def testFunctorSkeleton: Expr[Data] = testFunctorSkeleton[List](using listCtor1)\n\n"
+
     sb ++= "}\n\n"
 
     // Companion object
@@ -847,6 +855,8 @@ object CrossCtorTestGen {
 
     // Local type param in splice tests
     sb ++= genScala3InlineSplice("testTypeOfLocalParamInSplice")
+    sb ++= genScala3InlineSplice("testSpliceWithMultipleLocalParams")
+    sb ++= genScala3InlineSplice("testFunctorSkeleton")
 
     sb ++= "}\n"
     sb.toString
@@ -1024,6 +1034,14 @@ object CrossCtorTestGen {
         |
         |      test("should resolve Type.of[A] where A is a local type param from a method inside the quote") {
         |        CrossCtorInjectionFixtures.testTypeOfLocalParamInSplice <==> Data("ok")
+        |      }
+        |
+        |      test("should resolve multiple local type params (A, B) inside a splice") {
+        |        CrossCtorInjectionFixtures.testSpliceWithMultipleLocalParams <==> Data("ok")
+        |      }
+        |
+        |      test("should generate a Functor skeleton combining HKT and local type params") {
+        |        CrossCtorInjectionFixtures.testFunctorSkeleton <==> Data("ok")
         |      }
         |
         |    }

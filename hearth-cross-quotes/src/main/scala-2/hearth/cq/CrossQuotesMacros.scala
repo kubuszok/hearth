@@ -74,6 +74,43 @@ import scala.util.chaining.*
   *     represented by `Type[A]` - this is the most fragile part of the whole macro.
   *
   * The result while not perfect, should be robust enough for most cases.
+  *
+  *   4. When `Expr.splice` inside `Expr.quote` references type parameters from methods defined inside the quote body
+  *      (''local type params''), these type params don't exist at macro-expansion time. For example:
+  *
+  * {{{
+  * Expr.quote {
+  *   def helper[A]: String = Expr.splice {
+  *     hearth.fp.ignore(Type.of[A]) // A is from helper, not available at macro time
+  *     Expr("ok")
+  *   }
+  *   Data(helper[Int])
+  * }
+  * }}}
+  *
+  * The `SpliceReplacer` detects local type param references and wraps the splice body in a workaround method:
+  *
+  * {{{
+  * ${ {
+  *   def workaround[A: ctx.WeakTypeTag] = {
+  *     <original splice body, unchanged>
+  *   }
+  *   workaround[Any]({
+  *     val __ctx = CrossQuotes.ctx[blackbox.Context]
+  *     val __sym = __ctx.universe.internal.reificationSupport.newFreeType("A")
+  *     __ctx.WeakTypeTag(__ctx.internal.typeRef(__ctx.universe.NoPrefix, __sym, Nil))
+  *       .asInstanceOf[ctx.WeakTypeTag[Any]]
+  *   }).asInstanceOf[ctx.Expr[Any]]
+  * } }
+  * }}}
+  *
+  * Key insight: the workaround method uses the '''same''' type param names as the originals. `showCodePretty` renders
+  * the tree with `A` references — by defining a type param `A` on the workaround, these references resolve to the
+  * workaround's `A`. The free type (`newFreeType("A")`) is resolved by name during quasiquote expansion, connecting to
+  * the actual type param in the generated code.
+  *
+  * '''Limitation:''' Nested `Expr.quote` inside `Expr.splice` that references local type params is not yet supported —
+  * the inner quote's own expansion cannot handle type params from the outer quote's method definitions.
   */
 final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettyScala2 with CrossQuotesMacrosCtorMethods {
 
@@ -1067,7 +1104,16 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     }
   }
 
-  /** Handles type parameters inside Expr.splice: Expr.splice[A](a)
+  /** Handles `Expr.splice[A](a)` inside `Expr.quote` bodies.
+    *
+    * For simple splices (no local type param references), renders the splice expression and wraps it in `$${ ... }` for
+    * quasiquote interpolation.
+    *
+    * For splices that reference local type params (from `DefDef` nodes in the quote body), generates a workaround
+    * method that provides the type params as implicit `WeakTypeTag` context bounds, with free-type-based values that
+    * the quasiquote system resolves by name. See the class-level Scaladoc for details.
+    *
+    * Also tracks `DefDef` type params during tree traversal to build the local type param scope.
     */
   private class SpliceReplacer(ctx: TermName) extends Transformer {
 

@@ -131,4 +131,45 @@ trait CrossCtorInjectionFixturesImpl extends CrossCtorInjectionFixturesImplGen {
       Data(helper[Int])
     }
 
+  /** Test: Multiple local type params (A, B) inside Expr.splice inside Expr.quote.
+    *
+    * Extends the single-param test to verify the workaround handles multiple type params simultaneously.
+    */
+  def testSpliceWithMultipleLocalParams: Expr[Data] =
+    Expr.quote {
+      def combine[A, B]: String = Expr.splice {
+        hearth.fp.ignore(Type.of[A], Type.of[B])
+        Expr("ok")
+      }
+      Data(combine[Int, String])
+    }
+
+  /** Test: Functor-like type class derivation combining HKT (Type.Ctor1) with local type params (A, B).
+    *
+    * This is the "proof by construction" that Hearth can generate type class instances with HKT type constructors where
+    * methods have their own type parameters. The splice body verifies that Type.of[A], Type.of[B], and Type.Ctor1[F]
+    * are all available. The actual map implementation is a dummy (null cast) — the point is to verify the code
+    * generation compiles and the macro plumbing works, not to produce a correct Functor derivation.
+    *
+    * Note: nested `Expr.quote` inside `Expr.splice` (required for a real implementation) is not yet supported because
+    * the inner quote's expansion cannot handle local type params from the outer quote's method definitions.
+    */
+  def testFunctorSkeleton[F[_]](implicit FC: Type.Ctor1[F]): Expr[Data] = {
+    hearth.fp.ignore(FC)
+    Expr.quote {
+      val functor: hearth.fp.Functor[F] = new hearth.fp.Functor[F] {
+        def map[A, B](fa: F[A])(f: A => B): F[B] = {
+          val _evidence: String = Expr.splice {
+            hearth.fp.ignore(Type.of[A], Type.of[B])
+            Expr("ok")
+          }
+          hearth.fp.ignore(_evidence)
+          null.asInstanceOf[F[B]] // dummy impl — real impl would require nested Expr.quote support
+        }
+      }
+      hearth.fp.ignore(functor)
+      Data("ok")
+    }
+  }
+
 }

@@ -145,6 +145,12 @@ final class CrossQuotesPlugin extends StandardPlugin {
   *   }
   * }
   * }}}
+  *
+  *   4. Local type params from methods defined inside `'{ ... }` (e.g. `def helper[A]`) are handled natively by Scala
+  *      3's staging system. When `Type.of[A]` is used inside `$${ ... }`, the plugin transforms it to
+  *      `CrossQuotes.typeQuotesToCross(scala.quoted.Type.of[A])`, and the staging system automatically provides
+  *      `scala.quoted.Type[A]` for type params from enclosing `'{ ... }` blocks. No workaround is needed on Scala 3 —
+  *      this is a Scala 2-only limitation.
   */
 final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolean) extends PluginPhase {
   override def runsAfter: Set[String] = Set(Parser.name)
