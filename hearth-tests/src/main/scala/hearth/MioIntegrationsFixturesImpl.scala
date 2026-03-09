@@ -782,6 +782,50 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
     )
   }
 
+  /** Reproduction for ValDefsCache merge bug with parMap2.
+    *
+    * When two branches of parMap2 both call buildCachedWith with the same key using independently-created
+    * ValDefBuilder.ofLazy instances, the merge fails because each ofLazy generates a fresh TermName resulting in
+    * different signature Expr objects. The merge function compares signatures with != (reference equality for Expr) and
+    * throws "already exists with different signature".
+    *
+    * This reproduces the bug seen in kindlings cats-derivation when deriving type classes for enums: parMatchOn
+    * processes each enum child independently, and if two children share a field type (e.g. Double), both branches
+    * independently summon/cache the same type class instance, triggering the merge failure.
+    *
+    * Once fixed, this should compile and return Data(42). Currently fails at compile time with: "Def with key ...
+    * already exists with different signature"
+    */
+  @scala.annotation.nowarn
+  def testValDefsCacheParMap2MergeBug: Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+
+    val cacheLocal = ValDefsCache.mlocal
+
+    // Simulate two enum branches that both need to cache a lazy val for the same type.
+    // Each branch independently creates a ValDefBuilder.ofLazy, which generates a fresh TermName.
+    val branchA: MIO[Expr[Int]] = for {
+      _ <- cacheLocal.buildCachedWith("shared-lazy-int", ValDefBuilder.ofLazy[Int]("lazyInt"))(_ => Expr.quote(42))
+      value <- cacheLocal.get0Ary[Int]("shared-lazy-int").map(_.fold(runtimeFail[Int])(identity))
+    } yield value
+
+    val branchB: MIO[Expr[Int]] = for {
+      _ <- cacheLocal.buildCachedWith("shared-lazy-int", ValDefBuilder.ofLazy[Int]("lazyInt"))(_ => Expr.quote(42))
+      value <- cacheLocal.get0Ary[Int]("shared-lazy-int").map(_.fold(runtimeFail[Int])(identity))
+    } yield value
+
+    // parMap2 forks MLocal state: both branches start from the same (empty) cache,
+    // independently add "shared-lazy-int" with different signatures, then merge fails on join.
+    val result = for {
+      values <- branchA.parMap2(branchB)((a, b) => (a, b))
+      cache <- cacheLocal.get
+    } yield cache.toValDefs.use { _ =>
+      Expr.quote(Data(Expr.splice(values._1) + Expr.splice(values._2)))
+    }
+
+    result.runToExprOrFail("testValDefsCacheParMap2MergeBug")((_, _) => "")
+  }
+
   // types using in fixtures
 
   private val IntType = Type.of[Int]

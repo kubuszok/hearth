@@ -21,4 +21,9 @@ object MioIntegrationsFixtures {
   private def testExtensionLoadingResultToMIOImpl(using q: Quotes): Expr[Data] = new MioIntegrationsFixtures(
     q
   ).testExtensionLoadingResultToMIO
+
+  inline def testValDefsCacheParMap2MergeBug: Data = ${ testValDefsCacheParMap2MergeBugImpl }
+  private def testValDefsCacheParMap2MergeBugImpl(using q: Quotes): Expr[Data] = new MioIntegrationsFixtures(
+    q
+  ).testValDefsCacheParMap2MergeBug
 }
