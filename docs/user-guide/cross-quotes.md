@@ -425,6 +425,76 @@ Nested expressions are also correctly handled by Cross Quotes:
     }
     ```
 
+### Local Type Parameters in Splices
+
+When a method defined inside `Expr.quote` has its own type parameters, those type parameters can be used
+with `Type.of` inside `Expr.splice`. This is the key building block for generating type class instances
+where methods have their own type parameters (e.g., `Functor.map[A, B]`).
+
+!!! example "Using Type.of with local type params"
+
+    ```scala
+    def example: Expr[Data] =
+      Expr.quote {
+        def helper[A]: String = Expr.splice {
+          hearth.fp.ignore(Type.of[A]) // Type.of[A] works for local type param A
+          Expr("ok")
+        }
+        Data(helper[Int])
+      }
+    ```
+
+!!! example "Functor skeleton with HKT + local type params"
+
+    ```scala
+    def functorSkeleton[F[_]](implicit FC: Type.Ctor1[F]): Expr[Data] = {
+      hearth.fp.ignore(FC)
+      Expr.quote {
+        val functor: Functor[F] = new Functor[F] {
+          def map[A, B](fa: F[A])(f: A => B): F[B] = {
+            // Type.of[A] and Type.of[B] are available inside the splice
+            val _evidence: String = Expr.splice {
+              hearth.fp.ignore(Type.of[A], Type.of[B])
+              Expr("ok")
+            }
+            null.asInstanceOf[F[B]] // placeholder
+          }
+        }
+        // ...
+      }
+    }
+    ```
+
+!!! info "How local type params work across Scala versions"
+
+    - **Scala 3**: Works natively. The staging system automatically provides `scala.quoted.Type[A]` for
+      type params from enclosing `'{ ... }` blocks. No special handling needed.
+    - **Scala 2**: Cross Quotes generates a workaround method with the same type param names as the originals
+      and implicit `WeakTypeTag` context bounds. Free type symbols (`newFreeType("A")`) are passed as arguments,
+      which the quasiquote system resolves by name to the actual type params in the generated code.
+
+!!! warning "Nested `Expr.quote` inside `Expr.splice` with local type params"
+
+    Nested `Expr.quote` inside `Expr.splice` that references local type params is **not currently supported**.
+    The inner quote's own expansion cannot handle type params from the outer quote's method definitions.
+
+    ```scala
+    // ❌ Does NOT work:
+    def map[A, B](fa: F[A])(f: A => B): F[B] =
+      Expr.splice {
+        Expr.quote(f(fa).asInstanceOf[F[B]]) // inner Expr.quote can't handle A, B
+      }
+
+    // ✅ Works: use Type.of[A] inside the splice, avoid nested Expr.quote with local type params
+    def map[A, B](fa: F[A])(f: A => B): F[B] = {
+      val _: String = Expr.splice {
+        hearth.fp.ignore(Type.of[A], Type.of[B])
+        Expr("ok")
+      }
+      null.asInstanceOf[F[B]]
+    }
+    ```
+
 ## Examples
 
 ### Simple Type Analysis
@@ -788,6 +858,25 @@ Since Cross-Quotes rewrites some code into the native macro representations of e
     **Using Cross-Quotes with code that, e.g., uses `scala.quoted.Type.of` directly is undefined behavior (and the compiler will probably crash)**.
 
 While all of these are inconvenient, they can usually be worked around. The issues they cause typically occur when we are compiling the macro code, not when the user expands it, so they shouldn't be a problem for end users.
+
+ 6. **Local type params inside `Expr.splice` inside `Expr.quote`**
+
+    When a method inside `Expr.quote` defines its own type parameters (e.g., `def map[A, B](...)`),
+    `Type.of[A]` and `Type.of[B]` can be used inside `Expr.splice` to access those type params at
+    macro-expansion time.
+
+    **What works:**
+
+    - `Type.of[A]`, `Type.of[B]` for local type params inside splices
+    - Multiple local type params simultaneously
+    - Combining HKT (`Type.Ctor1[F]`) with local type params in the same splice
+
+    **What does not work yet:**
+
+    - Nested `Expr.quote` inside `Expr.splice` that references local type params — the inner quote's
+      expansion cannot resolve type params from the outer quote's method definitions. This means a real
+      Functor derivation (where the `map` body uses `Expr.quote` to build the result expression)
+      requires platform-specific code or an alternative approach.
 
 ### Known Issues
 
