@@ -328,6 +328,15 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
     val candidates: List[(Type, String)] = importedUnderlyingTypes ++ enclosingMethodImplicitTypes
     val excludingSet: Set[String] = excluding.view.map(_.decodedName.toString).toSet
+
+    // Separate HKT candidates (type constructors from Type.CtorN) from *-kinded types.
+    // HKT types can't use WeakTypeTag[F] but need substituteTypes post-processing.
+    // Only include candidates whose enclosing method implicit is actually Type.CtorN.Bounded[..., HKT],
+    // NOT arbitrary HKT types like DirectStyle[F].
+    val hktCandidates: List[(Type, String)] = enclosingMethodCtorHKTTypes.filterNot { case (_, renamed) =>
+      excludingSet(renamed)
+    }
+
     val importedUnderlying = candidates.view
       .filterNot { case (_, renamed) => excludingSet(renamed) }
       .flatMap { case (tpeToReplace, renamed) =>
@@ -342,133 +351,169 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
           Iterable((paramDef, paramVal, tpeToReplace, weakTypeTagValue))
         } catch {
-          // If there is no such implicit, we aren't creating a workaround for it.
-          case e: Throwable if e.getClass.getName == "scala.reflect.macros.TypecheckException" => Iterable.empty
-          // If there are other errors, we should probably report them.
+          // HKT types (F[_] from Type.CtorN[F]) can't be handled by the workaround mechanism
+          // because WeakTypeTag doesn't support higher-kinded types in Scala 2.
+          // These are handled separately via substituteTypes post-processing below.
+          case e: Throwable if e.getClass.getName == "scala.reflect.macros.TypecheckException" =>
+            Iterable.empty
         }
       }
       .toSeq
 
+    def wrapWithHKTSubstitution(baseResult: c.Tree): c.Tree =
+      if (hktCandidates.isEmpty) baseResult
+      else {
+        // For each HKT candidate, generate a runtime substituteTypes call.
+        // At runtime, FC.asUntyped provides the concrete type constructor (e.g., Option).
+        // We find F's symbol in the raw type by name and substitute it.
+        val ctxSub = freshName("ctxSub")
+        val rawTpe = freshName("rawTpe")
+        val fixedTpe = freshName("fixedTpe")
+
+        val substitutionSteps: List[Tree] = hktCandidates.flatMap { case (hktTpe, implicitName) =>
+          val symName = Literal(Constant(hktTpe.typeSymbol.name.toString))
+          val implRef = Ident(TermName(implicitName))
+          val symVar = freshName("hktSym")
+          List(
+            q"var $symVar: $ctxSub.universe.Symbol = $ctxSub.universe.NoSymbol",
+            q"""$rawTpe.foreach { (t: $ctxSub.universe.Type) =>
+              if (t.typeSymbol.name.toString == $symName && !t.typeSymbol.isClass) $symVar = t.typeSymbol
+            }""",
+            q"""if ($symVar != $ctxSub.universe.NoSymbol)
+              $fixedTpe = $fixedTpe.substituteTypes($symVar :: _root_.scala.Nil, $implRef.asUntyped.asInstanceOf[$ctxSub.universe.Type] :: _root_.scala.Nil)"""
+          )
+        }
+
+        q"""{
+          val $ctxSub = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
+          val $rawTpe = ($baseResult).asInstanceOf[$ctxSub.WeakTypeTag[_]].tpe
+          var $fixedTpe: $ctxSub.universe.Type = $rawTpe
+          ..$substitutionSteps
+          $ctxSub.WeakTypeTag($fixedTpe).asInstanceOf[Type[$weakTypeTagOf]]
+        }"""
+      }
+
     if (importedUnderlying.isEmpty) {
-      noInjectResult
-    } else {
-      var skipWorkaround = true
+      wrapWithHKTSubstitution(noInjectResult)
+    } else
+      {
+        var skipWorkaround = true
 
-      val workaround: TermName = freshName("workaround")
-      val paramDefs: Seq[TypeDef] = importedUnderlying.map(_._1)
-      val paramVals: Seq[ValDef] = importedUnderlying.map(_._2)
-      val tpesToReplace: Seq[Type] = importedUnderlying.map(_._3)
-      val weakTypeTagValues: Seq[Tree] = importedUnderlying.map(_._4)
+        val workaround: TermName = freshName("workaround")
+        val paramDefs: Seq[TypeDef] = importedUnderlying.map(_._1)
+        val paramVals: Seq[ValDef] = importedUnderlying.map(_._2)
+        val tpesToReplace: Seq[Type] = importedUnderlying.map(_._3)
+        val weakTypeTagValues: Seq[Tree] = importedUnderlying.map(_._4)
 
-      // If macros were sane, this would be almost enough.
-      //
-      // We would just need to apply the fix to `weakTypeTagOf` in `$ctx2.weakTypeTag[$weakTypeTagOf].asInstanceOf[Type[$weakTypeTagOf]]`.
-      //
-      // So, why I put `null` instead of `$ctx2.weakTypeTag[$weakTypeTagOf]`? As a matter of the fact, why I created new $ctx2?
-      val uncheckedResultPrototype = q"""
+        // If macros were sane, this would be almost enough.
+        //
+        // We would just need to apply the fix to `weakTypeTagOf` in `$ctx2.weakTypeTag[$weakTypeTagOf].asInstanceOf[Type[$weakTypeTagOf]]`.
+        //
+        // So, why I put `null` instead of `$ctx2.weakTypeTag[$weakTypeTagOf]`? As a matter of the fact, why I created new $ctx2?
+        val uncheckedResultPrototype = q"""
       val $ctx2 = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       import $ctx2.universe.{ TypeRef, TypeRefTag }
       def $workaround[..$paramDefs](implicit ..$paramVals): Type[$weakTypeTagOf] = null.asInstanceOf[Type[$weakTypeTagOf]]
       $workaround[..$tpesToReplace](..$weakTypeTagValues)
       """
 
-      // To fix the `weakTypeTagOf` tree, we have to have c.Type or Symbol or each type parameter, so that we could replace params with them.
-      //
-      // And this requires typechecking.
-      //
-      // So, we have to create a stub, that typechecks (ctx would not, since it's defined outside of that snippet), that we will modify later on.
-      def fixWorkaroundBody(patchBody: DefDef => c.Tree): c.Tree = {
-        val Block(List(ctxVal, ctxImport, unpatchedDef: DefDef), callDef) = c.typecheck(uncheckedResultPrototype)
-        val patchedDef = treeCopy.DefDef(
-          unpatchedDef,
-          unpatchedDef.mods,
-          unpatchedDef.name,
-          unpatchedDef.tparams,
-          unpatchedDef.vparamss,
-          unpatchedDef.tpt,
-          patchBody(unpatchedDef)
-        )
-        if (skipWorkaround) noInjectResult
-        // We also have to c.untypecheck the result, because otherwise we're getting errors from mixing typed and untyped trees.
-        // Literally, NullPoinerExceptions, from Symbols on typechecking:
-        //   Cannot invoke "scala.reflect.internal.Types$Type.typeSymbol()" because "tp" is null
-        // So we have to untypecheck the result, to avoid this problem.
-        else c.untypecheck(Block(List(ctxVal, ctxImport, patchedDef), callDef))
-      }
-
-      fixWorkaroundBody { unpatchedDef =>
-        // Replaces the Tree with the Type representation that could miss some value.Underlying,
-        // with Tree using Types from type parameters - because they would get picked up. SMH.
-        object typePatcher extends Transformer {
-
-          // To obtain these we had to typecheck the Tree above, because we need them to be able to recursively replace
-          // e.g. somevalue.Underlying with SomeValueTypeParameter (substituteTypes and substituteSymbols seem to not work
-          // and only replacing the top level Type in TypeTree is not enough).
-          private val paramTpes = unpatchedDef.symbol.asMethod.typeParams.map(_.asType.toType)
-          def patchTpe(tpe: Type): Type = tpe.map { oldType =>
-            val index = tpesToReplace.indexWhere(oldType =:= _)
-            if (index < 0) oldType
-            else {
-              skipWorkaround = false
-              paramTpes(index)
-            }
-          }
-
-          // We need to reify the type as a Tree, because otherwise it won't survive the c.untypecheck(result)
-          // (and we need to untypecheck the result, because otherwise we're getting errors from mixing typed and untyped trees).
-          //
-          // If we skipped this... then e.g.:
-          //   weakTypeTag[Option[B1]] // B1 is type paremeter
-          // on c.untypecheck becomes
-          //   weakTypeTag
-          // which on later (re)typechecking becomes
-          //   weakTypeTag[B1] // ??
-          // which is not what we want. We need to preserve the type during untypechecking... which requires reifying it as a Tree.
-          private def pkgRef(sym: Symbol): Tree = {
-            // sym is a package *class* symbol
-            val parts = sym.fullName.split('.')
-            parts.foldLeft[Tree](Ident(termNames.ROOTPKG)) { case (acc, part) =>
-              Select(acc, TermName(part))
-            }
-          }
-          def typeToTree(t: Type): Tree = t.dealias match {
-            case TypeRef(pre, sym, args) =>
-              val base: Tree = pre match {
-                // unqualified simple type (e.g. List, MyType)
-                case NoPrefix => Ident(sym.name.toTypeName)
-                // *** THIS IS THE IMPORTANT BIT ***
-                // Option[B1] often has pre = ThisType(scala.package)
-                case ThisType(pkg) if pkg.isPackageClass => Select(pkgRef(pkg), sym.name.toTypeName)
-                // other prefixes (path-dependent types etc.)
-                case _ => Select(typeToTree(pre), sym.name.toTypeName)
-              }
-              if (args.isEmpty) base
-              else AppliedTypeTree(base, args.map(typeToTree))
-            case SingleType(pre, sym) =>
-              pre match {
-                case ThisType(pkg) if pkg.isPackageClass => Select(pkgRef(pkg), sym.name.toTermName)
-                case _                                   => Select(typeToTree(pre), sym.name.toTermName)
-              }
-            case ThisType(sym) if sym.isPackageClass => pkgRef(sym)
-            case ThisType(sym)                       => This(sym.name.toTypeName)
-            case ConstantType(c)                     => Literal(c)
-            case AnnotatedType(_, underlying)        => typeToTree(underlying)
-            case ExistentialType(_, underlying)      => typeToTree(underlying)
-            case other                               => TypeTree(other) // fallback
-          }
-
-          override def transform(tree: Tree): Tree = tree match {
-            case tpeTree: TypeTree if tpeTree.tpe != null =>
-              val patchedType = patchTpe(tpeTree.tpe)
-              if (patchedType =:= tpeTree.tpe) tpeTree
-              else typeToTree(patchedType)
-            case _ => super.transform(tree)
-          }
+        // To fix the `weakTypeTagOf` tree, we have to have c.Type or Symbol or each type parameter, so that we could replace params with them.
+        //
+        // And this requires typechecking.
+        //
+        // So, we have to create a stub, that typechecks (ctx would not, since it's defined outside of that snippet), that we will modify later on.
+        def fixWorkaroundBody(patchBody: DefDef => c.Tree): c.Tree = {
+          val Block(List(ctxVal, ctxImport, unpatchedDef: DefDef), callDef) = c.typecheck(uncheckedResultPrototype)
+          val patchedDef = treeCopy.DefDef(
+            unpatchedDef,
+            unpatchedDef.mods,
+            unpatchedDef.name,
+            unpatchedDef.tparams,
+            unpatchedDef.vparamss,
+            unpatchedDef.tpt,
+            patchBody(unpatchedDef)
+          )
+          if (skipWorkaround) noInjectResult
+          // We also have to c.untypecheck the result, because otherwise we're getting errors from mixing typed and untyped trees.
+          // Literally, NullPoinerExceptions, from Symbols on typechecking:
+          //   Cannot invoke "scala.reflect.internal.Types$Type.typeSymbol()" because "tp" is null
+          // So we have to untypecheck the result, to avoid this problem.
+          else c.untypecheck(Block(List(ctxVal, ctxImport, patchedDef), callDef))
         }
 
-        q"""$ctx2.weakTypeTag[${typePatcher.transform(weakTypeTagOf)}].asInstanceOf[Type[$weakTypeTagOf]]"""
-      }
-    }
+        fixWorkaroundBody { unpatchedDef =>
+          // Replaces the Tree with the Type representation that could miss some value.Underlying,
+          // with Tree using Types from type parameters - because they would get picked up. SMH.
+          object typePatcher extends Transformer {
+
+            // To obtain these we had to typecheck the Tree above, because we need them to be able to recursively replace
+            // e.g. somevalue.Underlying with SomeValueTypeParameter (substituteTypes and substituteSymbols seem to not work
+            // and only replacing the top level Type in TypeTree is not enough).
+            private val paramTpes = unpatchedDef.symbol.asMethod.typeParams.map(_.asType.toType)
+            def patchTpe(tpe: Type): Type = tpe.map { oldType =>
+              val index = tpesToReplace.indexWhere(oldType =:= _)
+              if (index < 0) oldType
+              else {
+                skipWorkaround = false
+                paramTpes(index)
+              }
+            }
+
+            // We need to reify the type as a Tree, because otherwise it won't survive the c.untypecheck(result)
+            // (and we need to untypecheck the result, because otherwise we're getting errors from mixing typed and untyped trees).
+            //
+            // If we skipped this... then e.g.:
+            //   weakTypeTag[Option[B1]] // B1 is type paremeter
+            // on c.untypecheck becomes
+            //   weakTypeTag
+            // which on later (re)typechecking becomes
+            //   weakTypeTag[B1] // ??
+            // which is not what we want. We need to preserve the type during untypechecking... which requires reifying it as a Tree.
+            private def pkgRef(sym: Symbol): Tree = {
+              // sym is a package *class* symbol
+              val parts = sym.fullName.split('.')
+              parts.foldLeft[Tree](Ident(termNames.ROOTPKG)) { case (acc, part) =>
+                Select(acc, TermName(part))
+              }
+            }
+            def typeToTree(t: Type): Tree = t.dealias match {
+              case TypeRef(pre, sym, args) =>
+                val base: Tree = pre match {
+                  // unqualified simple type (e.g. List, MyType)
+                  case NoPrefix => Ident(sym.name.toTypeName)
+                  // *** THIS IS THE IMPORTANT BIT ***
+                  // Option[B1] often has pre = ThisType(scala.package)
+                  case ThisType(pkg) if pkg.isPackageClass => Select(pkgRef(pkg), sym.name.toTypeName)
+                  // other prefixes (path-dependent types etc.)
+                  case _ => Select(typeToTree(pre), sym.name.toTypeName)
+                }
+                if (args.isEmpty) base
+                else AppliedTypeTree(base, args.map(typeToTree))
+              case SingleType(pre, sym) =>
+                pre match {
+                  case ThisType(pkg) if pkg.isPackageClass => Select(pkgRef(pkg), sym.name.toTermName)
+                  case _                                   => Select(typeToTree(pre), sym.name.toTermName)
+                }
+              case ThisType(sym) if sym.isPackageClass => pkgRef(sym)
+              case ThisType(sym)                       => This(sym.name.toTypeName)
+              case ConstantType(c)                     => Literal(c)
+              case AnnotatedType(_, underlying)        => typeToTree(underlying)
+              case ExistentialType(_, underlying)      => typeToTree(underlying)
+              case other                               => TypeTree(other) // fallback
+            }
+
+            override def transform(tree: Tree): Tree = tree match {
+              case tpeTree: TypeTree if tpeTree.tpe != null =>
+                val patchedType = patchTpe(tpeTree.tpe)
+                if (patchedType =:= tpeTree.tpe) tpeTree
+                else typeToTree(patchedType)
+              case _ => super.transform(tree)
+            }
+          }
+
+          q"""$ctx2.weakTypeTag[${typePatcher.transform(weakTypeTagOf)}].asInstanceOf[Type[$weakTypeTagOf]]"""
+        }
+      }.pipe(wrapWithHKTSubstitution)
   }
 
   /** Collects names imported from *.Underlying patterns in the macro expansion's enclosings.
@@ -580,6 +625,18 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     result.toList
   } catch { case _: Throwable => Nil }
 
+  /** Extracts the HKT (last type arg) from a `Type.CtorN.Bounded[L1, U1, ..., LN, UN, HKT]` type.
+    *
+    * Returns `Some(HKT)` if the type (after dealiasing) matches the pattern, `None` otherwise.
+    */
+  private def extractCtorHKT(tpe: Type): Option[Type] = tpe.dealias match {
+    case TypeRef(_, sym, args) if args.nonEmpty =>
+      if (sym.name.toString == "Bounded" && sym.owner.name.toString.startsWith("Ctor"))
+        Some(args.last)
+      else None
+    case _ => None
+  }
+
   /** Collects implicit vals of type Type[X] from the enclosing method body, where X is a type parameter.
     *
     * Unlike `sameClassImplicitTypes`, these are local variables without `ThisType` prefixes, so they can safely be fed
@@ -614,9 +671,51 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
                   case TypeRef(_, _, List(innerType)) if !innerType.typeSymbol.isClass => innerType
                 }
               }
+              .orElse(scala.util.Try {
+                // Fallback: detect Type.CtorN[F] and extract the HKT F
+                extractCtorHKT(vd.symbol.info).filter(!_.typeSymbol.isClass).get
+              })
               .toOption
               .foreach { tpeToReplace =>
                 result += (tpeToReplace -> vd.name.decodedName.toString)
+              }
+          case _ => super.traverse(tree)
+        }
+      }
+      finder.traverse(enclosingMethod)
+    }
+
+    result.toList
+  } catch { case _: Throwable => Nil }
+
+  /** Collects HKT types from Type.CtorN implicit vals in the enclosing method.
+    *
+    * Returns (hktType, implicitValName) pairs where hktType is the extracted type constructor (e.g. F from
+    * Type.Ctor1[F]) and implicitValName is the val's name (e.g. "FC"). Only includes candidates from Type.CtorN, not
+    * arbitrary HKT types.
+    */
+  private def enclosingMethodCtorHKTTypes: List[(Type, String)] = try {
+    val result = scala.collection.mutable.ListBuffer[(Type, String)]()
+    val expansionPos = c.enclosingPosition
+
+    def isBeforeExpansionPoint(pos: Position): Boolean =
+      pos != NoPosition &&
+        (pos.line < expansionPos.line ||
+          (pos.line == expansionPos.line && pos.column < expansionPos.column))
+
+    @scala.annotation.nowarn
+    val enclosingMethod = c.enclosingMethod
+    if (enclosingMethod != EmptyTree) {
+      object finder extends Traverser {
+        override def traverse(tree: Tree): Unit = tree match {
+          case vd: ValDef
+              if vd.mods.hasFlag(Flag.IMPLICIT) &&
+                isBeforeExpansionPoint(vd.pos) &&
+                vd.symbol != null =>
+            extractCtorHKT(vd.symbol.info)
+              .filter(!_.typeSymbol.isClass)
+              .foreach { hktTpe =>
+                result += (hktTpe -> vd.name.decodedName.toString)
               }
           case _ => super.traverse(tree)
         }
@@ -692,6 +791,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
                |""".stripMargin
           )
         }
+
       }
       .pipe(c.parse(_))
       .tap { tree =>
@@ -753,6 +853,29 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         //   None
         case _: Exception => None
       }
+
+      /** Creates a Cache for an HKT (higher-kinded type) from a Type.CtorN implicit.
+        *
+        * Since `Type[F]` is invalid when F has kind `* -> *`, we construct a WeakTypeTag at runtime from the CtorN's
+        * `.asUntyped` method, which provides the raw `c.Type`.
+        */
+      def forHKTType(implicitValName: String, hktTpe: Type): Option[Cache] = try {
+        val stub = freshTypeName("TypeStub")
+        val originalSymbol = hktTpe.typeSymbol
+        @scala.annotation.nowarn
+        val symbol = c.universe.internal.newTypeSymbol(
+          owner = originalSymbol.owner,
+          name = stub,
+          pos = originalSymbol.pos,
+          flags = c.internal.flags(originalSymbol)
+        )
+        val ttag = c.parse(
+          s"$ctx.universe.Ident($implicitValName.asUntyped.asInstanceOf[$ctx.universe.Type].typeSymbol)"
+        )
+        _root_.scala.Some(Cache(stub, symbol, ttag))
+      } catch {
+        case _: Exception => None
+      }
     }
 
     object AbstractTypes {
@@ -761,6 +884,9 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       def find(name: String): Option[Cache] = caches.getOrElseUpdate(name, Cache.forTypeName(name))
       def find(name: Name): Option[Cache] = find(name.toString)
       def find(symbol: Symbol): Option[Cache] = find(symbol.name.toString)
+
+      /** Register an HKT type so that Ident(TypeName("F")) resolves to its stub. */
+      def register(name: String, cache: Cache): Unit = caches(name) = Some(cache)
 
       def toReplace = caches.view.collect { case (_, Some(Cache(stub, _, weakTypeTag))) =>
         val printedWeakTypeTag = renderCode(weakTypeTag)
@@ -785,10 +911,21 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           catch {
             case _: Throwable => None
           }
-          byType.orElse(byName).map { cache =>
+          // For HKT types (type constructors like F[_] from Type.CtorN[F]),
+          // Cache.forTypeName fails because Type[F] is a kind error.
+          // Instead, construct a WeakTypeTag from the CtorN's .asUntyped at runtime.
+          def byHKT =
+            if (tpe.typeParams.nonEmpty) Cache.forHKTType(name, tpe)
+            else None
+          byType.orElse(byName).orElse(byHKT).map { cache =>
             cachesAliases += (name -> cache)
             cachesAliases += (s"$name.type" -> cache)
             cachesAliases += (renderCode(tpe) -> cache)
+            // For HKT types, also register in AbstractTypes so that
+            // Ident(TypeName("F")) is resolved when F appears in the tree.
+            if (tpe.typeParams.nonEmpty) {
+              AbstractTypes.register(tpe.typeSymbol.name.toString, cache)
+            }
             tpe -> cache
           }
       }.toMap
@@ -814,6 +951,10 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         name -> stub.toString
       }.toMap
     }
+
+    // Force ImportedTypes initialization before traversal so that HKT types
+    // registered via AbstractTypes.register are available before AbstractTypes.find is called.
+    locally { ImportedTypes; () }
 
     override def transform(tree: Tree): Tree = tree match {
       // Transform references like someValue.Underlying to Ident(ImportStub).

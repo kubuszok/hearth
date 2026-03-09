@@ -72,6 +72,7 @@ object CrossCtorTestGen {
     sb ++= genCtorResultContainerClass()
     sb ++= "\n"
     for (n <- 2 to maxArity) { sb ++= genCtorNResultContainerClass(n); sb ++= "\n" }
+    for (n <- 2 to maxArity) { sb ++= genTestTypeOfWithCtorNContextBound(n); sb ++= "\n" }
     sb ++= genTestCtorFromUntyped(maxArity)
     sb ++= "\n"
     for (n <- 1 to maxArity) { sb ++= genVerifyExtractedCtorN(n); sb ++= "\n" }
@@ -191,6 +192,26 @@ object CrossCtorTestGen {
        |    Expr(
        |      Data.map(
        |        "container${n}OfResult" -> Data(Type.of[$cn[Result]].plainPrint)
+       |      )
+       |    )
+       |  }
+       |""".stripMargin
+  }
+
+  // ---------------------------------------------------------------------------
+  // 3b. testTypeOfWithCtorNContextBound (N=2..22)
+  // ---------------------------------------------------------------------------
+
+  private def genTestTypeOfWithCtorNContextBound(n: Int): String = {
+    val t = typeName(n)
+    val cn = containerName(n)
+    val hktSlots = Seq.fill(n)("_").mkString(", ")
+    s"""  /** Test: Type.of resolves types when Type.Ctor$n is provided as a context bound. */
+       |  def testTypeOfWithCtor${n}ContextBound[F[$hktSlots]](implicit FC: Type.Ctor$n[F]): Expr[Data] = {
+       |    hearth.fp.ignore(FC)
+       |    Expr(
+       |      Data.map(
+       |        "fOfInts" -> Data(FC.apply[${ints(n)}](using ${typeOfInts(n)}).plainPrint)
        |      )
        |    )
        |  }
@@ -602,6 +623,21 @@ object CrossCtorTestGen {
       sb ++= s"  def testCtorSetMiddleAsUntyped${from}to${to}Impl: c.Expr[Data] = testCtorSetMiddleAsUntyped${from}to$to\n\n"
     }
 
+    // testTypeOfWithCtor1ContextBound - substantive method (uses Type.Ctor1.of)
+    sb ++= "  def testTypeOfWithCtor1ContextBoundImpl: c.Expr[Data] = testTypeOfWithCtor1ContextBound[Option](Type.Ctor1.of[Option])\n\n"
+
+    // testTypeOfWithCtorNContextBound - substantive methods for N=2..22
+    for (n <- 2 to maxArity) {
+      val t = typeName(n)
+      if (n >= 3) sb ++= s"  def testTypeOfWithCtor${n}ContextBoundImpl: c.Expr[Data] = {\n    import hearth.examples.kinds.$t\n    testTypeOfWithCtor${n}ContextBound[$t](Type.Ctor$n.of[$t])\n  }\n\n"
+      else sb ++= s"  def testTypeOfWithCtor${n}ContextBoundImpl: c.Expr[Data] = testTypeOfWithCtor${n}ContextBound[$t](Type.Ctor$n.of[$t])\n\n"
+    }
+
+    // Hand-written HKT tests
+    sb ++= "  def testExprQuoteWithCtor1ParamImpl: c.Expr[Data] = testExprQuoteWithCtor1Param[Option](Type.Ctor1.of[Option])\n\n"
+    sb ++= "  def testTypeOfWithCtorHKTAppliedImpl: c.Expr[Data] = testTypeOfWithCtorHKTApplied[Option](Type.Ctor1.of[Option])\n\n"
+    sb ++= "  def testTypeOfWithCtorHKTAndTypeParamImpl[A: c.WeakTypeTag]: c.Expr[Data] = testTypeOfWithCtorHKTAndTypeParam[Option, A](Type.Ctor1.of[Option], Type.of[A])\n\n"
+
     sb ++= "}\n\n"
 
     // Companion object
@@ -635,6 +671,16 @@ object CrossCtorTestGen {
     for ((from, to) <- Seq((3, 7), (8, 12), (13, 17), (18, 22))) {
       sb ++= s"  def testCtorSetMiddleAsUntyped${from}to$to: Data = macro CrossCtorInjectionFixtures.testCtorSetMiddleAsUntyped${from}to${to}Impl\n\n"
     }
+
+    sb ++= "  def testTypeOfWithCtor1ContextBound: Data = macro CrossCtorInjectionFixtures.testTypeOfWithCtor1ContextBoundImpl\n\n"
+    for (n <- 2 to maxArity) {
+      sb ++= s"  def testTypeOfWithCtor${n}ContextBound: Data = macro CrossCtorInjectionFixtures.testTypeOfWithCtor${n}ContextBoundImpl\n\n"
+    }
+
+    // Hand-written HKT tests
+    sb ++= "  def testExprQuoteWithCtor1Param: Data = macro CrossCtorInjectionFixtures.testExprQuoteWithCtor1ParamImpl\n\n"
+    sb ++= "  def testTypeOfWithCtorHKTApplied: Data = macro CrossCtorInjectionFixtures.testTypeOfWithCtorHKTAppliedImpl\n\n"
+    sb ++= "  def testTypeOfWithCtorHKTAndTypeParam[A]: Data = macro CrossCtorInjectionFixtures.testTypeOfWithCtorHKTAndTypeParamImpl[A]\n\n"
 
     sb ++= "}\n"
     sb.toString
@@ -721,6 +767,21 @@ object CrossCtorTestGen {
       sb ++= "\n"
     }
 
+    // testTypeOfWithCtorNContextBound methods (class body)
+    sb ++= genScala3CtorContextBoundMethod(1)
+    sb ++= "\n"
+    for (n <- 2 to maxArity) {
+      sb ++= genScala3CtorContextBoundMethod(n)
+      sb ++= "\n"
+    }
+
+    // Hand-written HKT tests - class body methods
+    // Use a local val for the ctor to avoid "Infinite loop" false positive in Scala 3 compiler
+    sb ++= "  private lazy val optionCtor1: Type.Ctor1[Option] = Type.Ctor1.of[Option]\n\n"
+    sb ++= "  def testExprQuoteWithCtor1Param: Expr[Data] = testExprQuoteWithCtor1Param[Option](using optionCtor1)\n\n"
+    sb ++= "  def testTypeOfWithCtorHKTApplied: Expr[Data] = testTypeOfWithCtorHKTApplied[Option](using optionCtor1)\n\n"
+    sb ++= "  def testTypeOfWithCtorHKTAndTypeParam[A: Type]: Expr[Data] = testTypeOfWithCtorHKTAndTypeParam[Option, A](using optionCtor1, summon[Type[A]])\n\n"
+
     sb ++= "}\n\n"
 
     // Companion object
@@ -764,7 +825,31 @@ object CrossCtorTestGen {
       sb ++= genScala3InlineSplice(s"testCtorSetMiddleAsUntyped${from}to$to")
     }
 
+    sb ++= genScala3InlineSplice("testTypeOfWithCtor1ContextBound")
+    for (n <- 2 to maxArity) {
+      sb ++= genScala3InlineSplice(s"testTypeOfWithCtor${n}ContextBound")
+    }
+
+    // Hand-written HKT tests
+    sb ++= genScala3InlineSplice("testExprQuoteWithCtor1Param")
+    sb ++= genScala3InlineSplice("testTypeOfWithCtorHKTApplied")
+
+    // testTypeOfWithCtorHKTAndTypeParam - special: has type parameter
+    sb ++= "  inline def testTypeOfWithCtorHKTAndTypeParam[A]: Data = ${ testTypeOfWithCtorHKTAndTypeParamImpl[A] }\n"
+    sb ++= "  private def testTypeOfWithCtorHKTAndTypeParamImpl[A: Type](using q: Quotes): Expr[Data] =\n"
+    sb ++= "    new CrossCtorInjectionFixtures(q).testTypeOfWithCtorHKTAndTypeParam[A]\n\n"
+
     sb ++= "}\n"
+    sb.toString
+  }
+
+  private def genScala3CtorContextBoundMethod(n: Int): String = {
+    val t = typeName(n)
+    val sb = new StringBuilder
+    sb ++= s"  def testTypeOfWithCtor${n}ContextBound: Expr[Data] = {\n"
+    if (n >= 3) sb ++= s"    import hearth.examples.kinds.$t\n"
+    sb ++= s"    testTypeOfWithCtor${n}ContextBound[$t](using Type.Ctor$n.of[$t])\n"
+    sb ++= s"  }\n"
     sb.toString
   }
 
@@ -898,6 +983,30 @@ object CrossCtorTestGen {
 
     // Group 10: testTypeOfWithDirectCtorValDef
     sb ++= genSpecDirectCtorValDef()
+    sb ++= "\n"
+
+    // Group 11: testTypeOfWithCtorNContextBound
+    sb ++= genSpecCtorContextBound(maxArity)
+    sb ++= "\n"
+
+    // Group 12: Hand-written HKT tests
+    sb ++=
+      """    group("for Expr.quote and Type.of with HKT type parameters") {
+        |
+        |      test("should work with Ctor1 context bound param in Expr.quote") {
+        |        CrossCtorInjectionFixtures.testExprQuoteWithCtor1Param
+        |      }
+        |
+        |      test("should resolve Type.of[F[Int]] with Ctor1 context bound") {
+        |        CrossCtorInjectionFixtures.testTypeOfWithCtorHKTApplied <==> Data("scala.Option[scala.Int]")
+        |      }
+        |
+        |      test("should resolve Type.of[F[A]] with Ctor1 and Type param") {
+        |        CrossCtorInjectionFixtures.testTypeOfWithCtorHKTAndTypeParam[Int] <==> Data("scala.Option[scala.Int]")
+        |      }
+        |
+        |    }
+        |""".stripMargin
     sb ++= "\n"
 
     sb ++= "  }\n\n"
@@ -1317,6 +1426,40 @@ object CrossCtorTestGen {
     val fqn = scala2Fqn(n)
     val remaining = (0 until n).filter(_ != setIdx).map(i => ArityGen.paramName(i)).mkString(", ")
     s"({type λ[$remaining] = $fqn})#λ"
+  }
+
+  private def genSpecCtorContextBound(maxArity: Int): String = {
+    val sb = new StringBuilder
+    sb ++= "    group(\"for Type.of with Type.CtorN context bound\") {\n\n"
+
+    // Ctor1 test is special (has fOfInt, fOfString)
+    sb ++=
+      s"""      test("should resolve types when F comes from Type.Ctor1 context bound") {
+         |        CrossCtorInjectionFixtures.testTypeOfWithCtor1ContextBound <==> Data.map(
+         |          "fOfInt" -> Data("scala.Option[scala.Int]"),
+         |          "fOfString" -> Data("scala.Option[java.lang.String]")
+         |        )
+         |      }
+         |
+         |""".stripMargin
+
+    // Ctor2..Ctor22
+    for (n <- 2 to maxArity) {
+      val fqn = scala3Fqn(n)
+      val allInts = Seq.fill(n)("scala.Int").mkString(", ")
+      val applyResult = s"$fqn[$allInts]"
+
+      sb ++= s"""      test("should resolve types when F comes from Type.Ctor$n context bound") {\n"""
+      sb ++= s"""        CrossCtorInjectionFixtures.testTypeOfWithCtor${n}ContextBound <==> Data.map(\n"""
+      sb ++= s"""          "fOfInts" -> Data(\n"""
+      sb ++= s"""            "$applyResult"\n"""
+      sb ++= s"""          )\n"""
+      sb ++= s"""        )\n"""
+      sb ++= s"""      }\n\n"""
+    }
+
+    sb ++= "    }\n"
+    sb.toString
   }
 
   private def genSpecCtorSetMiddleAsUntyped(maxArity: Int): String = {

@@ -79,4 +79,46 @@ trait CrossCtorInjectionFixturesImpl extends CrossCtorInjectionFixturesImplGen {
   /** Factory for Either ctor — outside the test block to avoid circular initialization. */
   protected def makeEitherCtor: Type.Ctor2[Either] = Type.Ctor2.of[Either]
 
+  /** Test: Type.of resolves types when Type.Ctor1 is provided as a context bound / implicit parameter on the enclosing
+    * method.
+    *
+    * On Scala 3, this exercises the `CtxBoundsCtorTypeTree` extractor and the `TypeCtorAppliedTypeTree` fallback in
+    * `CrossQuotesPlugin.boundGivenCandidates`. On Scala 2, it exercises `extractCtorHKT` in
+    * `enclosingMethodImplicitTypes`.
+    */
+  def testTypeOfWithCtor1ContextBound[F[_]](implicit FC: Type.Ctor1[F]): Expr[Data] = {
+    hearth.fp.ignore(FC)
+    Expr(
+      Data.map(
+        "fOfInt" -> Data(FC.apply[Int](using Type.of[Int]).plainPrint),
+        "fOfString" -> Data(FC.apply[String](using Type.of[String]).plainPrint)
+      )
+    )
+  }
+
+  /** Test: Expr.quote works with F from Type.Ctor1 context bound in type positions. */
+  def testExprQuoteWithCtor1Param[F[_]](implicit FC: Type.Ctor1[F]): Expr[Data] = {
+    hearth.fp.ignore(FC)
+    Expr.quote {
+      val container: Container[F] = new Container[F] {
+        override def value: F[String] = null.asInstanceOf[F[String]]
+      }
+      Data(container.getClass.getSimpleName)
+    }
+  }
+
+  /** Test: Type.of[F[Int]] works when F comes from Type.Ctor1 context bound. */
+  def testTypeOfWithCtorHKTApplied[F[_]](implicit FC: Type.Ctor1[F]): Expr[Data] = {
+    hearth.fp.ignore(FC)
+    val fOfInt = Type.of[F[Int]]
+    Expr(Data(fOfInt.plainPrint))
+  }
+
+  /** Test: Type.of[F[A]] works when F comes from Type.Ctor1 and A from Type. */
+  def testTypeOfWithCtorHKTAndTypeParam[F[_], A](implicit FC: Type.Ctor1[F], A: Type[A]): Expr[Data] = {
+    hearth.fp.ignore(FC)
+    val fOfA = Type.of[F[A]]
+    Expr(Data(fOfA.plainPrint))
+  }
+
 }
