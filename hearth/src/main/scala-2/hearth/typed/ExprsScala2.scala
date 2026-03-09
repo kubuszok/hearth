@@ -2151,21 +2151,40 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     override def merge(cache1: ValDefsCache, cache2: ValDefsCache): ValDefsCache = {
       val keys = scala.collection.immutable.ListSet.from(cache1.definitions.keys ++ cache2.definitions.keys)
-      val result = keys.view.map { key =>
+      val usedNames = scala.collection.mutable.Set.from(keys.iterator.map(_.name))
+      var dupIdx = 0
+      val result = keys.toSeq.flatMap { key =>
         (cache1.definitions.get(key), cache2.definitions.get(key)) match {
-          case (Some(value1), Some(value2)) =>
-            // $COVERAGE-OFF$
-            if (value1.signature != value2.signature) {
-              hearthRequirementFailed(
-                s"Def with key $key already exists with different signature, you probably created it twice in 2 branches, without noticing"
-              )
+          case (Some(value1), Some(value2)) if value1.signature != value2.signature =>
+            // Parallel branches independently created this entry with different signatures.
+            // This happens when e.g. parMatchOn branches each call ValDefBuilder.ofLazy for the same cache key:
+            // each ofLazy generates a fresh TermName, so the signatures (Expr references) differ.
+            //
+            // We must keep BOTH definitions because each branch's result code already references its own
+            // TermName. Dropping either definition would leave dangling references in the generated code.
+            // The secondary entry is stored under a synthetic alias key ("name$dup$N") so that toValDefs
+            // emits both declarations. The alias key uses a different name so it won't collide with or
+            // shadow the primary entry in cache lookups (get0Ary etc.).
+            val (primary, secondary) =
+              if (value1.definition.isEmpty && value2.definition.isDefined)
+                (value2, value1)
+              else (value1, value2)
+            secondary.definition match {
+              case Some(_) =>
+                dupIdx += 1
+                var aliasName = s"${key.name}$$dup$$$dupIdx"
+                while (usedNames.contains(aliasName)) { dupIdx += 1; aliasName = s"${key.name}$$dup$$$dupIdx" }
+                usedNames += aliasName
+                Seq((key, primary), (new Key(aliasName, key.args, key.returned), secondary))
+              case None =>
+                Seq((key, primary))
             }
-            // $COVERAGE-ON$
+          case (Some(value1), Some(value2)) =>
             (value1.definition, value2.definition) match {
               // Forwarding after declaration should be a safe no-op
-              case (Some(_), None) => (key, value1)
+              case (Some(_), None) => Seq((key, value1))
               // Declaration after forwarding should keep declaration
-              case (None, Some(_)) => (key, value2)
+              case (None, Some(_)) => Seq((key, value2))
               case _               =>
                 // $COVERAGE-OFF$
                 if (value1.definition != value2.definition) {
@@ -2174,10 +2193,10 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
                   )
                 }
                 // $COVERAGE-ON$
-                (key, value1)
+                Seq((key, value1))
             }
-          case (Some(value), None) => (key, value)
-          case (None, Some(value)) => (key, value)
+          case (Some(value), None) => Seq((key, value))
+          case (None, Some(value)) => Seq((key, value))
           // $COVERAGE-OFF$
           case (None, None) => ??? // impossible
           // $COVERAGE-ON$

@@ -46,6 +46,19 @@ final class MioIntegrationsSpec extends MacroSuite {
       }
     }
 
+    group("ValDefsCache merge with parMap2") {
+
+      // Reproduces the scenario from parMatchOn over enums: two branches independently call
+      // buildCachedWith with the same key using fresh ValDefBuilder.ofLazy instances.
+      // Each ofLazy generates a unique TermName, so the merge must keep both definitions
+      // (under the original key and a synthetic alias) rather than failing on signature mismatch.
+      // Result is 42 + 42 = 84 because both branches cache Expr.quote(42) independently.
+      test("should merge caches from parMap2 branches that cache the same key") {
+        import MioIntegrationsFixtures.testValDefsCacheParMap2MergeBug
+        testValDefsCacheParMap2MergeBug <==> Data(84)
+      }
+    }
+
     group("Environment.loadMacroExtensions should work with MIO") {
       test("should load macro extensions") {
         import MioIntegrationsFixtures.testExtensionLoadingResultToMIO
