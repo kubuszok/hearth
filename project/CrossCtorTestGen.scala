@@ -638,6 +638,9 @@ object CrossCtorTestGen {
     sb ++= "  def testTypeOfWithCtorHKTAppliedImpl: c.Expr[Data] = testTypeOfWithCtorHKTApplied[Option](Type.Ctor1.of[Option])\n\n"
     sb ++= "  def testTypeOfWithCtorHKTAndTypeParamImpl[A: c.WeakTypeTag]: c.Expr[Data] = testTypeOfWithCtorHKTAndTypeParam[Option, A](Type.Ctor1.of[Option], Type.of[A])\n\n"
 
+    // Local type param in splice tests
+    sb ++= "  def testTypeOfLocalParamInSpliceImpl: c.Expr[Data] = testTypeOfLocalParamInSplice\n\n"
+
     sb ++= "}\n\n"
 
     // Companion object
@@ -681,6 +684,9 @@ object CrossCtorTestGen {
     sb ++= "  def testExprQuoteWithCtor1Param: Data = macro CrossCtorInjectionFixtures.testExprQuoteWithCtor1ParamImpl\n\n"
     sb ++= "  def testTypeOfWithCtorHKTApplied: Data = macro CrossCtorInjectionFixtures.testTypeOfWithCtorHKTAppliedImpl\n\n"
     sb ++= "  def testTypeOfWithCtorHKTAndTypeParam[A]: Data = macro CrossCtorInjectionFixtures.testTypeOfWithCtorHKTAndTypeParamImpl[A]\n\n"
+
+    // Local type param in splice tests
+    sb ++= "  def testTypeOfLocalParamInSplice: Data = macro CrossCtorInjectionFixtures.testTypeOfLocalParamInSpliceImpl\n\n"
 
     sb ++= "}\n"
     sb.toString
@@ -838,6 +844,9 @@ object CrossCtorTestGen {
     sb ++= "  inline def testTypeOfWithCtorHKTAndTypeParam[A]: Data = ${ testTypeOfWithCtorHKTAndTypeParamImpl[A] }\n"
     sb ++= "  private def testTypeOfWithCtorHKTAndTypeParamImpl[A: Type](using q: Quotes): Expr[Data] =\n"
     sb ++= "    new CrossCtorInjectionFixtures(q).testTypeOfWithCtorHKTAndTypeParam[A]\n\n"
+
+    // Local type param in splice tests
+    sb ++= genScala3InlineSplice("testTypeOfLocalParamInSplice")
 
     sb ++= "}\n"
     sb.toString
@@ -1003,6 +1012,18 @@ object CrossCtorTestGen {
         |
         |      test("should resolve Type.of[F[A]] with Ctor1 and Type param") {
         |        CrossCtorInjectionFixtures.testTypeOfWithCtorHKTAndTypeParam[Int] <==> Data("scala.Option[scala.Int]")
+        |      }
+        |
+        |    }
+        |""".stripMargin
+    sb ++= "\n"
+
+    // Group 13: Local type param in splice tests
+    sb ++=
+      """    group("for Type.of with local type params inside Expr.splice inside Expr.quote") {
+        |
+        |      test("should resolve Type.of[A] where A is a local type param from a method inside the quote") {
+        |        CrossCtorInjectionFixtures.testTypeOfLocalParamInSplice <==> Data("ok")
         |      }
         |
         |    }
