@@ -811,7 +811,7 @@ Since Cross-Quotes rewrites some code into the native macro representations of e
     Names `setA`, `setB`, `setC` etc assumes convention where type parameters of each type constructor are named: `A`, `B`, `C`, ...
 
     Since:
-    
+
      - we are fixing 1 type parameter at a time
      - fixing the type paramter returns a type constructor if arity 1 smaller
      - type parameters would be reindexed
@@ -873,11 +873,98 @@ While all of these are inconvenient, they can usually be worked around. The issu
     - Nested `Expr.quote` inside `Expr.splice` with local type params (including multi-level
       quote-splice-quote-splice-quote composition)
     - Type class derivation patterns (e.g., deriving `Functor[List]` with nested quotes)
+    - Using `Type.Ctor1[F]` from an outer enclosing method inside a splice whose nearest method
+      is different (e.g. `map[A, B]`) — the outer method's implicits are found automatically
 
-### Known Issues
+### Known Issues and Gotchas
 
-- Very deeply nested expressions might hit compiler limits
-- Some edge cases in type parameter handling may not work as expected
+!!! warning "Self-referential implicit `Type` / `Type.CtorN` initialization"
+
+    Both `weakTypeTag[A]` (Scala 2) and `scala.quoted.Type.of[A]` (Scala 3) pick up an implicit if it is in scope.
+    Writing:
+
+    ```scala
+    implicit val A: Type[A] = Type.of[A]
+    ```
+
+    generates `implicit val A: Type[A] = A` — an infinite recursion. **Run `Type.of` in a scope where its result
+    is not being pulled in as an implicit/given.**
+
+    The same applies to `Type.CtorN`:
+
+    ```scala
+    // BAD — circular initialization:
+    implicit val FC: Type.Ctor1[Option] = Type.Ctor1.of[Option]
+
+    // GOOD — create the value outside, then assign:
+    val optCtor = Type.Ctor1.of[Option] // or a factory method
+    implicit val FC: Type.Ctor1[Option] = optCtor
+    ```
+
+!!! warning "`Type.of` with local type params — avoid `implicit val`"
+
+    Inside `Expr.splice` (within `Expr.quote`), **do not** write:
+
+    ```scala
+    Expr.splice {
+      implicit val evA: Type[A] = Type.of[A] // BAD — forward reference error
+      someHelper[A]
+    }
+    ```
+
+    On Scala 2, `Type.of[A]`'s expansion finds the `evA` being defined (via position checks), causing a forward
+    reference error. Instead, use non-implicit vals and pass explicitly:
+
+    ```scala
+    Expr.splice {
+      val tpeA = Type.of[A]         // GOOD — non-implicit val
+      val tpeB = Type.of[B]
+      someHelper[A, B](tpeA, tpeB)  // pass explicitly
+    }
+    ```
+
+!!! warning "Extracted methods cannot use `Expr.quote` with local type params (Scala 2)"
+
+    On Scala 2, a helper method defined outside the quote that creates its own `Expr.quote` will produce a
+    **separate quasiquote**. Free types from the outer workaround do not resolve across separate quasiquote
+    boundaries:
+
+    ```scala
+    // BAD on Scala 2 — "free type variable A" error:
+    def mapBody[A: Type, B: Type](fa: Expr[List[A]], f: Expr[A => B]): Expr[List[B]] =
+      Expr.quote { Expr.splice(fa).map(Expr.splice(f)) } // separate quasiquote!
+
+    Expr.quote {
+      def map[A, B](fa: List[A])(f: A => B): List[B] = Expr.splice {
+        mapBody[A, B](Expr.quote(fa), Expr.quote(f))
+      }
+    }
+    ```
+
+    **Workaround:** Keep `Expr.quote` calls inline in the splice body. Extracted methods can do computation
+    (build strings, create `Expr(...)` values) but must not create their own quasiquotes referencing local
+    type params:
+
+    ```scala
+    // GOOD — Expr.quote is inline in the splice body:
+    Expr.quote {
+      def map[A, B](fa: List[A])(f: A => B): List[B] = Expr.splice {
+        val faExpr: Expr[List[A]] = Expr.quote(fa)
+        val fExpr: Expr[A => B] = Expr.quote(f)
+        Expr.quote {
+          Expr.splice(faExpr).map(Expr.splice(fExpr))
+        }
+      }
+    }
+    ```
+
+    This limitation does not affect Scala 3, where the staging system handles type params natively across
+    quote boundaries.
+
+!!! note "Very deeply nested expressions"
+
+    Very deeply nested quote-splice-quote chains might hit compiler limits. If you encounter issues,
+    try simplifying the nesting structure.
 
 ## Debugging
 

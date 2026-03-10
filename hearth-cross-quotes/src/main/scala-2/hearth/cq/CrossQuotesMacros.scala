@@ -9,7 +9,9 @@ import scala.util.chaining.*
 /** These macros are responsible for rewriting Expr.quote/Expr.splice into native quotes
   * ([[scala.reflect.macros.blackbox.Context.Expr]]/[[scala.reflect.macros.blackbox.Context.Type]]) in Scala 2.
   *
-  *   1. The first thing that it does is to replace:
+  * ==1. Type.of[A]==
+  *
+  * Replaces:
   *
   * {{{
   * Type.of[A]
@@ -22,11 +24,13 @@ import scala.util.chaining.*
   * import ctx.universe.{Type => _, internal => _, _}
   * implicit def convertProvidedTypesForCrossQuotes[B](implicit B: Type[B]): ctx.WeakTypeTag[B] =
   *   B.asInstanceOf[ctx.WeakTypeTag[B]]
-  * _root_.hearth.fp.ignore(convertProvidedTypesForCrossQuotes[Any](_: Type[Any])) // supress warnings
-  * weakTypeTag[A].asInstanceOf[Type[A}]]
+  * _root_.hearth.fp.ignore(convertProvidedTypesForCrossQuotes[Any](_: Type[Any])) // suppress warnings
+  * weakTypeTag[A].asInstanceOf[Type[A]]
   * }}}
   *
-  * and:
+  * ==2. Expr.quote[A](expr)==
+  *
+  * Replaces:
   *
   * {{{
   * Expr.quote[A](expr)
@@ -42,7 +46,9 @@ import scala.util.chaining.*
   * ).asInstanceOf[Expr[A]]
   * }}}
   *
-  * and
+  * ==3. Expr.splice[A](expr)==
+  *
+  * Replaces:
   *
   * {{{
   * Expr.splice[A](expr)
@@ -51,16 +57,18 @@ import scala.util.chaining.*
   * with:
   *
   * {{{
-  * ${ expr.asInstanceOf[c.Expr[A]] } // interpolation within q""
+  * $${ expr.asInstanceOf[c.Expr[A]] } // interpolation within q""
   * }}}
   *
-  * It uses intermediate fresh name to create a stub and replace it with the actual expression unsing Regex.
+  * It uses intermediate fresh name to create a stub and replace it with the actual expression using Regex.
   *
   * Same for: Type.Ctor1.of[HKT], Type.Ctor2.of[HKT], Type.Ctor3.of[HKT], ..., Type.Ctor22.of[HKT].
   *
+  * ==Code printing challenges==
+  *
   * The challenges here are:
   *   - `expr.toString` and `showCode(expr)` does not always print the correct Scala code:
-  *     - `def <init>` is correct AST... but parser does not understand it, similarly many `<synthethic>` methods
+  *     - `def <init>` is correct AST... but parser does not understand it, similarly many `<synthetic>` methods
   *       (`expr.toString` prints it `showCode(expr)` has it fixed)
   *     - `final class $anon` + `new $anon()` could break the interpolation (and looks odd in the printed code)
   *   - applied type parameter [A] makes sense outside the code... in the AST it's just an abstract type that doesn't
@@ -75,8 +83,10 @@ import scala.util.chaining.*
   *
   * The result while not perfect, should be robust enough for most cases.
   *
-  *   4. When `Expr.splice` inside `Expr.quote` references type parameters from methods defined inside the quote body
-  *      (''local type params''), these type params don't exist at macro-expansion time. For example:
+  * ==4. Local type params in Expr.splice inside Expr.quote==
+  *
+  * When `Expr.splice` inside `Expr.quote` references type parameters from methods defined inside the quote body
+  * (''local type params''), these type params don't exist at macro-expansion time. For example:
   *
   * {{{
   * Expr.quote {
@@ -91,7 +101,7 @@ import scala.util.chaining.*
   * The `SpliceReplacer` detects local type param references and wraps the splice body in a workaround method:
   *
   * {{{
-  * ${ {
+  * $${ {
   *   def workaround[A: ctx.WeakTypeTag] = {
   *     <original splice body, unchanged>
   *   }
@@ -109,10 +119,49 @@ import scala.util.chaining.*
   * workaround's `A`. The free type (`newFreeType("A")`) is resolved by name during quasiquote expansion, connecting to
   * the actual type param in the generated code.
   *
+  * ==5. Nested Expr.quote inside Expr.splice==
+  *
   * Nested `Expr.quote` inside `Expr.splice` also works with local type params. The inner `quoteImpl` expands first and
   * produces typechecked code where `WeakTypeTag` resolutions are already baked in. The outer `SpliceReplacer` then
   * wraps the entire splice body (including the inner expansion) in the workaround method, and the free types resolve
   * correctly through the quasiquote system.
+  *
+  * ==6. Outer enclosing method implicits==
+  *
+  * When `Expr.splice` is nested inside `Expr.quote` and the nearest enclosing method (e.g. `map[A, B]`) is NOT the
+  * method that provides `Type.CtorN[F]`, the standard `enclosingMethodImplicitTypes` only inspects the nearest
+  * `c.enclosingMethod` and misses the outer method's implicit params.
+  *
+  * `outerEnclosingMethodImplicitTypes` walks the full owner chain via `c.internal.enclosingOwner` to find implicit
+  * params from all enclosing methods (skipping the nearest, already covered). This is used ONLY in
+  * `ImplicitTypeReferenceReplacer` (the `Expr.quote`/`convert` code-generation path), NOT in
+  * `TypeWithUnderlyingInjected` (the standalone `Type.of` path). Adding it to `TypeWithUnderlyingInjected` caused
+  * regressions in library code using `Type.of` with existential types (e.g. `Type.of[java.lang.Enum[?]]`).
+  *
+  * ==Gotchas and limitations (Scala 2)==
+  *
+  *   - '''Self-referential implicit Type:''' `implicit val A: Type[A] = Type.of[A]` generates
+  *     `implicit val A: Type[A] = A` (infinite recursion), because `weakTypeTag[A]` picks up the implicit in scope. Use
+  *     a non-implicit val or assign the result in a different scope.
+  *   - '''Self-referential implicit Type.CtorN initialization:''' Similarly, `implicit val F: Type.Ctor1[F] =
+  *     Type.Ctor1.of[F]` can cause circular initialization when the Scala 3 plugin injects a `given` that references
+  *     the val being initialized. Create the value outside the block:
+  *     `val optCtor = makeOptionCtor; implicit val OptionCtor: Type.Ctor1[Option] = optCtor`.
+  *   - '''Type.of with local type params — avoid implicit val:''' Inside `Expr.splice`, writing
+  *     `implicit val evA: Type[A] = Type.of[A]` triggers a forward reference error because `Type.of[A]`'s expansion
+  *     finds the `evA` being defined (via `enclosingMethodImplicitTypes`'s position check). Instead, use non-implicit
+  *     vals: `val tpeA = Type.of[A]` and pass them explicitly to helper methods.
+  *   - '''Extracted methods cannot use Expr.quote with local free types:''' A helper method defined outside the quote
+  *     that creates its own `Expr.quote` will produce a separate quasiquote. Free types from the outer `SpliceReplacer`
+  *     workaround do NOT resolve across separate quasiquote boundaries — they only resolve within the quasiquote
+  *     pattern string where they were created. Keep `Expr.quote` calls inline in the splice body. Helper methods can do
+  *     computation (e.g. build `Expr[String]` via `Expr(...)`) but must not create their own quasiquotes referencing
+  *     local type params.
+  *   - '''`Type.of[A]` in standalone context is unaffected by outer enclosing method implicits:'''
+  *     `outerEnclosingMethodImplicitTypes` is deliberately excluded from `TypeWithUnderlyingInjected` (used by
+  *     `typeOfImpl` for standalone `Type.of` calls). Only `ImplicitTypeReferenceReplacer` (used by `convert`/
+  *     `quoteImpl` for `Expr.quote` code generation) includes it. This prevents regressions where walking the owner
+  *     chain from unrelated `Type.of` call sites interferes with existential or wildcard type resolution.
   */
 final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettyScala2 with CrossQuotesMacrosCtorMethods {
 
@@ -365,16 +414,19 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     lazy val noInjectResult = q"""$ctx.weakTypeTag[$weakTypeTagOf].asInstanceOf[Type[$weakTypeTagOf]]"""
     lazy val ctx2 = freshName("ctx2")
 
-    val candidates: List[(Type, String)] = importedUnderlyingTypes ++ enclosingMethodImplicitTypes
+    val candidates: List[(Type, String)] =
+      importedUnderlyingTypes ++ enclosingMethodImplicitTypes
     val excludingSet: Set[String] = excluding.view.map(_.decodedName.toString).toSet
 
     // Separate HKT candidates (type constructors from Type.CtorN) from *-kinded types.
     // HKT types can't use WeakTypeTag[F] but need substituteTypes post-processing.
     // Only include candidates whose enclosing method implicit is actually Type.CtorN.Bounded[..., HKT],
     // NOT arbitrary HKT types like DirectStyle[F].
-    val hktCandidates: List[(Type, String)] = enclosingMethodCtorHKTTypes.filterNot { case (_, renamed) =>
-      excludingSet(renamed)
-    }
+    // Also check outer enclosing methods for nested macro scenarios.
+    val hktCandidates: List[(Type, String)] =
+      enclosingMethodCtorHKTTypes.filterNot { case (_, renamed) =>
+        excludingSet(renamed)
+      }
 
     val importedUnderlying = candidates.view
       .filterNot { case (_, renamed) => excludingSet(renamed) }
@@ -765,6 +817,55 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     result.toList
   } catch { case _: Throwable => Nil }
 
+  /** Collects implicit params of type `Type[X]` or `Type.CtorN[F]` from OUTER enclosing methods.
+    *
+    * `enclosingMethodImplicitTypes` and `enclosingMethodCtorHKTTypes` only inspect the nearest `c.enclosingMethod`.
+    * When macros are nested (e.g., inner `Expr.quote` inside `Expr.splice` inside outer `Expr.quote`), the inner
+    * macro's nearest enclosing method might not have the relevant implicits — they could be on an outer method higher
+    * up the call chain.
+    *
+    * This method walks the owner chain via `c.internal.enclosingOwner` to find implicit params from all enclosing
+    * methods, skipping the nearest one (already covered by the other methods).
+    */
+  private def outerEnclosingMethodImplicitTypes: List[(Type, String)] = try {
+    val result = scala.collection.mutable.ListBuffer[(Type, String)]()
+
+    // Find the nearest enclosing method's symbol so we can skip it
+    @scala.annotation.nowarn
+    val nearestMethodSym: Symbol = c.enclosingMethod match {
+      case dd: DefDef if dd.symbol != null => dd.symbol
+      case _                               => NoSymbol
+    }
+
+    var owner = c.internal.enclosingOwner
+    while (owner != NoSymbol) {
+      if (owner.isMethod && owner != nearestMethodSym) {
+        for {
+          params <- owner.asMethod.paramLists
+          param <- params
+          if param.isImplicit
+        }
+          // Type[X] pattern — same as enclosingMethodImplicitTypes
+          scala.util
+            .Try {
+              param.info match {
+                case TypeRef(_, _, List(innerType)) if !innerType.typeSymbol.isClass => innerType
+              }
+            }
+            .orElse(scala.util.Try {
+              extractCtorHKT(param.info).filter(!_.typeSymbol.isClass).get
+            })
+            .toOption
+            .foreach { tpeToReplace =>
+              result += (tpeToReplace -> param.name.decodedName.toString)
+            }
+      }
+      owner = owner.owner
+    }
+
+    result.toList
+  } catch { case _: Throwable => Nil }
+
   // Expr utilities
 
   private def convert(ctx: TermName)(tree: c.Tree): c.Tree = {
@@ -942,32 +1043,33 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       // Combine imported types with same-class implicit vals (issue #168).
       // Same-class implicit vals are only used here (not in TypeWithUnderlyingInjected) because
       // their ThisType prefixes cause issues in the WeakTypeTag workaround mechanism.
-      private val caches = (importedUnderlyingTypes ++ enclosingMethodImplicitTypes ++ sameClassImplicitTypes).flatMap {
-        case (tpe, name) =>
-          def byName = Cache.forTypeName(name)
-          def byType = try
-            Cache.forTypeName(renderCode(tpe))
-          catch {
-            case _: Throwable => None
-          }
-          // For HKT types (type constructors like F[_] from Type.CtorN[F]),
-          // Cache.forTypeName fails because Type[F] is a kind error.
-          // Instead, construct a WeakTypeTag from the CtorN's .asUntyped at runtime.
-          def byHKT =
-            if (tpe.typeParams.nonEmpty) Cache.forHKTType(name, tpe)
-            else None
-          byType.orElse(byName).orElse(byHKT).map { cache =>
-            cachesAliases += (name -> cache)
-            cachesAliases += (s"$name.type" -> cache)
-            cachesAliases += (renderCode(tpe) -> cache)
-            // For HKT types, also register in AbstractTypes so that
-            // Ident(TypeName("F")) is resolved when F appears in the tree.
-            if (tpe.typeParams.nonEmpty) {
-              AbstractTypes.register(tpe.typeSymbol.name.toString, cache)
+      private val caches =
+        (importedUnderlyingTypes ++ enclosingMethodImplicitTypes ++ sameClassImplicitTypes ++ outerEnclosingMethodImplicitTypes).flatMap {
+          case (tpe, name) =>
+            def byName = Cache.forTypeName(name)
+            def byType = try
+              Cache.forTypeName(renderCode(tpe))
+            catch {
+              case _: Throwable => None
             }
-            tpe -> cache
-          }
-      }.toMap
+            // For HKT types (type constructors like F[_] from Type.CtorN[F]),
+            // Cache.forTypeName fails because Type[F] is a kind error.
+            // Instead, construct a WeakTypeTag from the CtorN's .asUntyped at runtime.
+            def byHKT =
+              if (tpe.typeParams.nonEmpty) Cache.forHKTType(name, tpe)
+              else None
+            byType.orElse(byName).orElse(byHKT).map { cache =>
+              cachesAliases += (name -> cache)
+              cachesAliases += (s"$name.type" -> cache)
+              cachesAliases += (renderCode(tpe) -> cache)
+              // For HKT types, also register in AbstractTypes so that
+              // Ident(TypeName("F")) is resolved when F appears in the tree.
+              if (tpe.typeParams.nonEmpty) {
+                AbstractTypes.register(tpe.typeSymbol.name.toString, cache)
+              }
+              tpe -> cache
+            }
+        }.toMap
 
       // It's riddiculous but:
       //  - we have both: someValue.Underlying (type Underlying = ...)

@@ -247,4 +247,42 @@ trait CrossCtorInjectionFixturesImpl extends CrossCtorInjectionFixturesImplGen {
       Data(functor.map(List(1, 2, 3))(_.toString).mkString(", "))
     }
 
+  /** Test: Type.Ctor1[F] composes with an extracted body method that takes Type context bounds for local type params.
+    *
+    * Verifies that HKT type constructors (F from Type.Ctor1) compose with local type params (A, B from Type context
+    * bounds on a helper method) and nested Expr.quote. The extracted `mapBody` uses Type.of and Type.Ctor1 to build
+    * type evidence, while the nested Expr.quote that constructs the actual code is inline in the splice body (required
+    * because free types from the outer workaround don't cross quasiquote boundaries into separately-created
+    * quasiquotes).
+    */
+  def testFunctorDerivationWithCtor[F[_]](implicit FC: Type.Ctor1[F]): Expr[Data] = {
+    hearth.fp.ignore(FC)
+
+    /** Extracted body method: receives local type params as Type context bounds and returns a description combining HKT
+      * (F from Type.Ctor1) with the local type params.
+      */
+    def describeMapping[A, B](implicit A: Type[A], B: Type[B]): Expr[String] = {
+      val fOfA = FC.apply[A](using A)
+      val fOfB = FC.apply[B](using B)
+      Expr(s"${fOfA.plainPrint} => ${fOfB.plainPrint}")
+    }
+
+    Expr.quote {
+      val functor: hearth.fp.Functor[F] = new hearth.fp.Functor[F] {
+        def map[A, B](fa: F[A])(f: A => B): F[B] = Expr.splice {
+          val tpeA = Type.of[A]
+          val tpeB = Type.of[B]
+          // Verify describeMapping composes Type.Ctor1[F] with local A, B
+          val desc: Expr[String] = describeMapping[A, B](tpeA, tpeB)
+          // Use nested inline Expr.quote for the actual map implementation
+          Expr.quote {
+            hearth.fp.ignore(Expr.splice(desc))
+            Expr.splice(Expr.quote(fa)).asInstanceOf[List[A]].map(Expr.splice(Expr.quote(f))).asInstanceOf[F[B]]
+          }
+        }
+      }
+      Data(functor.map(List(1, 2, 3).asInstanceOf[F[Int]])(_.toString).asInstanceOf[List[String]].mkString(", "))
+    }
+  }
+
 }

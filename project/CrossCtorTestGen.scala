@@ -649,6 +649,7 @@ object CrossCtorTestGen {
     sb ++= "  def testNestedQuoteWithAppliedTypeImpl: c.Expr[Data] = testNestedQuoteWithAppliedType\n\n"
     sb ++= "  def testNestedQuoteSpliceCompositionImpl: c.Expr[Data] = testNestedQuoteSpliceComposition\n\n"
     sb ++= "  def testFunctorDerivationImpl: c.Expr[Data] = testFunctorDerivation\n\n"
+    sb ++= "  def testFunctorDerivationWithCtorImpl: c.Expr[Data] = testFunctorDerivationWithCtor[List](Type.Ctor1.of[List])\n\n"
 
     sb ++= "}\n\n"
 
@@ -705,6 +706,7 @@ object CrossCtorTestGen {
     sb ++= "  def testNestedQuoteWithAppliedType: Data = macro CrossCtorInjectionFixtures.testNestedQuoteWithAppliedTypeImpl\n\n"
     sb ++= "  def testNestedQuoteSpliceComposition: Data = macro CrossCtorInjectionFixtures.testNestedQuoteSpliceCompositionImpl\n\n"
     sb ++= "  def testFunctorDerivation: Data = macro CrossCtorInjectionFixtures.testFunctorDerivationImpl\n\n"
+    sb ++= "  def testFunctorDerivationWithCtor: Data = macro CrossCtorInjectionFixtures.testFunctorDerivationWithCtorImpl\n\n"
 
     sb ++= "}\n"
     sb.toString
@@ -809,6 +811,7 @@ object CrossCtorTestGen {
     // Local type param in splice tests - class body methods for methods with type params
     sb ++= "  private lazy val listCtor1: Type.Ctor1[List] = Type.Ctor1.of[List]\n\n"
     sb ++= "  def testFunctorSkeleton: Expr[Data] = testFunctorSkeleton[List](using listCtor1)\n\n"
+    sb ++= "  def testFunctorDerivationWithCtor: Expr[Data] = testFunctorDerivationWithCtor[List](using listCtor1)\n\n"
 
     sb ++= "}\n\n"
 
@@ -878,6 +881,7 @@ object CrossCtorTestGen {
     sb ++= genScala3InlineSplice("testNestedQuoteWithAppliedType")
     sb ++= genScala3InlineSplice("testNestedQuoteSpliceComposition")
     sb ++= genScala3InlineSplice("testFunctorDerivation")
+    sb ++= genScala3InlineSplice("testFunctorDerivationWithCtor")
 
     sb ++= "}\n"
     sb.toString
@@ -1091,6 +1095,10 @@ object CrossCtorTestGen {
         |
         |      test("should derive a working Functor[List] using nested quotes") {
         |        CrossCtorInjectionFixtures.testFunctorDerivation <==> Data("1, 2, 3")
+        |      }
+        |
+        |      test("should derive Functor with Type.Ctor1[F] and extracted body with Type context bounds") {
+        |        CrossCtorInjectionFixtures.testFunctorDerivationWithCtor <==> Data("1, 2, 3")
         |      }
         |
         |    }
