@@ -43,7 +43,9 @@ final class CrossQuotesPlugin extends StandardPlugin {
 /** This plugin is responsible for rewriting Type.of/Expr.quote/Expr.splice into native quotes
   * ([[scala.quoted.Expr]]/[[scala.quoted.Type]]) in Scala 3.
   *
-  *   1. The first thing that it does is to replace:
+  * ==1. Type.of[A]==
+  *
+  * Replaces:
   *
   * {{{
   * Type.of[A]
@@ -55,7 +57,9 @@ final class CrossQuotesPlugin extends StandardPlugin {
   * scala.quoted.Type.of[A]
   * }}}
   *
-  * and:
+  * ==2. Expr.quote[A](expr)==
+  *
+  * Replaces:
   *
   * {{{
   * Expr.quote[A](expr)
@@ -67,7 +71,9 @@ final class CrossQuotesPlugin extends StandardPlugin {
   * '{ expr }
   * }}}
   *
-  * and:
+  * ==3. Expr.splice { expr }==
+  *
+  * Replaces:
   *
   * {{{
   * Expr.splice { expr }
@@ -79,15 +85,17 @@ final class CrossQuotesPlugin extends StandardPlugin {
   * ${ expr }
   * }}}
   *
-  * But since, both of these operations are need to use [[scala.quoted.Quotes]] we need to inject a given for it:
+  * Since both of these operations need [[scala.quoted.Quotes]], we inject a given for it:
   *
   * {{{
-  * // given is prepeded before the first ourermost Expr.quote/Expr.splice
+  * // given is prepended before the first outermost Expr.quote/Expr.splice
   * given scala.quoted.Quotes = CrossQuotes.ctx
   * // the rest of the code
   * }}}
   *
-  *   2. However, if there are type bounds like:
+  * ==4. Type context bounds==
+  *
+  * If there are type bounds like:
   *
   * {{{
   * [A: Type, B: Type]
@@ -101,7 +109,9 @@ final class CrossQuotesPlugin extends StandardPlugin {
   * ...
   * }}}
   *
-  *   3. Finally, if the whole expression building is decomposed into several steps, e.g.:
+  * ==5. Nested Quotes context management==
+  *
+  * If the whole expression building is decomposed into several steps, e.g.:
   *
   * {{{
   * def intToString(expr: Expr[Int]): Expr[String] = Expr.quote {
@@ -125,7 +135,7 @@ final class CrossQuotesPlugin extends StandardPlugin {
   * }
   * }}}
   *
-  * so we need to keep trace of the current level of nested quotes and inject a given for [[scala.quoted.Quotes]] only
+  * so we need to keep track of the current level of nested quotes and inject a given for [[scala.quoted.Quotes]] only
   * at the top level.
   *
   * {{{
@@ -141,16 +151,42 @@ final class CrossQuotesPlugin extends StandardPlugin {
   *     // inside ${} we are creating a new Quotes context (q.Nested)
   *     CrossQuotes.nestedCtx { // updates CrossQuotes.ctx
   *       intToString('{ a })
-  *     } // resotres previous CrossQuotes.ctx value
+  *     } // restores previous CrossQuotes.ctx value
   *   }
   * }
   * }}}
   *
-  *   4. Local type params from methods defined inside `'{ ... }` (e.g. `def helper[A]`) are handled natively by Scala
-  *      3's staging system. When `Type.of[A]` is used inside `$${ ... }`, the plugin transforms it to
-  *      `CrossQuotes.typeQuotesToCross(scala.quoted.Type.of[A])`, and the staging system automatically provides
-  *      `scala.quoted.Type[A]` for type params from enclosing `'{ ... }` blocks. No workaround is needed on Scala 3 —
-  *      this is a Scala 2-only limitation.
+  * ==6. Local type params and HKT type constructors==
+  *
+  * Local type params from methods defined inside `'{ ... }` (e.g. `def helper[A]`) are handled natively by Scala 3's
+  * staging system. When `Type.of[A]` is used inside `$${ ... }`, the plugin transforms it to
+  * `CrossQuotes.typeQuotesToCross(scala.quoted.Type.of[A])`, and the staging system automatically provides
+  * `scala.quoted.Type[A]` for type params from enclosing `'{ ... }` blocks. No workaround is needed on Scala 3 — the
+  * free type + workaround method mechanism is a Scala 2-only limitation.
+  *
+  * For HKT type constructors (`Type.Ctor1[F]`, `Type.Ctor2[F]`, etc.), the plugin uses two mechanisms to inject
+  * `given`s:
+  *
+  *   - `boundGivenCandidates`: inspects `[F[_]: Type.Ctor1]` context bounds and explicit `implicit` params (e.g.
+  *     `implicit FC: Type.Ctor1[F]`) on enclosing method signatures.
+  *   - `blockGivenCandidates`: inspects `implicit val`/`def` declarations in the enclosing block body (e.g.
+  *     `implicit val FC: Type.Ctor1[Option] = ...`).
+  *
+  * ==Gotchas and limitations (Scala 3)==
+  *
+  *   - '''Self-referential implicit Type:''' `implicit val A: Type[A] = Type.of[A]` generates an infinite loop, because
+  *     `scala.quoted.Type.of[A]` picks up the `given` in scope. Use a non-implicit val or assign in a different scope.
+  *   - '''Self-referential implicit Type.CtorN initialization:''' `implicit val F: Type.Ctor1[F] = Type.Ctor1.of[F]`
+  *     can cause circular initialization when the plugin injects a `given` that references the val being initialized.
+  *     Create the value outside the block:
+  *     `val optCtor = makeOptionCtor; implicit val OptionCtor: Type.Ctor1[Option] = optCtor`.
+  *   - '''`Type.of[A]` requires a parameterless given:''' `scala.quoted.Type.of[A]` and `'{ ... }: Expr[A]` ignore
+  *     `Type[A]` values that require implicit resolution to obtain. Only `implicit val`/parameterless `given`
+  *     definitions are picked up. The plugin uses a best-effort approach to detect such cases and create local
+  *     `given`s, but passing `Type[A]` as a context bound on a `def` is more reliable.
+  *   - '''Mixing native quotes with Cross Quotes is undefined behavior:''' Using `scala.quoted.Type.of` directly
+  *     alongside Cross Quotes' `Type.of` will likely crash the compiler. The plugin rewrites based on untyped tree
+  *     patterns and cannot distinguish between Cross Quotes and native quotes.
   */
 final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolean) extends PluginPhase {
   override def runsAfter: Set[String] = Set(Parser.name)
