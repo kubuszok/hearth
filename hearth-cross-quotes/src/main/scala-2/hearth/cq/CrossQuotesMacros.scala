@@ -109,8 +109,10 @@ import scala.util.chaining.*
   * workaround's `A`. The free type (`newFreeType("A")`) is resolved by name during quasiquote expansion, connecting to
   * the actual type param in the generated code.
   *
-  * '''Limitation:''' Nested `Expr.quote` inside `Expr.splice` that references local type params is not yet supported —
-  * the inner quote's own expansion cannot handle type params from the outer quote's method definitions.
+  * Nested `Expr.quote` inside `Expr.splice` also works with local type params. The inner `quoteImpl` expands first and
+  * produces typechecked code where `WeakTypeTag` resolutions are already baked in. The outer `SpliceReplacer` then
+  * wraps the entire splice body (including the inner expansion) in the workaround method, and the free types resolve
+  * correctly through the quasiquote system.
   */
 final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettyScala2 with CrossQuotesMacrosCtorMethods {
 

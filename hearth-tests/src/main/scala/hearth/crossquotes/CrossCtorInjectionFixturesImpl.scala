@@ -144,15 +144,68 @@ trait CrossCtorInjectionFixturesImpl extends CrossCtorInjectionFixturesImplGen {
       Data(combine[Int, String])
     }
 
-  /** Test: Functor-like type class derivation combining HKT (Type.Ctor1) with local type params (A, B).
+  /** Test: Nested Expr.quote inside Expr.splice without type params.
     *
-    * This is the "proof by construction" that Hearth can generate type class instances with HKT type constructors where
-    * methods have their own type parameters. The splice body verifies that Type.of[A], Type.of[B], and Type.Ctor1[F]
-    * are all available. The actual map implementation is a dummy (null cast) — the point is to verify the code
-    * generation compiles and the macro plumbing works, not to produce a correct Functor derivation.
+    * Verifies that inner Expr.quote expansions work correctly when nested inside Expr.splice inside an outer
+    * Expr.quote. This is the simplest nested quote case — no local type params involved.
+    */
+  def testNestedQuoteNoTypeParams: Expr[Data] =
+    Expr.quote {
+      val greeting: String = Expr.splice {
+        Expr.quote("hello")
+      }
+      Data(greeting)
+    }
+
+  /** Test: Nested Expr.quote inside Expr.splice with a local type param.
     *
-    * Note: nested `Expr.quote` inside `Expr.splice` (required for a real implementation) is not yet supported because
-    * the inner quote's expansion cannot handle local type params from the outer quote's method definitions.
+    * Verifies that inner Expr.quote can handle types that reference local type params from DefDef nodes in the outer
+    * quote body. The inner quote needs to produce a WeakTypeTag for a type containing `A` — a type param that only
+    * exists in the generated code.
+    */
+  def testNestedQuoteWithTypeParam: Expr[Data] =
+    Expr.quote {
+      def identity[A](a: A): A = Expr.splice {
+        Expr.quote(a)
+      }
+      Data(identity("hello"))
+    }
+
+  /** Test: Nested Expr.quote with applied types using local type params.
+    *
+    * Tests that inner Expr.quote(Option(a)) works where a: A and A is a local type param. The inner quote needs
+    * WeakTypeTag[Option[A]] which combines a concrete type constructor with a local type param.
+    */
+  def testNestedQuoteWithAppliedType: Expr[Data] =
+    Expr.quote {
+      def wrapInOption[A](a: A): Option[A] = Expr.splice {
+        Expr.quote(Option(a))
+      }
+      Data(wrapInOption("hello").toString)
+    }
+
+  /** Test: Nested Expr.quote + Expr.splice composition (quote-splice-quote-splice-quote).
+    *
+    * Tests the pattern needed for type class derivation: the outer splice body contains multiple inner quotes, and the
+    * innermost quote splices in values from the outer quote's scope.
+    */
+  def testNestedQuoteSpliceComposition: Expr[Data] =
+    Expr.quote {
+      def applyFn[A, B](a: A, f: A => B): B = Expr.splice {
+        val aExpr: Expr[A] = Expr.quote(a)
+        val fExpr: Expr[A => B] = Expr.quote(f)
+        Expr.quote {
+          Expr.splice(fExpr)(Expr.splice(aExpr))
+        }
+      }
+      Data(applyFn("hello", (s: String) => s.length).toString)
+    }
+
+  /** Test: Type class skeleton combining HKT (Type.Ctor1) with local type params (A, B).
+    *
+    * Verifies that Type.of[A], Type.of[B], and Type.Ctor1[F] are all accessible inside Expr.splice within Expr.quote
+    * where A, B are local type params from methods inside the quote body. Uses a dummy map implementation — see
+    * testFunctorDerivation for a real working Functor derivation.
     */
   def testFunctorSkeleton[F[_]](implicit FC: Type.Ctor1[F]): Expr[Data] = {
     hearth.fp.ignore(FC)
@@ -171,5 +224,27 @@ trait CrossCtorInjectionFixturesImpl extends CrossCtorInjectionFixturesImplGen {
       Data("ok")
     }
   }
+
+  /** Test: Real Functor derivation using nested Expr.quote inside Expr.splice.
+    *
+    * Demonstrates a fully working Functor[List] derivation using the quote-splice-quote pattern. The map implementation
+    * uses nested Expr.quote to capture `fa` and `f`, then splices them into a new quote that calls `.map`.
+    *
+    * This proves that Hearth's cross-quotes support the full pattern needed for type class derivation with HKT types
+    * and local type params.
+    */
+  def testFunctorDerivation: Expr[Data] =
+    Expr.quote {
+      val functor: hearth.fp.Functor[List] = new hearth.fp.Functor[List] {
+        def map[A, B](fa: List[A])(f: A => B): List[B] = Expr.splice {
+          val faExpr: Expr[List[A]] = Expr.quote(fa)
+          val fExpr: Expr[A => B] = Expr.quote(f)
+          Expr.quote {
+            Expr.splice(faExpr).map(Expr.splice(fExpr))
+          }
+        }
+      }
+      Data(functor.map(List(1, 2, 3))(_.toString).mkString(", "))
+    }
 
 }

@@ -473,26 +473,26 @@ where methods have their own type parameters (e.g., `Functor.map[A, B]`).
       and implicit `WeakTypeTag` context bounds. Free type symbols (`newFreeType("A")`) are passed as arguments,
       which the quasiquote system resolves by name to the actual type params in the generated code.
 
-!!! warning "Nested `Expr.quote` inside `Expr.splice` with local type params"
+!!! example "Nested `Expr.quote` inside `Expr.splice` — Functor derivation"
 
-    Nested `Expr.quote` inside `Expr.splice` that references local type params is **not currently supported**.
-    The inner quote's own expansion cannot handle type params from the outer quote's method definitions.
+    Nested `Expr.quote` inside `Expr.splice` works with local type params. This enables the
+    quote-splice-quote pattern needed for type class derivation:
 
     ```scala
-    // ❌ Does NOT work:
-    def map[A, B](fa: F[A])(f: A => B): F[B] =
-      Expr.splice {
-        Expr.quote(f(fa).asInstanceOf[F[B]]) // inner Expr.quote can't handle A, B
+    // Derive Functor[List] using nested quotes
+    def deriveFunctorList: Expr[Data] =
+      Expr.quote {
+        val functor: Functor[List] = new Functor[List] {
+          def map[A, B](fa: List[A])(f: A => B): List[B] = Expr.splice {
+            val faExpr: Expr[List[A]] = Expr.quote(fa)
+            val fExpr: Expr[A => B] = Expr.quote(f)
+            Expr.quote {
+              Expr.splice(faExpr).map(Expr.splice(fExpr))
+            }
+          }
+        }
+        Data(functor.map(List(1, 2, 3))(_.toString).mkString(", "))
       }
-
-    // ✅ Works: use Type.of[A] inside the splice, avoid nested Expr.quote with local type params
-    def map[A, B](fa: F[A])(f: A => B): F[B] = {
-      val _: String = Expr.splice {
-        hearth.fp.ignore(Type.of[A], Type.of[B])
-        Expr("ok")
-      }
-      null.asInstanceOf[F[B]]
-    }
     ```
 
 ## Examples
@@ -870,13 +870,9 @@ While all of these are inconvenient, they can usually be worked around. The issu
     - `Type.of[A]`, `Type.of[B]` for local type params inside splices
     - Multiple local type params simultaneously
     - Combining HKT (`Type.Ctor1[F]`) with local type params in the same splice
-
-    **What does not work yet:**
-
-    - Nested `Expr.quote` inside `Expr.splice` that references local type params — the inner quote's
-      expansion cannot resolve type params from the outer quote's method definitions. This means a real
-      Functor derivation (where the `map` body uses `Expr.quote` to build the result expression)
-      requires platform-specific code or an alternative approach.
+    - Nested `Expr.quote` inside `Expr.splice` with local type params (including multi-level
+      quote-splice-quote-splice-quote composition)
+    - Type class derivation patterns (e.g., deriving `Functor[List]` with nested quotes)
 
 ### Known Issues
 

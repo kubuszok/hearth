@@ -643,6 +643,13 @@ object CrossCtorTestGen {
     sb ++= "  def testSpliceWithMultipleLocalParamsImpl: c.Expr[Data] = testSpliceWithMultipleLocalParams\n\n"
     sb ++= "  def testFunctorSkeletonImpl: c.Expr[Data] = testFunctorSkeleton[List](Type.Ctor1.of[List])\n\n"
 
+    // Nested quote tests
+    sb ++= "  def testNestedQuoteNoTypeParamsImpl: c.Expr[Data] = testNestedQuoteNoTypeParams\n\n"
+    sb ++= "  def testNestedQuoteWithTypeParamImpl: c.Expr[Data] = testNestedQuoteWithTypeParam\n\n"
+    sb ++= "  def testNestedQuoteWithAppliedTypeImpl: c.Expr[Data] = testNestedQuoteWithAppliedType\n\n"
+    sb ++= "  def testNestedQuoteSpliceCompositionImpl: c.Expr[Data] = testNestedQuoteSpliceComposition\n\n"
+    sb ++= "  def testFunctorDerivationImpl: c.Expr[Data] = testFunctorDerivation\n\n"
+
     sb ++= "}\n\n"
 
     // Companion object
@@ -691,6 +698,13 @@ object CrossCtorTestGen {
     sb ++= "  def testTypeOfLocalParamInSplice: Data = macro CrossCtorInjectionFixtures.testTypeOfLocalParamInSpliceImpl\n\n"
     sb ++= "  def testSpliceWithMultipleLocalParams: Data = macro CrossCtorInjectionFixtures.testSpliceWithMultipleLocalParamsImpl\n\n"
     sb ++= "  def testFunctorSkeleton: Data = macro CrossCtorInjectionFixtures.testFunctorSkeletonImpl\n\n"
+
+    // Nested quote tests
+    sb ++= "  def testNestedQuoteNoTypeParams: Data = macro CrossCtorInjectionFixtures.testNestedQuoteNoTypeParamsImpl\n\n"
+    sb ++= "  def testNestedQuoteWithTypeParam: Data = macro CrossCtorInjectionFixtures.testNestedQuoteWithTypeParamImpl\n\n"
+    sb ++= "  def testNestedQuoteWithAppliedType: Data = macro CrossCtorInjectionFixtures.testNestedQuoteWithAppliedTypeImpl\n\n"
+    sb ++= "  def testNestedQuoteSpliceComposition: Data = macro CrossCtorInjectionFixtures.testNestedQuoteSpliceCompositionImpl\n\n"
+    sb ++= "  def testFunctorDerivation: Data = macro CrossCtorInjectionFixtures.testFunctorDerivationImpl\n\n"
 
     sb ++= "}\n"
     sb.toString
@@ -857,6 +871,13 @@ object CrossCtorTestGen {
     sb ++= genScala3InlineSplice("testTypeOfLocalParamInSplice")
     sb ++= genScala3InlineSplice("testSpliceWithMultipleLocalParams")
     sb ++= genScala3InlineSplice("testFunctorSkeleton")
+
+    // Nested quote tests
+    sb ++= genScala3InlineSplice("testNestedQuoteNoTypeParams")
+    sb ++= genScala3InlineSplice("testNestedQuoteWithTypeParam")
+    sb ++= genScala3InlineSplice("testNestedQuoteWithAppliedType")
+    sb ++= genScala3InlineSplice("testNestedQuoteSpliceComposition")
+    sb ++= genScala3InlineSplice("testFunctorDerivation")
 
     sb ++= "}\n"
     sb.toString
@@ -1042,6 +1063,34 @@ object CrossCtorTestGen {
         |
         |      test("should generate a Functor skeleton combining HKT and local type params") {
         |        CrossCtorInjectionFixtures.testFunctorSkeleton <==> Data("ok")
+        |      }
+        |
+        |    }
+        |""".stripMargin
+    sb ++= "\n"
+
+    // Group 14: Nested quote tests
+    sb ++=
+      """    group("for nested Expr.quote inside Expr.splice inside Expr.quote") {
+        |
+        |      test("should handle nested Expr.quote without type params") {
+        |        CrossCtorInjectionFixtures.testNestedQuoteNoTypeParams <==> Data("hello")
+        |      }
+        |
+        |      test("should handle nested Expr.quote with local type param") {
+        |        CrossCtorInjectionFixtures.testNestedQuoteWithTypeParam <==> Data("hello")
+        |      }
+        |
+        |      test("should handle nested Expr.quote with applied type using local type param") {
+        |        CrossCtorInjectionFixtures.testNestedQuoteWithAppliedType <==> Data("Some(hello)")
+        |      }
+        |
+        |      test("should handle nested quote-splice-quote-splice-quote composition") {
+        |        CrossCtorInjectionFixtures.testNestedQuoteSpliceComposition <==> Data("5")
+        |      }
+        |
+        |      test("should derive a working Functor[List] using nested quotes") {
+        |        CrossCtorInjectionFixtures.testFunctorDerivation <==> Data("1, 2, 3")
         |      }
         |
         |    }
