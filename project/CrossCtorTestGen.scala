@@ -641,6 +641,8 @@ object CrossCtorTestGen {
     // Local type param in splice tests
     sb ++= "  def testTypeOfLocalParamInSpliceImpl: c.Expr[Data] = testTypeOfLocalParamInSplice\n\n"
     sb ++= "  def testSpliceWithMultipleLocalParamsImpl: c.Expr[Data] = testSpliceWithMultipleLocalParams\n\n"
+    sb ++= "  def testSpliceWithMethodsOfLocalParamImpl: c.Expr[Data] = testSpliceWithMethodsOfLocalParam\n\n"
+    sb ++= "  def testSpliceWithCaseClassParseLocalParamImpl: c.Expr[Data] = testSpliceWithCaseClassParseLocalParam\n\n"
     sb ++= "  def testFunctorSkeletonImpl: c.Expr[Data] = testFunctorSkeleton[List](Type.Ctor1.of[List])\n\n"
 
     // Nested quote tests
@@ -698,6 +700,8 @@ object CrossCtorTestGen {
     // Local type param in splice tests
     sb ++= "  def testTypeOfLocalParamInSplice: Data = macro CrossCtorInjectionFixtures.testTypeOfLocalParamInSpliceImpl\n\n"
     sb ++= "  def testSpliceWithMultipleLocalParams: Data = macro CrossCtorInjectionFixtures.testSpliceWithMultipleLocalParamsImpl\n\n"
+    sb ++= "  def testSpliceWithMethodsOfLocalParam: Data = macro CrossCtorInjectionFixtures.testSpliceWithMethodsOfLocalParamImpl\n\n"
+    sb ++= "  def testSpliceWithCaseClassParseLocalParam: Data = macro CrossCtorInjectionFixtures.testSpliceWithCaseClassParseLocalParamImpl\n\n"
     sb ++= "  def testFunctorSkeleton: Data = macro CrossCtorInjectionFixtures.testFunctorSkeletonImpl\n\n"
 
     // Nested quote tests
@@ -873,6 +877,8 @@ object CrossCtorTestGen {
     // Local type param in splice tests
     sb ++= genScala3InlineSplice("testTypeOfLocalParamInSplice")
     sb ++= genScala3InlineSplice("testSpliceWithMultipleLocalParams")
+    sb ++= genScala3InlineSplice("testSpliceWithMethodsOfLocalParam")
+    sb ++= genScala3InlineSplice("testSpliceWithCaseClassParseLocalParam")
     sb ++= genScala3InlineSplice("testFunctorSkeleton")
 
     // Nested quote tests
@@ -1063,6 +1069,14 @@ object CrossCtorTestGen {
         |
         |      test("should resolve multiple local type params (A, B) inside a splice") {
         |        CrossCtorInjectionFixtures.testSpliceWithMultipleLocalParams <==> Data("ok")
+        |      }
+        |
+        |      test("should use Method.methodsOf with local type param inside splice (stripFreeTypes)") {
+        |        CrossCtorInjectionFixtures.testSpliceWithMethodsOfLocalParam <==> Data("ok")
+        |      }
+        |
+        |      test("should use CaseClass.parse with local type param inside splice (stripFreeTypes)") {
+        |        CrossCtorInjectionFixtures.testSpliceWithCaseClassParseLocalParam <==> Data("ok")
         |      }
         |
         |      test("should generate a Functor skeleton combining HKT and local type params") {

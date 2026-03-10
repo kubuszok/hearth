@@ -285,4 +285,36 @@ trait CrossCtorInjectionFixturesImpl extends CrossCtorInjectionFixturesImplGen {
     }
   }
 
+  /** Test: Type.of[A] inside Expr.splice used with Method.methodsOf to generate typed trees with local type params.
+    *
+    * This exercises the `stripFreeTypes` fix: `Method.methodsOf[A]` generates expression trees whose `TypeTree` nodes
+    * may reference the free type symbol `A`. Without `stripFreeTypes`, the macro expansion could fail with "Macro
+    * expansion contains free type variable A".
+    */
+  def testSpliceWithMethodsOfLocalParam: Expr[Data] =
+    Expr.quote {
+      def helper[A]: String = Expr.splice {
+        val tpeA = Type.of[A]
+        hearth.fp.ignore(Method.methodsOf[A](using tpeA))
+        Expr("ok")
+      }
+      Data(helper[Int])
+    }
+
+  /** Test: CaseClass.parse with a type containing local type params inside Expr.splice.
+    *
+    * Verifies that `CaseClass.parse[A]` works when `A` comes from a local type param defined in the quote body.
+    * `Type.prettyPrint[A]` exercises the type machinery with free types.
+    */
+  def testSpliceWithCaseClassParseLocalParam: Expr[Data] =
+    Expr.quote {
+      def helper[A]: String = Expr.splice {
+        val tpeA = Type.of[A]
+        hearth.fp.ignore(Type.prettyPrint[A](using tpeA))
+        hearth.fp.ignore(CaseClass.parse[A](using tpeA))
+        Expr("ok")
+      }
+      Data(helper[Int])
+    }
+
 }

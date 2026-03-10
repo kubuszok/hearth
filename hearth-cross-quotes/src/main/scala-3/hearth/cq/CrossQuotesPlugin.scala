@@ -184,6 +184,24 @@ final class CrossQuotesPlugin extends StandardPlugin {
   *     `Type[A]` values that require implicit resolution to obtain. Only `implicit val`/parameterless `given`
   *     definitions are picked up. The plugin uses a best-effort approach to detect such cases and create local
   *     `given`s, but passing `Type[A]` as a context bound on a `def` is more reliable.
+  *   - '''`val` vs `def` for `Expr` values — Quotes scope capture:''' `ensureQuotes` injects
+  *     `given scala.quoted.Quotes = CrossQuotes.ctx` as a '''val''' (evaluated once). If a user stores an `Expr`
+  *     produced by a Hearth utility (e.g. `LambdaBuilder.build`, `ValDefBuilder.build`) in a `val`, the `Expr` is bound
+  *     to the `Quotes` scope active at that point. Later, when that `Expr` is spliced inside `Expr.quote` (which enters
+  *     a nested `Quotes` via `nestedCtx`), the staging system detects a scope mismatch ("wrong staging level"). Using
+  *     `def` instead re-evaluates the builder each time it is referenced, picking up the current dynamic `Quotes`
+  *     context. This is especially subtle when combined with `MIO`, because `MIO` is naturally lazy and non-memoizing —
+  *     wrapping `Expr`-producing code in `MIO` works correctly, but extracting the result into a `val` (e.g.
+  *     `val lambda = mio.runSync`) re-introduces the scope capture problem.
+  *     {{{
+  *     // BAD — lambda is captured at Q0 scope:
+  *     val lambda = LambdaBuilder.of1[A, B].map(...).build
+  *     Expr.quote { Expr.splice(list).map(Expr.splice(lambda)) } // fails: wrong staging level
+  *
+  *     // GOOD — lambda is re-evaluated at the correct scope:
+  *     def lambda = LambdaBuilder.of1[A, B].map(...).build
+  *     Expr.quote { Expr.splice(list).map(Expr.splice(lambda)) } // works
+  *     }}}
   *   - '''Mixing native quotes with Cross Quotes is undefined behavior:''' Using `scala.quoted.Type.of` directly
   *     alongside Cross Quotes' `Type.of` will likely crash the compiler. The plugin rewrites based on untyped tree
   *     patterns and cannot distinguish between Cross Quotes and native quotes.

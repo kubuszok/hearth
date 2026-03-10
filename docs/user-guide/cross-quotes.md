@@ -495,6 +495,75 @@ where methods have their own type parameters (e.g., `Functor.map[A, B]`).
       }
     ```
 
+### Best Practice: Passing `Type.of` Directly at Call Sites
+
+When calling helper methods inside `Expr.splice` that need `Type` values for local type params,
+**pass `Type.of[A]` directly as an explicit argument** at the call site rather than binding it
+to a local `implicit val` or using context bounds:
+
+!!! example "Recommended pattern"
+
+    ```scala
+    def deriveFunctor[F[_]](implicit FCtor: Type.Ctor1[F]): Expr[Data] = {
+      hearth.fp.ignore(FCtor)
+      Expr.quote {
+        new Functor[F] {
+          def map[A, B](fa: F[A])(f: A => B): F[B] =
+            Expr.splice {
+              // Pass Type.of[A] and Type.of[B] directly where implicits are expected
+              deriveFunctorMapBody[F, A, B](FCtor, Expr.quote(fa), Expr.quote(f))(
+                Type.of[A],
+                Type.of[B]
+              )
+            }
+        }
+      }
+    }
+
+    // Helper method receives types as explicit implicit parameters
+    def deriveFunctorMapBody[F[_], A, B](
+      fCtor: Type.Ctor1[F],
+      fa: Expr[F[A]],
+      f: Expr[A => B]
+    )(implicit
+      A: Type[A],
+      B: Type[B]
+    ): Expr[F[B]] = {
+      // A and B are fully usable here — passed explicitly, no circular resolution
+      // fCtor, fa, f are also available
+      ???
+    }
+    ```
+
+**Why this pattern works and alternatives don't:**
+
+1. **`implicit val evA: Type[A] = Type.of[A]` — circular resolution.** Cross Quotes expands
+   `Type.of[A]` by looking for an implicit `Type[A]` in scope. If the result is assigned to
+   an implicit val with the same type, the compiler resolves `Type.of[A]` to the val being
+   initialized — infinite recursion. This is the same issue described in
+   [the self-referential implicit gotcha](#known-issues-and-gotchas).
+
+2. **`val tpeA = Type.of[A]; someHelper[A](tpeA)` — works but less ergonomic.** Using a
+   non-implicit `val` avoids circular resolution, but forces the helper to take `Type` as a
+   regular parameter rather than an implicit, making the API less natural.
+
+3. **`Type.of[A]` at the call site — best of both worlds.** The helper declares its type
+   params with normal implicit/context-bound syntax. At the call site, `Type.of[A]` is
+   evaluated in a scope where no conflicting implicit exists yet, and the result is passed
+   directly to the implicit parameter. No circular resolution, no extra bindings.
+
+!!! tip "Key points to remember"
+
+    - **Always pass `Type.of[A]` at the call site**, in the position where the implicit
+      `Type[A]` parameter is expected. Don't bind it to a local implicit first.
+    - **`def` helpers with implicit `Type` params** are the natural way to structure code that
+      needs local type params — the `Type.of` values flow in as explicit implicit arguments.
+    - **This composes with `Type.Ctor1[F]`** — the HKT type constructor can be passed as a
+      regular parameter alongside the explicit `Type.of` arguments.
+    - **Works on both Scala 2 and Scala 3** — on Scala 2, the free type symbols created by
+      the workaround are passed through; on Scala 3, `Type.of[A]` is natively available inside
+      splice bodies.
+
 ## Examples
 
 ### Simple Type Analysis
@@ -890,7 +959,7 @@ While all of these are inconvenient, they can usually be worked around. The issu
     generates `implicit val A: Type[A] = A` — an infinite recursion. **Run `Type.of` in a scope where its result
     is not being pulled in as an implicit/given.**
 
-    The same applies to `Type.CtorN`:
+    The same applies to `Type.CtorN` and to `Type.of` with local type params inside `Expr.splice`:
 
     ```scala
     // BAD — circular initialization:
@@ -901,52 +970,54 @@ While all of these are inconvenient, they can usually be worked around. The issu
     implicit val FC: Type.Ctor1[Option] = optCtor
     ```
 
-!!! warning "`Type.of` with local type params — avoid `implicit val`"
-
-    Inside `Expr.splice` (within `Expr.quote`), **do not** write:
-
     ```scala
+    // BAD — inside Expr.splice, this causes a forward reference error on Scala 2:
     Expr.splice {
-      implicit val evA: Type[A] = Type.of[A] // BAD — forward reference error
+      implicit val evA: Type[A] = Type.of[A]
       someHelper[A]
     }
-    ```
 
-    On Scala 2, `Type.of[A]`'s expansion finds the `evA` being defined (via position checks), causing a forward
-    reference error. Instead, use non-implicit vals and pass explicitly:
-
-    ```scala
+    // GOOD — use non-implicit vals and pass explicitly:
     Expr.splice {
-      val tpeA = Type.of[A]         // GOOD — non-implicit val
+      val tpeA = Type.of[A]
       val tpeB = Type.of[B]
-      someHelper[A, B](tpeA, tpeB)  // pass explicitly
+      someHelper[A, B](tpeA, tpeB)
     }
     ```
 
-!!! warning "Extracted methods cannot use `Expr.quote` with local type params (Scala 2)"
+!!! warning "Free types from local type params do not cross quasiquote boundaries (Scala 2)"
 
-    On Scala 2, a helper method defined outside the quote that creates its own `Expr.quote` will produce a
-    **separate quasiquote**. Free types from the outer workaround do not resolve across separate quasiquote
-    boundaries:
+    On Scala 2, when `Expr.splice` inside `Expr.quote` uses local type params (e.g. `A`, `B` from
+    `def map[A, B]` inside the quote body), these are resolved via free type symbols in the quasiquote.
+    Free types are resolved **only within the quasiquote where they were created** — they do not propagate
+    into separately-expanded quasiquotes.
+
+    This means that if a helper method's `Expr.quote` expands into its own quasiquote, and that quasiquote
+    references local type params that come from the outer workaround, those free types will fail to resolve:
 
     ```scala
     // BAD on Scala 2 — "free type variable A" error:
-    def mapBody[A: Type, B: Type](fa: Expr[List[A]], f: Expr[A => B]): Expr[List[B]] =
-      Expr.quote { Expr.splice(fa).map(Expr.splice(f)) } // separate quasiquote!
+    // mapBody's Expr.quote expands into a separate quasiquote
+    def mapBody[A: Type, B: Type](
+      fa: Expr[List[A]], f: Expr[A => B]
+    ): Expr[List[B]] =
+      Expr.quote { Expr.splice(fa).map(Expr.splice(f)) }
 
     Expr.quote {
       def map[A, B](fa: List[A])(f: A => B): List[B] = Expr.splice {
+        // A, B here are free types from the workaround —
+        // they won't resolve inside mapBody's separate quasiquote
         mapBody[A, B](Expr.quote(fa), Expr.quote(f))
       }
     }
     ```
 
-    **Workaround:** Keep `Expr.quote` calls inline in the splice body. Extracted methods can do computation
-    (build strings, create `Expr(...)` values) but must not create their own quasiquotes referencing local
-    type params:
+    **Workaround:** Keep `Expr.quote` calls that reference local type params inline in the splice body.
+    Helper methods can do any non-quoting work (build strings, call `Expr(...)`, apply `Type.Ctor1`, etc.)
+    — only the `Expr.quote` itself needs to stay inline:
 
     ```scala
-    // GOOD — Expr.quote is inline in the splice body:
+    // GOOD — all Expr.quote calls are inline in the splice body:
     Expr.quote {
       def map[A, B](fa: List[A])(f: A => B): List[B] = Expr.splice {
         val faExpr: Expr[List[A]] = Expr.quote(fa)
@@ -960,6 +1031,38 @@ While all of these are inconvenient, they can usually be worked around. The issu
 
     This limitation does not affect Scala 3, where the staging system handles type params natively across
     quote boundaries.
+
+!!! warning "`val` vs `def` for `Expr` values — Quotes scope capture (Scala 3)"
+
+    On Scala 3, every `Expr` is tied to the `Quotes` instance that created it. The cross-quotes plugin
+    injects `given scala.quoted.Quotes = CrossQuotes.ctx` as a **val** (evaluated once), and
+    `CrossQuotes.nestedCtx` dynamically updates the current context when entering splice bodies.
+
+    If you store an `Expr` produced by a Hearth utility (`LambdaBuilder.build`, `ValDefBuilder.build`,
+    etc.) in a **`val`**, the `Expr` is bound to the `Quotes` scope active at that point. When that
+    `Expr` is later spliced inside `Expr.quote` — which enters a nested `Quotes` — the staging system
+    detects a scope mismatch.
+
+    **Use `def` instead of `val`** to re-evaluate the builder each time, picking up the current
+    dynamic `Quotes` context:
+
+    ```scala
+    // BAD — lambda is captured at the outer Quotes scope:
+    val lambda = LambdaBuilder.of1[A, B].map(...).build
+    Expr.quote { Expr.splice(list).map(Expr.splice(lambda)) }
+    // Fails: wrong staging level
+
+    // GOOD — lambda is re-evaluated at the correct scope:
+    def lambda = LambdaBuilder.of1[A, B].map(...).build
+    Expr.quote { Expr.splice(list).map(Expr.splice(lambda)) }
+    // Works: build runs with the nested Quotes context
+    ```
+
+    This is especially subtle when combined with `MIO`: `MIO` is naturally lazy and non-memoizing, so
+    wrapping `Expr`-producing code in `MIO` works correctly. But extracting the result into a `val`
+    (e.g. `val lambda = mio.runSync`) re-introduces the scope capture problem.
+
+    This issue does not affect Scala 2, where `Expr` values are untyped trees without scope tracking.
 
 !!! note "Very deeply nested expressions"
 
