@@ -158,7 +158,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
       *
       * It additionally enables generating flame graphs for benchmarked scopes.
       *
-      * @since 3.0
+      * @since 0.3.0
       */
     final def configureMioBenchmarking(): Unit = {
       val shouldBenchmark = for {
@@ -177,7 +177,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
     /** Returns the flame graph output directory configured via
       * `-Xmacro-settings:hearth.mioBenchmarkFlameGraphDir=<path>`.
       *
-      * @since 3.0
+      * @since 0.3.0
       */
     final def mioBenchmarkFlameGraphDir: Option[String] = for {
       data <- typedSettings.toOption

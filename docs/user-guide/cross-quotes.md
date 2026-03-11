@@ -159,7 +159,7 @@ Type constructors provide `.apply` and `.unapply` methods to create `Type` and m
 
     // We can apply a type to type constructor:
       
-    implicit val optionString: Type[String]
+    implicit val stringType: Type[String]
     val optionString: Type[Option[String]] = optionCtor[String]
 
     // And we can unapply it:
@@ -202,6 +202,11 @@ For type constructors with 2 or more type parameters, you can fix one parameter 
     ```
 
 The `setX` methods use the naming convention where type parameters are named `A`, `B`, `C`, ..., so `setA` fixes the first, `setB` the second, etc.
+
+!!! note "Type ascriptions in the example above"
+
+    The `Either[String, *]` and `Either[*, Int]` type ascriptions use Scala 3 syntax. On Scala 2 these types
+    are inferred but cannot be written using kind-projector placeholder syntax in this position.
 
 !!! tip "Order of partial application"
 
@@ -906,7 +911,7 @@ Since Cross-Quotes rewrites some code into the native macro representations of e
 
  4. **Scala 3's `Type.of[A]` implicit resolution**
 
-    Scala 3's `Type.of[A]` and `'{ ... }: Expr[A]` have no issues picking up the local implicit `Type`s, like Scala 2 does.
+    Scala 3's `Type.of[A]` and `'{ ... }: Expr[A]` do not have the same WeakTypeTag resolution issues as Scala 2.
 
     However, they require that each such implicit is defined as an `implicit val`/parameterless `given`. If obtaining such
     `Type` would involve any sort of implicit resolution, it would be ignored.
@@ -1066,8 +1071,10 @@ While all of these are inconvenient, they can usually be worked around. The issu
 
 !!! note "Very deeply nested expressions"
 
-    Very deeply nested quote-splice-quote chains might hit compiler limits. If you encounter issues,
-    try simplifying the nesting structure.
+    Very deeply nested quote-splice-quote chains might hit Scala 2 scalac parser/typer limits due to
+    the code-printing-and-reparsing pipeline (each nesting level adds quasiquote depth). This is a
+    theoretical rather than observed limit, but if you encounter issues, try simplifying the nesting
+    structure.
 
 ## Debugging
 

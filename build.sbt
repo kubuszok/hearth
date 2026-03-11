@@ -11,9 +11,6 @@ ThisBuild / scalafmtOnCompile := !isCI
 // Used to compile tests against the newest Scala versions, to check for regressions.
 lazy val isNewestScalaTests = sys.env.get("NEWEST_SCALA_TESTS").contains("true")
 
-// Allow munit's Scala 2.13.18 dependency when we compile with 2.13.16 (backwards compatible per SIP-51)
-ThisBuild / allowUnsafeScalaLibUpgrade := true
-
 // Used to publish snapshots to Maven Central.
 val mavenCentralSnapshots = "Maven Central Snapshots" at "https://central.sonatype.com/repository/maven-snapshots"
 
@@ -286,6 +283,8 @@ val scalaNewestSettings = Seq(
 )
 
 val dependencies = Seq(
+  // Allow munit's Scala 2.13.18 dependency when we compile with 2.13.16 (backwards compatible per SIP-51)
+  allowUnsafeScalaLibUpgrade := true,
   libraryDependencies ++= Seq(
     "org.scalameta" %%% "munit" % versions.munit % Test,
     "org.scalacheck" %%% "scalacheck" % versions.scalacheck % Test
@@ -601,7 +600,9 @@ lazy val hearthMunit = projectMatrix
     ),
     // Allow eviction of test-interface for Scala Native (munit requires 0.5.10, scalacheck requires 0.5.8)
     // Since test-interface 0.5.10 is backwards compatible with 0.5.8, we can safely use the newer version
-    evictionErrorLevel := Level.Warn
+    evictionErrorLevel := Level.Warn,
+    // Allow munit's Scala 2.13.18 dependency when we compile with 2.13.16 (backwards compatible per SIP-51)
+    allowUnsafeScalaLibUpgrade := true
   )
   .settings(settings *)
   .settings(versionSchemeSettings *)
@@ -650,7 +651,7 @@ lazy val hearthTests = projectMatrix
     // Allow eviction of test-interface for Scala Native - 0.5.10 is backwards compatible with 0.5.8
     evictionErrorLevel := Level.Warn,
     scalacOptions ++= Seq(
-      // To make sure that we are not silently failing on unspupported trees
+      // To make sure that we are not silently failing on unsupported trees
       "-Xmacro-settings:hearth.betterPrintersShouldFailOnUnsupportedTree=true",
       // To test parsing of scalacOptions
       "-Xmacro-settings:hearth-tests.primitives.int=1024",

@@ -73,4 +73,4 @@ For detailed guidance on each topic, see [Best Practices](best-practices.md) and
 - [ ] Test that user-provided implicits are preferred over derived ones
 - [ ] Test that unsupported types produce clear compile-time error messages with all reasons aggregated
 - [ ] Test that recursive types work transparently — no `lazy val`, no manual instance, no tricks
-- [ ] Test that semiautomatic derivation does not causes infinite recursion
+- [ ] Test that semiautomatic derivation does not cause infinite recursion

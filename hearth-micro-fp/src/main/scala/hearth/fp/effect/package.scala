@@ -46,7 +46,7 @@ package object effect {
         *   reference timestamp from the start of macro expansion
         * @return
         *   Some(json) if there are benchmarked scopes, None otherwise
-        * @since 3.0
+        * @since 0.3.0
         */
       def speedscopeFlameGraph(name: String, macroStart: Log.Timestamp): Option[String] =
         FlameGraph.renderSpeedscope(name, logs, macroStart)
@@ -63,7 +63,7 @@ package object effect {
         *   reference timestamp from the start of macro expansion
         * @return
         *   true if events were written, false otherwise
-        * @since 3.0
+        * @since 0.3.0
         */
       def speedscopeFlameGraphTo(out: java.lang.Appendable, name: String, macroStart: Log.Timestamp): Boolean =
         FlameGraph.renderSpeedscopeTo(out, name, logs, macroStart)

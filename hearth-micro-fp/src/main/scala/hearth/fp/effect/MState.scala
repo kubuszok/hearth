@@ -140,11 +140,11 @@ final case class MState private[effect] (
       startFallback: Log.Timestamp,
       endFallback: Log.Timestamp
   ): Vector[Log] = {
-    var foundInPrevous = false
+    var foundInPrevious = false
     val common = previous.view
       .map {
         case Log.Scope(`name`, nestedPrevious, start, end) =>
-          foundInPrevous = true
+          foundInPrevious = true
           Log.Scope(`name`, recursiveNestedLogsMerge(nestedPrevious, current, name, start, end), start, end)
         case otherwise => otherwise
       }
@@ -160,7 +160,7 @@ final case class MState private[effect] (
       .toVector
     lazy val newPrevious = previous.drop(common.length)
     lazy val newCurrent = current.drop(common.length)
-    if (foundInPrevous) common ++ newPrevious
+    if (foundInPrevious) common ++ newPrevious
     else if (common.isEmpty) newPrevious ++ Vector(Log.Scope(name, newCurrent, startFallback, endFallback))
     else common ++ recursiveNestedLogsMerge(newPrevious, newCurrent, name, startFallback, endFallback)
   }

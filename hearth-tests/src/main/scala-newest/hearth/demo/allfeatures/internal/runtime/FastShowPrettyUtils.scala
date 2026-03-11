@@ -82,10 +82,6 @@ object FastShowPrettyUtils {
     sb
   }
 
-  /** Appends a separator between collection elements. */
-  def appendCollectionSeparator(sb: StringBuilder): StringBuilder =
-    sb.append(", ")
-
   /** Closes a collection rendering with the closing bracket. */
   def closeCollection(sb: StringBuilder): StringBuilder =
     sb.append(")")

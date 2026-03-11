@@ -8,7 +8,7 @@ package effect
   *
   * Requires benchmark timestamps to be present in [[Log.Scope]] entries (i.e. `MIO.benchmarkScopes = true`).
   *
-  * @since 3.0
+  * @since 0.3.0
   */
 object FlameGraph {
 
@@ -43,7 +43,7 @@ object FlameGraph {
     *   the reference timestamp captured at the start of macro expansion; all scope timestamps are relative to this
     * @return
     *   true if events were written, false if there are no benchmarked scopes
-    * @since 3.0
+    * @since 0.3.0
     */
   def renderSpeedscopeTo(out: java.lang.Appendable, name: String, logs: Logs, macroStart: Log.Timestamp): Boolean = {
     val frames = scala.collection.mutable.ArrayBuffer.empty[String]
