@@ -18,7 +18,7 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
       * type tree representations (using `Ident(TypeName("A"))` for free types). The compiler then resolves these by
       * name to the quasiquote's own type params during typechecking.
       *
-      * @since 0.5.0
+      * @since 0.3.0
       */
     def stripFreeTypes(ctx: scala.reflect.macros.blackbox.Context)(expr: ctx.Expr[Any]): ctx.Expr[Any] = {
       import ctx.universe.*

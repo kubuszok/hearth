@@ -10,6 +10,7 @@ target
 
 # Mdocs documentation
 docs/build
+docs/site
 docs/__pycache__
 
 # Scala Metals and BSP

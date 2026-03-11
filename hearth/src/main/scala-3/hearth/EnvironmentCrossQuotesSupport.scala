@@ -10,7 +10,7 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
   private[hearth] trait CrossQuotesSupport { this: CrossQuotes.type =>
 
     // Utilities to convert between Type[A] <=> scala.quoted.Type[A] and Expr[A] <=> scala.quoted.Expr[A].
-    // This is useful because type-inference in compiler plugins is a PITA, and expressing castling like that
+    // This is useful because type-inference in compiler plugins is a PITA, and expressing casting like that
     // allow us to use it.
 
     final inline def typeCrossToQuotes[A](tpe: Type[A]): scala.quoted.Type[A] = tpe.asInstanceOf[scala.quoted.Type[A]]

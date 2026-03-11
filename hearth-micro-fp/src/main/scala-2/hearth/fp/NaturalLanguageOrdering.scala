@@ -137,14 +137,10 @@ final class NaturalLanguageOrdering private (caseSensitive: Boolean) extends Ord
   }
 
   implicit private class CharOps(c: Char) {
-    // @inline
-    // def isDigit2: Boolean = Character.isDigit(c)
     @inline
     def isDigitOrSeparator: Boolean = c.isDigit || c == '.' || c == ',' || c == ':'
     @inline
     def isZero: Boolean = c == '0'
-    // @inline
-    // def isSpaceChar: Boolean = Character.isSpaceChar(c)
     @inline
     def isSpaceOrSeparator: Boolean = c.isSpaceChar || c == '_'
     @inline

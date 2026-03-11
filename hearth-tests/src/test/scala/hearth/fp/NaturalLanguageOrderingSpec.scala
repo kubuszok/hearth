@@ -58,7 +58,7 @@ final class NaturalLanguageOrderingSpec extends MacroSuite {
     test("handles leading zeroes correctly") {
       val ord = NaturalLanguageOrdering.caseInsensitive
       // numbers are equal but different leading zeroes
-      assert(ord.compare("01", "1") != 0 || ord.compare("01", "1") == 0, "leading zeroes comparison should not crash")
+      ord.compare("01", "1") // should not crash
     }
 
     test("does not crash when one string has trailing zero and other does not") {

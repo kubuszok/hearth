@@ -83,13 +83,12 @@ private[hearth] object platformSpecificServiceLoader extends platformSpecificSer
     def apply[A](value: => A): Tried[A] = Try(value).toEither
   }
 
-  // Caches previous results within the same class loader (compilation unit).
+  // Caches previous results within the same compilation ClassLoader.
   //
-  // We use WeakHashMap keyed on ClassLoader (not Class) because Class objects loaded by short-lived
-  // classloaders (common in sbt/compiler plugin contexts) can be garbage collected between macro
-  // expansions, defeating the cache. The ClassLoader stays alive for the entire compilation unit,
-  // so keying on it ensures the cache persists throughout. String class names are used as inner keys
-  // since they are stable and won't be collected.
+  // Keying on ClassLoader (not Class) provides correct cache scoping: all services loaded from the
+  // same compilation ClassLoader share one cache entry, and the WeakHashMap allows cleanup when the
+  // ClassLoader is GC'd between compilation units. String class names are used as inner keys since
+  // they are stable and won't be collected.
 
   private val serviceLoadersByClassLoader =
     new java.util.WeakHashMap[ClassLoader, java.util.HashMap[String, Tried[ServiceLoader[?]]]]()
