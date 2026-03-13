@@ -1334,14 +1334,18 @@ and recombines them afterwards (via `join`). This is correct for truly independe
 However, for inherently shared/global state — like caches or deduplication maps — fork/join semantics cause problems:
 each branch independently builds the same entry, then `join` must reconcile duplicates.
 
-`MLocal.unsafeSharedParallel(initial)` creates a shared-state local where parallel branches see each other's
+`MLocal.unsafeSharedParallel(initial)(join)` creates a shared-state local where parallel branches see each other's
 modifications sequentially: branch B sees branch A's writes, branch C sees both, etc.
+
+A `join` function is still required because it is used both by `parMap2` (to combine branch results) and internally
+by `MIO`'s direct-style machinery. With shared-parallel fork semantics, branch B already includes branch A's writes,
+so `join` typically just needs to combine any independently-added entries (e.g. a cache merge).
 
 ```scala
 import hearth.fp.effect.*
 
 // Shared cache — parallel branches accumulate into the same map
-val cache = MLocal.unsafeSharedParallel(Map.empty[String, Int])
+val cache = MLocal.unsafeSharedParallel(Map.empty[String, Int])(_ ++ _)
 
 val branchA = cache.get.flatMap(m => cache.set(m.updated("a", 1)))
 val branchB = cache.get.flatMap(m => cache.set(m.updated("b", 2)))
