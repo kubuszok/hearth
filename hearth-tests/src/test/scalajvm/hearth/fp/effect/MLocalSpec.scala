@@ -62,7 +62,7 @@ final class MLocalSpec extends ScalaCheckSuite {
   group("MLocal.unsafeSharedParallel") {
 
     test("sequential semantics unchanged") {
-      val shared = MLocal.unsafeSharedParallel(0)
+      val shared = MLocal.unsafeSharedParallel(0)((_, b) => b)
 
       val program = for {
         _ <- shared.set(1)
@@ -74,7 +74,7 @@ final class MLocalSpec extends ScalaCheckSuite {
     }
 
     test("branch B sees branch A's writes") {
-      val shared = MLocal.unsafeSharedParallel(0)
+      val shared = MLocal.unsafeSharedParallel(0)((_, b) => b)
 
       val branchA = shared.set(42)
       val branchB = shared.get
@@ -86,7 +86,7 @@ final class MLocalSpec extends ScalaCheckSuite {
     }
 
     test("latest write wins after join") {
-      val shared = MLocal.unsafeSharedParallel(0)
+      val shared = MLocal.unsafeSharedParallel(0)((_, b) => b)
 
       val branchA = shared.set(1)
       val branchB = shared.set(2)
@@ -100,7 +100,7 @@ final class MLocalSpec extends ScalaCheckSuite {
     test("no fork applied") {
       // For a regular MLocal, fork would transform the value.
       // For shared, the value should pass through unchanged.
-      val shared = MLocal.unsafeSharedParallel(100)
+      val shared = MLocal.unsafeSharedParallel(100)((_, b) => b)
 
       val branchA = shared.get
       val branchB = shared.get
@@ -114,7 +114,7 @@ final class MLocalSpec extends ScalaCheckSuite {
     }
 
     test("mixed shared + forked locals") {
-      val shared = MLocal.unsafeSharedParallel(0)
+      val shared = MLocal.unsafeSharedParallel(0)((_, b) => b)
       val forked = MLocal(0)(identity)(_ + _)
 
       val branchA = shared.set(10) >> forked.get.flatMap(a => forked.set(a + 1))
@@ -132,7 +132,7 @@ final class MLocalSpec extends ScalaCheckSuite {
     }
 
     test("nested parMap2") {
-      val shared = MLocal.unsafeSharedParallel(0)
+      val shared = MLocal.unsafeSharedParallel(0)((_, b) => b)
 
       val innerA = shared.get.flatMap(v => shared.set(v + 1))
       val innerB = shared.get.flatMap(v => shared.set(v + 10))
@@ -148,7 +148,7 @@ final class MLocalSpec extends ScalaCheckSuite {
     }
 
     test("map accumulation across branches") {
-      val shared = MLocal.unsafeSharedParallel(Map.empty[String, Int])
+      val shared = MLocal.unsafeSharedParallel(Map.empty[String, Int])(_ ++ _)
 
       val branchA = shared.get.flatMap(m => shared.set(m.updated("a", 1)))
       val branchB = shared.get.flatMap(m => shared.set(m.updated("b", 2)))
@@ -160,7 +160,7 @@ final class MLocalSpec extends ScalaCheckSuite {
     }
 
     test("works with .scoped (DirectStyle)") {
-      val shared = MLocal.unsafeSharedParallel(0)
+      val shared = MLocal.unsafeSharedParallel(0)((_, b) => b)
 
       val program = for {
         _ <- MIO.scoped { runSafe =>
@@ -173,7 +173,7 @@ final class MLocalSpec extends ScalaCheckSuite {
     }
 
     test("untouched shared local preserves value") {
-      val shared = MLocal.unsafeSharedParallel(99)
+      val shared = MLocal.unsafeSharedParallel(99)((_, b) => b)
 
       val branchA = MIO(1)
       val branchB = MIO(2)
@@ -184,7 +184,7 @@ final class MLocalSpec extends ScalaCheckSuite {
     }
 
     test("error aggregation still works") {
-      val shared = MLocal.unsafeSharedParallel(0)
+      val shared = MLocal.unsafeSharedParallel(0)((_, b) => b)
       val errors = MLocal(Vector.empty[String])(identity)(_ ++ _)
 
       val branchA = for {
@@ -203,7 +203,7 @@ final class MLocalSpec extends ScalaCheckSuite {
     }
 
     test("branch B reads shared local that A created and modified") {
-      val shared = MLocal.unsafeSharedParallel(0)
+      val shared = MLocal.unsafeSharedParallel(0)((_, b) => b)
 
       // Neither branch has set the value before parMap2.
       // A initializes it, B should see A's value.
@@ -216,7 +216,7 @@ final class MLocalSpec extends ScalaCheckSuite {
     }
 
     test("chained parMap2 with shared local accumulation") {
-      val shared = MLocal.unsafeSharedParallel(Map.empty[String, Int])
+      val shared = MLocal.unsafeSharedParallel(Map.empty[String, Int])(_ ++ _)
 
       def addEntry(key: String, value: Int): MIO[Unit] =
         shared.get.flatMap(m => shared.set(m.updated(key, value)))

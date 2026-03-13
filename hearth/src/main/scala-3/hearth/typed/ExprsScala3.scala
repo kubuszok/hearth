@@ -3423,7 +3423,13 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
   final class ValDefsCache private[typed] (val definitions: ListMap[ValDefsCache.Key, ValDefsCache.Value]) {
 
     private[typed] def forwardDeclare(key: ValDefsCache.Key, signature: Any): ValDefsCache =
-      new ValDefsCache(definitions.updated(key, new ValDefsCache.Value(signature, None)))
+      definitions.get(key) match {
+        case Some(existing) if existing.definition.isDefined =>
+          // Key already fully built (e.g. by a previous parallel branch with shared semantics). Skip.
+          this
+        case _ =>
+          new ValDefsCache(definitions.updated(key, new ValDefsCache.Value(signature, None)))
+      }
 
     private[typed] def set(
         key: ValDefsCache.Key,

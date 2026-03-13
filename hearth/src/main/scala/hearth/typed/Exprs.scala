@@ -1074,7 +1074,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def empty: ValDefsCache
 
-    def mlocal: fp.effect.MLocal[ValDefsCache] = fp.effect.MLocal.unsafeSharedParallel(empty)
+    def mlocal: fp.effect.MLocal[ValDefsCache] = fp.effect.MLocal.unsafeSharedParallel(empty)(merge)
 
     /** Merges two caches. Available for manual cache merging, but no longer used by default for parallel branches.
       *

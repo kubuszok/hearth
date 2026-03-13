@@ -100,14 +100,10 @@ final case class MState private[effect] (
       handleLocalsCasting(locals1.keySet, locals2.keySet) {
         _.map { local =>
           (locals1.get(local), locals2.get(local)) match {
-            case (Some(a), Some(b)) =>
-              if (local.asInstanceOf[MLocal[Any]].isShared)
-                local -> Ordering[Value].max(a, b) // latest version wins
-              else
-                local -> Value(local.join(a.value, b.value), local.nextVersion)
-            case (Some(a), None) => local -> a
-            case (None, Some(b)) => local -> b
-            case (None, None)    => local -> Value(local.initial, local.nextVersion)
+            case (Some(a), Some(b)) => local -> Value(local.join(a.value, b.value), local.nextVersion)
+            case (Some(a), None)    => local -> a
+            case (None, Some(b))    => local -> b
+            case (None, None)       => local -> Value(local.initial, local.nextVersion)
           }
         }.toMap
       }
