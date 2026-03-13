@@ -174,6 +174,35 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         .fold(errors => Expr(s"<failed to construct: ${errors.mkString(", ")}>"), identity)
     }
 
+  /** Diagnostic method for issue #226: reports type info for enum children.
+    *
+    * For each child of an enum, reports:
+    *   - child name and type
+    *   - whether it's a val, object, case class
+    *   - what singletonOf produces
+    */
+  def testDependentEnumDiagnostic[A: Type]: Expr[String] = Expr {
+    Enum.parse[A].toOption.fold("<no enum>") { enumm =>
+      val childInfo = enumm.directChildren.toList.map { case (name, child) =>
+        import child.Underlying as A0
+        val isVal = Type.isVal[A0]
+        val isObject = Type.isObject[A0]
+        val isCaseClass = Type.isCaseClass[A0]
+        val isCaseObject = Type.isCaseObject[A0]
+        val isCaseVal = Type.isCaseVal[A0]
+        val singletonExpr = Expr.singletonOf[A0]
+        val hasSingleton = singletonExpr.isDefined
+        val singletonPrint = singletonExpr.fold("<none>")(_.plainPrint)
+        val typePrint = Type.plainPrint[A0]
+        val prettyPrint = Type.prettyPrint[A0]
+        s"child=$name: type=$typePrint, pretty=$prettyPrint, isVal=$isVal, isObject=$isObject, " +
+          s"isCaseClass=$isCaseClass, isCaseObject=$isCaseObject, isCaseVal=$isCaseVal, " +
+          s"hasSingleton=$hasSingleton, singletonPrint=$singletonPrint"
+      }
+      childInfo.mkString("\n")
+    }
+  }
+
   def testCaseClassDefaultValues[A: Type]: Expr[String] = Expr {
     CaseClass.parse[A].toOption.fold("<no case class>") { caseClass =>
       caseClass.primaryConstructor.parameters.flatten.toList
