@@ -782,19 +782,16 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
     )
   }
 
-  /** Reproduction for ValDefsCache merge bug with parMap2.
+  /** Test for ValDefsCache shared-parallel semantics with parMap2.
     *
-    * When two branches of parMap2 both call buildCachedWith with the same key using independently-created
-    * ValDefBuilder.ofLazy instances, the merge fails because each ofLazy generates a fresh TermName resulting in
-    * different signature Expr objects. The merge function compares signatures with != (reference equality for Expr) and
-    * throws "already exists with different signature".
+    * With `MLocal.unsafeSharedParallel`, the ValDefsCache is shared across parallel branches:
+    *   - Branch A builds the cached entry (via `buildCachedWith`)
+    *   - Branch B sees branch A's entry already in the cache (via shared state)
+    *   - The idempotent `set` in ValDefsCache skips the update if the key is already fully built
+    *   - No duplicate definitions, no `$$dup$$` keys — single `lazy val` in the output
     *
-    * This reproduces the bug seen in kindlings cats-derivation when deriving type classes for enums: parMatchOn
-    * processes each enum child independently, and if two children share a field type (e.g. Double), both branches
-    * independently summon/cache the same type class instance, triggering the merge failure.
-    *
-    * Once fixed, this should compile and return Data(42). Currently fails at compile time with: "Def with key ...
-    * already exists with different signature"
+    * Previously, with fork/join semantics, each branch independently created a fresh TermName, which required the
+    * `$$dup$$` workaround in merge to keep both definitions.
     */
   @scala.annotation.nowarn
   def testValDefsCacheParMap2MergeBug: Expr[Data] = {
@@ -802,8 +799,8 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
 
     val cacheLocal = ValDefsCache.mlocal
 
-    // Simulate two enum branches that both need to cache a lazy val for the same type.
-    // Each branch independently creates a ValDefBuilder.ofLazy, which generates a fresh TermName.
+    // Both branches build the same cached lazy val. With shared-parallel semantics,
+    // branch B sees branch A's entry and the idempotent `set` skips the duplicate build.
     val branchA: MIO[Expr[Int]] = for {
       _ <- cacheLocal.buildCachedWith("shared-lazy-int", ValDefBuilder.ofLazy[Int]("lazyInt"))(_ => Expr.quote(42))
       value <- cacheLocal.get0Ary[Int]("shared-lazy-int").map(_.fold(runtimeFail[Int])(identity))
@@ -814,8 +811,7 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
       value <- cacheLocal.get0Ary[Int]("shared-lazy-int").map(_.fold(runtimeFail[Int])(identity))
     } yield value
 
-    // parMap2 forks MLocal state: both branches start from the same (empty) cache,
-    // independently add "shared-lazy-int" with different signatures, then merge fails on join.
+    // With shared-parallel: branch B sees A's cache, idempotent set skips duplicate, single lazy val in output.
     val result = for {
       values <- branchA.parMap2(branchB)((a, b) => (a, b))
       cache <- cacheLocal.get

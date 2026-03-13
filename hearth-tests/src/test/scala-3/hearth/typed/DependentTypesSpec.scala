@@ -7,14 +7,12 @@ import hearth.data.Data
   *
   * Reproduces https://github.com/MateuszKubuszok/hearth/issues/226
   *
-  * The core issue is that for inner/dependent enum parameterless cases,
-  * `Ident(sym.termRef)` produces `InnerEnum.this.Qux` — a `this` reference
-  * valid only inside the defining scope. The fix: use `Ref(sym)` which produces
-  * a fully qualified path valid at any call site.
+  * The core issue is that for inner/dependent enum parameterless cases, `Ident(sym.termRef)` produces
+  * `InnerEnum.this.Qux` — a `this` reference valid only inside the defining scope. The fix: use `Ref(sym)` which
+  * produces a fully qualified path valid at any call site.
   *
-  * Inner types are defined in the companion object to avoid Scala 3's
-  * "missing outer accessor" limitation with inline macros expanding inside
-  * a class that has inner types.
+  * Inner types are defined in the companion object to avoid Scala 3's "missing outer accessor" limitation with inline
+  * macros expanding inside a class that has inner types.
   */
 object DependentTypesSpec {
 

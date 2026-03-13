@@ -76,13 +76,20 @@ final case class MState private[effect] (
     else
       handleLocalsCasting(locals.keySet, explicitlyRewind.locals.keySet) {
         _.map { local =>
-          locals.get(local) match {
-            case Some(a) => local -> Value(local.asInstanceOf[MLocal[Any]].fork(a.value), local.nextVersion)
-            case None    =>
-              local -> Value(
-                local.initial,
-                local.nextVersion
-              ) // We do this so that None won't fall back on value from another computation.
+          if (local.asInstanceOf[MLocal[Any]].isShared) {
+            // Shared: take latest value without forking. Prefer explicitlyRewind (branch A's result).
+            val fromRewind = explicitlyRewind.locals.get(local.asInstanceOf[MLocal[?]])
+            val fromCurrent = locals.get(local.asInstanceOf[MLocal[?]])
+            local -> (fromRewind orElse fromCurrent).getOrElse(Value(local.initial, local.nextVersion))
+          } else {
+            locals.get(local.asInstanceOf[MLocal[?]]) match {
+              case Some(a) => local -> Value(local.asInstanceOf[MLocal[Any]].fork(a.value), local.nextVersion)
+              case None    =>
+                local -> Value(
+                  local.initial,
+                  local.nextVersion
+                ) // We do this so that None won't fall back on value from another computation.
+            }
           }
         }.toMap
       }
@@ -93,10 +100,14 @@ final case class MState private[effect] (
       handleLocalsCasting(locals1.keySet, locals2.keySet) {
         _.map { local =>
           (locals1.get(local), locals2.get(local)) match {
-            case (Some(a), Some(b)) => local -> Value(local.join(a.value, b.value), local.nextVersion)
-            case (Some(a), None)    => local -> a
-            case (None, Some(b))    => local -> b
-            case (None, None)       => local -> Value(local.initial, local.nextVersion)
+            case (Some(a), Some(b)) =>
+              if (local.asInstanceOf[MLocal[Any]].isShared)
+                local -> Ordering[Value].max(a, b) // latest version wins
+              else
+                local -> Value(local.join(a.value, b.value), local.nextVersion)
+            case (Some(a), None) => local -> a
+            case (None, Some(b)) => local -> b
+            case (None, None)    => local -> Value(local.initial, local.nextVersion)
           }
         }.toMap
       }

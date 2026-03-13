@@ -1074,25 +1074,23 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def empty: ValDefsCache
 
-    def mlocal: fp.effect.MLocal[ValDefsCache] = fp.effect.MLocal(empty)(identity)(merge)
+    def mlocal: fp.effect.MLocal[ValDefsCache] = fp.effect.MLocal.unsafeSharedParallel(empty)
 
-    /** Merges two caches, typically called when joining parallel branches (e.g. [[fp.effect.MIO.parMap2]]).
+    /** Merges two caches. Available for manual cache merging, but no longer used by default for parallel branches.
       *
-      * ==Duplicate key handling with different signatures==
+      * Since `mlocal` now uses [[fp.effect.MLocal.unsafeSharedParallel]], parallel branches share state directly:
+      * branch B sees branch A's writes, and the idempotent `set` method skips entries that are already fully built.
+      * This eliminates the need for merge-time reconciliation of duplicate entries in the standard
+      * `parMap2`/`parMatchOn` workflow.
       *
-      * When two parallel branches (e.g. via `parMap2`/`parMatchOn`) both call `buildCachedWith` for the same key using
-      * independently-created [[ValDefBuilder]] instances (e.g. `ValDefBuilder.ofLazy`), each branch generates a fresh
-      * `TermName`, resulting in different signature objects. Each branch's result code references its own term name.
+      * ==Legacy: duplicate key handling with different signatures==
       *
-      * Rather than failing, merge keeps '''both''' definitions: the primary under the original key, and the secondary
-      * under a synthetic alias key (`"originalName$$dup$$N"`). This ensures that `toValDefs` emits both val/def
-      * declarations, so references from both branches remain valid in the generated code. The trade-off is a duplicate
-      * definition in the output (two `lazy val`s computing the same thing), but correctness is preserved.
-      *
-      * '''Example''': `parMatchOn` over enum children where two children share a field type (e.g. `Double`). Both
-      * branches independently summon and cache a type class instance for `Double`. With sequential `matchOn`, the
-      * second child would find the instance already in the cache. With `parMatchOn`, both branches start from the same
-      * (pre-fork) cache, independently create entries, and merge reconciles them by keeping both.
+      * When used with fork/join semantics (the previous default), two parallel branches could independently call
+      * `buildCachedWith` for the same key using fresh [[ValDefBuilder]] instances, each generating a different
+      * `TermName`. Rather than failing, merge keeps '''both''' definitions: the primary under the original key, and the
+      * secondary under a synthetic alias key (`"originalName$$dup$$N"`). This ensures that `toValDefs` emits both
+      * val/def declarations so references from both branches remain valid. This path is retained for backwards
+      * compatibility and for any custom `MLocal` configurations that still use fork/join semantics.
       */
     def merge(cache1: ValDefsCache, cache2: ValDefsCache): ValDefsCache
 
