@@ -17,7 +17,8 @@ package effect
 final class MLocal[A] private (
     private[effect] val initial: A,
     private[effect] val fork: A => A,
-    private[effect] val join: (A, A) => A
+    private[effect] val join: (A, A) => A,
+    private[effect] val isShared: Boolean
 ) {
 
   def get: MIO[A] = MIO.get(this)
@@ -44,5 +45,22 @@ object MLocal {
     * @since 0.1.0
     */
   def apply[A](initial: A)(fork: A => A)(join: (A, A) => A): MLocal[A] =
-    new MLocal(initial, fork, join)
+    new MLocal(initial, fork, join, isShared = false)
+
+  /** Creates a new [[MLocal]] with shared-parallel semantics.
+    *
+    * Unlike the standard [[MLocal]], which forks state for each parallel branch and joins the results, a shared
+    * [[MLocal]] passes the same state sequentially through all branches: branch B sees branch A's writes, branch C sees
+    * both, etc.
+    *
+    * This is useful for caches and deduplication maps where parallel branches should see each other's entries rather
+    * than independently building duplicate state.
+    *
+    * '''Unsafe''' because it breaks branch independence — the second branch depends on the first branch's execution
+    * order. Not suitable for state where fork isolation matters (error counters, independent accumulators, etc.).
+    *
+    * @since 0.9.0
+    */
+  def unsafeSharedParallel[A](initial: A): MLocal[A] =
+    new MLocal(initial, fork = identity, join = (_, b) => b, isShared = true)
 }

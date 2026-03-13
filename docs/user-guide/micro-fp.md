@@ -1326,6 +1326,39 @@ with nanosecond precision, recording open/close events for each named scope rela
     // Left(value = NonEmptyVector(head = java.lang.ArithmeticException: / by zero, tail = Vector()))
     ```
 
+### Shared Parallel State (`MLocal.unsafeSharedParallel`)
+
+The standard `MLocal(initial)(fork)(join)` gives each parallel branch an independent copy of the state (via `fork`)
+and recombines them afterwards (via `join`). This is correct for truly independent state like error accumulators.
+
+However, for inherently shared/global state — like caches or deduplication maps — fork/join semantics cause problems:
+each branch independently builds the same entry, then `join` must reconcile duplicates.
+
+`MLocal.unsafeSharedParallel(initial)` creates a shared-state local where parallel branches see each other's
+modifications sequentially: branch B sees branch A's writes, branch C sees both, etc.
+
+```scala
+import hearth.fp.effect.*
+
+// Shared cache — parallel branches accumulate into the same map
+val cache = MLocal.unsafeSharedParallel(Map.empty[String, Int])
+
+val branchA = cache.get.flatMap(m => cache.set(m.updated("a", 1)))
+val branchB = cache.get.flatMap(m => cache.set(m.updated("b", 2)))
+
+// B sees A's writes: final map has both entries
+val program = branchA.parMap2(branchB)((_, _) => ()) >> cache.get
+// result: Right(Map("a" -> 1, "b" -> 2))
+```
+
+**When to use**: caches, deduplication, counters that must be globally consistent.
+
+**When NOT to use**: anything where branches need independent copies — use the standard
+`MLocal(init)(fork)(join)` for that.
+
+**Why "unsafe"**: breaks branch independence — the second branch depends on the first branch's execution order.
+Not suitable for state where fork isolation matters.
+
 ### Integration with Type Classes
 
 `MIO` implements all the type classes discussed earlier, making it easy to integrate with existing functional programming patterns:

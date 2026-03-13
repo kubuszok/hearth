@@ -2108,16 +2108,20 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     private[typed] def forwardDeclare(key: ValDefsCache.Key, signature: Any): ValDefsCache =
       new ValDefsCache(definitions.updated(key, new ValDefsCache.Value(signature, None)))
 
-    private[typed] def set(key: ValDefsCache.Key, signature: Any, definition: ValOrDefDef): ValDefsCache = {
-      // $COVERAGE-OFF$
-      if (definitions.get(key).exists(_.signature != signature)) {
-        hearthRequirementFailed(
-          s"Def with key $key already exists with different signature, you probably created it twice in 2 branches, without noticing"
-        )
+    private[typed] def set(key: ValDefsCache.Key, signature: Any, definition: ValOrDefDef): ValDefsCache =
+      definitions.get(key) match {
+        case Some(existing) if existing.definition.isDefined =>
+          // Key already fully built (e.g. by a previous parallel branch with shared semantics). Skip.
+          this
+        case Some(existing) if existing.signature != signature =>
+          // $COVERAGE-OFF$
+          hearthRequirementFailed(
+            s"Def with key $key already exists with different signature, you probably created it twice in 2 branches, without noticing"
+          )
+        // $COVERAGE-ON$
+        case _ =>
+          new ValDefsCache(definitions.updated(key, new ValDefsCache.Value(signature, Some(definition))))
       }
-      // $COVERAGE-ON$
-      new ValDefsCache(definitions.updated(key, new ValDefsCache.Value(signature, Some(definition))))
-    }
 
     private[typed] def get[Signature](key: ValDefsCache.Key): Option[Signature] =
       definitions.get(key).map(_.signature.asInstanceOf[Signature])
@@ -2156,15 +2160,15 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       val result = keys.toSeq.flatMap { key =>
         (cache1.definitions.get(key), cache2.definitions.get(key)) match {
           case (Some(value1), Some(value2)) if value1.signature != value2.signature =>
-            // Parallel branches independently created this entry with different signatures.
-            // This happens when e.g. parMatchOn branches each call ValDefBuilder.ofLazy for the same cache key:
-            // each ofLazy generates a fresh TermName, so the signatures (Expr references) differ.
+            // Legacy path: with fork/join MLocal semantics, parallel branches independently created this
+            // entry with different signatures (each ofLazy generates a fresh TermName). With the current
+            // MLocal.unsafeSharedParallel default, this path should not be triggered because branch B sees
+            // branch A's entry and the idempotent `set` skips duplicate builds. Retained for backwards
+            // compatibility and custom MLocal configurations.
             //
-            // We must keep BOTH definitions because each branch's result code already references its own
-            // TermName. Dropping either definition would leave dangling references in the generated code.
+            // We keep BOTH definitions because each branch's result code references its own TermName.
             // The secondary entry is stored under a synthetic alias key ("name$dup$N") so that toValDefs
-            // emits both declarations. The alias key uses a different name so it won't collide with or
-            // shadow the primary entry in cache lookups (get0Ary etc.).
+            // emits both declarations.
             val (primary, secondary) =
               if (value1.definition.isEmpty && value2.definition.isDefined)
                 (value2, value1)
