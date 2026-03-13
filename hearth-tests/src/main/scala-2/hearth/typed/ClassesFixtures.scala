@@ -24,6 +24,9 @@ final private class ClassesFixtures(val c: blackbox.Context) extends MacroCommon
   def testEnumMatchOnAndParMatchOnImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] =
     testEnumMatchOnAndParMatchOn[A](expr)
 
+  def testDependentEnumDiagnosticImpl[A: c.WeakTypeTag]: c.Expr[String] =
+    testDependentEnumDiagnostic[A]
+
   def testCaseClassDefaultValuesImpl[A: c.WeakTypeTag]: c.Expr[String] =
     testCaseClassDefaultValues[A]
 
@@ -59,6 +62,9 @@ object ClassesFixtures {
   def testCaseClassCaseFieldValuesAt[A](expr: A): String = macro ClassesFixtures.testCaseClassCaseFieldValuesAtImpl[A]
 
   def testEnumMatchOnAndParMatchOn[A](expr: A): String = macro ClassesFixtures.testEnumMatchOnAndParMatchOnImpl[A]
+
+  def testDependentEnumDiagnostic[A]: String =
+    macro ClassesFixtures.testDependentEnumDiagnosticImpl[A]
 
   def testCaseClassDefaultValues[A]: String =
     macro ClassesFixtures.testCaseClassDefaultValuesImpl[A]

@@ -85,5 +85,37 @@ final class ExprsScala3Spec extends MacroSuite {
         )
       }
     }
+
+    group("type MatchCase for Scala 3 enums") {
+
+      test("method MatchCase.typeMatch should work with Scala 3 enum") {
+        import ExprsFixtures.testMatchCaseTypeMatch
+
+        def expand(example: examples.ExampleEnum): Data = testMatchCaseTypeMatch(example)
+
+        expand(examples.ExampleEnum.ExampleEnumClass(1)).toString.contains("ExampleEnumClass") ==> true
+        expand(examples.ExampleEnum.ExampleEnumValue).toString.contains("ExampleEnumValue") ==> true
+      }
+
+      test("method MatchCase.eqValueSingleton should work with Scala 3 enum parameterless case") {
+        import ExprsFixtures.testMatchCaseEqValueSingleton
+
+        @scala.annotation.nowarn
+        def run = testMatchCaseEqValueSingleton[examples.ExampleEnum.ExampleEnumValue.type] <==> Data.map(
+          "singletonOf" -> Data("found"),
+          "matched" -> Data("matched")
+        )
+        run
+      }
+
+      test("method Expr.singletonOf should work for Scala 3 enum children via directChildren") {
+        import ExprsFixtures.testChildrenSingletonOf
+
+        testChildrenSingletonOf[examples.ExampleEnum] <==> Data.map(
+          "ExampleEnumClass" -> Data("none"),
+          "ExampleEnumValue" -> Data("found")
+        )
+      }
+    }
   }
 }

@@ -154,7 +154,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       if sym.flags.is(Flags.Module) then Some(Ref(sym.companionModule).asExprOf[A])
       else if !termSym.isNoSymbol then Some(Ref(termSym).asExprOf[A])
       else if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(Flags.StableRealizable))
-      then Some(Ident(sym.termRef).asExprOf[A])
+      then Some(Ref(sym).asExprOf[A])
       else None
     }
 
@@ -679,7 +679,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(Flags.StableRealizable)) then
             // Scala 3's enums' parameterless cases are vals with type erased, so we have to match them by value
             // case arg @ Enum.Value => ...
-            CaseDef(Bind(name, Ident(sym.termRef)), None, body)
+            CaseDef(Bind(name, Ref(sym)), None, body)
             // case arg : Enum.Value => ...
             else CaseDef(Bind(name, Typed(Wildcard(), TypeTree.of[Matched])), None, body)
 
@@ -699,10 +699,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
               case _            =>
                 val sym = TypeRepr.of[ValueType].typeSymbol
                 val termSym = TypeRepr.of[ValueType].termSymbol
-                if sym.flags.is(Flags.Module) then CaseDef(Bind(name, Ident(sym.companionModule.termRef)), None, body)
+                if sym.flags.is(Flags.Module) then CaseDef(Bind(name, Ref(sym.companionModule)), None, body)
                 else if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(
                   Flags.StableRealizable
-                )) then CaseDef(Bind(name, Ident(sym.termRef)), None, body)
+                )) then CaseDef(Bind(name, Ref(sym)), None, body)
                 else if !termSym.isNoSymbol then CaseDef(Bind(name, valueTerm), None, body)
                 else {
                   val eqMethod = TypeRepr.of[Any].typeSymbol.methodMember("==").head
