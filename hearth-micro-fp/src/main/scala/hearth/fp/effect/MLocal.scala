@@ -12,24 +12,40 @@ package effect
   *   - when using the "parallel" semantics ([[MIO.parMap2]], [[MIO.parTuple]]), we are able to modify value for each
   *     "fiber", and provide a reasonable way of combining values from 2 different "fibers" back into a single value
   *
+  * There are two variants:
+  *   - [[MLocal.ForkJoinParallel]] — each parallel branch gets an independent copy via `fork`, results are combined
+  *     with `join`
+  *   - [[MLocal.SequentialOnParallel]] — parallel branches share the same state sequentially (branch B sees branch A's
+  *     writes)
+  *
   * @since 0.1.0
   */
-final class MLocal[A] private (
-    private[effect] val initial: A,
-    private[effect] val fork: A => A,
-    private[effect] val join: (A, A) => A,
-    private[effect] val isShared: Boolean
-) {
+sealed trait MLocal[A] extends Product with Serializable {
+
+  private[effect] val initial: A
 
   def get: MIO[A] = MIO.get(this)
 
   def set(a: A): MIO[Unit] = MIO.set(this, a)
-
-  private val version = new java.util.concurrent.atomic.AtomicLong(1L)
-  private[effect] def nextVersion: Long = version.getAndIncrement()
 }
 
 object MLocal {
+
+  final private[effect] case class ForkJoinParallel[A](
+      initial: A,
+      fork: A => A,
+      join: (A, A) => A
+  ) extends MLocal[A] {
+    private val version = new java.util.concurrent.atomic.AtomicLong(1L)
+    private[effect] def nextVersion: Long = version.getAndIncrement()
+  }
+
+  final private[effect] case class SequentialOnParallel[A](
+      initial: A
+  ) extends MLocal[A] {
+    private val version = new java.util.concurrent.atomic.AtomicLong(1L)
+    private[effect] def nextVersion: Long = version.getAndIncrement()
+  }
 
   /** Creates a new [[MLocal]] value - each value, even if initialized the same way! - would be a separate instance.
     *
@@ -45,7 +61,7 @@ object MLocal {
     * @since 0.1.0
     */
   def apply[A](initial: A)(fork: A => A)(join: (A, A) => A): MLocal[A] =
-    new MLocal(initial, fork, join, isShared = false)
+    new ForkJoinParallel(initial, fork, join)
 
   /** Creates a new [[MLocal]] with shared-parallel semantics.
     *
@@ -63,8 +79,8 @@ object MLocal {
     * '''Unsafe''' because it breaks branch independence — the second branch depends on the first branch's execution
     * order. Not suitable for state where fork isolation matters (error counters, independent accumulators, etc.).
     *
-    * @since 0.9.0
+    * @since 0.3.0
     */
-  def unsafeSharedParallel[A](initial: A)(join: (A, A) => A): MLocal[A] =
-    new MLocal(initial, fork = identity, join = join, isShared = true)
+  def unsafeSharedParallel[A](initial: A): MLocal[A] =
+    new SequentialOnParallel(initial)
 }

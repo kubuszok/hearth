@@ -787,11 +787,8 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
     * With `MLocal.unsafeSharedParallel`, the ValDefsCache is shared across parallel branches:
     *   - Branch A builds the cached entry (via `buildCachedWith`)
     *   - Branch B sees branch A's entry already in the cache (via shared state)
-    *   - The idempotent `set` in ValDefsCache skips the update if the key is already fully built
-    *   - No duplicate definitions, no `$$dup$$` keys — single `lazy val` in the output
-    *
-    * Previously, with fork/join semantics, each branch independently created a fresh TermName, which required the
-    * `$$dup$$` workaround in merge to keep both definitions.
+    *   - Branch B checks the cache before building, finds it, and reuses it
+    *   - No duplicate definitions — single `lazy val` in the output
     */
   @scala.annotation.nowarn
   def testValDefsCacheParMap2MergeBug: Expr[Data] = {
@@ -799,19 +796,28 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
 
     val cacheLocal = ValDefsCache.mlocal
 
-    // Both branches build the same cached lazy val. With shared-parallel semantics,
-    // branch B sees branch A's entry and the idempotent `set` skips the duplicate build.
+    // Branch A builds the cached lazy val.
     val branchA: MIO[Expr[Int]] = for {
       _ <- cacheLocal.buildCachedWith("shared-lazy-int", ValDefBuilder.ofLazy[Int]("lazyInt"))(_ => Expr.quote(42))
       value <- cacheLocal.get0Ary[Int]("shared-lazy-int").map(_.fold(runtimeFail[Int])(identity))
     } yield value
 
+    // Branch B checks the cache first — with shared-parallel semantics, it sees branch A's entry.
     val branchB: MIO[Expr[Int]] = for {
-      _ <- cacheLocal.buildCachedWith("shared-lazy-int", ValDefBuilder.ofLazy[Int]("lazyInt"))(_ => Expr.quote(42))
-      value <- cacheLocal.get0Ary[Int]("shared-lazy-int").map(_.fold(runtimeFail[Int])(identity))
+      existing <- cacheLocal.get0Ary[Int]("shared-lazy-int")
+      value <- existing match {
+        case Some(v) => MIO.pure(v)
+        case None    =>
+          for {
+            _ <- cacheLocal.buildCachedWith("shared-lazy-int", ValDefBuilder.ofLazy[Int]("lazyInt"))(_ =>
+              Expr.quote(42)
+            )
+            v <- cacheLocal.get0Ary[Int]("shared-lazy-int").map(_.fold(runtimeFail[Int])(identity))
+          } yield v
+      }
     } yield value
 
-    // With shared-parallel: branch B sees A's cache, idempotent set skips duplicate, single lazy val in output.
+    // With shared-parallel: branch B sees A's cache, checks it, and reuses the existing entry.
     val result = for {
       values <- branchA.parMap2(branchB)((a, b) => (a, b))
       cache <- cacheLocal.get
@@ -820,6 +826,42 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
     }
 
     result.runToExprOrFail("testValDefsCacheParMap2MergeBug")((_, _) => "")
+  }
+
+  /** Test that calling `buildCachedWith` for an already-built key+signature produces a [[HearthRequirementError]].
+    *
+    * With shared-parallel semantics, if two branches both blindly call `buildCachedWith` for the same key, the second
+    * call detects that the key is already fully built and fails. Users should check the cache (via `get*` methods)
+    * before building.
+    */
+  @scala.annotation.nowarn
+  def testValDefsCacheParMap2DuplicateBuildError: Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+
+    val cacheLocal = ValDefsCache.mlocal
+
+    // Both branches blindly build the same key — branch B should fail.
+    val branchA: MIO[Expr[Int]] = for {
+      _ <- cacheLocal.buildCachedWith("dup-key", ValDefBuilder.ofLazy[Int]("dupVal"))(_ => Expr.quote(1))
+      value <- cacheLocal.get0Ary[Int]("dup-key").map(_.fold(runtimeFail[Int])(identity))
+    } yield value
+
+    val branchB: MIO[Expr[Int]] = for {
+      _ <- cacheLocal.buildCachedWith("dup-key", ValDefBuilder.ofLazy[Int]("dupVal"))(_ => Expr.quote(1))
+      value <- cacheLocal.get0Ary[Int]("dup-key").map(_.fold(runtimeFail[Int])(identity))
+    } yield value
+
+    val result = branchA
+      .parMap2(branchB)((_, _) => ())
+      .redeem(_ => Data("no-error"))(errors =>
+        Data(
+          if (errors.toList.exists(_.getMessage.contains("buildCachedWith('dup-key')"))) "duplicate-build-detected"
+          else "wrong-error"
+        )
+      )
+
+    val (_, outcome) = result.unsafe.runSync
+    Expr(outcome.getOrElse(Data("mio-failed")))
   }
 
   // types using in fixtures

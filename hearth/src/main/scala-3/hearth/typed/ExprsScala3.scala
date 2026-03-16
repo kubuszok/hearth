@@ -879,6 +879,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       def buildCached(cache: ValDefsCache, key: String, body: Expr[Returned]): ValDefsCache
 
       def forwardDeclare(cache: ValDefsCache, key: String): ValDefsCache
+
+      def isBuilt(cache: ValDefsCache, key: String): Boolean
     }
 
     final private[typed] class MkValDef[Signature, Returned] private[typed] (
@@ -895,6 +897,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
       def forwardDeclare(cache: ValDefsCache, key: String): ValDefsCache =
         cache.forwardDeclare(mkKey(key), signature)
+
+      def isBuilt(cache: ValDefsCache, key: String): Boolean =
+        cache.isBuilt(mkKey(key))
     }
 
     final private[typed] class MkVar[Signature, Returned] private[typed] (
@@ -913,6 +918,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
       def forwardDeclare(cache: ValDefsCache, key: String): ValDefsCache =
         cache.forwardDeclare(mkGetterKey(key), getter).forwardDeclare(mkSetterKey(key), setter)
+
+      def isBuilt(cache: ValDefsCache, key: String): Boolean =
+        cache.isBuilt(mkGetterKey(key))
     }
 
     override def ofVal[Returned: Type](
@@ -3370,6 +3378,13 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     ): ValDefsCache =
       builder.mk.forwardDeclare(cache, key)
 
+    override def isBuilt[Signature, Returned, Value](
+        cache: ValDefsCache,
+        key: String,
+        builder: ValDefBuilder[Signature, Returned, Value]
+    ): Boolean =
+      builder.mk.isBuilt(cache, key)
+
     override def partition[Signature, Returned, A, B, C](
         builder: ValDefBuilder[Signature, Returned, A]
     )(f: A => Either[B, C]): Either[ValDefBuilder[Signature, Returned, B], ValDefBuilder[Signature, Returned, C]] =
@@ -3431,6 +3446,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           new ValDefsCache(definitions.updated(key, new ValDefsCache.Value(signature, None)))
       }
 
+    private[typed] def isBuilt(key: ValDefsCache.Key): Boolean =
+      definitions.get(key).exists(_.definition.isDefined)
+
     private[typed] def set(
         key: ValDefsCache.Key,
         signature: Any,
@@ -3479,58 +3497,6 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     final private[typed] case class Value(signature: Any, definition: Option[Statement])
 
     override def empty: ValDefsCache = new ValDefsCache(ListMap.empty)
-
-    override def merge(cache1: ValDefsCache, cache2: ValDefsCache): ValDefsCache = {
-      val keys = scala.collection.immutable.ListSet.from(cache1.definitions.keys ++ cache2.definitions.keys)
-      val usedNames = scala.collection.mutable.Set.from(keys.iterator.map(_.name))
-      var dupIdx = 0
-      val result = keys.toSeq.flatMap { key =>
-        (cache1.definitions.get(key), cache2.definitions.get(key)) match {
-          case (Some(value1), Some(value2)) if value1.signature != value2.signature =>
-            // Legacy path: with fork/join MLocal semantics, parallel branches independently created this
-            // entry with different signatures (each ofLazy generates a fresh TermName). With the current
-            // MLocal.unsafeSharedParallel default, this path should not be triggered because branch B sees
-            // branch A's entry and the idempotent `set` skips duplicate builds. Retained for backwards
-            // compatibility and custom MLocal configurations.
-            //
-            // We keep BOTH definitions because each branch's result code references its own TermName.
-            // The secondary entry is stored under a synthetic alias key ("name$dup$N") so that toValDefs
-            // emits both declarations.
-            val (primary, secondary) =
-              if value1.definition.isEmpty && value2.definition.isDefined then (value2, value1) else (value1, value2)
-            secondary.definition match {
-              case Some(_) =>
-                dupIdx += 1
-                var aliasName = s"${key.name}$$dup$$$dupIdx"
-                while usedNames.contains(aliasName) do { dupIdx += 1; aliasName = s"${key.name}$$dup$$$dupIdx" }
-                usedNames += aliasName
-                Seq((key, primary), (new Key(aliasName, key.args, key.returned), secondary))
-              case None =>
-                Seq((key, primary))
-            }
-          case (Some(value1), Some(value2)) =>
-            (value1.definition, value2.definition) match {
-              // Forwarding after declaration should be a safe no-op
-              case (Some(_), None) => Seq((key, value1))
-              // Declaration after forwarding should keep declaration
-              case (None, Some(_)) => Seq((key, value2))
-              case _               =>
-                // $COVERAGE-OFF$
-                if value1.definition != value2.definition then {
-                  hearthRequirementFailed(
-                    s"Def with key $key already exists with different definition, you probably created it twice in 2 branches, without noticing"
-                  )
-                }
-                // $COVERAGE-ON$
-                Seq((key, value1))
-            }
-          case (Some(value), None) => Seq((key, value))
-          case (None, Some(value)) => Seq((key, value))
-          case (None, None)        => ??? // impossible
-        }
-      }
-      new ValDefsCache(ListMap.from(result))
-    }
 
     // format: off
     override def get0Ary[Returned: Type](cache: ValDefsCache, key: String): Option[Expr[Returned]] =

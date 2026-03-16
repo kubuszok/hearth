@@ -26,4 +26,10 @@ object MioIntegrationsFixtures {
   private def testValDefsCacheParMap2MergeBugImpl(using q: Quotes): Expr[Data] = new MioIntegrationsFixtures(
     q
   ).testValDefsCacheParMap2MergeBug
+
+  inline def testValDefsCacheParMap2DuplicateBuildError: Data = ${
+    testValDefsCacheParMap2DuplicateBuildErrorImpl
+  }
+  private def testValDefsCacheParMap2DuplicateBuildErrorImpl(using q: Quotes): Expr[Data] =
+    new MioIntegrationsFixtures(q).testValDefsCacheParMap2DuplicateBuildError
 }

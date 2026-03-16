@@ -48,13 +48,19 @@ final class MioIntegrationsSpec extends MacroSuite {
 
     group("ValDefsCache merge with parMap2") {
 
-      // Tests shared-parallel ValDefsCache semantics with parMap2: two branches both call
-      // buildCachedWith for the same key. With MLocal.unsafeSharedParallel, branch B sees
-      // branch A's entry already built and the idempotent `set` skips the duplicate.
-      // Result is 42 + 42 = 84 because both branches reference the same cached Expr.quote(42).
+      // Tests shared-parallel ValDefsCache semantics with parMap2: branch A builds, branch B checks
+      // cache and reuses the entry. Result is 42 + 42 = 84 because both branches reference the same
+      // cached Expr.quote(42).
       test("should merge caches from parMap2 branches that cache the same key") {
         import MioIntegrationsFixtures.testValDefsCacheParMap2MergeBug
         testValDefsCacheParMap2MergeBug <==> Data(84)
+      }
+
+      // Tests that calling buildCachedWith for an already-built key+signature produces an error.
+      // Users should check the cache (via get* methods) before building.
+      test("should fail when both branches blindly buildCachedWith for the same key") {
+        import MioIntegrationsFixtures.testValDefsCacheParMap2DuplicateBuildError
+        testValDefsCacheParMap2DuplicateBuildError <==> Data("duplicate-build-detected")
       }
     }
 

@@ -112,6 +112,15 @@ trait MIOIntegrations { this: MacroTypedCommons =>
       }
     else None
 
+  private def failBuildCachedWith(key: String): Nothing = throw HearthRequirementError(
+    s"buildCachedWith('$key'): key+signature already built. " +
+      "This is likely a mistake — check the cache before building (e.g. use get* methods to verify the key is not already present).",
+    hearthVersion = HearthVersion.byHearthLibrary,
+    scalaVersion = Environment.currentScalaVersion,
+    platform = Environment.currentPlatform,
+    jdkVersion = Environment.currentJDKVersion
+  )
+
   implicit final class MLocalCacheOps(private val cache: MLocal[ValDefsCache]) {
 
     def forwardDeclare[Signature, Returned, Value](
@@ -128,8 +137,22 @@ trait MIOIntegrations { this: MacroTypedCommons =>
         builder: ValDefBuilder[Signature, Returned, Value]
     )(f: Value => Expr[Returned]): MIO[Unit] = for {
       cache1 <- cache.get
-      cache2 = builder.buildCachedWith(cache1, key)(f)
-      _ <- cache.set(cache2)
+      _ <-
+        if (builder.isBuilt(cache1, key))
+          MIO(failBuildCachedWith(key))
+        else
+          for {
+            // 1. Forward declare — recursive calls from f will see the declaration.
+            _ <- cache.set(builder.forwardDeclare(cache1, key))
+            // 2. Map builder with f — eagerly calls f(value), which may trigger MLocal side effects
+            //    via runSafe (e.g. nested helper() calls that add their own cache entries).
+            //    DirectStyle's state sync ensures the run loop sees these changes.
+            mapped <- MIO(ValDefBuilder.traverse[Signature, Returned].map(builder)(f))
+            // 3. Read fresh cache — includes entries added by f's side effects.
+            cache2 <- cache.get
+            // 4. Build on the fresh cache — no stale snapshot, no overwritten entries.
+            _ <- cache.set(mapped.buildCached(cache2, key))
+          } yield ()
     } yield ()
 
     def buildCached[Signature, Returned](

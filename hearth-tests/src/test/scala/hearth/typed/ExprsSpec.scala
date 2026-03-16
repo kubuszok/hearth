@@ -376,13 +376,6 @@ final class ExprsSpec extends MacroSuite {
         )
       }
 
-      test("methods ValDefsCache.merge should allow merging ValDefsCache") {
-        import ExprsFixtures.testValDefsCacheMerge
-
-        @scala.annotation.nowarn // suppress "unused method" errors - we want to check whether these compile, not use them
-        val result = testValDefsCacheMerge
-        result ==> ()
-      }
     }
 
     group("type LambdaBuilder") {

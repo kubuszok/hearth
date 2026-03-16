@@ -68,8 +68,6 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
 
   def testValDefBuilderBuildCachedVarGetterSetterImpl: c.Expr[Data] = testValDefBuilderBuildCachedVarGetterSetter
 
-  def testValDefsCacheMergeImpl: c.Expr[Unit] = testValDefsCacheMerge
-
   def testLambdaBuilderOfNAndBuildImpl: c.Expr[Data] = testLambdaBuilderOfNAndBuild
 
   def testLambdaBuilderBuildWithImpl: c.Expr[Data] = testLambdaBuilderBuildWith
@@ -201,8 +199,6 @@ object ExprsFixtures {
 
   def testValDefBuilderBuildCachedVarGetterSetter: Data =
     macro ExprsFixtures.testValDefBuilderBuildCachedVarGetterSetterImpl
-
-  def testValDefsCacheMerge: Unit = macro ExprsFixtures.testValDefsCacheMergeImpl
 
   def testLambdaBuilderOfNAndBuild: Data = macro ExprsFixtures.testLambdaBuilderOfNAndBuildImpl
 
