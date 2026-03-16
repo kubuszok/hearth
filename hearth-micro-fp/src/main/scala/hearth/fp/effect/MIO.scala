@@ -291,6 +291,18 @@ object MIO {
       }
     }
 
+  /** Allows the [[run]] loop to sync its accumulated state with [[DirectStyle]]'s `ongoingStates`, so that nested
+    * `runSafe` calls see up-to-date state and their changes are propagated back into the run loop.
+    *
+    * Without this, the run loop accumulates state internally while `runSafe` tracks state in a separate mutable map.
+    * When a nested `runSafe` is called from within a thunk evaluated by the run loop (e.g. `MIO(expr)` where `expr`
+    * calls `runSafe(innerMio)`), the inner call starts from stale state and its changes are lost.
+    */
+  private trait StateSync {
+    def write(state: MState): Unit
+    def read(): MState
+  }
+
   /** Stack-safety execution of MIO program.
     *
     * For each [[Impure]], [[FnNec.view]] rewrites a non-empty chain of functions e.g.
@@ -310,19 +322,32 @@ object MIO {
     * Since both [[FnNec.view]] and [[run]]ning the left-most function are tail-recursive, and all applied functions (in
     * practice: [[MIO.redeemWith]], [[MIO.orElse]] and [[MIO.parMap2]], everything else delegate to them) should compute
     * only 1 level of nesting (more levels should be lazily deferred), the whole process is stack-safe.
+    *
+    * @param stateSync
+    *   optional sync mechanism for DirectStyle. When non-null, the run loop writes its accumulated state before
+    *   evaluating each function (so nested `runSafe` starts from the correct state), and reads back after (to
+    *   incorporate any changes made by nested `runSafe`).
     */
   @scala.annotation.tailrec
-  private def run[A](io: MIO[A]): (MState, MResult[A]) = io match {
+  private def run[A](io: MIO[A], stateSync: StateSync = null): (MState, MResult[A]) = io match {
     case Impure(state, resultC, fnNecCToA) =>
       checkTermination(state, resultC, fnNecCToA)
-      run((fnNecCToA.view match {
+      // Sync accumulated state to DirectStyle before evaluating functions, so nested runSafe sees it.
+      if (stateSync ne null) stateSync.write(state)
+      val nextMio = fnNecCToA.view match {
         case FnNec.View.One(fnCToA)             => fnCToA(state, resultC)
         case FnNec.View.Cons(fnCToB, fnNecBToA) => fnCToB(state, resultC) :++ fnNecBToA
-      }) match {
-        // Previous methods could have created new Pure or Impure without merging states, so we have to do it here.
-        case Pure(state2, result)        => Pure(state ++ state2, result)
-        case Impure(state2, result, qab) => Impure(state ++ state2, result, qab)
-      })
+      }
+      // Read back from DirectStyle — nested runSafe may have modified the state.
+      val baseState = if (stateSync ne null) stateSync.read() else state
+      run(
+        nextMio match {
+          // Previous methods could have created new Pure or Impure without merging states, so we have to do it here.
+          case Pure(state2, result)        => Pure(baseState ++ state2, result)
+          case Impure(state2, result, qab) => Impure(baseState ++ state2, result, qab)
+        },
+        stateSync
+      )
     case Pure(state, resultA) => state -> resultA
   }
 
@@ -355,23 +380,29 @@ object MIO {
       case (initialState, Left(e)) => Pure(initialState, Left(e))
     }
     override protected def runUnsafe[A](owner: DirectStyle.ScopeOwner[MIO])(mio: => MIO[A]): A = {
-      val initialState = getState(owner) // We have to extract the state before we'll run the MIO.
+      // Sync mechanism: the run loop writes its accumulated state before each function evaluation, and reads back
+      // after, so that nested runSafe calls see up-to-date state and their changes are incorporated into the run loop.
+      val sync = new StateSync {
+        def write(state: MState): Unit = setState(owner, state)
+        def read(): MState = getState(owner)
+      }
 
       // We're running the MIO in a virtual thread, to avoid StackOverflowError when using recursive MIO with direct style.
       val (computedState, result) = DirectStyleExecutor {
-        // We're merging the state here because the MIO might have been run in a nested direct style operation.
-        run(mio match {
-          case Pure(state, result)      => Pure(initialState ++ state, result)
-          case Impure(state, result, q) => Impure(initialState ++ state, result, q)
-        })
+        // Evaluate the by-name MIO first — it may call nested runSafe which modifies ongoingStates(owner).
+        // Then re-read the current state AFTER evaluation, so we start the run loop from up-to-date state.
+        val evaluatedMio = mio
+        val currentState = getState(owner)
+        run(
+          evaluatedMio match {
+            case Pure(state, result)      => Pure(currentState ++ state, result)
+            case Impure(state, result, q) => Impure(currentState ++ state, result, q)
+          },
+          sync
+        )
       }
 
-      // This could have been overriden by nested direct style operations, so we have to merge the state here.
-      val intermediateState = getState(owner)
-      // We use merge instead of ++... as a workaround basically. We could have lost continuity of passing state around
-      // in nested .scoped, intermediateState can still have it, while returned new state could have been overriden.
-      val newState = intermediateState join computedState
-      setState(owner, newState)
+      setState(owner, computedState)
 
       result match {
         case Right(a) => a

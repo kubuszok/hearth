@@ -963,6 +963,12 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
         builder: ValDefBuilder[Signature, Returned, Value]
     ): ValDefsCache
 
+    def isBuilt[Signature, Returned, Value](
+        cache: ValDefsCache,
+        key: String,
+        builder: ValDefBuilder[Signature, Returned, Value]
+    ): Boolean
+
     def partition[Signature, Returned, A, B, C](builder: ValDefBuilder[Signature, Returned, A])(
         f: A => Either[B, C]
     ): Either[ValDefBuilder[Signature, Returned, B], ValDefBuilder[Signature, Returned, C]]
@@ -1009,6 +1015,9 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def forwardDeclare(cache: ValDefsCache, key: String): ValDefsCache =
       ValDefBuilder.forwardDeclare(cache, key, builder)
+
+    def isBuilt(cache: ValDefsCache, key: String): Boolean =
+      ValDefBuilder.isBuilt(cache, key, builder)
 
     def buildCachedWith(cache: ValDefsCache, key: String)(f: A => Expr[Returned]): ValDefsCache =
       ValDefBuilder.buildCached(cache, key, builder.map(f))
@@ -1074,25 +1083,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def empty: ValDefsCache
 
-    def mlocal: fp.effect.MLocal[ValDefsCache] = fp.effect.MLocal.unsafeSharedParallel(empty)(merge)
-
-    /** Merges two caches. Available for manual cache merging, but no longer used by default for parallel branches.
-      *
-      * Since `mlocal` now uses [[fp.effect.MLocal.unsafeSharedParallel]], parallel branches share state directly:
-      * branch B sees branch A's writes, and the idempotent `set` method skips entries that are already fully built.
-      * This eliminates the need for merge-time reconciliation of duplicate entries in the standard
-      * `parMap2`/`parMatchOn` workflow.
-      *
-      * ==Legacy: duplicate key handling with different signatures==
-      *
-      * When used with fork/join semantics (the previous default), two parallel branches could independently call
-      * `buildCachedWith` for the same key using fresh [[ValDefBuilder]] instances, each generating a different
-      * `TermName`. Rather than failing, merge keeps '''both''' definitions: the primary under the original key, and the
-      * secondary under a synthetic alias key (`"originalName$$dup$$N"`). This ensures that `toValDefs` emits both
-      * val/def declarations so references from both branches remain valid. This path is retained for backwards
-      * compatibility and for any custom `MLocal` configurations that still use fork/join semantics.
-      */
-    def merge(cache1: ValDefsCache, cache2: ValDefsCache): ValDefsCache
+    def mlocal: fp.effect.MLocal[ValDefsCache] = fp.effect.MLocal.unsafeSharedParallel(empty)
 
     // format: off
     def get0Ary[Returned: Type](cache: ValDefsCache, key: String): Option[Expr[Returned]]

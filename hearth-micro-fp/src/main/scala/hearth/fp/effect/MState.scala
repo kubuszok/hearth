@@ -48,14 +48,24 @@ final case class MState private[effect] (
     else MState(joinLocals(locals, state.locals), combineLogs(logs, state.logs))
 
   private[effect] def get[A](local: MLocal[A]): A = locals.get(local).fold(local.initial)(_.as[A])
-  private[effect] def set[A](local: MLocal[A], a: A): MState =
-    MState(locals + (local -> Value(a, local.nextVersion)), logs)
+  private[effect] def set[A](local: MLocal[A], a: A): MState = {
+    val ver = local match {
+      case fjp: MLocal.ForkJoinParallel[A @unchecked]     => fjp.nextVersion
+      case sop: MLocal.SequentialOnParallel[A @unchecked] => sop.nextVersion
+    }
+    MState(locals + (local -> Value(a, ver)), logs)
+  }
 
   private[effect] def log(log: Log): MState = MState(locals, logs :+ log)
   private[effect] def nameLogsScope(name: String, start: Log.Timestamp, end: Log.Timestamp, previous: MState): MState =
     MState(locals, recursiveNestedLogsMerge(previous.logs, logs, name, start, end))
 
   // ----------------------------------------------- MLocal operations ------------------------------------------------
+
+  private def nextVersionOf(local: MLocal[?]): Long = local match {
+    case fjp: MLocal.ForkJoinParallel[?]     => fjp.nextVersion
+    case sop: MLocal.SequentialOnParallel[?] => sop.nextVersion
+  }
 
   private def appendLocals(locals1: Map[MLocal[?], Value], locals2: Map[MLocal[?], Value]): Map[MLocal[?], Value] =
     if (locals1 eq locals2) locals1
@@ -76,20 +86,21 @@ final case class MState private[effect] (
     else
       handleLocalsCasting(locals.keySet, explicitlyRewind.locals.keySet) {
         _.map { local =>
-          if (local.asInstanceOf[MLocal[Any]].isShared) {
-            // Shared: take latest value without forking. Prefer explicitlyRewind (branch A's result).
-            val fromRewind = explicitlyRewind.locals.get(local.asInstanceOf[MLocal[?]])
-            val fromCurrent = locals.get(local.asInstanceOf[MLocal[?]])
-            local -> (fromRewind orElse fromCurrent).getOrElse(Value(local.initial, local.nextVersion))
-          } else {
-            locals.get(local.asInstanceOf[MLocal[?]]) match {
-              case Some(a) => local -> Value(local.asInstanceOf[MLocal[Any]].fork(a.value), local.nextVersion)
-              case None    =>
-                local -> Value(
-                  local.initial,
-                  local.nextVersion
-                ) // We do this so that None won't fall back on value from another computation.
-            }
+          local match {
+            case _: MLocal.SequentialOnParallel[?] =>
+              // Shared: take latest value without forking. Prefer explicitlyRewind (branch A's result).
+              val fromRewind = explicitlyRewind.locals.get(local.asInstanceOf[MLocal[?]])
+              val fromCurrent = locals.get(local.asInstanceOf[MLocal[?]])
+              local -> (fromRewind orElse fromCurrent).getOrElse(Value(local.initial, nextVersionOf(local)))
+            case fjp: MLocal.ForkJoinParallel[Any @unchecked] =>
+              locals.get(local.asInstanceOf[MLocal[?]]) match {
+                case Some(a) => local -> Value(fjp.fork(a.value), fjp.nextVersion)
+                case None    =>
+                  local -> Value(
+                    local.initial,
+                    fjp.nextVersion
+                  ) // We do this so that None won't fall back on value from another computation.
+              }
           }
         }.toMap
       }
@@ -100,10 +111,17 @@ final case class MState private[effect] (
       handleLocalsCasting(locals1.keySet, locals2.keySet) {
         _.map { local =>
           (locals1.get(local), locals2.get(local)) match {
-            case (Some(a), Some(b)) => local -> Value(local.join(a.value, b.value), local.nextVersion)
-            case (Some(a), None)    => local -> a
-            case (None, Some(b))    => local -> b
-            case (None, None)       => local -> Value(local.initial, local.nextVersion)
+            case (Some(a), Some(b)) =>
+              local match {
+                case fjp: MLocal.ForkJoinParallel[Any @unchecked] =>
+                  local -> Value(fjp.join(a.value, b.value), fjp.nextVersion)
+                case _: MLocal.SequentialOnParallel[?] =>
+                  // Sequential: always prefer the second argument (branch B ran after A, has latest state)
+                  local -> b
+              }
+            case (Some(a), None) => local -> a
+            case (None, Some(b)) => local -> b
+            case (None, None)    => local -> Value(local.initial, nextVersionOf(local))
           }
         }.toMap
       }
