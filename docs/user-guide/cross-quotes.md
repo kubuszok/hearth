@@ -4,7 +4,7 @@ Cross Quotes is a library that provides a unified way to write quoted expression
 
 ## Installation
 
-[![Hearth Cross Quotes JVM versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth-cross-quotes/latest.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth-cross-quotes_3) <br>
+[![Hearth Cross Quotes JVM versions](https://index.scala-lang.org/kubuszok/hearth/hearth-cross-quotes/latest.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth-cross-quotes_3) <br>
 
 !!! warning "Cross Quotes is implemented as macros on Scala 2 (so it is automatically pulled in with the rest of the library) and as a compiler plugin on Scala 3 — so it has to be added **only** on Scala 3."
 
@@ -904,7 +904,7 @@ Since Cross-Quotes rewrites some code into the native macro representations of e
     And all of the types defined in the interpolated `String` should be fully qualified type names. Even if some type is imported,
     the macro would only see the types that are available in the scope during the expansion.
 
-    For that reason the Scala 2 implementation relies on custom tree printers ([hearth#66](https://github.com/MateuszKubuszok/hearth/issues/66)).
+    For that reason the Scala 2 implementation relies on custom tree printers ([hearth#66](https://github.com/kubuszok/hearth/issues/66)).
     It takes a well-typed `Expr`, prints it as something preserving all these (imported/global) types, and injects `weakTypeTag`s where necessary.
 
     Since it's quite a complex process, there might still be issues with it, so **we recommend keeping quoted expressions as simple as possible**.

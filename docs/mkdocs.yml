@@ -91,9 +91,9 @@ extra:
   generator: false
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/MateuszKubuszok/hearth
+      link: https://github.com/kubuszok/hearth
     - icon: fontawesome/solid/book-bookmark
-      link: https://index.scala-lang.org/MateuszKubuszok/hearth
+      link: https://index.scala-lang.org/kubuszok/hearth
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/@MateuszKubuszok
   scala:

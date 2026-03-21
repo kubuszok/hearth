@@ -375,7 +375,7 @@ trait ShowCodePrettyScala3 {
            |
            |(Code in this error message rendered using `Printer.TreeStructure` instead of `HighlightedTreePrinter`)
            |
-           |Please, report an issue at https://github.com/MateuszKubuszok/hearth/issues
+           |Please, report an issue at https://github.com/kubuszok/hearth/issues
            |""".stripMargin
       )
       // $COVERAGE-ON$

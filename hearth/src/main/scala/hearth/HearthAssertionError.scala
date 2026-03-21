@@ -2,7 +2,7 @@ package hearth
 
 /** Reported by Hearth utilities when some internal assertion failed.
   *
-  * Allows user to report an issue at https://github.com/MateuszKubuszok/hearth/issues.
+  * Allows user to report an issue at https://github.com/kubuszok/hearth/issues.
   *
   * It would not be used for reporting errors caused by passing the wrong data to Hearth APIs.
   *
@@ -23,5 +23,5 @@ final case class HearthAssertionError(
          |Platform:       $platform
          |JDK version:    $jdkVersion
          |
-         |Please report an issue at https://github.com/MateuszKubuszok/hearth/issues""".stripMargin
+         |Please report an issue at https://github.com/kubuszok/hearth/issues""".stripMargin
     )

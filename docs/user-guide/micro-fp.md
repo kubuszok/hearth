@@ -16,9 +16,9 @@ completely.
 
 ## Installation
 
-[![Hearth Micro FP versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth-micro-fp/latest-by-scala-version.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_3) <br>
-[![Hearth Micro FP Scala.js 1.x versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth-micro-fp/latest-by-scala-version.svg?platform=sjs1)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_sjs1_3) <br>
-[![Hearth Micro FP Scala Native 0.5 versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth-micro-fp/latest-by-scala-version.svg?platform=native0.5)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth-micro-fp_native0.5_3) <br>
+[![Hearth Micro FP versions](https://index.scala-lang.org/kubuszok/hearth/hearth-micro-fp/latest-by-scala-version.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_3) <br>
+[![Hearth Micro FP Scala.js 1.x versions](https://index.scala-lang.org/kubuszok/hearth/hearth-micro-fp/latest-by-scala-version.svg?platform=sjs1)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_sjs1_3) <br>
+[![Hearth Micro FP Scala Native 0.5 versions](https://index.scala-lang.org/kubuszok/hearth/hearth-micro-fp/latest-by-scala-version.svg?platform=native0.5)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth-micro-fp_native0.5_3) <br>
 
 !!! example "[sbt](https://www.scala-sbt.org/)"
 
@@ -1162,7 +1162,7 @@ log and fail if necessary:
 
     ```scala
     // See our Show derivation demo in
-    // https://github.com/MateuszKubuszok/hearth/blob/
+    // https://github.com/kubuszok/hearth/blob/
     //   {{ git.commit }}/hearth-tests/src/main/scala/
     //   hearth/demo/ShowMacrosImpl.scala
     def deriveOrFail[A: Type](value: Expr[A], name: String): Expr[String] = Log

@@ -31,7 +31,7 @@ then you are using Better Printers already. You don't need to additionally add t
 
 ## Installation
 
-[![Hearth Better Printers JVM versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth-better-printers/latest.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth-better-printers_3) <br>
+[![Hearth Better Printers JVM versions](https://index.scala-lang.org/kubuszok/hearth/hearth-better-printers/latest.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth-better-printers_3) <br>
 
 !!! notice "Installation is only necessary if you want to use Better Printers without the core Hearth library."
 
