@@ -22,7 +22,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       case ByNameType(_) => true
       case _             => false
     }
-    override def isImplicit: Boolean = symbol.flags.is(Flags.Private)
+    override def isImplicit: Boolean = symbol.flags.is(Flags.Implicit) || symbol.flags.is(Flags.Given)
     override def hasDefault: Boolean = symbol.flags.is(Flags.HasDefault)
   }
 
@@ -177,7 +177,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def isVar: Boolean = symbol.flags.is(Flags.Mutable)
     override def isLazy: Boolean = symbol.flags.is(Flags.Lazy)
     override def isDef: Boolean = symbol.isDefDef
-    override def isImplicit: Boolean = symbol.flags.is(Flags.Implicit)
+    override def isImplicit: Boolean = symbol.flags.is(Flags.Implicit) || symbol.flags.is(Flags.Given)
     override def isSynthetic: Boolean =
       symbol.flags.is(Flags.Synthetic) || UntypedMethod.methodsConsideredSynthetic(symbol)
 

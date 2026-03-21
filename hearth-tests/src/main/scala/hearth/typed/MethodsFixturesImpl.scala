@@ -138,6 +138,23 @@ trait MethodsFixturesImpl { this: MacroCommons =>
         .mkString
     )
 
+  def testParameterProperties[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
+    case Expr(name) =>
+      val methods = Type[A].methods.filter(_.value.name == name)
+      val rendered = methods.flatMap { m =>
+        import m.value as method
+        method.parameters.flatten.map { case (paramName, param) =>
+          paramName -> Data.map(
+            "isImplicit" -> Data(param.isImplicit),
+            "hasDefault" -> Data(param.hasDefault)
+          )
+        }
+      }
+      Expr(Data(rendered.toMap))
+    case _ =>
+      Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+  }
+
   def testMethodOrdering[A: Type]: Expr[Data] = {
     val methods = Type[A].methods
     val names = methods.map(_.value.name)

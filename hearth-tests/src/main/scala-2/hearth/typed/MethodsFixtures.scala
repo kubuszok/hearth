@@ -40,6 +40,9 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
   ): c.Expr[Int] =
     testCallInstanceIntMethod[A](instance)(methodName)(params)
 
+  def testParameterPropertiesImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
+    testParameterProperties[A](methodName)
+
   def testMethodOrderingImpl[A: c.WeakTypeTag]: c.Expr[Data] = testMethodOrdering[A]
 }
 
@@ -66,6 +69,9 @@ object MethodsFixtures {
 
   def testCallInstanceIntMethod[A](instance: A)(methodName: String)(params: Int*): Int =
     macro MethodsFixtures.testCallInstanceIntMethodImpl[A]
+
+  def testParameterProperties[A](methodName: String): Data =
+    macro MethodsFixtures.testParameterPropertiesImpl[A]
 
   def testMethodOrdering[A]: Data = macro MethodsFixtures.testMethodOrderingImpl[A]
 }

@@ -1269,6 +1269,160 @@ final class MethodsSpec extends MacroSuite {
         }
       }
 
+      group("isImplicit: method-level and parameter-level implicit detection") {
+        import MethodsFixtures.testMethodsExtraction
+        import MethodsFixtures.testParameterProperties
+
+        test("method-level isImplicit for class with implicit members") {
+          testMethodsExtraction[examples.methods.WithImplicits](
+            "clone",
+            "equals",
+            "finalize",
+            "getClass",
+            "hashCode",
+            "notify",
+            "notifyAll",
+            "toString",
+            "wait",
+            "asInstanceOf",
+            "isInstanceOf",
+            "synchronized",
+            "==",
+            "!=",
+            "eq",
+            "ne",
+            "##"
+          ) <==> Data.map(
+            "implicitValue" -> Data.map(
+              "invocation" -> Data("OnInstance"),
+              "hasTypeParameters" -> Data(false),
+              "position" -> methodsPosition(82, 3),
+              "annotations" -> Data.list(),
+              "isConstructor" -> Data(false),
+              "isVal" -> Data(true),
+              "isVar" -> Data(false),
+              "isLazy" -> Data(false),
+              "isDef" -> Data(false),
+              "isImplicit" -> Data(true),
+              "isDeclared" -> Data(true),
+              "isSynthetic" -> Data(false),
+              "isInherited" -> Data(false),
+              "isAvailable(Everywhere)" -> Data(true),
+              "isAvailable(AtCallSite)" -> Data(true),
+              "arity" -> Data(0),
+              "isNullary" -> Data(true),
+              "isUnary" -> Data(false),
+              "isBinary" -> Data(false),
+              "isConstructorArgument" -> Data(false),
+              "isCaseField" -> Data(false),
+              "isScalaGetter" -> Data(true),
+              "isScalaSetter" -> Data(false),
+              "isScalaAccessor" -> Data(true),
+              "isJavaGetter" -> Data(false),
+              "isJavaSetter" -> Data(false),
+              "isJavaAccessor" -> Data(false),
+              "isAccessor" -> Data(true),
+              "scalaAccessorName" -> Data("implicitValue"),
+              "javaAccessorName" -> Data("<no java accessor name>"),
+              "accessorName" -> Data("implicitValue")
+            ),
+            "implicitConversion(Int)" -> Data.map(
+              "invocation" -> Data("OnInstance"),
+              "hasTypeParameters" -> Data(false),
+              "position" -> methodsPosition(83, 3),
+              "annotations" -> Data.list(),
+              "isConstructor" -> Data(false),
+              "isVal" -> Data(false),
+              "isVar" -> Data(false),
+              "isLazy" -> Data(false),
+              "isDef" -> Data(true),
+              "isImplicit" -> Data(true),
+              "isDeclared" -> Data(true),
+              "isSynthetic" -> Data(false),
+              "isInherited" -> Data(false),
+              "isAvailable(Everywhere)" -> Data(true),
+              "isAvailable(AtCallSite)" -> Data(true),
+              "arity" -> Data(1),
+              "isNullary" -> Data(false),
+              "isUnary" -> Data(true),
+              "isBinary" -> Data(false),
+              "isConstructorArgument" -> Data(false),
+              "isCaseField" -> Data(false),
+              "isScalaGetter" -> Data(false),
+              "isScalaSetter" -> Data(false),
+              "isScalaAccessor" -> Data(false),
+              "isJavaGetter" -> Data(false),
+              "isJavaSetter" -> Data(false),
+              "isJavaAccessor" -> Data(false),
+              "isAccessor" -> Data(false),
+              "scalaAccessorName" -> Data("<no scala accessor name>"),
+              "javaAccessorName" -> Data("<no java accessor name>"),
+              "accessorName" -> Data("<no accessor name>")
+            ),
+            "methodWithImplicitParam(Int)" -> Data.map(
+              "invocation" -> Data("OnInstance"),
+              "hasTypeParameters" -> Data(false),
+              "position" -> methodsPosition(84, 3),
+              "annotations" -> Data.list(),
+              "isConstructor" -> Data(false),
+              "isVal" -> Data(false),
+              "isVar" -> Data(false),
+              "isLazy" -> Data(false),
+              "isDef" -> Data(true),
+              "isImplicit" -> Data(false),
+              "isDeclared" -> Data(true),
+              "isSynthetic" -> Data(false),
+              "isInherited" -> Data(false),
+              "isAvailable(Everywhere)" -> Data(true),
+              "isAvailable(AtCallSite)" -> Data(true),
+              "arity" -> Data(1),
+              "isNullary" -> Data(false),
+              "isUnary" -> Data(true),
+              "isBinary" -> Data(false),
+              "isConstructorArgument" -> Data(false),
+              "isCaseField" -> Data(false),
+              "isScalaGetter" -> Data(false),
+              "isScalaSetter" -> Data(false),
+              "isScalaAccessor" -> Data(false),
+              "isJavaGetter" -> Data(false),
+              "isJavaSetter" -> Data(false),
+              "isJavaAccessor" -> Data(false),
+              "isAccessor" -> Data(false),
+              "scalaAccessorName" -> Data("<no scala accessor name>"),
+              "javaAccessorName" -> Data("<no java accessor name>"),
+              "accessorName" -> Data("<no accessor name>")
+            )
+          )
+        }
+
+        test("parameter-level isImplicit for implicit parameters") {
+          testParameterProperties[examples.methods.WithImplicits]("methodWithImplicitParam") <==> Data.map(
+            "x" -> Data.map(
+              "isImplicit" -> Data(true),
+              "hasDefault" -> Data(false)
+            )
+          )
+        }
+
+        test("parameter-level isImplicit for implicit def parameter") {
+          testParameterProperties[examples.methods.WithImplicits]("implicitConversion") <==> Data.map(
+            "x" -> Data.map(
+              "isImplicit" -> Data(false),
+              "hasDefault" -> Data(false)
+            )
+          )
+        }
+
+        test("parameter-level isImplicit for normal method parameters") {
+          testParameterProperties[examples.methods.NoCompanionClass]("method") <==> Data.map(
+            "arg" -> Data.map(
+              "isImplicit" -> Data(false),
+              "hasDefault" -> Data(false)
+            )
+          )
+        }
+      }
+
       group("calling methods, return Expr with a called method result") {
         import MethodsFixtures.testCallNoInstanceIntMethod
         import MethodsFixtures.testCallInstanceIntMethod
