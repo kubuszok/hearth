@@ -2,9 +2,9 @@
 
 # Hearth
 
-[![CI build](https://github.com/MateuszKubuszok/hearth/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/MateuszKubuszok/hearth/actions)
+[![CI build](https://github.com/kubuszok/hearth/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/kubuszok/hearth/actions)
 [![License](https://img.shields.io/:license-Apache%202-green.svg)](http://www.apache.org/licenses/LICENSE-2.0.txt)
-[![Join the discussions at https://github.com/MateuszKubuszok/hearth/discussions](https://img.shields.io/github/discussions/MateuszKubuszok/hearth)](https://github.com/MateuszKubuszok/hearth/discussions)
+[![Join the discussions at https://github.com/kubuszok/hearth/discussions](https://img.shields.io/github/discussions/kubuszok/hearth)](https://github.com/kubuszok/hearth/discussions)
 
 The first Scala macros' standard library.
 
@@ -22,7 +22,7 @@ but one that could serve not only the [Chimney](https://chimney.readthedocs.io/)
 
 The current version does not yet have all planned features, and we'd like to hear from you is the current API good enough or what to change.
 
-Please, take a look at [Roadmap](https://github.com/MateuszKubuszok/hearth/issues/10) for more infomation what is already done,
+Please, take a look at [Roadmap](https://github.com/kubuszok/hearth/issues/10) for more infomation what is already done,
 and what's in the scope for future releases.
 
 ## Contribution

@@ -2,7 +2,7 @@
 
 First off, thanks for taking the time to contribute! ❤️
 
-Currently the best way oh helping is contributing to [help us tackle some tasks from the Roadmap](https://github.com/MateuszKubuszok/hearth/issues/10) to deliver the solid next version! This includes testing Hearth, providing us with reproduction for bugs and maybe even fixes!
+Currently the best way oh helping is contributing to [help us tackle some tasks from the Roadmap](https://github.com/kubuszok/hearth/issues/10) to deliver the solid next version! This includes testing Hearth, providing us with reproduction for bugs and maybe even fixes!
 
 The second best, is raising awareness about the project ☺️
 
@@ -41,7 +41,7 @@ You need to have installed:
 
 I recommend to:
 
- 1. [fork the repository](https://github.com/MateuszKubuszok/hearth/fork) to your own GitHub
+ 1. [fork the repository](https://github.com/kubuszok/hearth/fork) to your own GitHub
  2. [clone it](https://docs.github.com/en/get-started/git-basics/about-remote-repositories#cloning-with-ssh-urls) to your machine
  3. start in your terminal sbt shell with `sbt` (if you installed it globally) or `./sbt` (if you didn't)
  4. run in it `ci-jvm-2_13` and `ci-jvm-3` tasks to test if everything works

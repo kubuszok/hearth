@@ -1254,7 +1254,7 @@ trait ShowCodePrettyScala2 {
            |
            |(Code in this error message rendered using `showCode` instead of `showCodePretty`)
            |
-           |Please, report an issue at https://github.com/MateuszKubuszok/hearth/issues
+           |Please, report an issue at https://github.com/kubuszok/hearth/issues
            |""".stripMargin
       )
 
@@ -1273,7 +1273,7 @@ trait ShowCodePrettyScala2 {
            |
            |(Code in this error message rendered using `toString` instead of `showCodePretty`)
            |
-           |Please, report an issue at https://github.com/MateuszKubuszok/hearth/issues
+           |Please, report an issue at https://github.com/kubuszok/hearth/issues
            |""".stripMargin
       )
       // $COVERAGE-ON$

@@ -170,7 +170,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
          |from:
          |${throwable.getStackTrace.map(item => s"  at: $item").mkString("\n")}
          |
-         |Please, report an issue at https://github.com/MateuszKubuszok/hearth/issues
+         |Please, report an issue at https://github.com/kubuszok/hearth/issues
          |""".stripMargin
     )
 

@@ -5,7 +5,7 @@ import hearth.data.Data
 
 /** Tests for dependent/inner types - types defined inside a class/object.
   *
-  * Reproduces https://github.com/MateuszKubuszok/hearth/issues/226
+  * Reproduces https://github.com/kubuszok/hearth/issues/226
   *
   * The core issue is that for inner/dependent enum parameterless cases, `Ident(sym.termRef)` produces
   * `InnerEnum.this.Qux` — a `this` reference valid only inside the defining scope. The fix: use `Ref(sym)` which

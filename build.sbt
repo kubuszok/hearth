@@ -318,7 +318,7 @@ val publishSettings = Seq(
   pomExtra := (
     <issueManagement>
       <system>GitHub issues</system>
-      <url>https://github.com/MateuszKubuszok/hearth/issues</url>
+      <url>https://github.com/kubuszok/hearth/issues</url>
     </issueManagement>
   ),
   publishTo := {

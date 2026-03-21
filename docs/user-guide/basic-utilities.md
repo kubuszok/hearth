@@ -5,9 +5,9 @@ backed by abstract methods that we later implement for a particular macro system
 
 ## Installation
 
-[![Hearth JVM versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth/latest-by-scala-version.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_3) <br>
-[![Hearth Scala.js 1.x versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth/latest-by-scala-version.svg?platform=sjs1)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_sjs1_3) <br>
-[![Hearth Scala Native 0.5 versions](https://index.scala-lang.org/MateuszKubuszok/hearth/hearth/latest-by-scala-version.svg?platform=native0.5)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_native0.5_3) <br>
+[![Hearth JVM versions](https://index.scala-lang.org/kubuszok/hearth/hearth/latest-by-scala-version.svg?platform=jvm)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_3) <br>
+[![Hearth Scala.js 1.x versions](https://index.scala-lang.org/kubuszok/hearth/hearth/latest-by-scala-version.svg?platform=sjs1)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_sjs1_3) <br>
+[![Hearth Scala Native 0.5 versions](https://index.scala-lang.org/kubuszok/hearth/hearth/latest-by-scala-version.svg?platform=native0.5)](https://central.sonatype.com/search?q=hearth&namespace=com.kubuszok&name=hearth_native0.5_3) <br>
 
 !!! example "[sbt](https://www.scala-sbt.org/)"
 

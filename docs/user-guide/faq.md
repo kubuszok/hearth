@@ -254,4 +254,4 @@ See [`passQuotes` and `withQuotes`](basic-utilities.md#passquotes-and-withquotes
 
     If you use `Expr.quote` / `Expr.splice` ([Cross Quotes](cross-quotes.md)), the `Quotes` context is managed automatically
     and this error should not occur. If it does, please
-    [file a bug report](https://github.com/MateuszKubuszok/hearth/issues/new).
+    [file a bug report](https://github.com/kubuszok/hearth/issues/new).

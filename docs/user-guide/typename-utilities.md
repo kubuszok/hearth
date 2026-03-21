@@ -125,7 +125,7 @@ abstract type parameters, existing `TypeName` instances for those parameters are
 3. If found, caches the summoned instance as a `lazy val` and calls the corresponding method on it
 4. Constructs an anonymous `TypeName[A]` with the 4 computed strings
 
-See [`TypeNameMacros.scala`](https://github.com/MateuszKubuszok/hearth/blob/master/hearth/src/main/scala/hearth/typename/TypeNameMacros.scala)
+See [`TypeNameMacros.scala`](https://github.com/kubuszok/hearth/blob/master/hearth/src/main/scala/hearth/typename/TypeNameMacros.scala)
 for the shared macro implementation.
 
 ## Relationship with Other Utilities
