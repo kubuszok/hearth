@@ -307,8 +307,8 @@ val publishSettings = Seq(
   licenses := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0")),
   scmInfo := Some(
     ScmInfo(
-      url("https://github.com/MateuszKubuszok/hearth/"),
-      "scm:git:git@github.com:MateuszKubuszok/hearth.git"
+      url("https://github.com/kubuszok/hearth/"),
+      "scm:git:git@github.com:kubuszok/hearth.git"
     )
   ),
   startYear := Some(2025),
