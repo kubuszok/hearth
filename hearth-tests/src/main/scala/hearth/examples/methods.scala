@@ -76,3 +76,10 @@ abstract class ScopeVisibility(privateCtorArg: Int, val publicCtorArg: Int) {
 
   private[examples] def privateHearthExamplesMethod: Int = 1
 }
+
+@scala.annotation.nowarn
+class WithImplicits {
+  implicit val implicitValue: Int = 42
+  implicit def implicitConversion(x: Int): String = x.toString
+  def methodWithImplicitParam(implicit x: Int): String = x.toString
+}

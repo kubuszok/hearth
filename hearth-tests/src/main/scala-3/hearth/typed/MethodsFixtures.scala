@@ -71,6 +71,12 @@ object MethodsFixtures {
   )(using q: Quotes): Expr[Int] =
     new MethodsFixtures(q).testCallInstanceIntMethod[A](instance)(methodName)(params)
 
+  inline def testParameterProperties[A](inline methodName: String): Data = ${
+    testParameterPropertiesImpl[A]('methodName)
+  }
+  private def testParameterPropertiesImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testParameterProperties[A](methodName)
+
   inline def testMethodProperties[A](inline methodName: String): Data = ${
     testMethodPropertiesImpl[A]('methodName)
   }

@@ -146,6 +146,73 @@ final class MethodsScala3Spec extends MacroSuite {
         }
       }
 
+      group("isImplicit: given/using detection in Scala 3") {
+        import MethodsFixtures.testMethodsExtraction
+        import MethodsFixtures.testParameterProperties
+
+        test("method-level isImplicit for given instance") {
+          val methods = testMethodsExtraction[examples.methods.WithGivens](
+            "clone",
+            "equals",
+            "finalize",
+            "getClass",
+            "hashCode",
+            "notify",
+            "notifyAll",
+            "toString",
+            "wait",
+            "asInstanceOf",
+            "isInstanceOf",
+            "synchronized",
+            "==",
+            "!=",
+            "eq",
+            "ne",
+            "##"
+          )
+          val methodsMap = methods.asMap.get
+          val givenValue = methodsMap("givenValue").asMap.get
+          assert(givenValue("isImplicit") == Data(true), s"given instance should be implicit, got: $givenValue")
+        }
+
+        test("method-level isImplicit for method with using param is false") {
+          val methods = testMethodsExtraction[examples.methods.WithGivens](
+            "clone",
+            "equals",
+            "finalize",
+            "getClass",
+            "hashCode",
+            "notify",
+            "notifyAll",
+            "toString",
+            "wait",
+            "asInstanceOf",
+            "isInstanceOf",
+            "synchronized",
+            "==",
+            "!=",
+            "eq",
+            "ne",
+            "##"
+          )
+          val methodsMap = methods.asMap.get
+          val method = methodsMap("methodWithUsingParam(Int)").asMap.get
+          assert(
+            method("isImplicit") == Data(false),
+            s"method with using param should not itself be implicit, got: $method"
+          )
+        }
+
+        test("parameter-level isImplicit for using parameter") {
+          testParameterProperties[examples.methods.WithGivens]("methodWithUsingParam") <==> Data.map(
+            "x" -> Data.map(
+              "isImplicit" -> Data(true),
+              "hasDefault" -> Data(false)
+            )
+          )
+        }
+      }
+
       group("methods: extension methods on Scala 3 types") {
         import MethodsFixtures.testMethodProperties
 
