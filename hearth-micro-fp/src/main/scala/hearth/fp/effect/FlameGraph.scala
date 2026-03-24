@@ -46,17 +46,20 @@ object FlameGraph {
     * @since 0.3.0
     */
   def renderSpeedscopeTo(out: java.lang.Appendable, name: String, logs: Logs, macroStart: Log.Timestamp): Boolean = {
-    val frames = scala.collection.mutable.ArrayBuffer.empty[String]
+    val frameMap = new java.util.HashMap[String, java.lang.Integer]()
+    val frameNames = scala.collection.mutable.ArrayBuffer.empty[String]
     val events = scala.collection.mutable.ArrayBuffer.empty[Event]
 
     def stripAnsi(s: String): String = s.replaceAll("\u001b\\[[0-9;]*m", "")
 
     def frameIndex(frameName: String): Int = {
-      val idx = frames.indexOf(frameName)
-      if (idx >= 0) idx
+      val existing = frameMap.get(frameName)
+      if (existing != null) existing.intValue()
       else {
-        frames += frameName
-        frames.length - 1
+        val idx = frameNames.length
+        frameNames += frameName
+        frameMap.put(frameName, java.lang.Integer.valueOf(idx))
+        idx
       }
     }
 
@@ -94,29 +97,24 @@ object FlameGraph {
 
     if (events.isEmpty) false
     else {
-      // Sort events by timestamp; at same timestamp, close before open to maintain valid nesting.
-      // Deduplicate consecutive identical events caused by MState log merging.
-      val sorted = events
-        .sortBy(e => (e.at, if (e.tpe == "C") 0 else 1))
-        .foldLeft(List.empty[Event]) {
-          case (acc, event) if acc.headOption.contains(event) => acc
-          case (acc, event)                                   => event :: acc
-        }
-        .reverse
-      val startValue = sorted.head.at
-      val endValue = sorted.last.at
+      // Sort events in-place by timestamp; at same timestamp, close before open to maintain valid nesting.
+      events.sortInPlace()(eventOrdering)
+      val startValue = events.head.at
+      val endValue = events.last.at
 
       out.append("{\n")
       out.append("""  "$schema": "https://www.speedscope.app/file-format-schema.json",""")
       out.append("\n")
       out.append("  \"shared\": {\n")
       out.append("    \"frames\": [\n")
-      frames.zipWithIndex.foreach { case (frame, i) =>
+      var fi = 0
+      while (fi < frameNames.length) {
         out.append("      {\"name\": ")
-        escapeJsonTo(out, frame)
+        escapeJsonTo(out, frameNames(fi))
         out.append("}")
-        if (i < frames.length - 1) { out.append(","); () }
+        if (fi < frameNames.length - 1) { out.append(","); () }
         out.append("\n")
+        fi += 1
       }
       out.append("    ]\n")
       out.append("  },\n")
@@ -134,17 +132,28 @@ object FlameGraph {
       out.append(endValue.toString)
       out.append(",\n")
       out.append("      \"events\": [\n")
-      sorted.zipWithIndex.foreach { case (event, i) =>
-        out.append("        {\"type\": \"")
-        out.append(event.tpe)
-        out.append("\", \"at\": ")
-        out.append(event.at.toString)
-        out.append(", \"frame\": ")
-        out.append(event.frame.toString)
-        out.append("}")
-        if (i < sorted.length - 1) { out.append(","); () }
-        out.append("\n")
+      // Write events, deduplicating consecutive identical events inline (caused by MState log merging).
+      // This avoids allocating an intermediate deduped collection.
+      var prevEvent: Event = null
+      var needsComma = false
+      var ei = 0
+      while (ei < events.length) {
+        val event = events(ei)
+        if (prevEvent == null || event != prevEvent) {
+          if (needsComma) { out.append(",\n"); () }
+          out.append("        {\"type\": \"")
+          out.append(event.tpe)
+          out.append("\", \"at\": ")
+          out.append(event.at.toString)
+          out.append(", \"frame\": ")
+          out.append(event.frame.toString)
+          out.append("}")
+          needsComma = true
+          prevEvent = event
+        }
+        ei += 1
       }
+      if (needsComma) { out.append("\n"); () }
       out.append("      ]\n")
       out.append("    }\n")
       out.append("  ],\n")
@@ -159,6 +168,14 @@ object FlameGraph {
   final private case class Event(tpe: String, frame: Int, at: Long)
 
   final private case class CloseMarker(frame: Int, relEnd: Long)
+
+  // Sort by timestamp; at same timestamp, close before open to maintain valid nesting.
+  // Custom ordering avoids boxing (Long, Int) tuples on every comparison.
+  private val eventOrdering: Ordering[Event] = (a: Event, b: Event) => {
+    val cmp = java.lang.Long.compare(a.at, b.at)
+    if (cmp != 0) cmp
+    else (if (a.tpe == "C") 0 else 1) - (if (b.tpe == "C") 0 else 1)
+  }
 
   private def escapeJsonTo(out: java.lang.Appendable, s: String): Unit = {
     out.append('"')
