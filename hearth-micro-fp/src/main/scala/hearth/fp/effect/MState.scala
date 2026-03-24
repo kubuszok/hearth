@@ -2,50 +2,47 @@ package hearth
 package fp
 package effect
 
-/** State of the [[MIO]] computation - currently stores [[Logs]] and [[MLocal]]s.
+import scala.collection.immutable.BitSet
+
+/** State of the [[MIO]] computation - stores [[Logs]], [[MLocal]]s, and scope tracking.
   *
-  * Used by [[MIO]] to store inner state of the computation.
+  * Logs are stored flat with parent scope IDs. Merging is O(1) (take the longer vector). Tree structure is
+  * reconstructed at render time.
   *
   * @since 0.1.0
   */
 final case class MState private[effect] (
     locals: Map[MLocal[?], MState.Value],
-    logs: Logs
+    logs: Logs,
+    scopeStack: List[(String, Int)],
+    closedScopes: BitSet
 ) {
   import MState.Value
-
-  // --------------------------------------------- Implementation details ---------------------------------------------
-
-  // The whole complexity of this class is due to 2 reasons:
-  //
-  // 1. MIO always stores `MState` next to `MResult` - it **significantly** simplifies the MIO.run implementation,
-  //    but it also means that each MIO (including `MIO.Pure`) would introduce some state, whether user actually
-  //    modified it or not. That forces us to detect whether the state was actually modified, and merging changes.
-  // 2. the parallel semantics is only simulated - we need to store state before computation, process 1 "fiber", and
-  //    then rewind the state before processing the next "fiber".
-  //
-  // In the sequential code, to resolve variables we can just pick the newest MLocal. Logs are a bit more complex:
-  // `Log.namedScope` should remove some logs, and re-add them wrapped in a new scope - but when merging we could see the
-  // same logs twice - once in Scope and once present as top level Entries, so we have to deduplicate them.
-  //
-  // In the parallel code, we have to rewind the state. BUT parallelism is still only simulated, we would still sequentially
-  // merge states, and override old values with new ones. If there is a `MLocal` not used before forking, and used in
-  // the first fork, it would always override the empty value of pre-fork state. So we have to force-initialize it with
-  // the newer timestamp.
 
   // ----------------------------------------------- API called by MIO  -----------------------------------------------
 
   private[effect] def ++(state: MState): MState =
     if (this eq MState.empty) state
     else if (state eq MState.empty) this
-    else MState(appendLocals(locals, state.locals), combineLogs(logs, state.logs))
+    else {
+      // In sequential execution, state2.logs is always a superset of state1.logs (each step extends).
+      // Take the longer vector — no dedup, no iteration, O(1).
+      val mergedLogs = if (state.logs.size >= logs.size) state.logs else logs
+      MState(appendLocals(locals, state.locals), mergedLogs, state.scopeStack, closedScopes | state.closedScopes)
+    }
 
   private[effect] def fork(explicitlyRewind: MState): MState =
-    MState(forkLocals(locals, explicitlyRewind), logs)
+    MState(forkLocals(locals, explicitlyRewind), logs, scopeStack, closedScopes)
   private[effect] def join(state: MState): MState =
     if (this eq MState.empty) state
     else if (state eq MState.empty) this
-    else MState(joinLocals(locals, state.locals), combineLogs(logs, state.logs))
+    else {
+      // For parallel branches: this = branchA result, state = branchB result.
+      // Branch B was forked from branch A's result, so its logs start with A's logs.
+      // Take the longer vector (which includes both branches' logs).
+      val joinedLogs = if (state.logs.size >= logs.size) state.logs else logs
+      MState(joinLocals(locals, state.locals), joinedLogs, state.scopeStack, closedScopes | state.closedScopes)
+    }
 
   private[effect] def get[A](local: MLocal[A]): A = locals.get(local).fold(local.initial)(_.as[A])
   private[effect] def set[A](local: MLocal[A], a: A): MState = {
@@ -53,12 +50,55 @@ final case class MState private[effect] (
       case fjp: MLocal.ForkJoinParallel[A @unchecked]     => fjp.nextVersion
       case sop: MLocal.SequentialOnParallel[A @unchecked] => sop.nextVersion
     }
-    MState(locals + (local -> Value(a, ver)), logs)
+    MState(locals + (local -> Value(a, ver)), logs, scopeStack, closedScopes)
   }
 
-  private[effect] def log(log: Log): MState = MState(locals, logs :+ log)
-  private[effect] def nameLogsScope(name: String, start: Log.Timestamp, end: Log.Timestamp, previous: MState): MState =
-    MState(locals, recursiveNestedLogsMerge(previous.logs, logs, name, start, end))
+  private[effect] def log(log: Log): MState = {
+    val parentId = scopeStack match {
+      case (_, id) :: _ => id
+      case Nil          => 0
+    }
+    val tagged = log match {
+      case e: Log.Entry => e.copy(parentScopeId = parentId)
+      case s: Log.Scope => s.copy(parentScopeId = parentId)
+    }
+    MState(locals, logs :+ tagged, scopeStack, closedScopes)
+  }
+
+  private[effect] def openScope(name: String, start: Log.Timestamp): (MState, Int) = {
+    val id = Log.nextScopeId()
+    val parentId = scopeStack match {
+      case (_, pid) :: _ => pid
+      case Nil           => 0
+    }
+    val scope = Log.Scope(name, id, parentId, start, Log.Timestamp.empty)
+    (MState(locals, logs :+ scope, (name, id) :: scopeStack, closedScopes), id)
+  }
+
+  private[effect] def closeScope(scopeId: Int, end: Log.Timestamp): MState = {
+    // Update the Scope's end timestamp by searching backwards (scopes close in reverse order)
+    val updatedLogs =
+      if (end == Log.Timestamp.empty) logs
+      else {
+        var i = logs.size - 1
+        var found = false
+        while (i >= 0 && !found)
+          logs(i) match {
+            case s: Log.Scope if s.scopeId == scopeId =>
+              found = true
+            case _ =>
+              i -= 1
+          }
+        if (found) logs.updated(i, logs(i).asInstanceOf[Log.Scope].copy(end = end))
+        else logs
+      }
+    MState(
+      locals,
+      updatedLogs,
+      scopeStack.tail,
+      closedScopes + scopeId
+    )
+  }
 
   // ----------------------------------------------- MLocal operations ------------------------------------------------
 
@@ -132,69 +172,12 @@ final case class MState private[effect] (
     val keys = (keys1 ++ keys2).asInstanceOf[Set[MLocal[Any]]]
     f(keys).asInstanceOf[Map[MLocal[?], Value]]
   }
-
-  // ------------------------------------------------ Logs operations -------------------------------------------------
-
-  private def combineLogs(logs1: Logs, logs2: Logs): Logs =
-    if ((logs1 eq logs2) || (logs2.isEmpty)) logs1
-    else if (logs1.isEmpty) logs2
-    else {
-      def appendLastScopeToNew = logs2 match {
-        case Vector(Log.Scope(name, nestedLogs, start, end)) if nestedLogs.exists(logs1.contains) =>
-          Some(Vector(Log.Scope(name, recursiveNestedLogsMerge(logs1, nestedLogs, name, start, end), start, end)))
-        case _ =>
-          None
-      }
-
-      def justMerge = (logs1 ++ logs2).distinct
-
-      val result = appendLastScopeToNew getOrElse justMerge
-
-      // It was PITA trying to fix this properly, so instead we just make sure _here_, that we don't repeat nested logs.
-      // We need to compate by reference to avoid removing _reused_ logs (e.g. same MIO put into multiple named scopes).
-      result.reverse.collectFirst {
-        case Log.Scope(name, nestedLogs, _, _) if nestedLogs.exists(l => result.exists(_ eq l)) =>
-          result.filterNot(l => nestedLogs.exists(_ eq l))
-      } getOrElse result
-    }
-
-  private def recursiveNestedLogsMerge(
-      previous: Vector[Log],
-      current: Vector[Log],
-      name: String,
-      startFallback: Log.Timestamp,
-      endFallback: Log.Timestamp
-  ): Vector[Log] = {
-    var foundInPrevious = false
-    val common = previous.view
-      .map {
-        case Log.Scope(`name`, nestedPrevious, start, end) =>
-          foundInPrevious = true
-          Log.Scope(`name`, recursiveNestedLogsMerge(nestedPrevious, current, name, start, end), start, end)
-        case otherwise => otherwise
-      }
-      .zip(current)
-      .map {
-        case (l1, l2) if l1 == l2                                                   => Some(l1)
-        case (Log.Scope(n1, ls1, start, end), Log.Scope(n2, ls2, _, _)) if n1 == n2 =>
-          Some(Log.Scope(n1, recursiveNestedLogsMerge(ls1, ls2, n1, start, end), start, end))
-        case _ => None
-      }
-      .takeWhile(_.isDefined)
-      .map(_.get)
-      .toVector
-    lazy val newPrevious = previous.drop(common.length)
-    lazy val newCurrent = current.drop(common.length)
-    if (foundInPrevious) common ++ newPrevious
-    else if (common.isEmpty) newPrevious ++ Vector(Log.Scope(name, newCurrent, startFallback, endFallback))
-    else common ++ recursiveNestedLogsMerge(newPrevious, newCurrent, name, startFallback, endFallback)
-  }
 }
 object MState {
 
   // --------------------------------------------- Implementation details ---------------------------------------------
 
-  val empty: MState = MState(Map.empty, logs = Vector.empty)
+  val empty: MState = MState(Map.empty, logs = Vector.empty, scopeStack = Nil, closedScopes = BitSet.empty)
 
   final case class Value(value: Any, version: Long) {
 

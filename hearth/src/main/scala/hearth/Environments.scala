@@ -51,6 +51,11 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
   val Environment: EnvironmentModule
   trait EnvironmentModule { this: Environment.type =>
 
+    /** Extensions that have already been applied (via extend()) in this macro expansion. Uses identity hash to track
+      * specific instances — extension objects are cached singletons from ServiceLoader.
+      */
+    private val appliedExtensions = new java.util.IdentityHashMap[Any, Unit]()
+
     final lazy val currentPosition: Position = Position.current
 
     def currentScalaVersion: ScalaVersion
@@ -286,23 +291,34 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
     final private def loadMacroExtensionsFrom[Extension <: MacroExtension[?]](
         extensions: Either[Throwable, Vector[Extension]]
     ): ExtensionLoadingResult[Extension] = {
-      // Allow aggregating errors from each extension loading
-      def safeLoadExtension(ext: Extension): Either[(Extension, Throwable), Extension] = try
-        if (ext.isDefinedAt(env)) {
-          ext(env)
-          Right(ext)
-        } else {
-          // $COVERAGE-OFF$ I don't have an idea how to test this.
-          Left(
-            ext -> new IllegalStateException(
-              s"Instance of ${ext.getClass.getName} cannot be applied to ${env.getClass.getName}"
-            )
+      // Allow aggregating errors from each extension loading.
+      // Extensions that were already applied in this macro expansion are skipped to avoid duplicate side effects
+      // (e.g. double provider registration which causes exponential compilation time).
+      def safeLoadExtension(ext: Extension): Either[(Extension, Throwable), Extension] =
+        if (appliedExtensions.containsKey(ext)) {
+          // Using reportInfo instead of reportWarn because warnings are fatal under -Xfatal-warnings.
+          reportInfo(
+            s"Extension ${ext.getClass.getName} was already loaded in this macro expansion, skipping re-initialization"
           )
-          // $COVERAGE-ON$
-        }
-      catch {
-        case e: Throwable => Left(ext -> e)
-      }
+          Right(ext)
+        } else
+          try
+            if (ext.isDefinedAt(env)) {
+              ext(env)
+              appliedExtensions.put(ext, ()): Unit
+              Right(ext)
+            } else {
+              // $COVERAGE-OFF$ I don't have an idea how to test this.
+              Left(
+                ext -> new IllegalStateException(
+                  s"Instance of ${ext.getClass.getName} cannot be applied to ${env.getClass.getName}"
+                )
+              )
+              // $COVERAGE-ON$
+            }
+          catch {
+            case e: Throwable => Left(ext -> e)
+          }
 
       extensions match {
         case Right(extensions) =>

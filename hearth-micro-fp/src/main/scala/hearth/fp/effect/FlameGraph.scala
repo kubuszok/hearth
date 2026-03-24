@@ -33,6 +33,9 @@ object FlameGraph {
     *
     * This avoids building the entire JSON in memory, which is important for large flame graphs.
     *
+    * With the flat-log-with-scope-IDs design, we simply iterate the flat log list and emit O/C events for each
+    * [[Log.Scope]] that has timestamps. No tree traversal or work queue needed.
+    *
     * @param out
     *   the output to write to
     * @param name
@@ -63,37 +66,20 @@ object FlameGraph {
       }
     }
 
-    // Stack-safe traversal using explicit work queue instead of recursion
-    val workQueue = new java.util.ArrayDeque[AnyRef]()
-    workQueue.add(logs)
-    while (!workQueue.isEmpty)
-      workQueue.poll() match {
-        case currentLogs: Logs @unchecked =>
-          // Process in reverse so that items end up in the correct order on the queue
-          var i = currentLogs.size - 1
-          while (i >= 0) {
-            currentLogs(i) match {
-              case Log.Scope(scopeName, entries, start, end)
-                  if start != Log.Timestamp.empty && end != Log.Timestamp.empty =>
-                val idx = frameIndex(stripAnsi(scopeName))
-                val relStart = start - macroStart
-                val relEnd = end - macroStart
-                // Push close marker first (will be processed after children)
-                workQueue.addFirst(CloseMarker(idx, relEnd))
-                // Then the child logs
-                workQueue.addFirst(entries)
-                // Record the open event immediately
-                events += Event("O", idx, relStart)
-              case Log.Scope(_, entries, _, _) =>
-                workQueue.addFirst(entries)
-              case _: Log.Entry =>
-              // Entries don't have timing, skip
-            }
-            i -= 1
-          }
-        case CloseMarker(idx, relEnd) =>
+    // Simple flat iteration — no work queue needed
+    var i = 0
+    while (i < logs.size) {
+      logs(i) match {
+        case Log.Scope(scopeName, _, _, start, end) if start != Log.Timestamp.empty && end != Log.Timestamp.empty =>
+          val idx = frameIndex(stripAnsi(scopeName))
+          val relStart = start - macroStart
+          val relEnd = end - macroStart
+          events += Event("O", idx, relStart)
           events += Event("C", idx, relEnd)
+        case _ => // Skip entries and scopes without timestamps
       }
+      i += 1
+    }
 
     if (events.isEmpty) false
     else {
@@ -132,8 +118,7 @@ object FlameGraph {
       out.append(endValue.toString)
       out.append(",\n")
       out.append("      \"events\": [\n")
-      // Write events, deduplicating consecutive identical events inline (caused by MState log merging).
-      // This avoids allocating an intermediate deduped collection.
+      // Write events, deduplicating consecutive identical events inline.
       var prevEvent: Event = null
       var needsComma = false
       var ei = 0
@@ -166,8 +151,6 @@ object FlameGraph {
   }
 
   final private case class Event(tpe: String, frame: Int, at: Long)
-
-  final private case class CloseMarker(frame: Int, relEnd: Long)
 
   // Sort by timestamp; at same timestamp, close before open to maintain valid nesting.
   // Custom ordering avoids boxing (Long, Int) tuples on every comparison.

@@ -235,5 +235,41 @@ final class EnvironmentSpec extends MacroSuite {
         )
       }
     }
+
+    group("methods: Environment.loadMacroExtensions called twice, expected behavior") {
+      import EnvironmentFixtures.testLoadingExtensionsTwice
+
+      test("should load each extension only once even when called twice") {
+        testLoadingExtensionsTwice <==> Data.map(
+          "firstLoad" -> Data.map(
+            "detailed" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example1MacroExtension"), Data("hearth.Example2MacroExtension"))
+            ),
+            "asOption" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example1MacroExtension"), Data("hearth.Example2MacroExtension"))
+            ),
+            "asEither" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example1MacroExtension"), Data("hearth.Example2MacroExtension"))
+            )
+          ),
+          "secondLoad" -> Data.map(
+            "detailed" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example1MacroExtension"), Data("hearth.Example2MacroExtension"))
+            ),
+            "asOption" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example1MacroExtension"), Data("hearth.Example2MacroExtension"))
+            ),
+            "asEither" -> Data.map(
+              "loaded" -> Data.list(Data("hearth.Example1MacroExtension"), Data("hearth.Example2MacroExtension"))
+            )
+          ),
+          // KEY: Each extension name appears only once — extend() was NOT called twice
+          "loadedExtensions" -> Data.list(
+            Data("Example 1"),
+            Data("Example 2")
+          )
+        )
+      }
+    }
   }
 }

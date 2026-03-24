@@ -35,4 +35,8 @@ object EnvironmentFixtures {
   private def testLoadingExtensionsWhenImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(
     q
   ).testLoadingExtensionsWhen
+
+  inline def testLoadingExtensionsTwice: Data = ${ testLoadingExtensionsTwiceImpl }
+  private def testLoadingExtensionsTwiceImpl(using q: Quotes): Expr[Data] =
+    new EnvironmentFixtures(q).testLoadingExtensionsTwice
 }

@@ -22,6 +22,8 @@ final private class EnvironmentFixtures(val c: blackbox.Context)
   def testLoadingExtensionsExcludingImpl: c.Expr[Data] = testLoadingExtensionsExcluding
 
   def testLoadingExtensionsWhenImpl: c.Expr[Data] = testLoadingExtensionsWhen
+
+  def testLoadingExtensionsTwiceImpl: c.Expr[Data] = testLoadingExtensionsTwice
 }
 
 object EnvironmentFixtures {
@@ -33,4 +35,5 @@ object EnvironmentFixtures {
   def testLoadingExtensions: Data = macro EnvironmentFixtures.testLoadingExtensionsImpl
   def testLoadingExtensionsExcluding: Data = macro EnvironmentFixtures.testLoadingExtensionsExcludingImpl
   def testLoadingExtensionsWhen: Data = macro EnvironmentFixtures.testLoadingExtensionsWhenImpl
+  def testLoadingExtensionsTwice: Data = macro EnvironmentFixtures.testLoadingExtensionsTwiceImpl
 }
