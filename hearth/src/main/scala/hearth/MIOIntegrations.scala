@@ -21,6 +21,9 @@ trait MIOIntegrations { this: MacroTypedCommons =>
       *   how to render error logs, if [[DontRender]] is used, error logs will not be rendered
       * @param failOnErrorLog
       *   whether to fail if there are error logs, if true, the macro expansion will fail if there is any error log
+      * @param timeout
+      *   maximum time allowed for the MIO computation before it is terminated with a timeout error; defaults to 2
+      *   seconds
       * @param renderFailure
       *   if macro expansion failed and there are both errors logs anf exceptions, this function will be called to
       *   render the error message
@@ -32,46 +35,60 @@ trait MIOIntegrations { this: MacroTypedCommons =>
         infoRendering: LogRendering = DontRender,
         warnRendering: LogRendering = RenderFrom(Log.Level.Warn),
         errorRendering: LogRendering = RenderFrom(Log.Level.Error),
-        failOnErrorLog: Boolean = false
+        failOnErrorLog: Boolean = false,
+        timeout: scala.concurrent.duration.FiniteDuration =
+          scala.concurrent.duration.FiniteDuration(2, java.util.concurrent.TimeUnit.SECONDS)
     )(
         renderFailure: (String, fp.data.NonEmptyVector[Throwable]) => String
     ): Expr[A] = Environment.handleMioTerminationException {
       Environment.configureMioBenchmarking()
-      val (state, result) = io.unsafe.runSync
-      val flameGraphError = writeFlameGraphIfConfigured(macroName, state)
-      result match {
-        case Right(expr) =>
-          state.logs
-            .render(macroName, infoRendering)
-            .filter(_.length - 2 > macroName.length)
-            .foreach(Environment.reportInfo)
-          val warnMsg = (
-            state.logs.render(macroName, warnRendering).filter(_.length - 2 > macroName.length),
-            flameGraphError
-          ) match {
-            case (Some(warn), Some(fgErr)) => Some(s"$warn\n$fgErr")
-            case (warn, fgErr)             => warn.orElse(fgErr)
+      Environment.withMioTimeout(timeout) {
+        io.unsafe.runSync
+      } match {
+        case Right((state, result)) =>
+          val flameGraphError = writeFlameGraphIfConfigured(macroName, state)
+          result match {
+            case Right(expr) =>
+              state.logs
+                .render(macroName, infoRendering)
+                .filter(_.length - 2 > macroName.length)
+                .foreach(Environment.reportInfo)
+              val warnMsg = (
+                state.logs.render(macroName, warnRendering).filter(_.length - 2 > macroName.length),
+                flameGraphError
+              ) match {
+                case (Some(warn), Some(fgErr)) => Some(s"$warn\n$fgErr")
+                case (warn, fgErr)             => warn.orElse(fgErr)
+              }
+              warnMsg.foreach(Environment.reportWarn)
+              state.logs
+                .render(macroName, errorRendering)
+                .filter(_.length - 2 > macroName.length && failOnErrorLog)
+                .foreach(Environment.reportErrorAndAbort)
+              expr
+            case Left(errors) =>
+              def infoLogs = state.logs.render(macroName, infoRendering)
+              def warnLogs = state.logs.render(macroName, warnRendering)
+              def errorLogs = state.logs.render(macroName, errorRendering)
+
+              val logs = infoLogs.orElse(warnLogs).orElse(errorLogs).filter(_.trim.count(_ == '\n') > 0)
+              val msg = logs.map(renderFailure(_, errors)).getOrElse(renderFailure("", errors))
+
+              def fallbackMessage =
+                errors
+                  .map(e => e.getMessage.split("\n").map("  " + _).mkString("\n"))
+                  .mkString("Macro failed with NonEmptyVector(\n", ",\n", "\n)")
+
+              Environment.reportErrorAndAbort(if (msg.nonEmpty) msg else fallbackMessage)
           }
-          warnMsg.foreach(Environment.reportWarn)
-          state.logs
-            .render(macroName, errorRendering)
-            .filter(_.length - 2 > macroName.length && failOnErrorLog)
-            .foreach(Environment.reportErrorAndAbort)
-          expr
-        case Left(errors) =>
-          def infoLogs = state.logs.render(macroName, infoRendering)
-          def warnLogs = state.logs.render(macroName, warnRendering)
-          def errorLogs = state.logs.render(macroName, errorRendering)
-
-          val logs = infoLogs.orElse(warnLogs).orElse(errorLogs).filter(_.trim.count(_ == '\n') > 0)
-          val msg = logs.map(renderFailure(_, errors)).getOrElse(renderFailure("", errors))
-
-          def fallbackMessage =
-            errors
-              .map(e => e.getMessage.split("\n").map("  " + _).mkString("\n"))
-              .mkString("Macro failed with NonEmptyVector(\n", ",\n", "\n)")
-
-          Environment.reportErrorAndAbort(if (msg.nonEmpty) msg else fallbackMessage)
+        case Left(timeoutEx) =>
+          val flameGraphError = writeFlameGraphIfConfigured(macroName, timeoutEx.capturedState)
+          val renderedLogs = timeoutEx.capturedState.logs
+            .render(macroName, warnRendering)
+            .filter(_.trim.count(_ == '\n') > 0)
+          val timeoutMsg = s"Macro '$macroName' timed out after ${timeout.toMillis}ms"
+          val fullMsg = Vector(Some(timeoutMsg), renderedLogs, flameGraphError).flatten.mkString("\n")
+          Environment.reportErrorAndAbort(fullMsg)
       }
     }
   }
