@@ -343,6 +343,7 @@ final class MioSpec extends ScalaCheckSuite with Laws {
     }
 
     def infiniteLoop: MIO[Nothing] = MIO.defer(infiniteLoop)
+    def loopForever[A]: MIO[A] = MIO.defer(loopForever)
 
     test("should throw MioTimeoutException when deadline is exceeded") {
       intercept[MIO.MioTimeoutException] {
@@ -475,6 +476,172 @@ final class MioSpec extends ScalaCheckSuite with Laws {
         MIO.benchmarkScopes = prevBenchmark
         MIO.macroStartTimestamp = prevStart
       }
+    }
+
+    test("timeout should not be recoverable by handleErrorWith") {
+      val mio = infiniteLoop.handleErrorWith { _ =>
+        MIO.pure(42) // should never be reached
+      }
+
+      intercept[MIO.MioTimeoutException] {
+        withTimeout(50) {
+          mio.unsafe.runSync
+        }
+      }
+    }
+
+    test("timeout should not be recoverable by redeemWith") {
+      val mio = loopForever[Int].redeemWith(_ => MIO.pure(42))(_ => MIO.pure(42))
+
+      intercept[MIO.MioTimeoutException] {
+        withTimeout(50) {
+          mio.unsafe.runSync
+        }
+      }
+    }
+
+    test("timeout should not be recoverable by recover") {
+      val mio = loopForever[Int].recover { case _ => 42 }
+
+      intercept[MIO.MioTimeoutException] {
+        withTimeout(50) {
+          mio.unsafe.runSync
+        }
+      }
+    }
+
+    test("timeout should not be recoverable by orElse") {
+      val mio = loopForever[Int].orElse(MIO.pure(42))
+
+      intercept[MIO.MioTimeoutException] {
+        withTimeout(50) {
+          mio.unsafe.runSync
+        }
+      }
+    }
+
+    test("timeout should propagate through MIO.scoped / runSafe") {
+      val mio = MIO.scoped { runSafe =>
+        runSafe(loopForever[Int]) // timeout fires inside runSafe
+      }
+
+      intercept[MIO.MioTimeoutException] {
+        withTimeout(50) {
+          mio.unsafe.runSync
+        }
+      }
+    }
+
+    test("timeout should propagate through MIO.defer and not be caught by NonFatal") {
+      // Verify that timeout inside a nested MIO.apply propagates through defer's NonFatal handler
+      val mioWithTimeout = MIO.scoped { runSafe =>
+        runSafe(Log.info("before loop"))
+        runSafe(loopForever[String])
+      }
+
+      val ex = intercept[MIO.MioTimeoutException] {
+        withTimeout(50) {
+          mioWithTimeout.unsafe.runSync
+        }
+      }
+      val rendered = ex.capturedState.logs.render.fromInfo("root")
+      assert(rendered.contains("before loop"), "Logs before timeout should be captured")
+    }
+
+    test("timeout with MLocal simulating ValDefsCache pattern: forward-declare then build") {
+      // Simulate the ValDefsCache pattern:
+      // 1. Forward-declare a cache entry (definition = None)
+      // 2. Start building it (run more MIO to compute the body)
+      // 3. Timeout fires during build
+      // 4. Verify timeout propagates cleanly — NOT swallowed by error handling
+
+      val cache = MLocal.unsafeSharedParallel(Map.empty[String, Option[String]])
+
+      // Build first entry normally, then loop forever during second entry
+      val buildFirst: MIO[Unit] = for {
+        c1 <- cache.get
+        _ <- cache.set(c1.updated("derivedShow", Some("built")))
+      } yield ()
+
+      val buildSecondForever: MIO[Unit] = Log.namedScope("building derivedEq") {
+        Log.info("started building") >> loopForever[Unit]
+      }
+
+      val mio = for {
+        // Step 1: Forward declare — like ValDefsCache.forwardDeclare
+        _ <- cache.set(Map("derivedShow" -> None, "derivedEq" -> None))
+        // Step 2: Build first entry — completes normally
+        _ <- buildFirst
+        // Step 3: Build second entry — infinite loop simulates slow derivation
+        _ <- buildSecondForever
+      } yield ()
+
+      val ex = intercept[MIO.MioTimeoutException] {
+        withTimeout(50) {
+          mio.unsafe.runSync
+        }
+      }
+
+      // Verify the cache state: derivedShow is built, derivedEq is still None (incomplete)
+      val cacheState = ex.capturedState.get(cache)
+      assert(
+        cacheState.get("derivedShow").contains(Some("built")),
+        s"derivedShow should be built, got: ${cacheState.get("derivedShow")}"
+      )
+      assert(
+        cacheState.get("derivedEq").contains(None),
+        s"derivedEq should be incomplete (None), got: ${cacheState.get("derivedEq")}"
+      )
+    }
+
+    test("timeout inside buildCachedWith-like pattern should not produce partial results") {
+      // Simulate a more realistic pattern: forward-declare, then use runSafe to build
+      val cache = MLocal.unsafeSharedParallel(Map.empty[String, Option[String]])
+
+      val mio = MIO.scoped { runSafe =>
+        // Forward declare
+        runSafe(cache.set(Map("key" -> None)))
+
+        // Start building — this will timeout
+        val result: String =
+          try
+            runSafe(loopForever[String])
+          catch {
+            // A user might try to catch and continue — this MUST NOT work for timeout
+            case scala.util.control.NonFatal(_) => "recovered"
+          }
+
+        // If we somehow got here (we shouldn't), finalize the cache
+        runSafe(cache.set(Map("key" -> Some(result))))
+      }
+
+      // Timeout should propagate, not be caught by the NonFatal handler
+      intercept[MIO.MioTimeoutException] {
+        withTimeout(50) {
+          mio.unsafe.runSync
+        }
+      }
+    }
+
+    test("timeout error message should be clear, not misleading 'not found' from incomplete cache") {
+      val cache = MLocal.unsafeSharedParallel(Map.empty[String, Option[String]])
+
+      val mio = cache.set(Map("typeclass" -> None)) >> loopForever[Unit]
+
+      val ex = intercept[MIO.MioTimeoutException] {
+        withTimeout(50) {
+          mio.unsafe.runSync
+        }
+      }
+
+      // The exception message should say "timed out", not something about missing definitions
+      assert(
+        ex.prettyPrintedMessage.contains("MIO timed out"),
+        s"Expected 'MIO timed out' in message, got:\n${ex.prettyPrintedMessage}"
+      )
+      // The captured state should have the timeout marker log
+      val rendered = ex.capturedState.logs.render.fromError("root")
+      assert(rendered.contains("MIO timed out"), s"Expected timeout marker in logs:\n$rendered")
     }
   }
 }

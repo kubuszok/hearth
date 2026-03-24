@@ -256,7 +256,7 @@ object MIO {
     * Set via [[hearth.Environments.EnvironmentModule.withMioTimeout]] or directly before calling
     * [[MIO.unsafe.runSync]].
     *
-    * @since 0.4.0
+    * @since 0.3.0
     */
   var timeoutDeadlineNanos: Long = Long.MaxValue
 
@@ -502,7 +502,7 @@ object MIO {
     * Extends [[InterruptedException]] so it is NOT caught by [[scala.util.control.NonFatal]] — this prevents MIO's own
     * `redeemWith`/`handleErrorWith` from swallowing the timeout.
     *
-    * @since 0.4.0
+    * @since 0.3.0
     */
   final case class MioTimeoutException(capturedState: MState, prettyPrintedMessage: String)
       extends RuntimeException("\u001b\\[([0-9]+)m".r.replaceAllIn(prettyPrintedMessage, "")) {
