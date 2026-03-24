@@ -157,7 +157,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
       * block (supporting nested calls). If [[fp.effect.MIO.MioTimeoutException]] is thrown during execution, it is
       * caught and returned as [[Left]].
       *
-      * @since 0.4.0
+      * @since 0.3.0
       */
     final def withMioTimeout[A](
         timeout: scala.concurrent.duration.FiniteDuration
