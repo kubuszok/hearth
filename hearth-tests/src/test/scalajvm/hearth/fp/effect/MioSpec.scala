@@ -425,21 +425,26 @@ final class MioSpec extends ScalaCheckSuite with Laws {
       result === Right(42)
     }
 
-    test("should save and restore previous deadline") {
-      val outerDeadline = System.nanoTime() + 999999999999L
-      MIO.timeoutDeadlineNanos = outerDeadline
-      try {
-        withTimeout(50) {
-          // Inner deadline is set
-          assert(MIO.timeoutDeadlineNanos != outerDeadline)
+    test("should reset deadline to Long.MaxValue after timeout completes") {
+      withTimeout(1000) {
+        assert(MIO.timeoutDeadlineNanos != Long.MaxValue, "Deadline should be set during execution")
+      }
+      assert(
+        MIO.timeoutDeadlineNanos == Long.MaxValue,
+        s"Expected deadline to be reset to Long.MaxValue, got ${MIO.timeoutDeadlineNanos}"
+      )
+    }
+
+    test("should reset deadline to Long.MaxValue after timeout fires") {
+      ignore(intercept[MIO.MioTimeoutException] {
+        withTimeout(1) {
+          loopForever[Unit].unsafe.runSync
         }
-        // Outer deadline is restored
-        assert(
-          MIO.timeoutDeadlineNanos == outerDeadline,
-          s"Expected outer deadline to be restored, got ${MIO.timeoutDeadlineNanos}"
-        )
-      } finally
-        MIO.timeoutDeadlineNanos = Long.MaxValue
+      })
+      assert(
+        MIO.timeoutDeadlineNanos == Long.MaxValue,
+        s"Expected deadline to be reset to Long.MaxValue after timeout, got ${MIO.timeoutDeadlineNanos}"
+      )
     }
 
     test("should render flame graph from timeout state with preserved scopes") {
@@ -621,6 +626,70 @@ final class MioSpec extends ScalaCheckSuite with Laws {
           mio.unsafe.runSync
         }
       }
+    }
+
+    test("timeout should work with DirectStyle runSafe and namedScope") {
+      val prevBenchmark = MIO.benchmarkScopes
+      try {
+        MIO.benchmarkScopes = true
+
+        val mio = MIO.scoped { runSafe =>
+          runSafe(Log.info("step 1"))
+          runSafe(Log.namedScope("slow-scope") {
+            Log.info("entered slow scope") >> loopForever[Unit]
+          })
+        }
+
+        val ex = intercept[MIO.MioTimeoutException] {
+          withTimeout(100) {
+            mio.unsafe.runSync
+          }
+        }
+
+        // Verify logs and scope reconstruction
+        val rendered = ex.capturedState.logs.render.fromInfo("root")
+        assert(rendered.contains("step 1"), s"Expected 'step 1' in:\n$rendered")
+        assert(rendered.contains("slow-scope"), s"Expected 'slow-scope' in:\n$rendered")
+        assert(rendered.contains("entered slow scope"), s"Expected 'entered slow scope' in:\n$rendered")
+      } finally
+        MIO.benchmarkScopes = prevBenchmark
+    }
+
+    test("timeout should work with multiple sequential runSafe calls") {
+      val mio = MIO.scoped { runSafe =>
+        // First call completes normally
+        val a = runSafe(MIO.pure(1))
+        // Second call times out
+        val b = runSafe(loopForever[Int])
+        a + b // should never be reached
+      }
+
+      val ex = intercept[MIO.MioTimeoutException] {
+        withTimeout(50) {
+          mio.unsafe.runSync
+        }
+      }
+      assert(ex.capturedState != null, "State should be captured")
+    }
+
+    test("timeout should work with DirectStyle and MLocal state") {
+      val local = MLocal.unsafeSharedParallel(0)
+
+      val mio = MIO.scoped { runSafe =>
+        runSafe(local.set(42))
+        val v = runSafe(local.get)
+        assert(v == 42)
+        runSafe(loopForever[Unit])
+      }
+
+      val ex = intercept[MIO.MioTimeoutException] {
+        withTimeout(50) {
+          mio.unsafe.runSync
+        }
+      }
+      // MLocal value should be captured in the timeout state
+      val localValue = ex.capturedState.get(local)
+      assert(localValue == 42, s"Expected MLocal value 42, got $localValue")
     }
 
     test("timeout error message should be clear, not misleading 'not found' from incomplete cache") {
