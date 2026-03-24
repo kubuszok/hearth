@@ -328,4 +328,153 @@ final class MioSpec extends ScalaCheckSuite with Laws {
       directStyleLaws[MIO, Int]
     }
   }
+
+  group("MIO timeout") {
+
+    def withTimeout[A](deadlineMillis: Long)(thunk: => A): A = {
+      val prevDeadline = MIO.timeoutDeadlineNanos
+      val prevScopes = MIO._openScopes
+      MIO.timeoutDeadlineNanos = System.nanoTime() + deadlineMillis * 1000000L
+      try thunk
+      finally {
+        MIO.timeoutDeadlineNanos = prevDeadline
+        MIO._openScopes = prevScopes
+      }
+    }
+
+    def infiniteLoop: MIO[Nothing] = MIO.defer(infiniteLoop)
+
+    test("should throw MioTimeoutException when deadline is exceeded") {
+      intercept[MIO.MioTimeoutException] {
+        withTimeout(50) {
+          infiniteLoop.unsafe.runSync
+        }
+      }
+    }
+
+    test("should capture MState with logs when timeout fires") {
+      val mio = Log.info("before loop") >> infiniteLoop
+
+      val ex = intercept[MIO.MioTimeoutException] {
+        withTimeout(50) {
+          mio.unsafe.runSync
+        }
+      }
+
+      val rendered = ex.capturedState.logs.render.fromInfo("root")
+      assert(rendered.contains("before loop"), s"Expected 'before loop' in:\n$rendered")
+      assert(rendered.contains("MIO timed out"), s"Expected timeout marker in:\n$rendered")
+    }
+
+    test("should preserve namedScopes in timeout state") {
+      val prevBenchmark = MIO.benchmarkScopes
+      try {
+        MIO.benchmarkScopes = true
+
+        val mio = Log.namedScope("outer") {
+          Log.namedScope("completed") {
+            Log.info("A")
+          } >> Log.namedScope("in-progress") {
+            Log.info("B") >> infiniteLoop
+          }
+        }
+
+        val ex = intercept[MIO.MioTimeoutException] {
+          withTimeout(50) {
+            mio.unsafe.runSync
+          }
+        }
+
+        val logs = ex.capturedState.logs
+        // Should have a single outer scope wrapping everything
+        assert(logs.size == 1, s"Expected single outer scope, got ${logs.size} entries:\n${logs.mkString("\n")}")
+        logs.head match {
+          case Log.Scope("outer", entries, start, end) =>
+            assert(start != Log.Timestamp.empty, "outer scope should have start timestamp")
+            assert(end != Log.Timestamp.empty, "outer scope should have end timestamp")
+            val hasCompleted = entries.exists {
+              case Log.Scope("completed", _, _, _) => true
+              case _                               => false
+            }
+            assert(hasCompleted, s"Expected 'completed' scope inside outer, got:\n${entries.mkString("\n")}")
+            val hasInProgress = entries.exists {
+              case Log.Scope("in-progress", _, _, _) => true
+              case _                                 => false
+            }
+            assert(hasInProgress, s"Expected 'in-progress' scope inside outer, got:\n${entries.mkString("\n")}")
+          case other =>
+            fail(s"Expected outer scope, got: $other")
+        }
+      } finally
+        MIO.benchmarkScopes = prevBenchmark
+    }
+
+    test("should complete normally when computation finishes before timeout") {
+      val mio = MIO.pure(42)
+      val (_, result) = withTimeout(1000) {
+        mio.unsafe.runSync
+      }
+      result === Right(42)
+    }
+
+    test("should not timeout when deadline is Long.MaxValue") {
+      val prev = MIO.timeoutDeadlineNanos
+      assert(prev == Long.MaxValue, "Default should be Long.MaxValue")
+      val (_, result) = MIO.pure(42).unsafe.runSync
+      result === Right(42)
+    }
+
+    test("should save and restore previous deadline") {
+      val outerDeadline = System.nanoTime() + 999999999999L
+      MIO.timeoutDeadlineNanos = outerDeadline
+      try {
+        withTimeout(50) {
+          // Inner deadline is set
+          assert(MIO.timeoutDeadlineNanos != outerDeadline)
+        }
+        // Outer deadline is restored
+        assert(
+          MIO.timeoutDeadlineNanos == outerDeadline,
+          s"Expected outer deadline to be restored, got ${MIO.timeoutDeadlineNanos}"
+        )
+      } finally
+        MIO.timeoutDeadlineNanos = Long.MaxValue
+    }
+
+    test("should render flame graph from timeout state with preserved scopes") {
+      val prevBenchmark = MIO.benchmarkScopes
+      val prevStart = MIO.macroStartTimestamp
+      try {
+        MIO.benchmarkScopes = true
+        MIO.macroStartTimestamp = Log.Timestamp.now
+
+        val mio = Log.namedScope("root-scope") {
+          Log.namedScope("fast-scope") {
+            MIO.pure(())
+          } >> Log.namedScope("slow-scope") {
+            infiniteLoop
+          }
+        }
+
+        val ex = intercept[MIO.MioTimeoutException] {
+          withTimeout(50) {
+            mio.unsafe.runSync
+          }
+        }
+
+        val flameGraph = FlameGraph.renderSpeedscope("timeout-test", ex.capturedState.logs, MIO.macroStartTimestamp)
+        assert(flameGraph.isDefined, "Expected flame graph from timeout state")
+        val json = flameGraph.get
+        assert(json.contains("\"name\": \"root-scope\""), s"Missing root-scope in flame graph:\n$json")
+        assert(json.contains("\"name\": \"fast-scope\""), s"Missing fast-scope in flame graph:\n$json")
+        assert(json.contains("\"name\": \"slow-scope\""), s"Missing slow-scope in flame graph:\n$json")
+        // Verify events are present
+        assert(json.contains("\"type\": \"O\""), "Missing open events")
+        assert(json.contains("\"type\": \"C\""), "Missing close events")
+      } finally {
+        MIO.benchmarkScopes = prevBenchmark
+        MIO.macroStartTimestamp = prevStart
+      }
+    }
+  }
 }

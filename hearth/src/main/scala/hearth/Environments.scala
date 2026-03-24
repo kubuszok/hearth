@@ -151,6 +151,26 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
         }
     }
 
+    /** Run a thunk with an MIO timeout deadline.
+      *
+      * Sets [[fp.effect.MIO.timeoutDeadlineNanos]], runs the thunk, and restores the previous deadline in a finally
+      * block (supporting nested calls). If [[fp.effect.MIO.MioTimeoutException]] is thrown during execution, it is
+      * caught and returned as [[Left]].
+      *
+      * @since 0.4.0
+      */
+    final def withMioTimeout[A](
+        timeout: scala.concurrent.duration.FiniteDuration
+    )(thunk: => A): Either[fp.effect.MIO.MioTimeoutException, A] = {
+      val previousDeadline = fp.effect.MIO.timeoutDeadlineNanos
+      fp.effect.MIO.timeoutDeadlineNanos = System.nanoTime() + timeout.toNanos
+      try Right(thunk)
+      catch {
+        case e: fp.effect.MIO.MioTimeoutException => Left(e)
+      } finally
+        fp.effect.MIO.timeoutDeadlineNanos = previousDeadline
+    }
+
     /** Sets up MIO to use benchmark scopes based on the hearth.mioBenchmarkScopes setting.
       *
       * It would add to MIO logging output the duration for each scope execution if enabled by

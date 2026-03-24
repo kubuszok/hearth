@@ -232,7 +232,8 @@ object MIO {
       try
         thunk
       catch {
-        case NonFatal(e) => fail(e)
+        case e: MioTimeoutException => throw e
+        case NonFatal(e)            => fail(e)
       }
     )
   )
@@ -249,6 +250,23 @@ object MIO {
     * relative-to-start values for flame graph rendering.
     */
   var macroStartTimestamp: Log.Timestamp = Log.Timestamp.empty
+
+  /** Deadline in nanoseconds (from System.nanoTime). [[Long.MaxValue]] means no timeout is active.
+    *
+    * Set via [[hearth.Environments.EnvironmentModule.withMioTimeout]] or directly before calling
+    * [[MIO.unsafe.runSync]].
+    *
+    * @since 0.4.0
+    */
+  var timeoutDeadlineNanos: Long = Long.MaxValue
+
+  /** Tracks currently-open [[Log.namedScope]] calls so that scope nesting can be reconstructed when a timeout fires.
+    *
+    * Without this, a timeout exception would unwind past the deferred scope-wrapping closures, leaving all
+    * currently-open scopes flat in the log tree (invisible to [[FlameGraph]]).
+    */
+  private[effect] case class OpenScope(name: String, start: Log.Timestamp, previousLogs: Logs)
+  private[effect] var _openScopes: List[OpenScope] = Nil
 
   // --------------------------------------------- Implementation details ---------------------------------------------
 
@@ -285,7 +303,9 @@ object MIO {
       Pure(s0, Right(s0))
     }).flatMap { s0 =>
       val start = if (benchmarkScopes) Log.Timestamp.now else Log.Timestamp.empty
+      _openScopes = OpenScope(name, start, s0.logs) :: _openScopes
       io :+ { (s, r) =>
+        _openScopes = _openScopes.tail
         val end = if (benchmarkScopes) Log.Timestamp.now else Log.Timestamp.empty
         Pure(s.nameLogsScope(name, start, end, s0), r)
       }
@@ -420,10 +440,15 @@ object MIO {
     override def parMap2[A, B, C](fa: MIO[A], fb: => MIO[B])(f: (A, B) => C): MIO[C] = fa.parMap2(fb)(f)
   }
 
-  private def checkTermination[A, B](state: MState, result: MResult[A], ftc: FnNec[A, B]): Unit =
+  private def checkTermination[A, B](state: MState, result: MResult[A], ftc: FnNec[A, B]): Unit = {
     if (TerminationObserver.isTerminated) {
       throw MioTerminationException(state, result, ftc)
     }
+    val deadline = timeoutDeadlineNanos
+    if (deadline != Long.MaxValue && System.nanoTime() > deadline) {
+      throw MioTimeoutException(state, result, ftc)
+    }
+  }
 
   /** We need to use something ignored by NonFatal. */
   final case class MioTerminationException(prettyPrintedMessage: String)
@@ -466,6 +491,77 @@ object MIO {
                             |$locals
                             |$logs""".stripMargin
       new MioTerminationException(exceptionMsg)
+    }
+  }
+
+  /** Thrown when MIO execution exceeds the configured [[timeoutDeadlineNanos]].
+    *
+    * Captures the full [[MState]] (with scope nesting reconstructed from [[_openScopes]]) so that flame graphs can
+    * still be rendered from the partial execution.
+    *
+    * Extends [[InterruptedException]] so it is NOT caught by [[scala.util.control.NonFatal]] — this prevents MIO's own
+    * `redeemWith`/`handleErrorWith` from swallowing the timeout.
+    *
+    * @since 0.4.0
+    */
+  final case class MioTimeoutException(capturedState: MState, prettyPrintedMessage: String)
+      extends RuntimeException("\u001b\\[([0-9]+)m".r.replaceAllIn(prettyPrintedMessage, "")) {
+
+    def prettyPrintedMessageWithStackTrace: String = {
+      val stackTrace = getStackTrace.map(e => s"  ${Console.RED}at $e${Console.RESET}").mkString("\n")
+      s"""$prettyPrintedMessage
+         |
+         |${Console.BLUE}Stack trace at the time of timeout${Console.RESET}:
+         |$stackTrace""".stripMargin
+    }
+
+    def prettyPrintMessageWithStackTrace(): Unit = java.lang.System.err.println(prettyPrintedMessageWithStackTrace)
+  }
+  object MioTimeoutException {
+
+    def apply[A, B](state: MState, result: MResult[A], ftc: FnNec[A, B]): MioTimeoutException = {
+      val reconstructed = reconstructScopes(state)
+      val locals =
+        if (reconstructed.locals.isEmpty) s"  ${Console.BLUE}No MLocal values${Console.RESET}"
+        else
+          reconstructed.locals
+            .map { case (local, value) =>
+              s"    ${Console.BLUE}$local${Console.RESET}: ${Console.GREEN}$value${Console.RESET}"
+            }
+            .mkString(s"  ${Console.BLUE}MLocal values at the time of timeout${Console.RESET}:\n", "\n", "")
+      val logs =
+        if (reconstructed.logs.isEmpty) s"  ${Console.BLUE}No Logs${Console.RESET}"
+        else
+          reconstructed.logs.render
+            .fromInfo(s"${Console.BLUE}Logs at the time of timeout${Console.RESET}")
+            .split("\n")
+            .map(l => s"  $l")
+            .mkString("\n")
+      val exceptionMsg = s"""${Console.BLUE}MIO timed out${Console.RESET}:
+                            |
+                            |${Console.BLUE}MIO execution at the time of timeout${Console.RESET}:
+                            |  ${Console.BLUE}Last MResult${Console.RESET}:     ${Console.GREEN}$result${Console.RESET}
+                            |  ${Console.BLUE}Next computation${Console.RESET}: ${Console.YELLOW}$ftc${Console.RESET}
+                            |$locals
+                            |$logs""".stripMargin
+      new MioTimeoutException(reconstructed, exceptionMsg)
+    }
+
+    /** Reconstruct scope nesting from the open scope stack.
+      *
+      * During normal execution, [[nameLogsScope]] wraps logs in a deferred `:+` closure. When a timeout fires, that
+      * closure never executes, leaving currently-open scopes flat in the log tree. This method uses the [[_openScopes]]
+      * stack to reconstruct the proper nesting, so that [[FlameGraph]] can render them.
+      */
+    private def reconstructScopes(state: MState): MState = {
+      val now = Log.Timestamp.now
+      var logs = state.logs :+ Log.Entry(Log.Level.Error, () => "MIO timed out")
+      for (OpenScope(name, start, previousLogs) <- _openScopes) {
+        val scopeLogs = if (previousLogs.size <= logs.size) logs.drop(previousLogs.size) else logs
+        logs = previousLogs :+ Log.Scope(name, scopeLogs, start, now)
+      }
+      _openScopes = Nil
+      MState(state.locals, logs)
     }
   }
 }
