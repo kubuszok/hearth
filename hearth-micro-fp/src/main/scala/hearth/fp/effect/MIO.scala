@@ -262,10 +262,10 @@ object MIO {
 
   /** Tracks currently-open [[Log.namedScope]] calls so that scope nesting can be reconstructed when a timeout fires.
     *
-    * Without this, a timeout exception would unwind past the deferred scope-wrapping closures, leaving all
-    * currently-open scopes flat in the log tree (invisible to [[FlameGraph]]).
+    * With the flat-log-with-scope-IDs design, open scopes already have correct parent IDs in the log list. The
+    * `_openScopes` stack is used during timeout reconstruction to close open scopes (set their end timestamps).
     */
-  private[effect] case class OpenScope(name: String, start: Log.Timestamp, previousLogs: Logs)
+  private[effect] case class OpenScope(name: String, scopeId: Int, start: Log.Timestamp)
   private[effect] var _openScopes: List[OpenScope] = Nil
 
   // --------------------------------------------- Implementation details ---------------------------------------------
@@ -299,15 +299,16 @@ object MIO {
 
   private[effect] def log(log: => Log): MIO[Unit] = void :+ ((s, r) => Pure(s.log(log), r))
   private[effect] def nameLogsScope[A](name: String, io: MIO[A]): MIO[A] =
-    (void :+ { (s0, _) =>
-      Pure(s0, Right(s0))
-    }).flatMap { s0 =>
+    void :+ { (s, _) =>
       val start = if (benchmarkScopes) Log.Timestamp.now else Log.Timestamp.empty
-      _openScopes = OpenScope(name, start, s0.logs) :: _openScopes
+      val (s1, scopeId) = s.openScope(name, start)
+      _openScopes = OpenScope(name, scopeId, start) :: _openScopes
+      Pure(s1, Right(scopeId))
+    } flatMap { scopeId =>
       io :+ { (s, r) =>
         _openScopes = _openScopes.tail
         val end = if (benchmarkScopes) Log.Timestamp.now else Log.Timestamp.empty
-        Pure(s.nameLogsScope(name, start, end, s0), r)
+        Pure(s.closeScope(scopeId, end), r)
       }
     }
 
@@ -547,21 +548,25 @@ object MIO {
       new MioTimeoutException(reconstructed, exceptionMsg)
     }
 
-    /** Reconstruct scope nesting from the open scope stack.
+    /** Close open scopes and add timeout marker.
       *
-      * During normal execution, [[nameLogsScope]] wraps logs in a deferred `:+` closure. When a timeout fires, that
-      * closure never executes, leaving currently-open scopes flat in the log tree. This method uses the [[_openScopes]]
-      * stack to reconstruct the proper nesting, so that [[FlameGraph]] can render them.
+      * With flat-log-with-scope-IDs, open scopes already have correct parent IDs. We just need to:
+      *   1. Add a timeout marker log entry
+      *   2. Close all open scopes (set end timestamps, add to closedScopes)
       */
     private def reconstructScopes(state: MState): MState = {
       val now = Log.Timestamp.now
-      var logs = state.logs :+ Log.Entry(Log.Level.Error, () => "MIO timed out")
-      for (OpenScope(name, start, previousLogs) <- _openScopes) {
-        val scopeLogs = if (previousLogs.size <= logs.size) logs.drop(previousLogs.size) else logs
-        logs = previousLogs :+ Log.Scope(name, scopeLogs, start, now)
+      // Add timeout marker with correct parent scope ID
+      val parentId = state.scopeStack match {
+        case (_, id) :: _ => id
+        case Nil          => 0
       }
+      var result = state.copy(logs = state.logs :+ Log.Entry(Log.Level.Error, () => "MIO timed out", parentId))
+      // Close all open scopes (innermost first, which is the list order)
+      for (OpenScope(_, scopeId, _) <- _openScopes)
+        result = result.closeScope(scopeId, now)
       _openScopes = Nil
-      MState(state.locals, logs)
+      result
     }
   }
 }

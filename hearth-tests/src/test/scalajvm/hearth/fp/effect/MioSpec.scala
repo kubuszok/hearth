@@ -272,6 +272,171 @@ final class MioSpec extends ScalaCheckSuite with Laws {
     }
   }
 
+  group("MIO parallel logs") {
+
+    test("parMap2 should preserve logs from both branches") {
+      val fa = Log.info("from branch A") >> MIO.pure(1)
+      val fb = Log.info("from branch B") >> MIO.pure(2)
+      val mio = fa.parMap2(fb)(_ + _)
+
+      val (state, result) = mio.unsafe.runSync
+      result ==> Right(3)
+
+      // Explicitly count entries — the bug would show as missing one branch's logs
+      val entries = state.logs.collect { case e: Log.Entry => e.message() }
+      assert(entries.contains("from branch A"), s"Missing branch A in entries: $entries")
+      assert(entries.contains("from branch B"), s"Missing branch B in entries: $entries")
+      assert(entries.size == 2, s"Expected exactly 2 entries, got ${entries.size}: $entries")
+
+      val rendered = state.logs.render.fromInfo("root")
+      assert(rendered.contains("from branch A"), s"Missing branch A log in:\n$rendered")
+      assert(rendered.contains("from branch B"), s"Missing branch B log in:\n$rendered")
+    }
+
+    test("parMap2 should preserve logs from both branches inside a named scope") {
+      val mio = Log.namedScope("outer") {
+        val fa = Log.info("A log") >> MIO.pure(1)
+        val fb = Log.info("B log") >> MIO.pure(2)
+        fa.parMap2(fb)(_ + _)
+      }
+
+      val (state, result) = mio.unsafe.runSync
+      result ==> Right(3)
+      val rendered = state.logs.render.fromInfo("root")
+      assert(rendered.contains("A log"), s"Missing A log in:\n$rendered")
+      assert(rendered.contains("B log"), s"Missing B log in:\n$rendered")
+      assert(rendered.contains("outer"), s"Missing outer scope in:\n$rendered")
+    }
+
+    test("parMap2 should preserve logs from both branches with nested scopes") {
+      val mio = Log.namedScope("parent") {
+        val fa = Log.namedScope("branch-a") {
+          Log.info("log from A")
+        }
+        val fb = Log.namedScope("branch-b") {
+          Log.info("log from B")
+        }
+        fa.parMap2(fb)((_, _))
+      }
+
+      val (state, result) = mio.unsafe.runSync
+      assert(result.isRight, s"Expected success, got: $result")
+      val rendered = state.logs.render.fromInfo("root")
+      assert(rendered.contains("branch-a"), s"Missing branch-a scope in:\n$rendered")
+      assert(rendered.contains("branch-b"), s"Missing branch-b scope in:\n$rendered")
+      assert(rendered.contains("log from A"), s"Missing log from A in:\n$rendered")
+      assert(rendered.contains("log from B"), s"Missing log from B in:\n$rendered")
+    }
+
+    test("parMap2 should preserve many logs from both branches") {
+      val fa = (1 to 5).foldLeft(MIO.pure(())) { (acc, i) =>
+        acc >> Log.info(s"A-$i")
+      } >> MIO.pure("a")
+      val fb = (1 to 5).foldLeft(MIO.pure(())) { (acc, i) =>
+        acc >> Log.info(s"B-$i")
+      } >> MIO.pure("b")
+
+      val mio = fa.parMap2(fb)(_ + _)
+      val (state, _) = mio.unsafe.runSync
+      val rendered = state.logs.render.fromInfo("root")
+      (1 to 5).foreach { i =>
+        assert(rendered.contains(s"A-$i"), s"Missing A-$i in:\n$rendered")
+        assert(rendered.contains(s"B-$i"), s"Missing B-$i in:\n$rendered")
+      }
+    }
+
+    test("parMap2 with DirectStyle runSafe in one branch should preserve all logs") {
+      val fa = MIO.scoped { runSafe =>
+        runSafe(Log.info("direct-A1"))
+        runSafe(Log.info("direct-A2"))
+        runSafe(MIO.pure(1))
+      }
+      val fb = Log.info("monadic-B") >> MIO.pure(2)
+
+      val mio = Log.namedScope("par-scope") {
+        fa.parMap2(fb)(_ + _)
+      }
+
+      val (state, result) = mio.unsafe.runSync
+      result ==> Right(3)
+      val rendered = state.logs.render.fromInfo("root")
+      assert(rendered.contains("direct-A1"), s"Missing direct-A1 in:\n$rendered")
+      assert(rendered.contains("direct-A2"), s"Missing direct-A2 in:\n$rendered")
+      assert(rendered.contains("monadic-B"), s"Missing monadic-B in:\n$rendered")
+      assert(rendered.contains("par-scope"), s"Missing par-scope in:\n$rendered")
+    }
+
+    test("parMap2 with DirectStyle runSafe in both branches should preserve all logs") {
+      val fa = MIO.scoped { runSafe =>
+        runSafe(Log.namedScope("scope-A")(Log.info("msg-A")))
+        runSafe(MIO.pure("a"))
+      }
+      val fb = MIO.scoped { runSafe =>
+        runSafe(Log.namedScope("scope-B")(Log.info("msg-B")))
+        runSafe(MIO.pure("b"))
+      }
+
+      val mio = fa.parMap2(fb)(_ + _)
+      val (state, result) = mio.unsafe.runSync
+      result ==> Right("ab")
+      val rendered = state.logs.render.fromInfo("root")
+      assert(rendered.contains("scope-A"), s"Missing scope-A in:\n$rendered")
+      assert(rendered.contains("msg-A"), s"Missing msg-A in:\n$rendered")
+      assert(rendered.contains("scope-B"), s"Missing scope-B in:\n$rendered")
+      assert(rendered.contains("msg-B"), s"Missing msg-B in:\n$rendered")
+    }
+
+    test("parMap2 inside DirectStyle with DirectStyle in branches should preserve all logs") {
+      val mio = MIO.scoped { outerRunSafe =>
+        outerRunSafe(Log.info("before par"))
+
+        val fa = MIO.scoped { runSafe =>
+          runSafe(Log.namedScope("ds-A")(Log.info("inner-A")))
+          runSafe(MIO.pure(1))
+        }
+        val fb = MIO.scoped { runSafe =>
+          runSafe(Log.namedScope("ds-B")(Log.info("inner-B")))
+          runSafe(MIO.pure(2))
+        }
+
+        val result = outerRunSafe(fa.parMap2(fb)(_ + _))
+        outerRunSafe(Log.info("after par"))
+        result
+      }
+
+      val (state, result) = mio.unsafe.runSync
+      result ==> Right(3)
+      val rendered = state.logs.render.fromInfo("root")
+      assert(rendered.contains("before par"), s"Missing 'before par' in:\n$rendered")
+      assert(rendered.contains("after par"), s"Missing 'after par' in:\n$rendered")
+      assert(rendered.contains("ds-A"), s"Missing ds-A scope in:\n$rendered")
+      assert(rendered.contains("inner-A"), s"Missing inner-A in:\n$rendered")
+      assert(rendered.contains("ds-B"), s"Missing ds-B scope in:\n$rendered")
+      assert(rendered.contains("inner-B"), s"Missing inner-B in:\n$rendered")
+    }
+
+    test("nested parMap2 should preserve all logs") {
+      val mio = Log.namedScope("level-1") {
+        val fa = Log.namedScope("level-2a") {
+          val inner1 = Log.info("inner-1a") >> MIO.pure(1)
+          val inner2 = Log.info("inner-2a") >> MIO.pure(2)
+          inner1.parMap2(inner2)(_ + _)
+        }
+        val fb = Log.namedScope("level-2b") {
+          Log.info("inner-b") >> MIO.pure(10)
+        }
+        fa.parMap2(fb)(_ + _)
+      }
+
+      val (state, result) = mio.unsafe.runSync
+      result ==> Right(13)
+      val rendered = state.logs.render.fromInfo("root")
+      assert(rendered.contains("inner-1a"), s"Missing inner-1a in:\n$rendered")
+      assert(rendered.contains("inner-2a"), s"Missing inner-2a in:\n$rendered")
+      assert(rendered.contains("inner-b"), s"Missing inner-b in:\n$rendered")
+    }
+  }
+
   group("MIO") {
 
     test("should be stack-safe with .flatMap") {
@@ -387,25 +552,27 @@ final class MioSpec extends ScalaCheckSuite with Laws {
         }
 
         val logs = ex.capturedState.logs
-        // Should have a single outer scope wrapping everything
-        assert(logs.size == 1, s"Expected single outer scope, got ${logs.size} entries:\n${logs.mkString("\n")}")
-        logs.head match {
-          case Log.Scope("outer", entries, start, end) =>
-            assert(start != Log.Timestamp.empty, "outer scope should have start timestamp")
-            assert(end != Log.Timestamp.empty, "outer scope should have end timestamp")
-            val hasCompleted = entries.exists {
-              case Log.Scope("completed", _, _, _) => true
-              case _                               => false
-            }
-            assert(hasCompleted, s"Expected 'completed' scope inside outer, got:\n${entries.mkString("\n")}")
-            val hasInProgress = entries.exists {
-              case Log.Scope("in-progress", _, _, _) => true
-              case _                                 => false
-            }
-            assert(hasInProgress, s"Expected 'in-progress' scope inside outer, got:\n${entries.mkString("\n")}")
-          case other =>
-            fail(s"Expected outer scope, got: $other")
-        }
+        val scopes = logs.collect { case s: Log.Scope => s }
+        val scopeNames = scopes.map(_.name)
+        // All three scopes should be present (flat with parent IDs)
+        assert(scopeNames.contains("outer"), s"Expected 'outer' scope, got: $scopeNames")
+        assert(scopeNames.contains("completed"), s"Expected 'completed' scope, got: $scopeNames")
+        assert(scopeNames.contains("in-progress"), s"Expected 'in-progress' scope, got: $scopeNames")
+        // Outer scope should have timestamps (closed by timeout reconstruction)
+        val outerScope = scopes.find(_.name == "outer").get
+        assert(outerScope.start != Log.Timestamp.empty, "outer scope should have start timestamp")
+        assert(outerScope.end != Log.Timestamp.empty, "outer scope should have end timestamp")
+        // Completed and in-progress should be children of outer (via parentScopeId)
+        val completedScope = scopes.find(_.name == "completed").get
+        val inProgressScope = scopes.find(_.name == "in-progress").get
+        assert(
+          completedScope.parentScopeId == outerScope.scopeId,
+          s"completed should be child of outer"
+        )
+        assert(
+          inProgressScope.parentScopeId == outerScope.scopeId,
+          s"in-progress should be child of outer"
+        )
       } finally
         MIO.benchmarkScopes = prevBenchmark
     }

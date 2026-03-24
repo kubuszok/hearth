@@ -102,6 +102,22 @@ trait EnvironmentFixturesImpl { this: MacroCommons =>
     Expr(result)
   }
 
+  def testLoadingExtensionsTwice: Expr[Data] = {
+    // Reset tracking for clean test
+    loadedExtensions = Vector.empty
+    // Load extensions first time
+    val result1 = Environment.loadMacroExtensions[SuccessfulMacroExtension]
+    // Load the same extensions again — should NOT call extend() again
+    val result2 = Environment.loadMacroExtensions[SuccessfulMacroExtension]
+    val result = Data.map(
+      "firstLoad" -> processResult(result1),
+      "secondLoad" -> processResult(result2),
+      // Each extension name should appear exactly once, not twice
+      "loadedExtensions" -> Data.list(loadedExtensions.map(Data(_))*)
+    )
+    Expr(result)
+  }
+
   private def processResult[A](result: ExtensionLoadingResult[A]): Data = {
     def loadedData(extensions: Seq[A]): Data = Data.list(extensions.map(e => Data(e.getClass.getName))*)
     def errorsData(errors: fp.data.NonEmptyMap[A, Throwable]): Data =
