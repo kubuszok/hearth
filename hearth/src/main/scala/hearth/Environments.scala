@@ -154,21 +154,33 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
     /** Run a thunk with an MIO timeout deadline.
       *
       * Sets [[fp.effect.MIO.timeoutDeadlineNanos]], runs the thunk, and restores the previous deadline in a finally
-      * block (supporting nested calls). If [[fp.effect.MIO.MioTimeoutException]] is thrown during execution, it is
-      * caught and returned as [[Left]].
+      * block. If [[fp.effect.MIO.MioTimeoutException]] is thrown during execution, it is caught and returned as
+      * [[Left]].
+      *
+      * Attempting to set a timeout when one is already active is an error — the global timeout is meant to be set once
+      * at the top level (e.g. in [[MioExprOps.runToExprOrFail]]).
       *
       * @since 0.3.0
       */
     final def withMioTimeout[A](
         timeout: scala.concurrent.duration.FiniteDuration
     )(thunk: => A): Either[fp.effect.MIO.MioTimeoutException, A] = {
-      val previousDeadline = fp.effect.MIO.timeoutDeadlineNanos
+      if (fp.effect.MIO.timeoutDeadlineNanos != Long.MaxValue)
+        throw HearthAssertionError(
+          "MIO timeout is already set. " +
+            "The global timeout should only be set once at the top level (e.g. in runToExprOrFail). " +
+            "Nested timeouts are not supported.",
+          hearthVersion = HearthVersion.byHearthLibrary,
+          scalaVersion = currentScalaVersion,
+          platform = currentPlatform,
+          jdkVersion = currentJDKVersion
+        )
       fp.effect.MIO.timeoutDeadlineNanos = System.nanoTime() + timeout.toNanos
       try Right(thunk)
       catch {
         case e: fp.effect.MIO.MioTimeoutException => Left(e)
       } finally
-        fp.effect.MIO.timeoutDeadlineNanos = previousDeadline
+        fp.effect.MIO.timeoutDeadlineNanos = Long.MaxValue
     }
 
     /** Sets up MIO to use benchmark scopes based on the hearth.mioBenchmarkScopes setting.

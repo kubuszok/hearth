@@ -91,8 +91,9 @@ private[hearth] object DirectStyleExecutor {
         phaser.awaitAdvanceInterruptibly(phase, timeout, unit)
         true
       } catch {
-        case _: TimeoutException     => false
-        case e: InterruptedException => throw e
+        case e: MIO.MioTimeoutException => throw e
+        case _: TimeoutException        => false
+        case e: InterruptedException    => throw e
       }
     }
 
