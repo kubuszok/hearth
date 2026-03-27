@@ -27,7 +27,7 @@ trait ShowCodePrettyScala2 {
     render(
       any,
       highlight,
-      new HighlighedCodePrinter(_, printRootPkg, _, _, notRunnableExprResult = isResultNotUsedAsRunnableCode(any)),
+      new HighlightedCodePrinter(_, printRootPkg, _, _, notRunnableExprResult = isResultNotUsedAsRunnableCode(any)),
       printTypes,
       printIds,
       printOwners,
@@ -177,7 +177,7 @@ trait ShowCodePrettyScala2 {
     private def ifSym(tree: Tree, p: Symbol => Boolean) = symFn(tree, p, false)
 
     /** Better implementation of [[scala.reflect.internal.Printers#CodePrinter]] that supports syntax highlighting. */
-    final class HighlighedCodePrinter(
+    final class HighlightedCodePrinter(
         out: PrintWriter,
         printRootPkg: Boolean,
         syntaxHighlight: SyntaxHighlight,
@@ -210,7 +210,7 @@ trait ShowCodePrettyScala2 {
         if (dotType) hl + ".type" else hl
       }
 
-      // replaces CodePrinter with HighlighedCodePrinter
+      // replaces CodePrinter with HighlightedCodePrinter
       override protected def resolveSelect(t: Tree): String = t match {
         // Skip $anon.this - syntethic $anon class was removed so we need to remove the prefix as well.
         case Select(AnonThis(), name) => printedName(name)
@@ -246,7 +246,7 @@ trait ShowCodePrettyScala2 {
         case Ident(name) =>
           printedName(name)
         // Fallback - since we need a String, we cannot just use print, so we create a nested printer.
-        case _ => render(t, syntaxHighlight, new HighlighedCodePrinter(_, printRootPkg, _, _, notRunnableExprResult))
+        case _ => render(t, syntaxHighlight, new HighlightedCodePrinter(_, printRootPkg, _, _, notRunnableExprResult))
       }
 
       override def printFlags(mods: Modifiers, primaryCtorParam: Boolean = false): Unit = {

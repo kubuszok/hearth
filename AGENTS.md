@@ -35,13 +35,12 @@ hearth/
 ├── hearth-sandwich-examples-3/      # Scala 3 test cases
 │
 ├── docs/                            # MkDocs documentation
-├── guidelines/                      # Instructions for contributors or AI agents
 ├── project/                         # SBT build configuration
 ├── scripts/                         # Utility scripts
 │
 ├── build.sbt                        # Main build configuration
 ├── dev.properties                   # Local IDE settings (DO NOT COMMIT)
-├── CONTRIBUTING.md                  # Contribution guidelines (620+ lines)
+├── CONTRIBUTING.md                  # Contribution guidelines
 └── README.md                        # Project introduction
 ```
 
@@ -52,6 +51,7 @@ hearth/
 2. `hearth-cross-quotes` - Core cross-platform quoting (depends on `hearth-better-printers`)
 3. `hearth-micro-fp` - FP utilities (no dependencies)
 4. `hearth` - Main library (depends on `hearth-micro-fp` and `hearth-better-printers`)
+5. `hearth-munit` - MUnit integration (optional)
 
 **Test modules:**
 - `hearth-tests` - Main test suite (depends on `hearth`)
@@ -204,7 +204,7 @@ The GitHub Actions CI pipeline includes:
 - **Binary compatibility** - MiMa checks
 
 Agents should:
-- make sure that the code was actually compiled by sbt and that `quick-tests` succeeded
+- make sure that the code was actually compiled by sbt and that `quick-test` succeeded
 - make sure that new snippets where runnable Scala CLI examples that pass tests
 - coverage and MiMa can be skipped
 - **before reporting that a task is done**, run `sbt --client "quick-clean ; quick-test"` as the final
@@ -214,7 +214,7 @@ Agents should:
 If an agent was used to generate the code (e.g. following GitHub issue instructions),
 but an agent was not able to run the compilation and tests (e.g. because GitHub sandboxing
 prevents downloading artifacts), it should inform user that any PR they would attempt to make
-will be closed immediatelly.
+will be closed immediately.
 
 ## Bug Fix Workflow
 

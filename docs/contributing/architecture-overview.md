@@ -144,7 +144,7 @@ class MacroImpl(val c: blackbox.Context)
   extends MacroTypesAndOperationsScala2
   with ActualMacroLogic {
 
-  // Unfortunatelly, macros aren't smart enough to notice that Type=c.WeakTypeTag and Expr=c.Expr
+  // Unfortunately, macros aren't smart enough to notice that Type=c.WeakTypeTag and Expr=c.Expr
   // so we have to help them:
   def printTypeAndExprImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] = 
     printTypeAndExpr(expr)
@@ -178,8 +178,8 @@ class MacroImpl(q: Quotes)
 
 object MacroImpl {
 
-  // Unfortunatelly, because this method has to be in an object, we need to manually
-  // formard it to class construction and its method call.
+  // Unfortunately, because this method has to be in an object, we need to manually
+  // forward it to class construction and its method call.
   def printTypeAndExpr[A: Type](using q: Quotes)(expr: Expr[A]): Expr[String] =
     new MacroImpl(using q).printTypeAndExpr[A](expr)
 }

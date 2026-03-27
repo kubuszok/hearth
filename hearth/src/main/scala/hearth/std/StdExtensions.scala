@@ -281,7 +281,7 @@ trait StdExtensions { this: MacroCommons =>
     def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], CollA]
   }
 
-  /** An alias indicating the the type is a collection of some item type, but the exact item type is an existential
+  /** An alias indicating the type is a collection of some item type, but the exact item type is an existential
     * type.
     *
     * @tparam A
@@ -340,7 +340,7 @@ trait StdExtensions { this: MacroCommons =>
     def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair]
   }
 
-  /** An alias indicating the the type is a map of some key and value types, but the exact key and value types are an
+  /** An alias indicating the type is a map of some key and value types, but the exact key and value types are an
     * existential type.
     *
     * @tparam A
@@ -401,7 +401,7 @@ trait StdExtensions { this: MacroCommons =>
     def orElse(option: Expr[OptionA])(default: Expr[OptionA]): Expr[OptionA]
   }
 
-  /** An alias indicating the the type is an option of some item type, but the exact item type is an existential type.
+  /** An alias indicating the type is an option of some item type, but the exact item type is an existential type.
     *
     * @tparam A
     *   the type of the option
@@ -524,7 +524,7 @@ trait StdExtensions { this: MacroCommons =>
     def ctors: CtorLikes[Outer]
   }
 
-  /** An alias indicating the the type is a value type of some inner type, but the exact inner type is an existential
+  /** An alias indicating the type is a value type of some inner type, but the exact inner type is an existential
     * type.
     *
     * @tparam A
