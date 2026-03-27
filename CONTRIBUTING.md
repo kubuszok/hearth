@@ -21,7 +21,7 @@ You need to have installed:
 
  1. [`git`](https://github.com/git-guides)
  2. Java SDK - for local development we recommend something like [Sdkman](https://sdkman.io/) or [jEnv](https://www.jenv.be/) for managing Java SDKs
- 3. `sbt` - however, if you don't want to use some package manager to install it, you can run `./sbt` instead of `sbt` to have it installed for you
+ 3. `sbt` - if you don't want to install it globally, you can use the repo-local `./sbt` launcher instead
  4. IDE that supports Scala:
 
      1. One popular option is [IntelliJ IDEA](https://www.jetbrains.com/idea/download/) - its [core part is OSS](https://github.com/JetBrains/intellij-community),
@@ -31,7 +31,7 @@ You need to have installed:
         After installing IntelliJ you need to install Scala plugin to enable support for it
 
      2. Another option is to use [Scala Metals](https://scalameta.org/metals/) - it's a [Language Server Protocol](https://microsoft.github.io/language-server-protocol/)
-        that provides Scala IDE-like features to any editor which support LSP - there are official installation instructions for Visual Studio Code, Vim, Sublime Text, Emacs, Helix, GitPod.
+        that provides Scala IDE-like features to any editor which supports LSP - there are official installation instructions for Visual Studio Code, Vim, Sublime Text, Emacs, Helix, GitPod.
        
         If you don't have a preference, use Visual Studio Code, if you want to use AI, use something VSC-based like Cursor, Windsurf, Augmented Code or whatever is cheapest hype of the week.
         Then install Scala and Scala Metals extensions from the extension store.
@@ -43,13 +43,13 @@ I recommend to:
 
  1. [fork the repository](https://github.com/kubuszok/hearth/fork) to your own GitHub
  2. [clone it](https://docs.github.com/en/get-started/git-basics/about-remote-repositories#cloning-with-ssh-urls) to your machine
- 3. start in your terminal sbt shell with `sbt` (if you installed it globally) or `./sbt` (if you didn't)
- 4. run in it `ci-jvm-2_13` and `ci-jvm-3` tasks to test if everything works
- 5. if it does, then you should be able to open the folder in your IDE, and it should recognize it as sbt project and start indexing it
- 6. if it succeeds you should be able to see that IDE imported modules like:
+ 3. run `sbt --client "ci-jvm-2_13 ; ci-jvm-3"` (or `./sbt --client "ci-jvm-2_13 ; ci-jvm-3"` if you're using the repo launcher) to test if everything works
+ 4. if it does, then you should be able to open the folder in your IDE, and it should recognize it as sbt project and start indexing it
+ 5. if it succeeds you should be able to see that IDE imported modules like:
     - `hearth`/`hearth3`
     - `hearthCrossQuotes`/`hearthCrossQuotes3`
     - `hearthMicroFp`/`hearthMicroFp3`
+    - `hearthMunit`/`hearthMunit3`
     - `hearthTests`/`hearthTests3`
 
 For local iteration (and before a PR), you can also run checks without an interactive sbt shell: `sbt --client "quick-clean ; quick-test"` exercises the same JVM test set the contributing docs use. See the [instruction for fixing a bug](docs/contributing/instruction-for-fixing-a-bug.md) for clean commands when you change specific modules.
@@ -80,9 +80,9 @@ ide.platform = jvm
 log.cross-quotes = false
 ```
 
-You can use it control which version you want to work on in your IDE. You need to change `ide.scala`/`ide.platform` and reimport build.
+You can use it to control which version you want to work on in your IDE. You need to change `ide.scala`/`ide.platform` and reimport the build.
 
-You can open and edit sources for the other version as well, but you will get only basic syntax highlighting and no intellisense.
+You can open and edit sources for the other version as well, but you will get only basic syntax highlighting and no IntelliSense.
 
 ## Guidelines and instructions
 

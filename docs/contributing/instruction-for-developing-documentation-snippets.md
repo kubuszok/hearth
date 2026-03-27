@@ -42,7 +42,7 @@ When writing snippets:
    within the same section
     * when the same file name appears across several snippets within the same section they are concatenated into 1 file
  * `{{ hearth_version() }}` is replaced by value passed via `--extra "hearth-version=..."`
- * `docs/docs/mkdocs.yml`'s `extra` section can be passed and interpolated as well to e.g. provide a Scala 2 version
+ * `docs/mkdocs.yml`'s `extra` section can be passed and interpolated as well to e.g. provide a Scala 2 version
    with `{{ scala.2_13 }}` or a dependency version with `{{ libraries.munit }}`
  * the rules of passing/failing tests are provided in [the ScalaCLI.md Spec README](https://github.com/MateuszKubuszok/scala-cli-md-spec)
 
@@ -114,7 +114,7 @@ Similarly `example macro` in `part of example macro` can be changed - the import
 the same markdown section and contains `// file: [path to file] - part of [example name]` with the same `example name`.
 
 
-## How to run and tests runnable snippets
+## How to run and test runnable snippets
 
 [ScalaCLI.md Spec](https://github.com/MateuszKubuszok/scala-cli-md-spec) requires [Scala CLI](https://scala-cli.virtuslab.org/) installed.
 It also requires that all snippets are implemented as Scala CLI snippets.
@@ -132,7 +132,7 @@ either it's a published Hearth version, or that we published it locally.
 We can publish the current artifacts for local testing with:
 
 ```bash
-sbt publish-local-for-tests
+sbt --client "publish-local-for-tests"
 ```
 
 then, we should also copy the `version` that is generated for the current commit.

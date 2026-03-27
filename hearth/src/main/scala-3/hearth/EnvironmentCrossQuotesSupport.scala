@@ -67,7 +67,7 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
     * }}}
     *
     * @see
-    *   [[withQuotes]] for a complimentary method
+    *   [[withQuotes]] for a complementary method
     * @see
     *   [[CrossQuotes.nestedCtx]] for the underlying implementation
     *
@@ -88,7 +88,7 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
     * }}}
     *
     * @see
-    *   [[passQuotes]] for a complimentary method and the explanation
+    *   [[passQuotes]] for a complementary method and the explanation
     * @see
     *   [[CrossQuotes.ctx]] for the underlying implementation
     *

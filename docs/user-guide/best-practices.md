@@ -654,7 +654,7 @@ To use **hearth-munit** in your tests:
 
 !!! warning
 
-    **hearth-munit** depends on the [core Hearth library](index.md#installation), so if you add hearth-munit, you'll automatically get hearth as well.
+    **hearth-munit** depends on the [core Hearth library](basic-utilities.md#installation), so if you add hearth-munit, you'll automatically get hearth as well.
 
 ### Test suite types
 

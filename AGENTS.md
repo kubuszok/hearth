@@ -28,6 +28,7 @@ hearth/
 ├── hearth-better-printers/          # Better alternatives to showCode/showRaw
 ├── hearth-cross-quotes/             # Cross-platform quoting utilities
 ├── hearth-micro-fp/                 # Lightweight FP utilities
+├── hearth-munit/                    # MUnit-based testing utilities
 │
 ├── hearth-tests/                    # Test suite for main library
 ├── hearth-sandwich-tests/           # Cross-compilation tests (Scala 2 ↔ 3)

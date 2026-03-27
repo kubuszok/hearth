@@ -20,11 +20,11 @@ Goals:
 Hearth is an evolution of the [chimney-macro-commons](https://github.com/scalalandio/chimney-macro-commons/) idea,
 but one that could serve not only the [Chimney](https://chimney.readthedocs.io/) but also any other library that uses macros.
 
-The current version does not yet have all planned features, and we'd like to hear from you is the current API good enough or what to change.
+The current version does not yet have all planned features, and we'd like to hear from you: is the current API good enough, or what should change?
 
-Please, take a look at [Roadmap](https://github.com/kubuszok/hearth/issues/10) for more information what is already done,
+Please, take a look at [Roadmap](https://github.com/kubuszok/hearth/issues/10) for more information about what is already done,
 and what's in the scope for future releases.
 
 ## Contribution
 
-If you want to help get this library out of the door then, first, thank you!, and second, please see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+If you want to help get this library released, first, thank you, and second, please see [`CONTRIBUTING.md`](CONTRIBUTING.md).

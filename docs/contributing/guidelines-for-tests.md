@@ -12,7 +12,7 @@ Tests use the following naming structure:
  - `hearth.untyped` are currently not tested - we rely on `hearth.typed` to check all the relevant implementations
  - the remaining code is tested in paired `*Spec` classes, e.g.:
 
-    - `hearth.Environment` utilities -> `hearth.Environment`
+    - `hearth.Environment` utilities -> `hearth.EnvironmentSpec`
     - `hearth.data.Data` utilities -> `hearth.data.DataSpec`
     - `hearth.typed.Classes` utilities -> `hearth.typed.ClassesSpec`
     - `hearth.typed.Exprs` utilities -> `hearth.typed.ExprsSpec`
@@ -21,7 +21,7 @@ Tests use the following naming structure:
 
 ## Directory structure
 
-By default, test should be placed in `hearthTests/src/test/scala`, so that:
+By default, tests should be placed in `hearthTests/src/test/scala`, so that:
 
  - the code is shared between Scala 2.13 and 3
  - the code is shared between JVM, JS and Native
@@ -30,24 +30,24 @@ By default, test should be placed in `hearthTests/src/test/scala`, so that:
 however there are exceptions:
 
  - `scala-newest` directories are used for tests that should only run on the **newest** supported Scala versions
-   (currently 2.13.18 and 3.8.1 for regression testing). These are used for:
+   (currently 2.13.18 and 3.8.3-RC1 for regression testing). These are used for:
 
      - **Demo/example code** that showcases advanced features or complex macro implementations (e.g., `FastShowPrettySpec`)
      - **Features that require newer Scala versions** not available in the primary versions (2.13.16 and 3.3.7)
      - **Regression tests** for newer compiler versions
 
    Directory variants:
-     - `hearthTests/src/main/scala-newest` - shared code for newest Scala versions (both 2.13.18 and 3.8.1)
+     - `hearthTests/src/main/scala-newest` - shared code for newest Scala versions (both 2.13.18 and 3.8.3-RC1)
      - `hearthTests/src/main/scala-newest-2` - Scala 2.13.18-specific code
-     - `hearthTests/src/main/scala-newest-3` - Scala 3.8.1-specific code
+     - `hearthTests/src/main/scala-newest-3` - Scala 3.8.3-RC1-specific code
      - `hearthTests/src/test/scala-newest` - shared tests for newest Scala versions
      - `hearthTests/src/test/scala-newest-2` - Scala 2.13.18-specific tests
-     - `hearthTests/src/test/scala-newest-3` - Scala 3.8.1-specific tests
+     - `hearthTests/src/test/scala-newest-3` - Scala 3.8.3-RC1-specific tests
 
    **Important:** These directories are **only included** when the `NEWEST_SCALA_TESTS=true` environment variable is set.
    When this variable is set:
      - `hearthTests` (Scala 2.13) compiles with Scala 2.13.18 instead of 2.13.16
-     - `hearthTests3` (Scala 3) compiles with Scala 3.8.1 instead of 3.3.7
+     - `hearthTests3` (Scala 3) compiles with Scala 3.8.3-RC1 instead of 3.3.7
      - The `scala-newest` directories are added to the source directories of the same project
 
    Without `NEWEST_SCALA_TESTS=true`, these directories are completely ignored and the projects use the primary versions.
@@ -58,18 +58,18 @@ however there are exceptions:
  - shared tests, can only test with types which are guaranteed to exist on: Scala JVM, JS and Native. When testing against JVM-specific
    types, we need to create an additional `JvmSpec` and place it in `hearthTests/src/test/scalajvm`, e.g.:
 
-     - `hearth.std.StdExtensionsSpec` (`test/scala`) has complimentary `hearth.std.StdExtensionsJvmSpec` (`test/scalajvm`)
-     - `hearth.typed.ClassesSpec` (`test/scala`) has complimentary `hearth.typed.ClassesJvmSpec` (`test/scalajvm`)
-     - `hearth.typed.MethodsSpec` (`test/scala`) has complimentary `hearth.typed.MethodsJvmSpec` (`test/scalajvm`)
-     - `hearth.typed.TypesSpec` (`test/scala`) has complimentary `hearth.typed.TypesJvmSpec` (`test/scalajvm`)
+     - `hearth.std.StdExtensionsSpec` (`test/scala`) has complementary `hearth.std.StdExtensionsJvmSpec` (`test/scalajvm`)
+     - `hearth.typed.ClassesSpec` (`test/scala`) has complementary `hearth.typed.ClassesJvmSpec` (`test/scalajvm`)
+     - `hearth.typed.MethodsSpec` (`test/scala`) has complementary `hearth.typed.MethodsJvmSpec` (`test/scalajvm`)
+     - `hearth.typed.TypesSpec` (`test/scala`) has complementary `hearth.typed.TypesJvmSpec` (`test/scalajvm`)
 
- - similarly types that exists only on Scala 3, can be tested with additional `Scala3Spec` placed in `hearthTests/src/test/scala-3`, e.g.:
+ - similarly, types that exist only on Scala 3 can be tested with additional `Scala3Spec` files placed in `hearthTests/src/test/scala-3`, e.g.:
 
-     - `hearth.std.StdExtensionsSpec` (`test/scala`) has complimentary `hearth.std.StdExtensionsScala3Spec` (`test/scala-3`)
-     - `hearth.typed.ClassesSpec` (`test/scala`) has complimentary `hearth.typed.ClassesScala3Spec` (`test/scala-3`)
-     - `hearth.typed.TypesSpec` (`test/scala`) has complimentary `hearth.typed.TypesScala3Spec` (`test/scala-3`)
+     - `hearth.std.StdExtensionsSpec` (`test/scala`) has complementary `hearth.std.StdExtensionsScala3Spec` (`test/scala-3`)
+     - `hearth.typed.ClassesSpec` (`test/scala`) has complementary `hearth.typed.ClassesScala3Spec` (`test/scala-3`)
+     - `hearth.typed.TypesSpec` (`test/scala`) has complementary `hearth.typed.TypesScala3Spec` (`test/scala-3`)
 
- - for "sandwich" tests (whether it's possible to do `Scala 2.13 module -> Scala 3 module -> Scala 2.13 module` or `Scala 2.13 module -> Scala 3 module -> Scala 2.13 module`,
+ - for "sandwich" tests (whether it's possible to do `Scala 2.13 module -> Scala 3 module -> Scala 2.13 module` or `Scala 3 module -> Scala 2.13 module -> Scala 3 module`,
    allowing for Scala 3 code expanding macros that use Scala 2.13-compiled types, or Scala 2.13 code expanding macros that use Scala 3-compiled types)
    we are using a different module, placing tests in `hearthSandwichTests/src/test/scala`
 
@@ -78,7 +78,7 @@ however there are exceptions:
 **Use `scala-newest` when:**
 - Creating demo/example code that showcases complex macro features (like `FastShowPrettySpec`)
 - Testing features that require compiler capabilities only available in newer Scala versions
-- Writing regression tests specifically for newer compiler versions (2.13.18 or 3.8.1)
+- Writing regression tests specifically for newer compiler versions (2.13.18 or 3.8.3-RC1)
 - The code would benefit from newer language features but should not block development on primary versions
 
 **Do NOT use `scala-newest` when:**
@@ -237,9 +237,9 @@ test("string comparison with diff") {
 
 test("Data comparison with diff") {
   val result: Data = macroResult
-  result <==> Data.obj(
-    "name" -> Data.str("example"),
-    "count" -> Data.num(42)
+  result <==> Data.map(
+    "name" -> Data("example"),
+    "count" -> Data(42)
   )
   // On failure, shows structured diff of the Data tree
 }
@@ -298,7 +298,7 @@ To use **hearth-munit** in your tests:
 
 !!! warning
 
-    **hearth-munit** depends on the [core Hearth library](../user-guide/index.md#installation), so if you add hearth-munit, you'll automatically get hearth as well.
+    **hearth-munit** depends on the [core Hearth library](../user-guide/basic-utilities.md#installation), so if you add hearth-munit, you'll automatically get hearth as well.
 
 #### Pattern
 
@@ -400,7 +400,7 @@ final class MyFeatureSpec extends MacroSuite {
 Majority of tested code are macro-utilities. They:
 
  - cannot be tested outside a macro
- - which cannot be define in the same compilation unit as the macro expansion
+ - which cannot be defined in the same compilation unit as the macro expansion
  - require a separate macro expansion each time we would like to provide it with a different input
  - has to be tested across multiple Scala versions and platforms
 
@@ -481,7 +481,7 @@ compileErrors(
 )
 ```
 
-it is occasionally useful to test the compilation errors. `MacroSuite` defines some utilities to work with these as well:
+it is occasionally useful to test compilation errors. `MacroSuite` defines some utilities to work with these as well:
 
 ```scala
 compileErrors(
@@ -514,15 +514,9 @@ compileErrors(
 
 The simplest way to verify if macro is working correctly is to run tests.
 
-HOWEVER, if you simply run `sbt test`, it will run tests on both Scala versions on all 2 platforms (JVM, JS, Native).
-Which means that it will try to compile:
-
- - 2 * 3 * 4 (`hearth-fp`, `hearth`, `hearth-tests`)
- - + 3 (`hearth-cross-quotes` macros for Scala 2 for all platforms)
- - + 1 (`hearth-cross-quotes` compiler plugin for Scala 3)
- - = 28 modules
-
-It usually crashes the build tool with `OutOfMemoryError` when Scala.js/Scala Native starts linking all these versions at once.
+HOWEVER, if you simply run `sbt --client "test"`, it will run tests on both Scala versions on all 3 platforms (JVM, JS, Native).
+That means compiling a large project matrix, and it usually crashes the build tool with `OutOfMemoryError`
+when Scala.js/Scala Native starts linking all these versions at once.
 
 But all of tests live in `hearthTests` and `hearthSandwichTests` modules.
 So running `hearthTests/test ; hearthTests3/test ; hearthSandwichTests/test ; hearthSandwichTests3/test`
@@ -536,9 +530,9 @@ So running `hearthTests/test ; hearthTests3/test ; hearthSandwichTests/test ; he
 
 Tests in `scala-newest` directories are **only** compiled and run when the `NEWEST_SCALA_TESTS=true` environment
 variable is set. This variable switches the `hearthTests` and `hearthTests3` projects to use newer Scala versions
-(2.13.18 and 3.8.1) and includes the `scala-newest` source directories.
+(2.13.18 and 3.8.3-RC1) and includes the `scala-newest` source directories.
 
-**For Scala 3.8.1 (scala-newest-3):**
+**For Scala 3.8.3-RC1 (scala-newest-3):**
 ```bash
 NEWEST_SCALA_TESTS=true sbt --client "hearthTests3/clean"
 NEWEST_SCALA_TESTS=true sbt --client "hearthTests3/compile"
@@ -566,7 +560,7 @@ NEWEST_SCALA_TESTS=true sbt --client "quick-test"
 
 This will test against:
 - Scala 2.13.18 (hearthTests upgraded from 2.13.16)
-- Scala 3.8.1 (hearthTests3 upgraded from 3.3.7)
+- Scala 3.8.3-RC1 (hearthTests3 upgraded from 3.3.7)
 - Cross-version sandwich tests (with newest versions)
 
 **Without the environment variable:**
@@ -580,7 +574,7 @@ Running the same commands **without** `NEWEST_SCALA_TESTS=true` will:
 - `scala-newest` directories are **only visible** when `NEWEST_SCALA_TESTS=true` is set
 - The environment variable doesn't create separate projects; it modifies the existing `hearthTests` and `hearthTests3` projects
 - When working on code in `scala-newest` directories, always clean the module before testing
-- The newest versions (2.13.18 and 3.8.1) are used for regression testing, not for primary development
+- The newest versions (2.13.18 and 3.8.3-RC1) are used for regression testing, not for primary development
 - Primary development versions are 2.13.16 and 3.3.7
 - **CI runs tests BOTH ways:** with `NEWEST_SCALA_TESTS=false` (primary versions) AND `NEWEST_SCALA_TESTS=true` (newest versions)
   to ensure code works on both primary and newest Scala versions
@@ -605,10 +599,10 @@ This means:
 
 **If a new behavior needs to be tested:**
 - It would need a test in `hearth-tests` (depending on the use case: in shared, Scala 2-only, Scala 3-only, or JVM-only part)
-- This test would most likely need an new fixture or an update to existing ones - they are defined in implementations on `main` source files
+- This test would most likely need a new fixture or an update to existing ones - they are defined in implementations on `main` source files
   and matched with adapters in Scala 2 and Scala 3 `main` source files
 - It may or may not need new test classes (probably placed in `main` source files of `hearth-tests` but ask!)
-- Fixtures is what actually calls macro utilities defined in `hearth` module
+- Fixtures are what actually call macro utilities defined in the `hearth` module
 
 **Example workflow:**
 ```
@@ -632,7 +626,7 @@ For the complete bug-fix workflow including clean/compile/test cycles, see
 For example:
 
  - Bug in `Expr.quote` behavior → extend `CrossExprsFixturesImpl.scala`
- - Bug in type handling → extend `CrossTypesFixturesImpl.scala` or `TypeFixturesImpl.scala`
+ - Bug in type handling → extend `CrossTypesFixturesImpl.scala` or `TypesFixturesImpl.scala`
  - Bug in class inspection → extend `ClassesFixturesImpl.scala`
 
 **Create a new fixture** only when the bug exercises a fundamentally different code path that existing fixtures

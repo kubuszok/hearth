@@ -17,11 +17,11 @@ A curated collection of external references that complement the Hearth documenta
 - [**Library Author Guide**](https://docs.scala-lang.org/overviews/contributors/index.html) — official guidance on publishing Scala libraries, including binary compatibility, versioning, and cross-building considerations.
 - [**Scala 2 macros documentation**](https://docs.scala-lang.org/overviews/macros/overview.html)
 
-    - Additionally I suggest opening [code in a browser](https://github.com/scala/scala/tree/2.13.x/src/reflect/scala/reflect/api) API directory and keeping the tab opened (might be a good idea since in my IDE sources are NOT imported so I see no documentation)
+    - Additionally I suggest opening [code in a browser](https://github.com/scala/scala/tree/2.13.x/src/reflect/scala/reflect/api) API directory and keeping the tab open (might be a good idea since in my IDE sources are NOT imported so I see no documentation)
 
 - [**Scala 3 macros documentation**](https://docs.scala-lang.org/scala3/guides/macros/macros.html)
 
-    - Additionally I suggest opening [code in a browser](https://github.com/scala/scala3/blob/3.3.7/library/src/scala/quoted/Quotes.scala) API directory and keeping the tab opened (might be a good idea since in my IDE sources are NOT imported so I see no documentation)
+    - Additionally I suggest opening [code in a browser](https://github.com/scala/scala3/blob/3.3.7/library/src/scala/quoted/Quotes.scala) API directory and keeping the tab open (might be a good idea since in my IDE sources are NOT imported so I see no documentation)
 
 ### Cross-Building Background
 
@@ -29,7 +29,7 @@ A curated collection of external references that complement the Hearth documenta
 
 ### EPFL Papers
 
-- [**C. Hofer et al. Polymorphic Embedding of DSLs, GPCE, 2008**](https://www.informatik.uni-marburg.de/~rendel/hofer08polymorphic.pdf) - theoretical background on using traits with abstact types and methods, and mix-ins with implementation to define DSLs and "interpret" them at runtime.
+- [**C. Hofer et al. Polymorphic Embedding of DSLs, GPCE, 2008**](https://www.informatik.uni-marburg.de/~rendel/hofer08polymorphic.pdf) - theoretical background on using traits with abstract types and methods, and mix-ins with implementation to define DSLs and "interpret" them at runtime.
 - [**Scala Macros, a Technical Report**](https://infoscience.epfl.ch/record/183862?ln=en) (Scala 2 macros)
 - [**Quasiquotes for Scala**](https://infoscience.epfl.ch/record/185242?ln=en) (Scala 2 macros)
 - [**Scalable Metaprogramming in Scala 3**](https://infoscience.epfl.ch/record/299370?ln=en) (Scala 3 macros)

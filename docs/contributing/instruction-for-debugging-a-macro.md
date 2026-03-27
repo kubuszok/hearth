@@ -5,7 +5,7 @@ To make it easier to debug only the expansion we are interested in, we can use s
 
 ## Debugging by previewing result of a macro expansion
 
-If you need to figure out what code is returned from macro, try this utility:
+If you need to figure out what code is returned from a macro, try this utility:
 
 ```scala
 import hearth.debug.Debug
@@ -46,14 +46,14 @@ Debug.withGivenASTInIDE[TypeClass[A]]
 
 ## Debugging by selectively printing from within a macro expansion
 
-These you can use from outside of macro. If you are working on some utility and want to print only
+These you can use from outside the macro. If you are working on some utility and want to print only
 the current part, you can write inside a macro:
 
 ```scala
 if (Environment.isExpandedAt("MyMacroSpec.scala:40")) {
 
   // Notice! Only the first reportInfo and the first reportWarn
-  // would be shown by the compiler! All following calls becomes no-ops!
+  // would be shown by the compiler! All following calls become no-ops!
   Environment.reportInfo("something I need to print")
 
   // If you need to log something else as well (e.g. logs, duh), you can use
@@ -85,9 +85,9 @@ so if you are filtering by column you have to adapt the value after changing whi
 
 ## What to do if there is no debug output
 
-Probably you run e.g. `hearthTests/test` or `hearthTests3/test` on module that was already compiled.
+Probably you ran, e.g., `hearthTests/test` or `hearthTests3/test` on a module that was already compiled.
 
-If so no new debug messages will be printed by macro until you run `hearthTests/clean` or `hearthTests3/clean`.
+If so, no new debug messages will be printed by the macro until you run `hearthTests/clean` or `hearthTests3/clean`.
 
-Id you are interested primarily in printed messages from a macro, prefer `hearthTests/clean ; hearthTests/Test/compile`
-to make sure that macros are being expanded anew.
+If you are interested primarily in printed messages from a macro, prefer
+`sbt --client "hearthTests/clean ; hearthTests/Test/compile"` to make sure that macros are being expanded anew.

@@ -4,7 +4,7 @@ package hearth
   *
   * Provides some utilities like:
   *   - `compileErrors("code").check(expectedLinesInExpectedOrder*)` - asserting that the error message contains all of
-  *     the `expected` strings in order (lines do not have to be consequtive, some lines can be skipped from comparison)
+  *     the `expected` strings in order (lines do not have to be consecutive, some lines can be skipped from comparison)
   *   - `compileErrors("code").checkNot(absentLines*)` - asserting that the error message does not contain any of the
   *     `absent` strings
   *   - `compileErrors("code").arePresent()` - asserting that the error message is not empty
@@ -34,7 +34,7 @@ trait MacroSuite extends Suite {
       for (msg <- msgs)
         Predef.assert(
           !msgNoColors.contains(msg),
-          s"""Error message contain snippet that was expected to be not there
+          s"""Error message contained a snippet that was not expected to be there
              |Error message:
              |${this.msg}
              |Not Expected Snippet:
