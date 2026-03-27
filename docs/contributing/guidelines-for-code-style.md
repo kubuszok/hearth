@@ -6,7 +6,7 @@
  2. This library is cross compiled: it should work on both Scala 2.13 and Scala 3, be published for normal Scala but also Scala.js and Scala Native.
  3. It is formatted with Scalafmt, using `-Xsource:3` syntax on Scala 2.13-specific _and_ shared code (enabling _some_ of Scala 3 syntax features)
     and with Scala 3 syntax on Scala 3-specific code.
- 4. CI checks whether 2. and 3. are respected, but one can use `quick-test ; scalafmtAll` to quickly check if code compies and format code.
+ 4. CI checks whether 2. and 3. are respected, but one can use `quick-test ; scalafmtAll` to quickly check if code compiles and format code.
  5. Don't be afraid of using `git commit --amend`, `git rebase` and `git push --force` on **your branch** to make it cleaner. And keep messages descriptive!
  6. PR before merge should be passing all checks.
  7. We do **not** use the braceless syntax here.
@@ -25,7 +25,7 @@
 
     because it automatically imports everything from `a` and `b`, which remind us that the package visibility is hierarchical in Scala.
  9. If solution works great with Scala 3, but does not work at all with Scala 2.13 - it goes against the goals of this library.
-    Even when we would implement features that only work on Scala 3 (e.g. opaque types, named tupled) - it has to be done in a way
+    Even when we would implement features that only work on Scala 3 (e.g. opaque types, named tuples) - it has to be done in a way
     that does not break the cross-compiled code.
 
 ## Code Organization Patterns

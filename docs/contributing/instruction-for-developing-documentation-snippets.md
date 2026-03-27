@@ -1,4 +1,4 @@
-# Instruction for testing documentation snippets
+# Instruction for developing documentation snippets
 
 Ideally, all utilities should have a section/subsection with examples showing how they can be used with a macro code.
 Ideally, each such example should be a snippet (or a group of snippets) that can be run using Scala CLI.

@@ -417,7 +417,7 @@ You should prefer `Type[A]` when `A: Type` is present, and only use `Type.of[A]`
 | `Type.plainPrint[Int]`  | `Type[Int].plainPrint`  | `"scala.Int"`  | with package name and type parameters, no coloring   |
 | `Type.prettyPrint[Int]` | `Type[Int].prettyPrint` | `"scala.Int"`  | with package name and type parameters, ANSI coloring |
 
-**Runtime-aware printing** (since 0.8.0):
+**Runtime-aware printing** (since 0.3.0):
 
 These methods build `Expr[String]` values that substitute abstract type parameters with runtime-provided expressions,
 while keeping concrete parts identical to the corresponding compile-time print:

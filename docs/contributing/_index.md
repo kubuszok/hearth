@@ -34,12 +34,12 @@ It documents the code generation architecture, naming conventions, build wiring,
 
 [Instruction for developing type constructors](instruction-for-developing-type-constructors.md).
 
-### Instruction for testing documentation snippets
+### Instruction for developing documentation snippets
 
 Ideally, all utilities should have a section/subsection with examples showing how they can be used with a macro code.
 Ideally, each such example should be a snippet (or a group of snippets) that can be run using Scala CLI.
 
-[Instruction for testing documentation snippets](instruction-for-testing-documentation-snippets.md).
+[Instruction for developing documentation snippets](instruction-for-developing-documentation-snippets.md).
 
 
 ## Instructions for fixing bugs and compilation errors
@@ -80,7 +80,7 @@ This suggests `better-printers` generated a quasiquote with unbalanced parenthes
 
 [Instruction for fixing Cross-Quotes errors on Scala 2 caused by Better-Printers](instruction-for-fixing-cross-quotes-errors-on-scala-2-caused-by-better-printers.md).
 
-### Instruction for debugging Cross-Quotes errors on Scala 2 caused by undetected implicit
+### Instruction for fixing Cross-Quotes errors on Scala 2 caused by undetected implicit
 
 When you see generated code containing type names like `someValue.Underlying` (where `someValue` is in scope via an `import`),
 the compilation of the macro with `Expr.quote`, `Type.of`, or `Type.CtorN.of` succeeds without errors,

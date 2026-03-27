@@ -10,7 +10,7 @@ The first Scala macros' standard library.
 
 Goals:
 
- - being able to build the code with `Type`s, `Expr`s and high-level utilities that operate on them - limitting the need for AST and Symbols manipulation
+ - being able to build the code with `Type`s, `Expr`s and high-level utilities that operate on them - limiting the need for AST and Symbols manipulation
  - cross-compilable API, allowing reuse of the macro code for both Scala 2 and Scala 3
  - exhaustive documentation lowering the barrier of entry
  - no dependencies on additional ecosystems (some FP-utilities are already provided!)
