@@ -16,7 +16,7 @@ When adding a new utility, both the API and implementations must be updated:
 
 3. **Add or update test fixtures:**
    - If possible, use an existing test fixture rather than creating a new one
-   - For example, if adding a flag to `Type[A]` interface, add it to `TypeFixturesImpl.scala` in the `testFlags` method
+   - For example, if adding a flag to `Type[A]` interface, add it to `TypesFixturesImpl.scala` in the `testFlags` method
    - Update the corresponding expected values in all test cases that use this fixture
 
 4. **Update tests:**
@@ -72,8 +72,8 @@ This shortens the feedback loop significantly compared to running sbt commands d
 
 **Adding a flag method to `Type[A]`:**
 1. Add `def isNewFlag: Boolean` to `Type` trait in shared API
-2. Implement in both `TypeScala2` and `TypeScala3`
-3. Add `"isNewFlag" -> Data.fromBoolean(tpe.isNewFlag)` to `testFlags` in `TypeFixturesImpl.scala`
+2. Implement in both `TypesScala2` and `TypesScala3`
+3. Add `"isNewFlag" -> Data(tpe.isNewFlag)` to `testFlags` in `TypesFixturesImpl.scala`
 4. Update expected `Data` values in `TypesSpec.scala`
 
 **Adding an extension method:**
