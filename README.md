@@ -22,7 +22,7 @@ but one that could serve not only the [Chimney](https://chimney.readthedocs.io/)
 
 The current version does not yet have all planned features, and we'd like to hear from you is the current API good enough or what to change.
 
-Please, take a look at [Roadmap](https://github.com/kubuszok/hearth/issues/10) for more infomation what is already done,
+Please, take a look at [Roadmap](https://github.com/kubuszok/hearth/issues/10) for more information what is already done,
 and what's in the scope for future releases.
 
 ## Contribution

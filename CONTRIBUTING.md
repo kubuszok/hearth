@@ -2,7 +2,7 @@
 
 First off, thanks for taking the time to contribute! ❤️
 
-Currently the best way oh helping is contributing to [help us tackle some tasks from the Roadmap](https://github.com/kubuszok/hearth/issues/10) to deliver the solid next version! This includes testing Hearth, providing us with reproduction for bugs and maybe even fixes!
+Currently the best way of helping is contributing to [help us tackle some tasks from the Roadmap](https://github.com/kubuszok/hearth/issues/10) to deliver the solid next version! This includes testing Hearth, providing us with reproduction for bugs and maybe even fixes!
 
 The second best, is raising awareness about the project ☺️
 
@@ -33,7 +33,7 @@ You need to have installed:
      2. Another option is to use [Scala Metals](https://scalameta.org/metals/) - it's a [Language Server Protocol](https://microsoft.github.io/language-server-protocol/)
         that provides Scala IDE-like features to any editor which support LSP - there are official installation instructions for Visual Studio Code, Vim, Sublime Text, Emacs, Helix, GitPod.
        
-        If you don't have a preference, use Visual Studio Code, if you want to use AI, use something VSC-based like Cursor, Windsurf, Augumented Code or whatever is cheapest hype of the week.
+        If you don't have a preference, use Visual Studio Code, if you want to use AI, use something VSC-based like Cursor, Windsurf, Augmented Code or whatever is cheapest hype of the week.
         Then install Scala and Scala Metals extensions from the extension store.
 
      3. If you want to use AI in general, I suggest Scala Metals and reading about [Model Context Protocol](https://modelcontextprotocol.io/)
@@ -80,7 +80,7 @@ log.cross-quotes = false
 
 You can use it control which version you want to work on in your IDE. You need to change `ide.scala`/`ide.platform` and reimport build.
 
-You can open and edit sources for the other version as well, buy you will get only basic syntax highlighting and no intellisense.
+You can open and edit sources for the other version as well, but you will get only basic syntax highlighting and no intellisense.
 
 ## Guidelines and instructions
 

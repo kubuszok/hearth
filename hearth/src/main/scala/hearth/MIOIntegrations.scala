@@ -12,7 +12,7 @@ trait MIOIntegrations { this: MacroTypedCommons =>
       * @since 0.1.0
       *
       * @param macroName
-      *   name of the macro that is being expanded, it will be used the the top scope of the logs tree
+      *   name of the macro that is being expanded, it will be used as the top scope of the logs tree
       * @param infoRendering
       *   how to render info logs, if [[DontRender]] is used, info logs will not be rendered
       * @param warnRendering
