@@ -169,7 +169,7 @@ Both provide indentation and formatting improvements over the built-in printers.
 
 ## Runtime-Aware Type Printing
 
-Better Printers also provides **runtime-aware type printing** (since 0.8.0) through `RuntimeAwareTypePrinterScala2` and `RuntimeAwareTypePrinterScala3` traits. These are mixed into `MacroCommons` automatically.
+Better Printers also provides **runtime-aware type printing** (since 0.3.0) through `RuntimeAwareTypePrinterScala2` and `RuntimeAwareTypePrinterScala3` traits. These are mixed into `MacroCommons` automatically.
 
 Runtime-aware printing decomposes applied types (e.g., `Option[A]`) into their type constructor and arguments. For each type argument, a callback can provide a runtime `Expr[String]` to substitute in place of the compile-time name. Non-overridden parts fall back to the standard printer (plain, pretty, or short).
 

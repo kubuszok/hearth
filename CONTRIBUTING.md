@@ -52,6 +52,8 @@ I recommend to:
     - `hearthMicroFp`/`hearthMicroFp3`
     - `hearthTests`/`hearthTests3`
 
+For local iteration (and before a PR), you can also run checks without an interactive sbt shell: `sbt --client "quick-clean ; quick-test"` exercises the same JVM test set the contributing docs use. See the [instruction for fixing a bug](docs/contributing/instruction-for-fixing-a-bug.md) for clean commands when you change specific modules.
+
 You will see _only_ either Scala 2.13 _or_ Scala 3 projects there. And you will _only_ see JVM projects.
 
 While the build tool easily handles situations where something:

@@ -281,8 +281,7 @@ trait StdExtensions { this: MacroCommons =>
     def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], CollA]
   }
 
-  /** An alias indicating the type is a collection of some item type, but the exact item type is an existential
-    * type.
+  /** An alias indicating the type is a collection of some item type, but the exact item type is an existential type.
     *
     * @tparam A
     *   the type of the collection
@@ -524,8 +523,7 @@ trait StdExtensions { this: MacroCommons =>
     def ctors: CtorLikes[Outer]
   }
 
-  /** An alias indicating the type is a value type of some inner type, but the exact inner type is an existential
-    * type.
+  /** An alias indicating the type is a value type of some inner type, but the exact inner type is an existential type.
     *
     * @tparam A
     *   the type of the value type

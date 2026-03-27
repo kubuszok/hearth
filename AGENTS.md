@@ -7,7 +7,7 @@ This document provides guidelines for AI agents (like Claude Code, GitHub Copilo
 **Hearth** is the first Scala macros' standard library, designed to make macro development easier and more maintainable across Scala 2.13 and Scala 3.
 
 - **Language**: Scala (pure Scala library)
-- **Scala Versions**: 2.13.16, 3.3.7 (primary); 2.13.18, 3.8.1 (regression testing)
+- **Scala Versions**: 2.13.16, 3.3.7 (primary); 2.13.18, 3.8.3-RC1 (regression testing)
 - **Platforms**: JVM, Scala.js, Scala Native
 - **Build Tool**: SBT (but see restrictions below)
 - **License**: Apache 2.0
@@ -205,7 +205,7 @@ The GitHub Actions CI pipeline includes:
 
 Agents should:
 - make sure that the code was actually compiled by sbt and that `quick-test` succeeded
-- make sure that new snippets where runnable Scala CLI examples that pass tests
+- make sure that new snippets are runnable Scala CLI examples that pass tests
 - coverage and MiMa can be skipped
 - **before reporting that a task is done**, run `sbt --client "quick-clean ; quick-test"` as the final
   verification step — while MCP speeds up the development loop, `sbt --client` compiles and tests across
