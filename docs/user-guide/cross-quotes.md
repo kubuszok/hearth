@@ -13,7 +13,7 @@ Cross Quotes is a library that provides a unified way to write quoted expression
     ```scala
     libraryDependencies ++= CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((3, _)) => Seq(
-        compilerPlugin("com.kubuszok" % "hearth-cross-quotes" % "{{ hearth_version() }}_3")
+        compilerPlugin("com.kubuszok" %% "hearth-cross-quotes" % "{{ hearth_version() }}")
       )
       case _            => Seq()
     }
