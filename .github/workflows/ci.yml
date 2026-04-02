@@ -92,6 +92,6 @@ jobs:
         run: sbt ci-${{ matrix.platform }}-${{ matrix.scala }}
         env:
           NEWEST_SCALA_TESTS: ${{ matrix.test-lastest-scala }}
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
