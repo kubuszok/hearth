@@ -87,6 +87,106 @@ final class ExprsSpec extends MacroSuite {
           testSuppressUnused(expr)
         }
       }
+
+      group("methods: Expr.semiEval, expected behavior") {
+        import ExprsFixtures.testSemiEval
+
+        test("should evaluate Int literal") {
+          testSemiEval(42) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("42"),
+            "class" -> Data("java.lang.Integer")
+          )
+        }
+
+        test("should evaluate String literal") {
+          testSemiEval("hello") <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("hello"),
+            "class" -> Data("java.lang.String")
+          )
+        }
+
+        test("should evaluate Boolean literal") {
+          testSemiEval(true) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("true"),
+            "class" -> Data("java.lang.Boolean")
+          )
+        }
+
+        test("should evaluate Long literal") {
+          testSemiEval(42L) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("42"),
+            "class" -> Data("java.lang.Long")
+          )
+        }
+
+        test("should evaluate Double literal") {
+          testSemiEval(3.14) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("3.14"),
+            "class" -> Data("java.lang.Double")
+          )
+        }
+
+        test("should evaluate singleton object None") {
+          testSemiEval(None) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("None"),
+            "class" -> Data("scala.None$")
+          )
+        }
+
+        test("should evaluate companion apply: Some(42)") {
+          testSemiEval(Some(42)) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("Some(42)"),
+            "class" -> Data("scala.Some")
+          )
+        }
+
+        test("should evaluate nested expressions: Some(Some(1))") {
+          testSemiEval(Some(Some(1))) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("Some(Some(1))"),
+            "class" -> Data("scala.Some")
+          )
+        }
+
+        test("should evaluate List(1, 2, 3)") {
+          testSemiEval(List(1, 2, 3)) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("List(1, 2, 3)"),
+            "class" -> Data(
+              if (LanguageVersion.byHearth.isScala3) "scala.collection.immutable.$colon$colon"
+              else "scala.collection.immutable.$colon$colon"
+            )
+          )
+        }
+
+        test("should evaluate method call: \"hello\".toUpperCase") {
+          testSemiEval("hello".toUpperCase) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("HELLO"),
+            "class" -> Data("java.lang.String")
+          )
+        }
+
+        test("should evaluate method call with args: \"hello\".substring(1, 3)") {
+          testSemiEval("hello".substring(1, 3)) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("el"),
+            "class" -> Data("java.lang.String")
+          )
+        }
+
+        test("should fail for block with definitions") {
+          val result = testSemiEval { val x = 1; x + 2 }
+          result.asMap.get("status") ==> Data("failure")
+        }
+      }
     }
 
     group("type VarArgs") {
