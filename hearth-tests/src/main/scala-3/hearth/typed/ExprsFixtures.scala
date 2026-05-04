@@ -51,6 +51,10 @@ object ExprsFixtures {
   private def testSuppressUnusedImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Unit] =
     new ExprsFixtures(q).testSuppressUnused[A](expr)
 
+  inline def testSemiEval[A](inline expr: A): Data = ${ testSemiEvalImpl[A]('expr) }
+  private def testSemiEvalImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testSemiEval[A](expr)
+
   inline def testVarArgs[A](inline exprs: A*): Data = ${ testVarArgsImpl[A]('exprs) }
   private def testVarArgsImpl[A: Type](exprs: Expr[Seq[A]])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testVarArgs[A](exprs)

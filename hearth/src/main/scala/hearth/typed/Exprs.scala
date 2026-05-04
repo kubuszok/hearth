@@ -49,6 +49,8 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def singletonOf[A: Type]: Option[Expr[A]]
 
+    def semiEval[A](expr: Expr[A]): Either[NonEmptyVector[String], A]
+
     def NullExprCodec: ExprCodec[Null]
     def UnitExprCodec: ExprCodec[Unit]
     def BooleanExprCodec: ExprCodec[Boolean]
@@ -149,6 +151,8 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def upcast[B](implicit A: Type[A], B: Type[B]): Expr[B] = Expr.upcast(expr)
     def suppressUnused(implicit A: Type[A]): Expr[Unit] = Expr.suppressUnused(expr)
+
+    def semiEval: Either[NonEmptyVector[String], A] = Expr.semiEval(expr)
 
     def asUntyped: UntypedExpr = UntypedExpr.fromTyped(expr)
 

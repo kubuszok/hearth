@@ -23,6 +23,8 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
 
   def testSuppressUnusedImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Unit] = testSuppressUnused[A](expr)
 
+  def testSemiEvalImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] = testSemiEval[A](expr)
+
   def testVarArgsImpl[A: c.WeakTypeTag](exprs: c.Expr[A]*): c.Expr[Data] = testVarArgs[A](exprs)
 
   def testMatchCaseTypeMatchImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] = testMatchCaseTypeMatch[A](expr)
@@ -160,6 +162,8 @@ object ExprsFixtures {
   def testExprUpcasting[A, B](expr: A): Data = macro ExprsFixtures.testExprUpcastingImpl[A, B]
 
   def testSuppressUnused[A](expr: A): Unit = macro ExprsFixtures.testSuppressUnusedImpl[A]
+
+  def testSemiEval[A](expr: A): Data = macro ExprsFixtures.testSemiEvalImpl[A]
 
   def testVarArgs[A](exprs: A*): Data = macro ExprsFixtures.testVarArgsImpl[A]
 

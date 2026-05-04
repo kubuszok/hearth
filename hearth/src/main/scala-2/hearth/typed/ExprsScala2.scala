@@ -2,6 +2,7 @@ package hearth
 package typed
 
 import hearth.fp.data.NonEmptyVector
+import hearth.fp.instances.*
 import hearth.fp.syntax.*
 import hearth.treeprinter.SyntaxHighlight
 
@@ -164,6 +165,251 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
             case _ => None
           }
         } else None
+      }
+    }
+
+    override def semiEval[A](expr: Expr[A]): Either[NonEmptyVector[String], A] =
+      SemiEval.eval(expr.tree).map(_.asInstanceOf[A])
+
+    private object SemiEval {
+
+      type Result = Either[NonEmptyVector[String], Any]
+
+      def eval(tree: Tree): Result = tree match {
+        case Literal(Constant(value)) =>
+          Right(value)
+
+        case _
+            if tree.symbol != null && tree.symbol != NoSymbol &&
+              (tree.symbol.isModule || tree.symbol.isModuleClass) =>
+          resolveModule(tree.symbol)
+
+        case Typed(inner, _) =>
+          eval(inner)
+
+        case TypeApply(inner, _) =>
+          eval(inner)
+
+        case Apply(_, _) =>
+          evalApply(tree)
+
+        case Select(qualifier, name) if tree.symbol != null && tree.symbol != NoSymbol && tree.symbol.isMethod =>
+          eval(qualifier).flatMap { receiver =>
+            invokeMethod(receiver, name.decodedName.toString, Nil)
+          }
+
+        case Select(qualifier, name) =>
+          eval(qualifier).flatMap { receiver =>
+            invokeGetter(receiver, name.decodedName.toString)
+          }
+
+        case other =>
+          Left(NonEmptyVector.one(s"Cannot semi-evaluate expression: ${showCode(other)}"))
+      }
+
+      private def evalApply(tree: Tree): Result = {
+        val (core, argLists) = flattenApply(tree)
+        val allArgTrees = argLists.flatten
+        core match {
+          case Select(New(tpt), termNames.CONSTRUCTOR) =>
+            evalConstructor(tpt.tpe, allArgTrees)
+          case Select(qualifier, name) =>
+            eval(qualifier).flatMap { receiver =>
+              allArgTrees.map(eval).parTraverse(identity).flatMap { argValues =>
+                invokeMethod(receiver, name.decodedName.toString, argValues)
+              }
+            }
+          case TypeApply(Select(qualifier, name), _) =>
+            eval(qualifier).flatMap { receiver =>
+              allArgTrees.map(eval).parTraverse(identity).flatMap { argValues =>
+                invokeMethod(receiver, name.decodedName.toString, argValues)
+              }
+            }
+          case TypeApply(inner, _) =>
+            evalApplyOnEvaluated(inner, allArgTrees)
+          case _ =>
+            evalApplyOnEvaluated(core, allArgTrees)
+        }
+      }
+
+      private def evalApplyOnEvaluated(funcTree: Tree, allArgTrees: List[Tree]): Result =
+        eval(funcTree).flatMap { func =>
+          allArgTrees.map(eval).parTraverse(identity).flatMap { argValues =>
+            invokeMethod(func, "apply", argValues)
+          }
+        }
+
+      private def flattenApply(tree: Tree): (Tree, List[List[Tree]]) = tree match {
+        case Apply(inner, args) =>
+          val (core, argLists) = flattenApply(inner)
+          (core, argLists :+ args)
+        case TypeApply(inner, _) =>
+          flattenApply(inner)
+        case other =>
+          (other, Nil)
+      }
+
+      private def resolveModule(sym: Symbol): Result = {
+        val name = sym.fullName
+        val candidates = moduleCandidates(name)
+        candidates
+          .collectFirst { case ModuleSingleton(value) => value }
+          .toRight(NonEmptyVector.one(s"Cannot resolve module: $name"))
+      }
+
+      private def moduleCandidates(fullName: String): Array[String] = {
+        val withDollar = if (fullName.endsWith("$")) fullName else fullName + "$"
+        val withoutDollar = withDollar.stripSuffix("$")
+        Array(withDollar, withoutDollar).flatMap { base =>
+          Iterator
+            .iterate(base)(_.reverse.replaceFirst("\\.", "\\$").reverse)
+            .take(base.count(_ == '.') + 1)
+            .toArray
+            .reverse
+        }.distinct
+      }
+
+      private object ModuleSingleton {
+        def unapply(className: String): Option[Any] = try
+          Option(java.lang.Class.forName(className).getField("MODULE$").get(null))
+        catch { case _: Throwable => None }
+      }
+
+      private def evalConstructor(tpe: c.Type, argTrees: List[Tree]): Result = {
+        val className = tpe.typeSymbol.fullName
+        val classOpt = moduleCandidates(className)
+          .filterNot(_.endsWith("$"))
+          .iterator
+          .flatMap { name =>
+            try Some(java.lang.Class.forName(name))
+            catch { case _: Throwable => None }
+          }
+          .nextOption()
+        classOpt match {
+          case None        => Left(NonEmptyVector.one(s"Cannot resolve class for constructor: $className"))
+          case Some(clazz) =>
+            argTrees.map(eval).parTraverse(identity).flatMap { argValues =>
+              findAndInvokeConstructor(clazz, argValues)
+            }
+        }
+      }
+
+      private def invokeGetter(receiver: Any, name: String): Result =
+        invokeMethod(receiver, name, Nil)
+
+      private def invokeMethod(receiver: Any, name: String, args: List[Any]): Result = {
+        val clazz = receiver.getClass
+        val encodedName = scala.reflect.NameTransformer.encode(name)
+        val candidates = (clazz.getMethods.filter(_.getName == name) ++
+          (if (encodedName != name) clazz.getMethods.filter(_.getName == encodedName)
+           else Array.empty[java.lang.reflect.Method])).distinct.toList
+        findMatchingMethod(candidates, args) match {
+          case Right((method, preparedArgs)) =>
+            try {
+              method.setAccessible(true)
+              Right(method.invoke(receiver, preparedArgs.map(_.asInstanceOf[AnyRef])*))
+            } catch {
+              case e: java.lang.reflect.InvocationTargetException =>
+                Left(NonEmptyVector.one(s"Method '$name' threw: ${e.getCause.getMessage}"))
+              case e: Throwable =>
+                Left(NonEmptyVector.one(s"Method '$name' invocation failed: ${e.getMessage}"))
+            }
+          case Left(err) => Left(err)
+        }
+      }
+
+      private def findAndInvokeConstructor(clazz: java.lang.Class[?], args: List[Any]): Result = {
+        val ctors = clazz.getConstructors.toList
+        findMatchingExecutable(ctors, args, "constructor") match {
+          case Right((ctor, preparedArgs)) =>
+            try Right(ctor.newInstance(preparedArgs.map(_.asInstanceOf[AnyRef])*))
+            catch {
+              case e: java.lang.reflect.InvocationTargetException =>
+                Left(NonEmptyVector.one(s"Constructor threw: ${e.getCause.getMessage}"))
+              case e: Throwable =>
+                Left(NonEmptyVector.one(s"Constructor invocation failed: ${e.getMessage}"))
+            }
+          case Left(err) => Left(err)
+        }
+      }
+
+      private def findMatchingMethod(
+          candidates: List[java.lang.reflect.Method],
+          args: List[Any]
+      ): Either[NonEmptyVector[String], (java.lang.reflect.Method, List[Any])] =
+        findMatchingExecutable(candidates, args, "method")
+
+      private def findMatchingExecutable[E <: java.lang.reflect.Executable](
+          candidates: List[E],
+          args: List[Any],
+          kind: String
+      ): Either[NonEmptyVector[String], (E, List[Any])] = {
+        val byArity = candidates.filter(_.getParameterCount == args.size)
+        val exactMatch =
+          if (byArity.isEmpty) None
+          else if (byArity.size == 1) Some((byArity.head, args))
+          else {
+            val matching = byArity.filter { exec =>
+              val paramTypes = exec.getParameterTypes
+              args.zip(paramTypes).forall { case (arg, paramType) =>
+                arg == null || boxedType(paramType).isAssignableFrom(arg.getClass)
+              }
+            }
+            matching match {
+              case single :: Nil => Some((single, args))
+              case Nil           => None
+              case multiple      => Some((multiple.minBy(_.getParameterTypes.count(_ == classOf[Object])), args))
+            }
+          }
+        exactMatch match {
+          case Some(result) => Right(result)
+          case None         =>
+            tryVarargs(candidates, args, kind)
+        }
+      }
+
+      private def tryVarargs[E <: java.lang.reflect.Executable](
+          candidates: List[E],
+          args: List[Any],
+          kind: String
+      ): Either[NonEmptyVector[String], (E, List[Any])] = {
+        val varargsCandidates = candidates.filter { exec =>
+          val params = exec.getParameterTypes
+          params.nonEmpty && args.size >= params.length - 1 &&
+          (params.last.isAssignableFrom(classOf[scala.collection.immutable.Seq[?]]) ||
+            classOf[scala.collection.Seq[?]].isAssignableFrom(params.last) ||
+            params.last.isArray)
+        }
+        varargsCandidates match {
+          case exec :: _ =>
+            val params = exec.getParameterTypes
+            val normalCount = params.length - 1
+            val (normalArgs, varargArgs) = args.splitAt(normalCount)
+            val wrappedArgs =
+              if (params.last.isArray)
+                normalArgs :+ varargArgs.toArray
+              else
+                normalArgs :+ varargArgs
+            Right((exec, wrappedArgs))
+          case Nil =>
+            Left(
+              NonEmptyVector.one(
+                s"No $kind with ${args.size} parameters found among ${candidates.size} candidates"
+              )
+            )
+        }
+      }
+
+      private def boxedType(clazz: java.lang.Class[?]): java.lang.Class[?] = clazz match {
+        case c if c == java.lang.Boolean.TYPE   => classOf[java.lang.Boolean]
+        case c if c == java.lang.Byte.TYPE      => classOf[java.lang.Byte]
+        case c if c == java.lang.Short.TYPE     => classOf[java.lang.Short]
+        case c if c == java.lang.Integer.TYPE   => classOf[java.lang.Integer]
+        case c if c == java.lang.Long.TYPE      => classOf[java.lang.Long]
+        case c if c == java.lang.Float.TYPE     => classOf[java.lang.Float]
+        case c if c == java.lang.Double.TYPE    => classOf[java.lang.Double]
+        case c if c == java.lang.Character.TYPE => classOf[java.lang.Character]
+        case other                              => other
       }
     }
 

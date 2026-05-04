@@ -59,6 +59,23 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
   def testSuppressUnused[A: Type](expr: Expr[A]): Expr[Unit] =
     expr.suppressUnused
 
+  def testSemiEval[A: Type](expr: Expr[A]): Expr[Data] = {
+    val result = expr.semiEval match {
+      case Right(value) =>
+        Data.map(
+          "status" -> Data("success"),
+          "value" -> Data(if (value == null) "null" else value.toString),
+          "class" -> Data(if (value == null) "null" else value.getClass.getName)
+        )
+      case Left(errors) =>
+        Data.map(
+          "status" -> Data("failure"),
+          "errors" -> Data(errors.toList.map(Data(_)))
+        )
+    }
+    Expr(result)
+  }
+
   // VarArgs methods
 
   def testVarArgs[A: Type](exprs: VarArgs[A]): Expr[Data] = {
