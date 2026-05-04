@@ -627,11 +627,126 @@ It can be used to e.g. prevent the macro from summoning itself, so that recursio
 
 **`Expr` operations**:
 
-| Companion method                          | Extension method            | Result type       | Description                                                                                              |
-|-------------------------------------------|-----------------------------|-------------------|----------------------------------------------------------------------------------------------------------|
-| `Expr.upcast[String, AnyRef](stringExpr)` | `stringExpr.upcast[AnyRef]` | `Expr[...]`       | safe upcast to a supertype                                                                               |
-| `Expr.suppressUnused[A](expr)`            | `expr.suppressUnused`       | `Expr[Unit]`      | prevents "unused value" warnings                                                                         |
-| `Expr.singletonOf[A]`                     | —                           | `Option[Expr[A]]` | returns singleton reference if `A` is a case object, Java enum value, or Scala 3 parameterless enum case |
+| Companion method                          | Extension method            | Result type                         | Description                                                                                              |
+|-------------------------------------------|-----------------------------|-------------------------------------|----------------------------------------------------------------------------------------------------------|
+| `Expr.upcast[String, AnyRef](stringExpr)` | `stringExpr.upcast[AnyRef]` | `Expr[...]`                         | safe upcast to a supertype                                                                               |
+| `Expr.suppressUnused[A](expr)`            | `expr.suppressUnused`       | `Expr[Unit]`                        | prevents "unused value" warnings                                                                         |
+| `Expr.singletonOf[A]`                     | —                           | `Option[Expr[A]]`                   | returns singleton reference if `A` is a case object, Java enum value, or Scala 3 parameterless enum case |
+| `Expr.semiEval[A](expr)`                  | `expr.semiEval`             | `Either[NonEmptyVector[String], A]` | reconstructs a runtime value from expression AST using reflection                                        |
+
+### `Expr.semiEval`
+
+`semiEval` reconstructs a runtime value from a macro expression AST by recursively decomposing the tree and replaying
+operations using JVM runtime reflection. It is a limited alternative to Scala 2's `eval` (which was never ported to
+Scala 3 by design).
+
+It handles:
+
+- **Literals** — `42`, `"hello"`, `true`, etc.
+- **Singleton objects** — `None`, `Nil`, or any `object` on the classpath
+- **Constructor calls** — `new Foo(arg1, arg2)` where all arguments are also semi-evaluable
+- **Method calls** — `obj.method(args)` where the receiver and all arguments are semi-evaluable
+- **Nested combinations** of the above — `Some(List(1, 2, 3).size)`, `"hello".toUpperCase`, etc.
+
+It cannot handle blocks, lambdas, local definitions, or anything that would require generating new bytecode.
+When evaluation fails, it returns `Left` with all error reasons accumulated.
+
+!!! example "Compile-time even number validation"
+
+    This example shows a macro that uses `semiEval` to evaluate an arithmetic expression at compile time
+    and fails compilation if the result is not an even number.
+
+    ```scala
+    // file: src/main/scala/example/EvenMacro.scala - part of semiEval example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+    package example
+
+    trait EvenMacro { this: hearth.MacroCommons =>
+
+      def requireEvenImpl(expr: Expr[Int]): Expr[Int] = {
+        expr.semiEval match {
+          case Right(value) =>
+            if (value % 2 == 0) expr
+            else Environment.reportErrorAndAbort(
+              s"Expected an even number, got $value"
+            )
+          case Left(errors) =>
+            Environment.reportErrorAndAbort(
+              s"Cannot evaluate expression at compile time: ${errors.mkString(", ")}"
+            )
+        }
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/Even.scala - part of semiEval example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+    package example
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    class Even(val c: blackbox.Context) extends hearth.MacroCommonsScala2 with EvenMacro {
+      def requireEvenMacro(expr: c.Expr[Int]): c.Expr[Int] = requireEvenImpl(expr)
+    }
+    object Even {
+      def requireEven(expr: Int): Int = macro Even.requireEvenMacro
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/Even.scala - part of semiEval example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+    package example
+
+    import scala.quoted.*
+
+    class Even(q: Quotes) extends hearth.MacroCommonsScala3(using q), EvenMacro
+    object Even {
+      inline def requireEven(inline expr: Int): Int = ${ requireEvenImpl('expr) }
+      private def requireEvenImpl(expr: Expr[Int])(using q: Quotes): Expr[Int] =
+        new Even(q).requireEvenImpl(expr)
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/EvenSpec.scala - part of semiEval example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+    package example
+
+    final class EvenSpec extends munit.FunSuite {
+
+      test("accepts even literal") {
+        assertEquals(Even.requireEven(42), 42)
+      }
+
+      test("accepts even arithmetic expression") {
+        assertEquals(Even.requireEven(2 + 2), 4)
+      }
+
+      test("accepts compound expression") {
+        assertEquals(Even.requireEven((3 + 1) * 2), 8)
+      }
+
+      test("evaluates method calls in expressions") {
+        assertEquals(Even.requireEven(1 + "foo".length + 2), 6)
+      }
+
+      test("rejects odd number at compile time") {
+        val errors = compileErrors("Even.requireEven(3)")
+        assert(errors.contains("Expected an even number, got 3"))
+      }
+
+      test("rejects odd arithmetic expression at compile time") {
+        val errors = compileErrors("Even.requireEven(2 + 1)")
+        assert(errors.contains("Expected an even number, got 3"))
+      }
+    }
+    ```
 
 ### `ExprCodec`
 

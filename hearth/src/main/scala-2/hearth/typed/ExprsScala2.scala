@@ -314,9 +314,164 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
               case e: Throwable =>
                 Left(NonEmptyVector.one(s"Method '$name' invocation failed: ${e.getMessage}"))
             }
-          case Left(err) => Left(err)
+          case Left(_) =>
+            evalPrimitiveOp(receiver, name, args)
         }
       }
+
+      private def evalPrimitiveOp(receiver: Any, name: String, args: List[Any]): Result = {
+        val decodedName = scala.reflect.NameTransformer.decode(name)
+        (receiver, decodedName, args) match {
+          case (a: Number, _, List(b: Number))                       => evalNumericBinaryOp(a, b, decodedName)
+          case (a: Number, _, List(b: Number))                       => evalNumericBinaryOp(a, b, decodedName)
+          case (a: Number, "unary_-", Nil)                           => evalUnaryMinus(a)
+          case (a: Number, "unary_+", Nil)                           => Right(a)
+          case (a: Number, "unary_~", Nil)                           => evalUnaryBitwiseNot(a)
+          case (a: Number, _, Nil) if decodedName.startsWith("to")   => evalNumericConversion(a, decodedName)
+          case (a: java.lang.Boolean, _, List(b: java.lang.Boolean)) =>
+            evalBooleanOp(a, b, decodedName)
+          case (a: java.lang.Boolean, "unary_!", Nil) => Right(!a)
+          case (a: Comparable[?], _, List(b))         => evalComparisonOp(a, b, decodedName)
+          case (a: String, "+", List(b))              => Right(a + b)
+          case _                                      =>
+            Left(
+              NonEmptyVector.one(
+                s"No method '$decodedName' with ${args.size} parameters found on ${receiver.getClass.getName}"
+              )
+            )
+        }
+      }
+
+      private def evalNumericBinaryOp(a: Number, b: Number, op: String): Result =
+        (a, b) match {
+          case (a: java.lang.Double, b: Number) => evalDoubleBinOp(a.doubleValue, b.doubleValue, op)
+          case (a: Number, b: java.lang.Double) => evalDoubleBinOp(a.doubleValue, b.doubleValue, op)
+          case (a: java.lang.Float, b: Number)  => evalFloatBinOp(a.floatValue, b.floatValue, op)
+          case (a: Number, b: java.lang.Float)  => evalFloatBinOp(a.floatValue, b.floatValue, op)
+          case (a: java.lang.Long, b: Number)   => evalLongBinOp(a.longValue, b.longValue, op)
+          case (a: Number, b: java.lang.Long)   => evalLongBinOp(a.longValue, b.longValue, op)
+          case (a: Number, b: Number)           => evalIntBinOp(a.intValue, b.intValue, op)
+        }
+
+      private def evalIntBinOp(a: Int, b: Int, op: String): Result = op match {
+        case "+"   => Right(a + b: java.lang.Integer)
+        case "-"   => Right(a - b: java.lang.Integer)
+        case "*"   => Right(a * b: java.lang.Integer)
+        case "/"   => Right(a / b: java.lang.Integer)
+        case "%"   => Right(a % b: java.lang.Integer)
+        case "&"   => Right(a & b: java.lang.Integer)
+        case "|"   => Right(a | b: java.lang.Integer)
+        case "^"   => Right(a ^ b: java.lang.Integer)
+        case "<<"  => Right(a << b: java.lang.Integer)
+        case ">>"  => Right(a >> b: java.lang.Integer)
+        case ">>>" => Right(a >>> b: java.lang.Integer)
+        case ">"   => Right(a > b: java.lang.Boolean)
+        case "<"   => Right(a < b: java.lang.Boolean)
+        case ">="  => Right(a >= b: java.lang.Boolean)
+        case "<="  => Right(a <= b: java.lang.Boolean)
+        case "=="  => Right((a == b): java.lang.Boolean)
+        case "!="  => Right((a != b): java.lang.Boolean)
+        case _     => Left(NonEmptyVector.one(s"Unsupported Int operation: $op"))
+      }
+
+      private def evalLongBinOp(a: Long, b: Long, op: String): Result = op match {
+        case "+"  => Right(a + b: java.lang.Long)
+        case "-"  => Right(a - b: java.lang.Long)
+        case "*"  => Right(a * b: java.lang.Long)
+        case "/"  => Right(a / b: java.lang.Long)
+        case "%"  => Right(a % b: java.lang.Long)
+        case "&"  => Right(a & b: java.lang.Long)
+        case "|"  => Right(a | b: java.lang.Long)
+        case "^"  => Right(a ^ b: java.lang.Long)
+        case ">"  => Right(a > b: java.lang.Boolean)
+        case "<"  => Right(a < b: java.lang.Boolean)
+        case ">=" => Right(a >= b: java.lang.Boolean)
+        case "<=" => Right(a <= b: java.lang.Boolean)
+        case "==" => Right((a == b): java.lang.Boolean)
+        case "!=" => Right((a != b): java.lang.Boolean)
+        case _    => Left(NonEmptyVector.one(s"Unsupported Long operation: $op"))
+      }
+
+      private def evalDoubleBinOp(a: Double, b: Double, op: String): Result = op match {
+        case "+"  => Right(a + b: java.lang.Double)
+        case "-"  => Right(a - b: java.lang.Double)
+        case "*"  => Right(a * b: java.lang.Double)
+        case "/"  => Right(a / b: java.lang.Double)
+        case "%"  => Right(a % b: java.lang.Double)
+        case ">"  => Right(a > b: java.lang.Boolean)
+        case "<"  => Right(a < b: java.lang.Boolean)
+        case ">=" => Right(a >= b: java.lang.Boolean)
+        case "<=" => Right(a <= b: java.lang.Boolean)
+        case "==" => Right((a == b): java.lang.Boolean)
+        case "!=" => Right((a != b): java.lang.Boolean)
+        case _    => Left(NonEmptyVector.one(s"Unsupported Double operation: $op"))
+      }
+
+      private def evalFloatBinOp(a: Float, b: Float, op: String): Result = op match {
+        case "+"  => Right(a + b: java.lang.Float)
+        case "-"  => Right(a - b: java.lang.Float)
+        case "*"  => Right(a * b: java.lang.Float)
+        case "/"  => Right(a / b: java.lang.Float)
+        case "%"  => Right(a % b: java.lang.Float)
+        case ">"  => Right(a > b: java.lang.Boolean)
+        case "<"  => Right(a < b: java.lang.Boolean)
+        case ">=" => Right(a >= b: java.lang.Boolean)
+        case "<=" => Right(a <= b: java.lang.Boolean)
+        case "==" => Right((a == b): java.lang.Boolean)
+        case "!=" => Right((a != b): java.lang.Boolean)
+        case _    => Left(NonEmptyVector.one(s"Unsupported Float operation: $op"))
+      }
+
+      private def evalUnaryMinus(a: Number): Result = a match {
+        case a: java.lang.Integer => Right(-a.intValue: java.lang.Integer)
+        case a: java.lang.Long    => Right(-a.longValue: java.lang.Long)
+        case a: java.lang.Double  => Right(-a.doubleValue: java.lang.Double)
+        case a: java.lang.Float   => Right(-a.floatValue: java.lang.Float)
+        case _                    => Left(NonEmptyVector.one(s"Cannot negate: ${a.getClass.getName}"))
+      }
+
+      private def evalUnaryBitwiseNot(a: Number): Result = a match {
+        case a: java.lang.Integer => Right(~a.intValue: java.lang.Integer)
+        case a: java.lang.Long    => Right(~a.longValue: java.lang.Long)
+        case _                    => Left(NonEmptyVector.one(s"Cannot bitwise-not: ${a.getClass.getName}"))
+      }
+
+      private def evalNumericConversion(a: Number, name: String): Result = name match {
+        case "toInt"    => Right(a.intValue: java.lang.Integer)
+        case "toLong"   => Right(a.longValue: java.lang.Long)
+        case "toDouble" => Right(a.doubleValue: java.lang.Double)
+        case "toFloat"  => Right(a.floatValue: java.lang.Float)
+        case "toShort"  => Right(a.shortValue: java.lang.Short)
+        case "toByte"   => Right(a.byteValue: java.lang.Byte)
+        case _          => Left(NonEmptyVector.one(s"Unsupported conversion: $name"))
+      }
+
+      private def evalBooleanOp(a: Boolean, b: Boolean, op: String): Result = op match {
+        case "&&" | "&" => Right(a & b: java.lang.Boolean)
+        case "||" | "|" => Right(a | b: java.lang.Boolean)
+        case "^"        => Right(a ^ b: java.lang.Boolean)
+        case "=="       => Right((a == b): java.lang.Boolean)
+        case "!="       => Right((a != b): java.lang.Boolean)
+        case _          => Left(NonEmptyVector.one(s"Unsupported Boolean operation: $op"))
+      }
+
+      @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
+      private def evalComparisonOp(a: Comparable[?], b: Any, op: String): Result =
+        try {
+          val cmp = a.asInstanceOf[Comparable[Any]].compareTo(b)
+          op match {
+            case ">"  => Right((cmp > 0): java.lang.Boolean)
+            case "<"  => Right((cmp < 0): java.lang.Boolean)
+            case ">=" => Right((cmp >= 0): java.lang.Boolean)
+            case "<=" => Right((cmp <= 0): java.lang.Boolean)
+            case "==" => Right((cmp == 0): java.lang.Boolean)
+            case "!=" => Right((cmp != 0): java.lang.Boolean)
+            case _    => Left(NonEmptyVector.one(s"Unsupported comparison: $op"))
+          }
+        } catch {
+          case _: ClassCastException =>
+            Left(NonEmptyVector.one(s"Cannot compare ${a.getClass.getName} with ${b.getClass.getName}"))
+        }
 
       private def findAndInvokeConstructor(clazz: java.lang.Class[?], args: List[Any]): Result = {
         val ctors = clazz.getConstructors.toList
