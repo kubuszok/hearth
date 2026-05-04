@@ -65,7 +65,6 @@ jobs:
             ~/.sbt
             ~/.ivy2/cache
           key: snippets-coursier-${{ runner.os }}-${{ hashFiles('docs/user-guide/*.md') }}
-          just test-snippets
 
   build:
 
