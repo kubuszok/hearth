@@ -30,24 +30,24 @@ By default, tests should be placed in `hearthTests/src/test/scala`, so that:
 however there are exceptions:
 
  - `scala-newest` directories are used for tests that should only run on the **newest** supported Scala versions
-   (currently 2.13.18 and 3.8.3-RC1 for regression testing). These are used for:
+   (currently 2.13.18 and 3.8.3 for regression testing). These are used for:
 
      - **Demo/example code** that showcases advanced features or complex macro implementations (e.g., `FastShowPrettySpec`)
      - **Features that require newer Scala versions** not available in the primary versions (2.13.16 and 3.3.7)
      - **Regression tests** for newer compiler versions
 
    Directory variants:
-     - `hearthTests/src/main/scala-newest` - shared code for newest Scala versions (both 2.13.18 and 3.8.3-RC1)
+     - `hearthTests/src/main/scala-newest` - shared code for newest Scala versions (both 2.13.18 and 3.8.3)
      - `hearthTests/src/main/scala-newest-2` - Scala 2.13.18-specific code
-     - `hearthTests/src/main/scala-newest-3` - Scala 3.8.3-RC1-specific code
+     - `hearthTests/src/main/scala-newest-3` - Scala 3.8.3-specific code
      - `hearthTests/src/test/scala-newest` - shared tests for newest Scala versions
      - `hearthTests/src/test/scala-newest-2` - Scala 2.13.18-specific tests
-     - `hearthTests/src/test/scala-newest-3` - Scala 3.8.3-RC1-specific tests
+     - `hearthTests/src/test/scala-newest-3` - Scala 3.8.3-specific tests
 
    **Important:** These directories are **only included** when the `NEWEST_SCALA_TESTS=true` environment variable is set.
    When this variable is set:
      - `hearthTests` (Scala 2.13) compiles with Scala 2.13.18 instead of 2.13.16
-     - `hearthTests3` (Scala 3) compiles with Scala 3.8.3-RC1 instead of 3.3.7
+     - `hearthTests3` (Scala 3) compiles with Scala 3.8.3 instead of 3.3.7
      - The `scala-newest` directories are added to the source directories of the same project
 
    Without `NEWEST_SCALA_TESTS=true`, these directories are completely ignored and the projects use the primary versions.
@@ -78,7 +78,7 @@ however there are exceptions:
 **Use `scala-newest` when:**
 - Creating demo/example code that showcases complex macro features (like `FastShowPrettySpec`)
 - Testing features that require compiler capabilities only available in newer Scala versions
-- Writing regression tests specifically for newer compiler versions (2.13.18 or 3.8.3-RC1)
+- Writing regression tests specifically for newer compiler versions (2.13.18 or 3.8.3)
 - The code would benefit from newer language features but should not block development on primary versions
 
 **Do NOT use `scala-newest` when:**
@@ -530,9 +530,9 @@ So running `hearthTests/test ; hearthTests3/test ; hearthSandwichTests/test ; he
 
 Tests in `scala-newest` directories are **only** compiled and run when the `NEWEST_SCALA_TESTS=true` environment
 variable is set. This variable switches the `hearthTests` and `hearthTests3` projects to use newer Scala versions
-(2.13.18 and 3.8.3-RC1) and includes the `scala-newest` source directories.
+(2.13.18 and 3.8.3) and includes the `scala-newest` source directories.
 
-**For Scala 3.8.3-RC1 (scala-newest-3):**
+**For Scala 3.8.3 (scala-newest-3):**
 ```bash
 NEWEST_SCALA_TESTS=true sbt --client "hearthTests3/clean"
 NEWEST_SCALA_TESTS=true sbt --client "hearthTests3/compile"
@@ -560,7 +560,7 @@ NEWEST_SCALA_TESTS=true sbt --client "quick-test"
 
 This will test against:
 - Scala 2.13.18 (hearthTests upgraded from 2.13.16)
-- Scala 3.8.3-RC1 (hearthTests3 upgraded from 3.3.7)
+- Scala 3.8.3 (hearthTests3 upgraded from 3.3.7)
 - Cross-version sandwich tests (with newest versions)
 
 **Without the environment variable:**
@@ -574,7 +574,7 @@ Running the same commands **without** `NEWEST_SCALA_TESTS=true` will:
 - `scala-newest` directories are **only visible** when `NEWEST_SCALA_TESTS=true` is set
 - The environment variable doesn't create separate projects; it modifies the existing `hearthTests` and `hearthTests3` projects
 - When working on code in `scala-newest` directories, always clean the module before testing
-- The newest versions (2.13.18 and 3.8.3-RC1) are used for regression testing, not for primary development
+- The newest versions (2.13.18 and 3.8.3) are used for regression testing, not for primary development
 - Primary development versions are 2.13.16 and 3.3.7
 - **CI runs tests BOTH ways:** with `NEWEST_SCALA_TESTS=false` (primary versions) AND `NEWEST_SCALA_TESTS=true` (newest versions)
   to ensure code works on both primary and newest Scala versions
