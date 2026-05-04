@@ -182,6 +182,94 @@ final class ExprsSpec extends MacroSuite {
           )
         }
 
+        test("should evaluate arithmetic: 1 + 1") {
+          testSemiEval(1 + 1) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("2"),
+            "class" -> Data("java.lang.Integer")
+          )
+        }
+
+        test("should evaluate arithmetic: 2 * 3") {
+          testSemiEval(2 * 3) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("6"),
+            "class" -> Data("java.lang.Integer")
+          )
+        }
+
+        test("should evaluate arithmetic: 10 / 3") {
+          testSemiEval(10 / 3) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("3"),
+            "class" -> Data("java.lang.Integer")
+          )
+        }
+
+        test("should evaluate arithmetic: 10 % 2") {
+          testSemiEval(10 % 2) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("0"),
+            "class" -> Data("java.lang.Integer")
+          )
+        }
+
+        test("should evaluate comparison: 5 > 3") {
+          testSemiEval(5 > 3) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("true"),
+            "class" -> Data("java.lang.Boolean")
+          )
+        }
+
+        test("should evaluate mixed arithmetic: (2 + 3) * 4") {
+          testSemiEval((2 + 3) * 4) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("20"),
+            "class" -> Data("java.lang.Integer")
+          )
+        }
+
+        test("should evaluate Long arithmetic: 1000000000L * 3L") {
+          testSemiEval(1000000000L * 3L) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("3000000000"),
+            "class" -> Data("java.lang.Long")
+          )
+        }
+
+        test("should evaluate Double arithmetic: 3.14 * 2.0") {
+          testSemiEval(3.14 * 2.0) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("6.28"),
+            "class" -> Data("java.lang.Double")
+          )
+        }
+
+        test("should evaluate String concatenation: \"hello\" + \" world\"") {
+          testSemiEval("hello" + " world") <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("hello world"),
+            "class" -> Data("java.lang.String")
+          )
+        }
+
+        test("should evaluate mixed: 2 + \"foo\".length") {
+          testSemiEval(2 + "foo".length) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("5"),
+            "class" -> Data("java.lang.Integer")
+          )
+        }
+
+        test("should evaluate unary negation: -42") {
+          testSemiEval(-42) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("-42"),
+            "class" -> Data("java.lang.Integer")
+          )
+        }
+
         test("should fail for block with definitions") {
           val result = testSemiEval { val x = 1; x + 2 }
           result.asMap.get("status") ==> Data("failure")
