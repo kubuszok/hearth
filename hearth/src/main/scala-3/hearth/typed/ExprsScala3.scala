@@ -244,17 +244,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
       private def evalLambdaWithBody(allParams: List[ValDef], body: Term, locals: Map[Symbol, Any]): Result = {
         val arity = allParams.size
+        val isFunctionXXL = arity > 22
         val functionClass =
-          try java.lang.Class.forName(s"scala.Function$arity")
-          catch {
-            case _: ClassNotFoundException =>
-              try java.lang.Class.forName("scala.runtime.FunctionXXL")
-              catch {
-                case _: ClassNotFoundException =>
-                  return Left(NonEmptyVector.one(s"Lambda with $arity parameters not supported"))
-              }
-          }
-        val isFunctionXXL = functionClass.getName == "scala.runtime.FunctionXXL"
+          if isFunctionXXL then java.lang.Class.forName("scala.runtime.FunctionXXL")
+          else java.lang.Class.forName(s"scala.Function$arity")
         val proxy = java.lang.reflect.Proxy.newProxyInstance(
           functionClass.getClassLoader,
           Array(functionClass),
