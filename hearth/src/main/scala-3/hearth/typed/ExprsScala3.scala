@@ -172,6 +172,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         case Inlined(_, _, inner) =>
           evalWithLocals(inner, locals)
 
+        case Block(List(ddef: DefDef), closure: Closure) =>
+          evalLambda(ddef, locals)
+
         case Block(stats, expr) =>
           evalBlock(stats, expr, locals)
 
@@ -224,6 +227,53 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           Left(NonEmptyVector.one(s"Cannot semi-evaluate expression: ${other.show(using Printer.TreeCode)}"))
       }
 
+      private def evalLambda(ddef: DefDef, locals: Map[Symbol, Any]): Result = {
+        val paramsClauses = ddef.paramss
+        val allParams = paramsClauses.flatMap(_.params).collect { case vd: ValDef => vd }
+        ddef.rhs match {
+          case None       => Left(NonEmptyVector.one("Lambda has no body"))
+          case Some(body) => evalLambdaWithBody(allParams, body, locals)
+        }
+      }
+
+      private def evalLambdaWithBody(allParams: List[ValDef], body: Term, locals: Map[Symbol, Any]): Result =
+        allParams.size match {
+          case 0 =>
+            Right(new Function0[Any] {
+              def apply(): Any = evalWithLocals(body, locals) match {
+                case Right(v)     => v
+                case Left(errors) => throw new RuntimeException(errors.mkString(", "))
+              }
+            })
+          case 1 =>
+            Right(new Function1[Any, Any] {
+              def apply(a: Any): Any = evalWithLocals(body, locals + (allParams(0).symbol -> a)) match {
+                case Right(v)     => v
+                case Left(errors) => throw new RuntimeException(errors.mkString(", "))
+              }
+            })
+          case 2 =>
+            Right(new Function2[Any, Any, Any] {
+              def apply(a: Any, b: Any): Any =
+                evalWithLocals(body, locals + (allParams(0).symbol -> a) + (allParams(1).symbol -> b)) match {
+                  case Right(v)     => v
+                  case Left(errors) => throw new RuntimeException(errors.mkString(", "))
+                }
+            })
+          case 3 =>
+            Right(new Function3[Any, Any, Any, Any] {
+              def apply(a: Any, b: Any, c: Any): Any =
+                evalWithLocals(
+                  body,
+                  locals + (allParams(0).symbol -> a) + (allParams(1).symbol -> b) + (allParams(2).symbol -> c)
+                ) match {
+                  case Right(v)     => v
+                  case Left(errors) => throw new RuntimeException(errors.mkString(", "))
+                }
+            })
+          case n => Left(NonEmptyVector.one(s"Lambda with $n parameters not supported (max 3)"))
+        }
+
       private def evalBlock(stats: List[Statement], expr: Term, locals: Map[Symbol, Any]): Result =
         stats
           .foldLeft[Either[NonEmptyVector[String], Map[Symbol, Any]]](Right(locals)) {
@@ -275,6 +325,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 invokeMethod(receiver, core.symbol, core.symbol.name, argValues)
               }
             }
+          case Ident(_) if core.symbol.isDefDef =>
+            resolveModuleForInheritedMethod(core.symbol).flatMap { receiver =>
+              allArgs.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
+                invokeMethod(receiver, core.symbol.name, argValues)
+              }
+            }
           case _ =>
             evalWithLocals(core, locals).flatMap { func =>
               allArgs.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
@@ -316,6 +372,34 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           .toRight(NonEmptyVector.one(s"Cannot resolve module: $name"))
       }
 
+      private def resolveModuleForInheritedMethod(sym: Symbol): Result = {
+        val owner = sym.owner
+        val ownerClassName = owner.fullName.replace("$.", "$")
+        try {
+          val ownerClass = java.lang.Class.forName(ownerClassName)
+          val candidates = owner.owner.declarations.iterator
+            .filter(s => s.flags.is(Flags.Module) && !s.isNoSymbol)
+            .flatMap(s => moduleCandidates(s.fullName).iterator)
+            .toList
+            .distinct
+          val result = candidates.iterator
+            .flatMap { cn =>
+              try {
+                val clazz = java.lang.Class.forName(cn)
+                if ownerClass.isAssignableFrom(clazz) then Some(clazz.getField("MODULE$").get(null))
+                else None
+              } catch { case _: Throwable => None }
+            }
+            .nextOption()
+          result.toRight(
+            NonEmptyVector.one(s"Cannot find module extending ${owner.fullName} for method ${sym.name}")
+          )
+        } catch {
+          case _: Throwable =>
+            Left(NonEmptyVector.one(s"Cannot resolve class for ${owner.fullName}"))
+        }
+      }
+
       private def resolveMethodOnOwner(sym: Symbol): Result = {
         val owner = sym.owner
         if owner.flags.is(Flags.Module) then resolveModule(owner).flatMap { receiver =>
@@ -343,8 +427,50 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
               )
           }
         }
-        else
-          Left(NonEmptyVector.one(s"Cannot resolve method ${sym.name} on non-module owner ${owner.fullName}"))
+        else {
+          val ownerCompanion = owner.companionModule
+          if !ownerCompanion.isNoSymbol && ownerCompanion.flags.is(Flags.Module) then resolveModule(ownerCompanion)
+            .flatMap { receiver =>
+              invokeMethod(receiver, sym.name, Nil)
+            }
+          else {
+            val ownerClass =
+              try Some(java.lang.Class.forName(owner.fullName.replace("$.", "$")))
+              catch { case _: Throwable => None }
+            ownerClass.flatMap { oc =>
+              oc.getClassLoader.nn
+                .loadClass(oc.getName)
+                .getMethods
+                .find(_.getName == sym.name)
+                .flatMap { _ =>
+                  val childModuleName = oc.getPackageName.nn + ".Predef$"
+                  val allCandidates = moduleCandidates(owner.fullName).iterator ++
+                    Iterator(childModuleName) ++
+                    Iterator(oc.getName + "$")
+                  allCandidates
+                    .flatMap { cn =>
+                      try {
+                        val clazz = java.lang.Class.forName(cn)
+                        if oc.isAssignableFrom(clazz) then {
+                          val module = clazz.getField("MODULE$").get(null)
+                          module.getClass.getMethods
+                            .find(m => m.getName == sym.name && m.getParameterCount == 0)
+                            .map { m =>
+                              m.setAccessible(true)
+                              m.invoke(module)
+                            }
+                        } else None
+                      } catch { case _: Throwable => None }
+                    }
+                    .nextOption()
+                }
+            } match {
+              case Some(v) => Right(v)
+              case None    =>
+                Left(NonEmptyVector.one(s"Cannot resolve method ${sym.name} on non-module owner ${owner.fullName}"))
+            }
+          }
+        }
       }
 
       private def resolveStableRef(term: Term): Result = {

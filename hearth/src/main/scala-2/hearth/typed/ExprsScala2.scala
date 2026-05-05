@@ -181,6 +181,9 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         case Literal(Constant(value)) =>
           Right(value)
 
+        case Function(params, body) =>
+          evalLambda(params, body, locals)
+
         case Block(stats, expr) =>
           evalBlock(stats, expr, locals)
 
@@ -213,6 +216,52 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
         case other =>
           Left(NonEmptyVector.one(s"Cannot semi-evaluate expression: ${showCode(other)}"))
+      }
+
+      private def evalLambda(params: List[ValDef], body: Tree, locals: Map[Symbol, Any]): Result = {
+        val arity = params.size
+        val fn: AnyRef = arity match {
+          case 0 =>
+            new Function0[Any] {
+              def apply(): Any = evalWithLocals(body, locals) match {
+                case Right(v)     => v
+                case Left(errors) => throw new RuntimeException(errors.mkString(", "))
+              }
+            }
+          case 1 =>
+            new Function1[Any, Any] {
+              def apply(a: Any): Any = {
+                val newLocals = locals + (params(0).symbol -> a)
+                evalWithLocals(body, newLocals) match {
+                  case Right(v)     => v
+                  case Left(errors) => throw new RuntimeException(errors.mkString(", "))
+                }
+              }
+            }
+          case 2 =>
+            new Function2[Any, Any, Any] {
+              def apply(a: Any, b: Any): Any = {
+                val newLocals = locals + (params(0).symbol -> a) + (params(1).symbol -> b)
+                evalWithLocals(body, newLocals) match {
+                  case Right(v)     => v
+                  case Left(errors) => throw new RuntimeException(errors.mkString(", "))
+                }
+              }
+            }
+          case 3 =>
+            new Function3[Any, Any, Any, Any] {
+              def apply(a: Any, b: Any, c: Any): Any = {
+                val newLocals = locals + (params(0).symbol -> a) + (params(1).symbol -> b) + (params(2).symbol -> c)
+                evalWithLocals(body, newLocals) match {
+                  case Right(v)     => v
+                  case Left(errors) => throw new RuntimeException(errors.mkString(", "))
+                }
+              }
+            }
+          case n =>
+            return Left(NonEmptyVector.one(s"Lambda with $n parameters not supported (max 3)"))
+        }
+        Right(fn)
       }
 
       private def evalBlock(stats: List[Tree], expr: Tree, locals: Map[Symbol, Any]): Result =
