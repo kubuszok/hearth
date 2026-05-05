@@ -427,50 +427,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
               )
           }
         }
-        else {
-          val ownerCompanion = owner.companionModule
-          if !ownerCompanion.isNoSymbol && ownerCompanion.flags.is(Flags.Module) then resolveModule(ownerCompanion)
-            .flatMap { receiver =>
-              invokeMethod(receiver, sym.name, Nil)
-            }
-          else {
-            val ownerClass =
-              try Some(java.lang.Class.forName(owner.fullName.replace("$.", "$")))
-              catch { case _: Throwable => None }
-            ownerClass.flatMap { oc =>
-              oc.getClassLoader.nn
-                .loadClass(oc.getName)
-                .getMethods
-                .find(_.getName == sym.name)
-                .flatMap { _ =>
-                  val childModuleName = oc.getPackageName.nn + ".Predef$"
-                  val allCandidates = moduleCandidates(owner.fullName).iterator ++
-                    Iterator(childModuleName) ++
-                    Iterator(oc.getName + "$")
-                  allCandidates
-                    .flatMap { cn =>
-                      try {
-                        val clazz = java.lang.Class.forName(cn)
-                        if oc.isAssignableFrom(clazz) then {
-                          val module = clazz.getField("MODULE$").get(null)
-                          module.getClass.getMethods
-                            .find(m => m.getName == sym.name && m.getParameterCount == 0)
-                            .map { m =>
-                              m.setAccessible(true)
-                              m.invoke(module)
-                            }
-                        } else None
-                      } catch { case _: Throwable => None }
-                    }
-                    .nextOption()
-                }
-            } match {
-              case Some(v) => Right(v)
-              case None    =>
-                Left(NonEmptyVector.one(s"Cannot resolve method ${sym.name} on non-module owner ${owner.fullName}"))
-            }
+        else
+          resolveModuleForInheritedMethod(sym).flatMap { receiver =>
+            invokeMethod(receiver, sym.name, Nil)
           }
-        }
       }
 
       private def resolveStableRef(term: Term): Result = {
