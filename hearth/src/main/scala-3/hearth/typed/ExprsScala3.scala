@@ -167,7 +167,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       type Result = Either[NonEmptyVector[String], Any]
 
       def eval(term: Term): Result = term match {
-        case Inlined(_, Nil, inner) =>
+        case Inlined(_, _, inner) =>
           eval(inner)
 
         case Literal(constant) =>
@@ -206,6 +206,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
               (term.symbol.flags.is(Flags.JavaStatic) || term.symbol.flags.is(Flags.StableRealizable)) =>
           resolveEnumValue(term.symbol)
 
+        case Ident(_) if term.symbol.isDefDef =>
+          resolveMethodOnOwner(term.symbol)
+
         case Ident(_) =>
           resolveStableRef(term)
 
@@ -238,6 +241,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             }
           case TypeApply(inner, _) =>
             evalApplyOnEvaluated(inner, allArgs)
+          case Ident(_) if core.symbol.isDefDef && core.symbol.owner.flags.is(Flags.Module) =>
+            resolveModule(core.symbol.owner).flatMap { receiver =>
+              allArgs.map(eval).parTraverse(identity).flatMap { argValues =>
+                invokeMethod(receiver, core.symbol, core.symbol.name, argValues)
+              }
+            }
           case _ =>
             evalApplyOnEvaluated(core, allArgs)
         }
@@ -282,6 +291,37 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           .toRight(NonEmptyVector.one(s"Cannot resolve module: $name"))
       }
 
+      private def resolveMethodOnOwner(sym: Symbol): Result = {
+        val owner = sym.owner
+        if owner.flags.is(Flags.Module) then resolveModule(owner).flatMap { receiver =>
+          val clazz = receiver.getClass
+          val name = bytecodeNameOf(sym)
+          val methods = clazz.getMethods.filter(m => m.getName == name || m.getName == sym.name).distinct
+          methods.find(_.getParameterCount == 0) match {
+            case Some(method) =>
+              try {
+                method.setAccessible(true)
+                Right(method.invoke(receiver))
+              } catch {
+                case e: java.lang.reflect.InvocationTargetException =>
+                  Left(NonEmptyVector.one(s"Method '${sym.name}' threw: ${e.getCause.getMessage}"))
+                case e: Throwable =>
+                  Left(NonEmptyVector.one(s"Method '${sym.name}' invocation failed: ${e.getMessage}"))
+              }
+            case None =>
+              val arities = methods.iterator.map(_.getParameterCount).toSet.toList.sorted.mkString(", ")
+              Left(
+                NonEmptyVector.one(
+                  s"Cannot invoke method '${sym.name}' on ${owner.fullName} with 0 args " +
+                    s"(available arities: $arities)"
+                )
+              )
+          }
+        }
+        else
+          Left(NonEmptyVector.one(s"Cannot resolve method ${sym.name} on non-module owner ${owner.fullName}"))
+      }
+
       private def resolveStableRef(term: Term): Result = {
         val tpe = term.tpe
         val termSym = tpe.termSymbol
@@ -316,7 +356,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       }
 
       private def moduleCandidates(fullName: String): Array[String] = {
-        val name = fullName.replace('.', '/')
+        val normalized = fullName.replace("$.", "$")
+        val name = normalized.replace('.', '/')
         val withDollar = if name.endsWith("$") then name else name + "$"
         val withoutDollar = withDollar.stripSuffix("$")
         val bases = Array(withDollar.replace('/', '.'), withoutDollar.replace('/', '.'))
