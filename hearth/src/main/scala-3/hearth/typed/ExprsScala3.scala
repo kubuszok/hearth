@@ -166,9 +166,14 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
       type Result = Either[NonEmptyVector[String], Any]
 
-      def eval(term: Term): Result = term match {
+      def eval(term: Term): Result = evalWithLocals(term, Map.empty)
+
+      private def evalWithLocals(term: Term, locals: Map[Symbol, Any]): Result = term match {
         case Inlined(_, _, inner) =>
-          eval(inner)
+          evalWithLocals(inner, locals)
+
+        case Block(stats, expr) =>
+          evalBlock(stats, expr, locals)
 
         case Literal(constant) =>
           Right(extractConstant(constant))
@@ -177,29 +182,32 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           resolveModule(term.symbol)
 
         case Typed(Repeated(elems, _), _) =>
-          elems.iterator.map(eval).toList.parTraverse(identity).map(_.toList)
+          elems.iterator.map(t => evalWithLocals(t, locals)).toList.parTraverse(identity).map(_.toList)
 
         case Repeated(elems, _) =>
-          elems.iterator.map(eval).toList.parTraverse(identity).map(_.toList)
+          elems.iterator.map(t => evalWithLocals(t, locals)).toList.parTraverse(identity).map(_.toList)
 
         case Typed(inner, _) =>
-          eval(inner)
+          evalWithLocals(inner, locals)
 
         case TypeApply(inner, _) =>
-          eval(inner)
+          evalWithLocals(inner, locals)
 
         case Apply(_, _) =>
-          evalApply(term)
+          evalApplyWithLocals(term, locals)
 
         case Select(qualifier, name) if term.symbol.isDefDef =>
-          eval(qualifier).flatMap { receiver =>
+          evalWithLocals(qualifier, locals).flatMap { receiver =>
             invokeMethod(receiver, term.symbol, name, Nil)
           }
 
         case Select(qualifier, name) =>
-          eval(qualifier).flatMap { receiver =>
+          evalWithLocals(qualifier, locals).flatMap { receiver =>
             invokeGetter(receiver, name)
           }
+
+        case Ident(_) if locals.contains(term.symbol) =>
+          Right(locals(term.symbol))
 
         case Ident(_)
             if term.symbol.flags.is(Flags.Enum) &&
@@ -216,21 +224,37 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           Left(NonEmptyVector.one(s"Cannot semi-evaluate expression: ${other.show(using Printer.TreeCode)}"))
       }
 
-      private def evalApply(term: Term): Result = {
+      private def evalBlock(stats: List[Statement], expr: Term, locals: Map[Symbol, Any]): Result =
+        stats
+          .foldLeft[Either[NonEmptyVector[String], Map[Symbol, Any]]](Right(locals)) {
+            case (Left(errors), _)                  => Left(errors)
+            case (Right(currentLocals), vd: ValDef) =>
+              vd.rhs match {
+                case Some(rhs) =>
+                  evalWithLocals(rhs, currentLocals).map(value => currentLocals + (vd.symbol -> value))
+                case None =>
+                  Left(NonEmptyVector.one(s"Cannot evaluate val without rhs: ${vd.name}"))
+              }
+            case (_, stat) =>
+              Left(NonEmptyVector.one(s"Cannot semi-evaluate statement: ${stat.show(using Printer.TreeCode)}"))
+          }
+          .flatMap(finalLocals => evalWithLocals(expr, finalLocals))
+
+      private def evalApplyWithLocals(term: Term, locals: Map[Symbol, Any]): Result = {
         val (core, argLists) = flattenApply(term)
         val allArgs = argLists.flatten
         core match {
           case Select(New(tpt), "<init>") =>
-            evalConstructor(tpt.tpe, allArgs)
+            evalConstructor(tpt.tpe, allArgs, locals)
           case Select(qualifier, name) =>
-            eval(qualifier).flatMap { receiver =>
-              allArgs.map(eval).parTraverse(identity).flatMap { argValues =>
+            evalWithLocals(qualifier, locals).flatMap { receiver =>
+              allArgs.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
                 invokeMethod(receiver, core.symbol, name, argValues)
               }
             }
           case TypeApply(Select(qualifier, name), _) =>
-            eval(qualifier).flatMap { receiver =>
-              allArgs.map(eval).parTraverse(identity).flatMap { argValues =>
+            evalWithLocals(qualifier, locals).flatMap { receiver =>
+              allArgs.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
                 invokeMethod(
                   receiver,
                   core match { case TypeApply(sel, _) => sel.symbol; case _ => core.symbol },
@@ -240,24 +264,25 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
               }
             }
           case TypeApply(inner, _) =>
-            evalApplyOnEvaluated(inner, allArgs)
+            evalWithLocals(inner, locals).flatMap { func =>
+              allArgs.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
+                invokeMethod(func, "apply", argValues)
+              }
+            }
           case Ident(_) if core.symbol.isDefDef && core.symbol.owner.flags.is(Flags.Module) =>
             resolveModule(core.symbol.owner).flatMap { receiver =>
-              allArgs.map(eval).parTraverse(identity).flatMap { argValues =>
+              allArgs.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
                 invokeMethod(receiver, core.symbol, core.symbol.name, argValues)
               }
             }
           case _ =>
-            evalApplyOnEvaluated(core, allArgs)
+            evalWithLocals(core, locals).flatMap { func =>
+              allArgs.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
+                invokeMethod(func, "apply", argValues)
+              }
+            }
         }
       }
-
-      private def evalApplyOnEvaluated(funcTerm: Term, allArgs: List[Term]): Result =
-        eval(funcTerm).flatMap { func =>
-          allArgs.map(eval).parTraverse(identity).flatMap { argValues =>
-            invokeMethod(func, "apply", argValues)
-          }
-        }
 
       private def flattenApply(term: Term): (Term, List[List[Term]]) = term match {
         case Apply(inner, args) =>
@@ -376,7 +401,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         catch { case _: Throwable => None }
       }
 
-      private def evalConstructor(tpe: TypeRepr, argTrees: List[Term]): Result = {
+      private def evalConstructor(tpe: TypeRepr, argTrees: List[Term], locals: Map[Symbol, Any]): Result = {
         val className = tpe.typeSymbol.fullName
         val classOpt = moduleCandidates(className)
           .filterNot(_.endsWith("$"))
@@ -389,7 +414,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         classOpt match {
           case None        => Left(NonEmptyVector.one(s"Cannot resolve class for constructor: $className"))
           case Some(clazz) =>
-            argTrees.map(eval).parTraverse(identity).flatMap { argValues =>
+            argTrees.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
               findAndInvokeConstructor(clazz, argValues)
             }
         }

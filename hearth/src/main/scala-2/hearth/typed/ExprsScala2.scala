@@ -175,9 +175,14 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
       type Result = Either[NonEmptyVector[String], Any]
 
-      def eval(tree: Tree): Result = tree match {
+      def eval(tree: Tree): Result = evalWithLocals(tree, Map.empty)
+
+      private def evalWithLocals(tree: Tree, locals: Map[Symbol, Any]): Result = tree match {
         case Literal(Constant(value)) =>
           Right(value)
+
+        case Block(stats, expr) =>
+          evalBlock(stats, expr, locals)
 
         case _
             if tree.symbol != null && tree.symbol != NoSymbol &&
@@ -185,59 +190,74 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           resolveModule(tree.symbol)
 
         case Typed(inner, _) =>
-          eval(inner)
+          evalWithLocals(inner, locals)
 
         case TypeApply(inner, _) =>
-          eval(inner)
+          evalWithLocals(inner, locals)
 
         case Apply(_, _) =>
-          evalApply(tree)
+          evalApplyWithLocals(tree, locals)
 
         case Select(qualifier, name) if tree.symbol != null && tree.symbol != NoSymbol && tree.symbol.isMethod =>
-          eval(qualifier).flatMap { receiver =>
+          evalWithLocals(qualifier, locals).flatMap { receiver =>
             invokeMethod(receiver, name.decodedName.toString, Nil)
           }
 
         case Select(qualifier, name) =>
-          eval(qualifier).flatMap { receiver =>
+          evalWithLocals(qualifier, locals).flatMap { receiver =>
             invokeGetter(receiver, name.decodedName.toString)
           }
+
+        case Ident(_) if locals.contains(tree.symbol) =>
+          Right(locals(tree.symbol))
 
         case other =>
           Left(NonEmptyVector.one(s"Cannot semi-evaluate expression: ${showCode(other)}"))
       }
 
-      private def evalApply(tree: Tree): Result = {
+      private def evalBlock(stats: List[Tree], expr: Tree, locals: Map[Symbol, Any]): Result =
+        stats
+          .foldLeft[Either[NonEmptyVector[String], Map[Symbol, Any]]](Right(locals)) {
+            case (Left(errors), _)                  => Left(errors)
+            case (Right(currentLocals), vd: ValDef) =>
+              evalWithLocals(vd.rhs, currentLocals).map(value => currentLocals + (vd.symbol -> value))
+            case (_, stat) =>
+              Left(NonEmptyVector.one(s"Cannot semi-evaluate statement: ${showCode(stat)}"))
+          }
+          .flatMap(finalLocals => evalWithLocals(expr, finalLocals))
+
+      private def evalApplyWithLocals(tree: Tree, locals: Map[Symbol, Any]): Result = {
         val (core, argLists) = flattenApply(tree)
         val allArgTrees = argLists.flatten
         core match {
           case Select(New(tpt), termNames.CONSTRUCTOR) =>
-            evalConstructor(tpt.tpe, allArgTrees)
+            evalConstructor(tpt.tpe, allArgTrees, locals)
           case Select(qualifier, name) =>
-            eval(qualifier).flatMap { receiver =>
-              allArgTrees.map(eval).parTraverse(identity).flatMap { argValues =>
+            evalWithLocals(qualifier, locals).flatMap { receiver =>
+              allArgTrees.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
                 invokeMethod(receiver, name.decodedName.toString, argValues)
               }
             }
           case TypeApply(Select(qualifier, name), _) =>
-            eval(qualifier).flatMap { receiver =>
-              allArgTrees.map(eval).parTraverse(identity).flatMap { argValues =>
+            evalWithLocals(qualifier, locals).flatMap { receiver =>
+              allArgTrees.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
                 invokeMethod(receiver, name.decodedName.toString, argValues)
               }
             }
           case TypeApply(inner, _) =>
-            evalApplyOnEvaluated(inner, allArgTrees)
+            evalWithLocals(inner, locals).flatMap { func =>
+              allArgTrees.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
+                invokeMethod(func, "apply", argValues)
+              }
+            }
           case _ =>
-            evalApplyOnEvaluated(core, allArgTrees)
+            evalWithLocals(core, locals).flatMap { func =>
+              allArgTrees.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
+                invokeMethod(func, "apply", argValues)
+              }
+            }
         }
       }
-
-      private def evalApplyOnEvaluated(funcTree: Tree, allArgTrees: List[Tree]): Result =
-        eval(funcTree).flatMap { func =>
-          allArgTrees.map(eval).parTraverse(identity).flatMap { argValues =>
-            invokeMethod(func, "apply", argValues)
-          }
-        }
 
       private def flattenApply(tree: Tree): (Tree, List[List[Tree]]) = tree match {
         case Apply(inner, args) =>
@@ -275,7 +295,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         catch { case _: Throwable => None }
       }
 
-      private def evalConstructor(tpe: c.Type, argTrees: List[Tree]): Result = {
+      private def evalConstructor(tpe: c.Type, argTrees: List[Tree], locals: Map[Symbol, Any]): Result = {
         val className = tpe.typeSymbol.fullName
         val classOpt = moduleCandidates(className)
           .filterNot(_.endsWith("$"))
@@ -288,7 +308,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         classOpt match {
           case None        => Left(NonEmptyVector.one(s"Cannot resolve class for constructor: $className"))
           case Some(clazz) =>
-            argTrees.map(eval).parTraverse(identity).flatMap { argValues =>
+            argTrees.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
               findAndInvokeConstructor(clazz, argValues)
             }
         }
