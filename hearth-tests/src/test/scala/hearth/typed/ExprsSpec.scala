@@ -270,9 +270,12 @@ final class ExprsSpec extends MacroSuite {
           )
         }
 
-        test("should fail for block with definitions") {
-          val result = testSemiEval { val x = 1; x + 2 }
-          result.asMap.get("status") ==> Data("failure")
+        test("should evaluate block with val definitions") {
+          testSemiEval { val x = 1; x + 2 } <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("3"),
+            "class" -> Data("java.lang.Integer")
+          )
         }
       }
     }
