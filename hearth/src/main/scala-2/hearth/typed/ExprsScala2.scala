@@ -175,6 +175,12 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
       type Result = Either[NonEmptyVector[String], Any]
 
+      final private case class SemiEvalErrors(errors: NonEmptyVector[String])
+          extends scala.util.control.ControlThrowable
+          with scala.util.control.NoStackTrace
+
+      private def throwErrors(errors: NonEmptyVector[String]): Nothing = throw SemiEvalErrors(errors)
+
       def eval(tree: Tree): Result = evalWithLocals(tree, Map.empty)
 
       private def evalWithLocals(tree: Tree, locals: Map[Symbol, Any]): Result = tree match {
@@ -225,7 +231,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
             new Function0[Any] {
               def apply(): Any = evalWithLocals(body, locals) match {
                 case Right(v)     => v
-                case Left(errors) => throw new RuntimeException(errors.mkString(", "))
+                case Left(errors) => throwErrors(errors)
               }
             }
           case 1 =>
@@ -234,7 +240,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
                 val newLocals = locals + (params(0).symbol -> a)
                 evalWithLocals(body, newLocals) match {
                   case Right(v)     => v
-                  case Left(errors) => throw new RuntimeException(errors.mkString(", "))
+                  case Left(errors) => throwErrors(errors)
                 }
               }
             }
@@ -244,7 +250,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
                 val newLocals = locals + (params(0).symbol -> a) + (params(1).symbol -> b)
                 evalWithLocals(body, newLocals) match {
                   case Right(v)     => v
-                  case Left(errors) => throw new RuntimeException(errors.mkString(", "))
+                  case Left(errors) => throwErrors(errors)
                 }
               }
             }
@@ -254,7 +260,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
                 val newLocals = locals + (params(0).symbol -> a) + (params(1).symbol -> b) + (params(2).symbol -> c)
                 evalWithLocals(body, newLocals) match {
                   case Right(v)     => v
-                  case Left(errors) => throw new RuntimeException(errors.mkString(", "))
+                  case Left(errors) => throwErrors(errors)
                 }
               }
             }
@@ -283,25 +289,25 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
             evalConstructor(tpt.tpe, allArgTrees, locals)
           case Select(qualifier, name) =>
             evalWithLocals(qualifier, locals).flatMap { receiver =>
-              allArgTrees.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
+              allArgTrees.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
                 invokeMethod(receiver, name.decodedName.toString, argValues)
               }
             }
           case TypeApply(Select(qualifier, name), _) =>
             evalWithLocals(qualifier, locals).flatMap { receiver =>
-              allArgTrees.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
+              allArgTrees.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
                 invokeMethod(receiver, name.decodedName.toString, argValues)
               }
             }
           case TypeApply(inner, _) =>
             evalWithLocals(inner, locals).flatMap { func =>
-              allArgTrees.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
+              allArgTrees.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
                 invokeMethod(func, "apply", argValues)
               }
             }
           case _ =>
             evalWithLocals(core, locals).flatMap { func =>
-              allArgTrees.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
+              allArgTrees.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
                 invokeMethod(func, "apply", argValues)
               }
             }
@@ -357,7 +363,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         classOpt match {
           case None        => Left(NonEmptyVector.one(s"Cannot resolve class for constructor: $className"))
           case Some(clazz) =>
-            argTrees.map(a => evalWithLocals(a, locals)).parTraverse(identity).flatMap { argValues =>
+            argTrees.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
               findAndInvokeConstructor(clazz, argValues)
             }
         }
@@ -378,6 +384,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
               method.setAccessible(true)
               Right(method.invoke(receiver, preparedArgs.map(_.asInstanceOf[AnyRef])*))
             } catch {
+              case e: java.lang.reflect.InvocationTargetException if e.getCause.isInstanceOf[SemiEvalErrors] =>
+                Left(e.getCause.asInstanceOf[SemiEvalErrors].errors)
               case e: java.lang.reflect.InvocationTargetException =>
                 Left(NonEmptyVector.one(s"Method '$name' threw: ${e.getCause.getMessage}"))
               case e: Throwable =>
@@ -548,6 +556,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           case Right((ctor, preparedArgs)) =>
             try Right(ctor.newInstance(preparedArgs.map(_.asInstanceOf[AnyRef])*))
             catch {
+              case e: java.lang.reflect.InvocationTargetException if e.getCause.isInstanceOf[SemiEvalErrors] =>
+                Left(e.getCause.asInstanceOf[SemiEvalErrors].errors)
               case e: java.lang.reflect.InvocationTargetException =>
                 Left(NonEmptyVector.one(s"Constructor threw: ${e.getCause.getMessage}"))
               case e: Throwable =>
