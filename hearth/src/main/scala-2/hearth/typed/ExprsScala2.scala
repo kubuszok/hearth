@@ -226,48 +226,31 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
       private def evalLambda(params: List[ValDef], body: Tree, locals: Map[Symbol, Any]): Result = {
         val arity = params.size
-        val fn: AnyRef = arity match {
-          case 0 =>
-            new Function0[Any] {
-              def apply(): Any = evalWithLocals(body, locals) match {
-                case Right(v)     => v
+        val functionClass =
+          try java.lang.Class.forName(s"scala.Function$arity")
+          catch {
+            case _: ClassNotFoundException =>
+              return Left(NonEmptyVector.one(s"Lambda with $arity parameters not supported"))
+          }
+        val proxy = java.lang.reflect.Proxy.newProxyInstance(
+          functionClass.getClassLoader,
+          Array[java.lang.Class[?]](functionClass),
+          (_: Any, method: java.lang.reflect.Method, rawArgs: Array[AnyRef]) =>
+            if (method.getName == "apply") {
+              val args = if (rawArgs == null) Array.empty[AnyRef] else rawArgs
+              var newLocals = locals
+              var i = 0
+              while (i < params.size) {
+                newLocals = newLocals + (params(i).symbol -> args(i))
+                i += 1
+              }
+              evalWithLocals(body, newLocals) match {
+                case Right(v)     => v.asInstanceOf[AnyRef]
                 case Left(errors) => throwErrors(errors)
               }
-            }
-          case 1 =>
-            new Function1[Any, Any] {
-              def apply(a: Any): Any = {
-                val newLocals = locals + (params(0).symbol -> a)
-                evalWithLocals(body, newLocals) match {
-                  case Right(v)     => v
-                  case Left(errors) => throwErrors(errors)
-                }
-              }
-            }
-          case 2 =>
-            new Function2[Any, Any, Any] {
-              def apply(a: Any, b: Any): Any = {
-                val newLocals = locals + (params(0).symbol -> a) + (params(1).symbol -> b)
-                evalWithLocals(body, newLocals) match {
-                  case Right(v)     => v
-                  case Left(errors) => throwErrors(errors)
-                }
-              }
-            }
-          case 3 =>
-            new Function3[Any, Any, Any, Any] {
-              def apply(a: Any, b: Any, c: Any): Any = {
-                val newLocals = locals + (params(0).symbol -> a) + (params(1).symbol -> b) + (params(2).symbol -> c)
-                evalWithLocals(body, newLocals) match {
-                  case Right(v)     => v
-                  case Left(errors) => throwErrors(errors)
-                }
-              }
-            }
-          case n =>
-            return Left(NonEmptyVector.one(s"Lambda with $n parameters not supported (max 3)"))
-        }
-        Right(fn)
+            } else method.invoke(this, rawArgs*)
+        )
+        Right(proxy)
       }
 
       private def evalBlock(stats: List[Tree], expr: Tree, locals: Map[Symbol, Any]): Result =
