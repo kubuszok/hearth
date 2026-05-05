@@ -648,7 +648,7 @@ It handles:
 - **Constructor calls** — `new Foo(arg1, arg2)` where all arguments are also semi-evaluable
 - **Method calls** — `obj.method(args)` where the receiver and all arguments are semi-evaluable, including varargs and overloaded methods
 - **Blocks with val definitions** — `{ val x = 1; x + 2 }`, including compiler-generated blocks from implicit resolution
-- **Lambdas** (arity 0–3) — `(x: Int) => x + 1`, including eta-expanded method references like `(s: String) => Predef.wrapString(s)`
+- **Lambdas** (any arity) — `(x: Int) => x + 1`, including eta-expanded method references; uses `FunctionN` for arity 0–22 and `FunctionXXL` beyond that on Scala 3
 - **Nested combinations** of the above — `Some(List(1, 2, 3).size)`, `2 + "foo".length`, etc.
 - **Inherited methods** — methods defined on a parent class but accessed via a module singleton (e.g., `Predef`'s methods inherited from `LowPriorityImplicits`)
 
@@ -656,7 +656,7 @@ It cannot handle:
 
 - **Definitions** — `def`, `var`, `lazy val`, class/trait/object definitions inside the evaluated tree
 - **Pattern matching** — `match` expressions
-- **Lambdas with arity > 3**
+- **Lambdas with arity > 22** on Scala 2 (Scala 3 supports any arity via `FunctionXXL`)
 - **Types not on the classpath** — modules or classes only defined in the currently-compiled module
 
 When evaluation fails, it returns `Left` with all error reasons accumulated.
