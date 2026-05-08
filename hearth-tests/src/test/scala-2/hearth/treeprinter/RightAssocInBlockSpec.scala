@@ -45,7 +45,7 @@ final class RightAssocInBlockSpec extends MacroSuite {
     val input = s"val foo${dollar}macro${dollar}1 = 42; val bar${dollar}macro${dollar}2 = foo${dollar}macro${dollar}1"
     val cleaned = hearth.removeMacroSuffix(input)
     assert(
-      !cleaned.contains(s"${dollar}macro${dollar}"),
+      !cleaned.contains(s"${dollar}macro$dollar"),
       s"Hearth macro suffixes should be removed but got: $cleaned"
     )
     assert(
