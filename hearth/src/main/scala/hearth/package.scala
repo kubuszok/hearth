@@ -8,8 +8,7 @@ package object hearth {
 
   // removes $macro$n from freshterms to make it easier to test and read
   private[hearth] def removeMacroSuffix(str: String): String = str
-    .replaceAll("\\$macro", "")
-    .replaceAll("\\$\\d+", "")
+    .replaceAll("\\$macro\\$\\d+", "")
 
   implicit final private[hearth] class HearthChaining[A](private val a: A) extends AnyVal {
 

@@ -1076,6 +1076,18 @@ While all of these are inconvenient, they can usually be worked around. The issu
     theoretical rather than observed limit, but if you encounter issues, try simplifying the nesting
     structure.
 
+!!! note "Right-associative operators (`::`) with many elements on Scala 2"
+
+    When `Expr.quote` contains a right-associative operator like `::` with complex sub-expressions,
+    Scala 2 desugars each `a :: b` into `{ val rassoc$N = a; b.::(rassoc$N) }`. Each nested `::` adds
+    another level of this pattern. The synthetic `rassoc$N` vals have unique names (e.g. `rassoc$1`,
+    `rassoc$2`), and these suffixes **must be preserved** in the printed code. If they are stripped
+    (e.g. by an overly aggressive post-processing regex), all vals collide as `rassoc`, and the Scala
+    parser emits `not found: value rassoc$1` at deep nesting depths.
+
+    This was fixed in Hearth 0.3.0 — the `removeMacroSuffix` function was narrowed to only strip
+    Hearth's own `$macro$N` suffixes, leaving compiler-generated `$N` suffixes intact.
+
 ## Debugging
 
 You can enable logging to see how Cross Quotes transforms your code:

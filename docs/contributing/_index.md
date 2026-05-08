@@ -42,6 +42,18 @@ Ideally, each such example should be a snippet (or a group of snippets) that can
 [Instruction for developing documentation snippets](instruction-for-developing-documentation-snippets.md).
 
 
+## Reference
+
+### Scala 2 Synthetic Names Catalog
+
+Catalog of all compiler-generated synthetic name patterns in Scala 2.13 (e.g. `rassoc$N`, `evidence$N`, `x$N`,
+`stabilizer$N`, etc.) that may appear in typechecked trees. Understanding these is critical for `showCodePretty`
+and `removeMacroSuffix` — any post-processing that strips `$N` suffixes must be careful not to break compiler-generated
+unique names.
+
+[Scala 2 Synthetic Names Catalog](scala2-synthetic-names-catalog.md).
+
+
 ## Instructions for fixing bugs and compilation errors
 
 ### Instruction for fixing a bug (end-to-end workflow)
