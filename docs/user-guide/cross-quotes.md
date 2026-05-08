@@ -1085,7 +1085,7 @@ While all of these are inconvenient, they can usually be worked around. The issu
     (e.g. by an overly aggressive post-processing regex), all vals collide as `rassoc`, and the Scala
     parser emits `not found: value rassoc$1` at deep nesting depths.
 
-    This was fixed in Hearth 0.3.0 — the `removeMacroSuffix` function was narrowed to only strip
+    This was fixed in Hearth 0.3.1 — the `removeMacroSuffix` function was narrowed to only strip
     Hearth's own `$macro$N` suffixes, leaving compiler-generated `$N` suffixes intact.
 
 ## Debugging
