@@ -171,7 +171,7 @@ final class ClassesJvmSpec extends MacroSuite {
              |    {
              |      examplejavaclass.setInt(0);
              |      {
-             |        examplejavaclass.setString("x");
+             |        examplejavaclass.setString("x$1");
              |        examplejavaclass
              |      }
              |    }
@@ -185,7 +185,7 @@ final class ClassesJvmSpec extends MacroSuite {
              |    {
              |      examplejavaclass.setInt(0);
              |      {
-             |        examplejavaclass.setString("x");
+             |        examplejavaclass.setString("x$1");
              |        examplejavaclass
              |      }
              |    }
@@ -197,7 +197,7 @@ final class ClassesJvmSpec extends MacroSuite {
              |  val examplejavaclass: hearth.examples.classes.ExampleJavaClass = new hearth.examples.classes.ExampleJavaClass()
              |  examplejavaclass.setBoolean(true)
              |  examplejavaclass.setInt(0)
-             |  examplejavaclass.setString("x")
+             |  examplejavaclass.setString("x$0")
              |  examplejavaclass
              |}
              |parallel:
@@ -205,7 +205,7 @@ final class ClassesJvmSpec extends MacroSuite {
              |  val examplejavaclass: hearth.examples.classes.ExampleJavaClass = new hearth.examples.classes.ExampleJavaClass()
              |  examplejavaclass.setBoolean(true)
              |  examplejavaclass.setInt(0)
-             |  examplejavaclass.setString("x")
+             |  examplejavaclass.setString("x$0")
              |  examplejavaclass
              |}""".stripMargin)
     }

@@ -65,8 +65,19 @@ This indicates an error in a **generated quasiquote** by `cross-quotes` on Scala
     - remove `isOurCulprit` variable and all of its usages
     - remove all debug prints introduced in the previous steps
 
+**Important:** The issue might not be in `better-printers` itself. The output of `showCodePretty` passes through
+`removeMacroSuffix` (in `hearth/package.scala`) before being embedded in the quasiquote. This function strips
+`$macro$N` suffixes from Hearth-generated fresh names. If this regex is too broad, it can also strip compiler-generated
+suffixes (like `$N` from `rassoc$N`, `evidence$N`, `x$N`) and cause name collisions. See
+[Scala 2 Synthetic Names Catalog](scala2-synthetic-names-catalog.md) for the full list of compiler-generated names.
+
 **Example:**
 ```
 [error] /Users/dev/hearth/<macro>:15:23: expected ")" but found identifier
 ```
 This suggests `better-printers` generated a quasiquote with unbalanced parentheses or incorrect syntax at that position.
+
+```
+[error] /Users/dev/hearth/<macro>:15:23: not found: value rassoc$1
+```
+This suggests `removeMacroSuffix` stripped the unique suffix from a compiler-generated synthetic val name.

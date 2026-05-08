@@ -188,3 +188,19 @@ This is used internally by `Type.runtimePlainPrint`, `Type.runtimePrettyPrint`, 
 
 !!! tip
     If you're using `MacroCommons` from Hearth's Basic Utilities, you already have access to Better Printers through methods like `expr.prettyPrint` and `expr.prettyAST`. You don't need to use Better Printers directly unless you're building a standalone macro library.
+
+## Post-processing: `removeMacroSuffix`
+
+When Better Printers output is used through `MacroCommons` (via `expr.plainPrint`, `expr.prettyPrint`, etc.),
+the result passes through `removeMacroSuffix` before being returned. This function strips `$macro$N` suffixes
+from Hearth-generated fresh names (e.g. `myName$macro$1` → `myName`), making output cleaner and more stable
+for testing.
+
+!!! warning "Only Hearth's `$macro$N` pattern is stripped"
+    `removeMacroSuffix` intentionally does **not** strip other `$N` suffixes (e.g. `rassoc$1`, `evidence$1`,
+    `x$1`) that the Scala 2 compiler generates for right-associative operator desugaring, implicit evidence
+    parameters, or fresh term names. These suffixes carry uniqueness guarantees that must be preserved,
+    especially when the printed code is reparsed (as in cross-quotes).
+
+    See the [Scala 2 Synthetic Names Catalog](../contributing/scala2-synthetic-names-catalog.md) for the
+    full list of compiler-generated name patterns.
