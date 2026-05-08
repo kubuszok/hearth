@@ -202,5 +202,5 @@ for testing.
     parameters, or fresh term names. These suffixes carry uniqueness guarantees that must be preserved,
     especially when the printed code is reparsed (as in cross-quotes).
 
-    See the [Scala 2 Synthetic Names Catalog](../contributing/scala2-synthetic-names-catalog.md) for the
+    See the [Scala 2 Synthetic Names Catalog](https://github.com/kubuszok/hearth/blob/{{ git.commit }}/docs/contributing/scala2-synthetic-names-catalog.md) for the
     full list of compiler-generated name patterns.
