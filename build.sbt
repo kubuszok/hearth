@@ -31,7 +31,7 @@ val versions = new {
 
   // Dependencies.
   val kindProjector = "0.13.4"
-  val munit = "1.2.4"
+  val munit = "1.3.0"
   val scalacheck = "1.19.0"
   val scalaXml = "2.4.0"
 
@@ -81,6 +81,9 @@ val dev = new {
 
 // Common settings:
 
+// Allow munit's Scala 2.13.18 dependency when we compile with 2.13.16 (backwards compatible per SIP-51)
+// and Scala.js 1.21.0 dependency (it requires 2.13.17)
+Global / allowUnsafeScalaLibUpgrade := true
 Global / excludeLintKeys += git.useGitDescribe
 Global / excludeLintKeys += ideSkipProject
 val only1VersionInIDE =
@@ -283,8 +286,6 @@ val scalaNewestSettings = Seq(
 )
 
 val dependencies = Seq(
-  // Allow munit's Scala 2.13.18 dependency when we compile with 2.13.16 (backwards compatible per SIP-51)
-  allowUnsafeScalaLibUpgrade := true,
   libraryDependencies ++= Seq(
     "org.scalameta" %%% "munit" % versions.munit % Test,
     "org.scalacheck" %%% "scalacheck" % versions.scalacheck % Test
@@ -598,8 +599,8 @@ lazy val hearthMunit = projectMatrix
       "org.scalameta" %%% "munit" % versions.munit,
       "org.scalacheck" %%% "scalacheck" % versions.scalacheck
     ),
-    // Allow eviction of test-interface for Scala Native (munit requires 0.5.10, scalacheck requires 0.5.8)
-    // Since test-interface 0.5.10 is backwards compatible with 0.5.8, we can safely use the newer version
+    // Allow eviction of test-interface for Scala Native (munit requires 0.5.11, scalacheck requires 0.5.8)
+    // Since test-interface 0.5.11 is backwards compatible with 0.5.8, we can safely use the newer version
     evictionErrorLevel := Level.Warn,
     // Allow munit's Scala 2.13.18 dependency when we compile with 2.13.16 (backwards compatible per SIP-51)
     allowUnsafeScalaLibUpgrade := true
@@ -648,7 +649,7 @@ lazy val hearthTests = projectMatrix
     ),
     // Do not cover Fixtures and FixturesImpl, they are used to test the library, not a part of it.
     coverageExcludedFiles := ".*Fixtures;.*FixturesImpl",
-    // Allow eviction of test-interface for Scala Native - 0.5.10 is backwards compatible with 0.5.8
+    // Allow eviction of test-interface for Scala Native - 0.5.11 is backwards compatible with 0.5.8
     evictionErrorLevel := Level.Warn,
     scalacOptions ++= Seq(
       // To make sure that we are not silently failing on unsupported trees
