@@ -221,6 +221,21 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
       }
     }
 
+    def rightAssocInFoldLeft: Expr[Data] = {
+      val elements: _root_.scala.List[Expr[_root_.java.lang.String]] =
+        (1 to 13).toList.map(i => Expr(i.toString))
+      val reversed = elements.reverse
+      val listExpr: Expr[_root_.scala.List[_root_.java.lang.String]] =
+        reversed.tail.foldLeft(
+          Expr.quote(_root_.scala.List(Expr.splice(reversed.head)))
+        ) { (accExpr, elemExpr) =>
+          Expr.quote(Expr.splice(elemExpr) :: Expr.splice(accExpr))
+        }
+      Expr.quote {
+        Data(Expr.splice(listExpr).mkString(","))
+      }
+    }
+
     Expr.quote {
       Data.map(
         "features" -> Data.map(
@@ -231,7 +246,8 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
         ),
         "edgeCases" -> Data.map(
           "chainingOnSplice" -> Expr.splice(chainingOnSplice(Expr.quote(new StringBuilder), Expr("name"))),
-          "implicitTypeSubstitution" -> Expr.splice(implicitTypeSubstitution)
+          "implicitTypeSubstitution" -> Expr.splice(implicitTypeSubstitution),
+          "rightAssocInFoldLeft" -> Expr.splice(rightAssocInFoldLeft)
         )
       )
     }
