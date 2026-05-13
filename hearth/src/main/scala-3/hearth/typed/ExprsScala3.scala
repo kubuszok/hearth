@@ -226,6 +226,11 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         case Ident(_) if term.symbol.isDefDef =>
           resolveMethodOnOwner(term.symbol)
 
+        case Ident(_) if term.symbol.owner.flags.is(Flags.Module) =>
+          resolveModule(term.symbol.owner).flatMap { receiver =>
+            invokeGetter(receiver, term.symbol.name)
+          }
+
         case Ident(_) =>
           resolveStableRef(term)
 

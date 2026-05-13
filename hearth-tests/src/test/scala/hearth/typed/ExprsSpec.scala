@@ -277,6 +277,46 @@ final class ExprsSpec extends MacroSuite {
             "class" -> Data("java.lang.Integer")
           )
         }
+
+        test("should evaluate companion object val: SemiEvalConfig.default") {
+          testSemiEval(SemiEvalConfig.default) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("SemiEvalConfig(0,default)"),
+            "class" -> Data("hearth.typed.SemiEvalConfig")
+          )
+        }
+
+        test("should evaluate chained access on companion val: SemiEvalConfig.default.value") {
+          testSemiEval(SemiEvalConfig.default.value) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("0"),
+            "class" -> Data("java.lang.Integer")
+          )
+        }
+
+        test("should evaluate companion object def call: SemiEvalConfig.create(42)") {
+          testSemiEval(SemiEvalConfig.create(42)) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("SemiEvalConfig(42,created)"),
+            "class" -> Data("hearth.typed.SemiEvalConfig")
+          )
+        }
+
+        test("should evaluate companion object method call with args: SemiEvalConfig.transform(\"hello\")") {
+          testSemiEval(SemiEvalConfig.transform("hello")) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("HELLO"),
+            "class" -> Data("java.lang.String")
+          )
+        }
+
+        test("should evaluate eta-expanded method passed as function arg: default.withMapper(transform)") {
+          testSemiEval(SemiEvalConfig.default.withMapper(SemiEvalConfig.transform)) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("DEFAULT"),
+            "class" -> Data("java.lang.String")
+          )
+        }
       }
     }
 

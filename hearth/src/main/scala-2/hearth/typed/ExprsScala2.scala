@@ -220,6 +220,14 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         case Ident(_) if locals.contains(tree.symbol) =>
           Right(locals(tree.symbol))
 
+        case Ident(_)
+            if tree.symbol != null && tree.symbol != NoSymbol &&
+              tree.symbol.owner != null && tree.symbol.owner != NoSymbol &&
+              (tree.symbol.owner.isModule || tree.symbol.owner.isModuleClass) =>
+          resolveModule(tree.symbol.owner).flatMap { receiver =>
+            invokeGetter(receiver, tree.symbol.name.decodedName.toString)
+          }
+
         case other =>
           Left(NonEmptyVector.one(s"Cannot semi-evaluate expression: ${showCode(other)}"))
       }
