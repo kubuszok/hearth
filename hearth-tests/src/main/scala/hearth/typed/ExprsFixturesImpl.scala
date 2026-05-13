@@ -252,6 +252,58 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
     }
   }
 
+  def testValDefsVarInWhileLoop: Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+    implicit val stringType: Type[String] = StringType
+
+    val simpleLoop: Expr[Int] = ValDefs.createVar[Int](Expr(0), "_n").use { case (n, setN) =>
+      Expr.quote {
+        var i = 0
+        while (i < 5) {
+          Expr.splice(setN(Expr.quote(Expr.splice(n) + 1)))
+          i += 1
+        }
+        Expr.splice(n)
+      }
+    }
+
+    val dispatchResult: Expr[Int] = {
+      val countVar = ValDefs.createVar[Int](Expr(0), "_count")
+      val keyVar = ValDefs.createVar[String](Expr(""), "_key")
+
+      ValDefsTraverse
+        .map2(countVar, keyVar) { case ((countGet, countSet), (keyGet, keySet)) =>
+          (countGet, countSet, keyGet, keySet)
+        }
+        .use { case (countGet, countSet, keyGet, keySet) =>
+          val dispatch: Expr[Unit] = Expr.quote {
+            if (Expr.splice(keyGet) == "increment")
+              Expr.splice(countSet(Expr.quote(Expr.splice(countGet) + 1)))
+            else ()
+          }
+
+          Expr.quote {
+            Expr.splice(keySet(Expr("increment")))
+            Expr.splice(dispatch)
+            Expr.splice(keySet(Expr("skip")))
+            Expr.splice(dispatch)
+            Expr.splice(keySet(Expr("increment")))
+            Expr.splice(dispatch)
+            Expr.splice(keySet(Expr("increment")))
+            Expr.splice(dispatch)
+            Expr.splice(countGet)
+          }
+        }
+    }
+
+    Expr.quote {
+      Data.map(
+        "simpleLoop" -> Data(Expr.splice(simpleLoop)),
+        "dispatchResult" -> Data(Expr.splice(dispatchResult))
+      )
+    }
+  }
+
   def testValDefsPartitionAndClose[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
     val either = ValDefs.createDef(expr, "a").partition { a =>
       if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) Right {
@@ -2320,6 +2372,7 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
   // types using in fixtures
 
   private val IntType = Type.of[Int]
+  private val StringType = Type.of[String]
   private val UnitType = Type.of[Unit]
   private val DataType = Type.of[Data]
   private val IntFunctionType = Type.of[Int => Int]
