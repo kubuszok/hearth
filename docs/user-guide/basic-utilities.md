@@ -645,10 +645,12 @@ It handles:
 - **Literals** — `42`, `"hello"`, `true`, etc.
 - **Primitive operators** — `+`, `-`, `*`, `/`, `%`, comparisons, bitwise ops, unary ops on numeric types
 - **Singleton objects** — `None`, `Nil`, or any `object` on the classpath
+- **Companion object members** — `MyConfig.default` (val), `MyConfig.create(42)` (def), including chained access like `MyConfig.default.value`
 - **Constructor calls** — `new Foo(arg1, arg2)` where all arguments are also semi-evaluable
 - **Method calls** — `obj.method(args)` where the receiver and all arguments are semi-evaluable, including varargs and overloaded methods
 - **Blocks with val definitions** — `{ val x = 1; x + 2 }`, including compiler-generated blocks from implicit resolution
 - **Lambdas** (any arity) — `(x: Int) => x + 1`, including eta-expanded method references; uses `FunctionN` for arity 0–22 and `FunctionXXL` beyond that on Scala 3
+- **Eta-expanded methods as function arguments** — `config.withMapper(MyUtils.transform)` where a `def` is auto-converted to a function value
 - **Nested combinations** of the above — `Some(List(1, 2, 3).size)`, `2 + "foo".length`, etc.
 - **Inherited methods** — methods defined on a parent class but accessed via a module singleton (e.g., `Predef`'s methods inherited from `LowPriorityImplicits`)
 
