@@ -35,7 +35,8 @@ final class CrossExprsSpec extends MacroSuite {
               "fromNestedImport" -> Data("key: 1, value: onekey: 2, value: two"),
               "fromSplittedNestedImport" -> Data("key: 1, value: onekey: 2, value: two"),
               "fromSameClassImplicit" -> Data("key: 1, value: onekey: 2, value: two")
-            )
+            ),
+            "rightAssocInFoldLeft" -> Data("1,2,3,4,5,6,7,8,9,10,11,12,13")
           )
         )
       }

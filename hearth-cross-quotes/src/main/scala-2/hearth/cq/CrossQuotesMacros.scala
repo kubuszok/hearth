@@ -895,6 +895,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         }
       }
       .pipe(implicitTypeReferenceReplacer.transform)
+      .pipe(SyntheticBlockValInliner.transform)
       // Convert to String - we are assuming that showCodePretty produces correct Scala code (that cannot be said of toString or showCode)
       .tap { source =>
         if (loggingEnabled) {
@@ -936,6 +937,45 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
                      |""".stripMargin)
         }
       }
+  }
+
+  /** Inlines synthetic block vals whose RHS is a simple Ident.
+    *
+    * After SpliceReplacer runs, compiler-generated synthetic vals (e.g. `rassoc$1` from right-associative operator
+    * desugaring) have their RHS replaced with a stub Ident. When `Expr.quote` is used inside a loop (e.g. `foldLeft`),
+    * the quasiquote is compiled once but evaluated N times, producing N trees all with the same synthetic val name. At
+    * 12+ nesting levels, the Scala 2 compiler fails to resolve these duplicate names.
+    *
+    * By inlining `{ val synth = stubIdent; body(synth) }` into `body(stubIdent)`, we eliminate the val entirely.
+    */
+  private object SyntheticBlockValInliner extends Transformer {
+
+    private def isSimpleIdent(tree: Tree): Boolean = tree match {
+      case Ident(_) => true
+      case _        => false
+    }
+
+    override def transform(tree: Tree): Tree = tree match {
+      case Block(List(vd: ValDef), body) if vd.mods.hasFlag(Flag.SYNTHETIC) && isSimpleIdent(vd.rhs) =>
+        var refCount = 0
+        object counter extends Traverser {
+          override def traverse(t: Tree): Unit = t match {
+            case Ident(name) if name == vd.name => refCount += 1
+            case _                              => super.traverse(t)
+          }
+        }
+        counter.traverse(body)
+        if (refCount == 1) {
+          object replacer extends Transformer {
+            override def transform(t: Tree): Tree = t match {
+              case Ident(name) if name == vd.name => vd.rhs
+              case _                              => super.transform(t)
+            }
+          }
+          transform(replacer.transform(body))
+        } else super.transform(tree)
+      case _ => super.transform(tree)
+    }
   }
 
   /** When we replace stubs, we should be careful to e.g. not replace Something$1 before Something$10, or we will end up
