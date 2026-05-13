@@ -467,6 +467,15 @@ final class ExprsSpec extends MacroSuite {
         )
       }
 
+      test("ValDefs.createVar vars accessible in while loop with spliced dispatch") {
+        import ExprsFixtures.testValDefsVarInWhileLoop
+
+        testValDefsVarInWhileLoop ==> Data.map(
+          "simpleLoop" -> Data(5),
+          "dispatchResult" -> Data(3)
+        )
+      }
+
       test("methods ValDefs.{partition, close} should allow branching and closing a scoped block") {
         import ExprsFixtures.testValDefsPartitionAndClose
 

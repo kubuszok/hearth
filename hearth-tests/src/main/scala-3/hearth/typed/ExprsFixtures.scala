@@ -98,6 +98,10 @@ object ExprsFixtures {
   inline def testValDefsCreateAndUse: Data = ${ testValDefsCreateAndUseImpl }
   private def testValDefsCreateAndUseImpl(using q: Quotes): Expr[Data] = new ExprsFixtures(q).testValDefsCreateAndUse
 
+  inline def testValDefsVarInWhileLoop: Data = ${ testValDefsVarInWhileLoopImpl }
+  private def testValDefsVarInWhileLoopImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testValDefsVarInWhileLoop
+
   inline def testValDefsPartitionAndClose[A, B](inline expr: A): B = ${
     testValDefsPartitionAndCloseImpl[A, B]('expr)
   }
