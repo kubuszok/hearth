@@ -1,18 +1,10 @@
-import com.jsuereth.sbtpgp.PgpKeys.publishSigned
-import com.typesafe.tools.mima.core.{Problem, ProblemFilters}
 import sbtwelcome.UsefulTask
 import commandmatrix.extra.*
-import org.scalafmt.sbt.ScalafmtPlugin.autoImport.scalafmtOnCompile
-
-// Used to configure the build so that it would format+compile during development but not on CI.
-lazy val isCI = sys.env.get("CI").contains("true")
-ThisBuild / scalafmtOnCompile := !isCI
+import kubuszok.sbt._
+import kubuszok.sbt.KubuszokPlugin.autoImport._
 
 // Used to compile tests against the newest Scala versions, to check for regressions.
 lazy val isNewestScalaTests = sys.env.get("NEWEST_SCALA_TESTS").contains("true")
-
-// Used to publish snapshots to Maven Central.
-val mavenCentralSnapshots = "Maven Central Snapshots" at "https://central.sonatype.com/repository/maven-snapshots"
 
 // Versions:
 
@@ -46,37 +38,26 @@ val versions = new {
 
 // Development settings:
 
-val dev = new {
+val dev = new DevProperties(
+  scala213 = Some(versions.scala213),
+  scala3 = Some(versions.scala3),
+  platforms = versions.platforms
+)
 
+val logCrossQuotes = {
   val props = scala.util
     .Using(new java.io.FileInputStream("dev.properties")) { fis =>
-      val props = new java.util.Properties()
-      props.load(fis)
-      props
+      val p = new java.util.Properties()
+      p.load(fis)
+      p
     }
-    .get
-
-  // Which version should be used in IntelliJ
-  val ideScala = props.getProperty("ide.scala") match {
-    case "2.13" => versions.scala213
-    case "3"    => versions.scala3
-  }
-  val idePlatform = props.getProperty("ide.platform") match {
-    case "jvm"    => VirtualAxis.jvm
-    case "js"     => VirtualAxis.js
-    case "native" => VirtualAxis.native
-  }
-
-  val logCrossQuotes = props.getProperty("log.cross-quotes") match {
+    .getOrElse(new java.util.Properties())
+  props.getProperty("log.cross-quotes") match {
     case "true"                          => true
     case "false"                         => false
     case otherwise if otherwise.nonEmpty => otherwise
     case _                               => !isCI
   }
-
-  def isIdeScala(scalaVersion: String): Boolean =
-    CrossVersion.partialVersion(scalaVersion) == CrossVersion.partialVersion(ideScala)
-  def isIdePlatform(platform: VirtualAxis): Boolean = platform == idePlatform
 }
 
 // Common settings:
@@ -84,25 +65,6 @@ val dev = new {
 // Allow munit's Scala 2.13.18 dependency when we compile with 2.13.16 (backwards compatible per SIP-51)
 // and Scala.js 1.21.0 dependency (it requires 2.13.17)
 Global / allowUnsafeScalaLibUpgrade := true
-Global / excludeLintKeys += git.useGitDescribe
-Global / excludeLintKeys += ideSkipProject
-val only1VersionInIDE =
-  // For the platform we are working with, show only the project for the Scala version we are working with.
-  MatrixAction
-    .ForPlatform(dev.idePlatform)
-    .Configure(
-      _.settings(
-        ideSkipProject := !dev.isIdeScala(scalaVersion.value),
-        bspEnabled := dev.isIdeScala(scalaVersion.value),
-        scalafmtOnCompile := !isCI
-      )
-    ) +:
-    // Do not show in IDE and BSP projects for the platform we are not working with.
-    versions.platforms.filterNot(dev.isIdePlatform).map { platform =>
-      MatrixAction
-        .ForPlatform(platform)
-        .Configure(_.settings(ideSkipProject := true, bspEnabled := false, scalafmtOnCompile := false))
-    }
 
 // The hearth-cross-quotes:
 //  - on Scala 2 are macros (defined for all platforms)
@@ -131,7 +93,7 @@ val useCrossQuotes = versions.scalas.flatMap { scalaVersion =>
       // Enable logging from cross-quotes.
       MatrixAction
         .ForScala(_.isScala2)
-        .Configure(_.settings(scalacOptions += s"-Xmacro-settings:hearth.cross-quotes.logging=${dev.logCrossQuotes}")),
+        .Configure(_.settings(scalacOptions += s"-Xmacro-settings:hearth.cross-quotes.logging=${logCrossQuotes}")),
       // Depends on cross-quotes specific for the platform.
       MatrixAction {
         case (version, List(VirtualAxis.jvm)) => version.isScala2
@@ -159,7 +121,7 @@ val useCrossQuotes = versions.scalas.flatMap { scalaVersion =>
                 // Ensures recompilation.
                 s"-Jdummy=${jar.lastModified}",
                 // Enable logging from cross-quotes.
-                s"-P:hearth.cross-quotes:logging=${dev.logCrossQuotes}"
+                s"-P:hearth.cross-quotes:logging=${logCrossQuotes}"
               )
             }
           )
@@ -169,8 +131,6 @@ val useCrossQuotes = versions.scalas.flatMap { scalaVersion =>
 }
 
 val settings = Seq(
-  git.useGitDescribe := true,
-  git.uncommittedSignifier := None,
   scalacOptions ++= versions.fold(scalaVersion.value)(
     for3 = Seq(
       // format: off
@@ -245,12 +205,7 @@ val settings = Seq(
            "-Xsource-features:eta-expand-always" // silence warn that appears since 2.13.17
          )
        else Seq.empty)
-  ),
-  Compile / doc / scalacOptions ++= versions.fold(scalaVersion.value)(
-    for3 = Seq("-Ygenerate-inkuire"), // type-based search for Scala 3, this option cannot go into compile
-    for2_13 = Seq.empty
-  ),
-  Compile / console / scalacOptions --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
+  )
 )
 
 val scalaNewestSettings = Seq(
@@ -299,8 +254,6 @@ val dependencies = Seq(
   )
 )
 
-val versionSchemeSettings = Seq(versionScheme := Some("early-semver"))
-
 val publishSettings = Seq(
   organization := "com.kubuszok",
   homepage := Some(url("https://scala-hearth.readthedocs.io")),
@@ -322,22 +275,7 @@ val publishSettings = Seq(
       <url>https://github.com/kubuszok/hearth/issues</url>
     </issueManagement>
   ),
-  publishTo := {
-    if (isSnapshot.value) Some(mavenCentralSnapshots)
-    else localStaging.value
-  },
-  publishMavenStyle := true,
-  Test / publishArtifact := false,
-  pomIncludeRepository := { _ =>
-    false
-  },
-  // Sonatype ignores isSnapshot setting and only looks at -SNAPSHOT suffix in version:
-  //   https://central.sonatype.org/publish/publish-maven/#performing-a-snapshot-deployment
-  // meanwhile sbt-git used to set up SNAPSHOT if there were uncommitted changes:
-  //   https://github.com/sbt/sbt-git/issues/164
-  // (now this suffix is empty by default) so we need to fix it manually.
-  git.gitUncommittedChanges := git.gitCurrentTags.value.isEmpty,
-  git.uncommittedSignifier := Some("SNAPSHOT")
+  projectType := ProjectType.ScalaLibrary
 )
 
 val mimaSettings = Seq(
@@ -365,54 +303,27 @@ val mimaSettings = Seq(
 )
 
 val noPublishSettings =
-  Seq(publish / skip := true, publishArtifact := false)
+  Seq(projectType := ProjectType.NonPublished)
 
 // Command generation
 
-val al = new {
+// We keep a custom alias object since hearth has non-standard CI logic (hearthCrossQuotes is JVM-only, etc.)
+lazy val al = new Aliases(
+  published = Seq(hearthBetterPrinters, hearthCrossQuotes, hearthMicroFp, hearth, hearthMunit, hearthTests, hearthSandwichTests)
+) {
+  private lazy val prodOnly = Seq(hearthBetterPrinters, hearthCrossQuotes, hearthMicroFp, hearth, hearthMunit)
 
-  private val prodProjects =
-    Vector("hearthBetterPrinters", "hearthCrossQuotes", "hearthMicroFp", "hearth", "hearthMunit")
-  private val testProjects = Vector("hearthTests", "hearthSandwichTests")
-
-  private def isJVM(platform: String): Boolean = platform == "JVM"
-
-  private def projects(platform: String, scalaSuffix: String): Vector[String] =
-    for {
-      name <- prodProjects ++ testProjects
-      if ((name != "hearthCrossQuotes" && name != "hearthSandwichTests") || isJVM(platform))
-    } yield s"$name${if (isJVM(platform)) "" else platform}$scalaSuffix"
-
-  def ci(platform: String, scalaSuffix: String): String = {
-    def tasksOf(name: String): Vector[String] = projects(platform, scalaSuffix).flatMap {
-      case project if project.startsWith("hearthCrossQuotes") && Set("mimaReportBinaryIssues").contains(name) =>
-        Vector()
-      case project => Vector(s"$project/$name")
-    }
-
-    val clean = Vector("clean")
-    val compileAndTest = tasksOf("compile") ++ tasksOf("test")
-    val coverageCompileAndTest =
-      if (isJVM(platform)) "coverage" +: compileAndTest :+ "coverageAggregate" :+ "coverageOff" else compileAndTest
-    val mimaReport = tasksOf("mimaReportBinaryIssues")
-
-    val tasks = clean ++ coverageCompileAndTest ++ mimaReport
-    tasks.mkString(" ; ")
+  override def ci(platform: String, scalaBinary: String): String = {
+    val base = super.ci(platform, scalaBinary)
+    val mimaIds = projectIds(prodOnly, platform, scalaBinary)
+      .filterNot(_.startsWith("hearthCrossQuotes"))
+    val mimaReport = mimaIds.map(id => s"$id/mimaReportBinaryIssues")
+    if (mimaReport.nonEmpty) s"$base ; ${mimaReport.mkString(" ; ")}"
+    else base
   }
 
-  def test(platform: String, scalaSuffix: String): String =
-    projects(platform, scalaSuffix).map(project => s"$project/test").mkString(" ; ")
-
-  def release(tag: Seq[String]): String =
-    if (tag.nonEmpty) "publishSigned ; sonaRelease" else "publishSigned"
-
-  def publishLocal(platform: String, scalaSuffix: String): Vector[String] =
-    for {
-      name <- prodProjects
-    } yield s"$name${if (isJVM(platform)) "" else platform}$scalaSuffix/publishLocal"
-
-  val publishLocalForTests =
-    (publishLocal("JVM", "") ++ publishLocal("JVM", "3") ++ List("show hearth/version")).mkString(" ; ")
+  override def publishLocal(platform: String, scalaBinary: String): Vector[String] =
+    projectIds(prodOnly, platform, scalaBinary).map(id => s"$id/publishLocal")
 }
 
 // Modules
@@ -454,45 +365,27 @@ lazy val root = project
          | - hearth-munit (optional)
          |for the right Scala version and platform (see projects task).
          |""".stripMargin,
-    usefulTasks := Seq(
-      UsefulTask("projects", "List all projects generated by the build matrix").noAlias,
-      UsefulTask(
-        "test",
-        "Compile and test all projects in all Scala versions and platforms (beware! it uses a lot of memory and might OOM!)"
-      ).noAlias,
-      UsefulTask(al.release(git.gitCurrentTags.value), "Publish everything to release or snapshot repository")
-        .alias("ci-release"),
-      UsefulTask(al.ci("JVM", "3"), "CI pipeline for Scala 3+JVM").alias("ci-jvm-3"),
-      UsefulTask(al.ci("JVM", ""), "CI pipeline for Scala 2.13+JVM").alias("ci-jvm-2_13"),
-      UsefulTask(al.ci("JS", "3"), "CI pipeline for Scala 3+Scala JS").alias("ci-js-3"),
-      UsefulTask(al.ci("JS", ""), "CI pipeline for Scala 2.13+Scala JS").alias("ci-js-2_13"),
-      UsefulTask(al.ci("Native", "3"), "CI pipeline for Scala 3+Scala Native").alias("ci-native-3"),
-      UsefulTask(al.ci("Native", ""), "CI pipeline for Scala 2.13+Scala Native").alias("ci-native-2_13"),
-      UsefulTask(al.test("JVM", "3"), "Test all projects in Scala 3+JVM").alias("test-jvm-3"),
-      UsefulTask(al.test("JVM", ""), "Test all projects in Scala 2.13+JVM").alias("test-jvm-2_13"),
-      UsefulTask(al.test("JS", "3"), "Test all projects in Scala 3+Scala JS").alias("test-js-3"),
-      UsefulTask(al.test("JS", ""), "Test all projects in Scala 2.13+Scala JS").alias("test-js-2_13"),
-      UsefulTask(al.test("Native", "3"), "Test all projects in Scala 3+Scala Native").alias("test-native-3"),
-      UsefulTask(al.test("Native", ""), "Test all projects in Scala 2.13+Scala Native").alias("test-native-2_13"),
-      UsefulTask(
-        "hearthTests/test ; hearthTests3/test ; hearthSandwichTests/test ; hearthSandwichTests3/test",
-        "Quickly run JVM on all platforms"
-      ).alias("quick-test"),
-      UsefulTask(
-        "hearthTests/clean ; hearthTests3/clean ; hearthSandwichTests/clean ; hearthSandwichTests3/clean",
-        "Quickly clean JVM tests on all platforms (useful to force-recompile macros)"
-      ).alias("quick-clean"),
-      UsefulTask(
-        al.publishLocalForTests,
-        "Publishes all Scala 2.13 and Scala 3 JVM artifacts to test snippets in documentation"
+    usefulTasks := al.usefulTasks(
+      extra = Seq(
+        UsefulTask(
+          (al.publishLocal("JVM", "2.13") ++ al.publishLocal("JVM", "3") :+ "show hearth/version").mkString(" ; "),
+          "Publishes all Scala 2.13 and Scala 3 JVM artifacts to test snippets in documentation"
+        ).alias("publish-local-for-tests"),
+        UsefulTask(
+          "hearthTests/test ; hearthTests3/test ; hearthSandwichTests/test ; hearthSandwichTests3/test",
+          "Quickly run JVM on all platforms"
+        ).alias("quick-test"),
+        UsefulTask(
+          "hearthTests/clean ; hearthTests3/clean ; hearthSandwichTests/clean ; hearthSandwichTests3/clean",
+          "Quickly clean JVM tests on all platforms (useful to force-recompile macros)"
+        ).alias("quick-clean")
       )
-        .alias("publish-local-for-tests")
     )
   )
 
 lazy val hearthBetterPrinters = projectMatrix
   .in(file("hearth-better-printers"))
-  .someVariations(versions.scalas, versions.platforms)(only1VersionInIDE *)
+  .someVariations(versions.scalas, versions.platforms)(dev.only1VersionInIDE *)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .disablePlugins(WelcomePlugin)
   .settings(
@@ -505,13 +398,12 @@ lazy val hearthBetterPrinters = projectMatrix
     )
   )
   .settings(settings *)
-  .settings(versionSchemeSettings *)
   .settings(publishSettings *)
   .settings(mimaSettings *)
 
 lazy val hearthCrossQuotes = projectMatrix
   .in(file("hearth-cross-quotes"))
-  .someVariations(versions.scalas, versions.platforms)((defineCrossQuotes ++ only1VersionInIDE) *)
+  .someVariations(versions.scalas, versions.platforms)((defineCrossQuotes ++ dev.only1VersionInIDE) *)
   .enablePlugins(GitVersioning, GitBranchPrompt, SourceGenPlugin)
   .disablePlugins(WelcomePlugin, MimaPlugin)
   .settings(
@@ -535,13 +427,12 @@ lazy val hearthCrossQuotes = projectMatrix
     }
   )
   .settings(settings *)
-  .settings(versionSchemeSettings *)
   .settings(publishSettings *)
   .dependsOn(hearthBetterPrinters)
 
 lazy val hearthMicroFp = projectMatrix
   .in(file("hearth-micro-fp"))
-  .someVariations(versions.scalas, versions.platforms)(only1VersionInIDE *)
+  .someVariations(versions.scalas, versions.platforms)(dev.only1VersionInIDE *)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .disablePlugins(WelcomePlugin)
   .settings(
@@ -554,14 +445,13 @@ lazy val hearthMicroFp = projectMatrix
     )
   )
   .settings(settings *)
-  .settings(versionSchemeSettings *)
   .settings(publishSettings *)
   .settings(dependencies *)
   .settings(mimaSettings *)
 
 lazy val hearth = projectMatrix
   .in(file("hearth"))
-  .someVariations(versions.scalas, versions.platforms)(((only1VersionInIDE ++ useCrossQuotes)) *)
+  .someVariations(versions.scalas, versions.platforms)(((dev.only1VersionInIDE ++ useCrossQuotes)) *)
   .enablePlugins(GitVersioning, GitBranchPrompt, SourceGenPlugin)
   .disablePlugins(WelcomePlugin)
   .settings(
@@ -578,7 +468,6 @@ lazy val hearth = projectMatrix
     }
   )
   .settings(settings *)
-  .settings(versionSchemeSettings *)
   .settings(publishSettings *)
   .settings(dependencies *)
   .settings(mimaSettings *)
@@ -588,7 +477,7 @@ lazy val hearth = projectMatrix
 
 lazy val hearthMunit = projectMatrix
   .in(file("hearth-munit"))
-  .someVariations(versions.scalas, versions.platforms)(only1VersionInIDE *)
+  .someVariations(versions.scalas, versions.platforms)(dev.only1VersionInIDE *)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .disablePlugins(WelcomePlugin)
   .settings(
@@ -606,7 +495,6 @@ lazy val hearthMunit = projectMatrix
     allowUnsafeScalaLibUpgrade := true
   )
   .settings(settings *)
-  .settings(versionSchemeSettings *)
   .settings(publishSettings *)
   .settings(mimaSettings *)
   .dependsOn(hearth)
@@ -615,7 +503,7 @@ lazy val hearthMunit = projectMatrix
 
 lazy val hearthTests = projectMatrix
   .in(file("hearth-tests"))
-  .someVariations(versions.scalas, versions.platforms)((only1VersionInIDE ++ useCrossQuotes) *)
+  .someVariations(versions.scalas, versions.platforms)((dev.only1VersionInIDE ++ useCrossQuotes) *)
   .enablePlugins(GitVersioning, GitBranchPrompt, SourceGenPlugin)
   .disablePlugins(WelcomePlugin)
   .settings(
@@ -669,7 +557,6 @@ lazy val hearthTests = projectMatrix
   )
   .settings(settings *)
   .settings(scalaNewestSettings *)
-  .settings(versionSchemeSettings *)
   .settings(publishSettings *)
   .settings(noPublishSettings *)
   .settings(dependencies *)
@@ -714,7 +601,7 @@ lazy val hearthSandwichExamples3 = projectMatrix
 
 lazy val hearthSandwichTests = projectMatrix
   .in(file("hearth-sandwich-tests"))
-  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(only1VersionInIDE *)
+  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(dev.only1VersionInIDE *)
   .settings(settings *)
   .settings(scalaNewestSettings *)
   .settings(publishSettings *)
@@ -735,7 +622,7 @@ lazy val hearthSandwichTests = projectMatrix
 
 lazy val debugHearthBetterPrinters = projectMatrix
   .in(file("debug-hearth-better-printers"))
-  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(only1VersionInIDE *)
+  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(dev.only1VersionInIDE *)
   .settings(settings *)
   .settings(publishSettings *)
   .settings(noPublishSettings *)
@@ -749,7 +636,7 @@ lazy val debugHearthBetterPrinters = projectMatrix
 
 lazy val debugHearth = projectMatrix
   .in(file("debug-hearth"))
-  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(only1VersionInIDE *)
+  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(dev.only1VersionInIDE *)
   .settings(settings *)
   .settings(publishSettings *)
   .settings(noPublishSettings *)
