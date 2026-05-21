@@ -8,6 +8,10 @@ on:
     branches: [ master ]
     types: [ opened, reopened, labeled, synchronize ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-formatting:
 

@@ -26,14 +26,6 @@ val versions = new {
   val munit = "1.3.0"
   val scalacheck = "1.19.0"
   val scalaXml = "2.4.0"
-
-  // Explicitly handle Scala 2.13 and Scala 3 separately.
-  def fold[A](scalaVersion: String)(for2_13: => Seq[A], for3: => Seq[A]): Seq[A] =
-    CrossVersion.partialVersion(scalaVersion) match {
-      case Some((2, 13)) => for2_13
-      case Some((3, _))  => for3
-      case _             => Seq.empty // for sbt, apparently
-    }
 }
 
 // Development settings:
@@ -45,14 +37,7 @@ val dev = new DevProperties(
 )
 
 val logCrossQuotes = {
-  val props = scala.util
-    .Using(new java.io.FileInputStream("dev.properties")) { fis =>
-      val p = new java.util.Properties()
-      p.load(fis)
-      p
-    }
-    .getOrElse(new java.util.Properties())
-  props.getProperty("log.cross-quotes") match {
+  dev.props.getProperty("log.cross-quotes") match {
     case "true"                          => true
     case "false"                         => false
     case otherwise if otherwise.nonEmpty => otherwise
@@ -70,7 +55,7 @@ Global / allowUnsafeScalaLibUpgrade := true
 //  - on Scala 2 are macros (defined for all platforms)
 //  - and on Scala 3 are plugins (defined only for JVM).
 val defineCrossQuotes = versions.scalas.flatMap(
-  versions.fold(_)(
+  foldVersion(_)(
     // Scala 2: no skipping, we are defining projects for all platforms
     for2_13 = List.empty,
     // Scala 3: skip for JS and Native, we are defining projects only for JVM
@@ -88,7 +73,7 @@ val defineCrossQuotes = versions.scalas.flatMap(
 //  - on Scala 2 are macros (defined for all platforms)
 //  - and on Scala 3 are plugins (defined only for JVM).
 val useCrossQuotes = versions.scalas.flatMap { scalaVersion =>
-  versions.fold(scalaVersion)(
+  foldVersion(scalaVersion)(
     for2_13 = List(
       // Enable logging from cross-quotes.
       MatrixAction
@@ -131,7 +116,7 @@ val useCrossQuotes = versions.scalas.flatMap { scalaVersion =>
 }
 
 val settings = Seq(
-  scalacOptions ++= versions.fold(scalaVersion.value)(
+  scalacOptions ++= foldVersion(scalaVersion.value)(
     for3 = Seq(
       // format: off
       "-encoding", "UTF-8",
@@ -222,7 +207,7 @@ val scalaNewestSettings = Seq(
     if (isNewestScalaTests) {
       val srcDir = sourceDirectory.value.toPath
       Seq(srcDir.resolve("main/scala-newest").toFile) ++
-        versions.fold(scalaVersion.value)(
+        foldVersion(scalaVersion.value)(
           for3 = Seq(srcDir.resolve("main/scala-newest-3").toFile),
           for2_13 = Seq(srcDir.resolve("main/scala-newest-2").toFile)
         )
@@ -232,7 +217,7 @@ val scalaNewestSettings = Seq(
     if (isNewestScalaTests) {
       val srcDir = sourceDirectory.value.toPath
       Seq(srcDir.resolve("test/scala-newest").toFile) ++
-        versions.fold(scalaVersion.value)(
+        foldVersion(scalaVersion.value)(
           for3 = Seq(srcDir.resolve("test/scala-newest-3").toFile),
           for2_13 = Seq(srcDir.resolve("test/scala-newest-2").toFile)
         )
@@ -245,7 +230,7 @@ val dependencies = Seq(
     "org.scalameta" %%% "munit" % versions.munit % Test,
     "org.scalacheck" %%% "scalacheck" % versions.scalacheck % Test
   ),
-  libraryDependencies ++= versions.fold(scalaVersion.value)(
+  libraryDependencies ++= foldVersion(scalaVersion.value)(
     for3 = Seq.empty,
     for2_13 = Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
@@ -283,8 +268,8 @@ val mimaSettings = Seq(
     val previousVersions = moduleName.value match {
       case "hearth-better-printers" | "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" | "hearth-munit" =>
         Set() // fix after 0.2.0 release
-      case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" |
-          "debug-hearth-better-printers" | "debug-hearth" =>
+      case "hearth-build" | "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" |
+          "hearth-sandwich-tests" | "debug-hearth-better-printers" | "debug-hearth" =>
         Set()
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
     }
@@ -294,8 +279,8 @@ val mimaSettings = Seq(
     moduleName.value match {
       case "hearth-better-printers" | "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" | "hearth-munit" =>
         false // fix after 0.2.0 release
-      case "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" | "hearth-sandwich-tests" |
-          "debug-hearth-better-printers" | "debug-hearth" =>
+      case "hearth-build" | "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" |
+          "hearth-sandwich-tests" | "debug-hearth-better-printers" | "debug-hearth" =>
         false
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
     }
@@ -309,31 +294,25 @@ val noPublishSettings =
 
 // We keep a custom alias object since hearth has non-standard CI logic (hearthCrossQuotes is JVM-only, etc.)
 lazy val al = new Aliases(
-  published = Seq(hearthBetterPrinters, hearthCrossQuotes, hearthMicroFp, hearth, hearthMunit, hearthTests, hearthSandwichTests)
+  published = Seq(hearthBetterPrinters, hearthCrossQuotes, hearthMicroFp, hearth, hearthMunit),
+  testOnly = Seq(hearthTests, hearthSandwichTests)
 ) {
-  private lazy val prodOnly = Seq(hearthBetterPrinters, hearthCrossQuotes, hearthMicroFp, hearth, hearthMunit)
-
   override def ci(platform: String, scalaBinary: String): String = {
     val base = super.ci(platform, scalaBinary)
-    val mimaIds = projectIds(prodOnly, platform, scalaBinary)
+    val mimaIds = projectIds(published, platform, scalaBinary)
       .filterNot(_.startsWith("hearthCrossQuotes"))
     val mimaReport = mimaIds.map(id => s"$id/mimaReportBinaryIssues")
     if (mimaReport.nonEmpty) s"$base ; ${mimaReport.mkString(" ; ")}"
     else base
   }
-
-  override def publishLocal(platform: String, scalaBinary: String): Vector[String] =
-    projectIds(prodOnly, platform, scalaBinary).map(id => s"$id/publishLocal")
 }
 
 // Modules
 
-lazy val root = project
-  .in(file("."))
-  .enablePlugins(GitVersioning, GitBranchPrompt)
-  .settings(settings)
-  .settings(publishSettings)
+lazy val root = (project in file("."))
+  .enablePlugins(KubuszokRootPlugin)
   .settings(noPublishSettings)
+  .settings(mimaSettings)
   .aggregate(hearthBetterPrinters.projectRefs *)
   .aggregate(hearthCrossQuotes.projectRefs *)
   .aggregate(hearthMicroFp.projectRefs *)
@@ -386,13 +365,12 @@ lazy val root = project
 lazy val hearthBetterPrinters = projectMatrix
   .in(file("hearth-better-printers"))
   .someVariations(versions.scalas, versions.platforms)(dev.only1VersionInIDE *)
-  .enablePlugins(GitVersioning, GitBranchPrompt)
   .disablePlugins(WelcomePlugin)
   .settings(
     moduleName := "hearth-better-printers",
     name := "hearth-better-printers",
     description := "Better alternatiteves to Scala 2's showCode and showRaw, and Scala 3's Printer.TreeStructure",
-    libraryDependencies ++= versions.fold(scalaVersion.value)(
+    libraryDependencies ++= foldVersion(scalaVersion.value)(
       for3 = Seq(),
       for2_13 = Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value)
     )
@@ -404,13 +382,13 @@ lazy val hearthBetterPrinters = projectMatrix
 lazy val hearthCrossQuotes = projectMatrix
   .in(file("hearth-cross-quotes"))
   .someVariations(versions.scalas, versions.platforms)((defineCrossQuotes ++ dev.only1VersionInIDE) *)
-  .enablePlugins(GitVersioning, GitBranchPrompt, SourceGenPlugin)
+  .enablePlugins(SourceGenPlugin)
   .disablePlugins(WelcomePlugin, MimaPlugin)
   .settings(
     moduleName := "hearth-cross-quotes",
     name := "hearth-cross-quotes",
     description := "Utilities for hurting little kittens",
-    libraryDependencies ++= versions.fold(scalaVersion.value)(
+    libraryDependencies ++= foldVersion(scalaVersion.value)(
       for3 = Seq("org.scala-lang" %% "scala3-compiler" % scalaVersion.value),
       for2_13 = Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value)
     ),
@@ -433,13 +411,12 @@ lazy val hearthCrossQuotes = projectMatrix
 lazy val hearthMicroFp = projectMatrix
   .in(file("hearth-micro-fp"))
   .someVariations(versions.scalas, versions.platforms)(dev.only1VersionInIDE *)
-  .enablePlugins(GitVersioning, GitBranchPrompt)
   .disablePlugins(WelcomePlugin)
   .settings(
     moduleName := "hearth-micro-fp",
     name := "hearth-micro-fp",
     description := "Micro FP library, for using a few useful extension without fetching a whole FP library",
-    scalacOptions ++= versions.fold(scalaVersion.value)(
+    scalacOptions ++= foldVersion(scalaVersion.value)(
       for3 = Seq.empty,
       for2_13 = Seq("-opt:l:inline") // we have a few @inline for micro-optimisations in micro-fp
     )
@@ -452,7 +429,7 @@ lazy val hearthMicroFp = projectMatrix
 lazy val hearth = projectMatrix
   .in(file("hearth"))
   .someVariations(versions.scalas, versions.platforms)(((dev.only1VersionInIDE ++ useCrossQuotes)) *)
-  .enablePlugins(GitVersioning, GitBranchPrompt, SourceGenPlugin)
+  .enablePlugins(SourceGenPlugin)
   .disablePlugins(WelcomePlugin)
   .settings(
     moduleName := "hearth",
@@ -478,7 +455,6 @@ lazy val hearth = projectMatrix
 lazy val hearthMunit = projectMatrix
   .in(file("hearth-munit"))
   .someVariations(versions.scalas, versions.platforms)(dev.only1VersionInIDE *)
-  .enablePlugins(GitVersioning, GitBranchPrompt)
   .disablePlugins(WelcomePlugin)
   .settings(
     moduleName := "hearth-munit",
@@ -504,7 +480,7 @@ lazy val hearthMunit = projectMatrix
 lazy val hearthTests = projectMatrix
   .in(file("hearth-tests"))
   .someVariations(versions.scalas, versions.platforms)((dev.only1VersionInIDE ++ useCrossQuotes) *)
-  .enablePlugins(GitVersioning, GitBranchPrompt, SourceGenPlugin)
+  .enablePlugins(SourceGenPlugin)
   .disablePlugins(WelcomePlugin)
   .settings(
     moduleName := "hearth-tests",
@@ -531,7 +507,7 @@ lazy val hearthTests = projectMatrix
       Seq(spec)
     }.taskValue,
     // Required for Scala 2.13 to test parsing of Scala XML.
-    libraryDependencies ++= versions.fold(scalaVersion.value)(
+    libraryDependencies ++= foldVersion(scalaVersion.value)(
       for3 = Seq(),
       for2_13 = Seq("org.scala-lang.modules" %% "scala-xml" % versions.scalaXml)
     ),
