@@ -40,6 +40,13 @@ final class IsCollectionProviderForJavaOptional extends StandardMacroExtension {
             val opt = Expr.splice(toOptional(value))
             if (opt.isPresent) List(opt.get()) else Nil
           }
+          override def foreach(value: Expr[A])(f: Expr[Item] => Expr[Unit]): Expr[Unit] = Expr.quote {
+            val opt = Expr.splice(toOptional(value))
+            if (opt.isPresent) {
+              val item = opt.get()
+              Expr.splice(f(Expr.quote(item)))
+            }
+          }
           // CtorResult is List[Item] so the smart constructor can validate element count.
           override type CtorResult = List[Item]
           implicit override val CtorResult: Type[CtorResult] = listItemType

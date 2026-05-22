@@ -47,6 +47,13 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
             new scala.jdk.StreamConverters.StreamHasToScala(Expr.splice(toStreamExpr(value)))
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
           }
+          override def foreach(value: Expr[A])(f: Expr[Item] => Expr[Unit]): Expr[Unit] = Expr.quote {
+            val it = Expr.splice(toStreamExpr(value)).iterator()
+            while (it.hasNext()) {
+              val item = it.next()
+              Expr.splice(f(Expr.quote(item)))
+            }
+          }
           // Java streams have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
@@ -90,6 +97,13 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
           override def asIterable(value: Expr[A]): Expr[Iterable[Int]] = Expr.quote {
             new scala.jdk.StreamConverters.IntStreamHasToScala(Expr.splice(toIntStreamExpr(value)))
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
+          }
+          override def foreach(value: Expr[A])(f: Expr[Int] => Expr[Unit]): Expr[Unit] = Expr.quote {
+            val it = Expr.splice(toIntStreamExpr(value)).iterator()
+            while (it.hasNext()) {
+              val item = it.next().intValue()
+              Expr.splice(f(Expr.quote(item)))
+            }
           }
           // Java int streams have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
@@ -135,6 +149,13 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
             new scala.jdk.StreamConverters.LongStreamHasToScala(Expr.splice(toLongStreamExpr(value)))
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
           }
+          override def foreach(value: Expr[A])(f: Expr[Long] => Expr[Unit]): Expr[Unit] = Expr.quote {
+            val it = Expr.splice(toLongStreamExpr(value)).iterator()
+            while (it.hasNext()) {
+              val item = it.next().longValue()
+              Expr.splice(f(Expr.quote(item)))
+            }
+          }
           // Java long streams have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
@@ -179,6 +200,13 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
           override def asIterable(value: Expr[A]): Expr[Iterable[Double]] = Expr.quote {
             new scala.jdk.StreamConverters.DoubleStreamHasToScala(Expr.splice(toDoubleStreamExpr(value)))
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
+          }
+          override def foreach(value: Expr[A])(f: Expr[Double] => Expr[Unit]): Expr[Unit] = Expr.quote {
+            val it = Expr.splice(toDoubleStreamExpr(value)).iterator()
+            while (it.hasNext()) {
+              val item = it.next().doubleValue()
+              Expr.splice(f(Expr.quote(item)))
+            }
           }
           // Java double streams have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A

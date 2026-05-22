@@ -35,6 +35,13 @@ final class IsCollectionProviderForJavaIterable extends StandardMacroExtension {
               .asScala(Expr.splice(toIterable(value)).iterator())
               .to(scala.collection.Iterable)
           }
+          override def foreach(value: Expr[A])(f: Expr[Item] => Expr[Unit]): Expr[Unit] = Expr.quote {
+            val it = Expr.splice(toIterable(value)).iterator()
+            while (it.hasNext()) {
+              val item = it.next()
+              Expr.splice(f(Expr.quote(item)))
+            }
+          }
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
           override def factory: Expr[scala.collection.Factory[Item, CtorResult]] = Expr.quote {

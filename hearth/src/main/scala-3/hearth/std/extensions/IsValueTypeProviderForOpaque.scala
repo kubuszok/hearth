@@ -14,6 +14,8 @@ import scala.quoted.Quotes
 @scala.annotation.experimental
 final class IsValueTypeProviderForOpaque extends StandardMacroExtension { loader =>
 
+  override def priority: Int = -1000
+
   override def extend(ctx: MacroCommons & StdExtensions): Unit = ctx match {
     case ctx3: (MacroCommonsScala3 & StdExtensions) =>
       // Extracts platform-specific type representation, so that it would not clash with Cross-Quotes

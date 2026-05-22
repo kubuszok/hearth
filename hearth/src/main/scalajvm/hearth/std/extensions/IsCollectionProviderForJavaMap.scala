@@ -59,6 +59,13 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
               )
               .to(Iterable)
           }
+          override def foreach(value: Expr[A])(f: Expr[Pair] => Expr[Unit]): Expr[Unit] = Expr.quote {
+            val it = Expr.splice(value).asInstanceOf[java.util.Map[Key0, Value0]].entrySet().iterator()
+            while (it.hasNext()) {
+              val item = it.next()
+              Expr.splice(f(Expr.quote(item)))
+            }
+          }
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
           override def factory: Expr[scala.collection.Factory[Pair, CtorResult]] = Expr.quote {
@@ -117,6 +124,13 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
           // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the map to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] = Expr.quote {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(value).entrySet().iterator()).to(Iterable)
+          }
+          override def foreach(value: Expr[A])(f: Expr[Pair] => Expr[Unit]): Expr[Unit] = Expr.quote {
+            val it = Expr.splice(value).entrySet().iterator()
+            while (it.hasNext()) {
+              val item = it.next()
+              Expr.splice(f(Expr.quote(item)))
+            }
           }
           // Java maps have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A

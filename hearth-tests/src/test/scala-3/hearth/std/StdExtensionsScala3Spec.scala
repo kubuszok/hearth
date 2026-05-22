@@ -105,6 +105,34 @@ final class StdExtensionsScala3Spec extends MacroSuite {
       }
     }
 
+    group("class: IsCollectionOf[A, Item].foreach, iterates via foreach") {
+      import StdExtensionsFixtures.testIsCollectionForeach
+
+      test("for IArray[Int]") {
+        testIsCollectionForeach(IArray[Int](1, 2, 3)) <==> Data.list(
+          Data("1"),
+          Data("2"),
+          Data("3")
+        )
+      }
+
+      test("for IArray[String]") {
+        testIsCollectionForeach(IArray("one", "two", "three")) <==> Data.list(
+          Data("one"),
+          Data("two"),
+          Data("three")
+        )
+      }
+
+      test("for IArray[Double]") {
+        testIsCollectionForeach(IArray[Double](1.0, 2.0, 3.0)) <==> Data.list(
+          Data(if Platform.byHearth.isJs then "1" else "1.0"),
+          Data(if Platform.byHearth.isJs then "2" else "2.0"),
+          Data(if Platform.byHearth.isJs then "3" else "3.0")
+        )
+      }
+    }
+
     group("class: IsValueType[A], opaque types") {
       import StdExtensionsFixtures.testIsValueType
       import hearth.examples.opaqueid.OpaqueId

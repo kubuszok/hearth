@@ -49,6 +49,16 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def singletonOf[A: Type]: Option[Expr[A]]
 
+    /** Returns the type of an expression as seen by the compiler.
+      *
+      * '''Warning:''' the returned type may be narrower than the declared `A`. For instance, if `A` is `Any` but the
+      * expression tree carries `String`, this method returns `Type[String]` (typed as `Type[A]`). Use this only when
+      * you need the compiler-inferred type and are aware that it may be more specific than the type parameter suggests.
+      *
+      * @since 0.3.1
+      */
+    def typeOf[A](expr: Expr[A]): Type[A]
+
     def semiEval[A](expr: Expr[A]): Either[NonEmptyVector[String], A]
 
     def NullExprCodec: ExprCodec[Null]
@@ -151,6 +161,14 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def upcast[B](implicit A: Type[A], B: Type[B]): Expr[B] = Expr.upcast(expr)
     def suppressUnused(implicit A: Type[A]): Expr[Unit] = Expr.suppressUnused(expr)
+
+    /** Returns the type of this expression as seen by the compiler.
+      *
+      * '''Warning:''' the returned type may be narrower than `A` — see [[ExprModule.typeOf]].
+      *
+      * @since 0.3.1
+      */
+    def tpe: Type[A] = Expr.typeOf(expr)
 
     def semiEval: Either[NonEmptyVector[String], A] = Expr.semiEval(expr)
 

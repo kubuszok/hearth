@@ -32,6 +32,13 @@ final class IsCollectionProviderForJavaEnumeration extends StandardMacroExtensio
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(toEnumeration(value))).to(Iterable)
           }
+          override def foreach(value: Expr[A])(f: Expr[Item] => Expr[Unit]): Expr[Unit] = Expr.quote {
+            val e = Expr.splice(toEnumeration(value))
+            while (e.hasMoreElements()) {
+              val item = e.nextElement()
+              Expr.splice(f(Expr.quote(item)))
+            }
+          }
           // Java enumerations have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
