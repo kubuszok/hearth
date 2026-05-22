@@ -36,14 +36,13 @@ val dev = new DevProperties(
   platforms = versions.platforms
 )
 
-val logCrossQuotes = {
+val logCrossQuotes =
   dev.props.getProperty("log.cross-quotes") match {
     case "true"                          => true
     case "false"                         => false
     case otherwise if otherwise.nonEmpty => otherwise
     case _                               => !isCI
   }
-}
 
 // Common settings:
 
@@ -78,7 +77,7 @@ val useCrossQuotes = versions.scalas.flatMap { scalaVersion =>
       // Enable logging from cross-quotes.
       MatrixAction
         .ForScala(_.isScala2)
-        .Configure(_.settings(scalacOptions += s"-Xmacro-settings:hearth.cross-quotes.logging=${logCrossQuotes}")),
+        .Configure(_.settings(scalacOptions += s"-Xmacro-settings:hearth.cross-quotes.logging=$logCrossQuotes")),
       // Depends on cross-quotes specific for the platform.
       MatrixAction {
         case (version, List(VirtualAxis.jvm)) => version.isScala2
@@ -106,7 +105,7 @@ val useCrossQuotes = versions.scalas.flatMap { scalaVersion =>
                 // Ensures recompilation.
                 s"-Jdummy=${jar.lastModified}",
                 // Enable logging from cross-quotes.
-                s"-P:hearth.cross-quotes:logging=${logCrossQuotes}"
+                s"-P:hearth.cross-quotes:logging=$logCrossQuotes"
               )
             }
           )

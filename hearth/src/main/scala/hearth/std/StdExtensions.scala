@@ -272,6 +272,24 @@ trait StdExtensions { this: MacroCommons =>
 
     def asIterable(value: Expr[CollA]): Expr[Iterable[Item]]
 
+    def foreach(value: Expr[CollA])(f: Expr[Item] => Expr[Unit]): Expr[Unit] = {
+      val iterableExpr = asIterable(value)
+      Type.Ctor1.of[Iterable].unapply(Expr.typeOf(iterableExpr)) match {
+        case Some(item) =>
+          import item.Underlying as I
+          val castIterableExpr = iterableExpr.asInstanceOf[Expr[Iterable[I]]]
+          val lambda =
+            LambdaBuilder.of1[I]("item").buildWith(f.asInstanceOf[Expr[I] => Expr[Unit]])(using Type.of[Unit])
+          Expr.quote {
+            Expr.splice(castIterableExpr).foreach(Expr.splice(lambda))
+          }
+        case None =>
+          hearthRequirementFailed(
+            s"foreach default: asIterable did not return Iterable[_], got ${Expr.typeOf(iterableExpr).prettyPrint}"
+          )
+      }
+    }
+
     type CtorResult
     @ImportedCrossTypeImplicit
     implicit val CtorResult: Type[CtorResult]

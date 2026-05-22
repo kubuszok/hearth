@@ -343,6 +343,44 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
         }
   }
 
+  def testIsCollectionForeach[A: Type](value: Expr[A]): Expr[Data] = Type[A] match {
+    case IsMap(isMap) =>
+      import isMap.{Underlying as Pair, value as isMapOf}
+      import isMapOf.{Key, Value}
+      implicit val dataType: Type[Data] = DataType
+
+      val foreachExpr = isMapOf.foreach(value) { pair =>
+        val keyExpr = isMapOf.key(pair)
+        val valueExpr = isMapOf.value(pair)
+        Expr.quote {
+          ForeachTestHelper.add(Expr.splice(keyExpr).toString + "=" + Expr.splice(valueExpr).toString)
+        }
+      }
+      Expr.quote {
+        ForeachTestHelper.reset()
+        Expr.splice(foreachExpr)
+        Data(ForeachTestHelper.result().map { entry =>
+          val parts = entry.split("=", 2)
+          Data.map("key" -> Data(parts(0)), "value" -> Data(parts(1)))
+        })
+      }
+    case IsCollection(isCollection) =>
+      import isCollection.{Underlying as Elem, value as isCollectionOf}
+      implicit val dataType: Type[Data] = DataType
+
+      val foreachExpr = isCollectionOf.foreach(value) { item =>
+        Expr.quote {
+          ForeachTestHelper.add(Expr.splice(item).toString)
+        }
+      }
+      Expr.quote {
+        ForeachTestHelper.reset()
+        Expr.splice(foreachExpr)
+        Data(ForeachTestHelper.result().map(Data(_)))
+      }
+    case _ => Expr(Data("<no collection>"))
+  }
+
   def testCtorLikes[A: Type]: Expr[Data] =
     CtorLikes.unapply(Type[A]) match {
       case Some(ctors) =>

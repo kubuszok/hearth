@@ -34,6 +34,15 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension { l
               else Some(currentValue, bitSet.nextSetBit(currentValue + 1))
             }
           }
+          override def foreach(value: Expr[A])(f: Expr[Int] => Expr[Unit]): Expr[Unit] = Expr.quote {
+            val bitSet = Expr.splice(value).asInstanceOf[java.util.BitSet]
+            var i = bitSet.nextSetBit(0)
+            while (i >= 0) {
+              val item = i
+              Expr.splice(f(Expr.quote(item)))
+              i = bitSet.nextSetBit(i + 1)
+            }
+          }
           // Java BitSet has no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A

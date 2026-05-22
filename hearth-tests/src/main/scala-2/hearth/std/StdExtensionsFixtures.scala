@@ -21,6 +21,9 @@ final private class StdExtensionsFixtures(val c: blackbox.Context)
 
   def testIsValueTypeImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[Data] = testIsValueType[A](value)
 
+  def testIsCollectionForeachImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[Data] =
+    testIsCollectionForeach[A](value)
+
   def testCtorLikesImpl[A: c.WeakTypeTag]: c.Expr[Data] = testCtorLikes[A]
 
   def testParseImpl[A: c.WeakTypeTag]: c.Expr[Data] = testParse[A]
@@ -37,6 +40,8 @@ object StdExtensionsFixtures {
   def testIsEither[A](value: A): Data = macro StdExtensionsFixtures.testIsEitherImpl[A]
 
   def testIsValueType[A](value: A): Data = macro StdExtensionsFixtures.testIsValueTypeImpl[A]
+
+  def testIsCollectionForeach[A](value: A): Data = macro StdExtensionsFixtures.testIsCollectionForeachImpl[A]
 
   def testCtorLikes[A]: Data = macro StdExtensionsFixtures.testCtorLikesImpl[A]
 
