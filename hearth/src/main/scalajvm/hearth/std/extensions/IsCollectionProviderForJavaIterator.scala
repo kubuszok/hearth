@@ -32,6 +32,13 @@ final class IsCollectionProviderForJavaIterator extends StandardMacroExtension {
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(toIterator(value))).to(Iterable)
           }
+          override def foreach(value: Expr[A])(f: Expr[Item] => Expr[Unit]): Expr[Unit] = Expr.quote {
+            val it = Expr.splice(toIterator(value))
+            while (it.hasNext()) {
+              val item = it.next()
+              Expr.splice(f(Expr.quote(item)))
+            }
+          }
           // Java iterators have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A

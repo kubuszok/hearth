@@ -664,7 +664,7 @@ In these examples:
  1. **Loading extensions**: We call `Environment.loadStandardExtensions()` to load all standard macro extensions, which registers providers for `IsCollection` support.
  2. **Pattern matching**: We use `IsCollection.unapply` to check if a type is a collection. If it matches, we get an `IsCollection[A]` instance.
  3. **Accessing item type**: We import `isCollection.Underlying as Item` to get the existential item type, and `isCollection.value.CtorResult` to get the result type that can be built.
- 4. **Iteration**: We use `isCollection.value.asIterable(collection)` to convert the collection to an `Iterable[Item]` that we can iterate over.
+ 4. **Iteration**: We use `isCollection.value.asIterable(collection)` to convert the collection to an `Iterable[Item]` that we can iterate over. Alternatively, `isCollection.value.foreach(collection)(f)` provides an optimized iteration path — the default delegates to `asIterable`, but providers may override it with zero-overhead loops (e.g. indexed array access, Java iterator without Scala conversion).
  5. **Building**: We use `isCollection.value.factory` to get a `Factory[Item, CtorResult]`, create a builder, add items, and use `isCollection.value.build` to construct the final collection.
 
 This API works seamlessly with Scala collections, `Array`s, `IArray`s (Scala 3), and Java collections, all through the same interface!

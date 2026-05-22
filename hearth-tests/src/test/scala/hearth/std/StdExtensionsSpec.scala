@@ -500,6 +500,83 @@ final class StdExtensionsSpec extends MacroSuite {
       }
     }
 
+    group("class: IsCollectionOf[A, Item].foreach, iterates via foreach") {
+      import StdExtensionsFixtures.testIsCollectionForeach
+
+      test("for Scala List") {
+        testIsCollectionForeach(List("one", "two", "three")) <==> Data.list(
+          Data("one"),
+          Data("two"),
+          Data("three")
+        )
+      }
+
+      test("for Scala Vector") {
+        testIsCollectionForeach(Vector("one", "two", "three")) <==> Data.list(
+          Data("one"),
+          Data("two"),
+          Data("three")
+        )
+      }
+
+      test("for Scala Set") {
+        testIsCollectionForeach(scala.collection.immutable.ListSet("one", "two", "three")) <==> Data.list(
+          Data("one"),
+          Data("two"),
+          Data("three")
+        )
+      }
+
+      test("for Scala Map") {
+        testIsCollectionForeach(scala.collection.immutable.ListMap(1 -> "one", 2 -> "two")) <==> Data.list(
+          Data.map("key" -> Data("1"), "value" -> Data("one")),
+          Data.map("key" -> Data("2"), "value" -> Data("two"))
+        )
+      }
+
+      test("for Array") {
+        testIsCollectionForeach(Array("one", "two", "three")) <==> Data.list(
+          Data("one"),
+          Data("two"),
+          Data("three")
+        )
+      }
+
+      test("for Array[Int]") {
+        testIsCollectionForeach(Array(1, 2, 3)) <==> Data.list(
+          Data("1"),
+          Data("2"),
+          Data("3")
+        )
+      }
+
+      test("for String") {
+        testIsCollectionForeach("abc") <==> Data.list(
+          Data("a"),
+          Data("b"),
+          Data("c")
+        )
+      }
+
+      test("for Scala Option") {
+        testIsCollectionForeach(Option("value")) <==> Data.list(Data("value"))
+        testIsCollectionForeach(Option.empty[String]) <==> Data.list()
+      }
+
+      test("for Scala Iterator") {
+        testIsCollectionForeach(Iterator("one", "two", "three")) <==> Data.list(
+          Data("one"),
+          Data("two"),
+          Data("three")
+        )
+        testIsCollectionForeach(Iterator.empty[String]) <==> Data.list()
+      }
+
+      test("for empty List") {
+        testIsCollectionForeach(List.empty[String]) <==> Data.list()
+      }
+    }
+
     group("class: IsOption[A], returns preprocessed option") {
       import StdExtensionsFixtures.testIsOption
 

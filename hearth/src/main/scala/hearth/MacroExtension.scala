@@ -31,5 +31,7 @@ abstract class MacroExtension[Macro: ClassTag] extends PartialFunction[Any, Unit
 
   final def apply(ctx: Any): Unit = extend(Macro.cast(ctx))
 
+  def priority: Int = 0
+
   def extend(ctx: Macro): Unit
 }

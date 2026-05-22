@@ -168,6 +168,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       }
     }
 
+    override def typeOf[A](expr: Expr[A]): Type[A] =
+      UntypedType.toTyped(
+        expr.attemptPipe(_.actualType.finalResultType)(_.staticType.finalResultType)
+      )
+
     override def semiEval[A](expr: Expr[A]): Either[NonEmptyVector[String], A] =
       SemiEval.eval(expr.tree).map(_.asInstanceOf[A])
 

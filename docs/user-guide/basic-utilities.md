@@ -633,6 +633,13 @@ It can be used to e.g. prevent the macro from summoning itself, so that recursio
 | `Expr.suppressUnused[A](expr)`            | `expr.suppressUnused`       | `Expr[Unit]`                        | prevents "unused value" warnings                                                                         |
 | `Expr.singletonOf[A]`                     | —                           | `Option[Expr[A]]`                   | returns singleton reference if `A` is a case object, Java enum value, or Scala 3 parameterless enum case |
 | `Expr.semiEval[A](expr)`                  | `expr.semiEval`             | `Either[NonEmptyVector[String], A]` | reconstructs a runtime value from expression AST using reflection                                        |
+| `Expr.typeOf[A](expr)`                    | `expr.tpe`                  | `Type[A]`                           | extracts the compiler-inferred type of an expression                                                     |
+
+!!! warning "Expr.typeOf / expr.tpe returns the compiler-inferred type"
+
+    The returned `Type[A]` may be **narrower** than the declared type parameter `A`. For instance, if `A` is `Any` but
+    the expression tree carries `String`, `expr.tpe` returns `Type[String]` (typed as `Type[A]`). Use this only when
+    you need the exact type the compiler inferred for the expression — not when you need the declared type parameter.
 
 ### `Expr.semiEval`
 
@@ -3590,6 +3597,13 @@ from the classpath.
 
 Extensions are discovered via Java's [ServiceLoader](https://docs.oracle.com/javase/8/docs/api/java/util/ServiceLoader.html) mechanism,
 allowing functionality to be added just by having the right JAR on the classpath during compilation.
+
+Extensions are loaded in **priority order** (descending). Override `def priority: Int` (default `0`) to control ordering:
+
+  - Higher priority values load first — their providers are registered and matched before lower-priority ones.
+  - Lower priority values act as fallbacks — e.g. `IsValueTypeProviderForOpaque` uses priority `-1000` so that
+    library-specific opaque type handlers (like Iron's) at the default priority `0` take precedence.
+  - Extensions with the same priority retain their ServiceLoader discovery order (the sort is stable).
 
 ### `MIO` Termination Handling
 

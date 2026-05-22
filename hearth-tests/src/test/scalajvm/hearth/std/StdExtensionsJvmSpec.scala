@@ -586,6 +586,171 @@ final class StdExtensionsJvmSpec extends MacroSuite {
       }
     }
 
+    group("class: IsCollectionOf[A, Item].foreach, iterates via foreach") {
+      import StdExtensionsFixtures.testIsCollectionForeach
+
+      test("for java.util.ArrayList") {
+        testIsCollectionForeach[java.util.ArrayList[String]](new java.util.ArrayList[String]() {
+          add("one")
+          add("two")
+          add("three")
+        }) <==> Data.list(
+          Data("one"),
+          Data("two"),
+          Data("three")
+        )
+      }
+
+      test("for java.util.LinkedList") {
+        testIsCollectionForeach[java.util.LinkedList[String]](new java.util.LinkedList[String]() {
+          add("one")
+          add("two")
+          add("three")
+        }) <==> Data.list(
+          Data("one"),
+          Data("two"),
+          Data("three")
+        )
+      }
+
+      test("for java.util.LinkedHashSet") {
+        testIsCollectionForeach[java.util.LinkedHashSet[String]](new java.util.LinkedHashSet[String]() {
+          add("one")
+          add("two")
+          add("three")
+        }) <==> Data.list(
+          Data("one"),
+          Data("two"),
+          Data("three")
+        )
+      }
+
+      test("for java.util.LinkedHashMap") {
+        testIsCollectionForeach[java.util.LinkedHashMap[Int, String]](new java.util.LinkedHashMap[Int, String]() {
+          put(1, "one")
+          put(2, "two")
+        }) <==> Data.list(
+          Data.map("key" -> Data("1"), "value" -> Data("one")),
+          Data.map("key" -> Data("2"), "value" -> Data("two"))
+        )
+      }
+
+      test("for java.util.TreeMap") {
+        testIsCollectionForeach[java.util.TreeMap[Int, String]](new java.util.TreeMap[Int, String]() {
+          put(2, "two")
+          put(1, "one")
+        }) <==> Data.list(
+          Data.map("key" -> Data("1"), "value" -> Data("one")),
+          Data.map("key" -> Data("2"), "value" -> Data("two"))
+        )
+      }
+
+      test("for java.lang.Iterable") {
+        val iterable: java.lang.Iterable[String] = new java.lang.Iterable[String] {
+          override def iterator(): java.util.Iterator[String] =
+            java.util.Arrays.asList("one", "two", "three").iterator()
+        }
+        testIsCollectionForeach(iterable) <==> Data.list(
+          Data("one"),
+          Data("two"),
+          Data("three")
+        )
+      }
+
+      test("for java.util.Iterator") {
+        testIsCollectionForeach(java.util.Arrays.asList("one", "two", "three").iterator()) <==> Data.list(
+          Data("one"),
+          Data("two"),
+          Data("three")
+        )
+      }
+
+      test("for java.util.Enumeration") {
+        testIsCollectionForeach(
+          java.util.Collections.enumeration(java.util.Arrays.asList("one", "two", "three"))
+        ) <==> Data.list(
+          Data("one"),
+          Data("two"),
+          Data("three")
+        )
+      }
+
+      test("for java.util.BitSet") {
+        testIsCollectionForeach {
+          val bs = new java.util.BitSet()
+          bs.set(1)
+          bs.set(3)
+          bs.set(5)
+          bs
+        } <==> Data.list(
+          Data("1"),
+          Data("3"),
+          Data("5")
+        )
+      }
+
+      test("for java.util.stream.Stream") {
+        testIsCollectionForeach(java.util.stream.Stream.of("one", "two", "three")) <==> Data.list(
+          Data("one"),
+          Data("two"),
+          Data("three")
+        )
+      }
+
+      test("for java.util.stream.IntStream") {
+        testIsCollectionForeach(java.util.stream.IntStream.of(1, 2, 3)) <==> Data.list(
+          Data("1"),
+          Data("2"),
+          Data("3")
+        )
+      }
+
+      test("for java.util.stream.LongStream") {
+        testIsCollectionForeach(java.util.stream.LongStream.of(1L, 2L, 3L)) <==> Data.list(
+          Data("1"),
+          Data("2"),
+          Data("3")
+        )
+      }
+
+      test("for java.util.stream.DoubleStream") {
+        testIsCollectionForeach(java.util.stream.DoubleStream.of(1.0, 2.0, 3.0)) <==> Data.list(
+          Data("1.0"),
+          Data("2.0"),
+          Data("3.0")
+        )
+      }
+
+      test("for java.util.Optional") {
+        testIsCollectionForeach(java.util.Optional.of("value")) <==> Data.list(Data("value"))
+        testIsCollectionForeach(java.util.Optional.empty[String]) <==> Data.list()
+      }
+
+      test("for java.util.Hashtable") {
+        val ht = new java.util.Hashtable[Int, String]()
+        ht.put(1, "one")
+        val result = testIsCollectionForeach[java.util.Hashtable[Int, String]](ht)
+        assert(result.asList.exists(_.size == 1))
+      }
+
+      test("for java.util.Properties") {
+        val props = new java.util.Properties()
+        props.put("key", "value")
+        val result = testIsCollectionForeach(props)
+        assert(result.asList.exists(_.size == 1))
+      }
+
+      test("for java.util.EnumMap") {
+        val em = new java.util.EnumMap[Thread.State, String](classOf[Thread.State])
+        em.put(Thread.State.NEW, "one")
+        em.put(Thread.State.RUNNABLE, "two")
+        testIsCollectionForeach[java.util.EnumMap[Thread.State, String]](em) <==> Data.list(
+          Data.map("key" -> Data("NEW"), "value" -> Data("one")),
+          Data.map("key" -> Data("RUNNABLE"), "value" -> Data("two"))
+        )
+      }
+    }
+
     group("class: IsOption[A], returns preprocessed option") {
       import StdExtensionsFixtures.testIsOption
 

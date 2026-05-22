@@ -48,6 +48,16 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
               .map(key => (key, dict.get(key)))
               .to(Iterable)
           }
+          override def foreach(value: Expr[A])(f: Expr[Pair] => Expr[Unit]): Expr[Unit] = Expr.quote {
+            val dict: java.util.Dictionary[Key, Value] =
+              Expr.splice(value).asInstanceOf[java.util.Dictionary[Key, Value]]
+            val keys = dict.keys()
+            while (keys.hasMoreElements()) {
+              val key = keys.nextElement()
+              val item = (key, dict.get(key))
+              Expr.splice(f(Expr.quote(item)))
+            }
+          }
           // Java dictionaries have no smart constructors, we'll provide a Factory that builds them as plain values.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
@@ -130,6 +140,17 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
             // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the dictionary to Iterable.
             override def asIterable(value: Expr[java.util.Properties]): Expr[Iterable[(String, String)]] =
               asScalaExpr(value)
+            override def foreach(value: Expr[java.util.Properties])(
+                f: Expr[(String, String)] => Expr[Unit]
+            ): Expr[Unit] = Expr.quote {
+              val properties: java.util.Properties = Expr.splice(value)
+              val keys = properties.keys()
+              while (keys.hasMoreElements()) {
+                val key = keys.nextElement().asInstanceOf[String]
+                val item = (key, properties.get(key).asInstanceOf[String])
+                Expr.splice(f(Expr.quote(item)))
+              }
+            }
             // Java dictionaries have no smart constructors, we'll provide a Factory that builds them as plain values.
             override type CtorResult = java.util.Properties
             implicit override val CtorResult: Type[CtorResult] = juProperties

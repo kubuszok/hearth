@@ -322,7 +322,8 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
 
       extensions match {
         case Right(extensions) =>
-          val (failure, success) = extensions.partitionMap(safeLoadExtension)
+          val sorted = extensions.sortBy(_.priority)(Ordering[Int].reverse)
+          val (failure, success) = sorted.partitionMap(safeLoadExtension)
           val loadedExtensions = ListSet.from(success)
           NonEmptyMap.fromListMap(ListMap.from(failure)) match {
             case Some(failed) => ExtensionLoadingResult.SomeFailed(loadedExtensions, failed)
