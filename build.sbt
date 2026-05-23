@@ -463,8 +463,8 @@ lazy val hearthMunit = projectMatrix
       "org.scalameta" %%% "munit" % versions.munit,
       "org.scalacheck" %%% "scalacheck" % versions.scalacheck
     ),
-    // Allow eviction of test-interface for Scala Native (munit requires 0.5.11, scalacheck requires 0.5.8)
-    // Since test-interface 0.5.11 is backwards compatible with 0.5.8, we can safely use the newer version
+    // Allow eviction of test-interface for Scala Native (munit requires 0.5.12, scalacheck requires 0.5.8)
+    // Since test-interface 0.5.12 is backwards compatible with 0.5.8, we can safely use the newer version
     evictionErrorLevel := Level.Warn,
     // Allow munit's Scala 2.13.18 dependency when we compile with 2.13.16 (backwards compatible per SIP-51)
     allowUnsafeScalaLibUpgrade := true
@@ -512,7 +512,7 @@ lazy val hearthTests = projectMatrix
     ),
     // Do not cover Fixtures and FixturesImpl, they are used to test the library, not a part of it.
     coverageExcludedFiles := ".*Fixtures;.*FixturesImpl",
-    // Allow eviction of test-interface for Scala Native - 0.5.11 is backwards compatible with 0.5.8
+    // Allow eviction of test-interface for Scala Native - 0.5.12 is backwards compatible with 0.5.8
     evictionErrorLevel := Level.Warn,
     scalacOptions ++= Seq(
       // To make sure that we are not silently failing on unsupported trees
