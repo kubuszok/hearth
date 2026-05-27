@@ -70,7 +70,7 @@ abstract class ScopeVisibility(privateCtorArg: Int, val publicCtorArg: Int) {
 
   protected def protectedMethod: Int = 1
 
-  private[this] def privateThisMethod: Int = 1
+  private def privateThisMethod: Int = 1
 
   private[hearth] def privateHearthMethod: Int = 1
 

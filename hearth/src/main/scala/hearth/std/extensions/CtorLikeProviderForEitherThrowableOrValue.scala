@@ -28,7 +28,7 @@ final class CtorLikeProviderForEitherThrowableOrValue extends StandardMacroExten
           extractCtorLikesResult[A, Result[A]](new CtorBuilder[A, Result[A]] {
             def apply[Input: Type](
                 ctor: Expr[Input] => Expr[Result[A]],
-                method: Method.Returning[Result[A]]
+                method: Method
             ): CtorLikeOf[Input, A] =
               EitherThrowableOrValue[Input, A](ctor, Some(method))
           })

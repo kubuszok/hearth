@@ -80,3 +80,36 @@ This shortens the feedback loop significantly compared to running sbt commands d
 1. Add the extension method to the appropriate `*Extensions` object in shared API
 2. Ensure the implementation works for both Scala versions (or provide version-specific implementations)
 3. Add test cases to the corresponding `*Spec` test suite
+
+**Adding a property or method to `Method` / `UntypedMethod`:**
+
+The `Method` API has a layered architecture: untyped (platform-specific) → typed (shared). When adding
+new functionality:
+
+1. Add the abstract method to `UntypedMethodMethods` in `hearth/src/main/scala/hearth/untyped/UntypedMethods.scala`
+2. Implement in Scala 2: `hearth/src/main/scala-2/hearth/untyped/UntypedMethodsScala2.scala`
+3. Implement in Scala 3: `hearth/src/main/scala-3/hearth/untyped/UntypedMethodsScala3.scala`
+   - Also implement in `SyntheticNamedTupleConstructor` (Scala 3.7+ NamedTuple support)
+4. Forward to typed `Method` in `hearth/src/main/scala/hearth/typed/Methods.scala`:
+   ```scala
+   final lazy val myProp: Boolean = asUntyped.myProp
+   ```
+5. Add to test fixtures in `hearth-tests/src/main/scala/hearth/typed/MethodsFixturesImpl.scala`
+6. Add Scala 2 macro bridge in `hearth-tests/src/main/scala-2/hearth/typed/MethodsFixtures.scala`
+7. Add Scala 3 macro bridge in `hearth-tests/src/main/scala-3/hearth/typed/MethodsFixtures.scala`
+8. Add tests in `hearth-tests/src/test/scala/hearth/typed/MethodsSpec.scala`
+
+Key patterns in the `Method` API:
+
+- **Rendering:** `plainPrint` (no ANSI) and `prettyPrint` (ANSI-colored) share a single code path via
+  `renderSignature(instanceTpe, SyntaxHighlight)`. Platform-specific `paramTypePrints` and `signatureSegments`
+  accept a `SyntaxHighlight` parameter to control coloring.
+- **Builder chain:** `Method` is a sealed trait with 4 variants (`OnInstance`, `ApplyTypes`, `ApplyValues`, `Result`).
+  The `buildChain` method in the `Method` companion constructs the chain from expectations.
+  Each variant carries an `AppliedState` that tracks what has been consumed (for `toString` rendering).
+- **Traversal:** `method.fold(onInstance, onTypes, onValues)` declaratively traverses the chain.
+  `method.foldF[F: DirectStyle](...)` adds effect support via `hearth.fp.DirectStyle`.
+- **Visibility:** `isPrivate`/`isProtected` are normalized across Scala 2/3 (strict: excludes `private[pkg]`).
+  `privateWithin`/`protectedWithin` return `Option[String]` for scoped visibility.
+- **Cross-platform consistency:** Tests must produce identical results on both Scala 2 and 3. Use `sbt --client
+  "quick-clean ; quick-test"` to verify both versions.

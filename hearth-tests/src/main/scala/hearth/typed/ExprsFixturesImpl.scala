@@ -36,7 +36,7 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
       name
     }.toSet
     val ignoredMethods = Type[Companion].methods.collect {
-      case method if shouldBeIgnored(method.value.name) => method.value.asUntyped
+      case method if shouldBeIgnored(method.name) => method.asUntyped
     }.toSeq
     Expr(
       Data.map(

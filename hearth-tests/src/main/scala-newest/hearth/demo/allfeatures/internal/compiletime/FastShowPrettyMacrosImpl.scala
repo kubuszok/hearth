@@ -332,7 +332,7 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
   object UseImplicitWhenAvailableRule extends DerivationRule("use implicit when available") {
 
     lazy val ignoredImplicits = Type.of[FastShowPretty.type].methods.collect {
-      case method if method.value.name == "derived" => method.value.asUntyped
+      case method if method.name == "derived" => method.asUntyped
     }
 
     def apply[A: DerivationCtx]: MIO[Rule.Applicability[Expr[StringBuilder]]] =
@@ -572,12 +572,12 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
 
     @scala.annotation.nowarn("msg=is never used")
     private def deriveNamedTupleFields[A: DerivationCtx](
-        constructor: Method.NoInstance[A]
+        constructor: Method
     ): MIO[Expr[StringBuilder]] = {
       implicit val IntType: Type[Int] = Types.Int
       implicit val ProductType: Type[Product] = Types.Product
 
-      val fields = constructor.parameters.flatten.toList
+      val fields = constructor.totalParameters.flatten.toList
 
       NonEmptyList.fromList(fields) match {
         case Some(fieldValues) =>

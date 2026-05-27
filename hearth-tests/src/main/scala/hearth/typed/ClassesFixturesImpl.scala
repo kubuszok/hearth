@@ -20,7 +20,7 @@ trait ClassesFixturesImpl { this: MacroCommons =>
 
     val common = Data.map(
       "constructors" -> Data(clazz.constructors.map(renderConstructor(_))),
-      "methods" -> Data(clazz.methods.filterNot(m => excluded(m.value.name)).sortBy(_.value.name).map(renderMethod(_)))
+      "methods" -> Data(clazz.methods.filterNot(m => excluded(m.name)).sortBy(_.name).map(renderMethod(_)))
     )
     val asCaseClass = clazz.asCaseClass
       .map(cc =>
@@ -81,12 +81,12 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     )
   }
 
-  private def renderConstructor[A](constructor: Method.NoInstance[A]): Data =
-    renderParameters(constructor.parameters)
+  private def renderConstructor[A](constructor: Method): Data =
+    renderParameters(constructor.totalParameters)
 
-  private def renderMethod[A](method: Method.Of[A]): Data = Data.map(
-    "name" -> Data(method.value.name),
-    "parameters" -> renderParameters(method.value.parameters)
+  private def renderMethod[A](method: Method): Data = Data.map(
+    "name" -> Data(method.name),
+    "parameters" -> renderParameters(method.totalParameters)
   )
 
   private def renderParameters[A](parameters: Parameters): Data =

@@ -395,7 +395,7 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
             case other                                              => s"Unknown(${other.getClass.getSimpleName})"
           }
           val inputType = Input.prettyPrint
-          val methodName = existential.value.method.map(_.value.name).getOrElse("<no method>")
+          val methodName = existential.value.method.map(_.name).getOrElse("<no method>")
           (ctorType, inputType, methodName)
         }
 

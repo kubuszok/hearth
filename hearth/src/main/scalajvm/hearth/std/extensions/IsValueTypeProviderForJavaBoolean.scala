@@ -22,13 +22,13 @@ final class IsValueTypeProviderForJavaBoolean extends StandardMacroExtension { l
       private lazy val Boolean = Type.of[Boolean]
       private lazy val JBoolean = Type.of[java.lang.Boolean]
 
-      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Boolean]] = {
+      private lazy val valueOfMethod: Option[Method] = {
         implicit val jBoolean: Type[java.lang.Boolean] = JBoolean
         Method.methodsOf[java.lang.Boolean].collectFirst {
-          case Method.NoInstance(m)
-              if m.name == "valueOf" && m.isUnary &&
+          case m
+              if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Boolean } =>
-            m.asReturning
+            m
         }
       }
 

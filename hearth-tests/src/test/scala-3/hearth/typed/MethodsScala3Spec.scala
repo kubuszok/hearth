@@ -225,5 +225,6 @@ final class MethodsScala3Spec extends MacroSuite {
         }
       }
     }
+
   }
 }

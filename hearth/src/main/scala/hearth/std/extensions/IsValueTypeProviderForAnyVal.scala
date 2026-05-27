@@ -25,12 +25,12 @@ final class IsValueTypeProviderForAnyVal extends StandardMacroExtension { loader
       private def isValueType[A: Type, Inner: Type](
           unwrapExpr: Expr[A] => Expr[Inner],
           wrapExpr: Expr[Inner] => Expr[A],
-          ctorMethod: Method.NoInstance[A]
+          ctorMethod: Method
       ): IsValueType[A] =
         Existential[IsValueTypeOf[A, *], Inner](new IsValueTypeOf[A, Inner] {
           override val unwrap: Expr[A] => Expr[Inner] = unwrapExpr
           override val wrap: CtorLikeOf[Inner, A] =
-            CtorLikeOf.PlainValue(wrapExpr, Some(ctorMethod.asReturning))
+            CtorLikeOf.PlainValue(wrapExpr, Some(ctorMethod))
           override lazy val ctors: CtorLikes[A] =
             CtorLikes.unapply(Type[A]).getOrElse(NonEmptyList.one(Existential[CtorLikeOf[*, A], Inner](wrap)))
         })
@@ -44,28 +44,41 @@ final class IsValueTypeProviderForAnyVal extends StandardMacroExtension { loader
           }
           (name, argument) <- ctor.parameters.flatten.headOption
           ctorArgumentMethods = tpe.methods.filter { method =>
-            method.value.isConstructorArgument
+            method.isConstructorArgument
           }
           if ctorArgumentMethods.sizeIs == 1
           // We're looking for a method that is a constructor argument and is available at call site and has the same type as the primary constructor argument.
           getArgument <- ctorArgumentMethods.headOption.collect {
-            case Method.OfInstance.Of(method)
-                if method.value.isAvailable(AtCallSite) && method.Underlying =:= argument.tpe.Underlying =>
+            case method: Method.OnInstance
+                if method
+                  .isAvailable(AtCallSite) && method.knownReturning.exists(_.Underlying =:= argument.tpe.Underlying) =>
               method
           }
         } yield {
-          implicit val A: Type[A] = tpe
-          import getArgument.{Underlying as Inner, value as unwrap}
-          val unwrapExpr: Expr[A] => Expr[Inner] = wrapped =>
-            unwrap(wrapped, Map()) match {
-              case Right(unwrapped) => unwrapped
-              case Left(error)      => hearthAssertionFailed("AnyVal unwrapping failed: " + error)
+          @scala.annotation.nowarn
+          implicit val _A: Type[A] = tpe
+          val returnType = getArgument.knownReturning.get
+          import returnType.Underlying as Inner
+          val unwrapExpr: Expr[A] => Expr[Inner] = wrapped => {
+            val instanceTpe = UntypedType.fromTyped[A](using tpe)
+            getArgument.asUntyped
+              .unsafeApplyInstance(instanceTpe)(wrapped.asUntyped, Map.empty)
+              .asTyped[Inner]
+          }
+          val wrapExpr: Expr[Inner] => Expr[A] = unwrapped => {
+            val applied = ctor match {
+              case av: Method.ApplyValues => av(Map(name -> unwrapped.as_??))
+              case other => hearthAssertionFailed("AnyVal wrapping: expected ApplyValues, got " + other)
             }
-          val wrapExpr: Expr[Inner] => Expr[A] = unwrapped =>
-            ctor(Map(name -> unwrapped.as_??)) match {
-              case Right(wrapped) => wrapped
-              case Left(error)    => hearthAssertionFailed("AnyVal wrapping failed: " + error)
+            applied match {
+              case r: Method.Result[?] =>
+                r.build() match {
+                  case Right(wrapped) => wrapped.asInstanceOf[Expr[A]]
+                  case Left(error)    => hearthAssertionFailed("AnyVal wrapping failed: " + error)
+                }
+              case other => hearthAssertionFailed("AnyVal wrapping: expected Result, got " + other)
             }
+          }
           isValueType[A, Inner](unwrapExpr, wrapExpr, ctor)
         }
         result match {

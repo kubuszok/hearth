@@ -669,11 +669,14 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
 
     def getRuntimeClass: Option[java.lang.Class[A]] = Type.classOfType(using tpe)
 
-    def primaryConstructor: Option[Method.NoInstance[A]] = Method.primaryConstructorOf(using tpe)
-    def defaultConstructor: Option[Method.NoInstance[A]] = constructors.find(_.isNullary)
-    def constructors: List[Method.NoInstance[A]] = Method.constructorsOf(using tpe)
+    def primaryConstructor: Option[Method { type Instance = A }] =
+      Method.primaryConstructorOf(using tpe).map(_.asInstanceOf[Method { type Instance = A }])
+    def defaultConstructor: Option[Method { type Instance = A }] = constructors.find(_.isNullary)
+    def constructors: List[Method { type Instance = A }] =
+      Method.constructorsOf(using tpe).map(_.asInstanceOf[Method { type Instance = A }])
 
-    def methods: List[Method.Of[A]] = Method.methodsOf(using tpe)
+    def methods: List[Method { type Instance = A }] =
+      Method.methodsOf(using tpe).map(_.asInstanceOf[Method { type Instance = A }])
 
     def companionObject: Option[Expr_??] = Type.companionObject(using tpe)
 

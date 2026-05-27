@@ -18,8 +18,8 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     )
   )
 
-  private def renderConstructor[A: Type](constructor: Method.NoInstance[A]): Data =
-    renderParameters(constructor.parameters)
+  private def renderConstructor(constructor: Method): Data =
+    renderParameters(constructor.totalParameters)
 
   def testMethodsExtraction[A: Type](excluding: VarArgs[String]): Expr[Data] = {
     val excluded = excluding.toIterable.map {
@@ -30,16 +30,15 @@ trait MethodsFixturesImpl { this: MacroCommons =>
         )
     }.toSet
     val methods = Type[A].methods
-    val filtered = methods.filterNot(m => excluded(m.value.name))
+    val filtered = methods.filterNot(m => excluded(m.name))
     Expr(renderMethods(filtered))
   }
 
   def testMethodDefaults[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
     case Expr(name) =>
-      val methods = Type[A].methods.filter(_.value.name == name)
-      val rendered = methods.map { m =>
-        import m.value as method
-        val paramsData = method.parameters.toList.flatMap { params =>
+      val methods = Type[A].methods.filter(_.name == name)
+      val rendered = methods.map { method =>
+        val paramsData = method.totalParameters.toList.flatMap { params =>
           params.toList.map { case (paramName, param) =>
             Data.map(
               "name" -> Data(paramName),
@@ -62,18 +61,17 @@ trait MethodsFixturesImpl { this: MacroCommons =>
 
   def testMethodProperties[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
     case Expr(methodName) =>
-      val method = Type[A].methods.filter(_.value.name == methodName)
+      val method = Type[A].methods.filter(_.name == methodName)
       Expr(renderMethods(method))
     case _ =>
       Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
   }
 
-  private def renderMethods[A](methods: List[Method.Of[A]]): Data =
+  private def renderMethods(methods: List[Method]): Data =
     Data(
       methods
-        .groupMapReduce(_.value.name) { m =>
-          import m.value as method
-          val signature = method.parameters
+        .groupMapReduce(_.name) { method =>
+          val signature = method.totalParameters
             .map { params =>
               params.map { case (_, p) => s"${p.tpe.shortName}" }.mkString("(", ", ", ")")
             }
@@ -140,10 +138,9 @@ trait MethodsFixturesImpl { this: MacroCommons =>
 
   def testParameterProperties[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
     case Expr(name) =>
-      val methods = Type[A].methods.filter(_.value.name == name)
-      val rendered = methods.flatMap { m =>
-        import m.value as method
-        method.parameters.flatten.map { case (paramName, param) =>
+      val methods = Type[A].methods.filter(_.name == name)
+      val rendered = methods.flatMap { method =>
+        method.totalParameters.flatten.map { case (paramName, param) =>
           paramName -> Data.map(
             "isImplicit" -> Data(param.isImplicit),
             "hasDefault" -> Data(param.hasDefault)
@@ -157,24 +154,107 @@ trait MethodsFixturesImpl { this: MacroCommons =>
 
   def testMethodOrdering[A: Type]: Expr[Data] = {
     val methods = Type[A].methods
-    val names = methods.map(_.value.name)
+    val names = methods.map(_.name)
     Expr(Data(names.map(Data(_))))
+  }
+
+  def testMethodExpectations[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
+    case Expr(name) =>
+      val methods = Type[A].methods.filter(_.name == name)
+      val rendered = methods.map { method =>
+        val expectationStrings = method.expectations.map {
+          case MethodExpectation.NeedsInstance   => Data("NeedsInstance")
+          case MethodExpectation.NeedsTypes(tps) =>
+            val typeParamsStr = tps
+              .map(_.map { tp =>
+                val upper = UntypedTypeParameter.upperBoundPrint(tp.asUntyped)
+                val lower = UntypedTypeParameter.lowerBoundPrint(tp.asUntyped)
+                val isTopBound =
+                  upper == "scala.Any" || upper.startsWith("scala.Any[") || upper.contains("@") || upper.startsWith("[")
+                val isBottomBound = lower == "scala.Nothing" || lower.contains("@") || lower.startsWith("[")
+                if (!isTopBound && !isBottomBound) s"${tp.name} <: $upper >: $lower"
+                else if (!isTopBound) s"${tp.name} <: $upper"
+                else if (!isBottomBound) s"${tp.name} >: $lower"
+                else tp.name
+              }.mkString(", "))
+              .mkString("[", "][", "]")
+            Data(s"NeedsTypes$typeParamsStr")
+          case MethodExpectation.NeedsValues(ps) =>
+            val paramsStr =
+              ps.map(
+                _.map { case (n, p) =>
+                  val tpePlain = {
+                    val raw = scala.util.Try(p.tpe.plainPrint).getOrElse(p.tpe.toString)
+                    val innerClassPattern = """(.+)\._\d+\.`_\d+\.type`\.(\w+)""".r
+                    raw match {
+                      case innerClassPattern(outer, inner) => s"$outer#$inner"
+                      case other                           => other
+                    }
+                  }
+                  s"$n: $tpePlain"
+                }.mkString(", ")
+              ).mkString("(", ")(", ")")
+            Data(s"NeedsValues$paramsStr")
+        }
+        Data.map(
+          "name" -> Data(method.name),
+          "expectations" -> Data.list(expectationStrings*),
+          "knownReturning" -> Data(method.knownReturning.map(_.plainPrint).getOrElse("<none>")),
+          "toString" -> Data(method.toString)
+        )
+      }
+      Expr(Data.list(rendered*))
+    case other =>
+      Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${other.prettyPrint}")
+  }
+
+  def testConstructorExpectations[A: Type]: Expr[Data] = {
+    val ctors = Type[A].constructors
+    val rendered = ctors.map { ctor =>
+      val expectationStrings = ctor.expectations.map {
+        case MethodExpectation.NeedsInstance   => Data("NeedsInstance")
+        case MethodExpectation.NeedsTypes(tps) =>
+          val typeParamsStr = tps.map(_.map(_.name).mkString(", ")).mkString("[", "][", "]")
+          Data(s"NeedsTypes$typeParamsStr")
+        case MethodExpectation.NeedsValues(ps) =>
+          val paramsStr =
+            ps.map(_.map { case (n, p) => s"$n: ${p.tpe.plainPrint}" }.mkString(", ")).mkString("(", ")(", ")")
+          Data(s"NeedsValues$paramsStr")
+      }
+      Data.map(
+        "expectations" -> Data.list(expectationStrings*),
+        "knownReturning" -> Data(ctor.knownReturning.map(_.plainPrint).getOrElse("<none>")),
+        "toString" -> Data(ctor.toString)
+      )
+    }
+    Expr(Data.list(rendered*))
   }
 
   private val IntType: Type[Int] = Type.of[Int]
   private val StringType: Type[String] = Type.of[String]
   private val ProductType: Type[Product] = Type.of[Product]
 
-  /** Constructs a NamedTuple (or any type with a primary constructor) using hardcoded test values.
-    *
-    * Returns the `.toString` of the constructed value wrapped in [[Data]].
-    */
+  private def applyAndBuild(method: Method, arguments: Arguments): Either[String, Expr_??] =
+    method match {
+      case av: Method.ApplyValues =>
+        av.apply(arguments) match {
+          case r: Method.Result[?] =>
+            import r.Returned
+            r.build().map(_.as_??)
+          case other => Left(s"Unexpected step after ApplyValues: ${other.getClass.getSimpleName}")
+        }
+      case r: Method.Result[?] =>
+        import r.Returned
+        r.build().map(_.as_??)
+      case other => Left(s"Expected ApplyValues or Result, got ${other.getClass.getSimpleName}")
+    }
+
   def testConstructNamedTuple[A: Type]: Expr[Data] = {
     implicit val StringType: Type[String] = this.StringType
     implicit val IntType: Type[Int] = this.IntType
     Type[A].primaryConstructor match {
       case Some(constructor) =>
-        val arguments: Arguments = constructor.parameters.flatten.map { case (name, param) =>
+        val arguments: Arguments = constructor.totalParameters.flatten.map { case (name, param) =>
           import param.tpe.Underlying
           val value: Expr_?? =
             if (Underlying <:< Type.of[String]) Expr("Alice").as_??
@@ -185,18 +265,16 @@ trait MethodsFixturesImpl { this: MacroCommons =>
               )
           name -> value
         }.toMap
-        constructor.apply(arguments) match {
-          case Right(result) => Expr.quote(Data(Expr.splice(result).toString))
-          case Left(error)   => Expr(Data(s"FAILED: $error"))
+        applyAndBuild(constructor, arguments) match {
+          case Right(result) =>
+            import result.Underlying as R
+            Expr.quote(Data(Expr.splice(result.value.asInstanceOf[Expr[R]]).toString))
+          case Left(error) => Expr(Data(s"FAILED: $error"))
         }
       case None => Expr(Data("<no primary constructor>"))
     }
   }
 
-  /** Extracts fields from a NamedTuple by name using the constructor's parameters and `Product.productElement`.
-    *
-    * Returns a string like `"name=Alice, age=42"` wrapped in [[Data]].
-    */
   @scala.annotation.nowarn("msg=is never used")
   def testNamedTupleFieldExtraction[A: Type](instance: Expr[A]): Expr[Data] = {
     implicit val StringType: Type[String] = this.StringType
@@ -204,7 +282,7 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     implicit val ProductType: Type[Product] = this.ProductType
     Type[A].primaryConstructor match {
       case Some(constructor) =>
-        val fields = constructor.parameters.flatten.toList
+        val fields = constructor.totalParameters.flatten.toList
         val parts: List[Expr[String]] = fields.map { case (name, param) =>
           val idx = Expr(param.index)
           Expr.quote {
@@ -220,7 +298,105 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Builds a partial [[Arguments]] map from the provided [[VarArgs]], leaving out parameters that have defaults. */
+  def testMethodPrettyPrint[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
+    case Expr(name) =>
+      val methods = Type[A].methods.filter(_.name == name)
+      val rendered = methods.map { method =>
+        Data.map(
+          "plainPrint" -> Data(method.plainPrint),
+          "prettyPrint" -> Data(method.prettyPrint),
+          "prettyPrintStripped" -> Data(removeAnsiColors(method.prettyPrint))
+        )
+      }
+      Expr(Data.list(rendered*))
+    case other =>
+      Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${other.prettyPrint}")
+  }
+
+  def testCallInstanceViaFold[A: Type](instance: Expr[A])(methodName: Expr[String])(
+      params: VarArgs[Int]
+  ): Expr[Data] = {
+    implicit val IntType: Type[Int] = this.IntType
+    implicit val StringType: Type[String] = this.StringType
+    val name = Expr
+      .unapply(methodName)
+      .getOrElse(
+        Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+      )
+    val method = Type[A].methods.filter(_.name == name) match {
+      case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
+      case method :: Nil => method
+      case _             => Environment.reportErrorAndAbort(s"Method $name is ambiguous")
+    }
+    val providedParams = params.toVector
+    var paramIdx = 0
+    val result = method.fold(
+      onInstance = _ => instance.as_??,
+      onTypes = _ => Map.empty,
+      onValues = av =>
+        av.parameters.flatten.flatMap { case (pName, param) =>
+          import param.tpe.Underlying
+          if (param.hasDefault && paramIdx >= providedParams.size) {
+            paramIdx += 1
+            None
+          } else if (Underlying <:< Type.of[Int]) {
+            val v = providedParams(paramIdx)
+            paramIdx += 1
+            Some(pName -> v.as_??)
+          } else if (Underlying <:< Type.of[String]) {
+            paramIdx += 1
+            Some(pName -> Expr("test").as_??)
+          } else {
+            Environment.reportErrorAndAbort(s"Unsupported type for $pName: ${param.tpe.plainPrint}")
+          }
+        }.toMap
+    )
+    result match {
+      case Right(expr) =>
+        import expr.Underlying as R
+        Expr.quote(Data(Expr.splice(expr.value.asInstanceOf[Expr[R]]).toString))
+      case Left(error) => Expr(Data(s"FAILED: $error"))
+    }
+  }
+
+  def testCallConstructorViaFold[A: Type](params: VarArgs[Int]): Expr[Data] = {
+    implicit val IntType: Type[Int] = this.IntType
+    implicit val StringType: Type[String] = this.StringType
+    Type[A].primaryConstructor match {
+      case Some(constructor) =>
+        val providedParams = params.toVector
+        var paramIdx = 0
+        val result = constructor.fold(
+          onInstance = _ => Environment.reportErrorAndAbort("Constructors should not need instance"),
+          onTypes = _ => Map.empty,
+          onValues = av =>
+            av.parameters.flatten.flatMap { case (pName, param) =>
+              import param.tpe.Underlying
+              if (param.hasDefault && paramIdx >= providedParams.size) {
+                paramIdx += 1
+                None
+              } else if (Underlying <:< Type.of[Int]) {
+                val v = providedParams(paramIdx)
+                paramIdx += 1
+                Some(pName -> v.as_??)
+              } else if (Underlying <:< Type.of[String]) {
+                paramIdx += 1
+                Some(pName -> Expr("test").as_??)
+              } else {
+                Environment.reportErrorAndAbort(s"Unsupported type for $pName: ${param.tpe.plainPrint}")
+              }
+            }.toMap
+        )
+        result match {
+          case Right(expr) =>
+            import expr.Underlying as R
+            Expr.quote(Data(Expr.splice(expr.value.asInstanceOf[Expr[R]]).toString))
+          case Left(error) => Expr(Data(s"FAILED: $error"))
+        }
+      case None => Expr(Data("<no primary constructor>"))
+    }
+  }
+
   private def buildPartialArguments(parameters: Parameters, providedParams: Vector[Expr[Int]]): Arguments = {
     implicit val IntType: Type[Int] = this.IntType
     parameters.flatten.zipWithIndex.flatMap { case ((name, param), index) =>
@@ -235,54 +411,41 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     }.toMap
   }
 
-  /** Constructs an instance via primary constructor, using default values for omitted parameters.
-    *
-    * Uses the untyped `unsafeApply` API which resolves defaults through `adaptToParams`.
-    */
   def testConstructWithDefaults[A: Type](params: VarArgs[Int]): Expr[Data] =
     Type[A].primaryConstructor match {
       case Some(constructor) =>
-        val arguments = buildPartialArguments(constructor.parameters, params.toVector)
+        val arguments = buildPartialArguments(constructor.totalParameters, params.toVector)
         val instanceTpe = UntypedType.fromTyped[A]
         val result = constructor.asUntyped.unsafeApplyNoInstance(instanceTpe)(UntypedArguments.fromTyped(arguments))
         Expr.quote(Data(Expr.splice(UntypedExpr.toTyped[A](result)).toString))
       case None => Expr(Data("<no primary constructor>"))
     }
 
-  /** Calls a no-instance method (e.g. companion `apply`), using default values for omitted parameters.
-    *
-    * Uses the untyped `unsafeApply` API which resolves defaults through `adaptToParams`.
-    */
   def testCallNoInstanceMethodWithDefaults[A: Type](methodName: Expr[String])(params: VarArgs[Int]): Expr[Data] = {
     val name = Expr
       .unapply(methodName)
       .getOrElse(
         Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
       )
-    Type[A].methods.filter(_.value.name == name) match {
+    Type[A].methods.filter(_.name == name) match {
       case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
       case method :: Nil =>
-        import method.Underlying as Returned
-        method.value match {
-          case noInstance: Method.NoInstance[Returned] @unchecked =>
-            val arguments = buildPartialArguments(noInstance.parameters, params.toVector)
+        method match {
+          case _: Method.OnInstance =>
+            Environment.reportErrorAndAbort(s"Method $name is not a no-instance method")
+          case _ =>
+            val arguments = buildPartialArguments(method.totalParameters, params.toVector)
             val instanceTpe = UntypedType.fromTyped[A]
             val result =
-              noInstance.asUntyped.unsafeApplyNoInstance(instanceTpe)(UntypedArguments.fromTyped(arguments))
+              method.asUntyped.unsafeApplyNoInstance(instanceTpe)(UntypedArguments.fromTyped(arguments))
+            val rt = method.knownReturning.getOrElse(method.Instance.as_??)
+            import rt.Underlying as Returned
             Expr.quote(Data(Expr.splice(UntypedExpr.toTyped[Returned](result)).toString))
-          case _: Method.OfInstance[?, ?] =>
-            Environment.reportErrorAndAbort(s"Method $name is not a no-instance method")
-          case unsupported: Method.Unsupported[?, ?] =>
-            Environment.reportErrorAndAbort(s"Method $name is unsupported: ${unsupported.reasonForUnsupported}")
         }
       case _ => Environment.reportErrorAndAbort(s"Method $name is ambiguous")
     }
   }
 
-  /** Calls an instance method, using default values for omitted parameters.
-    *
-    * Uses the untyped `unsafeApply` API which resolves defaults through `adaptToParams`.
-    */
   def testCallInstanceMethodWithDefaults[A: Type](instance: Expr[A])(methodName: Expr[String])(
       params: VarArgs[Int]
   ): Expr[Data] = {
@@ -291,22 +454,21 @@ trait MethodsFixturesImpl { this: MacroCommons =>
       .getOrElse(
         Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
       )
-    Type[A].methods.filter(_.value.name == name) match {
+    Type[A].methods.filter(_.name == name) match {
       case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
       case method :: Nil =>
-        import method.Underlying as Returned
-        method.value match {
-          case ofInstance: Method.OfInstance[A, Returned] @unchecked =>
-            val arguments = buildPartialArguments(ofInstance.parameters, params.toVector)
+        method match {
+          case oi: Method.OnInstance =>
+            val arguments = buildPartialArguments(method.totalParameters, params.toVector)
             val instanceTpe = UntypedType.fromTyped[A]
             val result =
-              ofInstance.asUntyped
+              method.asUntyped
                 .unsafeApplyInstance(instanceTpe)(instance.asUntyped, UntypedArguments.fromTyped(arguments))
+            val rt = method.knownReturning.getOrElse(oi.Instance.as_??)
+            import rt.Underlying as Returned
             Expr.quote(Data(Expr.splice(UntypedExpr.toTyped[Returned](result)).toString))
-          case _: Method.NoInstance[?] =>
+          case _ =>
             Environment.reportErrorAndAbort(s"Method $name is not an instance method")
-          case unsupported: Method.Unsupported[?, ?] =>
-            Environment.reportErrorAndAbort(s"Method $name is unsupported: ${unsupported.reasonForUnsupported}")
         }
       case _ => Environment.reportErrorAndAbort(s"Method $name is ambiguous")
     }
@@ -319,18 +481,24 @@ trait MethodsFixturesImpl { this: MacroCommons =>
       .getOrElse(
         Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
       )
-    val method: Method[A, Int] = Type[A].methods.filter(_.value.name == name) match {
+    val method: Method = Type[A].methods.filter(_.name == name) match {
       case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
       case method :: Nil =>
-        import method.Underlying as Returned
-        if (!(Returned <:< Type.of[Int])) Environment.reportErrorAndAbort(s"Method $name returns not an Int")
-        else method.value.asInstanceOf[Method[A, Int]]
+        method.knownReturning match {
+          case Some(rt) =>
+            import rt.Underlying as Returned
+            if (!(Returned <:< Type.of[Int])) Environment.reportErrorAndAbort(s"Method $name returns not an Int")
+            else method
+          case None => Environment.reportErrorAndAbort(s"Method $name has unknown return type")
+        }
       case _ => Environment.reportErrorAndAbort(s"Method $name is not unique")
     }
     method match {
-      case noInstance: Method.NoInstance[Int] @unchecked =>
+      case _: Method.OnInstance =>
+        Environment.reportErrorAndAbort(s"Method $name is not a no-instance method")
+      case _ =>
         val providedParams = params.toVector
-        val arguments = noInstance.parameters.flatten.zipWithIndex.flatMap { case ((name, param), index) =>
+        val arguments = method.totalParameters.flatten.zipWithIndex.flatMap { case ((name, param), index) =>
           providedParams.lift(index) match {
             case _ if !(param.tpe.Underlying <:< Type.of[Int]) =>
               Environment.reportErrorAndAbort(s"Parameter $name has wrong type: ${param.tpe.plainPrint} is not an Int")
@@ -339,14 +507,11 @@ trait MethodsFixturesImpl { this: MacroCommons =>
             case _ => Environment.reportErrorAndAbort(s"Missing parameter for $name (not default value as well)")
           }
         }.toMap
-        noInstance.apply(arguments) match {
-          case Right(result) => result
-          case Left(error)   => Environment.reportErrorAndAbort(s"Failed to call method $name: $error")
+        applyAndBuild(method, arguments) match {
+          case Right(result) =>
+            result.value.asInstanceOf[Expr[Int]]
+          case Left(error) => Environment.reportErrorAndAbort(s"Failed to call method $name: $error")
         }
-      case _: Method.OfInstance[A, Int] @unchecked =>
-        Environment.reportErrorAndAbort(s"Method $name is not a no-instance method")
-      case unsupported: Method.Unsupported[A, Int] @unchecked =>
-        Environment.reportErrorAndAbort(s"Method $name is unsupported: ${unsupported.reasonForUnsupported}")
     }
   }
 
@@ -359,20 +524,22 @@ trait MethodsFixturesImpl { this: MacroCommons =>
       .getOrElse(
         Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
       )
-    val method: Method[A, Int] = Type[A].methods.filter(_.value.name == name) match {
+    val method: Method = Type[A].methods.filter(_.name == name) match {
       case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
       case method :: Nil =>
-        import method.Underlying as Returned
-        if (!(Returned <:< Type.of[Int])) Environment.reportErrorAndAbort(s"Method $name returns not an Int")
-        else method.value.asInstanceOf[Method[A, Int]]
+        method.knownReturning match {
+          case Some(rt) =>
+            import rt.Underlying as Returned
+            if (!(Returned <:< Type.of[Int])) Environment.reportErrorAndAbort(s"Method $name returns not an Int")
+            else method
+          case None => Environment.reportErrorAndAbort(s"Method $name has unknown return type")
+        }
       case _ => Environment.reportErrorAndAbort(s"Method $name is not unique")
     }
     method match {
-      case _: Method.NoInstance[Int] @unchecked =>
-        Environment.reportErrorAndAbort(s"Method $name is not an instance method")
-      case ofInstance: Method.OfInstance[A, Int] @unchecked =>
+      case _: Method.OnInstance =>
         val providedParams = params.toVector
-        val arguments = ofInstance.parameters.flatten.zipWithIndex.flatMap { case ((name, param), index) =>
+        val arguments = method.totalParameters.flatten.zipWithIndex.flatMap { case ((name, param), index) =>
           providedParams.lift(index) match {
             case _ if !(param.tpe.Underlying <:< Type.of[Int]) =>
               Environment.reportErrorAndAbort(s"Parameter $name has wrong type: ${param.tpe.plainPrint} is not an Int")
@@ -381,12 +548,12 @@ trait MethodsFixturesImpl { this: MacroCommons =>
             case _ => Environment.reportErrorAndAbort(s"Missing parameter for $name (not default value as well)")
           }
         }.toMap
-        ofInstance.apply(instance, arguments) match {
-          case Right(result) => result
-          case Left(error)   => Environment.reportErrorAndAbort(s"Failed to call method $name: $error")
-        }
-      case unsupported: Method.Unsupported[A, Int] @unchecked =>
-        Environment.reportErrorAndAbort(s"Method $name is unsupported: ${unsupported.reasonForUnsupported}")
+        val instanceTpe = UntypedType.fromTyped[A]
+        val result = method.asUntyped
+          .unsafeApplyInstance(instanceTpe)(instance.asUntyped, UntypedArguments.fromTyped(arguments))
+        result.asTyped[Int]
+      case _ =>
+        Environment.reportErrorAndAbort(s"Method $name is not an instance method")
     }
   }
 }

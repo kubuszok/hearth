@@ -19,6 +19,17 @@ Tests use the following naming structure:
     - `hearth.typed.Methods` utilities -> `hearth.typed.MethodsSpec`
     - `hearth.typed.Types` utilities -> `hearth.typed.TypesSpec`
 
+ - `hearth.typed.MethodsSpec` has several fixture functions for different aspects of the Method API:
+
+    - `testMethodsExtraction[A]` — renders 25+ properties per method (invocation, predicates, visibility, accessors)
+    - `testMethodExpectations[A](name)` — tests builder chain expectations, `knownReturning`, `toString` rendering
+    - `testConstructorExpectations[A]` — same for constructors
+    - `testMethodPrettyPrint[A](name)` — compares `plainPrint`, `prettyPrint` (ANSI), and ANSI-stripped output
+    - `testCallInstanceViaFold[A](instance)(name)(params*)` — calls a method via `method.fold` and returns the result
+    - `testCallConstructorViaFold[A](params*)` — constructs an instance via `fold`
+    - `testMethodDefaults[A](name)` — tests parameter default values
+    - `testParameterProperties[A](name)` — tests individual parameter properties
+
 ## Directory structure
 
 By default, tests should be placed in `hearthTests/src/test/scala`, so that:

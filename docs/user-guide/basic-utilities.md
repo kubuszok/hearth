@@ -297,7 +297,7 @@ Inside a shared-logic trait (`MacroCommons`) we work with abstract types and abs
 Their implementations are mixed in later (`MacroCommonsScala2`, `MacroCommonsScala3`).
    
 Hearth implements shared utilities from the bottom up: `Type[A]` and `Expr[A]` build on top of `UntypedType` and `UntypedExpr`,
-then `Method[A]`s build on top of `Type[A]` and `Expr[A]`, then `CaseClass[A]`, `Enum[A]` and `JavaBean[A]` build on top of them.
+then `Method`s build on top of `Type[A]` and `Expr[A]`, then `CaseClass[A]`, `Enum[A]` and `JavaBean[A]` build on top of them.
 (The lower the abstraction level is, the less likely the API is to change).
 
 For most common use cases, you probably want to use high-level utilities like:
@@ -1922,35 +1922,58 @@ Then we would have to work with `Method` representations that provide introspect
 
 `Method` represents a method that can be called. Methods come in different flavors depending on how they're invoked:
 
- * `Method.NoInstance[Out]` - constructors, static methods, or stable object methods: `Companion.method(args)` 
- * `Method.OfInstance[A, Out]` - instance methods: `instance.method(args)`
- * `Method.Unsupported[A, Out]` - methods we cannot handle (e.g., polymorphic methods with explicit type parameters)
+ * `Method.OnInstance` - instance methods: needs an instance expression, call `apply(instance)` to advance the chain
+ * `Method.ApplyTypes` - type-parametric methods: needs type arguments, call `apply(typeArgs)` to advance
+ * `Method.ApplyValues` - methods needing value arguments: call `apply(arguments)` to advance
+ * `Method.Result[Out]` - terminal step: call `build()` to validate and produce `Either[String, Expr[Out]]`
 
-!!! warning "Type Parameter Limitation"
-    Applying type parameters is not yet supported. Calls like `instance.method[A, B](values)` where type parameters 
-    are applied explicitly or need to be inferred are represented as `Method.Unsupported`.
+Each method is a builder chain — pattern match to determine the next step, apply arguments, and eventually reach `Result`.
+
+Every `Method` carries:
+
+ * `expectations: List[MethodExpectation]` — the pre-parsed step structure showing what each step needs
+ * `knownReturning: Option[??]` — the terminal return type (if known without applying type args first)
+ * `totalParameters: Parameters` — all value parameters across the full chain
+ * `toString` — renders the full method signature: `TypeName: def methodName[TypeParams](params): ReturnType`
+
+`MethodExpectation` is a sealed trait with three cases:
+
+ * `MethodExpectation.NeedsInstance` — the method needs an instance expression
+ * `MethodExpectation.NeedsTypes(typeParameters)` — the method needs type arguments
+ * `MethodExpectation.NeedsValues(parameters)` — the method needs value arguments
+
+The expectations list preserves clause interleaving order (Scala 3.6+): a method `def f[A](a: A)[B](b: B)` produces
+`List(NeedsInstance, NeedsTypes([A]), NeedsValues((a: A)), NeedsTypes([B]), NeedsValues((b: B)))`.
+
+Path-dependent parameter lists are split into separate `NeedsValues` entries at dependency boundaries.
 
 ### Obtaining `Method`
 
 We should just call one of the methods on `Method` or `Type[A]`, depending on which kind of method we need.
 
-| Companion method                     | Extension method                   | Result type                          | Description                           |
-|--------------------------------------|------------------------------------|--------------------------------------|---------------------------------------|
-| `Method.primaryConstructor[MyClass]` | `Type[MyClass].primaryConstructor` | `Option[Method.NoInstance[MyClass]]` | primary constructor                   |
-| `Method.defaultConstructor[MyClass]` | `Type[MyClass].defaultConstructor` | `Option[Method.NoInstance[MyClass]]` | nullary constructor                   |
-| `Method.constructors[MyClass]`       | `Type[MyClass].constructors`       | `List[Method.NoInstance[MyClass]]`   | all constructors                      |
-| `Method.methods[MyClass]`            | `Type[MyClass].methods`            | `List[Method.Of[MyClass]]`           | instance and companion object methods |
+| Companion method                     | Extension method                   | Result type       | Description                           |
+|--------------------------------------|------------------------------------|-------------------|---------------------------------------|
+| `Method.primaryConstructor[MyClass]` | `Type[MyClass].primaryConstructor` | `Option[Method]`  | primary constructor                   |
+| `Method.defaultConstructor[MyClass]` | `Type[MyClass].defaultConstructor` | `Option[Method]`  | nullary constructor                   |
+| `Method.constructors[MyClass]`       | `Type[MyClass].constructors`       | `List[Method]`    | all constructors                      |
+| `Method.methods[MyClass]`            | `Type[MyClass].methods`            | `List[Method]`    | instance and companion object methods |
 
 ### `Method` Operations
 
 **Metadata**:
 
-| Method               | Result type        | Description        |
-|----------------------|--------------------|--------------------|
-| `method.name`        | `String`           | method name        |
-| `method.position`    | `Option[Position]` | source location    |
-| `method.annotations` | `List[Expr_??]`    | method annotations |
-| `method.parameters`  | `Parameters`       | parameter groups   |
+| Method                    | Result type              | Description                                     |
+|---------------------------|--------------------------|------------------------------------------------|
+| `method.name`             | `String`                 | method name                                     |
+| `method.position`         | `Option[Position]`       | source location                                 |
+| `method.annotations`      | `List[Expr_??]`          | method annotations                              |
+| `method.totalParameters`  | `Parameters`             | all value parameters across the full chain      |
+| `method.parameters`       | `Parameters`             | this step's value parameters only               |
+| `method.expectations`     | `List[MethodExpectation]`| pre-parsed step structure                       |
+| `method.knownReturning`   | `Option[??]`             | terminal return type (if known)                 |
+| `method.plainPrint`       | `String`                 | full method signature (no ANSI)                 |
+| `method.prettyPrint`      | `String`                 | full method signature (ANSI-colored)            |
+| `method.toString`         | `String`                 | `plainPrint` + applied state (if partially applied) |
 
 **Predicates**:
 
@@ -1970,6 +1993,10 @@ We should just call one of the methods on `Method` or `Type[A]`, depending on wh
 | `method.isCaseField`             | `true` if `case class` field        |
 | `method.isConstructorArgument`   | `true` if constructor parameter     |
 |                                  | **Visibility**                      |
+| `method.isPrivate`               | `true` if strictly private (not `private[pkg]`) |
+| `method.isProtected`             | `true` if strictly protected (not `protected[pkg]`) |
+| `method.privateWithin`           | `Some("pkg")` for `private[pkg]`, `None` otherwise |
+| `method.protectedWithin`         | `Some("pkg")` for `protected[pkg]`, `None` otherwise |
 | `method.isAvailable(Everywhere)` | `true` for public methods           |
 | `method.isAvailable(AtCallSite)` | `true` if accessible from call site |
 
@@ -2003,7 +2030,7 @@ We should just call one of the methods on `Method` or `Type[A]`, depending on wh
 
 The recommended way to handle methods is through pattern matching:
 
-!!! example "How to handle a `Method.Of[Instance]`"
+!!! example "How to handle a `Method`"
 
     ```scala
     // file: src/main/scala/example/MethodPatternMatchingMacro.scala - part of Method matching example
@@ -2024,39 +2051,39 @@ The recommended way to handle methods is through pattern matching:
             )
           )
 
-        val method: Method[A, Int] =
-          Type[A].methods.filter(_.value.name == name) match {
+        val method: Method =
+          Type[A].methods.filter(_.name == name) match {
             case Nil => Environment.reportErrorAndAbort(
               s"Method $name not found"
             )
             case method :: Nil =>
-              if (!(method.Underlying <:< Type.of[Int]))
-                Environment.reportErrorAndAbort(
-                  s"Method $name returns not an Int"
+              method.knownReturning match {
+                case Some(rt) if rt.Underlying <:< Type.of[Int] => method
+                case _ => Environment.reportErrorAndAbort(
+                  s"Method $name does not return Int"
                 )
-              else method.value.asInstanceOf[Method[A, Int]]
+              }
             case _ => Environment.reportErrorAndAbort(
               s"Method $name is not unique"
             )
           }
 
         method match {
-          case noInstance: Method.NoInstance[Int] @unchecked =>
-            Expr.quote(
-              s"Found no-instance method ${Expr.splice(methodName)}"
-            )
-
-          case ofInstance: Method.OfInstance[A, Int] @unchecked =>
+          case _: Method.OnInstance =>
             val tpeName = Expr(Type[A].plainPrint)
             Expr.quote(
               s"Found instance method ${Expr.splice(methodName)}" +
               s" on ${Expr.splice(tpeName)}"
             )
 
-          case unsupported: Method.Unsupported[A, Int] @unchecked =>
-            Environment.reportErrorAndAbort(
-              s"Method ${name} is unsupported: " +
-              unsupported.reasonForUnsupported
+          case _: Method.ApplyValues | _: Method.Result[?] =>
+            Expr.quote(
+              s"Found non-instance method ${Expr.splice(methodName)}"
+            )
+
+          case _: Method.ApplyTypes =>
+            Expr.quote(
+              s"Found type-parametric method ${Expr.splice(methodName)}"
             )
         }
       }
@@ -2133,11 +2160,52 @@ The recommended way to handle methods is through pattern matching:
         )
         assertEquals(
           Example.handleMethod[TestClass]("staticMethod"),
-          "Found no-instance method staticMethod"
+          "Found non-instance method staticMethod"
         )
       }
     }
     ```
+
+### Method Signature Rendering
+
+Three rendering methods are available:
+
+ * `method.plainPrint` — full signature without ANSI escape codes
+ * `method.prettyPrint` — full signature with ANSI coloring (keywords in yellow, types in magenta, parameter names in cyan)
+ * `method.toString` — `plainPrint` when nothing has been applied; includes applied state when the builder chain has been partially consumed
+
+**`plainPrint` / `prettyPrint` examples:**
+
+```
+hearth.examples.MyClass: def method[A <: Comparable[A]](arg: A): List[A]
+hearth.examples.MyClass: private def secret: Int
+hearth.examples.MyClass: private[examples] def packagePrivate: Int
+new hearth.examples.MyClass(a: Int, b: String = <default>)
+hearth.examples.GenericClass[Int, String]: def swap: GenericClass[String, Int]
+```
+
+ * Instance methods: `TypeName: def methodName[TypeParams](params): ReturnType`
+ * Constructors: `new TypeName(params)` (no `<init>`, no return type)
+ * Modifiers rendered: `private`, `protected`, `private[scope]`, `protected[scope]`, `implicit`
+ * Type bounds rendered: `[A <: Upper]`, `[A >: Lower]`
+ * Default values shown: `(param: Type = <default>)`
+ * Clause interleaving preserved: `[A](a: A)[B](b: B)`
+ * Type parameter references rendered as short names: `A` not `hearth.examples.MyClass.A`
+ * Inner class types rendered with `#`: `Outer#Inner`
+
+**Applied-state `toString`:**
+
+After calling `apply` on builder chain steps, `toString` shows what has been consumed:
+
+```
+hearth.examples.MyClass: def method(a: Int): String (on myInstance, applied (a = 42), returning java.lang.String)
+```
+
+The format is `$signature (on $expr, applied [...](...)..., returning $type)` where:
+
+ * `on $expr` — shown after applying an instance
+ * `applied [A = Type](param = expr)` — shown after applying type and/or value arguments
+ * `returning $type` — shown only if the return type was not known from the start (e.g., resolved after applying type arguments)
 
 ### Parameters and Arguments
 
@@ -2150,7 +2218,7 @@ The recommended way to handle methods is through pattern matching:
 | `param.position`       | `Option[Position]`               | source location              |
 | `param.tpe`            | `??`                             | the parameter type           |
 | `param.hasDefault`     | `Boolean`                        | has default value?           |
-| `param.defaultValue`   | `Option[Existential[Method.Of]]` | default value's getter       |
+| `param.defaultValue`   | `Option[Method]`                 | default value's getter       |
 | `param.annotations`    | `List[Expr_??]`                  | parameter annotations        |
 | `param.isByName`       | `Boolean`                        | by-name parameter?           |
 | `param.isImplicit`     | `Boolean`                        | implicit parameter?          |
@@ -2186,9 +2254,9 @@ The recommended way to handle methods is through pattern matching:
 
 ### Calling `Method`s
 
-If we have `Method.Of[Instance]`, we should pattern-match it first to know what kind
-of method it is. Once we do, we need to apply the `Arguments`
-(and the instance, if it's `Method.OfInstance`):
+We should pattern-match the `Method` to determine the next step in the builder chain.
+For instance methods (`Method.OnInstance`), we first apply the instance, then proceed
+through `ApplyValues` and `Result`:
 
 !!! example "Calling constructors and instance methods"
 
@@ -2201,7 +2269,80 @@ of method it is. Once we do, we need to apply the `Arguments`
 
       private val IntType = Type.of[Int]
 
-      // Call a no-instance method (constructor or companion method)
+      private def buildArguments(
+        method: Method,
+        providedParams: Vector[Expr[Int]]
+      ): Map[String, Expr_??] = {
+        implicit val intType: Type[Int] = IntType
+        method.totalParameters.flatten
+          .zipWithIndex
+          .flatMap { case ((name, param), index) =>
+            providedParams.lift(index) match {
+              case _ if !(param.tpe.Underlying <:< Type.of[Int]) =>
+                Environment.reportErrorAndAbort(
+                  s"Parameter $name has wrong type:" +
+                  s" ${param.tpe.plainPrint} is not an Int"
+                )
+              case Some(value) =>
+                Some(name -> value.as_??)
+              case None if param.hasDefault => None
+              case _ =>
+                Environment.reportErrorAndAbort(
+                  s"Missing parameter for $name" +
+                  " (not default value as well)"
+                )
+            }
+          }.toMap
+      }
+
+      private def applyArgsAndBuild(
+        method: Method,
+        name: String,
+        providedParams: Vector[Expr[Int]]
+      ): Expr[Int] = {
+        val arguments = buildArguments(
+          method, providedParams
+        )
+        method match {
+          case av: Method.ApplyValues =>
+            av.apply(arguments) match {
+              case r: Method.Result[?] =>
+                import r.Returned
+                r.build() match {
+                  case Right(result) =>
+                    result.asInstanceOf[Expr[Int]]
+                  case Left(error) =>
+                    Environment.reportErrorAndAbort(
+                      s"Failed to call method" +
+                      s" $name: $error"
+                    )
+                }
+              case _ =>
+                Environment.reportErrorAndAbort(
+                  s"Method $name has unexpected" +
+                  " structure after applying values"
+                )
+            }
+          case r: Method.Result[?] =>
+            import r.Returned
+            r.build() match {
+              case Right(result) =>
+                result.asInstanceOf[Expr[Int]]
+              case Left(error) =>
+                Environment.reportErrorAndAbort(
+                  s"Failed to call method" +
+                  s" $name: $error"
+                )
+            }
+          case _ =>
+            Environment.reportErrorAndAbort(
+              s"Method $name has unexpected" +
+              " structure"
+            )
+        }
+      }
+
+      // Call a non-instance method (constructor or companion method)
       def callNoInstanceMethod[A: Type](
         methodName: Expr[String]
       )(params: VarArgs[Int]): Expr[Int] = {
@@ -2214,62 +2355,41 @@ of method it is. Once we do, we need to apply the `Arguments`
               s" got ${methodName.prettyPrint}"
             )
           )
-        val method: Method[A, Int] =
+        val method: Method =
           Type[A].methods
-            .filter(_.value.name == name) match {
+            .filter(_.name == name) match {
             case Nil =>
               Environment.reportErrorAndAbort(
                 s"Method $name not found"
               )
             case method :: Nil =>
-              import method.Underlying as Returned
-              if (!(Returned <:< Type.of[Int]))
-                Environment.reportErrorAndAbort(
-                  s"Method $name returns not an Int"
-                )
-              else method.value.asInstanceOf[Method[A, Int]]
+              method.knownReturning match {
+                case Some(rt)
+                    if rt.Underlying <:< Type.of[Int] =>
+                  method
+                case _ =>
+                  Environment.reportErrorAndAbort(
+                    s"Method $name does not return Int"
+                  )
+              }
             case _ =>
               Environment.reportErrorAndAbort(
                 s"Method $name is not unique"
               )
           }
         method match {
-          case noInstance: Method.NoInstance[Int] @unchecked =>
-            val providedParams = params.toVector
-            val arguments = noInstance.parameters.flatten
-              .zipWithIndex
-              .flatMap { case ((name, param), index) =>
-                providedParams.lift(index) match {
-                  case _ if !(param.tpe.Underlying <:< Type.of[Int]) =>
-                    Environment.reportErrorAndAbort(
-                      s"Parameter $name has wrong type:" +
-                      s" ${param.tpe.plainPrint} is not an Int"
-                    )
-                  case Some(value) =>
-                    Some(name -> value.as_??)
-                  case None if param.hasDefault => None
-                  case _ =>
-                    Environment.reportErrorAndAbort(
-                      s"Missing parameter for $name" +
-                      " (not default value as well)"
-                    )
-                }
-              }.toMap
-            noInstance.apply(arguments) match {
-              case Right(result) => result
-              case Left(error) =>
-                Environment.reportErrorAndAbort(
-                  s"Failed to call method $name: $error"
-                )
-            }
-          case _: Method.OfInstance[A, Int] @unchecked =>
+          case oi: Method.OnInstance =>
             Environment.reportErrorAndAbort(
-              s"Method $name is not a no-instance method"
+              s"Method $name is an instance method"
             )
-          case unsupported: Method.Unsupported[A, Int] @unchecked =>
+          case _: Method.ApplyTypes =>
             Environment.reportErrorAndAbort(
-              s"Method $name is unsupported: " +
-              unsupported.reasonForUnsupported
+              s"Method $name is type-parametric," +
+              " provide type arguments first"
+            )
+          case _ =>
+            applyArgsAndBuild(
+              method, name, params.toVector
             )
         }
       }
@@ -2289,60 +2409,44 @@ of method it is. Once we do, we need to apply the `Arguments`
               s" got ${methodName.prettyPrint}"
             )
           )
-        val method: Method[A, Int] =
+        val method: Method =
           Type[A].methods
-            .filter(_.value.name == name) match {
+            .filter(_.name == name) match {
             case Nil =>
               Environment.reportErrorAndAbort(
                 s"Method $name not found"
               )
             case method :: Nil =>
-              import method.Underlying as Returned
-              if (!(Returned <:< Type.of[Int]))
-                Environment.reportErrorAndAbort(
-                  s"Method $name returns not an Int"
-                )
-              else method.value.asInstanceOf[Method[A, Int]]
+              method.knownReturning match {
+                case Some(rt)
+                    if rt.Underlying <:< Type.of[Int] =>
+                  method
+                case _ =>
+                  Environment.reportErrorAndAbort(
+                    s"Method $name does not return Int"
+                  )
+              }
             case _ =>
               Environment.reportErrorAndAbort(
                 s"Method $name is not unique"
               )
           }
         method match {
-          case _: Method.NoInstance[Int] @unchecked =>
-            Environment.reportErrorAndAbort(s"Method $name is not an instance method")
-          case ofInstance: Method.OfInstance[A, Int] @unchecked =>
-            val providedParams = params.toVector
-            val arguments = ofInstance.parameters.flatten
-              .zipWithIndex
-              .flatMap { case ((name, param), index) =>
-                providedParams.lift(index) match {
-                  case _ if !(param.tpe.Underlying <:< Type.of[Int]) =>
-                    Environment.reportErrorAndAbort(
-                      s"Parameter $name has wrong type:" +
-                      s" ${param.tpe.plainPrint} is not an Int"
-                    )
-                  case Some(value) =>
-                    Some(name -> value.as_??)
-                  case None if param.hasDefault => None
-                  case _ =>
-                    Environment.reportErrorAndAbort(
-                      s"Missing parameter for $name" +
-                      " (not default value as well)"
-                    )
-                }
-              }.toMap
-            ofInstance.apply(instance, arguments) match {
-              case Right(result) => result
-              case Left(error) =>
-                Environment.reportErrorAndAbort(
-                  s"Failed to call method $name: $error"
-                )
-            }
-          case unsupported: Method.Unsupported[A, Int] @unchecked =>
+          case oi: Method.OnInstance =>
+            val next =
+              oi.applyUntyped(instance.asUntyped)
+            applyArgsAndBuild(
+              next, name, params.toVector
+            )
+          case _: Method.ApplyTypes =>
             Environment.reportErrorAndAbort(
-              s"Method $name is unsupported: " +
-              unsupported.reasonForUnsupported
+              s"Method $name is type-parametric," +
+              " provide type arguments first"
+            )
+          case _ =>
+            Environment.reportErrorAndAbort(
+              s"Method $name is not an" +
+              " instance method"
             )
         }
       }
@@ -2468,12 +2572,45 @@ of method it is. Once we do, we need to apply the `Arguments`
     }
     ```
 
-The methods' `apply` validates that:
+The `Result.build()` step validates that:
 
-- All required parameters are provided (it uses default values for arguments that aren't provided if they exist)
+- All required parameters were provided (it uses default values for arguments that aren't provided if they exist)
 - Argument types match parameter types
 
 and returns `Right(expr)` on success or `Left(error)` on failure.
+
+### Calling `Method`s with `fold`
+
+Instead of manually pattern-matching each builder chain step, use `method.fold` for declarative traversal:
+
+```scala
+val result: Either[String, Expr_??] = method.fold(
+  onInstance = oi => instance.as_??,
+  onTypes    = at => Map.empty,  // empty = let the compiler infer
+  onValues   = av => {
+    av.parameters.flatten.map { case (name, param) =>
+      name -> someExpr.as_??
+    }.toMap
+  }
+)
+```
+
+Each callback receives the full `Method` variant (`OnInstance`, `ApplyTypes`, or `ApplyValues`) so you can inspect
+`oi.Instance`, `at.typeParams`, `av.parameters`, etc. to decide what to provide.
+
+For effectful traversal, use `foldF` with any effect that has a `DirectStyle` instance (`Either`, `Option`, `Try`, `MIO`, etc.):
+
+```scala
+import hearth.fp.DirectStyle
+
+val result: MIO[Either[String, Expr_??]] = method.foldF[MIO](
+  onInstance = oi => MIO.pure(instance.as_??),
+  onTypes    = at => MIO.pure(Map.empty),
+  onValues   = av => for {
+    args <- resolveArguments(av.parameters)
+  } yield args
+)
+```
 
 ## `Class`
 
@@ -2498,9 +2635,9 @@ Then we would have to work with `Class[A]`, a convenient utility that aggregates
 
 | Method              | Result type                        | Description                         |
 |---------------------|------------------------------------|-------------------------------------|
-| `cls.constructors`  | `List[Method.NoInstance[MyClass]]` | all constructors                    |
-| `cls.methods`       | `List[Method.Of[MyClass]]`         | all methods                         |
-| `cls.method("foo")` | `List[Method.Of[MyClass]]`         | all overloads named "foo"           |
+| `cls.constructors`  | `List[Method]`                     | all constructors                    |
+| `cls.methods`       | `List[Method]`                     | all methods                         |
+| `cls.method("foo")` | `List[Method]`                     | all overloads named "foo"           |
 
 `Class` also provides specialized views when applicable:
 
@@ -2615,7 +2752,7 @@ Specialized view for named tuples (Scala 3.7+ only), providing access to fields 
 
 | Method                     | Result type                          | Description                   |
 |----------------------------|--------------------------------------|-------------------------------|
-| `nt.primaryConstructor`   | `Method.NoInstance[MyTuple]`         | primary constructor           |
+| `nt.primaryConstructor`   | `Method`                             | primary constructor           |
 | `nt.fields`               | `List[(String, ??)]`                 | field names and types         |
 
 !!! example "Inspecting named tuple fields"
@@ -2680,9 +2817,9 @@ Specialized view for case classes, providing access to primary constructor and c
 
 | Method                     | Result type                          | Description                   |
 |----------------------------|--------------------------------------|-------------------------------|
-| `cc.primaryConstructor`    | `Method.NoInstance[Person]`          | primary constructor           |
-| `cc.nonPrimaryConstructors`| `List[Method.NoInstance[Person]]`    | other constructors            |
-| `cc.caseFields`            | `List[Method.Of[Person]]`            | case class fields             |
+| `cc.primaryConstructor`    | `Method`                             | primary constructor           |
+| `cc.nonPrimaryConstructors`| `List[Method]`                       | other constructors            |
+| `cc.caseFields`            | `List[Method]`                       | case class fields             |
 
 !!! example "Constructing case class instances"
 
@@ -3111,9 +3248,9 @@ Specialized view for Java Beans (POJOs with default constructor and setters):
 
 | Method                      | Result type                                       | Description                |
 |-----------------------------|---------------------------------------------------|----------------------------|
-| `bean.defaultConstructor`   | `Method.NoInstance[PersonBean]`                   | nullary constructor        |
-| `bean.beanGetters`          | `List[Existential[Method.OfInstance[PersonBean, *]]]` | getter methods         |
-| `bean.beanSetters`          | `List[Method.OfInstance[PersonBean, Unit]]`       | setter methods             |
+| `bean.defaultConstructor`   | `Method`                                          | nullary constructor        |
+| `bean.beanGetters`          | `List[Method]`                                    | getter methods             |
+| `bean.beanSetters`          | `List[Method]`                                    | setter methods             |
 
 !!! example "Constructing JavaBean without setters"
 

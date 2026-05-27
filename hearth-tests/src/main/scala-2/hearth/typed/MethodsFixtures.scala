@@ -44,6 +44,23 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
     testParameterProperties[A](methodName)
 
   def testMethodOrderingImpl[A: c.WeakTypeTag]: c.Expr[Data] = testMethodOrdering[A]
+
+  def testMethodExpectationsImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
+    testMethodExpectations[A](methodName)
+
+  def testConstructorExpectationsImpl[A: c.WeakTypeTag]: c.Expr[Data] =
+    testConstructorExpectations[A]
+
+  def testMethodPrettyPrintImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
+    testMethodPrettyPrint[A](methodName)
+
+  def testCallInstanceViaFoldImpl[A: c.WeakTypeTag](instance: c.Expr[A])(methodName: c.Expr[String])(
+      params: c.Expr[Int]*
+  ): c.Expr[Data] =
+    testCallInstanceViaFold[A](instance)(methodName)(params)
+
+  def testCallConstructorViaFoldImpl[A: c.WeakTypeTag](params: c.Expr[Int]*): c.Expr[Data] =
+    testCallConstructorViaFold[A](params)
 }
 
 object MethodsFixtures {
@@ -74,4 +91,18 @@ object MethodsFixtures {
     macro MethodsFixtures.testParameterPropertiesImpl[A]
 
   def testMethodOrdering[A]: Data = macro MethodsFixtures.testMethodOrderingImpl[A]
+
+  def testMethodExpectations[A](methodName: String): Data =
+    macro MethodsFixtures.testMethodExpectationsImpl[A]
+
+  def testConstructorExpectations[A]: Data = macro MethodsFixtures.testConstructorExpectationsImpl[A]
+
+  def testMethodPrettyPrint[A](methodName: String): Data =
+    macro MethodsFixtures.testMethodPrettyPrintImpl[A]
+
+  def testCallInstanceViaFold[A](instance: A)(methodName: String)(params: Int*): Data =
+    macro MethodsFixtures.testCallInstanceViaFoldImpl[A]
+
+  def testCallConstructorViaFold[A](params: Int*): Data =
+    macro MethodsFixtures.testCallConstructorViaFoldImpl[A]
 }

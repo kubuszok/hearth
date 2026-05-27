@@ -235,6 +235,37 @@ For the complete bug-fix workflow (reproduce → fix → verify), see [Instructi
 - `quick-clean` then `quick-test` is the standard verify cycle
 - MCP supports only 1 Scala version at a time — use `sbt --client` for the other version
 
+## Key API patterns
+
+### Method API architecture
+
+The `Method` API has a layered architecture with platform-specific untyped code and shared typed code:
+
+**Untyped layer** (platform-specific):
+- `hearth/src/main/scala/hearth/untyped/UntypedMethods.scala` — shared abstract types and `UntypedMethodMethods` trait
+- `hearth/src/main/scala-2/hearth/untyped/UntypedMethodsScala2.scala` — Scala 2 implementation
+- `hearth/src/main/scala-3/hearth/untyped/UntypedMethodsScala3.scala` — Scala 3 implementation (includes `SyntheticNamedTupleConstructor`)
+
+**Typed layer** (shared):
+- `hearth/src/main/scala/hearth/typed/Methods.scala` — `Method` sealed trait with 4 variants (`OnInstance`, `ApplyTypes`, `ApplyValues`, `Result`), `buildChain`, `fold`/`foldF`, `AppliedState`
+
+**Rendering:**
+- `plainPrint`/`prettyPrint` share code via `renderSignature(instanceTpe, SyntaxHighlight)` — the `SyntaxHighlight` parameter controls ANSI coloring
+- Platform-specific `paramTypePrints(hl)` and `signatureSegments(hl)` accept the same parameter
+- `toString` includes applied-state info when the builder chain is partially consumed
+
+**Test infrastructure:**
+- `hearth-tests/src/main/scala/hearth/typed/MethodsFixturesImpl.scala` — shared fixture implementations
+- `hearth-tests/src/main/scala-2/hearth/typed/MethodsFixtures.scala` — Scala 2 macro bridges
+- `hearth-tests/src/main/scala-3/hearth/typed/MethodsFixtures.scala` — Scala 3 macro bridges
+- `hearth-tests/src/test/scala/hearth/typed/MethodsSpec.scala` — cross-platform tests
+- `hearth-tests/src/main/scala/hearth/examples/methods_overhaul.scala` — test data classes
+
+**Cross-platform considerations:**
+- `isPrivate`/`isProtected` are normalized: `private[pkg]` → `isPrivate=false`, `privateWithin=Some("pkg")`
+- Type rendering must produce identical output on Scala 2 and 3 (no `LanguageVersion` conditionals in tests)
+- Scala 3 has clause interleaving; Scala 2 does not — this is tested in `scala-newest-3` only
+
 ## Skills
 
 Are available in [contributing documentation](docs/contributing/_index.md).

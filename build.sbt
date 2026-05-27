@@ -129,8 +129,6 @@ val settings = Seq(
       // format: off
       "-encoding", "UTF-8",
       "-release", if (scalaVersion.value == versions.scala3Newest) "17" else "11", // Scala 3.8+ requires JDK 17+
-      "-rewrite",
-      "-source", "3.3-migration",
       // format: on
       "-unchecked",
       "-deprecation",
@@ -141,6 +139,8 @@ val settings = Seq(
       "-no-indent",
       "-Wconf:msg=Unreachable case:s", // suppress fake (?) errors in internal.compiletime
       "-Wconf:msg=Missing symbol position:s", // suppress warning https://github.com/scala/scala3/issues/21672
+      "-Wconf:msg=should be provided with a .using. clause:s", // suppress migration warning after removing -source 3.3-migration
+      "-Wconf:msg=with as a type operator has been deprecated:s", // suppress migration warning after removing -source 3.3-migration
       "-Wnonunit-statement",
       // "-Wunused:imports", // import x.Underlying as X is marked as unused even though it is! probably one of https://github.com/scala/scala3/issues/: #18564, #19252, #19657, #19912
       "-Wunused:privates",
