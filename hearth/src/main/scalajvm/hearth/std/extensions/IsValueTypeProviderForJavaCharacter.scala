@@ -22,13 +22,13 @@ final class IsValueTypeProviderForJavaCharacter extends StandardMacroExtension {
       private lazy val Char = Type.of[Char]
       private lazy val JCharacter = Type.of[java.lang.Character]
 
-      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Character]] = {
+      private lazy val valueOfMethod: Option[Method] = {
         implicit val jCharacter: Type[java.lang.Character] = JCharacter
         Method.methodsOf[java.lang.Character].collectFirst {
-          case Method.NoInstance(m)
-              if m.name == "valueOf" && m.isUnary &&
+          case m
+              if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Char } =>
-            m.asReturning
+            m
         }
       }
 

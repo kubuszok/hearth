@@ -22,13 +22,13 @@ final class IsValueTypeProviderForJavaFloat extends StandardMacroExtension { loa
       private lazy val Float = Type.of[Float]
       private lazy val JFloat = Type.of[java.lang.Float]
 
-      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Float]] = {
+      private lazy val valueOfMethod: Option[Method] = {
         implicit val jFloat: Type[java.lang.Float] = JFloat
         Method.methodsOf[java.lang.Float].collectFirst {
-          case Method.NoInstance(m)
-              if m.name == "valueOf" && m.isUnary &&
+          case m
+              if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Float } =>
-            m.asReturning
+            m
         }
       }
 

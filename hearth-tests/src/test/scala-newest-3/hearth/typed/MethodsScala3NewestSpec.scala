@@ -96,5 +96,28 @@ final class MethodsScala3NewestSpec extends MacroSuite {
         }
       }
     }
+
+    group("clause interleaving (SIP-47, stable since 3.6.2)") {
+
+      test("interleaved[A](a: A)[B](b: B): (A, B) — alternating NeedsTypes/NeedsValues") {
+        MethodsFixtures.testMethodExpectations[examples.methods.ClauseInterleaving]("interleaved") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("interleaved"),
+              "expectations" -> Data.list(
+                Data("NeedsInstance"),
+                Data("NeedsTypes[A]"),
+                Data("NeedsValues()"),
+                Data("NeedsTypes[B]"),
+                Data("NeedsValues()")
+              ),
+              "knownReturning" -> Data("<none>"),
+              "toString" -> Data(
+                "hearth.examples.methods.ClauseInterleaving: def interleaved[A](a: A)[B](b: B): scala.Tuple2[A, B]"
+              )
+            )
+          )
+      }
+    }
   }
 }

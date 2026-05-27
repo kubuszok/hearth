@@ -1205,6 +1205,19 @@ trait ShowCodePrettyScala2 {
           }
           print("] = ", resultType, "})#λ")
 
+        case mt: MethodType =>
+          processTypePrinting(mt.finalResultType, isLastInChain)
+        case ExistentialType(_, underlying) =>
+          underlying match {
+            case TypeRef(_, sym, args) if sym.isType && sym.owner.isClass && !sym.owner.isPackageClass =>
+              print(highlightTypeDef(sym.owner.fullName + "#" + sym.name.decodedName.toString))
+              if (args.nonEmpty) {
+                print("[")
+                printSeq(args)(processTypePrinting(_, isLastInChain = false))(print(", "))
+                print("]")
+              }
+            case _ => processTypePrinting(underlying, isLastInChain)
+          }
         case _ =>
           // $COVERAGE-OFF$ If we knew when it happens, we would handle it, so that it wouldn't happen in the first place.
           if (failOnUnsupportedTree) unsupportedType(tpe)

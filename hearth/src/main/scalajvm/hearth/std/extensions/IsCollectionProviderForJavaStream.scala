@@ -74,8 +74,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
             implicit val builderType: Type[scala.collection.mutable.Builder[Item, CtorResult]] =
               Builder[Item, CtorResult]
             val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Item, CtorResult]].collectFirst {
-              case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
-                m.value.asReturning.asInstanceOf[Method.Returning[A]]
+              case m: Method.OnInstance if m.name == "result" && m.isNullary => m
             }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Item, CtorResult]]) =>
@@ -126,8 +125,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
             implicit val builderType: Type[scala.collection.mutable.Builder[Int, CtorResult]] =
               Builder[Int, CtorResult]
             val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Int, CtorResult]].collectFirst {
-              case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
-                m.value.asReturning.asInstanceOf[Method.Returning[A]]
+              case m: Method.OnInstance if m.name == "result" && m.isNullary => m
             }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Int, CtorResult]]) => Expr.quote(Expr.splice(expr).result()),
@@ -177,8 +175,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
             implicit val builderType: Type[scala.collection.mutable.Builder[Long, CtorResult]] =
               Builder[Long, CtorResult]
             val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Long, CtorResult]].collectFirst {
-              case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
-                m.value.asReturning.asInstanceOf[Method.Returning[A]]
+              case m: Method.OnInstance if m.name == "result" && m.isNullary => m
             }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Long, CtorResult]]) =>
@@ -230,8 +227,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
               Builder[Double, CtorResult]
             val resultMethod =
               Method.methodsOf[scala.collection.mutable.Builder[Double, CtorResult]].collectFirst {
-                case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
-                  m.value.asReturning.asInstanceOf[Method.Returning[A]]
+                case m: Method.OnInstance if m.name == "result" && m.isNullary => m
               }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Double, CtorResult]]) =>

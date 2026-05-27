@@ -10,6 +10,21 @@ import scala.collection.immutable.ListMap
 
 trait Classes { this: MacroCommons =>
 
+  private def applyAndBuild(method: Method, arguments: Arguments): Either[String, Expr_??] =
+    method match {
+      case av: Method.ApplyValues =>
+        av.apply(arguments) match {
+          case r: Method.Result[?] =>
+            import r.Returned
+            r.build().map(_.as_??)
+          case other => Left(s"Unexpected step after ApplyValues: ${other.getClass.getSimpleName}")
+        }
+      case r: Method.Result[?] =>
+        import r.Returned
+        r.build().map(_.as_??)
+      case other => Left(s"Expected ApplyValues or Result, got ${other.getClass.getSimpleName}")
+    }
+
   /** Represents a class.
     *
     * It's a convenient utility around the [[Type]] to compute: methods, constructors, parameters, their types, etc.
@@ -19,9 +34,9 @@ trait Classes { this: MacroCommons =>
     */
   class Class[A]()(implicit val tpe: Type[A]) {
 
-    final lazy val constructors: List[Method.NoInstance[A]] = tpe.constructors
-    final lazy val methods: List[Method.Of[A]] = tpe.methods
-    final def method(name: String): List[Method.Of[A]] = methods.filter(_.value.name == name)
+    final lazy val constructors: List[Method] = tpe.constructors
+    final lazy val methods: List[Method] = tpe.methods
+    final def method(name: String): List[Method] = methods.filter(_.name == name)
 
     final def asSingleton: Option[SingletonValue[A]] = SingletonValue.unapply(tpe)
     final def asNamedTuple: Option[NamedTuple[A]] = NamedTuple.unapply(tpe)
@@ -127,12 +142,12 @@ trait Classes { this: MacroCommons =>
     */
   final class NamedTuple[A] private (
       tpe0: Type[A],
-      private val primaryConstructor0: Method.NoInstance[A]
+      private val primaryConstructor0: Method
   ) extends Class[A]()(using tpe0) {
 
-    val primaryConstructor: Method.NoInstance[A] = primaryConstructor0
+    val primaryConstructor: Method = primaryConstructor0
 
-    lazy val fields: List[(String, ??)] = primaryConstructor.parameters.flatten.toList.map { case (name, param) =>
+    lazy val fields: List[(String, ??)] = primaryConstructor.totalParameters.flatten.toList.map { case (name, param) =>
       name -> param.tpe
     }
 
@@ -144,16 +159,18 @@ trait Classes { this: MacroCommons =>
       else
         DirectStyle[F].scoped { runSafe =>
           val fieldResults = runSafe(
-            primaryConstructor.parameters.flatten.toList.traverse { case (name, parameter) =>
+            primaryConstructor.totalParameters.flatten.toList.traverse { case (name, parameter) =>
               DirectStyle[F].scoped { runSafe2 =>
                 import parameter.tpe.Underlying
                 name -> runSafe2(makeArgument(parameter)).as_??
               }
             }
           )
-          primaryConstructor(fieldResults.toMap) match {
-            case Right(value) => Some(value)
-            case Left(error)  =>
+          applyAndBuild(primaryConstructor, fieldResults.toMap) match {
+            case Right(value) =>
+              import value.Underlying
+              Some(value.value.upcast[A])
+            case Left(error) =>
               throw new AssertionError(s"Failed to call the primary constructor of ${tpe.prettyPrint}: $error")
           }
         }
@@ -197,18 +214,18 @@ trait Classes { this: MacroCommons =>
     */
   final class CaseClass[A] private (
       tpe0: Type[A],
-      private val primaryConstructor0: Method.NoInstance[A]
+      private val primaryConstructor0: Method
   ) extends Class[A]()(using tpe0) {
 
     /** The primary constructor.
       *
       * @since 0.1.0
       */
-    val primaryConstructor: Method.NoInstance[A] = primaryConstructor0
+    val primaryConstructor: Method = primaryConstructor0
 
-    lazy val nonPrimaryConstructors: List[Method.NoInstance[A]] =
+    lazy val nonPrimaryConstructors: List[Method] =
       constructors.filter(_ != primaryConstructor)
-    lazy val caseFields: List[Method.Of[A]] = methods.filter(_.value.isCaseField)
+    lazy val caseFields: List[Method] = methods.filter(_.isCaseField)
 
     def construct[F[_]: DirectStyle: Applicative](
         makeArgument: CaseClass.ConstructField[F],
@@ -217,7 +234,7 @@ trait Classes { this: MacroCommons =>
       if (!primaryConstructor.isAvailable(visibility)) Option.empty[Expr[A]].pure[F]
       else
         callConstructor(primaryConstructor)(
-          primaryConstructor.parameters.flatten.toList.traverse(buildFieldResults(makeArgument))
+          primaryConstructor.totalParameters.flatten.toList.traverse(buildFieldResults(makeArgument))
         )
     def construct[F[_]: DirectStyle: Applicative](makeArgument: Parameter => F[Expr_??]): F[Option[Expr[A]]] =
       construct(CaseClass.ConstructField.apply[F](makeArgument))
@@ -229,7 +246,7 @@ trait Classes { this: MacroCommons =>
       if (!primaryConstructor.isAvailable(visibility)) Option.empty[Expr[A]].pure[F]
       else
         callConstructor(primaryConstructor)(
-          primaryConstructor.parameters.flatten.toList.parTraverse(buildFieldResults(makeArgument))
+          primaryConstructor.totalParameters.flatten.toList.parTraverse(buildFieldResults(makeArgument))
         )
     def parConstruct[F[_]: DirectStyle: Parallel](makeArgument: Parameter => F[Expr_??]): F[Option[Expr[A]]] =
       parConstruct(CaseClass.ConstructField.apply[F](makeArgument))
@@ -244,12 +261,14 @@ trait Classes { this: MacroCommons =>
     }
 
     private def callConstructor[F[_]: DirectStyle](
-        ctor: Method.NoInstance[A]
+        ctor: Method
     )(fieldResults: F[List[(String, Expr_??)]]): F[Option[Expr[A]]] =
       DirectStyle[F].scoped { runSafe =>
-        ctor(runSafe(fieldResults).toMap) match {
-          case Right(value) => Some(value)
-          case Left(error)  =>
+        applyAndBuild(ctor, runSafe(fieldResults).toMap) match {
+          case Right(value) =>
+            import value.Underlying
+            Some(value.value.upcast[A])
+          case Left(error) =>
             throw new AssertionError(s"Failed to call the primary constructor of ${tpe.prettyPrint}: $error")
         }
       }
@@ -257,15 +276,23 @@ trait Classes { this: MacroCommons =>
     def caseFieldValuesAt(
         instance: Expr[A],
         visibility: Accessible = Everywhere
-    ): ListMap[String, Expr_??] = ListMap.from(caseFields.filter(_.value.isAvailable(visibility)).map { field =>
-      (field.value match {
-        case method: Method.OfInstance[A, ?] if method.isNullary =>
-          import method.Returned
-          method(instance = instance, arguments = Map.empty) match {
-            case Right(value) => method.name -> value.as_??
-            case Left(error)  =>
+    ): ListMap[String, Expr_??] = ListMap.from(caseFields.filter(_.isAvailable(visibility)).map { field =>
+      (field match {
+        case oi: Method.OnInstance if field.isNullary =>
+          val afterInstance = oi.apply(instance.asInstanceOf[Expr[oi.Instance]])
+          afterInstance match {
+            case r: Method.Result[?] =>
+              import r.Returned
+              r.build() match {
+                case Right(value) => field.name -> value.as_??
+                case Left(error)  =>
+                  throw new AssertionError(
+                    s"Failed to get the value of the field ${field.name} of ${tpe.prettyPrint}: $error"
+                  )
+              }
+            case other =>
               throw new AssertionError(
-                s"Failed to get the value of the field ${field.value.name} of ${tpe.prettyPrint}: $error"
+                s"Unexpected step after OnInstance for field ${field.name} of ${tpe.prettyPrint}: ${other.getClass.getSimpleName}"
               )
           }
         case method =>
@@ -445,33 +472,21 @@ trait Classes { this: MacroCommons =>
     */
   final class JavaBean[A] private (
       tpe0: Type[A],
-      val defaultConstructor: Method.NoInstance[A]
+      val defaultConstructor: Method
   ) extends Class[A]()(using tpe0) {
 
-    lazy val beanGetters: List[Existential[Method.OfInstance[A, *]]] = methods
-      .collect {
-        case getter if getter.value.isJavaGetter => getter.value.asInstanceOf[Method[A, ?]]
-      }
-      .collect { case getter: Method.OfInstance[A, ?] @unchecked =>
-        Existential[Method.OfInstance[A, *], getter.Returned](getter)(using getter.Returned)
-      }
-    lazy val beanSetters: List[Method.OfInstance[A, Unit]] = methods
-      .collect {
-        case setter if setter.value.isJavaSetter => setter.value.asInstanceOf[Method[A, Unit]]
-      }
-      .collect { case setter: Method.OfInstance[A, Unit] @unchecked =>
-        setter
-      }
+    lazy val beanGetters: List[Method] = methods.filter(_.isJavaGetter)
+    lazy val beanSetters: List[Method] = methods.filter(_.isJavaSetter)
 
     def constructWithoutSetters(visibility: Accessible = Everywhere): Option[Expr[A]] =
       if (!defaultConstructor.isAvailable(visibility)) Option.empty[Expr[A]]
-      else
-        Some(
-          defaultConstructor
-            .apply(Map.empty)
+      else {
+        val result =
+          applyAndBuild(defaultConstructor, Map.empty)
             .getOrElse(throw new AssertionError(s"Failed to call the default constructor of ${tpe.prettyPrint}"))
-            .upcast[A]
-        )
+        import result.Underlying
+        Some(result.value.upcast[A])
+      }
 
     def constructWithSetters[F[_]: DirectStyle: Applicative](
         setField: JavaBean.SetField[F],
@@ -512,15 +527,23 @@ trait Classes { this: MacroCommons =>
       constructWithSetters(JavaBean.SetField.apply[F](setField))
 
     private def applySetters[F[_]: DirectStyle](constructorResult: Expr[A], setField: JavaBean.SetField[F])(
-        setter: Method.OfInstance[A, Unit]
+        setter: Method
     ): F[Expr[Unit]] = {
-      val (name, param) = setter.parameters.flatten.head
-      import setter.Returned
+      val (name, param) = setter.totalParameters.flatten.head
       import param.tpe.Underlying
       DirectStyle[F].scoped { runSafe =>
         val value = runSafe(setField(name, param))
-        setter.apply(constructorResult, Map(name -> value.as_??)) match {
-          case Right(unit) => unit.upcast(using Returned, Type.of[Unit])
+        val afterInstance = setter match {
+          case oi: Method.OnInstance => oi.apply(constructorResult.asInstanceOf[Expr[oi.Instance]])
+          case other                 =>
+            throw new AssertionError(
+              s"Setter ${setter.name} of ${tpe.prettyPrint} is not an instance method: ${other.getClass.getSimpleName}"
+            )
+        }
+        applyAndBuild(afterInstance, Map(name -> value.as_??)) match {
+          case Right(unitResult) =>
+            import unitResult.Underlying as UnitType
+            unitResult.value.upcast(using implicitly[Type[UnitType]], Type.of[Unit])
           case Left(error) =>
             throw new AssertionError(
               s"Failed to call the setter ${setter.name} of ${tpe.prettyPrint}: $error"

@@ -1537,4 +1537,430 @@ final class MethodsSpec extends MacroSuite {
       }
     }
   }
+
+  group("expectations and builder chain") {
+
+    group("nullary methods") {
+
+      test("nullaryNoParamList") {
+        MethodsFixtures.testMethodExpectations[examples.methods.NullaryMethods]("nullaryNoParamList") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("nullaryNoParamList"),
+              "expectations" -> Data.list(Data("NeedsInstance")),
+              "knownReturning" -> Data("scala.Int"),
+              "toString" -> Data("hearth.examples.methods.NullaryMethods: def nullaryNoParamList: scala.Int")
+            )
+          )
+      }
+
+      test("nullaryEmptyParamList") {
+        MethodsFixtures.testMethodExpectations[examples.methods.NullaryMethods]("nullaryEmptyParamList") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("nullaryEmptyParamList"),
+              "expectations" -> Data.list(Data("NeedsInstance"), Data("NeedsValues()")),
+              "knownReturning" -> Data("scala.Int"),
+              "toString" -> Data("hearth.examples.methods.NullaryMethods: def nullaryEmptyParamList(): scala.Int")
+            )
+          )
+      }
+    }
+
+    group("non-nullary methods") {
+
+      test("singleParamList") {
+        MethodsFixtures.testMethodExpectations[examples.methods.MultiParamListMethods]("singleParamList") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("singleParamList"),
+              "expectations" -> Data.list(
+                Data("NeedsInstance"),
+                Data("NeedsValues(arg1: scala.Int, arg2: java.lang.String)")
+              ),
+              "knownReturning" -> Data("scala.Boolean"),
+              "toString" -> Data(
+                "hearth.examples.methods.MultiParamListMethods: def singleParamList(arg1: scala.Int, arg2: java.lang.String): scala.Boolean"
+              )
+            )
+          )
+      }
+
+      test("multiParamList") {
+        MethodsFixtures.testMethodExpectations[examples.methods.MultiParamListMethods]("multiParamList") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("multiParamList"),
+              "expectations" -> Data.list(
+                Data("NeedsInstance"),
+                Data("NeedsValues(arg1: scala.Int)(arg2: java.lang.String)")
+              ),
+              "knownReturning" -> Data("scala.Boolean"),
+              "toString" -> Data(
+                "hearth.examples.methods.MultiParamListMethods: def multiParamList(arg1: scala.Int)(arg2: java.lang.String): scala.Boolean"
+              )
+            )
+          )
+      }
+    }
+
+    group("type-parametric methods") {
+
+      test("parametric1") {
+        MethodsFixtures.testMethodExpectations[examples.methods.Parametric]("parametric1") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("parametric1"),
+              "expectations" -> Data.list(
+                Data("NeedsInstance"),
+                Data("NeedsTypes[A]"),
+                Data("NeedsValues()")
+              ),
+              "knownReturning" -> Data("<none>"),
+              "toString" -> Data(
+                "hearth.examples.methods.Parametric: def parametric1[A]" +
+                  "(a: " + "A" +
+                  "): scala.collection.immutable.List[" +
+                  "A" + "]"
+              )
+            )
+          )
+      }
+    }
+
+    group("generic class methods") {
+
+      test("method on GenericClass[Int, String] has resolved parameter types") {
+        MethodsFixtures.testMethodExpectations[examples.methods.GenericClass[Int, String]]("method") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("method"),
+              "expectations" -> Data.list(
+                Data("NeedsInstance"),
+                Data("NeedsValues(x: scala.Int, y: java.lang.String)")
+              ),
+              "knownReturning" -> Data("java.lang.String"),
+              "toString" -> Data(
+                "hearth.examples.methods.GenericClass[scala.Int, java.lang.String]: def method(x: scala.Int, y: java.lang.String): java.lang.String"
+              )
+            )
+          )
+      }
+    }
+
+    group("constructors") {
+
+      test("SimpleConstructor") {
+        MethodsFixtures.testConstructorExpectations[examples.methods.SimpleConstructor] <==>
+          Data.list(
+            Data.map(
+              "expectations" -> Data.list(Data("NeedsValues(a: scala.Int, b: java.lang.String)")),
+              "knownReturning" -> Data("hearth.examples.methods.SimpleConstructor"),
+              "toString" -> Data("new hearth.examples.methods.SimpleConstructor(a: scala.Int, b: java.lang.String)")
+            )
+          )
+      }
+    }
+
+    group("path-dependent return type") {
+
+      test("pathDepResult with resolved type alias") {
+        val innerTypeName = "hearth.examples.methods.PathDepReturn#Inner"
+        MethodsFixtures.testMethodExpectations[examples.methods.PathDepReturn]("pathDepResult") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("pathDepResult"),
+              "expectations" -> Data.list(
+                Data("NeedsInstance"),
+                Data(s"NeedsValues(arg: $innerTypeName)")
+              ),
+              "knownReturning" -> Data("java.lang.String"),
+              "toString" -> Data(
+                s"hearth.examples.methods.PathDepReturn: def pathDepResult(arg: $innerTypeName): java.lang.String"
+              )
+            )
+          )
+      }
+    }
+
+    group("path-dependent arguments") {
+
+      test("pathDep1(arg)(arg2: arg.Inner) - resolved type alias") {
+        val wrapperType = "hearth.examples.methods.PathDepArgs#Wrapper"
+        MethodsFixtures.testMethodExpectations[examples.methods.PathDepArgs]("pathDep1") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("pathDep1"),
+              "expectations" -> Data.list(
+                Data("NeedsInstance"),
+                Data(s"NeedsValues(arg: $wrapperType)(arg2: scala.Int)")
+              ),
+              "knownReturning" -> Data("java.lang.String"),
+              "toString" -> Data(
+                s"hearth.examples.methods.PathDepArgs: def pathDep1(arg: $wrapperType)(arg2: scala.Int): java.lang.String"
+              )
+            )
+          )
+      }
+
+      test("pathDep2(arg)(arg2)(arg3) - all params in one NeedsValues") {
+        val wrapperType = "hearth.examples.methods.PathDepArgs#Wrapper"
+        MethodsFixtures.testMethodExpectations[examples.methods.PathDepArgs]("pathDep2") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("pathDep2"),
+              "expectations" -> Data.list(
+                Data("NeedsInstance"),
+                Data(s"NeedsValues(arg: $wrapperType)(arg2: scala.Int)(arg3: java.lang.String)")
+              ),
+              "knownReturning" -> Data("scala.Boolean"),
+              "toString" -> Data(
+                s"hearth.examples.methods.PathDepArgs: def pathDep2(arg: $wrapperType)(arg2: scala.Int)(arg3: java.lang.String): scala.Boolean"
+              )
+            )
+          )
+      }
+
+      test("pathDep3(arg)(arg2)(arg3)(arg4) - four param lists") {
+        val w1Type =
+          "hearth.examples.methods.PathDepArgs2#W1"
+        val w2Type =
+          "hearth.examples.methods.PathDepArgs2#W2"
+        MethodsFixtures.testMethodExpectations[examples.methods.PathDepArgs2]("pathDep3") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("pathDep3"),
+              "expectations" -> Data.list(
+                Data("NeedsInstance"),
+                Data(s"NeedsValues(arg: $w1Type)(arg2: scala.Int)(arg3: $w2Type)(arg4: java.lang.String)")
+              ),
+              "knownReturning" -> Data("scala.Boolean"),
+              "toString" -> Data(
+                s"hearth.examples.methods.PathDepArgs2: def pathDep3(arg: $w1Type)(arg2: scala.Int)(arg3: $w2Type)(arg4: java.lang.String): scala.Boolean"
+              )
+            )
+          )
+      }
+    }
+
+    group("generic constructors") {
+
+      test("GenericCtor[Int] constructor") {
+        MethodsFixtures.testConstructorExpectations[examples.methods.GenericCtor[Int]] <==>
+          Data.list(
+            Data.map(
+              "expectations" -> Data.list(Data("NeedsValues(value: scala.Int)")),
+              "knownReturning" -> Data("hearth.examples.methods.GenericCtor[scala.Int]"),
+              "toString" -> Data("new hearth.examples.methods.GenericCtor[scala.Int](value: scala.Int)")
+            )
+          )
+      }
+    }
+
+    group("more type-parametric methods") {
+
+      test("parametric2[A](a: A): A - type param in return type means knownReturning is None") {
+        MethodsFixtures.testMethodExpectations[examples.methods.Parametric]("parametric2") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("parametric2"),
+              "expectations" -> Data.list(Data("NeedsInstance"), Data("NeedsTypes[A]"), Data("NeedsValues()")),
+              "knownReturning" -> Data("<none>"),
+              "toString" -> Data(
+                "hearth.examples.methods.Parametric: def parametric2[A]" +
+                  "(a: " + "A" +
+                  "): " + "A"
+              )
+            )
+          )
+      }
+
+      test("parametricBounded[A <: Comparable[A]]") {
+        MethodsFixtures.testMethodExpectations[examples.methods.Parametric]("parametricBounded") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("parametricBounded"),
+              "expectations" -> Data.list(
+                Data("NeedsInstance"),
+                Data("NeedsTypes[A <: java.lang.Comparable[A]]"),
+                Data("NeedsValues()")
+              ),
+              "knownReturning" -> Data("<none>"),
+              "toString" -> Data(
+                "hearth.examples.methods.Parametric: def parametricBounded[A <: java.lang.Comparable[A]]" +
+                  "(a: " + "A" +
+                  "): " + "A"
+              )
+            )
+          )
+      }
+    }
+
+    group("default constructors") {
+
+      test("DefaultConstructor with default values") {
+        MethodsFixtures.testConstructorExpectations[examples.methods.DefaultConstructor] <==>
+          Data.list(
+            Data.map(
+              "expectations" -> Data.list(Data("NeedsValues(a: scala.Int, b: java.lang.String)")),
+              "knownReturning" -> Data("hearth.examples.methods.DefaultConstructor"),
+              "toString" -> Data(
+                "new hearth.examples.methods.DefaultConstructor(a: scala.Int = <default>, b: java.lang.String = <default>)"
+              )
+            )
+          )
+      }
+    }
+
+    group("nullary instance methods on generic class") {
+
+      test("swap on GenericClass[Int, String] returns GenericClass[String, Int]") {
+        MethodsFixtures.testMethodExpectations[examples.methods.GenericClass[Int, String]]("swap") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("swap"),
+              "expectations" -> Data.list(Data("NeedsInstance")),
+              "knownReturning" -> Data("hearth.examples.methods.GenericClass[java.lang.String, scala.Int]"),
+              "toString" -> Data(
+                "hearth.examples.methods.GenericClass[scala.Int, java.lang.String]: def swap: hearth.examples.methods.GenericClass[java.lang.String, scala.Int]"
+              )
+            )
+          )
+      }
+    }
+
+    group("higher-kinded type params") {
+
+      test("higherKinded[F[_]](a: F[String]): F[String]") {
+        MethodsFixtures.testMethodExpectations[examples.methods.HigherKinded]("higherKinded") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("higherKinded"),
+              "expectations" -> Data.list(
+                Data("NeedsInstance"),
+                Data("NeedsTypes[F]"),
+                Data("NeedsValues()")
+              ),
+              "knownReturning" -> Data("<none>"),
+              "toString" -> Data(
+                "hearth.examples.methods.HigherKinded: def higherKinded[F](a: F[java.lang.String]): F[java.lang.String]"
+              )
+            )
+          )
+      }
+    }
+
+    group("implicit params") {
+
+      test("withImplicit(a: Int)(implicit b: String): String") {
+        val knownRet = "java.lang.String"
+        MethodsFixtures.testMethodExpectations[examples.methods.WithImplicitParam]("withImplicit") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("withImplicit"),
+              "expectations" -> Data.list(
+                Data("NeedsInstance"),
+                Data("NeedsValues(a: scala.Int)(b: java.lang.String)")
+              ),
+              "knownReturning" -> Data(knownRet),
+              "toString" -> Data(
+                "hearth.examples.methods.WithImplicitParam: def withImplicit(a: scala.Int)(b: java.lang.String): java.lang.String"
+              )
+            )
+          )
+      }
+    }
+
+    group("method calling via fold") {
+
+      test("nullary — nullaryNoParamList returns 42") {
+        MethodsFixtures.testCallInstanceViaFold(new examples.methods.NullaryMethods)("nullaryNoParamList")() <==>
+          Data("42")
+      }
+
+      test("nullary — nullaryEmptyParamList() returns 42") {
+        MethodsFixtures.testCallInstanceViaFold(new examples.methods.NullaryMethods)("nullaryEmptyParamList")() <==>
+          Data("42")
+      }
+
+      test("singleParamList(1, test) returns true") {
+        MethodsFixtures.testCallInstanceViaFold(new examples.methods.MultiParamListMethods)("singleParamList")(1) <==>
+          Data("true")
+      }
+
+      test("multiParamList(1)(test) returns true") {
+        MethodsFixtures.testCallInstanceViaFold(new examples.methods.MultiParamListMethods)("multiParamList")(1) <==>
+          Data("true")
+      }
+
+      test("construct SimpleConstructor(1, test) via fold") {
+        val result = MethodsFixtures.testCallConstructorViaFold[examples.methods.SimpleConstructor](1)
+        val str = result.asString.get
+        assert(!str.startsWith("FAILED"), s"Constructor should succeed: $str")
+        assert(str.contains("SimpleConstructor"), s"Result should be a SimpleConstructor: $str")
+      }
+
+      test("construct DefaultConstructor(1) with defaults via fold") {
+        val result = MethodsFixtures.testCallConstructorViaFold[examples.methods.DefaultConstructor](1)
+        val str = result.asString.get
+        assert(!str.startsWith("FAILED"), s"Constructor should succeed: $str")
+        assert(str.contains("DefaultConstructor"), s"Result should be a DefaultConstructor: $str")
+      }
+
+      test("construct GenericCtor[Int](42) via fold") {
+        val result = MethodsFixtures.testCallConstructorViaFold[examples.methods.GenericCtor[Int]](42)
+        val str = result.asString.get
+        assert(!str.startsWith("FAILED"), s"Constructor should succeed: $str")
+        assert(str.contains("GenericCtor"), s"Result should be a GenericCtor: $str")
+      }
+    }
+
+    group("prettyPrint (ANSI coloring)") {
+
+      test("prettyPrint stripped of ANSI equals plainPrint — nullary") {
+        val data =
+          MethodsFixtures.testMethodPrettyPrint[examples.methods.NullaryMethods]("nullaryNoParamList")
+        val map = data.asList.get.head.asMap.get
+        val plain = map("plainPrint").asString.get
+        val stripped = map("prettyPrintStripped").asString.get
+        assert(stripped == plain, s"stripped: $stripped\nplain:    $plain")
+      }
+
+      test("prettyPrint stripped of ANSI equals plainPrint — multi param list") {
+        val data =
+          MethodsFixtures.testMethodPrettyPrint[examples.methods.MultiParamListMethods]("multiParamList")
+        val map = data.asList.get.head.asMap.get
+        val plain = map("plainPrint").asString.get
+        val stripped = map("prettyPrintStripped").asString.get
+        assert(stripped == plain, s"stripped: $stripped\nplain:    $plain")
+      }
+
+      test("prettyPrint stripped of ANSI equals plainPrint — type parametric with bounds") {
+        val data =
+          MethodsFixtures.testMethodPrettyPrint[examples.methods.Parametric]("parametricBounded")
+        val map = data.asList.get.head.asMap.get
+        val plain = map("plainPrint").asString.get
+        val stripped = map("prettyPrintStripped").asString.get
+        assert(stripped == plain, s"stripped: $stripped\nplain:    $plain")
+      }
+
+      test("prettyPrint stripped of ANSI equals plainPrint — higher kinded") {
+        val data =
+          MethodsFixtures.testMethodPrettyPrint[examples.methods.HigherKinded]("higherKinded")
+        val map = data.asList.get.head.asMap.get
+        val plain = map("plainPrint").asString.get
+        val stripped = map("prettyPrintStripped").asString.get
+        assert(stripped == plain, s"stripped: $stripped\nplain:    $plain")
+      }
+
+      test("prettyPrint contains ANSI escape codes") {
+        val data =
+          MethodsFixtures.testMethodPrettyPrint[examples.methods.NullaryMethods]("nullaryNoParamList")
+        val map = data.asList.get.head.asMap.get
+        val prettyPrint = map("prettyPrint").asString.get
+        val plainPrint = map("plainPrint").asString.get
+        assert(prettyPrint != plainPrint, "prettyPrint should contain ANSI codes and differ from plainPrint")
+      }
+    }
+  }
 }

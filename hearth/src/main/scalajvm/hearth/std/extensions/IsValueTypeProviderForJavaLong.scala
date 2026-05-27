@@ -22,13 +22,13 @@ final class IsValueTypeProviderForJavaLong extends StandardMacroExtension { load
       private lazy val Long = Type.of[Long]
       private lazy val JLong = Type.of[java.lang.Long]
 
-      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Long]] = {
+      private lazy val valueOfMethod: Option[Method] = {
         implicit val jLong: Type[java.lang.Long] = JLong
         Method.methodsOf[java.lang.Long].collectFirst {
-          case Method.NoInstance(m)
-              if m.name == "valueOf" && m.isUnary &&
+          case m
+              if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Long } =>
-            m.asReturning
+            m
         }
       }
 

@@ -22,13 +22,13 @@ final class IsValueTypeProviderForJavaDouble extends StandardMacroExtension { lo
       private lazy val Double = Type.of[Double]
       private lazy val JDouble = Type.of[java.lang.Double]
 
-      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Double]] = {
+      private lazy val valueOfMethod: Option[Method] = {
         implicit val jDouble: Type[java.lang.Double] = JDouble
         Method.methodsOf[java.lang.Double].collectFirst {
-          case Method.NoInstance(m)
-              if m.name == "valueOf" && m.isUnary &&
+          case m
+              if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Double } =>
-            m.asReturning
+            m
         }
       }
 
