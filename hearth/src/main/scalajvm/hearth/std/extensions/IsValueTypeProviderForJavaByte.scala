@@ -22,13 +22,13 @@ final class IsValueTypeProviderForJavaByte extends StandardMacroExtension { load
       private lazy val Byte = Type.of[Byte]
       private lazy val JByte = Type.of[java.lang.Byte]
 
-      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Byte]] = {
+      private lazy val valueOfMethod: Option[Method] = {
         implicit val jByte: Type[java.lang.Byte] = JByte
         Method.methodsOf[java.lang.Byte].collectFirst {
-          case Method.NoInstance(m)
-              if m.name == "valueOf" && m.isUnary &&
+          case m
+              if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Byte } =>
-            m.asReturning
+            m
         }
       }
 

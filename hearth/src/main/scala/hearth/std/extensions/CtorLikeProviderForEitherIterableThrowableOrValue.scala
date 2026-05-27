@@ -28,7 +28,7 @@ final class CtorLikeProviderForEitherIterableThrowableOrValue extends StandardMa
           extractCtorLikesResult[A, Result[A]](new CtorBuilder[A, Result[A]] {
             def apply[Input: Type](
                 ctor: Expr[Input] => Expr[Result[A]],
-                method: Method.Returning[Result[A]]
+                method: Method
             ): CtorLikeOf[Input, A] =
               EitherIterableThrowableOrValue[Input, A](ctor, Some(method))
           })

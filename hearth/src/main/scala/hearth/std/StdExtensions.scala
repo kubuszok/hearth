@@ -76,7 +76,7 @@ trait StdExtensions { this: MacroCommons =>
     val Result: Type.Ctor1[Result]
 
     val ctor: Expr[Input] => Expr[Result[Output]]
-    val method: Option[Method.Returning[Result[Output]]]
+    val method: Option[Method]
 
     def apply(input: Expr[Input]): Expr[Result[Output]] = ctor(input)
   }
@@ -84,7 +84,7 @@ trait StdExtensions { this: MacroCommons =>
 
     final case class PlainValue[Input, Output](
         ctor: Expr[Input] => Expr[Output],
-        method: Option[Method.Returning[Output]]
+        method: Option[Method]
     ) extends CtorLikeOf[Input, Output] {
 
       // $COVERAGE-OFF$
@@ -106,7 +106,7 @@ trait StdExtensions { this: MacroCommons =>
 
     final case class EitherStringOrValue[Input, Output](
         ctor: Expr[Input] => Expr[Either[String, Output]],
-        method: Option[Method.Returning[Either[String, Output]]]
+        method: Option[Method]
     ) extends CtorLikeOf[Input, Output] {
 
       // $COVERAGE-OFF$
@@ -122,7 +122,7 @@ trait StdExtensions { this: MacroCommons =>
 
     final case class EitherIterableStringOrValue[Input, Output](
         ctor: Expr[Input] => Expr[Either[Iterable[String], Output]],
-        method: Option[Method.Returning[Either[Iterable[String], Output]]]
+        method: Option[Method]
     ) extends CtorLikeOf[Input, Output] {
 
       // $COVERAGE-OFF$
@@ -138,7 +138,7 @@ trait StdExtensions { this: MacroCommons =>
 
     final case class EitherThrowableOrValue[Input, Output](
         ctor: Expr[Input] => Expr[Either[Throwable, Output]],
-        method: Option[Method.Returning[Either[Throwable, Output]]]
+        method: Option[Method]
     ) extends CtorLikeOf[Input, Output] {
 
       // $COVERAGE-OFF$
@@ -154,7 +154,7 @@ trait StdExtensions { this: MacroCommons =>
 
     final case class EitherIterableThrowableOrValue[Input, Output](
         ctor: Expr[Input] => Expr[Either[Iterable[Throwable], Output]],
-        method: Option[Method.Returning[Either[Iterable[Throwable], Output]]]
+        method: Option[Method]
     ) extends CtorLikeOf[Input, Output] {
 
       // $COVERAGE-OFF$
@@ -205,7 +205,7 @@ trait StdExtensions { this: MacroCommons =>
     trait CtorBuilder[Output, Result] {
       def apply[Input: Type](
           ctor: Expr[Input] => Expr[Result],
-          method: Method.Returning[Result]
+          method: Method
       ): CtorLikeOf[Input, Output]
     }
 
@@ -226,28 +226,38 @@ trait StdExtensions { this: MacroCommons =>
         buildCtor: CtorBuilder[Output, Result]
     ): List[Existential[CtorLikeOf[*, Output]]] = {
       // Constructors of the type itself
-      val plainCtors: List[Method.NoInstance[?]] =
-        if (Type[Output] <:< Type[Result]) Type[Output].constructors.asInstanceOf[List[Method.NoInstance[?]]]
+      val plainCtors: List[Method] =
+        if (Type[Output] <:< Type[Result]) Type[Output].constructors
         else Nil
 
-      // NoInstance methods from the type (for case objects, etc.)
-      val noInstanceMethods: List[Method.NoInstance[?]] = Type[Output].methods.collect {
-        case method if method.value.isInstanceOf[Method.NoInstance[?]] =>
-          method.value.asInstanceOf[Method.NoInstance[?]]
+      // Non-instance methods from the type (for case objects, etc.)
+      val noInstanceMethods: List[Method] = Type[Output].methods.filter {
+        case _: Method.OnInstance => false
+        case _                    => true
       }
 
-      // Process constructors and noInstance methods
+      // Process constructors and non-instance methods
       (plainCtors ++ noInstanceMethods).collect {
-        case mi: Method.NoInstance[?] if mi.isUnary && mi.Returned <:< Type[Result] =>
-          val method = mi.asInstanceOf[Method.NoInstance[Result]]
-          val (paramName, param) = mi.parameters.flatten.head
+        case method if method.isUnary && method.knownReturning.exists { rt =>
+              import rt.Underlying as R
+              Type[R] <:< Type[Result]
+            } =>
+          val (paramName, param) = method.parameters.flatten.head
           import param.tpe.Underlying as Input
           def applyMiInput(input: Expr[Input]): Expr[Result] =
-            method(Map(paramName -> input.as_??)) match {
-              case Right(ex) => ex
-              case Left(err) => hearthAssertionFailed(err.toString)
+            method match {
+              case av: Method.ApplyValues =>
+                av(Map(paramName -> input.as_??)) match {
+                  case r: Method.Result[?] =>
+                    r.build() match {
+                      case Right(ex) => ex.asInstanceOf[Expr[Result]]
+                      case Left(err) => hearthAssertionFailed(err.toString)
+                    }
+                  case other => hearthAssertionFailed(s"Expected Result after ApplyValues, got $other")
+                }
+              case other => hearthAssertionFailed(s"Expected ApplyValues for unary method, got $other")
             }
-          Existential[CtorLikeOf[*, Output], Input](buildCtor[Input](applyMiInput, method.asReturning))
+          Existential[CtorLikeOf[*, Output], Input](buildCtor[Input](applyMiInput, method))
       }
     }
   }

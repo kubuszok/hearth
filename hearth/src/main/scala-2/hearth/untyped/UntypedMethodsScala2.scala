@@ -38,25 +38,80 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       val instanceTpe = UntypedType.fromTyped[Instance]
       lazy val method = untyped.head.head._2.method // If params are empty it would throw... unless we don't use it.
 
-      lazy val typesByParamName = method.symbol.asMethod
-        .typeSignatureIn(instanceTpe)
-        .paramLists
-        .flatten
-        .map(param => symbolName(param) -> param.typeSignatureIn(instanceTpe))
-        .toMap
+      lazy val typesByParamName = {
+        val rawSig = method.symbol.asMethod.typeSignatureIn(instanceTpe)
+        val sig = rawSig match {
+          case ExistentialType(_, underlying) => underlying
+          case other                          => other
+        }
+        val firstListSize = sig.paramLists.headOption.map(_.size).getOrElse(0)
+        sig.paramLists.flatten.zipWithIndex.map { case (param, idx) =>
+          val rawType = param.typeSignatureIn(instanceTpe)
+          val resolvedType =
+            if (idx < firstListSize) rawType
+            else {
+              val asMethodType = rawType.asInstanceOf[scala.reflect.internal.Types#Type]
+              asMethodType match {
+                case imt: scala.reflect.internal.Types#MethodType =>
+                  val paramIdx = imt.params.indexWhere(_.decodedName.toString.trim == symbolName(param))
+                  if (paramIdx >= 0) {
+                    val internalParams = imt.asInstanceOf[scala.reflect.internal.SymbolTable#MethodType].paramTypes
+                    internalParams(paramIdx).asInstanceOf[c.universe.Type]
+                  } else rawType
+                case _ => rawType
+              }
+            }
+          symbolName(param) -> resolvedType
+        }.toMap
+      }
 
       untyped.map { params =>
-        params.map { case (paramName, untyped) =>
-          val param =
-            new Parameter(
-              asUntyped = untyped,
-              untypedInstanceType = instanceTpe,
-              tpe = typesByParamName(paramName).as_??
-            )
-          paramName -> param
+        params.flatMap { case (paramName, untyped) =>
+          typesByParamName.get(paramName).map { tpe =>
+            val param = new Parameter(asUntyped = untyped, untypedInstanceType = instanceTpe, tpe = tpe.as_??)
+            paramName -> param
+          }
         }
       }
     }
+  }
+
+  type UntypedTypeParameter = Symbol
+
+  object UntypedTypeParameter extends UntypedTypeParameterModule {
+    override def name(param: UntypedTypeParameter): String = symbolName(param)
+    override def upperBound(param: UntypedTypeParameter): UntypedType = param.asType.typeSignature match {
+      case TypeBounds(_, hi) => hi
+      case other             => other
+    }
+    override def lowerBound(param: UntypedTypeParameter): UntypedType = param.asType.typeSignature match {
+      case TypeBounds(lo, _) => lo
+      case _                 => c.universe.definitions.NothingTpe
+    }
+
+    private def typeParamAwarePrint(tpe: c.universe.Type): String = {
+      def containsTP(t: c.universe.Type): Boolean = t.dealias match {
+        case TypeRef(_, sym, _) if sym.isType && (sym.asType.isParameter || sym.owner.isMethod) =>
+          true
+        case TypeRef(_, _, args) => args.exists(containsTP)
+        case _                   => false
+      }
+      def printType(t: c.universe.Type): String = t.dealias match {
+        case TypeRef(_, sym, Nil) if sym.isType && (sym.asType.isParameter || sym.owner.isMethod) =>
+          symbolName(sym)
+        case TypeRef(_, sym, args) if args.exists(containsTP) =>
+          val base =
+            if (sym.isType && (sym.asType.isParameter || sym.owner.isMethod))
+              symbolName(sym)
+            else sym.fullName
+          s"$base[${args.map(printType).mkString(", ")}]"
+        case _ => scala.util.Try(UntypedType.plainPrint(t)).getOrElse(t.toString)
+      }
+      printType(tpe)
+    }
+
+    override def upperBoundPrint(param: UntypedTypeParameter): String = typeParamAwarePrint(upperBound(param))
+    override def lowerBoundPrint(param: UntypedTypeParameter): String = typeParamAwarePrint(lowerBound(param))
   }
 
   final class UntypedMethod private (
@@ -90,7 +145,91 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       }
     }
 
-    override lazy val hasTypeParameters: Boolean = symbol.isMethod && symbol.asMethod.typeParams.nonEmpty
+    override lazy val hasTypeParameters: Boolean = typeParameters.flatten.nonEmpty
+
+    override lazy val typeParameters: UntypedTypeParameters =
+      if (symbol.isMethod) List(symbol.asMethod.typeParams) else Nil
+
+    override def unsafeApplyWithTypes(instanceTpe: UntypedType)(
+        typeArgs: UntypedTypeArguments,
+        instance: Option[UntypedExpr],
+        arguments: UntypedArguments
+    ): UntypedExpr = {
+      lazy val adaptedArguments = arguments.adaptToParams(instanceTpe, instance, this)
+      lazy val typeArgTypes: List[c.universe.Type] =
+        if (typeArgs.isEmpty) Nil
+        else typeParameters.flatten.map(tp => typeArgs.get(tp).fold(tp.asType.toType)(_.Underlying.asUntyped))
+      invocation match {
+        case Invocation.Constructor =>
+          if (typeArgTypes.nonEmpty) q"new $instanceTpe[..$typeArgTypes](...$adaptedArguments)"
+          else q"new $instanceTpe(...$adaptedArguments)"
+        case Invocation.OnInstance =>
+          instance match {
+            case None =>
+              hearthAssertionFailed(s"Expected an instance for method $name that is called on an instance")
+            case Some(instance) =>
+              if (typeArgTypes.nonEmpty) q"$instance.$symbol[..$typeArgTypes](...$adaptedArguments)"
+              else q"$instance.$symbol(...$adaptedArguments)"
+          }
+        case Invocation.OnModule(module) =>
+          if (typeArgTypes.nonEmpty) q"$module.$symbol[..$typeArgTypes](...$adaptedArguments)"
+          else q"$module.$symbol(...$adaptedArguments)"
+      }
+    }
+
+    override def methodExpectations(instanceTpe: UntypedType): List[UntypedMethodExpectation] = {
+      val steps = List.newBuilder[UntypedMethodExpectation]
+      if (invocation == Invocation.OnInstance) steps += UntypedMethodExpectation.NeedsInstance
+      // Constructor type params are class-level — they're already resolved by the instance type
+      if (!isConstructor && typeParameters.flatten.nonEmpty)
+        steps += UntypedMethodExpectation.NeedsTypes(typeParameters)
+      val valueParamLists = parameters
+      if (valueParamLists.nonEmpty) {
+        val groups = groupParamListsByPathDependency(instanceTpe, valueParamLists)
+        groups.foreach(group => steps += UntypedMethodExpectation.NeedsValues(group))
+      }
+      steps.result()
+    }
+
+    private def groupParamListsByPathDependency(
+        instanceTpe: UntypedType,
+        paramLists: UntypedParameters
+    ): List[UntypedParameters] = {
+      if (paramLists.sizeIs <= 1) return List(paramLists)
+
+      val rawParamLists =
+        if (symbol.isMethod) symbol.asMethod.typeSignatureIn(instanceTpe).paramLists
+        else Nil
+
+      if (rawParamLists.isEmpty) return List(paramLists)
+
+      val allPrecedingParamSymbols = scala.collection.mutable.Set.empty[Symbol]
+      val result = List.newBuilder[UntypedParameters]
+      var currentGroup = List.newBuilder[ListMap[String, UntypedParameter]]
+
+      paramLists.zip(rawParamLists).zipWithIndex.foreach { case ((paramList, rawList), idx) =>
+        val hasDependency = idx > 0 && rawList.exists { param =>
+          containsTermRef(param.typeSignature, allPrecedingParamSymbols.toSet)
+        }
+        if (hasDependency) {
+          val built = currentGroup.result()
+          if (built.nonEmpty) result += built
+          currentGroup = List.newBuilder[ListMap[String, UntypedParameter]]
+        }
+        currentGroup += paramList
+        allPrecedingParamSymbols ++= rawList
+      }
+      val lastGroup = currentGroup.result()
+      if (lastGroup.nonEmpty) result += lastGroup
+      result.result()
+    }
+
+    private def containsTermRef(tpe: c.universe.Type, precedingParams: Set[Symbol]): Boolean = tpe match {
+      case SingleType(_, sym) if precedingParams.contains(sym) => true
+      case TypeRef(pre, _, _)                                  => containsTermRef(pre, precedingParams)
+      case _                                                   =>
+        tpe.typeArgs.exists(containsTermRef(_, precedingParams))
+    }
 
     override lazy val parameters: UntypedParameters = {
       val paramss = if (symbol.isMethod) symbol.asMethod.paramLists else Nil
@@ -120,7 +259,128 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     override def isImplicit: Boolean = symbol.isImplicit
     override def isSynthetic: Boolean = symbol.isSynthetic || UntypedMethod.methodsConsideredSynthetic(symbol)
 
+    override def isPrivate: Boolean =
+      (symbol.isPrivate || symbol.isPrivateThis) &&
+        Option(symbol.privateWithin).forall(_ == NoSymbol)
+    override def isProtected: Boolean =
+      (symbol.isProtected || symbol.isProtectedThis) &&
+        Option(symbol.privateWithin).forall(_ == NoSymbol)
+    override def privateWithin: Option[String] = {
+      val pw = Option(symbol.privateWithin).filterNot(_ == NoSymbol)
+      pw.filter(_ => symbol.isPrivate && !symbol.isProtected).map(_.name.toString)
+    }
+    override def protectedWithin: Option[String] = {
+      val pw = Option(symbol.privateWithin).filterNot(_ == NoSymbol)
+      pw.filter(_ => symbol.isProtected).map(_.name.toString)
+    }
     override def isAvailable(scope: Accessible): Boolean = symbolAvailable(symbol, scope)
+
+    private def paramTypePrintsImpl(
+        instanceTpe: UntypedType,
+        hl: hearth.treeprinter.SyntaxHighlight
+    ): (List[List[(String, String)]], String) = {
+      val typeParamSymbols = typeParameters.flatten.toSet
+      def safePrint(tpe: c.universe.Type): String = {
+        def isTP(sym: Symbol): Boolean =
+          typeParamSymbols.contains(sym) || (sym.isType && (sym.asType.isParameter || sym.owner.isMethod))
+        def containsTypeParam(t: c.universe.Type): Boolean = t.dealias match {
+          case TypeRef(_, sym, _) if isTP(sym) => true
+          case TypeRef(_, _, args)             => args.exists(containsTypeParam)
+          case _                               => false
+        }
+        def printType(t: c.universe.Type): String = t.dealias match {
+          case TypeRef(_, sym, Nil) if isTP(sym)                                                    => symbolName(sym)
+          case TypeRef(_, sym, Nil) if sym.isType && sym.owner.isClass && !sym.owner.isPackageClass =>
+            s"${sym.owner.fullName}#${symbolName(sym)}"
+          case TypeRef(_, sym, args) if isTP(sym) || args.exists(containsTypeParam) =>
+            val base =
+              if (isTP(sym)) symbolName(sym)
+              else sym.fullName
+            s"$base[${args.map(printType).mkString(", ")}]"
+          case ExistentialType(_, underlying) => printType(underlying)
+          case _                              => scala.util.Try(UntypedType.plainPrint(t)).getOrElse(t.toString)
+        }
+        val raw = printType(tpe)
+        if (hl.TypeDefColor.isEmpty) raw else hl.highlightTypeDef(raw)
+      }
+
+      val rawSig = symbol.asMethod.typeSignatureIn(instanceTpe)
+      val sig = rawSig match {
+        case ExistentialType(_, underlying) => underlying
+        case other                          => other
+      }
+      @scala.annotation.tailrec
+      def collect(
+          tpe: c.universe.Type,
+          acc: List[List[(String, String)]]
+      ): (List[List[(String, String)]], String) = tpe match {
+        case NullaryMethodType(res) => collect(res, acc)
+        case PolyType(_, res)       => collect(res, acc)
+        case mt: MethodType         =>
+          val internalMt = mt.asInstanceOf[scala.reflect.internal.SymbolTable#MethodType]
+          val paramPairs = mt.params
+            .map(symbolName(_))
+            .zip(
+              internalMt.paramTypes.asInstanceOf[List[c.universe.Type]].map(safePrint)
+            )
+          collect(mt.resultType, acc :+ paramPairs)
+        case other => (acc, safePrint(other))
+      }
+      collect(sig, Nil)
+    }
+
+    override def paramTypePrints(instanceTpe: UntypedType): (List[List[(String, String)]], String) =
+      paramTypePrintsImpl(instanceTpe, hearth.treeprinter.SyntaxHighlight.plain)
+
+    override def paramTypePrints(
+        instanceTpe: UntypedType,
+        hl: hearth.treeprinter.SyntaxHighlight
+    ): (List[List[(String, String)]], String) =
+      paramTypePrintsImpl(instanceTpe, hl)
+
+    private def signatureSegmentsImpl(
+        instanceTpe: UntypedType,
+        hl: hearth.treeprinter.SyntaxHighlight
+    ): List[String] = {
+      val (paramListsWithTypes, _) = paramTypePrintsImpl(instanceTpe, hl)
+
+      def renderTypeParam(tp: UntypedTypeParameter): String = {
+        val tpName = UntypedTypeParameter.name(tp)
+        val coloredName = if (hl.TypeDefColor.isEmpty) tpName else hl.highlightTypeDef(tpName)
+        val upper = UntypedTypeParameter.upperBoundPrint(tp)
+        val lower = UntypedTypeParameter.lowerBoundPrint(tp)
+        val isTopBound =
+          upper == "scala.Any" || upper.startsWith("scala.Any[") || upper.contains("@") || upper.startsWith("[")
+        val isBottomBound = lower == "scala.Nothing" || lower.contains("@") || lower.startsWith("[")
+        val coloredUpper = if (hl.TypeDefColor.isEmpty) upper else hl.highlightTypeDef(upper)
+        val coloredLower = if (hl.TypeDefColor.isEmpty) lower else hl.highlightTypeDef(lower)
+        if (!isTopBound && !isBottomBound) s"$coloredName <: $coloredUpper >: $coloredLower"
+        else if (!isTopBound) s"$coloredName <: $coloredUpper"
+        else if (!isBottomBound) s"$coloredName >: $coloredLower"
+        else coloredName
+      }
+
+      val segments = List.newBuilder[String]
+      // Scala 2 doesn't support clause interleaving — type params first, then value params
+      if (!isConstructor && hasTypeParameters) {
+        segments += typeParameters.map(_.map(renderTypeParam).mkString(", ")).mkString("[", "][", "]")
+      }
+      paramListsWithTypes.zip(parameters).foreach { case (typedList, untypedList) =>
+        segments += "(" + typedList
+          .map { case (pName, pType) =>
+            val default = untypedList.get(pName).filter(_.hasDefault).map(_ => " = <default>").getOrElse("")
+            s"${hl.highlightValDef(pName)}: $pType$default"
+          }
+          .mkString(", ") + ")"
+      }
+      segments.result()
+    }
+
+    override def signatureSegments(instanceTpe: UntypedType): List[String] =
+      signatureSegmentsImpl(instanceTpe, hearth.treeprinter.SyntaxHighlight.plain)
+
+    override def signatureSegments(instanceTpe: UntypedType, hl: hearth.treeprinter.SyntaxHighlight): List[String] =
+      signatureSegmentsImpl(instanceTpe, hl)
 
     // -------------------------------------------- Special cases handling --------------------------------------------
     // So, the symbol of val/var is no just one symbol - there is a symbol for var/var `fieldName` as a `TermSymbol`,
@@ -189,41 +449,58 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         module = None
       )
 
-    override def toTyped[Instance: Type](untyped: UntypedMethod): Method.Of[Instance] = {
-      val Instance = UntypedType.fromTyped[Instance]
-      untyped.invocation match {
-        case Invocation.Constructor =>
-          Existential[Method[Instance, *], Instance](
-            // TODO: check if the method is not parametric if it's a module
-            Method.NoInstance[Instance](untyped, Instance): Method[Instance, Instance]
-          )
-        case Invocation.OnModule(_) =>
-          if (!untyped.hasTypeParameters) {
-            val returnType = untyped.symbol.typeSignatureIn(Instance).resultType.as_??
-            // TODO: check if the method is not having any other issues, e.g. path-dependent types (we cannot handle them like this)
-            import returnType.Underlying as Returned
-            Existential[Method[Instance, *], Returned](
-              Method.NoInstance[Returned](untyped, Instance): Method[Instance, Returned]
+    override def toTyped[Instance: Type](untyped: UntypedMethod): Method = {
+      val instanceTpe = UntypedType.fromTyped[Instance]
+
+      val untypedExpectations = untyped.methodExpectations(instanceTpe)
+
+      var seenTypeParams = false
+      val typedExpectations: List[MethodExpectation] = untypedExpectations.map {
+        case UntypedMethodExpectation.NeedsInstance   => MethodExpectation.NeedsInstance
+        case UntypedMethodExpectation.NeedsTypes(utp) =>
+          seenTypeParams = true
+          MethodExpectation.NeedsTypes(utp.map(_.map { sym =>
+            new TypeParameter(
+              asUntyped = sym,
+              upperBound = UntypedTypeParameter.upperBound(sym).as_??,
+              lowerBound = UntypedTypeParameter.lowerBound(sym).as_??
             )
-          } else {
-            Existential[Method[Instance, *], Nothing](
-              Method.Unsupported(untyped, Instance)("Method defines type parameters")
-            )
-          }
-        case Invocation.OnInstance =>
-          if (!untyped.hasTypeParameters) {
-            val returnType = untyped.symbol.typeSignatureIn(Instance).resultType.as_??
-            // TODO: check if the method is not having any other issues, e.g. path-dependent types (we cannot handle them like this)
-            import returnType.Underlying as Returned
-            Existential[Method[Instance, *], Returned](
-              Method.OfInstance[Instance, Returned](untyped, Instance): Method[Instance, Returned]
-            )
-          } else {
-            Existential[Method[Instance, *], Nothing](
-              Method.Unsupported(untyped, Instance)("Method defines type parameters")
-            )
-          }
+          }))
+        case UntypedMethodExpectation.NeedsValues(up) =>
+          if (seenTypeParams) MethodExpectation.NeedsValues(List.empty)
+          else MethodExpectation.NeedsValues(up.asTyped[Instance])
       }
+
+      val hasUnresolvedTypeParams = untyped.hasTypeParameters && !untyped.isConstructor
+      val totalParams: Parameters =
+        if (hasUnresolvedTypeParams) List.empty
+        else untyped.parameters.asTyped[Instance]
+
+      val returnType: Option[??] =
+        if (hasUnresolvedTypeParams) None
+        else if (untyped.isConstructor) Some(instanceTpe.as_??)
+        else {
+          val rawSig = untyped.symbol.typeSignatureIn(instanceTpe)
+          val sig = rawSig match {
+            case ExistentialType(_, underlying) => underlying
+            case other                          => other
+          }
+          Some(sig.finalResultType.dealias.as_??)
+        }
+
+      val buildExpr: (Option[UntypedExpr], UntypedTypeArguments, UntypedArguments) => Either[String, UntypedExpr] =
+        (instance, typeArgs, args) => Right(untyped.unsafeApplyWithTypes(instanceTpe)(typeArgs, instance, args))
+
+      Method.buildChain(
+        asUntyped = untyped,
+        untypedInstanceType = instanceTpe,
+        instanceEvidence = Type[Instance].as_??,
+        expectations = typedExpectations,
+        totalParameters = totalParams,
+        returnType = returnType,
+        buildExpr = buildExpr,
+        pathDepResolvers = Map.empty
+      )
     }
 
     override def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod] =

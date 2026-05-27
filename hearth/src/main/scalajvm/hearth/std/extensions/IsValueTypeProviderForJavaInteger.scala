@@ -22,13 +22,13 @@ final class IsValueTypeProviderForJavaInteger extends StandardMacroExtension { l
       private lazy val Int = Type.of[Int]
       private lazy val JInteger = Type.of[java.lang.Integer]
 
-      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Integer]] = {
+      private lazy val valueOfMethod: Option[Method] = {
         implicit val jInteger: Type[java.lang.Integer] = JInteger
         Method.methodsOf[java.lang.Integer].collectFirst {
-          case Method.NoInstance(m)
-              if m.name == "valueOf" && m.isUnary &&
+          case m
+              if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Int } =>
-            m.asReturning
+            m
         }
       }
 

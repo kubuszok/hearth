@@ -83,9 +83,41 @@ object MethodsFixtures {
   private def testMethodPropertiesImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testMethodProperties[A](methodName)
 
+  inline def testMethodExpectations[A](inline methodName: String): Data = ${
+    testMethodExpectationsImpl[A]('methodName)
+  }
+  private def testMethodExpectationsImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testMethodExpectations[A](methodName)
+
+  inline def testConstructorExpectations[A]: Data = ${ testConstructorExpectationsImpl[A] }
+  private def testConstructorExpectationsImpl[A: Type](using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testConstructorExpectations[A]
+
   inline def testMethodOrdering[A]: Data = ${ testMethodOrderingImpl[A] }
   private def testMethodOrderingImpl[A: Type](using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testMethodOrdering[A]
+
+  inline def testMethodPrettyPrint[A](inline methodName: String): Data = ${
+    testMethodPrettyPrintImpl[A]('methodName)
+  }
+  private def testMethodPrettyPrintImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testMethodPrettyPrint[A](methodName)
+
+  inline def testCallInstanceViaFold[A](inline instance: A)(inline methodName: String)(inline params: Int*): Data = ${
+    testCallInstanceViaFoldImpl[A]('instance, 'methodName, 'params)
+  }
+  private def testCallInstanceViaFoldImpl[A: Type](
+      instance: Expr[A],
+      methodName: Expr[String],
+      params: Expr[Seq[Int]]
+  )(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testCallInstanceViaFold[A](instance)(methodName)(params)
+
+  inline def testCallConstructorViaFold[A](inline params: Int*): Data = ${
+    testCallConstructorViaFoldImpl[A]('params)
+  }
+  private def testCallConstructorViaFoldImpl[A: Type](params: Expr[Seq[Int]])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testCallConstructorViaFold[A](params)
 
   inline def testConstructNamedTuple[A]: Data = ${ testConstructNamedTupleImpl[A] }
   private def testConstructNamedTupleImpl[A: Type](using q: Quotes): Expr[Data] =

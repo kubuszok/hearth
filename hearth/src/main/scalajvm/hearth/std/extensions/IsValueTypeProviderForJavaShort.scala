@@ -22,13 +22,13 @@ final class IsValueTypeProviderForJavaShort extends StandardMacroExtension { loa
       private lazy val Short = Type.of[Short]
       private lazy val JShort = Type.of[java.lang.Short]
 
-      private lazy val valueOfMethod: Option[Method.Returning[java.lang.Short]] = {
+      private lazy val valueOfMethod: Option[Method] = {
         implicit val jShort: Type[java.lang.Short] = JShort
         Method.methodsOf[java.lang.Short].collectFirst {
-          case Method.NoInstance(m)
-              if m.name == "valueOf" && m.isUnary &&
+          case m
+              if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Short } =>
-            m.asReturning
+            m
         }
       }
 

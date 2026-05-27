@@ -90,8 +90,7 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
             implicit val builderType: Type[scala.collection.mutable.Builder[Pair, CtorResult]] =
               Builder[Pair, CtorResult]
             val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Pair, CtorResult]].collectFirst {
-              case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
-                m.value.asReturning.asInstanceOf[Method.Returning[A]]
+              case m: Method.OnInstance if m.name == "result" && m.isNullary => m
             }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Pair, CtorResult]]) =>
@@ -152,8 +151,7 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
             implicit val builderType: Type[scala.collection.mutable.Builder[Pair, CtorResult]] =
               Builder[Pair, CtorResult]
             val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Pair, CtorResult]].collectFirst {
-              case Method.OfInstance.Of(m) if m.value.name == "result" && m.value.isNullary =>
-                m.value.asReturning.asInstanceOf[Method.Returning[A]]
+              case m: Method.OnInstance if m.name == "result" && m.isNullary => m
             }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Pair, CtorResult]]) =>

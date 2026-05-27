@@ -25,6 +25,51 @@ trait UntypedMethods { this: MacroCommons =>
     case object OnInstance extends Invocation
   }
 
+  /** Platform-specific untyped type parameter representation (a type parameter `Symbol` on both platforms).
+    *
+    * Follows the same abstract type + module pattern as [[UntypedType]] and [[UntypedExpr]].
+    *
+    * @since 0.4.0
+    */
+  type UntypedTypeParameter
+
+  val UntypedTypeParameter: UntypedTypeParameterModule
+  trait UntypedTypeParameterModule { this: UntypedTypeParameter.type =>
+    def name(param: UntypedTypeParameter): String
+    def upperBound(param: UntypedTypeParameter): UntypedType
+    def lowerBound(param: UntypedTypeParameter): UntypedType
+    def upperBoundPrint(param: UntypedTypeParameter): String =
+      scala.util.Try(UntypedType.plainPrint(upperBound(param))).getOrElse(upperBound(param).toString)
+    def lowerBoundPrint(param: UntypedTypeParameter): String =
+      scala.util.Try(UntypedType.plainPrint(lowerBound(param))).getOrElse(lowerBound(param).toString)
+  }
+
+  /** Type parameters grouped as they appear in the method signature (e.g. `[A, B][C]` → `List(List(A, B), List(C))`).
+    *
+    * @since 0.4.0
+    */
+  type UntypedTypeParameters = List[List[UntypedTypeParameter]]
+
+  /** Map from type parameters to their resolved types, used when applying type arguments.
+    *
+    * @since 0.4.0
+    */
+  type UntypedTypeArguments = Map[UntypedTypeParameter, ??]
+
+  /** Describes what one step of the method builder chain expects.
+    *
+    * Computed by platform code from the method's type signature. Not user-facing — users work with the typed
+    * [[MethodExpectation]] in the typed layer.
+    *
+    * @since 0.4.0
+    */
+  sealed trait UntypedMethodExpectation extends Product with Serializable
+  object UntypedMethodExpectation {
+    case object NeedsInstance extends UntypedMethodExpectation
+    final case class NeedsTypes(typeParams: UntypedTypeParameters) extends UntypedMethodExpectation
+    final case class NeedsValues(params: UntypedParameters) extends UntypedMethodExpectation
+  }
+
   /** Platform-specific untyped parameter representation (`c.universe.TermSymbol` in 2, `quotes.reflect.Symbol` in 3)
     * together with some helper data, an [[UntypedMethod]] to which it belongs, or its index in the method's parameters
     * (useful if the parameter has a default value).
@@ -132,8 +177,8 @@ trait UntypedMethods { this: MacroCommons =>
   val UntypedMethod: UntypedMethodModule
   trait UntypedMethodModule { this: UntypedMethod.type =>
 
-    final def fromTyped[Instance, Returned](method: Method[Instance, Returned]): UntypedMethod = method.asUntyped
-    def toTyped[Instance: Type](untyped: UntypedMethod): Method.Of[Instance]
+    final def fromTyped(method: Method): UntypedMethod = method.asUntyped
+    def toTyped[Instance: Type](untyped: UntypedMethod): Method
 
     def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod]
     def constructors(instanceTpe: UntypedType): List[UntypedMethod]
@@ -185,14 +230,22 @@ trait UntypedMethods { this: MacroCommons =>
 
   trait UntypedMethodMethods { this: UntypedMethod =>
 
-    def asTyped[Instance: Type]: Method.Of[Instance] = UntypedMethod.toTyped(this)
+    def asTyped[Instance: Type]: Method = UntypedMethod.toTyped(this)
 
     def invocation: Invocation
 
     def hasTypeParameters: Boolean
+    def typeParameters: UntypedTypeParameters
     def parameters: UntypedParameters
 
+    def methodExpectations(instanceTpe: UntypedType): List[UntypedMethodExpectation]
+
     def unsafeApply(instanceTpe: UntypedType)(instance: Option[UntypedExpr], arguments: UntypedArguments): UntypedExpr
+    def unsafeApplyWithTypes(instanceTpe: UntypedType)(
+        typeArgs: UntypedTypeArguments,
+        instance: Option[UntypedExpr],
+        arguments: UntypedArguments
+    ): UntypedExpr
     final def unsafeApplyNoInstance(instanceTpe: UntypedType)(arguments: UntypedArguments): UntypedExpr =
       unsafeApply(instanceTpe)(None, arguments)
     final def unsafeApplyInstance(
@@ -220,7 +273,77 @@ trait UntypedMethods { this: MacroCommons =>
     final def isInherited: Boolean = !isDeclared && !isSynthetic
     def isImplicit: Boolean
 
+    def isPrivate: Boolean
+    def isProtected: Boolean
+    def privateWithin: Option[String]
+    def protectedWithin: Option[String]
     def isAvailable(scope: Accessible): Boolean
+
+    def paramTypePrints(instanceTpe: UntypedType): (List[List[(String, String)]], String)
+    def signatureSegments(instanceTpe: UntypedType): List[String]
+
+    @scala.annotation.nowarn("msg=unused explicit parameter")
+    def paramTypePrints(
+        instanceTpe: UntypedType,
+        hl: hearth.treeprinter.SyntaxHighlight
+    ): (List[List[(String, String)]], String) =
+      paramTypePrints(instanceTpe)
+    @scala.annotation.nowarn("msg=unused explicit parameter")
+    def signatureSegments(instanceTpe: UntypedType, hl: hearth.treeprinter.SyntaxHighlight): List[String] =
+      signatureSegments(instanceTpe)
+
+    @scala.annotation.nowarn("msg=unused value|discarded non-Unit value")
+    final def renderSignature(instanceTpe: UntypedType, hl: hearth.treeprinter.SyntaxHighlight): String = {
+      val sb = new StringBuilder
+      val typeName = {
+        val raw = instanceTpe.plainPrint
+        if (hl.TypeDefColor.isEmpty) raw else hl.highlightTypeDef(raw)
+      }
+      val (_, returnType) = paramTypePrints(instanceTpe, hl)
+
+      if (isConstructor) {
+        sb.append(hl.highlightKeyword("new")).append(" ").append(typeName)
+      } else {
+        sb.append(typeName).append(": ")
+        if (isPrivate) {
+          sb.append(hl.highlightKeyword("private"))
+          privateWithin.foreach(s => sb.append("[").append(hl.highlightTypeDef(s)).append("]"))
+          sb.append(" ")
+        } else if (isProtected) {
+          sb.append(hl.highlightKeyword("protected"))
+          protectedWithin.foreach(s => sb.append("[").append(hl.highlightTypeDef(s)).append("]"))
+          sb.append(" ")
+        } else {
+          privateWithin.foreach(s =>
+            sb.append(hl.highlightKeyword("private")).append("[").append(hl.highlightTypeDef(s)).append("] ")
+          )
+          protectedWithin.foreach(s =>
+            sb.append(hl.highlightKeyword("protected")).append("[").append(hl.highlightTypeDef(s)).append("] ")
+          )
+        }
+        if (isImplicit) sb.append(hl.highlightKeyword("implicit")).append(" ")
+        if (isVal) sb.append(hl.highlightKeyword("val")).append(" ")
+        else if (isVar) sb.append(hl.highlightKeyword("var")).append(" ")
+        else if (isLazy)
+          sb.append(hl.highlightKeyword("lazy")).append(" ").append(hl.highlightKeyword("val")).append(" ")
+        else sb.append(hl.highlightKeyword("def")).append(" ")
+        sb.append(name)
+      }
+
+      signatureSegments(instanceTpe, hl).foreach(seg => sb.append(seg))
+
+      if (!isConstructor && returnType.nonEmpty) {
+        val _ = sb.append(": ").append(returnType)
+      }
+
+      sb.result()
+    }
+
+    final def plainPrint(instanceTpe: UntypedType): String =
+      renderSignature(instanceTpe, hearth.treeprinter.SyntaxHighlight.plain)
+
+    final def prettyPrint(instanceTpe: UntypedType): String =
+      renderSignature(instanceTpe, hearth.treeprinter.SyntaxHighlight.ANSI)
   }
 
   implicit final lazy val UntypedMethodOrdering: Ordering[UntypedMethod] = {

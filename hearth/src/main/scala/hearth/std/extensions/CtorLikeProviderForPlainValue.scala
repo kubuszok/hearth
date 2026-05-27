@@ -26,7 +26,7 @@ final class CtorLikeProviderForPlainValue extends StandardMacroExtension { loade
           extractCtorLikesResult(new CtorBuilder[A, A] {
             def apply[Input: Type](
                 ctor: Expr[Input] => Expr[A],
-                method: Method.Returning[A]
+                method: Method
             ): CtorLikeOf[Input, A] =
               PlainValue[Input, A](ctor, Some(method))
           })
