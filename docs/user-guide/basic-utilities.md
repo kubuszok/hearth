@@ -298,6 +298,7 @@ Their implementations are mixed in later (`MacroCommonsScala2`, `MacroCommonsSca
    
 Hearth implements shared utilities from the bottom up: `Type[A]` and `Expr[A]` build on top of `UntypedType` and `UntypedExpr`,
 then `Method`s build on top of `Type[A]` and `Expr[A]`, then `CaseClass[A]`, `Enum[A]` and `JavaBean[A]` build on top of them.
+`DestructuredExpr` builds on top of `Expr` and `Method` to provide semantic expression decomposition.
 (The lower the abstraction level is, the less likely the API is to change).
 
 For most common use cases, you probably want to use high-level utilities like:
@@ -2610,6 +2611,120 @@ val result: MIO[Either[String, Expr_??]] = method.foldF[MIO](
     args <- resolveArguments(av.parameters)
   } yield args
 )
+```
+
+## `DestructuredExpr`
+
+Many macro-based libraries (Chimney, Ducktape, Quicklens, Monocle) need to decompose user-provided expressions like
+`_.address.street` or `_.items.each` at compile time to implement DSLs. `DestructuredExpr` provides a cross-platform
+representation where the primary concept is a **resolved method call** — a `Method` from Hearth's API plus an ordered
+list of what was applied (instance, type args, value args).
+
+### Parsing Expressions
+
+```scala
+val parsed: DestructuredExpr = DestructuredExpr.parse(expr)     // from Expr[A]
+val parsed: DestructuredExpr = DestructuredExpr.parseUntyped(t) // from UntypedExpr
+```
+
+Parsing is total and maximal: every sub-expression is recursively destructured. Only the smallest unresolvable
+leaf becomes `NonDestructurable`. Compiler noise (Scala 3 `Inlined` wrappers, Scala 2 `Typed` wrappers) is stripped
+automatically.
+
+### Node Types
+
+| Node                   | Description                                             | Key fields                                                      |
+|------------------------|---------------------------------------------------------|-----------------------------------------------------------------|
+| `MethodCall`           | A resolved method/field call                            | `method: Method`, `applied: List[Applied]`                      |
+| `Lambda`               | A lambda expression                                     | `params: List[Lambda.Param]`, `body: DestructuredExpr`          |
+| `Lambda.ParamRef`      | Reference to a lambda parameter                         | `param: Lambda.Param`                                           |
+| `Literal`              | A constant value: `42`, `"hello"`, `true`, `null`       | `value: Any`                                                    |
+| `Singleton`            | A module/companion reference: `None`, `Nil`             | `name: String`                                                  |
+| `Block`                | A block: `{ stmt1; stmt2; result }`                     | `statements: List[DestructuredExpr]`, `result: DestructuredExpr`|
+| `NonDestructurable`    | Smallest unresolvable sub-expression                    | `raw: UntypedExpr`, `description: String`                       |
+
+Every node carries `tpe: ??` (existential type) and `toUntypedExpr: UntypedExpr` for reconstruction of the
+original tree.
+
+### `MethodCall` and `Applied`
+
+The `MethodCall` node holds a resolved `Method` and its `applied` list mirrors `method.expectations` — each entry
+maps to one step of the builder chain:
+
+| Applied variant        | Maps to              | Contains                                  |
+|------------------------|----------------------|-------------------------------------------|
+| `AppliedInstance`      | `Method.OnInstance`  | `value: DestructuredExpr` (the receiver)  |
+| `AppliedTypes`         | `Method.ApplyTypes`  | `typeArgs: List[??]`                      |
+| `AppliedValues`        | `Method.ApplyValues` | `args: List[DestructuredExpr]`            |
+
+For `_.address.street`, the tree is:
+
+```
+MethodCall(method=<street>, applied=[
+  AppliedInstance(
+    MethodCall(method=<address>, applied=[
+      AppliedInstance(ParamRef(p))
+    ])
+  )
+])
+```
+
+To reconstruct the expression, walk `method.fold` feeding each `Applied` entry.
+
+### DSL Patterns with Implicit Evidence
+
+Extensions like `.each` (Quicklens, Ducktape) or `.when[Subtype]` that use implicit evidence or context
+functions are fully supported. The implicit arguments appear as `AppliedValues` entries, and type arguments
+as `AppliedTypes`:
+
+```
+// _.items.each  (where each requires implicit PathEvidence)
+MethodCall(method=<each>, applied=[
+  AppliedInstance(MethodCall(method=<items>, ...)),
+  AppliedValues([<implicit evidence>])
+])
+```
+
+Scala 3 context function extensions (`extension ... (using Evidence) { def eachCF }`) are also handled — the
+receiver is extracted from the first argument of the extension method call.
+
+### Convenience Extractors
+
+**Field path extraction** walks `MethodCall` chains where each call has only an `AppliedInstance`:
+
+```scala
+DestructuredExpr.extractFieldPath[Person, String](lambda) match {
+  case Right(fieldPath) =>
+    fieldPath.fieldNames   // List("address", "street")
+    fieldPath.depth        // 2
+    fieldPath.segments.foreach { seg =>
+      // seg.name, seg.sourceType, seg.resultType, seg.method
+    }
+  case Left(error) => Environment.reportErrorAndAbort(error)
+}
+```
+
+Each `FieldPathSegment` carries a resolved `Method` with full metadata (annotations, visibility, etc.).
+
+**Lambda extraction**:
+
+```scala
+DestructuredExpr.extractLambda(expr) match {
+  case Right(info) =>
+    info.params  // List[Lambda.Param] with name and type
+    info.body    // DestructuredExpr
+  case Left(error) => Environment.reportErrorAndAbort(error)
+}
+```
+
+### Traversal
+
+```scala
+// Collect all method names in the tree
+val names = parsed.collect { case mc: DestructuredExpr.MethodCall => mc.method.name }
+
+// Get direct children of a node
+val kids = parsed.children
 ```
 
 ## `Class`

@@ -266,6 +266,34 @@ The `Method` API has a layered architecture with platform-specific untyped code 
 - Type rendering must produce identical output on Scala 2 and 3 (no `LanguageVersion` conditionals in tests)
 - Scala 3 has clause interleaving; Scala 2 does not — this is tested in `scala-newest-3` only
 
+### DestructuredExpr architecture
+
+`DestructuredExpr` is inlined into the `Exprs` / `ExprsScala2` / `ExprsScala3` traits (not a separate trait). It provides semantic expression decomposition where method calls are resolved against Hearth's `Method` API.
+
+**Shared code** (end of `Exprs.scala`):
+- `DestructuredExpr` sealed trait with 7 node types: `MethodCall`, `Lambda`, `Lambda.ParamRef`, `Literal`, `Singleton`, `Block`, `NonDestructurable`
+- `MethodCall.Applied` sealed trait: `AppliedInstance`, `AppliedTypes`, `AppliedValues`
+- `FieldPath`, `FieldPathSegment`, `LambdaInfo` convenience types
+- `DestructuredExpr.parse`, `parseUntyped`, `extractFieldPath`, `extractLambda`
+- `protected def destructureExpr` — abstract platform hook
+
+**Platform-specific parsing** (end of `ExprsScala3.scala` / `ExprsScala2.scala`):
+- `dstrImpl` — recursive tree walker that resolves `Method` by symbol equality (`method.symbol == tree.symbol`)
+- `dstrFlattenCall` — peels `Apply`/`TypeApply` chains to extract core term + call steps
+- `dstrTryMethodCall` — resolves the method from `UntypedMethod.methods(qualifierType)`
+- Lambda parameters tracked via `Map[Symbol, Lambda.Param]` so `Ident` references become `ParamRef`
+- Scala 3: handles `Flags.ExtensionMethod` where receiver is first value argument (context functions)
+- Types are widened on both platforms to avoid singleton types (`p.type`)
+
+**Test infrastructure:**
+- `hearth-tests/src/main/scala/hearth/typed/DestructuredExprsFixturesImpl.scala` — shared fixtures
+- `hearth-tests/src/main/scala-2/hearth/typed/DestructuredExprsFixtures.scala` — Scala 2 macro bridges
+- `hearth-tests/src/main/scala-3/hearth/typed/DestructuredExprsFixtures.scala` — Scala 3 macro bridges
+- `hearth-tests/src/test/scala/hearth/typed/DestructuredExprsSpec.scala` — cross-platform tests (19 tests)
+- `hearth-tests/src/test/scala-3/hearth/typed/DestructuredExprsScala3Spec.scala` — Scala 3-only context function tests (2 tests)
+- `hearth-tests/src/main/scala/hearth/examples/parsed_exprs.scala` — test data + DSL extensions (implicit class)
+- `hearth-tests/src/main/scala-3/hearth/examples/parsed_exprs-s3.scala` — Scala 3-only context function DSL extensions
+
 ## Skills
 
 Are available in [contributing documentation](docs/contributing/_index.md).
