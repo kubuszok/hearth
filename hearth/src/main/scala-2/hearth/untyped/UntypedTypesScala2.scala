@@ -1,6 +1,7 @@
 package hearth
 package untyped
 
+import hearth.fp.data.*
 import scala.collection.immutable.ListMap
 
 trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
@@ -175,6 +176,10 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       val A = instanceTpe.typeSymbol
       A != NoSymbol && (A.isFinal || A.isModuleClass || isArray(instanceTpe))
     }
+    override def isTrait(instanceTpe: UntypedType): Boolean = {
+      val A = instanceTpe.typeSymbol
+      A != NoSymbol && A.isClass && A.asClass.isTrait
+    }
 
     override def isClass(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
@@ -243,6 +248,67 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
     override def isAvailable(instanceTpe: UntypedType, scope: Accessible): Boolean =
       symbolAvailable(instanceTpe.typeSymbol, scope)
+
+    override def parents(instanceTpe: UntypedType): List[UntypedType] =
+      instanceTpe.parents
+
+    override def baseClasses(instanceTpe: UntypedType): List[UntypedType] =
+      instanceTpe.baseClasses.map(_.asType.toType)
+
+    override def unsafeNewSubtype(
+        targetType: UntypedType,
+        parentTypes: List[UntypedType],
+        constructor: Option[UntypedMethod],
+        constructorArgs: List[List[UntypedExpr]],
+        overrides: List[UntypedOverride]
+    ): Either[NonEmptyVector[String], UntypedExpr] = {
+      import c.universe.*
+
+      val overrideDefs: List[Tree] = overrides.map { ovr =>
+        val sym = ovr.method.symbol
+        val methodName = TermName(ovr.method.name)
+        val rawSig = sym.asMethod.typeSignatureIn(targetType)
+        val paramLists = rawSig.paramLists
+
+        val (paramDefs, paramRefs) = paramLists.map { paramList =>
+          paramList.map { param =>
+            val paramName = TermName(param.name.toString)
+            val paramType = param.typeSignature
+            val vd = ValDef(Modifiers(Flag.PARAM), paramName, TypeTree(paramType), EmptyTree)
+            val ref: UntypedExpr = Ident(paramName)
+            (vd, ref)
+          }.unzip
+        }.unzip
+
+        val selfIdent: UntypedExpr = q"this"
+        val bodyExpr = ovr.body(selfIdent, paramRefs.flatten)
+
+        val resultType = rawSig.finalResultType
+        DefDef(Modifiers(Flag.OVERRIDE), methodName, Nil, paramDefs, TypeTree(resultType), bodyExpr)
+      }
+
+      val classParentTypes = parentTypes.filterNot(pt => pt.typeSymbol.isClass && pt.typeSymbol.asClass.isTrait)
+      val traitParentTypes = parentTypes.filter(pt => pt.typeSymbol.isClass && pt.typeSymbol.asClass.isTrait)
+
+      val firstParent = classParentTypes.headOption.getOrElse(parentTypes.head)
+      val mixinTraits = if (classParentTypes.nonEmpty) traitParentTypes else traitParentTypes.drop(1)
+
+      val ctorArgTrees: List[Tree] = constructorArgs.flatten
+      val mixinTrees: List[Tree] = mixinTraits.map(pt => tq"$pt")
+
+      val result: Tree =
+        if (mixinTrees.isEmpty)
+          q"new $firstParent(..$ctorArgTrees) { ..$overrideDefs }"
+        else
+          q"new $firstParent(..$ctorArgTrees) with ..$mixinTrees { ..$overrideDefs }"
+
+      val checked = scala.util.Try(c.typecheck(result)).toEither
+      checked match {
+        case Right(tree) => Right(tree)
+        case Left(error) =>
+          Left(NonEmptyVector.one(s"Failed to create anonymous instance: ${error.getMessage}"))
+      }
+    }
 
     // Cache for type comparison results, using identity-based lookup.
     // Type objects are typically reused for the same type within a macro expansion (e.g. lazy val Type.of[Int]),

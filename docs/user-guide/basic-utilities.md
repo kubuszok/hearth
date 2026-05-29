@@ -451,6 +451,7 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
 |                                        |                                        | **Modifiers**                                                        |
 | `Type.isAbstract[MyClass]`             | `Type[MyClass].isAbstract`             | `true` for abstract class or trait                                   |
 | `Type.isFinal[MyClass]`                | `Type[MyClass].isFinal`                | `true` for final class                                               |
+| `Type.isTrait[MyClass]`                | `Type[MyClass].isTrait`                | `true` for traits (not classes)                                      |
 | `Type.isSealed[MyClass]`               | `Type[MyClass].isSealed`               | `true` for sealed trait/class                                        |
 | `Type.isObject[MyClass]`               | `Type[MyClass].isObject`               | `true` for object/module                                             |
 | `Type.isVal[MyClass]`                  | `Type[MyClass].isVal`                  | `true` for `someValue.type` (e.g. parameterless `enum` `case`s)      |
@@ -476,6 +477,8 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
 | `Type.position[MyClass]`             | `Type[MyClass].position`             | `Option[Position]`                                | where type is defined            |
 | `Type.companionObject[MyClass]`      | `Type[MyClass].companionObject`      | `Option[Expr_??]`                                 | companion object if exists       |
 | `Type.annotations[MyClass]`          | `Type[MyClass].annotations`          | `List[Expr_??]`                                   | type annotations                 |
+| `Type.parents[MyClass]`              | `Type[MyClass].parents`              | `List[??]`                                        | direct parent types              |
+| `Type.baseClasses[MyClass]`          | `Type[MyClass].baseClasses`          | `List[??]`                                        | all ancestors (linearization)    |
 | `Type.directChildren[MyClass]`       | `Type[MyClass].directChildren`       | `Option[ListMap[String, ??<:[MyClass]]]`          | immediate subtypes (1)           |
 | `Type.exhaustiveChildren[MyClass]`   | `Type[MyClass].exhaustiveChildren`   | `Option[NonEmptyMap[String, ??<:[MyClass]]]`      | all subtypes (1)                 |
 
@@ -1993,6 +1996,10 @@ We should just call one of the methods on `Method` or `Type[A]`, depending on wh
 | `method.isInherited`             | `true` if inherited from parent     |
 | `method.isCaseField`             | `true` if `case class` field        |
 | `method.isConstructorArgument`   | `true` if constructor parameter     |
+|                                  | **Modifiers**                       |
+| `method.isFinal`                 | `true` for `final` methods          |
+| `method.isAbstract`              | `true` for abstract/deferred methods|
+| `method.isOverride`              | `true` for methods with `override`  |
 |                                  | **Visibility**                      |
 | `method.isPrivate`               | `true` if strictly private (not `private[pkg]`) |
 | `method.isProtected`             | `true` if strictly protected (not `protected[pkg]`) |
@@ -2187,7 +2194,7 @@ hearth.examples.GenericClass[Int, String]: def swap: GenericClass[String, Int]
 
  * Instance methods: `TypeName: def methodName[TypeParams](params): ReturnType`
  * Constructors: `new TypeName(params)` (no `<init>`, no return type)
- * Modifiers rendered: `private`, `protected`, `private[scope]`, `protected[scope]`, `implicit`
+ * Modifiers rendered: `private`, `protected`, `private[scope]`, `protected[scope]`, `implicit`, `final`, `override`, `abstract override`
  * Type bounds rendered: `[A <: Upper]`, `[A >: Lower]`
  * Default values shown: `(param: Type = <default>)`
  * Clause interleaving preserved: `[A](a: A)[B](b: B)`
@@ -3595,6 +3602,54 @@ This generates code like:
   bean
 }
 ```
+
+### `AnonymousInstance[A]`
+
+Specialized view for creating anonymous subtypes at compile time — `new Foo with Bar { override def ... }`.
+Use cases include mockito-style mocking and compile-time proxy generation.
+
+**Parsing:**
+
+| Method                                              | Result type                                | Description                       |
+|-----------------------------------------------------|--------------------------------------------|-----------------------------------|
+| `AnonymousInstance.parse[A]`                         | `ClassViewResult[AnonymousInstance[A]]`     | single parent type                |
+| `AnonymousInstance.parseWithMixins[A](mixins)`       | `ClassViewResult[AnonymousInstance[A]]`     | with additional trait mixins      |
+
+Rejects: `final` types, `sealed` types, inaccessible types, types with inaccessible constructors,
+more than one class parent.
+
+**Method classification:**
+
+| Field                  | Type                       | Description                                |
+|------------------------|----------------------------|--------------------------------------------|
+| `ai.mustOverride`      | `List[ClassifiedMethod]`   | abstract methods (must be overridden)      |
+| `ai.mayOverride`       | `List[ClassifiedMethod]`   | concrete non-final methods (can override)  |
+| `ai.cannotOverride`    | `List[ClassifiedMethod]`   | `final` methods (cannot override)          |
+| `ai.diamondConflicts`  | `List[ClassifiedMethod]`   | conflicting implementations from parents   |
+| `ai.classParent`       | `Option[(??, List[Method])]` | class parent type + accessible constructors |
+| `ai.traitParents`      | `List[??]`                 | trait parent types                         |
+
+**Construction:**
+
+```scala
+ai.construct(
+  constructor = Some(ctor),      // which constructor (if class parent)
+  constructorArgs = Map(...),    // constructor arguments
+  overrides = Map(               // keyed by UntypedMethod, not name
+    method1.asUntyped -> new OverrideBody {
+      def apply(ctx: OverrideContext): Expr_?? = {
+        // ctx.self      — this reference (Expr_?? with novel anonymous type)
+        // ctx.method    — the method being overridden
+        // ctx.parameters — parameter values as expressions
+        // ctx.returnType — resolved return type
+        Expr(42).as_??
+      }
+    }
+  )
+): Either[NonEmptyVector[String], Expr[A]]
+```
+
+Errors are accumulated (multiple missing overrides, conflicting methods) and returned as `NonEmptyVector[String]`.
 
 ## `Position`
 

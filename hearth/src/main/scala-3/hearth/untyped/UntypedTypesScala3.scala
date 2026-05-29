@@ -2,6 +2,7 @@ package hearth
 package untyped
 
 import hearth.fp.ignore
+import hearth.fp.data.*
 import scala.collection.immutable.ListMap
 
 trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
@@ -86,6 +87,18 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         val stringSorting = hearth.fp.NaturalLanguageOrdering.caseSensitive
         Ordering.by((_: Symbol).pos).orElse(stringSorting.on((_: Symbol).name))
       }
+
+      private def callReflectMethod[R](tpe: TypeRepr, methodName: String): R = {
+        val q = quotes
+        val reflectModule = q.getClass.getMethod("reflect").invoke(q)
+        val typeReprMethods = reflectModule.getClass.getMethod("TypeReprMethods").invoke(reflectModule)
+        val method = typeReprMethods.getClass.getMethod(methodName, classOf[Object])
+        method.invoke(typeReprMethods, tpe).asInstanceOf[R]
+      }
+      def typeReprParents(tpe: TypeRepr): List[TypeRepr] =
+        callReflectMethod[List[TypeRepr]](tpe, "parents")
+      def typeReprBaseClasses(tpe: TypeRepr): List[Symbol] =
+        callReflectMethod[List[Symbol]](tpe, "baseClasses")
     }
     import platformSpecific.*
 
@@ -167,6 +180,11 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       ) || isIArray(instanceTpe))
     }
 
+    override def isTrait(instanceTpe: UntypedType): Boolean = {
+      val A = instanceTpe.typeSymbol
+      !A.isNoSymbol && A.flags.is(Flags.Trait)
+    }
+
     override def isClass(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       // String is not being detected as a class in Scala 3, so we need to check it manually.
@@ -204,7 +222,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           val enumSymbol = enumType.typeSymbol
           !moduleClass.isNoSymbol && {
             val moduleClassType = moduleClass.typeRef
-            moduleClassType.baseClasses.contains(enumSymbol)
+            typeReprBaseClasses(moduleClassType).contains(enumSymbol)
           }
         }
         // Case (b): Value type member of an Enumeration object (e.g. WeekDay.Value)
@@ -260,6 +278,125 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     override def isAvailable(instanceTpe: UntypedType, scope: Accessible): Boolean =
       symbolAvailable(instanceTpe.typeSymbol, scope)
+
+    override def parents(instanceTpe: UntypedType): List[UntypedType] =
+      instanceTpe.dealias match {
+        case AndType(left, right) => List(left, right)
+        case _                    =>
+          if instanceTpe.typeSymbol.isNoSymbol then Nil
+          else typeReprParents(instanceTpe)
+      }
+
+    override def baseClasses(instanceTpe: UntypedType): List[UntypedType] =
+      if instanceTpe.typeSymbol.isNoSymbol then Nil
+      else typeReprBaseClasses(instanceTpe).map(bc => instanceTpe.baseType(bc))
+
+    private object experimentalReflect {
+      private val symbolObj = Symbol.getClass
+      private val newClassMethod = symbolObj.getMethods
+        .find { m =>
+          m.getName == "newClass" && m.getParameterCount == 5
+        }
+        .getOrElse(throw new NoSuchMethodException("Symbol.newClass with 5 params"))
+
+      private val classDefObj = quotes.reflect.ClassDef.getClass
+      private val classDefApplyMethod = classDefObj.getMethods
+        .find { m =>
+          m.getName == "apply" && m.getParameterCount == 3
+        }
+        .getOrElse(throw new NoSuchMethodException("ClassDef.apply with 3 params"))
+
+      def newClass(
+          owner: Symbol,
+          name: String,
+          parents: List[TypeRepr],
+          decls: Symbol => List[Symbol],
+          selfType: Option[TypeRepr]
+      ): Symbol =
+        newClassMethod
+          .invoke(Symbol, owner, name, parents, decls, selfType)
+          .asInstanceOf[Symbol]
+
+      def classDefApply(cls: Symbol, parents: List[Tree], body: List[Statement]): ClassDef =
+        classDefApplyMethod
+          .invoke(quotes.reflect.ClassDef, cls, parents, body)
+          .asInstanceOf[ClassDef]
+    }
+
+    override def unsafeNewSubtype(
+        targetType: UntypedType,
+        parentTypes: List[UntypedType],
+        constructor: Option[UntypedMethod],
+        constructorArgs: List[List[UntypedExpr]],
+        overrides: List[UntypedOverride]
+    ): Either[NonEmptyVector[String], UntypedExpr] = {
+      val owner = Symbol.spliceOwner
+
+      val overrideDecls = overrides.map { ovr =>
+        val methodSym = ovr.method.symbol
+        val memberType = targetType.memberType(methodSym)
+        (ovr, methodSym, memberType)
+      }
+
+      val effectiveParents =
+        if parentTypes.headOption.exists(_.typeSymbol.flags.is(Flags.Trait)) then TypeRepr.of[AnyRef] :: parentTypes
+        else
+          parentTypes
+
+      val cls = experimentalReflect.newClass(
+        owner,
+        "$anon",
+        effectiveParents,
+        decls = cls =>
+          overrideDecls.map { case (ovr, _, memberType) =>
+            Symbol.newMethod(
+              cls,
+              ovr.method.name,
+              memberType,
+              flags = Flags.Override,
+              privateWithin = Symbol.noSymbol
+            )
+          },
+        selfType = None
+      )
+
+      val overrideDefs = cls.declaredMethods.zip(overrideDecls).map { case (newMethodSym, (ovr, _, _)) =>
+        DefDef(
+          newMethodSym,
+          argss => {
+            val selfExpr: Term = This(cls)
+            val flatParams: List[Term] = argss.flatten.collect { case t: Term => t }
+            Some(ovr.body(selfExpr, flatParams).changeOwner(newMethodSym))
+          }
+        )
+      }
+
+      val classParent = effectiveParents.head
+      val ctorSymbol = constructor.map(_.symbol).getOrElse(classParent.typeSymbol.primaryConstructor)
+      val parentCtorCall =
+        if constructorArgs.nonEmpty then {
+          val ctor = New(TypeTree.of(using classParent.asType.asInstanceOf[scala.quoted.Type[Any]]))
+            .select(ctorSymbol)
+          val applied =
+            if classParent.typeArgs.nonEmpty then ctor.appliedToTypes(classParent.typeArgs) else ctor
+          applied.appliedToArgss(constructorArgs)
+        } else {
+          val ctor = New(TypeTree.of(using classParent.asType.asInstanceOf[scala.quoted.Type[Any]]))
+            .select(ctorSymbol)
+          ctor.appliedToNone
+        }
+
+      val classDef = experimentalReflect.classDefApply(cls, List(parentCtorCall), overrideDefs)
+      val newExpr = Block(
+        List(classDef),
+        Typed(
+          Apply(Select(New(TypeIdent(cls)), cls.primaryConstructor), Nil),
+          TypeTree.of(using targetType.asType.asInstanceOf[scala.quoted.Type[Any]])
+        )
+      )
+
+      Right(newExpr)
+    }
 
     // Cache for type comparison results, using identity-based lookup.
     // TypeRepr objects are typically reused for the same type within a macro expansion (e.g. lazy val Type.of[Int]),
@@ -397,7 +534,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
               .filter(_.isValDef)
               .filter { term =>
                 val termType = enumObjectType.memberType(term)
-                termType.baseClasses.contains(valueClassSym)
+                typeReprBaseClasses(termType).contains(valueClassSym)
               }
               .sorted
               .map { term =>

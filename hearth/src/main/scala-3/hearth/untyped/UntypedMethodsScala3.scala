@@ -336,6 +336,10 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def isSynthetic: Boolean =
       symbol.flags.is(Flags.Synthetic) || UntypedMethod.methodsConsideredSynthetic(symbol)
 
+    override def isFinal: Boolean = symbol.flags.is(Flags.Final)
+    override def isAbstract: Boolean = symbol.flags.is(Flags.Deferred)
+    override def isOverride: Boolean = symbol.flags.is(Flags.Override)
+
     override def isPrivate: Boolean =
       (symbol.flags.is(Flags.Private) || symbol.flags.is(Flags.PrivateLocal)) &&
         symbol.privateWithin.isEmpty
@@ -563,6 +567,10 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def isDef: Boolean = true
     override def isSynthetic: Boolean = true
     override def isImplicit: Boolean = false
+
+    override def isFinal: Boolean = false
+    override def isAbstract: Boolean = false
+    override def isOverride: Boolean = false
 
     override def isPrivate: Boolean = false
     override def isProtected: Boolean = false
