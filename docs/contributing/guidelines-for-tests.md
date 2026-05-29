@@ -18,6 +18,7 @@ Tests use the following naming structure:
     - `hearth.typed.Exprs` utilities -> `hearth.typed.ExprsSpec`
     - `hearth.typed.Methods` utilities -> `hearth.typed.MethodsSpec`
     - `hearth.typed.Types` utilities -> `hearth.typed.TypesSpec`
+    - `DestructuredExpr` utilities -> `hearth.typed.DestructuredExprsSpec` (cross-platform) and `hearth.typed.DestructuredExprsScala3Spec` (context functions)
 
  - `hearth.typed.MethodsSpec` has several fixture functions for different aspects of the Method API:
 

@@ -5915,4 +5915,233 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         }
       }
   }
+
+  // --- Expression destructuring ---
+
+  override protected def destructureExpr(expr: UntypedExpr): DestructuredExpr = {
+    import quotes.reflect.*
+    dstrImpl(expr, Map.empty)
+  }
+
+  private def dstrTpeOf(termAny: Any): ?? = {
+    import quotes.reflect.*
+    UntypedType.as_??(termAny.asInstanceOf[Term].tpe.widen)
+  }
+
+  sealed private trait DstrCallStep
+  final private case class DstrTypeStep(targs: List[Any]) extends DstrCallStep
+  final private case class DstrValueStep(args: List[Any]) extends DstrCallStep
+
+  private def dstrImpl(termAny: Any, lambdaParams: Map[Any, DestructuredExpr.Lambda.Param]): DestructuredExpr = {
+    import quotes.reflect.*
+    val term = termAny.asInstanceOf[Term]
+    term match {
+      case Inlined(_, _, inner) => dstrImpl(inner, lambdaParams)
+      case Block(Nil, inner)    => dstrImpl(inner, lambdaParams)
+
+      case Literal(constant) =>
+        new DestructuredExpr.Literal(dstrTpeOf(term), dstrExtractConstant(constant), () => term)
+
+      case Block(List(ddef: DefDef), _: Closure) =>
+        dstrLambda(ddef, term, lambdaParams)
+
+      case Block(stats, result) =>
+        new DestructuredExpr.Block(
+          dstrTpeOf(term),
+          stats.map(s => dstrImpl(s, lambdaParams)),
+          dstrImpl(result, lambdaParams),
+          () => term
+        )
+
+      case Ident(_) if lambdaParams.contains(term.symbol) =>
+        new DestructuredExpr.Lambda.ParamRef(dstrTpeOf(term), lambdaParams(term.symbol), () => term)
+
+      case Ident(name) if term.symbol.flags.is(Flags.Module) =>
+        new DestructuredExpr.Singleton(dstrTpeOf(term), name, () => term)
+
+      case _ =>
+        dstrTryMethodCall(term, lambdaParams).getOrElse {
+          new DestructuredExpr.NonDestructurable(
+            dstrTpeOf(term),
+            term,
+            term.show(using Printer.TreeShortCode)
+          )
+        }
+    }
+  }
+
+  private def dstrTryMethodCall(
+      termAny: Any,
+      lambdaParams: Map[Any, DestructuredExpr.Lambda.Param]
+  ): Option[DestructuredExpr.MethodCall] = {
+    import quotes.reflect.*
+    val term = termAny.asInstanceOf[Term]
+    val (coreAny, steps) = dstrFlattenCall(term)
+    val core = coreAny.asInstanceOf[Term]
+
+    core match {
+      case Select(qualifier, _) =>
+        val qualTpe = qualifier.tpe
+        val methodSym = core.symbol
+        dstrResolveMethod(qualTpe, methodSym).map { method =>
+          val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
+          applied += new DestructuredExpr.MethodCall.AppliedInstance(dstrImpl(qualifier, lambdaParams))
+          dstrBuildAppliedSteps(steps, lambdaParams, applied)
+          new DestructuredExpr.MethodCall(dstrTpeOf(term), method, applied.result(), () => term)
+        }
+
+      case Ident(_) if !core.symbol.isNoSymbol && core.symbol.flags.is(Flags.ExtensionMethod) =>
+        val methodSym = core.symbol
+        steps match {
+          case DstrValueStep(receiver :: restArgs) :: restSteps =>
+            val receiverTerm = receiver.asInstanceOf[Term]
+            val qualTpe = receiverTerm.tpe
+            dstrResolveMethod(qualTpe, methodSym)
+              .map { method =>
+                val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
+                applied += new DestructuredExpr.MethodCall.AppliedInstance(dstrImpl(receiverTerm, lambdaParams))
+                if restArgs.nonEmpty then applied += new DestructuredExpr.MethodCall.AppliedValues(
+                  restArgs.map(a => dstrImpl(a, lambdaParams))
+                )
+                dstrBuildAppliedSteps(restSteps, lambdaParams, applied)
+                new DestructuredExpr.MethodCall(dstrTpeOf(term), method, applied.result(), () => term)
+              }
+              .orElse {
+                val ownerTpe = methodSym.owner.typeRef
+                dstrResolveMethod(ownerTpe, methodSym).map { method =>
+                  val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
+                  applied += new DestructuredExpr.MethodCall.AppliedInstance(dstrImpl(receiverTerm, lambdaParams))
+                  if restArgs.nonEmpty then applied += new DestructuredExpr.MethodCall.AppliedValues(
+                    restArgs.map(a => dstrImpl(a, lambdaParams))
+                  )
+                  dstrBuildAppliedSteps(restSteps, lambdaParams, applied)
+                  new DestructuredExpr.MethodCall(dstrTpeOf(term), method, applied.result(), () => term)
+                }
+              }
+          case DstrTypeStep(_) :: DstrValueStep(receiver :: restArgs) :: restSteps =>
+            val receiverTerm = receiver.asInstanceOf[Term]
+            val qualTpe = receiverTerm.tpe
+            val typeStep = steps.head.asInstanceOf[DstrTypeStep]
+            dstrResolveMethod(qualTpe, methodSym)
+              .orElse {
+                dstrResolveMethod(methodSym.owner.typeRef, methodSym)
+              }
+              .map { method =>
+                val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
+                applied += new DestructuredExpr.MethodCall.AppliedInstance(dstrImpl(receiverTerm, lambdaParams))
+                applied += new DestructuredExpr.MethodCall.AppliedTypes(
+                  typeStep.targs.map(t => UntypedType.as_??(t.asInstanceOf[TypeTree].tpe))
+                )
+                if restArgs.nonEmpty then applied += new DestructuredExpr.MethodCall.AppliedValues(
+                  restArgs.map(a => dstrImpl(a, lambdaParams))
+                )
+                dstrBuildAppliedSteps(restSteps, lambdaParams, applied)
+                new DestructuredExpr.MethodCall(dstrTpeOf(term), method, applied.result(), () => term)
+              }
+          case _ => None
+        }
+
+      case Ident(_) if !core.symbol.isNoSymbol =>
+        val methodSym = core.symbol
+        val ownerSym = methodSym.owner
+        if ownerSym.flags.is(Flags.Module) then {
+          val moduleTpe = ownerSym.typeRef
+          dstrResolveMethod(moduleTpe, methodSym).map { method =>
+            val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
+            dstrBuildAppliedSteps(steps, lambdaParams, applied)
+            new DestructuredExpr.MethodCall(dstrTpeOf(term), method, applied.result(), () => term)
+          }
+        } else None
+
+      case _ => None
+    }
+  }
+
+  private def dstrFlattenCall(termAny: Any): (Any, List[DstrCallStep]) = {
+    import quotes.reflect.*
+    val term = termAny.asInstanceOf[Term]
+    term match {
+      case Apply(inner, args) =>
+        val (core, steps) = dstrFlattenCall(inner)
+        (core, steps :+ DstrValueStep(args))
+      case TypeApply(inner, targs) =>
+        val (core, steps) = dstrFlattenCall(inner)
+        (core, steps :+ DstrTypeStep(targs))
+      case other =>
+        (other, Nil)
+    }
+  }
+
+  private def dstrBuildAppliedSteps(
+      steps: List[DstrCallStep],
+      lambdaParams: Map[Any, DestructuredExpr.Lambda.Param],
+      applied: scala.collection.mutable.Builder[DestructuredExpr.MethodCall.Applied, List[
+        DestructuredExpr.MethodCall.Applied
+      ]]
+  ): Unit = {
+    import quotes.reflect.*
+    steps.foreach {
+      case DstrTypeStep(targs) =>
+        applied += new DestructuredExpr.MethodCall.AppliedTypes(
+          targs.map(t => UntypedType.as_??(t.asInstanceOf[TypeTree].tpe))
+        )
+      case DstrValueStep(args) =>
+        applied += new DestructuredExpr.MethodCall.AppliedValues(
+          args.map(a => dstrImpl(a, lambdaParams))
+        )
+    }
+  }
+
+  private def dstrResolveMethod(qualTpeAny: Any, methodSymAny: Any): Option[Method] = {
+    import quotes.reflect.*
+    val qualTpe = qualTpeAny.asInstanceOf[TypeRepr]
+    val methodSym = methodSymAny.asInstanceOf[Symbol]
+    val instanceTpe: UntypedType = qualTpe.widen
+    val methods = UntypedMethod.methods(instanceTpe)
+    methods
+      .find(_.symbol == methodSym)
+      .map(_.asTyped(using UntypedType.toTyped[Any](instanceTpe)))
+  }
+
+  private def dstrLambda(
+      ddefAny: Any,
+      originalTermAny: Any,
+      outerLambdaParams: Map[Any, DestructuredExpr.Lambda.Param]
+  ): DestructuredExpr = {
+    import quotes.reflect.*
+    val ddef = ddefAny.asInstanceOf[DefDef]
+    val originalTerm = originalTermAny.asInstanceOf[Term]
+    val allVds = ddef.paramss.flatMap(_.params).collect { case vd: ValDef => vd }
+    val params = allVds.map { vd =>
+      new DestructuredExpr.Lambda.Param(vd.name, UntypedType.as_??(vd.tpt.tpe))
+    }
+    val newLambdaParams = outerLambdaParams ++ allVds.zip(params).map { case (vd, p) => (vd.symbol: Any) -> p }
+    val body = ddef.rhs match {
+      case Some(bodyTerm) => dstrImpl(bodyTerm, newLambdaParams)
+      case None           =>
+        new DestructuredExpr.NonDestructurable(
+          dstrTpeOf(originalTerm),
+          originalTerm,
+          "<lambda with no body>"
+        )
+    }
+    new DestructuredExpr.Lambda(dstrTpeOf(originalTerm), params, body, () => originalTerm)
+  }
+
+  private def dstrExtractConstant(constantAny: Any): Any = {
+    import quotes.reflect.*
+    constantAny.asInstanceOf[Constant] match {
+      case BooleanConstant(v) => v
+      case ByteConstant(v)    => v
+      case ShortConstant(v)   => v
+      case IntConstant(v)     => v
+      case LongConstant(v)    => v
+      case FloatConstant(v)   => v
+      case DoubleConstant(v)  => v
+      case CharConstant(v)    => v
+      case StringConstant(v)  => v
+      case NullConstant()     => null
+      case _: ClassOfConstant => null
+    }
+  }
 }

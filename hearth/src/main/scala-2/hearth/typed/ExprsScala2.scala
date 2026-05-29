@@ -3552,4 +3552,140 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         }
       }
   }
+
+  // --- Expression destructuring ---
+
+  override protected def destructureExpr(expr: UntypedExpr): DestructuredExpr =
+    dstrImpl(expr, Map.empty)
+
+  sealed private trait DstrCallStep
+  final private case class DstrTypeStep(targs: List[Tree]) extends DstrCallStep
+  final private case class DstrValueStep(args: List[Tree]) extends DstrCallStep
+
+  private def dstrTpeOf(tree: Tree): ?? =
+    if (tree.tpe != null && tree.tpe != NoType) UntypedType.as_??(tree.tpe.widen)
+    else Type.of[Any].as_??
+
+  private def dstrImpl(tree: Tree, lambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param]): DestructuredExpr =
+    tree match {
+      case Typed(inner, _) => dstrImpl(inner, lambdaParams)
+
+      case Literal(Constant(value)) =>
+        new DestructuredExpr.Literal(dstrTpeOf(tree), value, () => tree)
+
+      case Function(params, body) =>
+        dstrLambda(params, body, tree, lambdaParams)
+
+      case Block(stats, result) =>
+        new DestructuredExpr.Block(
+          dstrTpeOf(tree),
+          stats.map(dstrImpl(_, lambdaParams)),
+          dstrImpl(result, lambdaParams),
+          () => tree
+        )
+
+      case Ident(_) if tree.symbol != null && tree.symbol != NoSymbol && lambdaParams.contains(tree.symbol) =>
+        new DestructuredExpr.Lambda.ParamRef(dstrTpeOf(tree), lambdaParams(tree.symbol), () => tree)
+
+      case Ident(name)
+          if tree.symbol != null && tree.symbol != NoSymbol &&
+            (tree.symbol.isModule || tree.symbol.isModuleClass) =>
+        new DestructuredExpr.Singleton(dstrTpeOf(tree), name.decodedName.toString, () => tree)
+
+      case _ =>
+        dstrTryMethodCall(tree, lambdaParams).getOrElse {
+          new DestructuredExpr.NonDestructurable(dstrTpeOf(tree), tree, showCode(tree))
+        }
+    }
+
+  private def dstrTryMethodCall(
+      tree: Tree,
+      lambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param]
+  ): Option[DestructuredExpr.MethodCall] = {
+    val (core, steps) = dstrFlattenCall(tree)
+    val coreSym = if (core.symbol != null && core.symbol != NoSymbol) core.symbol else return None
+
+    core match {
+      case Select(qualifier, _) =>
+        val qualTpe = qualifier.tpe
+        if (qualTpe == null || qualTpe == NoType) return None
+        dstrResolveMethod(qualTpe, coreSym).map { method =>
+          val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
+          applied += new DestructuredExpr.MethodCall.AppliedInstance(dstrImpl(qualifier, lambdaParams))
+          dstrBuildAppliedSteps(steps, lambdaParams, applied)
+          new DestructuredExpr.MethodCall(dstrTpeOf(tree), method, applied.result(), () => tree)
+        }
+
+      case Ident(_) =>
+        val ownerSym = coreSym.owner
+        if (ownerSym != null && ownerSym != NoSymbol && (ownerSym.isModule || ownerSym.isModuleClass)) {
+          val moduleTpe = ownerSym.asModule.moduleClass.asType.toType
+          dstrResolveMethod(moduleTpe, coreSym).map { method =>
+            val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
+            dstrBuildAppliedSteps(steps, lambdaParams, applied)
+            new DestructuredExpr.MethodCall(dstrTpeOf(tree), method, applied.result(), () => tree)
+          }
+        } else None
+
+      case _ => None
+    }
+  }
+
+  private def dstrFlattenCall(tree: Tree): (Tree, List[DstrCallStep]) = tree match {
+    case Apply(inner, args) =>
+      val (core, steps) = dstrFlattenCall(inner)
+      (core, steps :+ DstrValueStep(args))
+    case TypeApply(inner, targs) =>
+      val (core, steps) = dstrFlattenCall(inner)
+      (core, steps :+ DstrTypeStep(targs))
+    case other =>
+      (other, Nil)
+  }
+
+  private def dstrBuildAppliedSteps(
+      steps: List[DstrCallStep],
+      lambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param],
+      applied: scala.collection.mutable.Builder[DestructuredExpr.MethodCall.Applied, List[
+        DestructuredExpr.MethodCall.Applied
+      ]]
+  ): Unit =
+    steps.foreach {
+      case DstrTypeStep(targs) =>
+        applied += new DestructuredExpr.MethodCall.AppliedTypes(targs.map(dstrTpeOf))
+      case DstrValueStep(args) =>
+        applied += new DestructuredExpr.MethodCall.AppliedValues(args.map(dstrImpl(_, lambdaParams)))
+    }
+
+  private def dstrResolveMethod(qualTpe: c.Type, methodSym: Symbol): Option[Method] = {
+    val instanceTpe: UntypedType = qualTpe.widen
+    val methods = UntypedMethod.methods(instanceTpe)
+    val termSym = if (methodSym.isMethod) methodSym.asMethod else methodSym.asTerm
+    methods
+      .find(_.symbol == termSym)
+      .map(_.asTyped(using UntypedType.toTyped[Any](instanceTpe)))
+  }
+
+  private def dstrLambda(
+      params: List[ValDef],
+      body: Tree,
+      originalTree: Tree,
+      outerLambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param]
+  ): DestructuredExpr = {
+    val dstrParams = params.map { vd =>
+      val paramTpe =
+        if (vd.tpt != null && vd.tpt.tpe != null && vd.tpt.tpe != NoType) UntypedType.as_??(vd.tpt.tpe)
+        else if (vd.symbol != null && vd.symbol != NoSymbol) UntypedType.as_??(vd.symbol.typeSignature)
+        else Type.of[Any].as_??
+      new DestructuredExpr.Lambda.Param(vd.name.decodedName.toString, paramTpe)
+    }
+    val newLambdaParams = outerLambdaParams ++ params.zip(dstrParams).collect {
+      case (vd, p) if vd.symbol != null && vd.symbol != NoSymbol => vd.symbol -> p
+    }
+    new DestructuredExpr.Lambda(
+      dstrTpeOf(originalTree),
+      dstrParams,
+      dstrImpl(body, newLambdaParams),
+      () => originalTree
+    )
+  }
 }
