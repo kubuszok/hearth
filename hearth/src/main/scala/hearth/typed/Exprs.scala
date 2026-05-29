@@ -1594,4 +1594,317 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def build[To: Type](implicit ev: A <:< Expr[To]): Expr[From[To]] = buildWith(ev)
   }
+
+  // --- Expression destructuring ---
+
+  /** A decomposed expression representing the high-level intent of a compiler AST.
+    *
+    * Unlike a raw AST mirror, `DestructuredExpr` captures **semantic** structure: a [[DestructuredExpr.MethodCall]]
+    * holds a resolved [[Method]] from Hearth's API plus an ordered list of what was applied (instance, type args, value
+    * args). This maps directly to [[Method.fold]] for reconstruction.
+    *
+    * Parsing is total and maximal: every sub-expression is recursively destructured; only the smallest unresolvable
+    * leaf becomes [[DestructuredExpr.NonDestructurable]]. Compiler noise (Scala 3 `Inlined` wrappers, etc.) is stripped
+    * automatically.
+    *
+    * @since 0.4.0
+    */
+  sealed trait DestructuredExpr {
+
+    val tpe: ??
+
+    def toUntypedExpr: UntypedExpr
+
+    def plainPrint: String
+
+    final def children: List[DestructuredExpr] = this match {
+      case _: DestructuredExpr.Literal           => Nil
+      case _: DestructuredExpr.Singleton         => Nil
+      case _: DestructuredExpr.NonDestructurable => Nil
+      case _: DestructuredExpr.Lambda.ParamRef   => Nil
+      case mc: DestructuredExpr.MethodCall       =>
+        mc.applied.flatMap {
+          case ai: DestructuredExpr.MethodCall.AppliedInstance => List(ai.value)
+          case _: DestructuredExpr.MethodCall.AppliedTypes     => Nil
+          case av: DestructuredExpr.MethodCall.AppliedValues   => av.args
+        }
+      case lam: DestructuredExpr.Lambda => List(lam.body)
+      case b: DestructuredExpr.Block    => b.statements :+ b.result
+    }
+
+    final def collect[B](pf: PartialFunction[DestructuredExpr, B]): List[B] = {
+      val buffer = new scala.collection.mutable.ListBuffer[B]
+      def go(node: DestructuredExpr): Unit = {
+        if (pf.isDefinedAt(node)) buffer += pf(node)
+        node.children.foreach(go)
+      }
+      go(this)
+      buffer.result()
+    }
+  }
+  object DestructuredExpr {
+
+    /** Parse a typed expression into a [[DestructuredExpr]].
+      *
+      * @since 0.4.0
+      */
+    final def parse[A: Type](expr: Expr[A]): DestructuredExpr = destructureExpr(UntypedExpr.fromTyped(expr))
+
+    /** Parse an untyped expression into a [[DestructuredExpr]].
+      *
+      * @since 0.4.0
+      */
+    final def parseUntyped(expr: UntypedExpr): DestructuredExpr = destructureExpr(expr)
+
+    /** Extract a field access path from a lambda like `_.field1.field2`.
+      *
+      * Walks the [[MethodCall]] chain: each call with only an [[MethodCall.AppliedInstance]] and no value/type args is
+      * a field access step.
+      *
+      * @since 0.4.0
+      */
+    final def extractFieldPath[A: Type, B: Type](lambda: Expr[A => B]): Either[String, FieldPath] = {
+      val parsed = parseUntyped(UntypedExpr.fromTyped(lambda))
+      parsed match {
+        case lam: Lambda =>
+          lam.params match {
+            case List(param) =>
+              collectFieldSteps(lam.body, param).flatMap {
+                case Nil      => Left("Empty field path - the lambda body must access at least one field")
+                case segments => Right(new FieldPath(Type[A].as_??, segments))
+              }
+            case params => Left(s"Expected a single-parameter lambda, got ${params.size} parameters")
+          }
+        case _ =>
+          Left(s"Expected a lambda expression, got ${parsed.plainPrint}")
+      }
+    }
+
+    private def collectFieldSteps(
+        expr: DestructuredExpr,
+        rootParam: Lambda.Param
+    ): Either[String, List[FieldPathSegment]] = expr match {
+      case mc: MethodCall =>
+        mc.applied match {
+          case List(ai: MethodCall.AppliedInstance) =>
+            val segment = new FieldPathSegment(mc.method.name, ai.value.tpe, mc.tpe, mc.method)
+            collectFieldSteps(ai.value, rootParam).map(_ :+ segment)
+          case _ =>
+            Left(s"Expected a field access (method with only an instance), got ${expr.plainPrint}")
+        }
+      case ref: Lambda.ParamRef if ref.param eq rootParam =>
+        Right(Nil)
+      case _ =>
+        Left(s"Expected a field access chain on the lambda parameter, got ${expr.plainPrint}")
+    }
+
+    /** Extract lambda parameters and body from an expression.
+      *
+      * @since 0.4.0
+      */
+    final def extractLambda[A: Type](expr: Expr[A]): Either[String, LambdaInfo] = {
+      val parsed = parse[A](expr)
+      parsed match {
+        case lam: Lambda =>
+          Right(new LambdaInfo(lam.params, lam.body))
+        case _ =>
+          Left(s"Expected a lambda expression, got ${parsed.plainPrint}")
+      }
+    }
+
+    // --- Node types ---
+
+    /** A resolved method/field call with its applied arguments.
+      *
+      * `method` is the resolved [[Method]] from Hearth's API. `applied` mirrors `method.expectations` in order — each
+      * entry corresponds to one step of the [[Method]] builder chain. To reconstruct, walk `method.fold` feeding each
+      * [[MethodCall.Applied]] entry.
+      *
+      * @since 0.4.0
+      */
+    final class MethodCall private[hearth] (
+        val tpe: ??,
+        val method: Method,
+        val applied: List[MethodCall.Applied],
+        private[hearth] val rebuild: () => UntypedExpr
+    ) extends DestructuredExpr {
+      def toUntypedExpr: UntypedExpr = rebuild()
+      def plainPrint: String = {
+        val parts = applied.map {
+          case ai: MethodCall.AppliedInstance => ai.value.plainPrint
+          case at: MethodCall.AppliedTypes    => at.typeArgs.map(_.plainPrint).mkString("[", ", ", "]")
+          case av: MethodCall.AppliedValues   => av.args.map(_.plainPrint).mkString("(", ", ", ")")
+        }
+        s"${method.name}${parts.mkString}"
+      }
+    }
+    object MethodCall {
+
+      /** One step of an applied method call, mapping to [[Method]] builder chain steps.
+        *
+        * @since 0.4.0
+        */
+      sealed trait Applied
+
+      /** Instance expression (receiver). Maps to [[Method.OnInstance]].
+        *
+        * @since 0.4.0
+        */
+      final class AppliedInstance private[hearth] (val value: DestructuredExpr) extends Applied
+
+      /** Type arguments. Maps to [[Method.ApplyTypes]].
+        *
+        * @since 0.4.0
+        */
+      final class AppliedTypes private[hearth] (val typeArgs: List[??]) extends Applied
+
+      /** Value arguments for one parameter clause. Maps to [[Method.ApplyValues]].
+        *
+        * @since 0.4.0
+        */
+      final class AppliedValues private[hearth] (val args: List[DestructuredExpr]) extends Applied
+    }
+
+    /** A lambda expression: `(params) => body`.
+      *
+      * @since 0.4.0
+      */
+    final class Lambda private[hearth] (
+        val tpe: ??,
+        val params: List[Lambda.Param],
+        val body: DestructuredExpr,
+        private[hearth] val rebuild: () => UntypedExpr
+    ) extends DestructuredExpr {
+      def toUntypedExpr: UntypedExpr = rebuild()
+      def plainPrint: String = {
+        val ps = params.map(p => s"${p.name}: ${p.tpe.plainPrint}").mkString(", ")
+        s"($ps) => ${body.plainPrint}"
+      }
+    }
+    object Lambda {
+
+      /** A lambda parameter.
+        *
+        * @since 0.4.0
+        */
+      final class Param private[hearth] (val name: String, val tpe: ??)
+
+      /** Reference to a lambda parameter in the body.
+        *
+        * @since 0.4.0
+        */
+      final class ParamRef private[hearth] (
+          val tpe: ??,
+          val param: Param,
+          private[hearth] val rebuild: () => UntypedExpr
+      ) extends DestructuredExpr {
+        def toUntypedExpr: UntypedExpr = rebuild()
+        def plainPrint: String = param.name
+      }
+    }
+
+    /** A literal constant: `42`, `"hello"`, `true`, `null`, `()`, etc.
+      *
+      * @since 0.4.0
+      */
+    final class Literal private[hearth] (
+        val tpe: ??,
+        val value: Any,
+        private[hearth] val rebuild: () => UntypedExpr
+    ) extends DestructuredExpr {
+      def toUntypedExpr: UntypedExpr = rebuild()
+      def plainPrint: String = value match {
+        case s: String => s"\"$s\""
+        case null      => "null"
+        case ()        => "()"
+        case c: Char   => s"'$c'"
+        case l: Long   => s"${l}L"
+        case f: Float  => s"${f}f"
+        case other     => other.toString
+      }
+    }
+
+    /** A singleton/module reference: `None`, `Nil`, companion objects.
+      *
+      * @since 0.4.0
+      */
+    final class Singleton private[hearth] (
+        val tpe: ??,
+        val name: String,
+        private[hearth] val rebuild: () => UntypedExpr
+    ) extends DestructuredExpr {
+      def toUntypedExpr: UntypedExpr = rebuild()
+      def plainPrint: String = name
+    }
+
+    /** A block: `{ stmt1; stmt2; ...; result }`.
+      *
+      * @since 0.4.0
+      */
+    final class Block private[hearth] (
+        val tpe: ??,
+        val statements: List[DestructuredExpr],
+        val result: DestructuredExpr,
+        private[hearth] val rebuild: () => UntypedExpr
+    ) extends DestructuredExpr {
+      def toUntypedExpr: UntypedExpr = rebuild()
+      def plainPrint: String = {
+        val stmts = (statements.map(_.plainPrint) :+ result.plainPrint).mkString("; ")
+        s"{ $stmts }"
+      }
+    }
+
+    /** A sub-expression that could not be destructured into a semantic node.
+      *
+      * @since 0.4.0
+      */
+    final class NonDestructurable private[hearth] (
+        val tpe: ??,
+        val raw: UntypedExpr,
+        val description: String
+    ) extends DestructuredExpr {
+      def toUntypedExpr: UntypedExpr = raw
+      def plainPrint: String = s"<non-destructurable: $description>"
+    }
+  }
+
+  protected def destructureExpr(expr: UntypedExpr): DestructuredExpr
+
+  /** A single step in a field access path, resolved against the [[Method]] API.
+    *
+    * @since 0.4.0
+    */
+  final class FieldPathSegment(
+      val name: String,
+      val sourceType: ??,
+      val resultType: ??,
+      val method: Method
+  )
+
+  /** A parsed field access path extracted from a lambda like `_.a.b.c`.
+    *
+    * @since 0.4.0
+    */
+  final class FieldPath(
+      val root: ??,
+      val segments: List[FieldPathSegment]
+  ) {
+
+    final def fieldNames: List[String] = segments.map(_.name)
+
+    final def leafType: ?? = segments.last.resultType
+
+    final def depth: Int = segments.size
+
+    final def plainPrint: String = fieldNames.mkString("_.", ".", "")
+  }
+
+  /** Decomposed lambda information: parameters and body.
+    *
+    * @since 0.4.0
+    */
+  final class LambdaInfo(
+      val params: List[DestructuredExpr.Lambda.Param],
+      val body: DestructuredExpr
+  )
 }
