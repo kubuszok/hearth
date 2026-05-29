@@ -273,6 +273,10 @@ trait UntypedMethods { this: MacroCommons =>
     final def isInherited: Boolean = !isDeclared && !isSynthetic
     def isImplicit: Boolean
 
+    def isFinal: Boolean
+    def isAbstract: Boolean
+    def isOverride: Boolean
+
     def isPrivate: Boolean
     def isProtected: Boolean
     def privateWithin: Option[String]
@@ -322,6 +326,9 @@ trait UntypedMethods { this: MacroCommons =>
           )
         }
         if (isImplicit) sb.append(hl.highlightKeyword("implicit")).append(" ")
+        if (isFinal) sb.append(hl.highlightKeyword("final")).append(" ")
+        if (isAbstract && isOverride) sb.append(hl.highlightKeyword("abstract")).append(" ")
+        if (isOverride) sb.append(hl.highlightKeyword("override")).append(" ")
         if (isVal) sb.append(hl.highlightKeyword("val")).append(" ")
         else if (isVar) sb.append(hl.highlightKeyword("var")).append(" ")
         else if (isLazy)

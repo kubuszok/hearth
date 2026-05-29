@@ -137,6 +137,10 @@ trait Methods { this: MacroCommons =>
     final lazy val isSynthetic: Boolean = asUntyped.isSynthetic
     final lazy val isInherited: Boolean = asUntyped.isInherited
 
+    final lazy val isFinal: Boolean = asUntyped.isFinal
+    final lazy val isAbstract: Boolean = asUntyped.isAbstract
+    final lazy val isOverride: Boolean = asUntyped.isOverride
+
     final lazy val isPrivate: Boolean = asUntyped.isPrivate
     final lazy val isProtected: Boolean = asUntyped.isProtected
     final lazy val privateWithin: Option[String] = asUntyped.privateWithin

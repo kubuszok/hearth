@@ -259,6 +259,10 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     override def isImplicit: Boolean = symbol.isImplicit
     override def isSynthetic: Boolean = symbol.isSynthetic || UntypedMethod.methodsConsideredSynthetic(symbol)
 
+    override def isFinal: Boolean = symbol.isFinal
+    override def isAbstract: Boolean = (symbol: Symbol).isAbstract
+    override def isOverride: Boolean = if (symbol.isMethod) symbol.asMethod.overrides.nonEmpty else false
+
     override def isPrivate: Boolean =
       (symbol.isPrivate || symbol.isPrivateThis) &&
         Option(symbol.privateWithin).forall(_ == NoSymbol)

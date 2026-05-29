@@ -161,6 +161,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
 
     final def isAbstract[A: Type]: Boolean = UntypedType.fromTyped[A].isAbstract
     final def isFinal[A: Type]: Boolean = UntypedType.fromTyped[A].isFinal
+    final def isTrait[A: Type]: Boolean = UntypedType.fromTyped[A].isTrait
 
     final def isClass[A: Type]: Boolean = UntypedType.fromTyped[A].isClass
     final def notJvmBuiltInClass[A: Type]: Boolean = isClass[A] && !isJvmBuiltIn[A]
@@ -186,6 +187,9 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     final def isCaseVal[A: Type]: Boolean = UntypedType.fromTyped[A].isCaseVal
 
     final def isAvailable[A: Type](scope: Accessible): Boolean = UntypedType.fromTyped[A].isAvailable(scope)
+
+    final def parents[A: Type]: List[??] = UntypedType.fromTyped[A].parents.map(_.as_??)
+    final def baseClasses[A: Type]: List[??] = UntypedType.fromTyped[A].baseClasses.map(_.as_??)
 
     final def isSubtypeOf[A: Type, B: Type]: Boolean = UntypedType.fromTyped[A] <:< UntypedType.fromTyped[B]
     final def isSameAs[A: Type, B: Type]: Boolean = UntypedType.fromTyped[A] =:= UntypedType.fromTyped[B]
@@ -702,6 +706,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
 
     def isAbstract: Boolean = Type.isAbstract(using tpe)
     def isFinal: Boolean = Type.isFinal(using tpe)
+    def isTrait: Boolean = Type.isTrait(using tpe)
 
     def isClass: Boolean = Type.isClass(using tpe)
     def notJvmBuiltInClass: Boolean = Type.notJvmBuiltInClass(using tpe)
@@ -723,6 +728,9 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def isCaseVal: Boolean = Type.isCaseVal(using tpe)
 
     def isAvailable(scope: Accessible): Boolean = Type.isAvailable[A](scope)(using tpe)
+
+    def parents: List[??] = Type.parents(using tpe)
+    def baseClasses: List[??] = Type.baseClasses(using tpe)
 
     def <:<[B](tpe2: Type[B]): Boolean = Type.isSubtypeOf(using tpe, tpe2)
     def =:=[B](tpe2: Type[B]): Boolean = Type.isSameAs(using tpe, tpe2)
