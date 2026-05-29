@@ -615,4 +615,270 @@ trait Classes { this: MacroCommons =>
         }
     }
   }
+
+  sealed trait AnonymousInstanceError extends Product with Serializable {
+    def message: String
+  }
+  object AnonymousInstanceError {
+
+    final case class TypeIsFinal(tpe: ??) extends AnonymousInstanceError {
+      def message: String = s"Cannot create anonymous instance of final type ${tpe.plainPrint}"
+    }
+
+    final case class TypeIsSealed(tpe: ??) extends AnonymousInstanceError {
+      def message: String = s"Cannot create anonymous instance of sealed type ${tpe.plainPrint}"
+    }
+
+    final case class TypeInaccessible(tpe: ??) extends AnonymousInstanceError {
+      def message: String = s"Type ${tpe.plainPrint} is not accessible at the call site"
+    }
+
+    final case class ConstructorInaccessible(tpe: ??, constructor: Method) extends AnonymousInstanceError {
+      def message: String =
+        s"No accessible constructor for ${tpe.plainPrint}: ${constructor.asUntyped.plainPrint(tpe.asUntyped)}"
+    }
+
+    final case class MultipleClassParents(types: List[??]) extends AnonymousInstanceError {
+      def message: String =
+        s"At most one class parent allowed, got: ${types.map(_.plainPrint).mkString(", ")}"
+    }
+
+    final case class MissingRequiredOverride(method: Method) extends AnonymousInstanceError {
+      def message: String =
+        s"Missing required override: ${method.name} (${method.asUntyped.plainPrint(method.untypedInstanceType)})"
+    }
+
+    final case class CannotOverrideFinalMethod(method: Method) extends AnonymousInstanceError {
+      def message: String =
+        s"Cannot override final method: ${method.name} (${method.asUntyped.plainPrint(method.untypedInstanceType)})"
+    }
+
+    final case class DiamondConflict(methodName: String, sources: List[??]) extends AnonymousInstanceError {
+      def message: String =
+        s"Diamond conflict for method '$methodName' — conflicting implementations from: ${sources.map(_.plainPrint).mkString(", ")}"
+    }
+  }
+
+  sealed trait MethodClassification extends Product with Serializable
+  object MethodClassification {
+    case object MustOverride extends MethodClassification
+    case object MayOverride extends MethodClassification
+    case object CannotOverride extends MethodClassification
+    case object DiamondConflict extends MethodClassification
+  }
+
+  final case class ClassifiedMethod(
+      method: Method,
+      classification: MethodClassification,
+      declaredIn: ??
+  )
+
+  final case class OverrideContext(
+      self: Expr_??,
+      method: UntypedMethod,
+      parameters: List[Expr_??],
+      returnType: ??
+  )
+
+  @FunctionalInterface
+  trait OverrideBody {
+    def apply(ctx: OverrideContext): Expr_??
+  }
+
+  final class AnonymousInstance[A] private (
+      tpe0: Type[A],
+      val classParent: Option[(??, List[Method])],
+      val traitParents: List[??],
+      val classifiedMethods: List[ClassifiedMethod]
+  ) extends Class[A]()(using tpe0) {
+
+    lazy val mustOverride: List[ClassifiedMethod] =
+      classifiedMethods.filter(_.classification == MethodClassification.MustOverride)
+    lazy val mayOverride: List[ClassifiedMethod] =
+      classifiedMethods.filter(_.classification == MethodClassification.MayOverride)
+    lazy val cannotOverride: List[ClassifiedMethod] =
+      classifiedMethods.filter(_.classification == MethodClassification.CannotOverride)
+    lazy val diamondConflicts: List[ClassifiedMethod] =
+      classifiedMethods.filter(_.classification == MethodClassification.DiamondConflict)
+
+    def construct(
+        constructor: Option[Method],
+        constructorArgs: Arguments,
+        overrides: Map[UntypedMethod, OverrideBody]
+    ): Either[NonEmptyVector[String], Expr[A]] = {
+      val errors = Vector.newBuilder[String]
+
+      val overriddenFinals = overrides.keys.filter(_.isFinal).toList
+      overriddenFinals.foreach { m =>
+        errors += AnonymousInstanceError.CannotOverrideFinalMethod(m.asTyped[A]).message
+      }
+
+      val missingRequired = mustOverride.filterNot(cm => overrides.contains(cm.method.asUntyped))
+      missingRequired.foreach { cm =>
+        errors += AnonymousInstanceError.MissingRequiredOverride(cm.method).message
+      }
+
+      val unresolvedDiamonds = diamondConflicts.filterNot(cm => overrides.contains(cm.method.asUntyped))
+      unresolvedDiamonds.foreach { cm =>
+        errors += AnonymousInstanceError.DiamondConflict(cm.method.name, List(cm.declaredIn)).message
+      }
+
+      classParent match {
+        case Some(_) if constructor.isEmpty =>
+          errors += "Class parent requires a constructor selection but none was provided"
+        case _ => ()
+      }
+
+      val allErrors = errors.result()
+      NonEmptyVector.fromVector(allErrors) match {
+        case Some(nev) => Left(nev)
+        case None      =>
+          val instanceTpe = UntypedType.fromTyped[A]
+          val ctorArgs: List[List[UntypedExpr]] = constructor match {
+            case Some(ctor) =>
+              UntypedArguments.fromTyped(constructorArgs).adaptToParams(instanceTpe, None, ctor.asUntyped)
+            case None => Nil
+          }
+
+          val parentTypes: List[UntypedType] = {
+            val classType = classParent.map(_._1.asUntyped).toList
+            val traitTypes = traitParents.map(_.asUntyped)
+            classType ++ traitTypes
+          }
+          val effectiveParents = if (parentTypes.isEmpty) List(instanceTpe) else parentTypes
+
+          val overrideList = overrides.toList.map { case (untypedMethod, body) =>
+            val typedMethod = untypedMethod.asTyped[A]
+            val returnTpe: ?? = typedMethod.knownReturning.getOrElse(Type.of[Any].as_??)
+            UntypedType.UntypedOverride(
+              untypedMethod,
+              (selfExpr: UntypedExpr, params: List[UntypedExpr]) => {
+                val ctx = OverrideContext(
+                  self = selfExpr.as_??,
+                  method = untypedMethod,
+                  parameters = params.map(_.as_??),
+                  returnType = returnTpe
+                )
+                UntypedExpr.fromTyped(body(ctx).value)
+              }
+            )
+          }
+
+          UntypedType
+            .unsafeNewSubtype(instanceTpe, effectiveParents, constructor.map(_.asUntyped), ctorArgs, overrideList)
+            .map { untypedResult =>
+              val exprResult = untypedResult.as_??
+              import exprResult.Underlying
+              exprResult.value.upcast[A]
+            }
+      }
+    }
+
+    override def toString: String = s"AnonymousInstance(${tpe.plainPrint})"
+
+    override def equals(other: Any): Boolean = other match {
+      case that: AnonymousInstance[?] => tpe =:= that.tpe
+      case _                          => false
+    }
+  }
+
+  object AnonymousInstance {
+
+    def parse[A: Type]: ClassViewResult[AnonymousInstance[A]] =
+      parseWithMixins[A](Nil)
+
+    def parseWithMixins[A: Type](mixins: List[??]): ClassViewResult[AnonymousInstance[A]] = {
+      val tpe = Type[A]
+
+      if (tpe.isFinal)
+        ClassViewResult.Incompatible(AnonymousInstanceError.TypeIsFinal(tpe.as_??).message)
+      else if (tpe.isSealed)
+        ClassViewResult.Incompatible(AnonymousInstanceError.TypeIsSealed(tpe.as_??).message)
+      else if (!tpe.isAvailable(AtCallSite))
+        ClassViewResult.Incompatible(AnonymousInstanceError.TypeInaccessible(tpe.as_??).message)
+      else {
+        val allParentTypes: List[??] = tpe.as_?? :: mixins
+        val classParents = allParentTypes.filter(p => !p.asUntyped.isTrait)
+        val traitParentsList = allParentTypes.filter(p => p.asUntyped.isTrait)
+
+        if (classParents.size > 1)
+          ClassViewResult.Incompatible(AnonymousInstanceError.MultipleClassParents(classParents).message)
+        else {
+          val classParentValidation: Either[String, Option[(??, List[Method])]] = classParents.headOption match {
+            case None     => Right(None)
+            case Some(cp) =>
+              val ctors = UntypedMethod.constructors(cp.asUntyped).map(_.asTyped[A])
+              val accessibleCtors = ctors.filter(_.isAvailable(AtCallSite))
+              if (accessibleCtors.isEmpty)
+                Left(
+                  ctors.headOption
+                    .map(c => AnonymousInstanceError.ConstructorInaccessible(cp, c).message)
+                    .getOrElse(s"${cp.plainPrint} has no constructors")
+                )
+              else
+                Right(Some((cp, accessibleCtors)))
+          }
+
+          classParentValidation match {
+            case Left(error)            => ClassViewResult.Incompatible(error)
+            case Right(classParentInfo) =>
+              val classifiedMethods = classifyMethods[A](allParentTypes)
+              ClassViewResult.Compatible(
+                new AnonymousInstance[A](tpe, classParentInfo, traitParentsList, classifiedMethods)
+              )
+          }
+        }
+      }
+    }
+
+    private def classifyMethods[A: Type](parentTypes: List[??]): List[ClassifiedMethod] = {
+      val allMethods: List[(Method, ??)] = parentTypes.flatMap { parentType =>
+        val methods = UntypedMethod.methods(parentType.asUntyped).map(_.asTyped[A])
+        methods
+          .filterNot(_.isConstructor)
+          .filterNot(_.isSynthetic)
+          .map(m => (m, parentType))
+      }
+
+      val grouped: Map[String, List[(Method, ??)]] = allMethods.groupBy(_._1.name)
+
+      grouped.toList.sortBy(_._1).flatMap { case (_, methodsWithParent) =>
+        val representative = methodsWithParent.head
+        val method = representative._1
+        val declaredIn = representative._2
+
+        if (method.isFinal) {
+          List(ClassifiedMethod(method, MethodClassification.CannotOverride, declaredIn))
+        } else if (method.isAbstract) {
+          val concreteImpls = methodsWithParent.filterNot(_._1.isAbstract)
+          if (concreteImpls.isEmpty) {
+            List(ClassifiedMethod(method, MethodClassification.MustOverride, declaredIn))
+          } else if (hasDistinctDeclaredImpls(concreteImpls)) {
+            List(ClassifiedMethod(method, MethodClassification.DiamondConflict, declaredIn))
+          } else {
+            List(ClassifiedMethod(concreteImpls.head._1, MethodClassification.MayOverride, concreteImpls.head._2))
+          }
+        } else {
+          val concreteImpls = methodsWithParent.filterNot(_._1.isAbstract)
+          if (concreteImpls.size > 1 && hasDistinctDeclaredImpls(concreteImpls)) {
+            List(ClassifiedMethod(method, MethodClassification.DiamondConflict, declaredIn))
+          } else {
+            List(ClassifiedMethod(method, MethodClassification.MayOverride, declaredIn))
+          }
+        }
+      }
+    }
+
+    private def hasDistinctDeclaredImpls(impls: List[(Method, ??)]): Boolean = {
+      val declared = impls.filter(_._1.isDeclared)
+      if (declared.size > 1) {
+        val distinctSources = declared.map(_._2).distinctBy(_.asUntyped.plainPrint)
+        distinctSources.size > 1
+      } else if (declared.isEmpty) {
+        false
+      } else {
+        false
+      }
+    }
+  }
 }

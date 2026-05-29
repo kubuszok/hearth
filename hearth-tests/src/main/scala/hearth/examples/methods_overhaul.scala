@@ -58,3 +58,20 @@ class WithImplicitParam {
   @scala.annotation.nowarn
   def withImplicit(a: Int)(implicit b: String): String = s"$a $b"
 }
+
+trait MethodModifiers {
+  def abstractMethod(a: Int): String
+  final def finalMethod(a: Int): String = a.toString
+  def concreteMethod(a: Int): String = a.toString
+}
+
+abstract class AbstractWithModifiers {
+  def abstractDef: Int
+  final def finalDef: Int = 42
+  def concreteDef: Int = 0
+}
+
+class OverridingChild extends AbstractWithModifiers {
+  override def abstractDef: Int = 1
+  override def concreteDef: Int = 2
+}

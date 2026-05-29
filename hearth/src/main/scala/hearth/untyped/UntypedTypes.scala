@@ -115,6 +115,7 @@ trait UntypedTypes { this: MacroCommons =>
 
     def isAbstract(instanceTpe: UntypedType): Boolean
     def isFinal(instanceTpe: UntypedType): Boolean
+    def isTrait(instanceTpe: UntypedType): Boolean
 
     def isClass(instanceTpe: UntypedType): Boolean
 
@@ -133,6 +134,22 @@ trait UntypedTypes { this: MacroCommons =>
     final def isCaseVal(instanceTpe: UntypedType): Boolean = isVal(instanceTpe) && isCase(instanceTpe)
 
     def isAvailable(instanceTpe: UntypedType, scope: Accessible): Boolean
+
+    def parents(instanceTpe: UntypedType): List[UntypedType]
+    def baseClasses(instanceTpe: UntypedType): List[UntypedType]
+
+    final case class UntypedOverride(
+        method: UntypedMethod,
+        body: (UntypedExpr, List[UntypedExpr]) => UntypedExpr
+    )
+
+    def unsafeNewSubtype(
+        targetType: UntypedType,
+        parentTypes: List[UntypedType],
+        constructor: Option[UntypedMethod],
+        constructorArgs: List[List[UntypedExpr]],
+        overrides: List[UntypedOverride]
+    ): Either[NonEmptyVector[String], UntypedExpr]
 
     def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean
     def isSameAs(a: UntypedType, b: UntypedType): Boolean
@@ -200,6 +217,7 @@ trait UntypedTypes { this: MacroCommons =>
 
     def isAbstract: Boolean = UntypedType.isAbstract(untyped)
     def isFinal: Boolean = UntypedType.isFinal(untyped)
+    def isTrait: Boolean = UntypedType.isTrait(untyped)
 
     def isClass: Boolean = UntypedType.isClass(untyped)
 
@@ -217,6 +235,9 @@ trait UntypedTypes { this: MacroCommons =>
     def isCaseVal: Boolean = UntypedType.isCaseVal(untyped)
 
     def isAvailable(scope: Accessible): Boolean = UntypedType.isAvailable(untyped, scope)
+
+    def parents: List[UntypedType] = UntypedType.parents(untyped)
+    def baseClasses: List[UntypedType] = UntypedType.baseClasses(untyped)
 
     def <:<(other: UntypedType): Boolean = UntypedType.isSubtypeOf(untyped, other)
     def =:=(other: UntypedType): Boolean = UntypedType.isSameAs(untyped, other)

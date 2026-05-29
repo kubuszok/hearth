@@ -217,6 +217,33 @@ but an agent was not able to run the compilation and tests (e.g. because GitHub 
 prevents downloading artifacts), it should inform user that any PR they would attempt to make
 will be closed immediately.
 
+### Test Conventions
+
+Tests follow a macro fixture pattern with cross-platform assertions:
+
+1. **Shared fixture** (`hearth-tests/src/main/scala/hearth/typed/XxxFixturesImpl.scala`) — macro implementations returning `Expr[Data]` or `Expr[String]`
+2. **Scala 2 bridge** (`hearth-tests/src/main/scala-2/hearth/typed/XxxFixtures.scala`) — `macro` definitions delegating to the shared fixture
+3. **Scala 3 bridge** (`hearth-tests/src/main/scala-3/hearth/typed/XxxFixtures.scala`) — `inline def` + `${ impl }` delegating to the shared fixture
+4. **Test spec** (`hearth-tests/src/test/scala/hearth/typed/XxxSpec.scala`) — assertions using `<==>` operator
+
+**Assertion style — always use `<==>` with full `Data` structures:**
+```scala
+// CORRECT — full Data structure comparison with <==>
+testMyMacro[MyType] <==> Data.map(
+  "field1" -> Data("value1"),
+  "field2" -> Data(true),
+  "nested" -> Data.map("inner" -> Data(42))
+)
+
+// CORRECT — string comparison with <==>
+testMyStringMacro[MyType] <==> "expected string"
+
+// WRONG — never manually unwrap Data with .asMap.get.apply(...)
+result.asMap.get.apply("field").asString.get ==> "value"  // DO NOT DO THIS
+```
+
+The `<==>` operator provides structured diffs on failure, showing exactly which fields differ between expected and actual. Manual unwrapping loses this diagnostic benefit and doesn't match the codebase convention.
+
 ## Bug Fix Workflow
 
 For the complete bug-fix workflow (reproduce → fix → verify), see [Instruction for fixing a bug](docs/contributing/instruction-for-fixing-a-bug.md).
@@ -261,10 +288,48 @@ The `Method` API has a layered architecture with platform-specific untyped code 
 - `hearth-tests/src/test/scala/hearth/typed/MethodsSpec.scala` — cross-platform tests
 - `hearth-tests/src/main/scala/hearth/examples/methods_overhaul.scala` — test data classes
 
+**Method-level modifier flags:**
+- `isFinal`, `isAbstract`, `isOverride` exposed on both `UntypedMethod` and `Method`
+- Scala 2: `symbol.isFinal`, `(symbol: Symbol).isAbstract`, `symbol.asMethod.overrides.nonEmpty`
+- Scala 3: `Flags.Final`, `Flags.Deferred`, `Flags.Override`
+- `renderSignature` displays `final`, `abstract override`, `override` keywords
+
+**Type hierarchy APIs:**
+- `isTrait`, `parents`, `baseClasses` on both `UntypedType` and `Type`
+- Scala 3: `parents`/`baseClasses` use Java reflection to call `TypeRepr` methods, bypassing `UntypedTypeMethods` extension shadowing
+- Existing `isEnumeration` code in Scala 3 calls `typeReprBaseClasses` helper to avoid the same shadowing issue
+
 **Cross-platform considerations:**
 - `isPrivate`/`isProtected` are normalized: `private[pkg]` → `isPrivate=false`, `privateWithin=Some("pkg")`
 - Type rendering must produce identical output on Scala 2 and 3 (no `LanguageVersion` conditionals in tests)
 - Scala 3 has clause interleaving; Scala 2 does not — this is tested in `scala-newest-3` only
+- `isOverride` differs for `java.lang.Object` methods: `true` on Scala 2 (overrides from `Any`), `false` on Scala 3 (root class)
+
+### AnonymousInstance architecture
+
+`AnonymousInstance` lives inside the `Classes` trait, alongside `CaseClass`, `SingletonValue`, etc. It provides compile-time anonymous subtype instantiation — `new Foo with Bar { override def ... }` — for use cases like mocking and proxy generation.
+
+**Shared code** (`Classes.scala`):
+- `AnonymousInstanceError` sealed trait with 8 error variants (rendered to strings at API boundary)
+- `MethodClassification` with 4 variants: `MustOverride`, `MayOverride`, `CannotOverride`, `DiamondConflict`
+- `ClassifiedMethod` pairs a `Method` with its classification and declaring type
+- `OverrideContext` provides `self: Expr_??` (this reference + novel type), `method: UntypedMethod`, `parameters: List[Expr_??]`, `returnType: ??`
+- `OverrideBody` functional interface for override body callbacks
+- `AnonymousInstance[A]` class view with `parse`, `parseWithMixins`, `construct`
+- Validation: rejects final/sealed types, checks constructor accessibility, at most one class parent
+
+**Platform-specific tree generation** (in `UntypedTypesScala2.scala` / `UntypedTypesScala3.scala`):
+- `unsafeNewSubtype` generates anonymous class trees
+- Scala 2: quasiquotes `q"new $parent(..$args) with ..$traits { ..$overrides }"`
+- Scala 3: `Symbol.newClass` + `ClassDef.apply` via Java reflection (avoiding `@experimental`)
+- Scala 3: prepends `AnyRef` when first parent is a trait (required by `Symbol.newClass`)
+
+**Test infrastructure:**
+- `hearth-tests/src/main/scala/hearth/typed/AnonymousInstanceFixturesImpl.scala` — shared fixtures
+- `hearth-tests/src/main/scala-2/hearth/typed/AnonymousInstanceFixtures.scala` — Scala 2 macro bridges
+- `hearth-tests/src/main/scala-3/hearth/typed/AnonymousInstanceFixtures.scala` — Scala 3 macro bridges
+- `hearth-tests/src/test/scala/hearth/typed/AnonymousInstanceSpec.scala` — cross-platform tests (13 tests)
+- `hearth-tests/src/main/scala/hearth/examples/anonymous_instances.scala` — test data classes
 
 ### DestructuredExpr architecture
 
