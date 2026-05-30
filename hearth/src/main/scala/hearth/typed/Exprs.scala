@@ -210,6 +210,20 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     *   - `Lifting`/`Unlifting` on Scala 2
     *   - `ToExpr`/`FromExpr` on Scala 3
     *
+    * Built-in codecs exist for primitives, collections, options, eithers, and Hearth types. For custom types (case
+    * classes, sealed traits, singletons), use `ExprCodec.derived[A]` to derive a codec semi-automatically:
+    *
+    * {{{
+    * val codec: ExprCodec[MyType] = ExprCodec.derived[MyType]
+    * }}}
+    *
+    * Derivation supports:
+    *   - '''Case classes''' — fields are lifted via their own `ExprCodec` instances (built-in or recursively derived),
+    *     constructed via `CaseClass.construct`
+    *   - '''Sealed traits / enums''' — runtime dispatch to the matching child codec
+    *   - '''Singletons''' (case objects) — lifted via `SingletonValue.singletonExpr`
+    *   - '''Nested types''' — field codecs are resolved recursively
+    *
     * @see
     *   [[https://docs.scala-lang.org/overviews/quasiquotes/lifting.html]] for Scala 2 underlying concept
     * @see
@@ -238,10 +252,6 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
   object ExprCodec extends ExprCodecImplicits0 {
 
     def apply[A](implicit codec: ExprCodec[A]): ExprCodec[A] = codec
-
-    // TODO: Consider implementing more of these:
-    // TODO: Tuple1-Tuple22
-    // TODO: derivation?
 
     implicit lazy val NullExprCodec: ExprCodec[Null] = Expr.NullExprCodec
     implicit lazy val UnitExprCodec: ExprCodec[Unit] = Expr.UnitExprCodec

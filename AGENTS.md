@@ -359,6 +359,31 @@ The `Method` API has a layered architecture with platform-specific untyped code 
 - `hearth-tests/src/main/scala/hearth/examples/parsed_exprs.scala` — test data + DSL extensions (implicit class)
 - `hearth-tests/src/main/scala-3/hearth/examples/parsed_exprs-s3.scala` — Scala 3-only context function DSL extensions
 
+### ExprCodec derivation
+
+`ExprCodec.derived[A]` provides semi-automatic derivation of `ExprCodec` instances for case classes, sealed traits, and singletons. The user calls it explicitly inside their macro; it is NOT an implicit.
+
+**Shared derivation logic** (`hearth/src/main/scala/hearth/typed/ExprCodecDerivation.scala`):
+- `deriveExprCodecInternal[A: Type]: ExprCodec[A]` — rule-based dispatch: singleton → case class → enum
+- `deriveSingletonCodec` — uses `SingletonValue.singletonExpr` for `toExpr`
+- `deriveCaseClassCodec` — uses `Product.productElement` for field access, `CaseClass.construct` for tree building
+- `deriveEnumCodec` — matches runtime class name against `Enum.directChildren`, recursively derives child codecs
+- `resolveFieldCodecForDerivation` — looks up built-in ExprCodec by type equality, falls back to recursive derivation
+- `fromExpr` uses `semiEval` for all types
+
+**Entry points:**
+- Scala 2 (`hearth/src/main/scala-2/hearth/typed/ExprsCompat.scala`): `ExprCodec.derived[A]` is a `macro def` backed by `ExprCodecDerivationMacros`, which generates a tree calling `deriveExprCodecInternal[A]`
+- Scala 3 (`hearth/src/main/scala-3/hearth/typed/ExprsCompat.scala`): `ExprCodec.derived[A]` is an `inline def` that calls `deriveExprCodecInternal[A]` directly
+
+**Mixed into MacroCommons** via `ExprCodecDerivation` trait in `MacroTypedCommons`.
+
+**Test infrastructure:**
+- `hearth-tests/src/main/scala/hearth/examples/expr_codecs.scala` — test data (case classes, sealed traits, singletons)
+- `hearth-tests/src/main/scala/hearth/typed/ExprCodecFixturesImpl.scala` — shared round-trip fixtures
+- `hearth-tests/src/main/scala-2/hearth/typed/ExprCodecFixtures.scala` — Scala 2 macro bridges
+- `hearth-tests/src/main/scala-3/hearth/typed/ExprCodecFixtures.scala` — Scala 3 macro bridges
+- `hearth-tests/src/test/scala/hearth/typed/ExprCodecSpec.scala` — cross-platform tests (6 tests)
+
 ## Skills
 
 Are available in [contributing documentation](docs/contributing/_index.md).
