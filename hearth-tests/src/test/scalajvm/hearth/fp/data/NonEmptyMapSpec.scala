@@ -264,14 +264,30 @@ final class NonEmptyMapSpec extends ScalaCheckSuite with Laws {
       val appended = nem :+ ("b", 20)
       appended.toList === List(("a", 1), ("b", 20))
     }
+
+    test("map should deduplicate when keys collide") {
+      val nem = NonEmptyMap(("a", 1), ("b", 2))
+      val collapsed = nem.map { case (_, v) => ("x", v) }
+      collapsed.size === 1
+      collapsed.toListMap === ListMap("x" -> 2)
+      collapsed.toList === List(("x", 2))
+    }
+
+    test("flatMap should deduplicate when keys collide") {
+      val nem = NonEmptyMap(("a", 1), ("b", 2))
+      val collapsed = nem.flatMap { case (_, v) => NonEmptyMap(("x", v)) }
+      collapsed.size === 1
+      collapsed.toListMap === ListMap("x" -> 2)
+      collapsed.toList === List(("x", 2))
+    }
   }
 
   group("Property-based Tests") {
 
-    property("map should preserve length") {
+    property("map should deduplicate colliding keys") {
       forAll { (nem: NonEmptyMap[String, Int]) =>
         val mapped = nem.map { case (k, v) => (k.toUpperCase, v * 2) }
-        mapped.toList.length == nem.toList.length
+        mapped.size == mapped.toListMap.size
       }
     }
 
