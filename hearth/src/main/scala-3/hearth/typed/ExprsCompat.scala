@@ -9,5 +9,6 @@ private[typed] trait ExprsCompat { this: MacroCommons =>
 
   trait ExprCodecCompat {
     implicit def IArrayExprCodec[A: ExprCodec: Type]: ExprCodec[IArray[A]] = Expr.IArrayExprCodec[A]
+    inline def derived[A](using Type[A]): ExprCodec[A] = deriveExprCodecInternal[A]
   }
 }

@@ -803,6 +803,32 @@ Built-in codecs exist for:
 
 - Hearth internals: `data.Data`, `HearthVersion`, `JDKVersion`, `ScalaVersion`, `LanguageVersion`, `Platform`
 
+#### Deriving `ExprCodec` for custom types
+
+For case classes, sealed traits, and singletons, `ExprCodec.derived[A]` derives a codec semi-automatically:
+
+!!! example "Deriving `ExprCodec`"
+
+    ```scala
+    // Inside your macro (which extends MacroCommons):
+    case class Config(host: String, port: Int)
+
+    val codec: ExprCodec[Config] = ExprCodec.derived[Config]
+
+    // Use it to lift and unlift Config values:
+    val expr: Expr[Config] = codec.toExpr(Config("localhost", 8080))
+    val value: Option[Config] = codec.fromExpr(expr) // Some(Config("localhost", 8080))
+    ```
+
+Derivation supports:
+
+- **Case classes** — fields are lifted via their own `ExprCodec` (built-in for primitives, recursively derived for user types), then the constructor is called via `CaseClass.construct`
+- **Sealed traits / enums** — runtime dispatch to the child type's derived codec, with automatic upcast
+- **Singletons** (case objects) — lifted directly via `SingletonValue.singletonExpr`
+- **Nested types** — field codecs are resolved recursively (e.g., a case class containing another case class)
+
+`fromExpr` uses `semiEval` for all derived types — it evaluates constructor calls, method invocations, and literals at macro time via reflection.
+
 ### `VarArgs`
 
 Imagine you need to implement a macro with the following signature:

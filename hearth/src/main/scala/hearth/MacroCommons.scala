@@ -11,7 +11,8 @@ trait MacroTypedCommons
     with typed.Exprs
     with typed.Methods
     with typed.Existentials
-    with typed.Classes {
+    with typed.Classes
+    with typed.ExprCodecDerivation {
   this: MacroCommons =>
 }
 
