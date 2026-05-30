@@ -386,7 +386,10 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           ctor.appliedToNone
         }
 
-      val classDef = experimentalReflect.classDefApply(cls, List(parentCtorCall), overrideDefs)
+      val traitParentTrees = effectiveParents.drop(1).map { tpe =>
+        TypeTree.of(using tpe.asType.asInstanceOf[scala.quoted.Type[Any]])
+      }
+      val classDef = experimentalReflect.classDefApply(cls, parentCtorCall :: traitParentTrees, overrideDefs)
       val newExpr = Block(
         List(classDef),
         Typed(
