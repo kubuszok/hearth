@@ -22,11 +22,9 @@ final case class NonEmptyMap[K, +V](head: (K, V), tail: ListMap[K, V]) {
     else NonEmptyMap(head, tail.removed(pair._1) + pair)
 
   def map[K2, V2](f: ((K, V)) => (K2, V2)): NonEmptyMap[K2, V2] =
-    NonEmptyMap(f(head), ListMap.from(tail.iterator.map(f)))
-  def flatMap[K2, V2](f: ((K, V)) => NonEmptyMap[K2, V2]): NonEmptyMap[K2, V2] = {
-    val NonEmptyMap(head2, tail2) = f(head)
-    NonEmptyMap(head2, ListMap.from(tail2.iterator ++ tail.iterator.flatMap(a => f(a).iterator)))
-  }
+    NonEmptyMap.fromListMap(ListMap.from(iterator.map(f))).get
+  def flatMap[K2, V2](f: ((K, V)) => NonEmptyMap[K2, V2]): NonEmptyMap[K2, V2] =
+    NonEmptyMap.fromListMap(ListMap.from(iterator.flatMap(kv => f(kv).iterator))).get
 
   def iterator: Iterator[(K, V)] = Iterator(head) ++ tail.iterator
   def toListMap: ListMap[K, V] = ListMap.from(iterator)
