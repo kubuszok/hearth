@@ -6,13 +6,13 @@ trait ExprCodecDerivation { this: MacroCommons =>
   protected def deriveExprCodecInternal[A: Type]: ExprCodec[A] =
     SingletonValue.parse[A].toOption match {
       case Some(sv) => deriveSingletonCodec[A](sv)
-      case None =>
+      case None     =>
         CaseClass.parse[A].toOption match {
           case Some(cc) => deriveCaseClassCodec[A](cc)
-          case None =>
+          case None     =>
             Enum.parse[A].toOption match {
               case Some(en) => deriveEnumCodec[A](en)
-              case None =>
+              case None     =>
                 assertionFailed("Cannot derive ExprCodec for " + Type.prettyPrint[A])
             }
         }
@@ -26,28 +26,27 @@ trait ExprCodecDerivation { this: MacroCommons =>
 
   private def deriveCaseClassCodec[A: Type](cc: CaseClass[A]): ExprCodec[A] = {
     val fields = cc.caseFields
-    val fieldIndicesAndCodecs: List[(String, Int, ExprCodec[Any])] = fields.zipWithIndex.map {
-      case (field, i) =>
-        val fieldType = field.knownReturning.getOrElse(
-          assertionFailed("Unknown return type for field " + field.name + " of " + Type.prettyPrint[A])
-        )
-        val codec = resolveFieldCodecForDerivation(fieldType)
-        (field.name, i, codec)
+    val fieldIndicesAndCodecs: List[(String, Int, ExprCodec[Any])] = fields.zipWithIndex.map { case (field, i) =>
+      val fieldType = field.knownReturning.getOrElse(
+        assertionFailed("Unknown return type for field " + field.name + " of " + Type.prettyPrint[A])
+      )
+      val codec = resolveFieldCodecForDerivation(fieldType)
+      (field.name, i, codec)
     }
 
     new ExprCodec[A] {
       def toExpr(value: A): Expr[A] = {
         val product = value.asInstanceOf[Product]
-        val liftedFields: Map[String, Expr_??] = fieldIndicesAndCodecs.map {
-          case (name, idx, codec) =>
-            val fieldValue = product.productElement(idx)
-            val lifted: Expr[Any] = codec.toExpr(fieldValue)
-            name -> lifted.as_??(using Expr.typeOf(lifted))
+        val liftedFields: Map[String, Expr_??] = fieldIndicesAndCodecs.map { case (name, idx, codec) =>
+          val fieldValue = product.productElement(idx)
+          val lifted: Expr[Any] = codec.toExpr(fieldValue)
+          name -> lifted.as_??(using Expr.typeOf(lifted))
         }.toMap
 
         cc.construct[hearth.fp.Id] { param =>
           liftedFields(param.name)
-        }(using hearth.fp.DirectStyle.DirectStyleForId, hearth.fp.instances.ParallelTraverseForId).get
+        }(using hearth.fp.DirectStyle.DirectStyleForId, hearth.fp.instances.ParallelTraverseForId)
+          .get
       }
 
       def fromExpr(expr: Expr[A]): Option[A] =
