@@ -5,9 +5,7 @@ import hearth.data.Data
 
 import scala.quoted.*
 
-final private class ExprCodecFixtures(q: Quotes)
-    extends MacroCommonsScala3(using q),
-      ExprCodecFixturesImpl
+final private class ExprCodecFixtures(q: Quotes) extends MacroCommonsScala3(using q), ExprCodecFixturesImpl
 
 object ExprCodecFixtures {
 

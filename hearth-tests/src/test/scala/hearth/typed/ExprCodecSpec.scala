@@ -23,7 +23,8 @@ final class ExprCodecSpec extends MacroSuite {
         testExprCodecRoundTrip(ServerConfig("localhost", 8080)) <==> Data.map(
           "decoded" -> Data("ServerConfig(localhost,8080)"),
           "reLifted" -> caseClassReLifted(
-            s2 = "new hearth.examples.expr_codecs.ServerConfig((\"localhost\": scala.Predef.String), (8080: scala.Int))",
+            s2 =
+              "new hearth.examples.expr_codecs.ServerConfig((\"localhost\": scala.Predef.String), (8080: scala.Int))",
             s3 = "new hearth.examples.expr_codecs.ServerConfig(\"localhost\", 8080)"
           )
         )
@@ -33,8 +34,10 @@ final class ExprCodecSpec extends MacroSuite {
         testExprCodecRoundTrip(AppConfig(ServerConfig("db.local", 5432), true)) <==> Data.map(
           "decoded" -> Data("AppConfig(ServerConfig(db.local,5432),true)"),
           "reLifted" -> caseClassReLifted(
-            s2 = "new hearth.examples.expr_codecs.AppConfig(new hearth.examples.expr_codecs.ServerConfig((\"db.local\": scala.Predef.String), (5432: scala.Int)), (true: scala.Boolean))",
-            s3 = "new hearth.examples.expr_codecs.AppConfig(new hearth.examples.expr_codecs.ServerConfig(\"db.local\", 5432), true)"
+            s2 =
+              "new hearth.examples.expr_codecs.AppConfig(new hearth.examples.expr_codecs.ServerConfig((\"db.local\": scala.Predef.String), (5432: scala.Int)), (true: scala.Boolean))",
+            s3 =
+              "new hearth.examples.expr_codecs.AppConfig(new hearth.examples.expr_codecs.ServerConfig(\"db.local\", 5432), true)"
           )
         )
       }
@@ -46,7 +49,8 @@ final class ExprCodecSpec extends MacroSuite {
         testExprCodecRoundTrip[Shape](Shape.Circle(3.14)) <==> Data.map(
           "decoded" -> Data("Circle(3.14)"),
           "reLifted" -> caseClassReLifted(
-            s2 = "(new hearth.examples.expr_codecs.Shape.Circle((3.14: scala.Double)): hearth.examples.expr_codecs.Shape)",
+            s2 =
+              "(new hearth.examples.expr_codecs.Shape.Circle((3.14: scala.Double)): hearth.examples.expr_codecs.Shape)",
             s3 = "new hearth.examples.expr_codecs.Shape.Circle(3.14)"
           )
         )
@@ -56,7 +60,8 @@ final class ExprCodecSpec extends MacroSuite {
         testExprCodecRoundTrip[Shape](Shape.Rectangle(10.0, 20.0)) <==> Data.map(
           "decoded" -> Data("Rectangle(10.0,20.0)"),
           "reLifted" -> caseClassReLifted(
-            s2 = "(new hearth.examples.expr_codecs.Shape.Rectangle((10.0: scala.Double), (20.0: scala.Double)): hearth.examples.expr_codecs.Shape)",
+            s2 =
+              "(new hearth.examples.expr_codecs.Shape.Rectangle((10.0: scala.Double), (20.0: scala.Double)): hearth.examples.expr_codecs.Shape)",
             s3 = "new hearth.examples.expr_codecs.Shape.Rectangle(10.0, 20.0)"
           )
         )

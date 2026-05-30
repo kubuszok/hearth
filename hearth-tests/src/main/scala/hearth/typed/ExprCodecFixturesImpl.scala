@@ -10,15 +10,19 @@ trait ExprCodecFixturesImpl { this: MacroCommons =>
     codec.fromExpr(expr) match {
       case Some(value) =>
         val reLifted: Expr[A] = codec.toExpr(value)
-        Expr(Data.map(
-          "decoded" -> Data(value.toString),
-          "reLifted" -> Data(reLifted.plainPrint)
-        ))
+        Expr(
+          Data.map(
+            "decoded" -> Data(value.toString),
+            "reLifted" -> Data(reLifted.plainPrint)
+          )
+        )
       case None =>
-        Expr(Data.map(
-          "decoded" -> Data("<failed>"),
-          "exprPrint" -> Data(expr.plainPrint)
-        ))
+        Expr(
+          Data.map(
+            "decoded" -> Data("<failed>"),
+            "exprPrint" -> Data(expr.plainPrint)
+          )
+        )
     }
   }
 }
