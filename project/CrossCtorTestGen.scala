@@ -653,6 +653,11 @@ object CrossCtorTestGen {
     sb ++= "  def testFunctorDerivationImpl: c.Expr[Data] = testFunctorDerivation\n\n"
     sb ++= "  def testFunctorDerivationWithCtorImpl: c.Expr[Data] = testFunctorDerivationWithCtor[List](Type.Ctor1.of[List])\n\n"
 
+    // CtorK1 tests
+    sb ++= "  def testCtorK1OfImpl: c.Expr[Data] = testCtorK1Of\n\n"
+    sb ++= "  def testCtorK1FromUntypedImpl: c.Expr[Data] = testCtorK1FromUntyped\n\n"
+    sb ++= "  def testTypeOfWithCtorK1ContextBoundImpl: c.Expr[Data] = {\n    import hearth.examples.kinds.HigherKinded1\n    testTypeOfWithCtorK1ContextBound[HigherKinded1](Type.CtorK1.of[HigherKinded1])\n  }\n\n"
+
     sb ++= "}\n\n"
 
     // Companion object
@@ -711,6 +716,11 @@ object CrossCtorTestGen {
     sb ++= "  def testNestedQuoteSpliceComposition: Data = macro CrossCtorInjectionFixtures.testNestedQuoteSpliceCompositionImpl\n\n"
     sb ++= "  def testFunctorDerivation: Data = macro CrossCtorInjectionFixtures.testFunctorDerivationImpl\n\n"
     sb ++= "  def testFunctorDerivationWithCtor: Data = macro CrossCtorInjectionFixtures.testFunctorDerivationWithCtorImpl\n\n"
+
+    // CtorK1 tests
+    sb ++= "  def testCtorK1Of: Data = macro CrossCtorInjectionFixtures.testCtorK1OfImpl\n\n"
+    sb ++= "  def testCtorK1FromUntyped: Data = macro CrossCtorInjectionFixtures.testCtorK1FromUntypedImpl\n\n"
+    sb ++= "  def testTypeOfWithCtorK1ContextBound: Data = macro CrossCtorInjectionFixtures.testTypeOfWithCtorK1ContextBoundImpl\n\n"
 
     sb ++= "}\n"
     sb.toString
@@ -817,6 +827,10 @@ object CrossCtorTestGen {
     sb ++= "  def testFunctorSkeleton: Expr[Data] = testFunctorSkeleton[List](using listCtor1)\n\n"
     sb ++= "  def testFunctorDerivationWithCtor: Expr[Data] = testFunctorDerivationWithCtor[List](using listCtor1)\n\n"
 
+    // CtorK1 tests - class body methods
+    sb ++= "  private lazy val hk1CtorK1: Type.CtorK1[hearth.examples.kinds.HigherKinded1] = Type.CtorK1.of[hearth.examples.kinds.HigherKinded1]\n\n"
+    sb ++= "  def testTypeOfWithCtorK1ContextBound: Expr[Data] = testTypeOfWithCtorK1ContextBound[hearth.examples.kinds.HigherKinded1](using hk1CtorK1)\n\n"
+
     sb ++= "}\n\n"
 
     // Companion object
@@ -888,6 +902,11 @@ object CrossCtorTestGen {
     sb ++= genScala3InlineSplice("testNestedQuoteSpliceComposition")
     sb ++= genScala3InlineSplice("testFunctorDerivation")
     sb ++= genScala3InlineSplice("testFunctorDerivationWithCtor")
+
+    // CtorK1 tests
+    sb ++= genScala3InlineSplice("testCtorK1Of")
+    sb ++= genScala3InlineSplice("testCtorK1FromUntyped")
+    sb ++= genScala3InlineSplice("testTypeOfWithCtorK1ContextBound")
 
     sb ++= "}\n"
     sb.toString
@@ -1113,6 +1132,55 @@ object CrossCtorTestGen {
         |
         |      test("should derive Functor with Type.Ctor1[F] and extracted body with Type context bounds") {
         |        CrossCtorInjectionFixtures.testFunctorDerivationWithCtor <==> Data("1, 2, 3")
+        |      }
+        |
+        |    }
+        |""".stripMargin
+    sb ++= "\n"
+
+    // Group: CtorK1 tests
+    sb ++=
+      """    group("for Type.CtorK1 (higher-kinded type constructors)") {
+        |
+        |      test("should create CtorK1 via of and apply/unapply/asUntyped should work") {
+        |        val isScala3 = LanguageVersion.byHearth.isScala3
+        |        CrossCtorInjectionFixtures.testCtorK1Of <==> Data.map(
+        |          "applied" -> Data(
+        |            if (isScala3)
+        |              "hearth.examples.kinds.HigherKinded1[[A >: scala.Nothing <: scala.Any] => scala.Option[A]]"
+        |            else "hearth.examples.kinds.HigherKinded1[scala.Option]"
+        |          ),
+        |          "unapplyIsDefined" -> Data("true"),
+        |          "asUntyped" -> Data(
+        |            if (isScala3)
+        |              "hearth.examples.kinds.HigherKinded1[F >: scala.Nothing <: [_$1 >: scala.Nothing <: scala.Any] => scala.Any] => hearth.examples.kinds.HigherKinded1[F]"
+        |            else "hearth.examples.kinds.HigherKinded1"
+        |          )
+        |        )
+        |      }
+        |
+        |      test("should roundtrip via fromUntyped") {
+        |        val isScala3 = LanguageVersion.byHearth.isScala3
+        |        CrossCtorInjectionFixtures.testCtorK1FromUntyped <==> Data.map(
+        |          "applied" -> Data(
+        |            if (isScala3)
+        |              "hearth.examples.kinds.HigherKinded1[[A >: scala.Nothing <: scala.Any] => scala.Option[A]]"
+        |            else "hearth.examples.kinds.HigherKinded1[scala.Option]"
+        |          ),
+        |          "unapplyMatch" -> Data("true"),
+        |          "unapplyNoMatch" -> Data("false")
+        |        )
+        |      }
+        |
+        |      test("should work with CtorK1 context bound") {
+        |        val isScala3 = LanguageVersion.byHearth.isScala3
+        |        CrossCtorInjectionFixtures.testTypeOfWithCtorK1ContextBound <==> Data.map(
+        |          "fOfOption" -> Data(
+        |            if (isScala3)
+        |              "hearth.examples.kinds.HigherKinded1[[A >: scala.Nothing <: scala.Any] => scala.Option[A]]"
+        |            else "hearth.examples.kinds.HigherKinded1[scala.Option]"
+        |          )
+        |        )
         |      }
         |
         |    }

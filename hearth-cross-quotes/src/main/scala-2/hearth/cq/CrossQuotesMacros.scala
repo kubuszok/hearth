@@ -328,7 +328,104 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
   def typeCtor20FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20]](untyped: c.Expr[Any])(implicit L1: c.WeakTypeTag[L1], U1: c.WeakTypeTag[U1], L2: c.WeakTypeTag[L2], U2: c.WeakTypeTag[U2], L3: c.WeakTypeTag[L3], U3: c.WeakTypeTag[U3], L4: c.WeakTypeTag[L4], U4: c.WeakTypeTag[U4], L5: c.WeakTypeTag[L5], U5: c.WeakTypeTag[U5], L6: c.WeakTypeTag[L6], U6: c.WeakTypeTag[U6], L7: c.WeakTypeTag[L7], U7: c.WeakTypeTag[U7], L8: c.WeakTypeTag[L8], U8: c.WeakTypeTag[U8], L9: c.WeakTypeTag[L9], U9: c.WeakTypeTag[U9], L10: c.WeakTypeTag[L10], U10: c.WeakTypeTag[U10], L11: c.WeakTypeTag[L11], U11: c.WeakTypeTag[U11], L12: c.WeakTypeTag[L12], U12: c.WeakTypeTag[U12], L13: c.WeakTypeTag[L13], U13: c.WeakTypeTag[U13], L14: c.WeakTypeTag[L14], U14: c.WeakTypeTag[U14], L15: c.WeakTypeTag[L15], U15: c.WeakTypeTag[U15], L16: c.WeakTypeTag[L16], U16: c.WeakTypeTag[U16], L17: c.WeakTypeTag[L17], U17: c.WeakTypeTag[U17], L18: c.WeakTypeTag[L18], U18: c.WeakTypeTag[U18], L19: c.WeakTypeTag[L19], U19: c.WeakTypeTag[U19], L20: c.WeakTypeTag[L20], U20: c.WeakTypeTag[U20], HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]): c.Tree = typeCtor20FromUntypedBody[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, HKT](untyped)
   def typeCtor21FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, L21, U21 >: L21, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20, _ >: L21 <: U21]](untyped: c.Expr[Any])(implicit L1: c.WeakTypeTag[L1], U1: c.WeakTypeTag[U1], L2: c.WeakTypeTag[L2], U2: c.WeakTypeTag[U2], L3: c.WeakTypeTag[L3], U3: c.WeakTypeTag[U3], L4: c.WeakTypeTag[L4], U4: c.WeakTypeTag[U4], L5: c.WeakTypeTag[L5], U5: c.WeakTypeTag[U5], L6: c.WeakTypeTag[L6], U6: c.WeakTypeTag[U6], L7: c.WeakTypeTag[L7], U7: c.WeakTypeTag[U7], L8: c.WeakTypeTag[L8], U8: c.WeakTypeTag[U8], L9: c.WeakTypeTag[L9], U9: c.WeakTypeTag[U9], L10: c.WeakTypeTag[L10], U10: c.WeakTypeTag[U10], L11: c.WeakTypeTag[L11], U11: c.WeakTypeTag[U11], L12: c.WeakTypeTag[L12], U12: c.WeakTypeTag[U12], L13: c.WeakTypeTag[L13], U13: c.WeakTypeTag[U13], L14: c.WeakTypeTag[L14], U14: c.WeakTypeTag[U14], L15: c.WeakTypeTag[L15], U15: c.WeakTypeTag[U15], L16: c.WeakTypeTag[L16], U16: c.WeakTypeTag[U16], L17: c.WeakTypeTag[L17], U17: c.WeakTypeTag[U17], L18: c.WeakTypeTag[L18], U18: c.WeakTypeTag[U18], L19: c.WeakTypeTag[L19], U19: c.WeakTypeTag[U19], L20: c.WeakTypeTag[L20], U20: c.WeakTypeTag[U20], L21: c.WeakTypeTag[L21], U21: c.WeakTypeTag[U21], HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]): c.Tree = typeCtor21FromUntypedBody[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, HKT](untyped)
   def typeCtor22FromUntypedImpl[L1, U1 >: L1, L2, U2 >: L2, L3, U3 >: L3, L4, U4 >: L4, L5, U5 >: L5, L6, U6 >: L6, L7, U7 >: L7, L8, U8 >: L8, L9, U9 >: L9, L10, U10 >: L10, L11, U11 >: L11, L12, U12 >: L12, L13, U13 >: L13, L14, U14 >: L14, L15, U15 >: L15, L16, U16 >: L16, L17, U17 >: L17, L18, U18 >: L18, L19, U19 >: L19, L20, U20 >: L20, L21, U21 >: L21, L22, U22 >: L22, HKT[_ >: L1 <: U1, _ >: L2 <: U2, _ >: L3 <: U3, _ >: L4 <: U4, _ >: L5 <: U5, _ >: L6 <: U6, _ >: L7 <: U7, _ >: L8 <: U8, _ >: L9 <: U9, _ >: L10 <: U10, _ >: L11 <: U11, _ >: L12 <: U12, _ >: L13 <: U13, _ >: L14 <: U14, _ >: L15 <: U15, _ >: L16 <: U16, _ >: L17 <: U17, _ >: L18 <: U18, _ >: L19 <: U19, _ >: L20 <: U20, _ >: L21 <: U21, _ >: L22 <: U22]](untyped: c.Expr[Any])(implicit L1: c.WeakTypeTag[L1], U1: c.WeakTypeTag[U1], L2: c.WeakTypeTag[L2], U2: c.WeakTypeTag[U2], L3: c.WeakTypeTag[L3], U3: c.WeakTypeTag[U3], L4: c.WeakTypeTag[L4], U4: c.WeakTypeTag[U4], L5: c.WeakTypeTag[L5], U5: c.WeakTypeTag[U5], L6: c.WeakTypeTag[L6], U6: c.WeakTypeTag[U6], L7: c.WeakTypeTag[L7], U7: c.WeakTypeTag[U7], L8: c.WeakTypeTag[L8], U8: c.WeakTypeTag[U8], L9: c.WeakTypeTag[L9], U9: c.WeakTypeTag[U9], L10: c.WeakTypeTag[L10], U10: c.WeakTypeTag[U10], L11: c.WeakTypeTag[L11], U11: c.WeakTypeTag[U11], L12: c.WeakTypeTag[L12], U12: c.WeakTypeTag[U12], L13: c.WeakTypeTag[L13], U13: c.WeakTypeTag[U13], L14: c.WeakTypeTag[L14], U14: c.WeakTypeTag[U14], L15: c.WeakTypeTag[L15], U15: c.WeakTypeTag[U15], L16: c.WeakTypeTag[L16], U16: c.WeakTypeTag[U16], L17: c.WeakTypeTag[L17], U17: c.WeakTypeTag[U17], L18: c.WeakTypeTag[L18], U18: c.WeakTypeTag[U18], L19: c.WeakTypeTag[L19], U19: c.WeakTypeTag[U19], L20: c.WeakTypeTag[L20], U20: c.WeakTypeTag[U20], L21: c.WeakTypeTag[L21], U21: c.WeakTypeTag[U21], L22: c.WeakTypeTag[L22], U22: c.WeakTypeTag[U22], HKTE: c.WeakTypeTag[HKT[?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?]]): c.Tree = typeCtor22FromUntypedBody[L1, U1, L2, U2, L3, U3, L4, U4, L5, U5, L6, U6, L7, U7, L8, U8, L9, U9, L10, U10, L11, U11, L12, U12, L13, U13, L14, U14, L15, U15, L16, U16, L17, U17, L18, U18, L19, U19, L20, U20, L21, U21, L22, U22, HKT](untyped)
+
+  def typeCtorK1Impl[HKT[_[_]]](implicit HKTE: c.WeakTypeTag[HKT[Option]]): c.Tree = typeCtorK1Body[HKT]
+  def typeCtorK1FromUntypedImpl[HKT[_[_]]](untyped: c.Expr[Any])(implicit HKTE: c.WeakTypeTag[HKT[Option]]): c.Tree = typeCtorK1FromUntypedBody[HKT](untyped)
   // format: on
+
+  protected def typeCtorK1Body[HKT[_[_]]](implicit HKTE: c.WeakTypeTag[HKT[Option]]): c.Tree = try {
+    import c.universe.{Expr as _, *}
+    val HKT = HKTE.tpe.typeConstructor
+    val G = freshTypeName("G")
+    val ctx = freshName("ctx")
+
+    val ctxVal = q"""private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]"""
+    val ctxImport = q"""import $ctx.universe.{ TypeRef, TypeRefTag }"""
+    val hktVal = q"""private val HKT = $ctx.weakTypeTag[Type.CtorK1.Stub[$HKT]].tpe.typeArgs.last"""
+
+    val applyDef = q"""
+    def apply[$G[_]](implicit GCtor: Type.Ctor1[$G]): Type[Type.CtorK1.Apply[$HKT, $G]] =
+      $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+        _root_.scala.List(GCtor.asUntyped.asInstanceOf[$ctx.Type])
+      ).dealias).asInstanceOf[Type[Type.CtorK1.Apply[$HKT, $G]]]
+    """
+
+    val unapplyDef = q"""
+    def unapply[$G](A: Type[$G]): Option[UntypedType] = {
+      val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$G]].tpe
+      A0.dealias.widen.baseType(HKT.typeSymbol) match {
+        case TypeRef(_, _, _root_.scala.List(g)) =>
+          _root_.scala.Some(g.asInstanceOf[UntypedType])
+        case _ =>
+          if (A0.typeConstructor == HKT && A0.typeArgs.size == 1) {
+            val _root_.scala.Seq(g) = A0.typeArgs
+            _root_.scala.Some(g.asInstanceOf[UntypedType])
+          }
+          else None
+      }
+    }
+    """
+
+    val stats = List(ctxVal, ctxImport, hktVal, applyDef, unapplyDef)
+    val unchecked = q"""new Type.CtorK1[$HKT] { ..$stats }"""
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.CtorK1.of")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.CtorK1.of")}[${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
+
+  protected def typeCtorK1FromUntypedBody[HKT[_[_]]](
+      untyped: c.Expr[Any]
+  )(implicit HKTE: c.WeakTypeTag[HKT[Option]]): c.Tree = try {
+    import c.universe.{Expr as _, *}
+    val HKT = HKTE.tpe.typeConstructor
+    val G = freshTypeName("G")
+    val ctx = freshName("ctx")
+
+    val ctxVal = q"""private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]"""
+    val ctxImport = q"""import $ctx.universe.{ TypeRef, TypeRefTag }"""
+    val hktVal = q"""private val HKT = ${untyped.tree}.asInstanceOf[$ctx.Type]"""
+
+    val applyDef = q"""
+    def apply[$G[_]](implicit GCtor: Type.Ctor1[$G]): Type[Type.CtorK1.Apply[$HKT, $G]] =
+      $ctx.WeakTypeTag($ctx.universe.appliedType(HKT,
+        _root_.scala.List(GCtor.asUntyped.asInstanceOf[$ctx.Type])
+      ).dealias).asInstanceOf[Type[Type.CtorK1.Apply[$HKT, $G]]]
+    """
+
+    val unapplyDef = q"""
+    def unapply[$G](A: Type[$G]): Option[UntypedType] = {
+      val A0 = A.asInstanceOf[$ctx.WeakTypeTag[$G]].tpe
+      A0.dealias.widen.baseType(HKT.typeSymbol) match {
+        case TypeRef(_, _, _root_.scala.List(g)) =>
+          _root_.scala.Some(g.asInstanceOf[UntypedType])
+        case _ =>
+          if (A0.typeConstructor == HKT && A0.typeArgs.size == 1) {
+            val _root_.scala.Seq(g) = A0.typeArgs
+            _root_.scala.Some(g.asInstanceOf[UntypedType])
+          }
+          else None
+      }
+    }
+    """
+
+    val stats = List(ctxVal, ctxImport, hktVal, applyDef, unapplyDef)
+    val unchecked = q"""new Type.CtorK1[$HKT] { ..$stats }"""
+    val result = suppressWarnings(c.typecheck(unchecked))
+
+    log(
+      s"""Cross-quotes ${paintExclDot(Console.BLUE)("Type.CtorK1.fromUntyped")} expansion:
+         |From: ${paintExclDot(Console.BLUE)("Type.CtorK1.fromUntyped")}[${pp(HKT)}]
+         |To: ${indent(pp(result))}""".stripMargin
+    )
+
+    result
+  } catch { case e: Throwable => reportIssue(e) }
 
   /* Replaces:
    *   Expr.quote[A](a)
@@ -718,6 +815,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
   private def extractCtorHKT(tpe: Type): Option[Type] = tpe.dealias match {
     case TypeRef(_, sym, args) if args.nonEmpty =>
       if (sym.name.toString == "Bounded" && sym.owner.name.toString.startsWith("Ctor"))
+        Some(args.last)
+      else if (sym.name.toString == "CtorK1")
         Some(args.last)
       else None
     case _ => None

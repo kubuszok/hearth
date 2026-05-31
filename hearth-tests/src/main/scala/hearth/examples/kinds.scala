@@ -29,6 +29,8 @@ trait Arity22[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
 // We do not support Type.Ctor23.of[...] and above.
 trait Arity23[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W]
 
+trait HigherKinded1[F[_]]
+
 // format: off
 object Alias {
   type Renamed1[A] = Arity1[A]
