@@ -360,6 +360,43 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
         }
       }
 
+      // Test if TypeDef has a context bound like [F[_[_]]: Type.CtorK1], defending against changes across Scala versions.
+      private object CtxBoundsCtorK1TypeTree {
+
+        def unapply(tree: untpd.Tree): Option[(Name, Option[TermName])] = tree match {
+          // Scala 3.3 representation: AppliedTypeTree(Select(Ident("Type"), "CtorK1"), List(Ident("F")))
+          case AppliedTypeTree(Select(Ident(tpeName), ctorK1Name), List(Ident(hktName)))
+              if tpeName.show == "Type" && ctorK1Name.show == "CtorK1" =>
+            Some((hktName, None))
+          // Scala 3.7 representation: ContextBoundTypeTree(Select(Ident("Type"), "CtorK1"), F, evidence$N)
+          // using reflection to keep compiling on Scala 3.3
+          case contextBoundTypeTree
+              if contextBoundTypeTree.productPrefix == "ContextBoundTypeTree" &&
+                contextBoundTypeTree.productArity == 3 &&
+                contextBoundTypeTree.productElement(0).isInstanceOf[Select] &&
+                contextBoundTypeTree.productElement(1).isInstanceOf[TypeName] &&
+                contextBoundTypeTree.productElement(2).isInstanceOf[TermName] =>
+            val Select(Ident(tpeName), ctorK1Name) =
+              (contextBoundTypeTree.productElement(0).asInstanceOf[Select]: @unchecked)
+            if tpeName.show == "Type" && ctorK1Name.show == "CtorK1" then {
+              val hktName = contextBoundTypeTree.productElement(1).asInstanceOf[Name]
+              val evidenceName = contextBoundTypeTree.productElement(2).asInstanceOf[TermName]
+              Some((hktName, Some(evidenceName)))
+            } else None
+          case _ => None
+        }
+      }
+
+      // Helper to extract HKT from Type.CtorK1[HKT]
+      private object TypeCtorK1AppliedTypeTree {
+        def unapply(tree: untpd.Tree): Option[untpd.Tree] = tree match {
+          case AppliedTypeTree(Select(Ident(tpeName), ctorK1Name), List(hkt))
+              if tpeName.show == "Type" && ctorK1Name.show == "CtorK1" =>
+            Some(hkt)
+          case _ => None
+        }
+      }
+
       // given casted$name: scala.quoted.Type[$tpe] =
       //   CrossQuotes.untypedToQuotedType($valueRef.asUntyped).asInstanceOf[scala.quoted.Type[$tpe]]
       private def makeGivenFromUntyped(name: String, tpe: untpd.Tree, valueRef: untpd.Tree): untpd.ValDef =
@@ -467,6 +504,13 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
                 makeGivenFromUntyped(name, hkt, untpd.Ident(termName(name)))
               }
             )
+            .orElse(
+              // Handle implicit val someName: Type.CtorK1[HKT] = ...
+              TypeCtorK1AppliedTypeTree.unapply(vd.tpt).map { hkt =>
+                val name = vd.name.show
+                makeGivenFromUntyped(name, hkt, untpd.Ident(termName(name)))
+              }
+            )
 
         // Handle implicit def someName2: Type[SomeType2] = ... (no type parameters) or given someName2: Type[SomeType2] = ...
         case dd @ untpd.DefDef(methodName, paramss, returnTpe, _) if dd.isImplicit && paramss.flatten.isEmpty =>
@@ -479,6 +523,13 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
             .orElse(
               // Handle implicit def someName: Type.CtorN[HKT] = ...
               TypeCtorAppliedTypeTree.unapply(returnTpe).map { hkt =>
+                val name = methodName.show
+                makeGivenFromUntyped(name, hkt, untpd.Ident(termName(name)))
+              }
+            )
+            .orElse(
+              // Handle implicit def someName: Type.CtorK1[HKT] = ...
+              TypeCtorK1AppliedTypeTree.unapply(returnTpe).map { hkt =>
                 val name = methodName.show
                 makeGivenFromUntyped(name, hkt, untpd.Ident(termName(name)))
               }
@@ -511,6 +562,16 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
                   None
               }
 
+            // [F[_[_]]: Type.CtorK1] context bound (Scala 3.7 with evidence)
+            case TypeDef(name, untpd.ContextBounds(_, List(CtxBoundsCtorK1TypeTree(name2, evidenceOpt))))
+                if name.show == name2.show =>
+              evidenceOpt match {
+                case Some(evidenceName) =>
+                  Some(makeGivenFromUntyped(name.mangledString, untpd.Ident(name), untpd.Ident(evidenceName)))
+                case None =>
+                  None
+              }
+
             /* If parameters is
              *   [A](implicit a: Type[A])
              * or
@@ -529,6 +590,13 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
                 .orElse(
                   // Handle (implicit FC: Type.CtorN[F]) parameter
                   TypeCtorAppliedTypeTree.unapply(vd.tpt).map { hkt =>
+                    val name = vd.name.show
+                    makeGivenFromUntyped(name, hkt, untpd.Ident(termName(name)))
+                  }
+                )
+                .orElse(
+                  // Handle (implicit FK: Type.CtorK1[F]) parameter
+                  TypeCtorK1AppliedTypeTree.unapply(vd.tpt).map { hkt =>
                     val name = vd.name.show
                     makeGivenFromUntyped(name, hkt, untpd.Ident(termName(name)))
                   }
@@ -703,6 +771,36 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          */
         case TypeApply(Select(Ident(tp), of), List(innerTree)) if tp.show == "Type" && of.show == "of" =>
           replaceTypeOf(tree, innerTree, "Type.of")
+
+        /* Replaces:
+         *   Type.CtorK1.of[HKT]
+         * with:
+         *   given quotes: scala.quoted.Quotes = CrossQuotes.ctx[scala.quoted.Quotes]
+         *   [manually cast every type param Type[A] to given scala.quoted.Type[A]]
+         *   Type.CtorK1.Impl[HKT]
+         */
+        case TypeApply(Select(Select(Ident(tp), ctorK1), of), List(hkt))
+            if tp.show == "Type" && ctorK1.show == "CtorK1" && of.show == "of" =>
+          val result = ensureQuotes(
+            injectGivens(
+              untpd.TypeApply(
+                untpd.Select(
+                  untpd.Select(untpd.Ident(termName("Type")), termName("CtorK1")),
+                  termName("Impl")
+                ),
+                List(transform(hkt))
+              )
+            )
+          )
+
+          log(
+            s"""Cross-quotes Type.CtorK1.of expansion:
+               |From: ${tree.show}
+               |To: ${result.show}""".stripMargin,
+            tree.sourcePos
+          )
+
+          result
 
         /* Replaces:
          *   Type.Ctor1.of[HKT]

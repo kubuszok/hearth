@@ -317,4 +317,46 @@ trait CrossCtorInjectionFixturesImpl extends CrossCtorInjectionFixturesImplGen {
       Data(helper[Int])
     }
 
+  def testCtorK1Of: Expr[Data] = {
+    import hearth.examples.kinds.HigherKinded1
+    val hk1Ctor: Type.CtorK1[HigherKinded1] = Type.CtorK1.of[HigherKinded1]
+    val optionCtor = Type.Ctor1.of[Option]
+    val applied = hk1Ctor.apply[Option](using optionCtor)
+    val unapplyResult = hk1Ctor.unapply(applied)
+    Expr(
+      Data.map(
+        "applied" -> Data(applied.plainPrint),
+        "unapplyIsDefined" -> Data(unapplyResult.isDefined.toString),
+        "asUntyped" -> Data(UntypedType.plainPrint(hk1Ctor.asUntyped))
+      )
+    )
+  }
+
+  def testCtorK1FromUntyped: Expr[Data] = {
+    import hearth.examples.kinds.HigherKinded1
+    val original = Type.CtorK1.of[HigherKinded1]
+    val untyped = original.asUntyped
+    val roundtripped = Type.CtorK1.fromUntyped[HigherKinded1](untyped)
+    val optionCtor = Type.Ctor1.of[Option]
+    val applied = roundtripped.apply[Option](using optionCtor)
+    Expr(
+      Data.map(
+        "applied" -> Data(applied.plainPrint),
+        "unapplyMatch" -> Data(roundtripped.unapply(applied).isDefined.toString),
+        "unapplyNoMatch" -> Data(roundtripped.unapply(Type.of[String]).isDefined.toString)
+      )
+    )
+  }
+
+  def testTypeOfWithCtorK1ContextBound[F[_[_]]](implicit FK: Type.CtorK1[F]): Expr[Data] = {
+    hearth.fp.ignore(FK)
+    val optionCtor = Type.Ctor1.of[Option]
+    val fOfOption = FK.apply[Option](using optionCtor)
+    Expr(
+      Data.map(
+        "fOfOption" -> Data(fOfOption.plainPrint)
+      )
+    )
+  }
+
 }

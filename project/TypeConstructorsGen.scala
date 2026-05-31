@@ -82,7 +82,83 @@ object TypeConstructorsGen {
         |""".stripMargin
 
   private val footer3: String =
-    s"""|    /** Returns the `UntypedType` for the identity type constructor `[A] =>> A`. Used by `PlainValue.Result`. */
+    s"""|    /** Type constructor for higher-kinded types of kind (* -> *) -> *.
+        |      *
+        |      * Unlike CtorN which parameterizes over ground types, CtorK1 parameterizes over
+        |      * type constructors (types of kind * -> *), enabling FunctorK-style patterns.
+        |      */
+        |    trait CtorK1[HKT[_[_]]] {
+        |
+        |      def apply[G[_]](using GCtor: Type.Ctor1[G]): Type[HKT[G]]
+        |      def unapply[A](A: Type[A]): Option[UntypedType]
+        |      def asUntyped: UntypedType
+        |    }
+        |    object CtorK1 {
+        |
+        |      @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")
+        |      def of[HKT[_[_]]]: CtorK1[HKT] = sys.error("Install cross-quotes-plugin to use this method")
+        |
+        |      def fromUntyped[HKT[_[_]]](untyped: UntypedType): CtorK1[HKT] = new FromUntypedImpl(untyped)
+        |
+        |      class FromUntypedImpl[HKT[_[_]]](hktRepr: UntypedType) extends CtorK1[HKT] {
+        |        def asUntyped: UntypedType = hktRepr
+        |        def apply[G[_]](using GCtor: Type.Ctor1[G]): Type[HKT[G]] = {
+        |          given quotes: scala.quoted.Quotes = CrossQuotes.ctx
+        |          import quotes.reflect.*
+        |          val gRepr = GCtor.asUntyped.asInstanceOf[TypeRepr]
+        |          hktRepr.asInstanceOf[TypeRepr].appliedTo(List(gRepr)).asType.asInstanceOf[Type[HKT[G]]]
+        |        }
+        |        def unapply[A](A: Type[A]): Option[UntypedType] = {
+        |          given quotes: scala.quoted.Quotes = CrossQuotes.ctx
+        |          import quotes.reflect.*
+        |          val aRepr = TypeRepr.of[A](using A.asInstanceOf[scala.quoted.Type[A]])
+        |          aRepr match {
+        |            case AppliedType(ctor, List(g)) if ctor =:= hktRepr.asInstanceOf[TypeRepr] =>
+        |              Some(g.asInstanceOf[UntypedType])
+        |            case _ =>
+        |              aRepr.baseType(hktRepr.asInstanceOf[TypeRepr].typeSymbol) match {
+        |                case AppliedType(_, List(g)) =>
+        |                  Some(g.asInstanceOf[UntypedType])
+        |                case _ => None
+        |              }
+        |          }
+        |        }
+        |      }
+        |
+        |      class Impl[HKT[_[_]]: scala.quoted.Type] extends CtorK1[HKT] {
+        |        def asUntyped: UntypedType = {
+        |          given quotes: scala.quoted.Quotes = CrossQuotes.ctx
+        |          quotes.reflect.TypeRepr.of[HKT].asInstanceOf[UntypedType]
+        |        }
+        |        @scala.annotation.nowarn
+        |        def apply[G[_]](using GCtor: Type.Ctor1[G]): Type[HKT[G]] = {
+        |          given quotes: scala.quoted.Quotes = CrossQuotes.ctx
+        |          given scala.quoted.Type[G] = CrossQuotes.untypedToQuotedType(GCtor.asUntyped).asInstanceOf[scala.quoted.Type[G]]
+        |          scala.quoted.Type.of[HKT[G]].asInstanceOf[Type[HKT[G]]]
+        |        }
+        |        def unapply[A](A: Type[A]): Option[UntypedType] = {
+        |          given quotes: scala.quoted.Quotes = CrossQuotes.ctx
+        |          import quotes.reflect.*
+        |          val aRepr = TypeRepr.of[A](using A.asInstanceOf[scala.quoted.Type[A]])
+        |          val hktRepr = TypeRepr.of[HKT]
+        |          aRepr match {
+        |            case AppliedType(ctor, List(g)) if ctor =:= hktRepr =>
+        |              Some(g.asInstanceOf[UntypedType])
+        |            case _ =>
+        |              aRepr.baseType(hktRepr.typeSymbol) match {
+        |                case AppliedType(_, List(g)) =>
+        |                  Some(g.asInstanceOf[UntypedType])
+        |                case _ => None
+        |              }
+        |          }
+        |        }
+        |      }
+        |
+        |      type Apply[HKT[_[_]], G[_]] = HKT[G]
+        |      type Stub[HKT[_[_]]] = HKT[Option]
+        |    }
+        |
+        |    /** Returns the `UntypedType` for the identity type constructor `[A] =>> A`. Used by `PlainValue.Result`. */
         |    private[hearth] lazy val identityCtor1Untyped: UntypedType = {
         |      given quotes: scala.quoted.Quotes = CrossQuotes.ctx
         |      import quotes.reflect.*
@@ -418,7 +494,34 @@ object TypeConstructorsGen {
         |""".stripMargin
 
   private val footer2: String =
-    s"""|    /** Returns the `UntypedType` for the identity type constructor `[A] =>> A`. Used by `PlainValue.Result`. */
+    s"""|    /** Type constructor for higher-kinded types of kind (* -> *) -> *.
+        |      *
+        |      * Unlike CtorN which parameterizes over ground types, CtorK1 parameterizes over
+        |      * type constructors (types of kind * -> *), enabling FunctorK-style patterns.
+        |      */
+        |    trait CtorK1[HKT[_[_]]] {
+        |
+        |      def apply[G[_]](implicit GCtor: Type.Ctor1[G]): Type[HKT[G]]
+        |      def unapply[A](A: Type[A]): Option[UntypedType]
+        |      def asUntyped: UntypedType = CtorK1.reflectiveAsUntyped(this)
+        |    }
+        |    object CtorK1 {
+        |
+        |      def of[HKT[_[_]]]: CtorK1[HKT] = macro CrossQuotesMacros.typeCtorK1Impl[HKT]
+        |
+        |      def fromUntyped[HKT[_[_]]](untyped: UntypedType): CtorK1[HKT] = macro CrossQuotesMacros.typeCtorK1FromUntypedImpl[HKT]
+        |
+        |      private[Ctors] def reflectiveAsUntyped(ctorK1: AnyRef): UntypedType = {
+        |        val field = ctorK1.getClass.getDeclaredField("HKT")
+        |        field.setAccessible(true)
+        |        field.get(ctorK1).asInstanceOf[UntypedType]
+        |      }
+        |
+        |      type Apply[HKT[_[_]], G[_]] = HKT[G]
+        |      type Stub[HKT[_[_]]] = HKT[Option]
+        |    }
+        |
+        |    /** Returns the `UntypedType` for the identity type constructor `[A] =>> A`. Used by `PlainValue.Result`. */
         |    private[hearth] lazy val identityCtor1Untyped: UntypedType = {
         |      val ctx0 = CrossQuotes.ctx[scala.reflect.macros.blackbox.Context]
         |      import ctx0.universe._
