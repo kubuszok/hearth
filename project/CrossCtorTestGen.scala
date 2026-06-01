@@ -657,6 +657,7 @@ object CrossCtorTestGen {
     sb ++= "  def testCtorK1OfImpl: c.Expr[Data] = testCtorK1Of\n\n"
     sb ++= "  def testCtorK1FromUntypedImpl: c.Expr[Data] = testCtorK1FromUntyped\n\n"
     sb ++= "  def testTypeOfWithCtorK1ContextBoundImpl: c.Expr[Data] = {\n    import hearth.examples.kinds.HigherKinded1\n    testTypeOfWithCtorK1ContextBound[HigherKinded1](Type.CtorK1.of[HigherKinded1])\n  }\n\n"
+    sb ++= "  def testExprQuoteWithCtorK1ParamImpl: c.Expr[Data] = {\n    import hearth.examples.kinds.HigherKinded1\n    testExprQuoteWithCtorK1Param[HigherKinded1](Type.CtorK1.of[HigherKinded1])\n  }\n\n"
 
     sb ++= "}\n\n"
 
@@ -721,6 +722,7 @@ object CrossCtorTestGen {
     sb ++= "  def testCtorK1Of: Data = macro CrossCtorInjectionFixtures.testCtorK1OfImpl\n\n"
     sb ++= "  def testCtorK1FromUntyped: Data = macro CrossCtorInjectionFixtures.testCtorK1FromUntypedImpl\n\n"
     sb ++= "  def testTypeOfWithCtorK1ContextBound: Data = macro CrossCtorInjectionFixtures.testTypeOfWithCtorK1ContextBoundImpl\n\n"
+    sb ++= "  def testExprQuoteWithCtorK1Param: Data = macro CrossCtorInjectionFixtures.testExprQuoteWithCtorK1ParamImpl\n\n"
 
     sb ++= "}\n"
     sb.toString
@@ -830,6 +832,7 @@ object CrossCtorTestGen {
     // CtorK1 tests - class body methods
     sb ++= "  private lazy val hk1CtorK1: Type.CtorK1[hearth.examples.kinds.HigherKinded1] = Type.CtorK1.of[hearth.examples.kinds.HigherKinded1]\n\n"
     sb ++= "  def testTypeOfWithCtorK1ContextBound: Expr[Data] = testTypeOfWithCtorK1ContextBound[hearth.examples.kinds.HigherKinded1](using hk1CtorK1)\n\n"
+    sb ++= "  def testExprQuoteWithCtorK1Param: Expr[Data] = testExprQuoteWithCtorK1Param[hearth.examples.kinds.HigherKinded1](using hk1CtorK1)\n\n"
 
     sb ++= "}\n\n"
 
@@ -907,6 +910,7 @@ object CrossCtorTestGen {
     sb ++= genScala3InlineSplice("testCtorK1Of")
     sb ++= genScala3InlineSplice("testCtorK1FromUntyped")
     sb ++= genScala3InlineSplice("testTypeOfWithCtorK1ContextBound")
+    sb ++= genScala3InlineSplice("testExprQuoteWithCtorK1Param")
 
     sb ++= "}\n"
     sb.toString
@@ -1181,6 +1185,10 @@ object CrossCtorTestGen {
         |            else "hearth.examples.kinds.HigherKinded1[scala.Option]"
         |          )
         |        )
+        |      }
+        |
+        |      test("should work with Expr.quote when F comes from CtorK1 context bound") {
+        |        CrossCtorInjectionFixtures.testExprQuoteWithCtorK1Param <==> Data("ctorK1 works")
         |      }
         |
         |    }
