@@ -359,4 +359,14 @@ trait CrossCtorInjectionFixturesImpl extends CrossCtorInjectionFixturesImplGen {
     )
   }
 
+  def testExprQuoteWithCtorK1Param[F[_[_]]](implicit FK: Type.CtorK1[F]): Expr[Data] = {
+    hearth.fp.ignore(FK)
+    Expr.quote {
+      val c: ContainerK1[F] = new ContainerK1[F] {
+        override def value: String = "ctorK1 works"
+      }
+      Data(c.value)
+    }
+  }
+
 }

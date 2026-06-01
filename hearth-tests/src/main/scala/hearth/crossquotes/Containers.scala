@@ -25,3 +25,5 @@ trait Container19[F[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]] { 
 trait Container20[F[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]] { def value: String }
 trait Container21[F[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]] { def value: String }
 trait Container22[F[_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]] { def value: String }
+
+trait ContainerK1[F[_[_]]] { def value: String }
