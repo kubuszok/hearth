@@ -173,12 +173,13 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         expr.attemptPipe(_.actualType.finalResultType)(_.staticType.finalResultType)
       )
 
-    override def semiEval[A](expr: Expr[A]): Either[NonEmptyVector[String], A] =
-      SemiEval.eval(expr.tree).map(_.asInstanceOf[A])
+    override def semiEval[A](expr: Expr[A], overrides: UntypedType => Existential[EvalOverride]): Either[String, A] =
+      SemiEval.eval(expr.tree, overrides).map(_.asInstanceOf[A]).left.map(_.toList.mkString("; "))
 
     private object SemiEval {
 
       type Result = Either[NonEmptyVector[String], Any]
+      type Overrides = UntypedType => Existential[EvalOverride]
 
       final private case class SemiEvalErrors(errors: NonEmptyVector[String])
           extends scala.util.control.ControlThrowable
@@ -186,70 +187,88 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
       private def throwErrors(errors: NonEmptyVector[String]): Nothing = throw SemiEvalErrors(errors)
 
-      def eval(tree: Tree): Result = evalWithLocals(tree, Map.empty)
+      def eval(tree: Tree, overrides: Overrides): Result = evalWithLocals(tree, Map.empty, overrides)
 
-      private def evalWithLocals(tree: Tree, locals: Map[Symbol, Any]): Result = tree match {
-        case Literal(Constant(value)) =>
-          Right(value)
+      private def evalWithLocals(tree: Tree, locals: Map[Symbol, Any], overrides: Overrides): Result = {
+        if (overrides != null) {
+          val tpe: UntypedType = tree.tpe.widen
+          val existentialOverride = overrides(tpe)
+          import existentialOverride.Underlying
+          existentialOverride.value match {
+            case Some(f) =>
+              val expr = c.Expr[Any](tree).asInstanceOf[Expr[Underlying]]
+              return f(expr).left.map(NonEmptyVector.one(_))
+            case None => ()
+          }
+        }
+        tree match {
+          case Literal(Constant(value)) =>
+            Right(value)
 
-        case Function(params, body) =>
-          evalLambda(params, body, locals)
+          case Function(params, body) =>
+            evalLambda(params, body, locals, overrides)
 
-        case Block(stats, expr) =>
-          evalBlock(stats, expr, locals)
+          case Block(stats, expr) =>
+            evalBlock(stats, expr, locals, overrides)
 
-        case _
-            if tree.symbol != null && tree.symbol != NoSymbol &&
-              (tree.symbol.isModule || tree.symbol.isModuleClass) =>
-          resolveModule(tree.symbol)
+          case _
+              if tree.symbol != null && tree.symbol != NoSymbol &&
+                (tree.symbol.isModule || tree.symbol.isModuleClass) =>
+            resolveModule(tree.symbol)
 
-        case Typed(inner, _) =>
-          evalWithLocals(inner, locals)
+          case Typed(inner, _) =>
+            evalWithLocals(inner, locals, overrides)
 
-        case TypeApply(Select(qualifier, name), typeArgs)
-            if name.decodedName.toString == "isInstanceOf" && typeArgs.size == 1 =>
-          evalWithLocals(qualifier, locals).flatMap { receiver =>
-            runtimeClassOf(typeArgs.head.tpe) match {
-              case Some(clazz) => Right(clazz.isInstance(receiver))
-              case None        => Right(true)
+          case TypeApply(Select(qualifier, name), typeArgs)
+              if name.decodedName.toString == "isInstanceOf" && typeArgs.size == 1 =>
+            evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
+              runtimeClassOf(typeArgs.head.tpe) match {
+                case Some(clazz) => Right(clazz.isInstance(receiver))
+                case None        => Right(true)
+              }
             }
-          }
 
-        case TypeApply(Select(qualifier, _), _) if tree.symbol.name.decodedName.toString == "asInstanceOf" =>
-          evalWithLocals(qualifier, locals)
+          case TypeApply(Select(qualifier, _), _) if tree.symbol.name.decodedName.toString == "asInstanceOf" =>
+            evalWithLocals(qualifier, locals, overrides)
 
-        case TypeApply(inner, _) =>
-          evalWithLocals(inner, locals)
+          case TypeApply(inner, _) =>
+            evalWithLocals(inner, locals, overrides)
 
-        case Apply(_, _) =>
-          evalApplyWithLocals(tree, locals)
+          case Apply(_, _) =>
+            evalApplyWithLocals(tree, locals, overrides)
 
-        case Select(qualifier, name) if tree.symbol != null && tree.symbol != NoSymbol && tree.symbol.isMethod =>
-          evalWithLocals(qualifier, locals).flatMap { receiver =>
-            invokeMethod(receiver, name.decodedName.toString, Nil)
-          }
+          case Select(qualifier, name) if tree.symbol != null && tree.symbol != NoSymbol && tree.symbol.isMethod =>
+            evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
+              invokeMethod(receiver, name.decodedName.toString, Nil)
+            }
 
-        case Select(qualifier, name) =>
-          evalWithLocals(qualifier, locals).flatMap { receiver =>
-            invokeGetter(receiver, name.decodedName.toString)
-          }
+          case Select(qualifier, name) =>
+            evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
+              invokeGetter(receiver, name.decodedName.toString)
+            }
 
-        case Ident(_) if locals.contains(tree.symbol) =>
-          Right(locals(tree.symbol))
+          case Ident(_) if locals.contains(tree.symbol) =>
+            Right(locals(tree.symbol))
 
-        case Ident(_)
-            if tree.symbol != null && tree.symbol != NoSymbol &&
-              tree.symbol.owner != null && tree.symbol.owner != NoSymbol &&
-              (tree.symbol.owner.isModule || tree.symbol.owner.isModuleClass) =>
-          resolveModule(tree.symbol.owner).flatMap { receiver =>
-            invokeGetter(receiver, tree.symbol.name.decodedName.toString)
-          }
+          case Ident(_)
+              if tree.symbol != null && tree.symbol != NoSymbol &&
+                tree.symbol.owner != null && tree.symbol.owner != NoSymbol &&
+                (tree.symbol.owner.isModule || tree.symbol.owner.isModuleClass) =>
+            resolveModule(tree.symbol.owner).flatMap { receiver =>
+              invokeGetter(receiver, tree.symbol.name.decodedName.toString)
+            }
 
-        case other =>
-          Left(NonEmptyVector.one(s"Cannot semi-evaluate expression: ${showCode(other)}"))
+          case other =>
+            Left(NonEmptyVector.one(s"Cannot semi-evaluate expression: ${showCode(other)}"))
+        }
       }
 
-      private def evalLambda(params: List[ValDef], body: Tree, locals: Map[Symbol, Any]): Result = {
+      private def evalLambda(
+          params: List[ValDef],
+          body: Tree,
+          locals: Map[Symbol, Any],
+          overrides: Overrides
+      ): Result = {
         val arity = params.size
         val functionClass =
           try java.lang.Class.forName(s"scala.Function$arity")
@@ -269,7 +288,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
                 newLocals = newLocals + (params(i).symbol -> args(i))
                 i += 1
               }
-              evalWithLocals(body, newLocals) match {
+              evalWithLocals(body, newLocals, overrides) match {
                 case Right(v)     => v.asInstanceOf[AnyRef]
                 case Left(errors) => throwErrors(errors)
               }
@@ -278,44 +297,44 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         Right(proxy)
       }
 
-      private def evalBlock(stats: List[Tree], expr: Tree, locals: Map[Symbol, Any]): Result =
+      private def evalBlock(stats: List[Tree], expr: Tree, locals: Map[Symbol, Any], overrides: Overrides): Result =
         stats
           .foldLeft[Either[NonEmptyVector[String], Map[Symbol, Any]]](Right(locals)) {
             case (Left(errors), _)                  => Left(errors)
             case (Right(currentLocals), vd: ValDef) =>
-              evalWithLocals(vd.rhs, currentLocals).map(value => currentLocals + (vd.symbol -> value))
+              evalWithLocals(vd.rhs, currentLocals, overrides).map(value => currentLocals + (vd.symbol -> value))
             case (_, stat) =>
               Left(NonEmptyVector.one(s"Cannot semi-evaluate statement: ${showCode(stat)}"))
           }
-          .flatMap(finalLocals => evalWithLocals(expr, finalLocals))
+          .flatMap(finalLocals => evalWithLocals(expr, finalLocals, overrides))
 
-      private def evalApplyWithLocals(tree: Tree, locals: Map[Symbol, Any]): Result = {
+      private def evalApplyWithLocals(tree: Tree, locals: Map[Symbol, Any], overrides: Overrides): Result = {
         val (core, argLists) = flattenApply(tree)
         val allArgTrees = argLists.flatten
         core match {
           case Select(New(tpt), termNames.CONSTRUCTOR) =>
-            evalConstructor(tpt.tpe, allArgTrees, locals)
+            evalConstructor(tpt.tpe, allArgTrees, locals, overrides)
           case Select(qualifier, name) =>
-            evalWithLocals(qualifier, locals).flatMap { receiver =>
-              allArgTrees.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
+            evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
+              allArgTrees.map(a => evalWithLocals(a, locals, overrides)).parSequence.flatMap { argValues =>
                 invokeMethod(receiver, name.decodedName.toString, argValues)
               }
             }
           case TypeApply(Select(qualifier, name), _) =>
-            evalWithLocals(qualifier, locals).flatMap { receiver =>
-              allArgTrees.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
+            evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
+              allArgTrees.map(a => evalWithLocals(a, locals, overrides)).parSequence.flatMap { argValues =>
                 invokeMethod(receiver, name.decodedName.toString, argValues)
               }
             }
           case TypeApply(inner, _) =>
-            evalWithLocals(inner, locals).flatMap { func =>
-              allArgTrees.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
+            evalWithLocals(inner, locals, overrides).flatMap { func =>
+              allArgTrees.map(a => evalWithLocals(a, locals, overrides)).parSequence.flatMap { argValues =>
                 invokeMethod(func, "apply", argValues)
               }
             }
           case _ =>
-            evalWithLocals(core, locals).flatMap { func =>
-              allArgTrees.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
+            evalWithLocals(core, locals, overrides).flatMap { func =>
+              allArgTrees.map(a => evalWithLocals(a, locals, overrides)).parSequence.flatMap { argValues =>
                 invokeMethod(func, "apply", argValues)
               }
             }
@@ -383,7 +402,12 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         }
       }
 
-      private def evalConstructor(tpe: c.Type, argTrees: List[Tree], locals: Map[Symbol, Any]): Result = {
+      private def evalConstructor(
+          tpe: c.Type,
+          argTrees: List[Tree],
+          locals: Map[Symbol, Any],
+          overrides: Overrides
+      ): Result = {
         val className = tpe.typeSymbol.fullName
         val classOpt = moduleCandidates(className)
           .filterNot(_.endsWith("$"))
@@ -396,7 +420,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         classOpt match {
           case None        => Left(NonEmptyVector.one(s"Cannot resolve class for constructor: $className"))
           case Some(clazz) =>
-            argTrees.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
+            argTrees.map(a => evalWithLocals(a, locals, overrides)).parSequence.flatMap { argValues =>
               findAndInvokeConstructor(clazz, argValues)
             }
         }
@@ -680,6 +704,12 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         case other                              => other
       }
     }
+
+    override def semiQuote[A: Type](
+        value: A,
+        overrides: UntypedType => Existential[QuoteOverride]
+    ): Either[String, Expr[A]] =
+      semiQuoteInternal(value, overrides)
 
     override lazy val NullExprCodec: ExprCodec[Null] = {
       implicit val liftable: Liftable[Null] = Liftable[Null](_ => q"null")
@@ -3598,36 +3628,68 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         }
     }
 
+  private def dstrTryConstructor(
+      core: Tree,
+      steps: List[DstrCallStep],
+      tree: Tree,
+      lambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param]
+  ): Option[DestructuredExpr.MethodCall] = core match {
+    case Select(New(tpt), termNames.CONSTRUCTOR) =>
+      val ctorTpe = tpt.tpe
+      if (ctorTpe == null || ctorTpe == NoType) None
+      else {
+        val ctors = UntypedMethod.constructors(ctorTpe)
+        val coreSym = core.symbol
+        val ctor =
+          if (coreSym != null && coreSym != NoSymbol) ctors.find(_.symbol == coreSym).orElse(ctors.headOption)
+          else ctors.headOption
+        ctor.map { method =>
+          val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
+          dstrBuildAppliedSteps(steps, lambdaParams, applied)
+          new DestructuredExpr.MethodCall(
+            dstrTpeOf(tree),
+            method.asTyped[Any](using UntypedType.toTyped[Any](ctorTpe)),
+            applied.result(),
+            () => tree
+          )
+        }
+      }
+    case _ => None
+  }
+
   private def dstrTryMethodCall(
       tree: Tree,
       lambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param]
   ): Option[DestructuredExpr.MethodCall] = {
     val (core, steps) = dstrFlattenCall(tree)
-    val coreSym = if (core.symbol != null && core.symbol != NoSymbol) core.symbol else return None
 
-    core match {
-      case Select(qualifier, _) =>
-        val qualTpe = qualifier.tpe
-        if (qualTpe == null || qualTpe == NoType) return None
-        dstrResolveMethod(qualTpe, coreSym).map { method =>
-          val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
-          applied += new DestructuredExpr.MethodCall.AppliedInstance(dstrImpl(qualifier, lambdaParams))
-          dstrBuildAppliedSteps(steps, lambdaParams, applied)
-          new DestructuredExpr.MethodCall(dstrTpeOf(tree), method, applied.result(), () => tree)
-        }
+    dstrTryConstructor(core, steps, tree, lambdaParams).orElse {
+      val coreSym = if (core.symbol != null && core.symbol != NoSymbol) core.symbol else return None
 
-      case Ident(_) =>
-        val ownerSym = coreSym.owner
-        if (ownerSym != null && ownerSym != NoSymbol && (ownerSym.isModule || ownerSym.isModuleClass)) {
-          val moduleTpe = ownerSym.asModule.moduleClass.asType.toType
-          dstrResolveMethod(moduleTpe, coreSym).map { method =>
+      core match {
+        case Select(qualifier, _) =>
+          val qualTpe = qualifier.tpe
+          if (qualTpe == null || qualTpe == NoType) return None
+          dstrResolveMethod(qualTpe, coreSym).map { method =>
             val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
+            applied += new DestructuredExpr.MethodCall.AppliedInstance(dstrImpl(qualifier, lambdaParams))
             dstrBuildAppliedSteps(steps, lambdaParams, applied)
             new DestructuredExpr.MethodCall(dstrTpeOf(tree), method, applied.result(), () => tree)
           }
-        } else None
 
-      case _ => None
+        case Ident(_) =>
+          val ownerSym = coreSym.owner
+          if (ownerSym != null && ownerSym != NoSymbol && (ownerSym.isModule || ownerSym.isModuleClass)) {
+            val moduleTpe = ownerSym.asModule.moduleClass.asType.toType
+            dstrResolveMethod(moduleTpe, coreSym).map { method =>
+              val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
+              dstrBuildAppliedSteps(steps, lambdaParams, applied)
+              new DestructuredExpr.MethodCall(dstrTpeOf(tree), method, applied.result(), () => tree)
+            }
+          } else None
+
+        case _ => None
+      }
     }
   }
 
@@ -3687,5 +3749,19 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       dstrImpl(body, newLambdaParams),
       () => originalTree
     )
+  }
+
+  private lazy val exprCodecTypeConstructor: c.Type = {
+    val exprCodecSym = c.mirror.staticClass(classOf[ExprCodec[?]].getName.replace('$', '.').stripSuffix("."))
+    exprCodecSym.toType.typeConstructor
+  }
+
+  override protected def trySummonExprCodec[F: Type](): Option[ExprCodec[F]] = {
+    val exprCodecF = appliedType(exprCodecTypeConstructor, Type[F].tpe)
+    val result = c.inferImplicitValue(exprCodecF, silent = true, withMacrosDisabled = false)
+    if (result != EmptyTree) {
+      val codecExpr = c.Expr[ExprCodec[F]](result)(c.WeakTypeTag[ExprCodec[F]](exprCodecF))
+      Expr.semiEval(codecExpr).toOption.map(_.asInstanceOf[ExprCodec[F]])
+    } else None
   }
 }

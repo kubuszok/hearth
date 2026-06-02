@@ -2068,4 +2068,29 @@ final class MethodsSpec extends MacroSuite {
       }
     }
   }
+
+  group("methods: annotation type matching and destructuring") {
+    import MethodsFixtures.testAnnotationDestructuring
+
+    test("type annotation: ExampleAnnotation2(1) destructured to extract constructor arg") {
+      val result = testAnnotationDestructuring[examples.methods.NoCompanionClass]
+      val list = result.asList.get
+      val typeAnns = list.filter(_.asMap.get("source").asString.get == "type")
+      val ann2 = typeAnns.find(_.asMap.get("annotationType").asString.get == "ExampleAnnotation2")
+      assert(ann2.isDefined, s"should find ExampleAnnotation2 on type, got: $typeAnns")
+      val args = ann2.get.asMap.get("destructuredArgs").asString.get
+      assert(args == "1", s"should destructure constructor arg to '1', got: '$args'")
+    }
+
+    test("method annotation: ExampleAnnotation() destructured as no-arg constructor") {
+      val result = testAnnotationDestructuring[examples.methods.NoCompanionClass]
+      val list = result.asList.get
+      val methodAnns = list.filter(_.asMap.get("source").asString.get.startsWith("method:"))
+      val annOnMethod = methodAnns.find(_.asMap.get("source").asString.get == "method:methodWithAnnotation")
+      assert(annOnMethod.isDefined, "should find annotation on methodWithAnnotation")
+      assert(annOnMethod.get.asMap.get("annotationType").asString.get == "ExampleAnnotation")
+      val args = annOnMethod.get.asMap.get("destructuredArgs").asString.get
+      assert(args == "", s"no-arg annotation should destructure to empty args, got: '$args'")
+    }
+  }
 }

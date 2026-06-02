@@ -179,6 +179,7 @@ trait UntypedTypes { this: MacroCommons =>
     }
 
     def annotations(untyped: UntypedType): List[UntypedExpr]
+    def annotationTypes(untyped: UntypedType): List[UntypedType]
 
     private lazy val ArrayCtor = Type.Ctor1.of[Array]
 
@@ -254,5 +255,6 @@ trait UntypedTypes { this: MacroCommons =>
     def defaultValue(param: UntypedParameter): Option[UntypedMethod] = UntypedMethod.defaultValue(untyped)(param)
 
     def annotations: List[UntypedExpr] = UntypedType.annotations(untyped)
+    def annotationTypes: List[UntypedType] = UntypedType.annotationTypes(untyped)
   }
 }

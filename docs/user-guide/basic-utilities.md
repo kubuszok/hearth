@@ -636,7 +636,10 @@ It can be used to e.g. prevent the macro from summoning itself, so that recursio
 | `Expr.upcast[String, AnyRef](stringExpr)` | `stringExpr.upcast[AnyRef]` | `Expr[...]`                         | safe upcast to a supertype                                                                               |
 | `Expr.suppressUnused[A](expr)`            | `expr.suppressUnused`       | `Expr[Unit]`                        | prevents "unused value" warnings                                                                         |
 | `Expr.singletonOf[A]`                     | —                           | `Option[Expr[A]]`                   | returns singleton reference if `A` is a case object, Java enum value, or Scala 3 parameterless enum case |
-| `Expr.semiEval[A](expr)`                  | `expr.semiEval`             | `Either[NonEmptyVector[String], A]` | reconstructs a runtime value from expression AST using reflection                                        |
+| `Expr.semiEval[A](expr)`                  | `expr.semiEval`             | `Either[String, A]`                 | reconstructs a runtime value from expression AST using reflection                                        |
+| `Expr.semiEval[A](expr, overrides)`       | `expr.semiEval(overrides)`  | `Either[String, A]`                 | like `semiEval` but with custom per-type evaluation dispatch via `EvalOverride`                           |
+| `Expr.semiQuote[A](value)`                | —                           | `Either[String, Expr[A]]`           | converts a runtime value to an expression tree (inverse of `semiEval`)                                   |
+| `Expr.semiQuote[A](value, overrides)`     | —                           | `Either[String, Expr[A]]`           | like `semiQuote` but with custom per-type quoting dispatch via `QuoteOverride`                            |
 | `Expr.typeOf[A](expr)`                    | `expr.tpe`                  | `Type[A]`                           | extracts the compiler-inferred type of an expression                                                     |
 
 !!! warning "Expr.typeOf / expr.tpe returns the compiler-inferred type"
@@ -672,7 +675,31 @@ It cannot handle:
 - **Lambdas with arity > 22** on Scala 2 (Scala 3 supports any arity via `FunctionXXL`)
 - **Types not on the classpath** — modules or classes only defined in the currently-compiled module
 
-When evaluation fails, it returns `Left` with all error reasons accumulated.
+When evaluation fails, it returns `Left` with error reasons joined into a single string.
+
+#### `semiEval` with overrides
+
+`Expr.semiEval(expr, overrides)` accepts an `overrides: UntypedType => Existential[EvalOverride]` function that
+provides custom evaluation logic for specific types. Before evaluating a sub-expression, `semiEval` checks if the
+expression's widened type has an override. If the override returns `Some(f)`, `f` is called instead of the default
+evaluation. If `None`, default evaluation proceeds.
+
+```scala
+type EvalOverride[A] = Option[Expr[A] => Either[String, A]]
+```
+
+#### `semiQuote`
+
+`Expr.semiQuote[A: Type](value)` is the inverse of `semiEval` — it converts a runtime value to an expression tree
+at macro time. It handles built-in types (primitives, `String`, `BigInt`, `BigDecimal`, `Data`), singletons, case
+classes (via `Product.productElement` + `CaseClass.construct`), and sealed traits/enums (via runtime class name dispatch).
+
+`Expr.semiQuote(value, overrides)` accepts `overrides: UntypedType => Existential[QuoteOverride]` for custom quoting
+of specific types.
+
+```scala
+type QuoteOverride[A] = Option[A => Either[String, Expr[A]]]
+```
 
 !!! example "Compile-time even number validation"
 
@@ -799,9 +826,9 @@ Built-in codecs exist for:
 - Options: `Option[A]`, `Some[A]`, `None.type`
 - Either: `Either[L,R]`, `Left[L,R]`, `Right[L,R]`
 
-**One-way** (`toExpr` only):
+**Hearth internals** (bidirectional for `Data`, one-way `toExpr` for version/platform types):
 
-- Hearth internals: `data.Data`, `HearthVersion`, `JDKVersion`, `ScalaVersion`, `LanguageVersion`, `Platform`
+- `data.Data`, `HearthVersion`, `JDKVersion`, `ScalaVersion`, `LanguageVersion`, `Platform`
 
 #### Deriving `ExprCodec` for custom types
 
@@ -822,12 +849,13 @@ For case classes, sealed traits, and singletons, `ExprCodec.derived[A]` derives 
 
 Derivation supports:
 
-- **Case classes** — fields are lifted via their own `ExprCodec` (built-in for primitives, recursively derived for user types), then the constructor is called via `CaseClass.construct`
-- **Sealed traits / enums** — runtime dispatch to the child type's derived codec, with automatic upcast
+- **Case classes** — fields are quoted via `semiQuote` (built-in for primitives, recursively handled for user types), constructed via `CaseClass.construct`
+- **Sealed traits / enums** — runtime dispatch to the child type's codec, with automatic upcast
 - **Singletons** (case objects) — lifted directly via `SingletonValue.singletonExpr`
-- **Nested types** — field codecs are resolved recursively (e.g., a case class containing another case class)
+- **Nested types** — handled recursively by `semiQuote` (e.g., a case class containing another case class)
+- **Implicit ExprCodec instances** — during derivation, the type is traversed and `ExprCodec[F]` is summoned from implicit scope for each nested type. Found instances are used as overrides in `semiEval`/`semiQuote`, so user-defined codecs are respected
 
-`fromExpr` uses `semiEval` for all derived types — it evaluates constructor calls, method invocations, and literals at macro time via reflection.
+`toExpr` uses `semiQuote` with override maps built from implicit scope. `fromExpr` uses `semiEval` with matching overrides — it evaluates constructor calls, method invocations, and literals at macro time via reflection.
 
 ### `VarArgs`
 
@@ -2662,7 +2690,7 @@ val parsed: DestructuredExpr = DestructuredExpr.parseUntyped(t) // from UntypedE
 
 Parsing is total and maximal: every sub-expression is recursively destructured. Only the smallest unresolvable
 leaf becomes `NonDestructurable`. Compiler noise (Scala 3 `Inlined` wrappers, Scala 2 `Typed` wrappers) is stripped
-automatically.
+automatically. Constructor calls (`new Foo(args)`) are parsed as `MethodCall` with the constructor as the method.
 
 ### Node Types
 
@@ -2749,6 +2777,39 @@ DestructuredExpr.extractLambda(expr) match {
   case Left(error) => Environment.reportErrorAndAbort(error)
 }
 ```
+
+### Constructor Calls and Annotations
+
+Constructor calls (`new Foo(arg1, arg2)`) are destructured as `MethodCall` where the `method` is the primary
+constructor and constructor arguments appear as `AppliedValues`. This is particularly useful for extracting
+annotation values without platform-specific code:
+
+```scala
+// Check annotation type and extract constructor args
+param.annotations.foreach { ann =>
+  import ann.Underlying
+  if (ann.Underlying =:= Type.of[MyAnnotation]) {
+    DestructuredExpr.parseUntyped(ann.value.asUntyped) match {
+      case mc: DestructuredExpr.MethodCall =>
+        mc.applied.foreach {
+          case av: DestructuredExpr.MethodCall.AppliedValues =>
+            av.args.foreach {
+              case lit: DestructuredExpr.Literal =>
+                // lit.value contains the annotation argument value
+              case other =>
+                // non-literal argument, recursively destructured
+            }
+          case _ => ()
+        }
+      case _ => ()
+    }
+  }
+}
+```
+
+!!! note "Annotation type matching on Scala 2"
+    `ann.Underlying =:= Type.of[MyAnnotation]` works reliably on both platforms because `annotationTypes`
+    captures the type from the symbol before `c.untypecheck` strips it on Scala 2.
 
 ### Traversal
 

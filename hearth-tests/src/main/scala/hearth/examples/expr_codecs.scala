@@ -14,3 +14,5 @@ object Shape {
 }
 
 case object Sentinel
+
+case class DataHolder(label: String, payload: hearth.data.Data)

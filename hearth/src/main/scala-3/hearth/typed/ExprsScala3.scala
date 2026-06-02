@@ -163,12 +163,13 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     override def typeOf[A](expr: Expr[A]): Type[A] =
       UntypedType.toTyped(expr.asTerm.tpe)
 
-    override def semiEval[A](expr: Expr[A]): Either[NonEmptyVector[String], A] =
-      SemiEval.eval(expr.asTerm).map(_.asInstanceOf[A])
+    override def semiEval[A](expr: Expr[A], overrides: UntypedType => Existential[EvalOverride]): Either[String, A] =
+      SemiEval.eval(expr.asTerm, overrides).map(_.asInstanceOf[A]).left.map(_.toList.mkString("; "))
 
     private object SemiEval {
 
       type Result = Either[NonEmptyVector[String], Any]
+      type Overrides = UntypedType => Existential[EvalOverride]
 
       final private case class SemiEvalErrors(errors: NonEmptyVector[String])
           extends scala.util.control.ControlThrowable
@@ -176,93 +177,112 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
       private def throwErrors(errors: NonEmptyVector[String]): Nothing = throw SemiEvalErrors(errors)
 
-      def eval(term: Term): Result = evalWithLocals(term, Map.empty)
+      def eval(term: Term, overrides: Overrides): Result = evalWithLocals(term, Map.empty, overrides)
 
-      private def evalWithLocals(term: Term, locals: Map[Symbol, Any]): Result = term match {
-        case Inlined(_, _, inner) =>
-          evalWithLocals(inner, locals)
+      private def evalWithLocals(term: Term, locals: Map[Symbol, Any], overrides: Overrides): Result = {
+        if overrides != null then {
+          val tpe: UntypedType = term.tpe.widen
+          val existentialOverride = overrides(tpe)
+          import existentialOverride.Underlying
+          existentialOverride.value match {
+            case Some(f) =>
+              val expr =
+                term.asExprOf(using Underlying.asInstanceOf[scala.quoted.Type[Any]]).asInstanceOf[Expr[Underlying]]
+              return f(expr).left.map(NonEmptyVector.one(_))
+            case None => ()
+          }
+        }
+        term match {
+          case Inlined(_, _, inner) =>
+            evalWithLocals(inner, locals, overrides)
 
-        case Block(List(ddef: DefDef), closure: Closure) =>
-          evalLambda(ddef, locals)
+          case Block(List(ddef: DefDef), closure: Closure) =>
+            evalLambda(ddef, locals, overrides)
 
-        case Block(stats, expr) =>
-          evalBlock(stats, expr, locals)
+          case Block(stats, expr) =>
+            evalBlock(stats, expr, locals, overrides)
 
-        case Literal(constant) =>
-          Right(extractConstant(constant))
+          case Literal(constant) =>
+            Right(extractConstant(constant))
 
-        case _ if term.symbol.flags.is(Flags.Module) =>
-          resolveModule(term.symbol)
+          case _ if term.symbol.flags.is(Flags.Module) =>
+            resolveModule(term.symbol)
 
-        case Typed(Repeated(elems, _), _) =>
-          elems.iterator.map(t => evalWithLocals(t, locals)).toList.parSequence.map(_.toList)
+          case Typed(Repeated(elems, _), _) =>
+            elems.iterator.map(t => evalWithLocals(t, locals, overrides)).toList.parSequence.map(_.toList)
 
-        case Repeated(elems, _) =>
-          elems.iterator.map(t => evalWithLocals(t, locals)).toList.parSequence.map(_.toList)
+          case Repeated(elems, _) =>
+            elems.iterator.map(t => evalWithLocals(t, locals, overrides)).toList.parSequence.map(_.toList)
 
-        case Typed(inner, _) =>
-          evalWithLocals(inner, locals)
+          case Typed(inner, _) =>
+            evalWithLocals(inner, locals, overrides)
 
-        case TypeApply(Select(qualifier, name), typeArgs) if name == "isInstanceOf" && typeArgs.size == 1 =>
-          evalWithLocals(qualifier, locals).flatMap { receiver =>
-            runtimeClassOf(typeArgs.head.tpe) match {
-              case Some(clazz) => Right(clazz.isInstance(receiver))
-              case None        => Right(true)
+          case TypeApply(Select(qualifier, name), typeArgs) if name == "isInstanceOf" && typeArgs.size == 1 =>
+            evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
+              runtimeClassOf(typeArgs.head.tpe) match {
+                case Some(clazz) => Right(clazz.isInstance(receiver))
+                case None        => Right(true)
+              }
             }
-          }
 
-        case TypeApply(Select(qualifier, _), _) if term.symbol.name == "asInstanceOf" =>
-          evalWithLocals(qualifier, locals)
+          case TypeApply(Select(qualifier, _), _) if term.symbol.name == "asInstanceOf" =>
+            evalWithLocals(qualifier, locals, overrides)
 
-        case TypeApply(inner, _) =>
-          evalWithLocals(inner, locals)
+          case TypeApply(inner, _) =>
+            evalWithLocals(inner, locals, overrides)
 
-        case Apply(_, _) =>
-          evalApplyWithLocals(term, locals)
+          case Apply(_, _) =>
+            evalApplyWithLocals(term, locals, overrides)
 
-        case Select(qualifier, name) if term.symbol.isDefDef =>
-          evalWithLocals(qualifier, locals).flatMap { receiver =>
-            invokeMethod(receiver, term.symbol, name, Nil)
-          }
+          case Select(qualifier, name) if term.symbol.isDefDef =>
+            evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
+              invokeMethod(receiver, term.symbol, name, Nil)
+            }
 
-        case Select(qualifier, name) =>
-          evalWithLocals(qualifier, locals).flatMap { receiver =>
-            invokeGetter(receiver, name)
-          }
+          case Select(qualifier, name) =>
+            evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
+              invokeGetter(receiver, name)
+            }
 
-        case Ident(_) if locals.contains(term.symbol) =>
-          Right(locals(term.symbol))
+          case Ident(_) if locals.contains(term.symbol) =>
+            Right(locals(term.symbol))
 
-        case Ident(_)
-            if term.symbol.flags.is(Flags.Enum) &&
-              (term.symbol.flags.is(Flags.JavaStatic) || term.symbol.flags.is(Flags.StableRealizable)) =>
-          resolveEnumValue(term.symbol)
+          case Ident(_)
+              if term.symbol.flags.is(Flags.Enum) &&
+                (term.symbol.flags.is(Flags.JavaStatic) || term.symbol.flags.is(Flags.StableRealizable)) =>
+            resolveEnumValue(term.symbol)
 
-        case Ident(_) if term.symbol.isDefDef =>
-          resolveMethodOnOwner(term.symbol)
+          case Ident(_) if term.symbol.isDefDef =>
+            resolveMethodOnOwner(term.symbol)
 
-        case Ident(_) if term.symbol.owner.flags.is(Flags.Module) =>
-          resolveModule(term.symbol.owner).flatMap { receiver =>
-            invokeGetter(receiver, term.symbol.name)
-          }
+          case Ident(_) if term.symbol.owner.flags.is(Flags.Module) =>
+            resolveModule(term.symbol.owner).flatMap { receiver =>
+              invokeGetter(receiver, term.symbol.name)
+            }
 
-        case Ident(_) =>
-          resolveStableRef(term)
+          case Ident(_) =>
+            resolveStableRef(term)
 
-        case other =>
-          Left(NonEmptyVector.one(s"Cannot semi-evaluate expression: ${other.show(using Printer.TreeCode)}"))
+          case other =>
+            Left(NonEmptyVector.one(s"Cannot semi-evaluate expression: ${other.show(using Printer.TreeCode)}"))
+        }
       }
 
-      private def evalLambda(ddef: DefDef, locals: Map[Symbol, Any]): Result = {
+      private def evalLambda(ddef: DefDef, locals: Map[Symbol, Any], overrides: Overrides): Result = {
         val paramsClauses = ddef.paramss
         val allParams = paramsClauses.flatMap(_.params).collect { case vd: ValDef => vd }
         ddef.rhs match {
           case None       => Left(NonEmptyVector.one("Lambda has no body"))
-          case Some(body) => evalLambdaWithBody(allParams, body, locals)
+          case Some(body) => evalLambdaWithBody(allParams, body, locals, overrides)
         }
       }
 
-      private def evalLambdaWithBody(allParams: List[ValDef], body: Term, locals: Map[Symbol, Any]): Result = {
+      private def evalLambdaWithBody(
+          allParams: List[ValDef],
+          body: Term,
+          locals: Map[Symbol, Any],
+          overrides: Overrides
+      ): Result = {
         val arity = allParams.size
         val isFunctionXXL = arity > 22
         val functionClass =
@@ -283,7 +303,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 newLocals = newLocals + (allParams(i).symbol -> args(i))
                 i += 1
               }
-              evalWithLocals(body, newLocals) match {
+              evalWithLocals(body, newLocals, overrides) match {
                 case Right(v)     => v.asInstanceOf[AnyRef]
                 case Left(errors) => throwErrors(errors)
               }
@@ -292,37 +312,42 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         Right(proxy)
       }
 
-      private def evalBlock(stats: List[Statement], expr: Term, locals: Map[Symbol, Any]): Result =
+      private def evalBlock(
+          stats: List[Statement],
+          expr: Term,
+          locals: Map[Symbol, Any],
+          overrides: Overrides
+      ): Result =
         stats
           .foldLeft[Either[NonEmptyVector[String], Map[Symbol, Any]]](Right(locals)) {
             case (Left(errors), _)                  => Left(errors)
             case (Right(currentLocals), vd: ValDef) =>
               vd.rhs match {
                 case Some(rhs) =>
-                  evalWithLocals(rhs, currentLocals).map(value => currentLocals + (vd.symbol -> value))
+                  evalWithLocals(rhs, currentLocals, overrides).map(value => currentLocals + (vd.symbol -> value))
                 case None =>
                   Left(NonEmptyVector.one(s"Cannot evaluate val without rhs: ${vd.name}"))
               }
             case (_, stat) =>
               Left(NonEmptyVector.one(s"Cannot semi-evaluate statement: ${stat.show(using Printer.TreeCode)}"))
           }
-          .flatMap(finalLocals => evalWithLocals(expr, finalLocals))
+          .flatMap(finalLocals => evalWithLocals(expr, finalLocals, overrides))
 
-      private def evalApplyWithLocals(term: Term, locals: Map[Symbol, Any]): Result = {
+      private def evalApplyWithLocals(term: Term, locals: Map[Symbol, Any], overrides: Overrides): Result = {
         val (core, argLists) = flattenApply(term)
         val allArgs = argLists.flatten
         core match {
           case Select(New(tpt), "<init>") =>
-            evalConstructor(tpt.tpe, allArgs, locals)
+            evalConstructor(tpt.tpe, allArgs, locals, overrides)
           case Select(qualifier, name) =>
-            evalWithLocals(qualifier, locals).flatMap { receiver =>
-              allArgs.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
+            evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
+              allArgs.map(a => evalWithLocals(a, locals, overrides)).parSequence.flatMap { argValues =>
                 invokeMethod(receiver, core.symbol, name, argValues)
               }
             }
           case TypeApply(Select(qualifier, name), _) =>
-            evalWithLocals(qualifier, locals).flatMap { receiver =>
-              allArgs.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
+            evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
+              allArgs.map(a => evalWithLocals(a, locals, overrides)).parSequence.flatMap { argValues =>
                 invokeMethod(
                   receiver,
                   core match { case TypeApply(sel, _) => sel.symbol; case _ => core.symbol },
@@ -332,26 +357,26 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
               }
             }
           case TypeApply(inner, _) =>
-            evalWithLocals(inner, locals).flatMap { func =>
-              allArgs.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
+            evalWithLocals(inner, locals, overrides).flatMap { func =>
+              allArgs.map(a => evalWithLocals(a, locals, overrides)).parSequence.flatMap { argValues =>
                 invokeMethod(func, "apply", argValues)
               }
             }
           case Ident(_) if core.symbol.isDefDef && core.symbol.owner.flags.is(Flags.Module) =>
             resolveModule(core.symbol.owner).flatMap { receiver =>
-              allArgs.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
+              allArgs.map(a => evalWithLocals(a, locals, overrides)).parSequence.flatMap { argValues =>
                 invokeMethod(receiver, core.symbol, core.symbol.name, argValues)
               }
             }
           case Ident(_) if core.symbol.isDefDef =>
             resolveModuleForInheritedMethod(core.symbol).flatMap { receiver =>
-              allArgs.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
+              allArgs.map(a => evalWithLocals(a, locals, overrides)).parSequence.flatMap { argValues =>
                 invokeMethod(receiver, core.symbol.name, argValues)
               }
             }
           case _ =>
-            evalWithLocals(core, locals).flatMap { func =>
-              allArgs.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
+            evalWithLocals(core, locals, overrides).flatMap { func =>
+              allArgs.map(a => evalWithLocals(a, locals, overrides)).parSequence.flatMap { argValues =>
                 invokeMethod(func, "apply", argValues)
               }
             }
@@ -532,7 +557,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         }
       }
 
-      private def evalConstructor(tpe: TypeRepr, argTrees: List[Term], locals: Map[Symbol, Any]): Result = {
+      private def evalConstructor(
+          tpe: TypeRepr,
+          argTrees: List[Term],
+          locals: Map[Symbol, Any],
+          overrides: Overrides
+      ): Result = {
         val className = tpe.typeSymbol.fullName
         val classOpt = moduleCandidates(className)
           .filterNot(_.endsWith("$"))
@@ -545,7 +575,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         classOpt match {
           case None        => Left(NonEmptyVector.one(s"Cannot resolve class for constructor: $className"))
           case Some(clazz) =>
-            argTrees.map(a => evalWithLocals(a, locals)).parSequence.flatMap { argValues =>
+            argTrees.map(a => evalWithLocals(a, locals, overrides)).parSequence.flatMap { argValues =>
               findAndInvokeConstructor(clazz, argValues)
             }
         }
@@ -859,6 +889,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         case other                              => other
       }
     }
+
+    override def semiQuote[A: Type](
+        value: A,
+        overrides: UntypedType => Existential[QuoteOverride]
+    ): Either[String, Expr[A]] =
+      semiQuoteInternal(value, overrides)
 
     override lazy val NullExprCodec: ExprCodec[Null] = {
       given FromExpr[Null] = new {
@@ -5980,6 +6016,21 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     val core = coreAny.asInstanceOf[Term]
 
     core match {
+      case Select(New(tpt), "<init>") =>
+        val ctorTpe: UntypedType = tpt.tpe
+        val ctors = UntypedMethod.constructors(ctorTpe)
+        val ctor = ctors.find(_.symbol == core.symbol).orElse(ctors.headOption)
+        ctor.map { method =>
+          val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
+          dstrBuildAppliedSteps(steps, lambdaParams, applied)
+          new DestructuredExpr.MethodCall(
+            dstrTpeOf(term),
+            method.asTyped[Any](using UntypedType.toTyped[Any](ctorTpe)),
+            applied.result(),
+            () => term
+          )
+        }
+
       case Select(qualifier, _) =>
         val qualTpe = qualifier.tpe
         val methodSym = core.symbol
@@ -6142,6 +6193,21 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       case StringConstant(v)  => v
       case NullConstant()     => null
       case _: ClassOfConstant => null
+    }
+  }
+
+  override protected def trySummonExprCodec[F: Type](): Option[ExprCodec[F]] = {
+    import quotes.reflect.*
+    val fRepr = TypeRepr.of(using Type[F].asInstanceOf[scala.quoted.Type[Any]])
+    val exprCodecSym = Symbol.requiredClass("hearth.typed.Exprs.ExprCodec")
+    val exprCodecF = exprCodecSym.typeRef.appliedTo(fRepr)
+    Implicits.search(exprCodecF) match {
+      case iss: ImplicitSearchSuccess =>
+        Expr
+          .semiEval(iss.tree.asExprOf[Any].asInstanceOf[Expr[ExprCodec[F]]])
+          .toOption
+          .map(_.asInstanceOf[ExprCodec[F]])
+      case _ => None
     }
   }
 }

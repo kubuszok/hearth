@@ -559,4 +559,59 @@ trait MethodsFixturesImpl { this: MacroCommons =>
         Environment.reportErrorAndAbort(s"Method $name is not an instance method")
     }
   }
+
+  private def destructureAnnotationValues(ann: Expr_??): String = {
+    val destructured = DestructuredExpr.parseUntyped(ann.value.asUntyped)
+    destructured match {
+      case mc: DestructuredExpr.MethodCall =>
+        mc.applied
+          .flatMap {
+            case av: DestructuredExpr.MethodCall.AppliedValues =>
+              av.args.map(_.plainPrint)
+            case _ => Nil
+          }
+          .mkString(", ")
+      case _ => "<not a method call>"
+    }
+  }
+
+  def testAnnotationDestructuring[A: Type]: Expr[Data] = {
+    val typeAnnotations = Type.annotations[A].flatMap { ann =>
+      import ann.Underlying as AnnType
+      val typeMatch =
+        if (ann.Underlying =:= Type.of[hearth.examples.methods.ExampleAnnotation2]) "ExampleAnnotation2"
+        else if (ann.Underlying =:= Type.of[hearth.examples.methods.ExampleAnnotation]) "ExampleAnnotation"
+        else "other"
+      if (typeMatch == "other") None
+      else
+        Some(
+          Data.map(
+            "source" -> Data("type"),
+            "annotationType" -> Data(typeMatch),
+            "destructuredArgs" -> Data(destructureAnnotationValues(ann))
+          )
+        )
+    }
+
+    val methodAnnotations = Type[A].methods.flatMap { method =>
+      method.annotations.flatMap { ann =>
+        import ann.Underlying as AnnType
+        val typeMatch =
+          if (ann.Underlying =:= Type.of[hearth.examples.methods.ExampleAnnotation2]) "ExampleAnnotation2"
+          else if (ann.Underlying =:= Type.of[hearth.examples.methods.ExampleAnnotation]) "ExampleAnnotation"
+          else "other"
+        if (typeMatch == "other") None
+        else
+          Some(
+            Data.map(
+              "source" -> Data(s"method:${method.name}"),
+              "annotationType" -> Data(typeMatch),
+              "destructuredArgs" -> Data(destructureAnnotationValues(ann))
+            )
+          )
+      }
+    }
+
+    Expr(Data.list((typeAnnotations ++ methodAnnotations)*))
+  }
 }

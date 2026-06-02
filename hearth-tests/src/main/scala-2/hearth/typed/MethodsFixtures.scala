@@ -61,6 +61,9 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
 
   def testCallConstructorViaFoldImpl[A: c.WeakTypeTag](params: c.Expr[Int]*): c.Expr[Data] =
     testCallConstructorViaFold[A](params)
+
+  def testAnnotationDestructuringImpl[A: c.WeakTypeTag]: c.Expr[Data] =
+    testAnnotationDestructuring[A]
 }
 
 object MethodsFixtures {
@@ -105,4 +108,7 @@ object MethodsFixtures {
 
   def testCallConstructorViaFold[A](params: Int*): Data =
     macro MethodsFixtures.testCallConstructorViaFoldImpl[A]
+
+  def testAnnotationDestructuring[A]: Data =
+    macro MethodsFixtures.testAnnotationDestructuringImpl[A]
 }
