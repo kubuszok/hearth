@@ -78,6 +78,20 @@ final class ExprCodecSpec extends MacroSuite {
       }
     }
 
+    group("case class with Data field") {
+
+      test("round-trip case class containing Data") {
+        testExprCodecRoundTrip(DataHolder("test", Data("hello"))) <==> Data.map(
+          "decoded" -> Data("DataHolder(test,hello)"),
+          "reLifted" -> caseClassReLifted(
+            s2 =
+              "new hearth.examples.expr_codecs.DataHolder((\"test\": scala.Predef.String), hearth.data.Data.apply(\"hello\"))",
+            s3 = "new hearth.examples.expr_codecs.DataHolder(\"test\", hearth.data.Data$package.Data.apply(\"hello\"))"
+          )
+        )
+      }
+    }
+
     group("singletons") {
 
       test("standalone case object") {

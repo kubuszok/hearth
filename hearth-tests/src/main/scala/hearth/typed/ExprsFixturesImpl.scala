@@ -67,10 +67,10 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
           "value" -> Data(if (value == null) "null" else value.toString),
           "class" -> Data(if (value == null) "null" else value.getClass.getName)
         )
-      case Left(errors) =>
+      case Left(error) =>
         Data.map(
           "status" -> Data("failure"),
-          "errors" -> Data(errors.toList.map(Data(_)))
+          "errors" -> Data(List(Data(error)))
         )
     }
     Expr(result)

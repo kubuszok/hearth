@@ -93,6 +93,7 @@ trait UntypedMethods { this: MacroCommons =>
     def index: Int
     def position: Option[Position]
     def annotations: List[UntypedExpr]
+    def annotationTypes: List[UntypedType]
 
     def isByName: Boolean
     def isImplicit: Boolean
@@ -257,6 +258,7 @@ trait UntypedMethods { this: MacroCommons =>
     def position: Option[Position]
 
     def annotations: List[UntypedExpr]
+    def annotationTypes: List[UntypedType]
 
     def isConstructor: Boolean
 

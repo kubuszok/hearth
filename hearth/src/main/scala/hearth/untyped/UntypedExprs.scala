@@ -30,6 +30,10 @@ trait UntypedExprs { this: MacroCommons =>
     def fromTyped[A](expr: Expr[A]): UntypedExpr
     def toTyped[A: Type](untyped: UntypedExpr): Expr[A]
     def as_??(untyped: UntypedExpr): Expr_??
+    final def as_??(untyped: UntypedExpr, knownType: UntypedType): Expr_?? = {
+      implicit val tpe: Type[Any] = UntypedType.toTyped[Any](knownType)
+      toTyped[Any](untyped).as_??
+    }
   }
 
   implicit final class UntypedExprMethods(private val untyped: UntypedExpr) {
