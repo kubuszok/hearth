@@ -128,4 +128,8 @@ object MethodsFixtures {
   }
   private def testNamedTupleFieldExtractionImpl[A: Type](instance: Expr[A])(using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testNamedTupleFieldExtraction[A](instance)
+
+  inline def testAnnotationDestructuring[A]: Data = ${ testAnnotationDestructuringImpl[A] }
+  private def testAnnotationDestructuringImpl[A: Type](using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testAnnotationDestructuring[A]
 }

@@ -50,7 +50,9 @@ trait Methods { this: MacroCommons =>
       untyped.asTyped(using untypedInstanceType.asTyped[Any])
     }
 
-    lazy val annotations: List[Expr_??] = asUntyped.annotations.map(_.as_??)
+    lazy val annotations: List[Expr_??] = asUntyped.annotations.zip(asUntyped.annotationTypes).map { case (expr, tpe) =>
+      UntypedExpr.as_??(expr, tpe)
+    }
 
     lazy val isByName: Boolean = asUntyped.isByName
     lazy val isImplicit: Boolean = asUntyped.isImplicit
@@ -124,7 +126,10 @@ trait Methods { this: MacroCommons =>
     final lazy val name: String = asUntyped.name
     final lazy val position: Option[Position] = asUntyped.position
 
-    final lazy val annotations: List[Expr_??] = asUntyped.annotations.map(_.as_??)
+    final lazy val annotations: List[Expr_??] =
+      asUntyped.annotations.zip(asUntyped.annotationTypes).map { case (expr, tpe) =>
+        UntypedExpr.as_??(expr, tpe)
+      }
 
     final lazy val isConstructor: Boolean = asUntyped.isConstructor
 

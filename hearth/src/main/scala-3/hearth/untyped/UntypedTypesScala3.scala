@@ -627,5 +627,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     override def annotations(untyped: UntypedType): List[UntypedExpr] =
       untyped.typeSymbol.annotations
+    override def annotationTypes(untyped: UntypedType): List[UntypedType] =
+      untyped.typeSymbol.annotations.map(_.tpe)
   }
 }

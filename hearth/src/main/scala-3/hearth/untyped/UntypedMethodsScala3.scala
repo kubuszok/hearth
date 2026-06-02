@@ -17,6 +17,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def position: Option[Position] = positionOf(symbol)
 
     override def annotations: List[UntypedExpr] = symbol.annotations
+    override def annotationTypes: List[UntypedType] = symbol.annotations.map(_.tpe)
 
     override def isByName: Boolean = symbol.typeRef.simplified match {
       case ByNameType(_) => true
@@ -325,6 +326,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def position: Option[Position] = positionOf(symbol)
 
     override def annotations: List[UntypedExpr] = symbol.annotations
+    override def annotationTypes: List[UntypedType] = symbol.annotations.map(_.tpe)
 
     override def isConstructor: Boolean = symbol.isClassConstructor
 
@@ -480,6 +482,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def name: String = fieldName
     override def position: Option[Position] = None
     override def annotations: List[UntypedExpr] = Nil
+    override def annotationTypes: List[UntypedType] = Nil
     override def isByName: Boolean = false
     override def isImplicit: Boolean = false
     override def hasDefault: Boolean = false
@@ -558,6 +561,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override lazy val name: String = "<init>"
     override def position: Option[Position] = None
     override def annotations: List[UntypedExpr] = Nil
+    override def annotationTypes: List[UntypedType] = Nil
 
     override def isConstructor: Boolean = true
 

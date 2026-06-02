@@ -16,9 +16,9 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     override def position: Option[Position] = positionOf(symbol)
 
     override def annotations: List[UntypedExpr] =
-      symbol.annotations.map { ann =>
-        c.untypecheck(ann.tree)
-      }
+      symbol.annotations.map(ann => c.untypecheck(ann.tree))
+    override def annotationTypes: List[UntypedType] =
+      symbol.annotations.map(_.tree.tpe)
 
     override def isByName: Boolean = symbol.isByNameParam
     override def isImplicit: Boolean = symbol.isImplicit
@@ -246,9 +246,9 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     override def position: Option[Position] = positionOf(symbol)
 
     override def annotations: List[UntypedExpr] =
-      symbol.annotations.map { ann =>
-        c.untypecheck(ann.tree)
-      }
+      symbol.annotations.map(ann => c.untypecheck(ann.tree))
+    override def annotationTypes: List[UntypedType] =
+      symbol.annotations.map(_.tree.tpe)
 
     override def isConstructor: Boolean = symbol.isConstructor
 

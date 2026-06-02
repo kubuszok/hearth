@@ -112,7 +112,12 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     final def exhaustiveChildren[A: Type]: Option[NonEmptyMap[String, ??<:[A]]] =
       UntypedType.fromTyped[A].exhaustiveChildren.map(m => m.map { case (k, v) => (k, v.asTyped[A].as_??<:[A]) })
 
-    final def annotations[A: Type]: List[Expr_??] = UntypedType.fromTyped[A].annotations.map(UntypedExpr.as_??)
+    final def annotations[A: Type]: List[Expr_??] = {
+      val untyped = UntypedType.fromTyped[A]
+      untyped.annotations.zip(untyped.annotationTypes).map { case (expr, tpe) =>
+        UntypedExpr.as_??(expr, tpe)
+      }
+    }
 
     /** Types which might be compiled to both JVM primitives and java.lang.Object: Boolean, Byte, Short, Char, Int,
       * Long, Float, Double.

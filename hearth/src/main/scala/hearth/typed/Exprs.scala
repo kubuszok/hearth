@@ -59,7 +59,11 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       */
     def typeOf[A](expr: Expr[A]): Type[A]
 
-    def semiEval[A](expr: Expr[A]): Either[NonEmptyVector[String], A]
+    def semiEval[A](expr: Expr[A], overrides: UntypedType => Existential[EvalOverride]): Either[String, A]
+    final def semiEval[A](expr: Expr[A]): Either[String, A] = semiEval(expr, null)
+
+    def semiQuote[A: Type](value: A, overrides: UntypedType => Existential[QuoteOverride]): Either[String, Expr[A]]
+    final def semiQuote[A: Type](value: A): Either[String, Expr[A]] = semiQuote(value, null)
 
     def NullExprCodec: ExprCodec[Null]
     def UnitExprCodec: ExprCodec[Unit]
@@ -138,9 +142,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
           Expr.quote(hearth.data.Data(Expr.splice(inner)))
         }
       )
-      // $COVERAGE-OFF$ not yet implemented
-      def fromExpr(expr: Expr[data.Data]): Option[data.Data] = None
-      // $COVERAGE-ON$
+      def fromExpr(expr: Expr[data.Data]): Option[data.Data] = expr.semiEval.toOption
     }
 
     def HearthVersionExprCodec: ExprCodec[HearthVersion]
@@ -170,7 +172,9 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       */
     def tpe: Type[A] = Expr.typeOf(expr)
 
-    def semiEval: Either[NonEmptyVector[String], A] = Expr.semiEval(expr)
+    def semiEval: Either[String, A] = Expr.semiEval(expr)
+    def semiEval(overrides: UntypedType => Existential[EvalOverride]): Either[String, A] =
+      Expr.semiEval(expr, overrides)
 
     def asUntyped: UntypedExpr = UntypedExpr.fromTyped(expr)
 
@@ -301,6 +305,18 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
   private[hearth] trait ExprCodecImplicits1 { this: ExprCodec.type =>
 
     implicit def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = Expr.SeqExprCodec[A]
+  }
+
+  type EvalOverride[A] = Option[Expr[A] => Either[String, A]]
+  object EvalOverride {
+    def apply[A](f: Expr[A] => Either[String, A]): EvalOverride[A] = Some(f)
+    def none[A]: EvalOverride[A] = None
+  }
+
+  type QuoteOverride[A] = Option[A => Either[String, Expr[A]]]
+  object QuoteOverride {
+    def apply[A](f: A => Either[String, Expr[A]]): QuoteOverride[A] = Some(f)
+    def none[A]: QuoteOverride[A] = None
   }
 
   sealed trait SummoningResult[A] extends Product with Serializable {

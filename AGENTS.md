@@ -345,6 +345,7 @@ The `Method` API has a layered architecture with platform-specific untyped code 
 **Platform-specific parsing** (end of `ExprsScala3.scala` / `ExprsScala2.scala`):
 - `dstrImpl` — recursive tree walker that resolves `Method` by symbol equality (`method.symbol == tree.symbol`)
 - `dstrFlattenCall` — peels `Apply`/`TypeApply` chains to extract core term + call steps
+- `dstrTryConstructor` (Scala 2) / inline case in `dstrTryMethodCall` (Scala 3) — handles `Select(New(tpt), <init>)` constructor calls, resolving via `UntypedMethod.constructors`. On Scala 2, runs before the `coreSym` guard since `c.untypecheck` may strip symbols
 - `dstrTryMethodCall` — resolves the method from `UntypedMethod.methods(qualifierType)`
 - Lambda parameters tracked via `Map[Symbol, Lambda.Param]` so `Ident` references become `ParamRef`
 - Scala 3: handles `Flags.ExtensionMethod` where receiver is first value argument (context functions)
@@ -359,17 +360,40 @@ The `Method` API has a layered architecture with platform-specific untyped code 
 - `hearth-tests/src/main/scala/hearth/examples/parsed_exprs.scala` — test data + DSL extensions (implicit class)
 - `hearth-tests/src/main/scala-3/hearth/examples/parsed_exprs-s3.scala` — Scala 3-only context function DSL extensions
 
+### semiEval / semiQuote / EvalOverride / QuoteOverride
+
+**`semiEval`** evaluates expression trees at macro time via reflection. Returns `Either[String, A]`.
+
+- `Expr.semiEval[A](expr)` — no overrides, evaluates using built-in reflection
+- `Expr.semiEval[A](expr, overrides)` — custom evaluation dispatch by `UntypedType`
+- `EvalOverride[A] = Option[Expr[A] => Either[String, A]]` — per-type evaluation override
+- Overrides are checked at the top of `evalWithLocals` before default pattern matching
+- Internal `SemiEval` keeps `Either[NonEmptyVector[String], Any]` for error aggregation; joined to `String` at the public API boundary
+
+**`semiQuote`** converts runtime values to expression trees at macro time (inverse of `semiEval`). Returns `Either[String, Expr[A]]`.
+
+- `Expr.semiQuote[A: Type](value)` — no overrides
+- `Expr.semiQuote[A: Type](value, overrides)` — custom quoting dispatch by `UntypedType`
+- `QuoteOverride[A] = Option[A => Either[String, Expr[A]]]` — per-type quoting override
+- Shared implementation in `ExprCodecDerivation.semiQuoteInternal`: override → built-in ExprCodec → singleton → case class → enum
+- `semiQuoteCaseClass`: decomposes via `Product.productElement`, recursively quotes fields, constructs via `CaseClass.construct[Id]`
+- `semiQuoteEnum`: dispatches by `value.getClass.getSimpleName`, recursively quotes child, `.upcast[A]`
+
+**Types/companions** (`EvalOverride`, `QuoteOverride`) defined in `Exprs.scala` after `ExprCodecImplicits1`.
+
 ### ExprCodec derivation
 
 `ExprCodec.derived[A]` provides semi-automatic derivation of `ExprCodec` instances for case classes, sealed traits, and singletons. The user calls it explicitly inside their macro; it is NOT an implicit.
 
 **Shared derivation logic** (`hearth/src/main/scala/hearth/typed/ExprCodecDerivation.scala`):
-- `deriveExprCodecInternal[A: Type]: ExprCodec[A]` — rule-based dispatch: singleton → case class → enum
-- `deriveSingletonCodec` — uses `SingletonValue.singletonExpr` for `toExpr`
-- `deriveCaseClassCodec` — uses `Product.productElement` for field access, `CaseClass.construct` for tree building
-- `deriveEnumCodec` — matches runtime class name against `Enum.directChildren`, recursively derives child codecs
-- `resolveFieldCodecForDerivation` — looks up built-in ExprCodec by type equality, falls back to recursive derivation
-- `fromExpr` uses `semiEval` for all types
+- `deriveExprCodecInternal[A: Type]: ExprCodec[A]` — builds override maps via `buildOverrideMaps`, then returns codec using `semiQuoteInternal` for `toExpr` and `Expr.semiEval` with overrides for `fromExpr`
+- `buildOverrideMaps` — recursively traverses the type, tries `trySummonExprCodec[F]()` for each nested type, creates `EvalOverride`/`QuoteOverride` from found implicits, caches by `UntypedType` with `=:=` lookup
+- `trySummonExprCodec` — abstract, implemented per-platform. Uses native implicit search APIs to bypass cross-quotes staging level constraints
+- `lookupBuiltInExprCodec` — hardcoded type equality checks for primitives, `String`, `BigInt`, `BigDecimal`, `Data`
+
+**Platform-specific implicit summoning:**
+- Scala 2 (`ExprsScala2.scala`): constructs `ExprCodec[F]` type via `appliedType(exprCodecTypeConstructor, Type[F].tpe)`, searches with `c.inferImplicitValue`, evaluates found expression with `Expr.semiEval`
+- Scala 3 (`ExprsScala3.scala`): finds `ExprCodec` symbol via `Symbol.requiredClass`, constructs applied type via `typeRef.appliedTo`, searches with `Implicits.search`, evaluates with `Expr.semiEval`
 
 **Entry points:**
 - Scala 2 (`hearth/src/main/scala-2/hearth/typed/ExprsCompat.scala`): `ExprCodec.derived[A]` is a `macro def` backed by `ExprCodecDerivationMacros`, which generates a tree calling `deriveExprCodecInternal[A]`
@@ -378,11 +402,19 @@ The `Method` API has a layered architecture with platform-specific untyped code 
 **Mixed into MacroCommons** via `ExprCodecDerivation` trait in `MacroTypedCommons`.
 
 **Test infrastructure:**
-- `hearth-tests/src/main/scala/hearth/examples/expr_codecs.scala` — test data (case classes, sealed traits, singletons)
+- `hearth-tests/src/main/scala/hearth/examples/expr_codecs.scala` — test data (case classes, sealed traits, singletons, `DataHolder` with `Data` field)
 - `hearth-tests/src/main/scala/hearth/typed/ExprCodecFixturesImpl.scala` — shared round-trip fixtures
 - `hearth-tests/src/main/scala-2/hearth/typed/ExprCodecFixtures.scala` — Scala 2 macro bridges
 - `hearth-tests/src/main/scala-3/hearth/typed/ExprCodecFixtures.scala` — Scala 3 macro bridges
-- `hearth-tests/src/test/scala/hearth/typed/ExprCodecSpec.scala` — cross-platform tests (6 tests)
+- `hearth-tests/src/test/scala/hearth/typed/ExprCodecSpec.scala` — cross-platform tests (7 tests)
+
+### Annotation type preservation
+
+Annotations on Scala 2 require `c.untypecheck(ann.tree)` before splicing (mixing typed and untyped trees crashes the compiler). This strips type information from the tree.
+
+**Fix:** `annotationTypes: List[UntypedType]` on `UntypedParameter`, `UntypedMethod`, and `UntypedType` captures `ann.tree.tpe` before `c.untypecheck`. The typed layer uses `UntypedExpr.as_??(expr, knownType)` to wrap with the correct type. As a result, `ann.Underlying =:= Type[MyAnnotation]` works cross-platform without platform-specific code.
+
+Annotation values (e.g., `@MyAnnotation(42)`) can be structurally extracted via `DestructuredExpr.parseUntyped(ann.value.asUntyped)` — constructor calls are destructured as `MethodCall` with constructor args as `AppliedValues`.
 
 ## Skills
 
