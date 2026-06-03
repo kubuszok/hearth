@@ -492,15 +492,14 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           }
           .filterNot(excludedMethods)
           .flatMap { s =>
-            val fieldName = s.name.pipe { name =>
-              if name.endsWith("_=") then name.dropRight(2) else name
-            }
+            val isSetter = s.name.endsWith("_=")
+            val fieldName = if isSetter then s.name.dropRight(2) else s.name
             val module = moduleBySymbol.get(s)
             UntypedMethod.parseOption(
               isDeclared = declared(s) && !methodsConsideredSynthetic(s),
-              isConstructorArgument = constructorArguments.contains(fieldName),
-              constructorArgumentIndex = constructorArguments.get(fieldName),
-              isCaseField = caseFields(fieldName),
+              isConstructorArgument = constructorArguments.contains(fieldName) && !isSetter,
+              constructorArgumentIndex = if isSetter then None else constructorArguments.get(fieldName),
+              isCaseField = caseFields(fieldName) && !isSetter,
               module = module
             )(s)
           }

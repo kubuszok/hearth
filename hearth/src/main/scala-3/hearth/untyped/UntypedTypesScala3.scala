@@ -41,22 +41,31 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         }
 
       def symbolAvailable(symbol: Symbol, scope: Accessible): Boolean = {
-        val owner = symbol.owner
+        // For setters (name_=), visibility may only be recorded on the corresponding getter/val.
+        // Look it up so that e.g. private[scala] var next propagates to next_=.
+        val effectiveSymbol =
+          if symbol.name.endsWith("_=") then symbol.owner.fieldMember(symbol.name.stripSuffix("_=")) match {
+            case s if !s.isNoSymbol => s
+            case _                  => symbol
+          }
+          else symbol
+
+        val owner = effectiveSymbol.owner
         val enclosing = Symbol.spliceOwner
         def enclosings = Iterator.iterate(enclosing)(_.owner).takeWhile(!_.isNoSymbol)
 
         // Helper methods
-        def isPrivate: Boolean = symbol.flags.is(Flags.Private)
-        def isProtected: Boolean = symbol.flags.is(Flags.Protected)
+        def isPrivate: Boolean = effectiveSymbol.flags.is(Flags.Private)
+        def isProtected: Boolean = effectiveSymbol.flags.is(Flags.Protected)
 
         // High-level checks
         def isPublic: Boolean =
-          !isPrivate && !isProtected && symbol.privateWithin.isEmpty && symbol.protectedWithin.isEmpty
+          !isPrivate && !isProtected && effectiveSymbol.privateWithin.isEmpty && effectiveSymbol.protectedWithin.isEmpty
         def isPrivateButInTheSameClass: Boolean = isPrivate && enclosing == owner
         def isProtectedButInTheSameClass: Boolean =
           isProtected && enclosing.isClassDef && (enclosing.typeRef <:< owner.typeRef)
         def isPrivateWithinButInTheRightPlace: Boolean =
-          symbol.privateWithin.orElse(symbol.protectedWithin).exists { pw =>
+          effectiveSymbol.privateWithin.orElse(effectiveSymbol.protectedWithin).exists { pw =>
             val pwType = pw.typeSymbol
             enclosings.exists(e => pwType == e || pwType == e.companionClass || pwType == e.companionModule)
           }

@@ -254,7 +254,10 @@ trait Classes { this: MacroCommons =>
         }
       }
 
-    def caseFieldValuesAt(instance: Expr[A]): ListMap[String, Expr_??] = ListMap.from(caseFields.map { field =>
+    def caseFieldValuesAt(
+        instance: Expr[A],
+        visibility: Accessible = Everywhere
+    ): ListMap[String, Expr_??] = ListMap.from(caseFields.filter(_.value.isAvailable(visibility)).map { field =>
       (field.value match {
         case method: Method.OfInstance[A, ?] if method.isNullary =>
           import method.Returned
