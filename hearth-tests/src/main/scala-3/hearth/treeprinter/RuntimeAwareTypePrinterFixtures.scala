@@ -24,4 +24,8 @@ object RuntimeAwareTypePrinterFixtures {
   inline def testShortWithOverride[A]: String = ${ testShortWithOverrideImpl[A] }
   private def testShortWithOverrideImpl[A: Type](using q: Quotes): Expr[String] =
     new RuntimeAwareTypePrinterFixtures(q).testShortWithOverride[A]
+
+  inline def testNoOverrideUnion[A]: String = ${ testNoOverrideImpl[A] }
+  inline def testWithOverrideUnion[A]: String = ${ testWithOverrideImpl[A] }
+  inline def testShortWithOverrideUnion[A]: String = ${ testShortWithOverrideImpl[A] }
 }
