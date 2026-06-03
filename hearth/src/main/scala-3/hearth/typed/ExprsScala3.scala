@@ -145,7 +145,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       expr.asInstanceOf[Expr[B]] // check that A <:< B without upcasting in code (Scala 3 should get away without it)
     }
 
-    override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = '{ val _ = $expr; () }
+    override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] =
+      Block(List(expr.asTerm), Literal(UnitConstant())).asExprOf[Unit]
 
     override def singletonOf[A: Type]: Option[Expr[A]] = {
       import quotes.reflect.*
@@ -745,7 +746,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         val byArity = candidates.filter(_.getParameterCount == args.size)
         val exactMatch =
           if byArity.isEmpty then None
-          else if byArity.size == 1 then Some((byArity.head, args))
+          else if byArity.size == 1 then Some((byArity.head, adaptArgs(byArity.head, args)))
           else {
             val matching = byArity.filter { exec =>
               val paramTypes = exec.getParameterTypes
@@ -755,8 +756,16 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             }
             matching match {
               case single :: Nil => Some((single, args))
-              case Nil           => None
-              case multiple      => Some((multiple.minBy(_.getParameterTypes.count(_ == classOf[Object])), args))
+              case Nil           =>
+                byArity
+                  .find { exec =>
+                    val adapted = adaptArgs(exec, args)
+                    exec.getParameterTypes.zip(adapted).forall { case (paramType, arg) =>
+                      arg == null || boxedType(paramType).isAssignableFrom(arg.getClass)
+                    }
+                  }
+                  .map(exec => (exec, adaptArgs(exec, args)))
+              case multiple => Some((multiple.minBy(_.getParameterTypes.count(_ == classOf[Object])), args))
             }
           }
         exactMatch match {
@@ -764,6 +773,14 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           case None         => tryVarargs(candidates, args, kind)
         }
       }
+
+      private def adaptArgs(exec: java.lang.reflect.Executable, args: List[Any]): List[Any] =
+        exec.getParameterTypes.toList.zip(args).map { case (paramType, arg) =>
+          arg match {
+            case vo: ValueOf[?] if !boxedType(paramType).isAssignableFrom(arg.getClass) => vo.value
+            case _                                                                      => arg
+          }
+        }
 
       private def tryVarargs[E <: java.lang.reflect.Executable](
           candidates: List[E],
@@ -1308,7 +1325,14 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     }
 
     override def matchOn[A: Type, B: Type](toMatch: Expr[A])(cases: NonEmptyVector[MatchCase[Expr[B]]]): Expr[B] = {
-      val uncheckedToMatch = '{ ${ toMatch.asTerm.changeOwner(Symbol.spliceOwner).asExprOf[A] }: @scala.unchecked }
+      val uncheckedAnnot = Apply(
+        Select(New(TypeTree.of[unchecked]), TypeRepr.of[unchecked].typeSymbol.primaryConstructor),
+        Nil
+      )
+      val uncheckedToMatch = Typed(
+        toMatch.asTerm.changeOwner(Symbol.spliceOwner),
+        Annotated(TypeTree.of[A], uncheckedAnnot)
+      )
 
       val caseTrees = cases
         .map {
@@ -1365,7 +1389,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         .toVector
         .toList
 
-      Match(uncheckedToMatch.asTerm, caseTrees).asExprOf[B]
+      Match(uncheckedToMatch, caseTrees).asExprOf[B]
     }
 
     override def partition[A, B, C](matchCase: MatchCase[A])(f: A => Either[B, C]): Either[MatchCase[B], MatchCase[C]] =

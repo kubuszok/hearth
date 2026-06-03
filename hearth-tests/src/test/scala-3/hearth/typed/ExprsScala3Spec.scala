@@ -117,5 +117,14 @@ final class ExprsScala3Spec extends MacroSuite {
         )
       }
     }
+
+    group("method Expr.semiEval — ValueOf unwrapping") {
+
+      test("should evaluate ValueOf constructor successfully") {
+        val result = ExprsScala3Fixtures.testSemiEvalValueOf
+        assert(result.get("status").contains(Data("success")), s"Expected status=success, got: $result")
+        assert(result.get("class").contains(Data("scala.ValueOf")), s"Expected class=scala.ValueOf, got: $result")
+      }
+    }
   }
 }

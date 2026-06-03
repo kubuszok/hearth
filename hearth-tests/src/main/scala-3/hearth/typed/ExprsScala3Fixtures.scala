@@ -158,6 +158,31 @@ final private class ExprsScala3Fixtures(q: Quotes) extends MacroCommonsScala3(us
     withQuotes{'{ Data(${ passQuotes{result} }) }}
   }
 
+  def testSemiEvalValueOf: Expr[Data] = {
+    import quotes.reflect.*
+    val valueOfExpr = Apply(
+      TypeApply(
+        Select(New(TypeTree.of[ValueOf[42]]), TypeRepr.of[ValueOf[42]].typeSymbol.primaryConstructor),
+        List(TypeTree.of[42])
+      ),
+      List(Literal(IntConstant(42)))
+    ).asExprOf[ValueOf[42]]
+    val result = valueOfExpr.semiEval match {
+      case Right(value) =>
+        Data.map(
+          "status" -> Data("success"),
+          "value" -> Data(value.toString),
+          "class" -> Data(value.getClass.getName)
+        )
+      case Left(errors) =>
+        Data.map(
+          "status" -> Data("failure"),
+          "errors" -> Data(errors.toList.map(Data(_)))
+        )
+    }
+    Expr(result)
+  }
+
   def testValDefBuilderOfLazyScopeIssue: Expr[Data] = {
     def result: Expr[Int] = withQuotes {
       '{
@@ -256,6 +281,10 @@ object ExprsScala3Fixtures {
   inline def testValDefBuilderOfVarScopeIssue: Data = ${ testValDefBuilderOfVarScopeIssueImpl }
   private def testValDefBuilderOfVarScopeIssueImpl(using q: Quotes): Expr[Data] =
     new ExprsScala3Fixtures(q).testValDefBuilderOfVarScopeIssue
+
+  inline def testSemiEvalValueOf: Data = ${ testSemiEvalValueOfImpl }
+  private def testSemiEvalValueOfImpl(using q: Quotes): Expr[Data] =
+    new ExprsScala3Fixtures(q).testSemiEvalValueOf
 
   inline def testValDefBuilderOfLazyScopeIssue: Data = ${ testValDefBuilderOfLazyScopeIssueImpl }
   private def testValDefBuilderOfLazyScopeIssueImpl(using q: Quotes): Expr[Data] =

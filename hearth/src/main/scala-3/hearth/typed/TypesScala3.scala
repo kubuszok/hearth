@@ -49,6 +49,7 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
     private def dealiasAll(tpe: TypeRepr): TypeRepr =
       tpe match {
         case AppliedType(tycon, args) => AppliedType(dealiasAll(tycon), args.map(dealiasAll(_)))
+        case OrType(left, right)      => OrType(dealiasAll(left), dealiasAll(right))
         case _                        => tpe.dealias
       }
 

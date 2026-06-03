@@ -95,7 +95,7 @@ final case class MState private[effect] (
     MState(
       locals,
       updatedLogs,
-      scopeStack.tail,
+      if (scopeStack.nonEmpty) scopeStack.tail else Nil,
       closedScopes + scopeId
     )
   }
