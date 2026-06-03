@@ -41,12 +41,25 @@ trait RuntimeAwareTypePrinterScala3 {
       tpe match {
         case AppliedType(tycon, args) => AppliedType(dealiasAll(tycon), args.map(dealiasAll(_)))
         case OrType(left, right)      => OrType(dealiasAll(left), dealiasAll(right))
+        case AndType(left, right)     => AndType(dealiasAll(left), dealiasAll(right))
         case _                        => tpe.dealias
       }
 
-    private def flattenOrType(tpe: TypeRepr): List[TypeRepr] = dealiasAll(tpe) match {
-      case OrType(left, right) => flattenOrType(left) ++ flattenOrType(right)
+    private def flattenCompoundType(tpe: TypeRepr): Option[(List[TypeRepr], String)] =
+      dealiasAll(tpe) match {
+        case OrType(left, right)  => Some((flattenOr(left) ++ flattenOr(right), " | "))
+        case AndType(left, right) => Some((flattenAnd(left) ++ flattenAnd(right), " & "))
+        case _                    => None
+      }
+
+    private def flattenOr(tpe: TypeRepr): List[TypeRepr] = dealiasAll(tpe) match {
+      case OrType(left, right) => flattenOr(left) ++ flattenOr(right)
       case other               => List(other)
+    }
+
+    private def flattenAnd(tpe: TypeRepr): List[TypeRepr] = dealiasAll(tpe) match {
+      case AndType(left, right) => flattenAnd(left) ++ flattenAnd(right)
+      case other                => List(other)
     }
 
     def print(
@@ -66,10 +79,12 @@ trait RuntimeAwareTypePrinterScala3 {
                   intersperse(argExprs, QExpr(", ")) :::
                   QExpr("]") :: Nil
               concatExprs(optimizeLiterals(parts))
-            case ort @ OrType(_, _) if hasOverrideInOrType(ort, overrideFn) =>
-              val members = flattenOrType(ort)
+            case compound if flattenCompoundType(compound).exists { case (members, _) =>
+                  hasOverrideInCompound(members, overrideFn)
+                } =>
+              val (members, sep) = flattenCompoundType(compound).get
               val memberExprs = members.map(m => print(m, overrideFn, printType))
-              concatExprs(optimizeLiterals(intersperse(memberExprs, QExpr(" | "))))
+              concatExprs(optimizeLiterals(intersperse(memberExprs, QExpr(sep))))
             case _ =>
               QExpr(printType(tpe))
           }
@@ -79,19 +94,25 @@ trait RuntimeAwareTypePrinterScala3 {
       types.exists { tpe =>
         overrideFn(tpe).isDefined || (dealiasAll(tpe) match {
           case AppliedType(_, args) if args.nonEmpty => hasOverrideInTree(args, overrideFn)
-          case _: OrType                             => hasOverrideInOrType(tpe, overrideFn)
+          case _: OrType | _: AndType                => hasOverrideInCompound(flattenCompound(tpe), overrideFn)
           case _                                     => false
         })
       }
 
-    private def hasOverrideInOrType(tpe: TypeRepr, overrideFn: TypeRepr => Option[QExpr[String]]): Boolean =
-      flattenOrType(tpe).exists { member =>
+    private def hasOverrideInCompound(members: List[TypeRepr], overrideFn: TypeRepr => Option[QExpr[String]]): Boolean =
+      members.exists { member =>
         overrideFn(member).isDefined || (dealiasAll(member) match {
           case AppliedType(_, args) if args.nonEmpty => hasOverrideInTree(args, overrideFn)
-          case _: OrType                             => hasOverrideInOrType(member, overrideFn)
+          case _: OrType | _: AndType                => hasOverrideInCompound(flattenCompound(member), overrideFn)
           case _                                     => false
         })
       }
+
+    private def flattenCompound(tpe: TypeRepr): List[TypeRepr] = dealiasAll(tpe) match {
+      case OrType(left, right)  => flattenOr(left) ++ flattenOr(right)
+      case AndType(left, right) => flattenAnd(left) ++ flattenAnd(right)
+      case other                => List(other)
+    }
 
     private def intersperse[A](list: List[A], sep: A): List[A] = list match {
       case Nil      => Nil
