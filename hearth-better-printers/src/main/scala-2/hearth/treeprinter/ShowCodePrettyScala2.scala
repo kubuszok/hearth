@@ -1120,6 +1120,13 @@ trait ShowCodePrettyScala2 {
               print(if (x.value.isInstanceOf[String]) highlightString(result) else highlightLiteral(result))
           }
 
+        case LiteralType(x) =>
+          val result = x.escapedStringValue + (x.value match {
+            case _: Float => "f"
+            case _        => ""
+          })
+          print(if (x.value.isInstanceOf[String]) highlightString(result) else highlightLiteral(result))
+
         case RefinedType(parents, decls) =>
           val it = parents.iterator
           while (it.hasNext) {
