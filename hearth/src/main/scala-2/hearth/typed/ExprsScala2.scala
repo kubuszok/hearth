@@ -369,6 +369,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         invokeMethod(receiver, name, Nil)
 
       private def invokeMethod(receiver: Any, name: String, args: List[Any]): Result = {
+        if (name == "asInstanceOf" && args.isEmpty) return Right(receiver)
+        if (name == "isInstanceOf" && args.isEmpty) return Right(true)
         val clazz = receiver.getClass
         val encodedName = scala.reflect.NameTransformer.encode(name)
         val candidates = (clazz.getMethods.filter(_.getName == name) ++
