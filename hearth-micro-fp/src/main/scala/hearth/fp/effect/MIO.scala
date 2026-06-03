@@ -306,7 +306,7 @@ object MIO {
       Pure(s1, Right(scopeId))
     } flatMap { scopeId =>
       io :+ { (s, r) =>
-        _openScopes = _openScopes.tail
+        _openScopes = if (_openScopes.nonEmpty) _openScopes.tail else Nil
         val end = if (benchmarkScopes) Log.Timestamp.now else Log.Timestamp.empty
         Pure(s.closeScope(scopeId, end), r)
       }

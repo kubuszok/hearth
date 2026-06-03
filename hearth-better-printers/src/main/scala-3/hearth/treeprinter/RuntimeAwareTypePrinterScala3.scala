@@ -40,8 +40,14 @@ trait RuntimeAwareTypePrinterScala3 {
     def dealiasAll(tpe: TypeRepr): TypeRepr =
       tpe match {
         case AppliedType(tycon, args) => AppliedType(dealiasAll(tycon), args.map(dealiasAll(_)))
+        case OrType(left, right)      => OrType(dealiasAll(left), dealiasAll(right))
         case _                        => tpe.dealias
       }
+
+    private def flattenOrType(tpe: TypeRepr): List[TypeRepr] = dealiasAll(tpe) match {
+      case OrType(left, right) => flattenOrType(left) ++ flattenOrType(right)
+      case other               => List(other)
+    }
 
     def print(
         tpe: TypeRepr,
@@ -60,6 +66,10 @@ trait RuntimeAwareTypePrinterScala3 {
                   intersperse(argExprs, QExpr(", ")) :::
                   QExpr("]") :: Nil
               concatExprs(optimizeLiterals(parts))
+            case ort @ OrType(_, _) if hasOverrideInOrType(ort, overrideFn) =>
+              val members = flattenOrType(ort)
+              val memberExprs = members.map(m => print(m, overrideFn, printType))
+              concatExprs(optimizeLiterals(intersperse(memberExprs, QExpr(" | "))))
             case _ =>
               QExpr(printType(tpe))
           }
@@ -69,6 +79,16 @@ trait RuntimeAwareTypePrinterScala3 {
       types.exists { tpe =>
         overrideFn(tpe).isDefined || (dealiasAll(tpe) match {
           case AppliedType(_, args) if args.nonEmpty => hasOverrideInTree(args, overrideFn)
+          case _: OrType                             => hasOverrideInOrType(tpe, overrideFn)
+          case _                                     => false
+        })
+      }
+
+    private def hasOverrideInOrType(tpe: TypeRepr, overrideFn: TypeRepr => Option[QExpr[String]]): Boolean =
+      flattenOrType(tpe).exists { member =>
+        overrideFn(member).isDefined || (dealiasAll(member) match {
+          case AppliedType(_, args) if args.nonEmpty => hasOverrideInTree(args, overrideFn)
+          case _: OrType                             => hasOverrideInOrType(member, overrideFn)
           case _                                     => false
         })
       }
@@ -100,7 +120,8 @@ trait RuntimeAwareTypePrinterScala3 {
     private def concatExprs(exprs: List[QExpr[String]]): QExpr[String] = exprs match {
       case Nil      => QExpr("")
       case x :: Nil => x
-      case x :: xs  => xs.foldLeft(x)((acc, next) => '{ $acc + $next })
+      case x :: xs  =>
+        xs.foldLeft(x)((acc, next) => Select.overloaded(acc.asTerm, "+", Nil, List(next.asTerm)).asExprOf[String])
     }
   }
 }
