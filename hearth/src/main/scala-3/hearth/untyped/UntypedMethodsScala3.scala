@@ -33,6 +33,10 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       else Left(s"Expected param Symbol, got $symbol")
   }
 
+  private def safeMemberType(tpe: TypeRepr, symbol: Symbol): TypeRepr =
+    try tpe.memberType(symbol)
+    catch { case _: AssertionError => symbol.owner.typeRef.memberType(symbol) }
+
   object UntypedParameters extends UntypedParametersModule {
 
     override def toTyped[Instance: Type](untyped: UntypedParameters): Parameters = {
@@ -52,8 +56,11 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       // Constructor methods still have to have their type parameters manually applied, even if we know the exact type of their class.
       lazy val appliedIfNecessary = {
         val raw =
-          if instanceTpe.typeArgs.isEmpty && method.symbol.isClassConstructor then instanceTpe.memberType(method.symbol)
-          else instanceTpe.memberType(method.symbol).appliedTo(instanceTpe.typeArgs)
+          if instanceTpe.typeArgs.isEmpty && method.symbol.isClassConstructor then safeMemberType(
+            instanceTpe,
+            method.symbol
+          )
+          else safeMemberType(instanceTpe, method.symbol).appliedTo(instanceTpe.typeArgs)
         // Extension methods have a receiver parameter as the first value parameter list in their type,
         // which was already dropped from `parameters` — skip it here too to keep names aligned.
         if method.symbol.flags.is(Flags.ExtensionMethod) then raw match {
@@ -368,7 +375,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           )
         case Invocation.OnModule(_) =>
           if !untyped.hasTypeParameters then {
-            val returnType = Instance.memberType(untyped.symbol).widenByName match {
+            val returnType = safeMemberType(Instance, untyped.symbol).widenByName match {
               case lambda: LambdaType => lambda.resType.as_??
               case out                => out.as_??
             }
@@ -384,7 +391,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           }
         case Invocation.OnInstance =>
           if !untyped.hasTypeParameters then {
-            val returnType = Instance.memberType(untyped.symbol).widenByName match {
+            val returnType = safeMemberType(Instance, untyped.symbol).widenByName match {
               case lambda: LambdaType => lambda.resType.as_??
               case out                => out.as_??
             }
