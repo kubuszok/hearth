@@ -158,6 +158,57 @@ final private class ExprsScala3Fixtures(q: Quotes) extends MacroCommonsScala3(us
     withQuotes{'{ Data(${ passQuotes{result} }) }}
   }
 
+  private def semiEvalToData(result: Either[hearth.fp.data.NonEmptyVector[String], Any]): Data =
+    result match {
+      case Right(value) =>
+        Data.map(
+          "status" -> Data("success"),
+          "value" -> Data(if (value == null) "null" else value.toString),
+          "class" -> Data(if (value == null) "null" else value.getClass.getName)
+        )
+      case Left(errors) =>
+        Data.map(
+          "status" -> Data("failure"),
+          "errors" -> Data(errors.toList.map(Data(_)))
+        )
+    }
+
+  def testSemiEvalIsInstanceOfTrue: Expr[Data] = {
+    import quotes.reflect.*
+    val tree = TypeApply(
+      Select.unique(Literal(StringConstant("hello")), "isInstanceOf"),
+      List(TypeTree.of[String])
+    )
+    Expr(semiEvalToData(tree.asExprOf[Boolean].semiEval))
+  }
+
+  def testSemiEvalIsInstanceOfFalse: Expr[Data] = {
+    import quotes.reflect.*
+    val tree = TypeApply(
+      Select.unique(Literal(IntConstant(42)), "isInstanceOf"),
+      List(TypeTree.of[String])
+    )
+    Expr(semiEvalToData(tree.asExprOf[Boolean].semiEval))
+  }
+
+  def testSemiEvalIsInstanceOfSupertype: Expr[Data] = {
+    import quotes.reflect.*
+    val tree = TypeApply(
+      Select.unique(Literal(StringConstant("hello")), "isInstanceOf"),
+      List(TypeTree.of[AnyRef])
+    )
+    Expr(semiEvalToData(tree.asExprOf[Boolean].semiEval))
+  }
+
+  def testSemiEvalAsInstanceOf: Expr[Data] = {
+    import quotes.reflect.*
+    val tree = TypeApply(
+      Select.unique(Literal(IntConstant(42)), "asInstanceOf"),
+      List(TypeTree.of[Any])
+    )
+    Expr(semiEvalToData(tree.asExprOf[Any].semiEval))
+  }
+
   def testSemiEvalValueOf: Expr[Data] = {
     import quotes.reflect.*
     val valueOfExpr = Apply(
@@ -281,6 +332,22 @@ object ExprsScala3Fixtures {
   inline def testValDefBuilderOfVarScopeIssue: Data = ${ testValDefBuilderOfVarScopeIssueImpl }
   private def testValDefBuilderOfVarScopeIssueImpl(using q: Quotes): Expr[Data] =
     new ExprsScala3Fixtures(q).testValDefBuilderOfVarScopeIssue
+
+  inline def testSemiEvalIsInstanceOfTrue: Data = ${ testSemiEvalIsInstanceOfTrueImpl }
+  private def testSemiEvalIsInstanceOfTrueImpl(using q: Quotes): Expr[Data] =
+    new ExprsScala3Fixtures(q).testSemiEvalIsInstanceOfTrue
+
+  inline def testSemiEvalIsInstanceOfFalse: Data = ${ testSemiEvalIsInstanceOfFalseImpl }
+  private def testSemiEvalIsInstanceOfFalseImpl(using q: Quotes): Expr[Data] =
+    new ExprsScala3Fixtures(q).testSemiEvalIsInstanceOfFalse
+
+  inline def testSemiEvalIsInstanceOfSupertype: Data = ${ testSemiEvalIsInstanceOfSupertypeImpl }
+  private def testSemiEvalIsInstanceOfSupertypeImpl(using q: Quotes): Expr[Data] =
+    new ExprsScala3Fixtures(q).testSemiEvalIsInstanceOfSupertype
+
+  inline def testSemiEvalAsInstanceOf: Data = ${ testSemiEvalAsInstanceOfImpl }
+  private def testSemiEvalAsInstanceOfImpl(using q: Quotes): Expr[Data] =
+    new ExprsScala3Fixtures(q).testSemiEvalAsInstanceOf
 
   inline def testSemiEvalValueOf: Data = ${ testSemiEvalValueOfImpl }
   private def testSemiEvalValueOfImpl(using q: Quotes): Expr[Data] =

@@ -318,6 +318,7 @@ final class ExprsSpec extends MacroSuite {
           )
         }
       }
+
     }
 
     group("type VarArgs") {

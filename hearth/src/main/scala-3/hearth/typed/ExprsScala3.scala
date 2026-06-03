@@ -203,6 +203,17 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         case Typed(inner, _) =>
           evalWithLocals(inner, locals)
 
+        case TypeApply(Select(qualifier, name), typeArgs) if name == "isInstanceOf" && typeArgs.size == 1 =>
+          evalWithLocals(qualifier, locals).flatMap { receiver =>
+            runtimeClassOf(typeArgs.head.tpe) match {
+              case Some(clazz) => Right(clazz.isInstance(receiver))
+              case None        => Right(true)
+            }
+          }
+
+        case TypeApply(Select(qualifier, _), _) if term.symbol.name == "asInstanceOf" =>
+          evalWithLocals(qualifier, locals)
+
         case TypeApply(inner, _) =>
           evalWithLocals(inner, locals)
 
@@ -496,6 +507,31 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         catch { case _: Throwable => None }
       }
 
+      private def runtimeClassOf(tpe: TypeRepr): Option[java.lang.Class[?]] = {
+        val dealiased = tpe.dealias.widen
+        val name = dealiased.typeSymbol.fullName
+        val primitives = Map(
+          "scala.Boolean" -> classOf[java.lang.Boolean],
+          "scala.Byte" -> classOf[java.lang.Byte],
+          "scala.Short" -> classOf[java.lang.Short],
+          "scala.Int" -> classOf[java.lang.Integer],
+          "scala.Long" -> classOf[java.lang.Long],
+          "scala.Float" -> classOf[java.lang.Float],
+          "scala.Double" -> classOf[java.lang.Double],
+          "scala.Char" -> classOf[java.lang.Character]
+        )
+        primitives.get(name).orElse {
+          moduleCandidates(name)
+            .filterNot(_.endsWith("$"))
+            .iterator
+            .flatMap(n =>
+              try Some(java.lang.Class.forName(n))
+              catch { case _: Throwable => None }
+            )
+            .nextOption()
+        }
+      }
+
       private def evalConstructor(tpe: TypeRepr, argTrees: List[Term], locals: Map[Symbol, Any]): Result = {
         val className = tpe.typeSymbol.fullName
         val classOpt = moduleCandidates(className)
@@ -533,7 +569,6 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
       private def invokeMethod(receiver: Any, name: String, args: List[Any]): Result = {
         if name == "asInstanceOf" && args.isEmpty then return Right(receiver)
-        if name == "isInstanceOf" && args.isEmpty then return Right(true)
         val clazz = receiver.getClass
         val encodedName = scala.reflect.NameTransformer.encode(name)
         val candidates = (clazz.getMethods.filter(_.getName == name) ++
