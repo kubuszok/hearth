@@ -118,7 +118,39 @@ final class ExprsScala3Spec extends MacroSuite {
       }
     }
 
-    group("method Expr.semiEval — ValueOf unwrapping") {
+    group("method Expr.semiEval — asInstanceOf/isInstanceOf/ValueOf") {
+
+      test("isInstanceOf should return true when type matches") {
+        ExprsScala3Fixtures.testSemiEvalIsInstanceOfTrue <==> Data.map(
+          "status" -> Data("success"),
+          "value" -> Data("true"),
+          "class" -> Data("java.lang.Boolean")
+        )
+      }
+
+      test("isInstanceOf should return false when type does not match") {
+        ExprsScala3Fixtures.testSemiEvalIsInstanceOfFalse <==> Data.map(
+          "status" -> Data("success"),
+          "value" -> Data("false"),
+          "class" -> Data("java.lang.Boolean")
+        )
+      }
+
+      test("isInstanceOf should return true for supertype") {
+        ExprsScala3Fixtures.testSemiEvalIsInstanceOfSupertype <==> Data.map(
+          "status" -> Data("success"),
+          "value" -> Data("true"),
+          "class" -> Data("java.lang.Boolean")
+        )
+      }
+
+      test("asInstanceOf should pass through value") {
+        ExprsScala3Fixtures.testSemiEvalAsInstanceOf <==> Data.map(
+          "status" -> Data("success"),
+          "value" -> Data("42"),
+          "class" -> Data("java.lang.Integer")
+        )
+      }
 
       test("should evaluate ValueOf constructor successfully") {
         val result = ExprsScala3Fixtures.testSemiEvalValueOf
