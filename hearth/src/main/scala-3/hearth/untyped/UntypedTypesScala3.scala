@@ -334,7 +334,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
       val overrideDecls = overrides.map { ovr =>
         val methodSym = ovr.method.symbol
-        val memberType = targetType.memberType(methodSym)
+        val memberType = safeMemberType(targetType, methodSym)
         (ovr, methodSym, memberType)
       }
 
@@ -536,7 +536,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
             val children = enumObjectType.typeSymbol.declarations
               .filter(_.isValDef)
               .filter { term =>
-                val termType = enumObjectType.memberType(term)
+                val termType = safeMemberType(enumObjectType, term)
                 typeReprBaseClasses(termType).contains(valueClassSym)
               }
               .sorted

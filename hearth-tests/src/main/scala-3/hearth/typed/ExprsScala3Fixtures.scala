@@ -158,7 +158,7 @@ final private class ExprsScala3Fixtures(q: Quotes) extends MacroCommonsScala3(us
     withQuotes{'{ Data(${ passQuotes{result} }) }}
   }
 
-  private def semiEvalToData(result: Either[hearth.fp.data.NonEmptyVector[String], Any]): Data =
+  private def semiEvalToData(result: Either[String, Any]): Data =
     result match {
       case Right(value) =>
         Data.map(
@@ -166,10 +166,10 @@ final private class ExprsScala3Fixtures(q: Quotes) extends MacroCommonsScala3(us
           "value" -> Data(if (value == null) "null" else value.toString),
           "class" -> Data(if (value == null) "null" else value.getClass.getName)
         )
-      case Left(errors) =>
+      case Left(error) =>
         Data.map(
           "status" -> Data("failure"),
-          "errors" -> Data(errors.toList.map(Data(_)))
+          "errors" -> Data(List(Data(error)))
         )
     }
 
