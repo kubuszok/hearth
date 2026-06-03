@@ -1361,6 +1361,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       EqValue(name, matched.as_??, expr.as_??, matched)
     }
 
+    @scala.annotation.tailrec
+    private def stripInlined(term: Term): Term = term match {
+      case Inlined(_, Nil, inner) => stripInlined(inner)
+      case _                      => term
+    }
+
     override def matchOn[A: Type, B: Type](toMatch: Expr[A])(cases: NonEmptyVector[MatchCase[Expr[B]]]): Expr[B] = {
       val uncheckedAnnot = Apply(
         Select(New(TypeTree.of[unchecked]), TypeRepr.of[unchecked].typeSymbol.primaryConstructor),
@@ -1377,11 +1383,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             import expr.{Underlying as Matched, value as toSuppress}
 
             // val body = '{ val _ = $toSuppress; $result }
-            // We're constructing:
-            // '{ val fromName = bindName; val _ = fromName; ${ usage } }
             val body = Block(
               List(Expr.suppressUnused(toSuppress).asTerm),
-              result.asTerm
+              stripInlined(result.asTerm)
             )
 
             val sym = TypeRepr.of[Matched].typeSymbol
@@ -1396,11 +1400,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             import matchedExpr.value as toSuppress
             import valueExpr.{Underlying as ValueType, value as valueRef}
             // val body = '{ val _ = $valueRef; $result }
-            // We're constructing:
-            // '{ val _ = ref; ${ usage } }
             val body = Block(
               List(Expr.suppressUnused(toSuppress).asTerm),
-              result.asTerm
+              stripInlined(result.asTerm)
             )
             val valueTerm = valueRef.asTerm
             valueTerm match {
