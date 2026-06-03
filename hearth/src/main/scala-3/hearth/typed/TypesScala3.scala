@@ -50,6 +50,7 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
       tpe match {
         case AppliedType(tycon, args) => AppliedType(dealiasAll(tycon), args.map(dealiasAll(_)))
         case OrType(left, right)      => OrType(dealiasAll(left), dealiasAll(right))
+        case AndType(left, right)     => AndType(dealiasAll(left), dealiasAll(right))
         case _                        => tpe.dealias
       }
 
