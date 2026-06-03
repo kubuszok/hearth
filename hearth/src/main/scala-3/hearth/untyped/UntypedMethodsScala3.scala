@@ -34,7 +34,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       else Left(s"Expected param Symbol, got $symbol")
   }
 
-  private def safeMemberType(tpe: TypeRepr, symbol: Symbol): TypeRepr =
+  private[hearth] def safeMemberType(tpe: TypeRepr, symbol: Symbol): TypeRepr =
     try tpe.memberType(symbol)
     catch { case _: AssertionError => symbol.owner.typeRef.memberType(symbol) }
 
@@ -260,7 +260,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       if paramLists.sizeIs <= 1 then return List(paramLists)
       if symbol.isNoSymbol then return List(paramLists)
 
-      val methodType = instanceTpe.memberType(symbol).widenByName match {
+      val methodType = safeMemberType(instanceTpe, symbol).widenByName match {
         case poly: PolyType => poly.resType
         case other          => other
       }
@@ -363,7 +363,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           if hl.TypeDefColor.isEmpty then instanceTpe.plainPrint else hl.highlightTypeDef(instanceTpe.plainPrint)
         )
       }
-      val rawMemberType = instanceTpe.memberType(symbol).widenByName
+      val rawMemberType = safeMemberType(instanceTpe, symbol).widenByName
       val memberType =
         if isConstructor && instanceTpe.typeArgs.nonEmpty then rawMemberType.appliedTo(instanceTpe.typeArgs)
         else rawMemberType
@@ -705,7 +705,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
             case pt: PolyType   => finalResultType(pt.resType)
             case other          => other
           }
-          val memberType = instanceTpe.memberType(untyped.symbol).widenByName
+          val memberType = safeMemberType(instanceTpe, untyped.symbol).widenByName
           Some(finalResultType(memberType).as_??)
         }
 
