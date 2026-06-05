@@ -178,6 +178,8 @@ trait UntypedTypes { this: MacroCommons =>
         .flatMap(NonEmptyMap.fromListMap(_))
     }
 
+    def typeArguments(untyped: UntypedType): List[UntypedType]
+
     def annotations(untyped: UntypedType): List[UntypedExpr]
     def annotationTypes(untyped: UntypedType): List[UntypedType]
 

@@ -614,4 +614,69 @@ trait MethodsFixturesImpl { this: MacroCommons =>
 
     Expr(Data.list((typeAnnotations ++ methodAnnotations)*))
   }
+
+  def testDefaultValueOnGenericMethod[A: Type](
+      instance: Expr[A],
+      methodName: Expr[String]
+  ): Expr[Data] = {
+    val _ = Expr.unapply(methodName) // suppress unused
+    CaseClass.parse[A].toOption match {
+      case None     => Expr(Data("not a case class"))
+      case Some(cc) =>
+        val defaultResults = cc.primaryConstructor.totalParameters.flatten.map { case (pName, param) =>
+          param.defaultValue match {
+            case Some(defaultMethod) =>
+              val result = defaultMethod.fold(
+                onInstance = _ => instance.as_??,
+                onTypes = _ => Map.empty,
+                onValues = _ => Map.empty
+              )
+              result match {
+                case Right(expr) =>
+                  Data.map("name" -> Data(pName), "default" -> Data(removeAnsiColors(expr.prettyPrint)))
+                case Left(error) => Data.map("name" -> Data(pName), "error" -> Data(error))
+              }
+            case None =>
+              Data.map("name" -> Data(pName), "default" -> Data("<none>"))
+          }
+        }
+        Expr(Data.list(defaultResults*))
+    }
+  }
+
+  def testFoldAnonymousInstanceMethod[A: Type](instance: Expr[A], methodName: Expr[String]): Expr[Data] = {
+    implicit val IntType: Type[Int] = this.IntType
+    implicit val StringType: Type[String] = this.StringType
+    val name = Expr
+      .unapply(methodName)
+      .getOrElse(
+        Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+      )
+    AnonymousInstance.parse[A] match {
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(Data(s"INCOMPATIBLE: $reason"))
+      case ClassViewResult.Compatible(ai) =>
+        val method = ai.mustOverride.find(_.method.name == name) match {
+          case Some(cm) => cm.method
+          case None     => Environment.reportErrorAndAbort(s"Method $name not found in mustOverride")
+        }
+        val result = method.fold(
+          onInstance = _ => instance.as_??,
+          onTypes = _ => Map.empty,
+          onValues = av =>
+            av.parameters.flatten.flatMap { case (pName, param) =>
+              import param.tpe.Underlying
+              if (Underlying <:< Type.of[Int]) Some(pName -> Expr(42).as_??)
+              else if (Underlying <:< Type.of[String]) Some(pName -> Expr("test").as_??)
+              else None
+            }.toMap
+        )
+        result match {
+          case Right(expr) =>
+            import expr.Underlying as R
+            Expr.quote(Data(Expr.splice(expr.value.asInstanceOf[Expr[R]]).toString))
+          case Left(error) => Expr(Data(s"FAILED: $error"))
+        }
+    }
+  }
 }
