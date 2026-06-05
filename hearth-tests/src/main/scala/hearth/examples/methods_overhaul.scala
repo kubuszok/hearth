@@ -75,3 +75,19 @@ class OverridingChild extends AbstractWithModifiers {
   override def abstractDef: Int = 1
   override def concreteDef: Int = 2
 }
+
+case class GenericWithDefaults[A](value: A, label: String = "unlabeled")
+
+trait TraitWithAbstractMethod {
+  def compute(x: Int): String
+}
+class TraitWithAbstractMethodImpl extends TraitWithAbstractMethod {
+  def compute(x: Int): String = s"result:$x"
+}
+
+trait SimpleAlg {
+  def getUser(id: Int): String
+}
+class SimpleAlgImpl extends SimpleAlg {
+  def getUser(id: Int): String = s"user:$id"
+}

@@ -1183,6 +1183,15 @@ final class ExprsSpec extends MacroSuite {
         )
       }
 
+      test("semiEval on case class with function fields succeeds") {
+        import ExprsFixtures.testSemiEval
+
+        val result = testSemiEval(examples.expr_codecs.ConfigWithFunctions())
+        val map = result.asMap.get
+        assert(map("status").asString.get == "success", s"should succeed, got: $result")
+        assert(map("class").asString.get == "hearth.examples.expr_codecs.ConfigWithFunctions")
+      }
+
       test(
         "methods ExprCodec.{toExpr, fromExpr} should allow roundtripping version types (LanguageVersion, Platform, JDKVersion, ScalaVersion, HearthVersion)"
       ) {
