@@ -302,12 +302,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
         else
           q"new $firstParent(..$ctorArgTrees) with ..$mixinTrees { ..$overrideDefs }"
 
-      val checked = scala.util.Try(c.typecheck(result)).toEither
-      checked match {
-        case Right(tree) => Right(tree)
-        case Left(error) =>
-          Left(NonEmptyVector.one(s"Failed to create anonymous instance: ${error.getMessage}"))
-      }
+      Right(result)
     }
 
     // Cache for type comparison results, using identity-based lookup.
