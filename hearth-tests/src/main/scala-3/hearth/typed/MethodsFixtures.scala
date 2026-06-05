@@ -132,4 +132,22 @@ object MethodsFixtures {
   inline def testAnnotationDestructuring[A]: Data = ${ testAnnotationDestructuringImpl[A] }
   private def testAnnotationDestructuringImpl[A: Type](using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testAnnotationDestructuring[A]
+
+  inline def testFoldAnonymousInstanceMethod[A](inline instance: A, inline methodName: String): Data = ${
+    testFoldAnonymousInstanceMethodImpl[A]('instance, 'methodName)
+  }
+  private def testFoldAnonymousInstanceMethodImpl[A: Type](
+      instance: Expr[A],
+      methodName: Expr[String]
+  )(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testFoldAnonymousInstanceMethod[A](instance, methodName)
+
+  inline def testDefaultValueOnGenericMethod[A](inline instance: A, inline methodName: String): Data = ${
+    testDefaultValueOnGenericMethodImpl[A]('instance, 'methodName)
+  }
+  private def testDefaultValueOnGenericMethodImpl[A: Type](
+      instance: Expr[A],
+      methodName: Expr[String]
+  )(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testDefaultValueOnGenericMethod[A](instance, methodName)
 }

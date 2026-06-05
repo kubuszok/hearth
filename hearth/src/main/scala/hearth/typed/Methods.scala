@@ -47,7 +47,22 @@ trait Methods { this: MacroCommons =>
 
     lazy val hasDefault: Boolean = asUntyped.hasDefault
     lazy val defaultValue: Option[Method] = asUntyped.default(untypedInstanceType).map { untyped =>
-      untyped.asTyped(using untypedInstanceType.asTyped[Any])
+      val method = untyped.asTyped(using untypedInstanceType.asTyped[Any])
+      method match {
+        case at: Method.ApplyTypes =>
+          val instanceTypeArgs = UntypedType.typeArguments(untypedInstanceType)
+          if (instanceTypeArgs.isEmpty) method
+          else {
+            val allTypeParams = at.typeParams.flatten
+            val classTypeArgs: UntypedTypeArguments = allTypeParams
+              .take(instanceTypeArgs.size)
+              .zip(instanceTypeArgs)
+              .map { case (param, arg) => param -> arg.as_?? }
+              .toMap
+            at.apply(classTypeArgs)
+          }
+        case other => other
+      }
     }
 
     lazy val annotations: List[Expr_??] = asUntyped.annotations.zip(asUntyped.annotationTypes).map { case (expr, tpe) =>
@@ -338,7 +353,13 @@ trait Methods { this: MacroCommons =>
           appliedState: AppliedState
       ): Method =
         if (stepIndex >= expectations.length) {
-          returnType match {
+          val effectiveReturnType = returnType.orElse {
+            if (accTypeArgs.nonEmpty)
+              buildExpr(accInstance, accTypeArgs, accArgs).toOption
+                .map(expr => UntypedExpr.as_??(expr).Underlying.as_??)
+            else None
+          }
+          effectiveReturnType match {
             case Some(rt) =>
               import rt.Underlying as Returned
               new Method.Result[Returned](

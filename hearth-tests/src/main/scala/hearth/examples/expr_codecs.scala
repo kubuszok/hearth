@@ -16,3 +16,9 @@ object Shape {
 case object Sentinel
 
 case class DataHolder(label: String, payload: hearth.data.Data)
+
+case class ConfigWithFunctions(
+    mapper: String => String = identity,
+    flag: Boolean = false,
+    name: String = "default"
+)

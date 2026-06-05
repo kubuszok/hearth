@@ -2093,4 +2093,41 @@ final class MethodsSpec extends MacroSuite {
       assert(args == "", s"no-arg annotation should destructure to empty args, got: '$args'")
     }
   }
+
+  group("methods: fold on abstract trait method") {
+    import MethodsFixtures.testCallInstanceViaFold
+
+    test("calling abstract method on trait-typed instance via fold") {
+      val instance: examples.methods.TraitWithAbstractMethod = new examples.methods.TraitWithAbstractMethodImpl
+      testCallInstanceViaFold[examples.methods.TraitWithAbstractMethod](instance)("compute")(42) <==> Data(
+        "result:42"
+      )
+    }
+
+    test("calling abstract method via AnonymousInstance.mustOverride + fold") {
+      val instance: examples.methods.SimpleAlg = new examples.methods.SimpleAlgImpl
+      MethodsFixtures.testFoldAnonymousInstanceMethod[examples.methods.SimpleAlg](
+        instance,
+        "getUser"
+      ) <==> Data("user:42")
+    }
+  }
+
+  group("methods: default values on generic case class") {
+    import MethodsFixtures.testDefaultValueOnGenericMethod
+
+    test("copy method on GenericWithDefaults[Int] resolves defaults with correct types") {
+      val result =
+        testDefaultValueOnGenericMethod(examples.methods.GenericWithDefaults(42, "hello"), "copy")
+      val list = result.asList.get
+      assert(list.size == 2, s"copy should have 2 params, got ${list.size}")
+      val valueParam = list(0).asMap.get
+      val labelParam = list(1).asMap.get
+      assert(valueParam("name").asString.get == "value")
+      assert(valueParam("default").asString.get.nonEmpty, "value should have a default (from copy)")
+      assert(!valueParam.contains("error"), s"value default should not error: ${valueParam.get("error")}")
+      assert(labelParam("name").asString.get == "label")
+      assert(!labelParam.contains("error"), s"label default should not error: ${labelParam.get("error")}")
+    }
+  }
 }

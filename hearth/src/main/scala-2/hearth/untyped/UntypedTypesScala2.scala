@@ -463,6 +463,9 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       } else None
     }
 
+    override def typeArguments(untyped: UntypedType): List[UntypedType] =
+      untyped.typeArgs
+
     override def annotations(untyped: UntypedType): List[UntypedExpr] =
       untyped.typeSymbol.annotations.map(ann => c.untypecheck(ann.tree))
     override def annotationTypes(untyped: UntypedType): List[UntypedType] =
