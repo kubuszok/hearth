@@ -92,7 +92,7 @@ final class ExprsSpec extends MacroSuite {
         import ExprsFixtures.testSummonViaUntypedRoundtrip
 
         test("summonImplicit finds implicit via direct Type and via UntypedType.toTyped roundtrip") {
-          @scala.annotation.nowarn("msg=is never used")
+          @scala.annotation.nowarn
           implicit val pref: examples.expr_codecs.Preference[examples.expr_codecs.ServerConfig] =
             examples.expr_codecs.Preference[examples.expr_codecs.ServerConfig]
 

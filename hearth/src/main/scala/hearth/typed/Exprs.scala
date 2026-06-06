@@ -60,8 +60,11 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       */
     def typeOf[A](expr: Expr[A]): Type[A]
 
-    def semiEval[A](expr: Expr[A], overrides: UntypedType => Existential[EvalOverride]): Either[String, A]
-    final def semiEval[A](expr: Expr[A]): Either[String, A] = semiEval(expr, null)
+    def semiEval[A](
+        expr: Expr[A],
+        overrides: UntypedType => Existential[EvalOverride]
+    ): Either[NonEmptyVector[String], A]
+    final def semiEval[A](expr: Expr[A]): Either[NonEmptyVector[String], A] = semiEval(expr, null)
 
     def semiQuote[A: Type](value: A, overrides: UntypedType => Existential[QuoteOverride]): Either[String, Expr[A]]
     final def semiQuote[A: Type](value: A): Either[String, Expr[A]] = semiQuote(value, null)
@@ -173,8 +176,8 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       */
     def tpe: Type[A] = Expr.typeOf(expr)
 
-    def semiEval: Either[String, A] = Expr.semiEval(expr)
-    def semiEval(overrides: UntypedType => Existential[EvalOverride]): Either[String, A] =
+    def semiEval: Either[NonEmptyVector[String], A] = Expr.semiEval(expr)
+    def semiEval(overrides: UntypedType => Existential[EvalOverride]): Either[NonEmptyVector[String], A] =
       Expr.semiEval(expr, overrides)
 
     def asUntyped: UntypedExpr = UntypedExpr.fromTyped(expr)
