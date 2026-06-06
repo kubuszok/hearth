@@ -179,8 +179,11 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     override def typeOf[A](expr: Expr[A]): Type[A] =
       UntypedType.toTyped(expr.asTerm.tpe)
 
-    override def semiEval[A](expr: Expr[A], overrides: UntypedType => Existential[EvalOverride]): Either[String, A] =
-      SemiEval.eval(expr.asTerm, overrides).map(_.asInstanceOf[A]).left.map(_.toList.mkString("; "))
+    override def semiEval[A](
+        expr: Expr[A],
+        overrides: UntypedType => Existential[EvalOverride]
+    ): Either[NonEmptyVector[String], A] =
+      SemiEval.eval(expr.asTerm, overrides).map(_.asInstanceOf[A])
 
     private object SemiEval {
 

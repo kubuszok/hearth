@@ -67,10 +67,10 @@ trait ExprsFixturesImpl { this: MacroCommons =>
           "value" -> Data(if (value == null) "null" else value.toString),
           "class" -> Data(if (value == null) "null" else value.getClass.getName)
         )
-      case Left(error) =>
+      case Left(errors) =>
         Data.map(
           "status" -> Data("failure"),
-          "errors" -> Data(List(Data(error)))
+          "errors" -> Data(errors.toList.map(Data(_)))
         )
     }
     Expr(result)
