@@ -7,7 +7,7 @@ import hearth.fp.instances.*
 import hearth.fp.syntax.*
 
 /** Fixtures for testing [[ExprsSpec]]. */
-trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethods =>
+trait ExprsFixturesImpl { this: MacroCommons =>
 
   // Expr methods
 
@@ -74,6 +74,47 @@ trait ExprsFixturesImpl { this: MacroTypedCommons & hearth.untyped.UntypedMethod
         )
     }
     Expr(result)
+  }
+
+  def testSummonViaUntypedRoundtrip[A: Type]: Expr[Data] = {
+    val preferenceCtor = Type.Ctor1.of[hearth.examples.expr_codecs.Preference]
+
+    val directResult = {
+      implicit val prefType: Type[hearth.examples.expr_codecs.Preference[A]] = preferenceCtor[A]
+      Expr.summonImplicit[hearth.examples.expr_codecs.Preference[A]].isDefined
+    }
+
+    val fromTypedResult = {
+      val untypedA: UntypedType = UntypedType.fromTyped[A]
+      val existential = UntypedType.as_??(untypedA)
+      import existential.Underlying as RoundTripped
+      implicit val prefType: Type[hearth.examples.expr_codecs.Preference[RoundTripped]] = preferenceCtor[RoundTripped]
+      Expr.summonImplicit[hearth.examples.expr_codecs.Preference[RoundTripped]].isDefined
+    }
+
+    val fromClassResult = {
+      val fromClass = UntypedType.fromClass(classOf[hearth.examples.expr_codecs.ServerConfig])
+      val existential = UntypedType.as_??(fromClass)
+      import existential.Underlying as FromClass
+      implicit val prefType: Type[hearth.examples.expr_codecs.Preference[FromClass]] = preferenceCtor[FromClass]
+      Expr.summonImplicit[hearth.examples.expr_codecs.Preference[FromClass]].isDefined
+    }
+
+    val summonByTypeResult = {
+      val ctorUntyped = preferenceCtor.asUntyped
+      val argUntyped = UntypedType.fromClass(classOf[hearth.examples.expr_codecs.ServerConfig])
+      val appliedType = ctorUntyped.applyTypeArgs(List(argUntyped))
+      Expr.summonImplicitByType(appliedType).isDefined
+    }
+
+    Expr(
+      Data.map(
+        "direct" -> Data(directResult),
+        "fromTyped" -> Data(fromTypedResult),
+        "fromClass" -> Data(fromClassResult),
+        "summonByType" -> Data(summonByTypeResult)
+      )
+    )
   }
 
   // VarArgs methods

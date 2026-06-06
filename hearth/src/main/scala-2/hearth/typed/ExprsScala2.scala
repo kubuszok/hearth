@@ -87,6 +87,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     override def summonImplicit[A: Type]: SummoningResult[A] = parseImplicitSearchResult {
       c.inferImplicitValue(Type[A].tpe, silent = true, withMacrosDisabled = false)
     }
+    override def summonImplicitByType(tpe: UntypedType): Option[UntypedExpr] = {
+      val result = c.inferImplicitValue(tpe, silent = true, withMacrosDisabled = false)
+      if (result != EmptyTree) Some(result) else None
+    }
+
     override def summonImplicitIgnoring[A: Type](excluded: UntypedMethod*): SummoningResult[A] =
       inferImplicitValueIgnoringOption.fold[SummoningResult[A]] {
         // $COVERAGE-OFF$

@@ -22,3 +22,8 @@ case class ConfigWithFunctions(
     flag: Boolean = false,
     name: String = "default"
 )
+
+class Preference[A]
+object Preference {
+  def apply[A]: Preference[A] = new Preference[A]
+}

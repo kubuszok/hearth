@@ -55,6 +55,10 @@ object ExprsFixtures {
   private def testSemiEvalImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testSemiEval[A](expr)
 
+  inline def testSummonViaUntypedRoundtrip[A]: Data = ${ testSummonViaUntypedRoundtripImpl[A] }
+  private def testSummonViaUntypedRoundtripImpl[A: Type](using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testSummonViaUntypedRoundtrip[A]
+
   inline def testVarArgs[A](inline exprs: A*): Data = ${ testVarArgsImpl[A]('exprs) }
   private def testVarArgsImpl[A: Type](exprs: Expr[Seq[A]])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testVarArgs[A](exprs)

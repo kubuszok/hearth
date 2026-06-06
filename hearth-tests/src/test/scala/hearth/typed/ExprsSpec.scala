@@ -88,6 +88,26 @@ final class ExprsSpec extends MacroSuite {
         }
       }
 
+      group("methods: Expr.summonImplicit via UntypedType roundtrip") {
+        import ExprsFixtures.testSummonViaUntypedRoundtrip
+
+        test("summonImplicit finds implicit via direct Type and via UntypedType.toTyped roundtrip") {
+          @scala.annotation.nowarn("msg=is never used")
+          implicit val pref: examples.expr_codecs.Preference[examples.expr_codecs.ServerConfig] =
+            examples.expr_codecs.Preference[examples.expr_codecs.ServerConfig]
+
+          val result = testSummonViaUntypedRoundtrip[examples.expr_codecs.ServerConfig]
+          val map = result.asMap.get
+          assert(map("direct").asBoolean.get == true, s"direct should succeed, got: $result")
+          assert(map("fromTyped").asBoolean.get == true, s"fromTyped roundtrip should succeed, got: $result")
+          if (LanguageVersion.byHearth.isScala3)
+            assert(
+              map("fromClass").asBoolean.get == true,
+              s"fromClass roundtrip should succeed on Scala 3, got: $result"
+            )
+        }
+      }
+
       group("methods: Expr.semiEval, expected behavior") {
         import ExprsFixtures.testSemiEval
 

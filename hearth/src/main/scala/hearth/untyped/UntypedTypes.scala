@@ -41,6 +41,7 @@ trait UntypedTypes { this: MacroCommons =>
     def position(untyped: UntypedType): Option[Position]
 
     def fromClass(clazz: java.lang.Class[?]): UntypedType
+    def fromClassName(fullyQualifiedName: String): UntypedType
     final def toClass(untyped: UntypedType): Option[java.lang.Class[?]] =
       if (isTypeSystemSpecial(untyped)) {
         if (untyped =:= Type.of[Any].asUntyped) Some(classOf[Any])
@@ -179,6 +180,7 @@ trait UntypedTypes { this: MacroCommons =>
     }
 
     def typeArguments(untyped: UntypedType): List[UntypedType]
+    def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType
 
     def annotations(untyped: UntypedType): List[UntypedExpr]
     def annotationTypes(untyped: UntypedType): List[UntypedType]
@@ -255,6 +257,8 @@ trait UntypedTypes { this: MacroCommons =>
     def exhaustiveChildren: Option[NonEmptyMap[String, UntypedType]] = UntypedType.exhaustiveChildren(untyped)
 
     def defaultValue(param: UntypedParameter): Option[UntypedMethod] = UntypedMethod.defaultValue(untyped)(param)
+
+    def applyTypeArgs(args: List[UntypedType]): UntypedType = UntypedType.applyTypeArgs(untyped, args)
 
     def annotations: List[UntypedExpr] = UntypedType.annotations(untyped)
     def annotationTypes: List[UntypedType] = UntypedType.annotationTypes(untyped)
