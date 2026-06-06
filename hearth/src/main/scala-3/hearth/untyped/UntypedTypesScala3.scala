@@ -107,7 +107,14 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     override def position(untyped: UntypedType): Option[Position] = positionOf(untyped.typeSymbol)
 
-    override def fromClass(clazz: java.lang.Class[?]): UntypedType = TypeRepr.typeConstructorOf(clazz)
+    override def fromClassName(fullyQualifiedName: String): UntypedType =
+      Symbol.requiredClass(fullyQualifiedName).typeRef
+
+    override def fromClass(clazz: java.lang.Class[?]): UntypedType = {
+      val name = clazz.getName.replace('$', '.')
+      try Symbol.requiredClass(name).typeRef
+      catch { case _: Throwable => TypeRepr.typeConstructorOf(clazz) }
+    }
 
     override def isInJavaLangPackage(instanceTpe: UntypedType): Boolean = {
       val sym = instanceTpe.typeSymbol
@@ -627,6 +634,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     override def typeArguments(untyped: UntypedType): List[UntypedType] =
       untyped.typeArgs
+
+    override def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType =
+      untyped.appliedTo(args)
 
     override def annotations(untyped: UntypedType): List[UntypedExpr] =
       untyped.typeSymbol.annotations

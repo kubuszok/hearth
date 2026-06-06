@@ -99,9 +99,25 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     override def plainAST[A](expr: Expr[A]): String = expr.asTerm.show(using FormattedTreeStructure)
     override def prettyAST[A](expr: Expr[A]): String = expr.asTerm.show(using FormattedTreeStructureAnsi)
 
-    override def summonImplicit[A: Type]: SummoningResult[A] = parseImplicitSearchResult {
-      Implicits.search(TypeRepr.of[A])
+    override def summonImplicit[A: Type]: SummoningResult[A] = {
+      val reflectResult = parseImplicitSearchResult {
+        Implicits.search(TypeRepr.of[A])
+      }
+      reflectResult match {
+        case SummoningResult.Found(_) => reflectResult
+        case _                        =>
+          scala.quoted.Expr.summon[A](using summon[Type[A]].asInstanceOf[scala.quoted.Type[A]]) match {
+            case Some(expr) => SummoningResult.Found(expr)
+            case None       => reflectResult
+          }
+      }
     }
+    override def summonImplicitByType(tpe: UntypedType): Option[UntypedExpr] =
+      Implicits.search(tpe) match {
+        case iss: ImplicitSearchSuccess => Some(iss.tree)
+        case _                          => None
+      }
+
     override def summonImplicitIgnoring[A: Type](excluded: UntypedMethod*): SummoningResult[A] =
       searchIgnoringOption.fold[SummoningResult[A]] {
         // $COVERAGE-OFF$
@@ -6200,7 +6216,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     import quotes.reflect.*
     val fRepr = TypeRepr.of(using Type[F].asInstanceOf[scala.quoted.Type[Any]])
     val exprCodecSym = Symbol.requiredClass("hearth.typed.Exprs.ExprCodec")
-    val exprCodecF = exprCodecSym.typeRef.appliedTo(fRepr)
+    val exprCodecF = exprCodecSym.typeRef.appliedTo(List(fRepr))
     Implicits.search(exprCodecF) match {
       case iss: ImplicitSearchSuccess =>
         Expr

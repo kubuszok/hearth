@@ -42,6 +42,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def summonImplicit[A: Type]: SummoningResult[A]
     def summonImplicitIgnoring[A: Type](excluded: UntypedMethod*): SummoningResult[A]
+    def summonImplicitByType(tpe: UntypedType): Option[UntypedExpr]
 
     def upcast[A: Type, B: Type](expr: Expr[A]): Expr[B]
 
