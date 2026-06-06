@@ -127,18 +127,21 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     override def position(untyped: UntypedType): Option[Position] =
       positionOf(untyped.typeSymbol)
 
+    override def fromClassName(fullyQualifiedName: String): UntypedType =
+      c.mirror.staticClass(fullyQualifiedName).toType
+
     override def fromClass(clazz: java.lang.Class[?]): UntypedType = {
       val staticClass = c.mirror.staticClass(clazz.getName)
-
-      def typeSignature = Option(staticClass.typeSignature).filterNot(_ == NoType)
-      def asType = scala.util.Try(staticClass.asType.toType).toOption.filterNot(_ == NoType)
-
-      typeSignature.orElse(asType).getOrElse {
-        // $COVERAGE-OFF$
-        hearthAssertionFailed(
-          s"""Cannot find a type signature for Class ${clazz.getName}.""".stripMargin
-        )
-        // $COVERAGE-ON$
+      scala.util.Try(staticClass.toType).filter(_ != NoType).getOrElse {
+        val typeSignature = staticClass.typeSignature
+        if (typeSignature != NoType) typeSignature
+        else {
+          // $COVERAGE-OFF$
+          hearthAssertionFailed(
+            s"""Cannot find a type for Class ${clazz.getName}.""".stripMargin
+          )
+          // $COVERAGE-ON$
+        }
       }
     }
 
@@ -460,6 +463,9 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
     override def typeArguments(untyped: UntypedType): List[UntypedType] =
       untyped.typeArgs
+
+    override def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType =
+      appliedType(untyped.typeConstructor, args)
 
     override def annotations(untyped: UntypedType): List[UntypedExpr] =
       untyped.typeSymbol.annotations.map(ann => c.untypecheck(ann.tree))
