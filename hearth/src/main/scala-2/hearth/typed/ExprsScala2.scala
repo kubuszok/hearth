@@ -178,8 +178,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         expr.attemptPipe(_.actualType.finalResultType)(_.staticType.finalResultType)
       )
 
-    override def semiEval[A](expr: Expr[A], overrides: UntypedType => Existential[EvalOverride]): Either[String, A] =
-      SemiEval.eval(expr.tree, overrides).map(_.asInstanceOf[A]).left.map(_.toList.mkString("; "))
+    override def semiEval[A](
+        expr: Expr[A],
+        overrides: UntypedType => Existential[EvalOverride]
+    ): Either[NonEmptyVector[String], A] =
+      SemiEval.eval(expr.tree, overrides).map(_.asInstanceOf[A])
 
     private object SemiEval {
 

@@ -130,6 +130,7 @@ val settings = Seq(
       "-encoding", "UTF-8",
       "-release", if (scalaVersion.value == versions.scala3Newest) "17" else "11", // Scala 3.8+ requires JDK 17+
       // format: on
+    ) ++ (if (scalaVersion.value != versions.scala3Newest) Seq("-rewrite", "-source", "3.3-migration") else Seq()) ++ Seq(
       "-unchecked",
       "-deprecation",
       "-explain",
