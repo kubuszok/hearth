@@ -16,9 +16,31 @@ Hearth is possible, because:
 
 ## Do I need this library if I don't want to cross-compile?
 
-**You don't _need_ it, but it is _still_ useful.**
+**It depends on how complex your macro is.**
 
-There are many gotchas when developing a macro, even for common cases:
+If your macro only needs to quote and unquote values — with no programmatic logic for generating the quoted code — you
+might not need macros at all. Scala 3's `inline` defs, `inline match`, `scala.compiletime` utilities and
+`scala.deriving.Mirror` can handle many use cases without ever touching the macro API directly. Scala 2's quasiquotes
+similarly cover simple interpolation-style code generation reasonably well on their own.
+
+However, once your macro needs to **inspect types, traverse fields, match on type structure, or construct ASTs
+programmatically** — anything beyond straightforward quoting — you are working with the compiler's reflection API.
+And that is where things get difficult:
+
+ - Scala 3's `quoted.reflect` (aka TASTy Reflect) is a **large, complex API** that mirrors the compiler's internal
+   tree representation. Using it effectively requires understanding compiler internals: how trees are typed, how
+   symbols relate to definitions, how ownership works, and how to navigate the AST without breaking invariants.
+ - Scala 2's macro API (`scala.reflect.macros` / `scala.reflect.api`) has similar complexity with its own set of
+   footguns: universes, tree attachments, positions, manual type application, and the ever-present risk of
+   accidentally creating untyped trees.
+ - Both APIs are **poorly documented**, have **surprising edge cases**, and produce **cryptic error messages**
+   when something goes wrong.
+
+For any macro that goes beyond a toy example, this complexity adds up quickly. Hearth tries to absorb as much of that
+burden as possible by providing high-level, tested abstractions over these low-level APIs — so you can focus on
+_what_ your macro should generate rather than _how_ to convince the compiler to accept it.
+
+There are also many gotchas even for common cases:
 
  - type parameters aren't automatically applied; if a class has type parameters they need to be
    reapplied to its methods and child subtypes
@@ -27,8 +49,8 @@ There are many gotchas when developing a macro, even for common cases:
    an interpolated `String`
  - constructing names for `val`s, `var`s, `lazy val`s, `def`s, bindings in pattern-matching...
    requires "fresh name generation" to avoid accidental name conflicts
- - providing a healthy architecture of a macro - with error handling, user-friendly debugging,
-   composing code with FP patterns known from other ecosystems - would feel discouraging if one had to reimplement
+ - providing a healthy architecture of a macro — with error handling, user-friendly debugging,
+   composing code with FP patterns known from other ecosystems — would feel discouraging if one had to reimplement
    all the utilities from scratch for each new macro
 
 All of the above and more contribute to bad UX for macro maintainers and discourage keeping the same good practices that we
@@ -74,6 +96,23 @@ reaching for low-level (native) ASTs in one place, and keeping everything high-l
 To implement these use-case-specific utilities you would have to know the macro API for the Scala version,
 that you are working with, but since there should be only a small portion of the whole codebase, it would be easier
 to test them (since you should be able to trust the behavior of the existing utilities).
+
+## Are there any examples of real-world macros built with Hearth?
+
+**Yes — [Kindlings](https://github.com/kubuszok/kindlings).**
+
+Kindlings is a companion repository that re-implements several real-world derivation macros using Hearth. It serves
+multiple purposes:
+
+ - **Primary test bed** — every Hearth utility is battle-tested through Kindlings. If a feature works in Kindlings'
+   derivations, it works in practice. If something is missing or broken, Kindlings is usually where it surfaces first.
+ - **Feature discovery** — Kindlings exercises what is possible today, reveals what is not yet implemented, and
+   identifies which features are missing from Hearth.
+ - **Quality bar** — we strive to provide _at least_ as good a user experience as the original libraries. When
+   possible, we aim to do _better_ — leveraging Hearth's abstractions to produce clearer error messages, handle
+   more edge cases, or simplify the user-facing API compared to the original implementations.
+
+If you want to see how Hearth looks in a non-trivial macro codebase, Kindlings is the place to start.
 
 ## Is Cross-Building a macro supported?
 
