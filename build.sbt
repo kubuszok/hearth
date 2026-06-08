@@ -11,7 +11,7 @@ lazy val isNewestScalaTests = sys.env.get("NEWEST_SCALA_TESTS").contains("true")
 val versions = new {
   // Versions we are publishing for.
   val scala213 = "2.13.16"
-  val scala3 = "3.3.7"
+  val scala3 = "3.3.8-RC2"
 
   // Versions we can compile tests against if needed, to check for regressions.
   val scala213Newest = "2.13.18"
@@ -143,7 +143,7 @@ val settings = Seq(
       "-Werror",
       "-Xcheck-macros"
     ) ++ (if (scalaVersion.value == versions.scala3Newest) Seq("-Xkind-projector:underscores")
-          else Seq("-Ykind-projector:underscores")),
+          else Seq("-Yfuture-lazy-vals", "-Ykind-projector:underscores")),
     for2_13 = Seq(
       // format: off
       "-encoding", "UTF-8",
@@ -325,7 +325,9 @@ lazy val root = (project in file("."))
     description := "Build setup for Hearth modules",
     logo :=
       s"""Hearth ${(version).value} build for (${versions.scala213}, ${versions.scala3}) x (Scala JVM, Scala.js $scalaJSVersion, Scala Native $nativeVersion)
-         |
+         |${if (isNewestScalaTests)
+          s" - Testing against Scala ${versions.scala213Newest} and ${versions.scala3Newest} for forward compatibility and newest features support\n"
+        else ""}
          |This build uses sbt-projectmatrix with sbt-commandmatrix helper:
          | - Scala JVM adds no suffix to a project name seen in build.sbt
          | - Scala.js adds the "JS" suffix to a project name seen in build.sbt
