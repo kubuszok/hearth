@@ -30,24 +30,24 @@ By default, tests should be placed in `hearthTests/src/test/scala`, so that:
 however there are exceptions:
 
  - `scala-newest` directories are used for tests that should only run on the **newest** supported Scala versions
-   (currently 2.13.18 and 3.8.3 for regression testing). These are used for:
+   (currently 2.13.18 and 3.8.4 for regression testing). These are used for:
 
      - **Demo/example code** that showcases advanced features or complex macro implementations (e.g., `FastShowPrettySpec`)
-     - **Features that require newer Scala versions** not available in the primary versions (2.13.16 and 3.3.7)
+     - **Features that require newer Scala versions** not available in the primary versions (2.13.16 and 3.3.8)
      - **Regression tests** for newer compiler versions
 
    Directory variants:
-     - `hearthTests/src/main/scala-newest` - shared code for newest Scala versions (both 2.13.18 and 3.8.3)
+     - `hearthTests/src/main/scala-newest` - shared code for newest Scala versions (both 2.13.18 and 3.8.4)
      - `hearthTests/src/main/scala-newest-2` - Scala 2.13.18-specific code
-     - `hearthTests/src/main/scala-newest-3` - Scala 3.8.3-specific code
+     - `hearthTests/src/main/scala-newest-3` - Scala 3.8.4-specific code
      - `hearthTests/src/test/scala-newest` - shared tests for newest Scala versions
      - `hearthTests/src/test/scala-newest-2` - Scala 2.13.18-specific tests
-     - `hearthTests/src/test/scala-newest-3` - Scala 3.8.3-specific tests
+     - `hearthTests/src/test/scala-newest-3` - Scala 3.8.4-specific tests
 
    **Important:** These directories are **only included** when the `NEWEST_SCALA_TESTS=true` environment variable is set.
    When this variable is set:
      - `hearthTests` (Scala 2.13) compiles with Scala 2.13.18 instead of 2.13.16
-     - `hearthTests3` (Scala 3) compiles with Scala 3.8.3 instead of 3.3.7
+     - `hearthTests3` (Scala 3) compiles with Scala 3.8.4 instead of 3.3.8
      - The `scala-newest` directories are added to the source directories of the same project
 
    Without `NEWEST_SCALA_TESTS=true`, these directories are completely ignored and the projects use the primary versions.
@@ -78,12 +78,12 @@ however there are exceptions:
 **Use `scala-newest` when:**
 - Creating demo/example code that showcases complex macro features (like `FastShowPrettySpec`)
 - Testing features that require compiler capabilities only available in newer Scala versions
-- Writing regression tests specifically for newer compiler versions (2.13.18 or 3.8.3)
+- Writing regression tests specifically for newer compiler versions (2.13.18 or 3.8.4)
 - The code would benefit from newer language features but should not block development on primary versions
 
 **Do NOT use `scala-newest` when:**
 - Writing standard library tests (use `src/test/scala` instead)
-- The code can work on primary versions (2.13.16 and 3.3.7)
+- The code can work on primary versions (2.13.16 and 3.3.8)
 - Adding core functionality tests (these should work on primary versions)
 - The test is critical for CI/CD pipeline validation (primary versions are tested in CI)
 
@@ -305,7 +305,7 @@ To use **hearth-munit** in your tests:
 1. **Create a fixture macro** that returns `Expr[Data]`:
 
 ```scala title="MyFeatureFixtureImpl.scala"
-//> using scala 3.3.7
+//> using scala {{ scala.3 }}
 //> using dep "com.kubuszok::hearth:{{ hearth_version() }}"
 
 package myfeature
@@ -346,7 +346,7 @@ object MyFeatureFixture {
 ```
 
 ```scala title="MyFeatureFixture.scala (Scala 3)"
-//> using scala 3.3.7
+//> using scala {{ scala.3 }}
 //> using dep "com.kubuszok::hearth:{{ hearth_version() }}"
 
 package myfeature
@@ -361,7 +361,7 @@ object MyFeatureFixture {
 3. **Test multiple properties** in your spec:
 
 ```scala title="MyFeatureSpec.scala"
-//> using scala 3.3.7
+//> using scala {{ scala.3 }}
 //> using test.dep "com.kubuszok::hearth-munit:{{ hearth_version() }}"
 //> using file "MyFeatureFixtureImpl.scala"
 //> using file "MyFeatureFixture.scala"
@@ -530,9 +530,9 @@ So running `hearthTests/test ; hearthTests3/test ; hearthSandwichTests/test ; he
 
 Tests in `scala-newest` directories are **only** compiled and run when the `NEWEST_SCALA_TESTS=true` environment
 variable is set. This variable switches the `hearthTests` and `hearthTests3` projects to use newer Scala versions
-(2.13.18 and 3.8.3) and includes the `scala-newest` source directories.
+(2.13.18 and 3.8.4) and includes the `scala-newest` source directories.
 
-**For Scala 3.8.3 (scala-newest-3):**
+**For Scala 3.8.4 (scala-newest-3):**
 ```bash
 NEWEST_SCALA_TESTS=true sbt --client "hearthTests3/clean"
 NEWEST_SCALA_TESTS=true sbt --client "hearthTests3/compile"
@@ -560,13 +560,13 @@ NEWEST_SCALA_TESTS=true sbt --client "quick-test"
 
 This will test against:
 - Scala 2.13.18 (hearthTests upgraded from 2.13.16)
-- Scala 3.8.3 (hearthTests3 upgraded from 3.3.7)
+- Scala 3.8.4 (hearthTests3 upgraded from 3.3.8)
 - Cross-version sandwich tests (with newest versions)
 
 **Without the environment variable:**
 
 Running the same commands **without** `NEWEST_SCALA_TESTS=true` will:
-- Use primary versions (2.13.16 and 3.3.7)
+- Use primary versions (2.13.16 and 3.3.8)
 - Ignore all `scala-newest` directories completely
 - This is the normal development mode
 
@@ -574,8 +574,8 @@ Running the same commands **without** `NEWEST_SCALA_TESTS=true` will:
 - `scala-newest` directories are **only visible** when `NEWEST_SCALA_TESTS=true` is set
 - The environment variable doesn't create separate projects; it modifies the existing `hearthTests` and `hearthTests3` projects
 - When working on code in `scala-newest` directories, always clean the module before testing
-- The newest versions (2.13.18 and 3.8.3) are used for regression testing, not for primary development
-- Primary development versions are 2.13.16 and 3.3.7
+- The newest versions (2.13.18 and 3.8.4) are used for regression testing, not for primary development
+- Primary development versions are 2.13.16 and 3.3.8
 - **CI runs tests BOTH ways:** with `NEWEST_SCALA_TESTS=false` (primary versions) AND `NEWEST_SCALA_TESTS=true` (newest versions)
   to ensure code works on both primary and newest Scala versions
 

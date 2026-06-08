@@ -21,7 +21,7 @@ A curated collection of external references that complement the Hearth documenta
 
 - [**Scala 3 macros documentation**](https://docs.scala-lang.org/scala3/guides/macros/macros.html)
 
-    - Additionally I suggest opening [code in a browser](https://github.com/scala/scala3/blob/3.3.7/library/src/scala/quoted/Quotes.scala) API directory and keeping the tab open (might be a good idea since in my IDE sources are NOT imported so I see no documentation)
+    - Additionally I suggest opening [code in a browser](https://github.com/scala/scala3/blob/3.3.8-RC2/library/src/scala/quoted/Quotes.scala) API directory and keeping the tab open (might be a good idea since in my IDE sources are NOT imported so I see no documentation)
 
 ### Cross-Building Background
 
