@@ -98,7 +98,7 @@ extra:
       link: https://twitter.com/@MateuszKubuszok
   scala:
     2_13: "2.13.16"
-    3: "3.3.7"
+    3: "3.3.8"
     newest_2_13: "2.13.18"
     newest_3: "3.8.4"
   libraries:
