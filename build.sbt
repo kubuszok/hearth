@@ -36,6 +36,15 @@ val dev = new DevProperties(
   platforms = versions.platforms
 )
 
+val only1VersionInIDE = dev.only1VersionInIDE :+ MatrixAction
+  .ForPlatform(VirtualAxis.jvm)
+  .Configure(
+    _.settings(
+      // There is a bug in Scala Native 0.5.12 which crashes when seeing this flag, so we disable it for non-JVM.
+      scalacOptions ++= { if (scalaVersion.value == versions.scala3) Seq("-Yfuture-lazy-vals") else Seq.empty }
+    )
+  )
+
 val logCrossQuotes =
   dev.props.getProperty("log.cross-quotes") match {
     case "true"                          => true
@@ -143,7 +152,7 @@ val settings = Seq(
       "-Werror",
       "-Xcheck-macros"
     ) ++ (if (scalaVersion.value == versions.scala3Newest) Seq("-Xkind-projector:underscores")
-          else Seq("-Yfuture-lazy-vals", "-Ykind-projector:underscores")),
+          else Seq("-Ykind-projector:underscores")),
     for2_13 = Seq(
       // format: off
       "-encoding", "UTF-8",
@@ -190,6 +199,10 @@ val settings = Seq(
          )
        else Seq.empty)
   )
+)
+
+val jvmOnlySettings = Seq(
+  scalacOptions ++= { if (scalaVersion.value == versions.scala3) Seq("-Yfuture-lazy-vals") else Seq.empty }
 )
 
 val scalaNewestSettings = Seq(
@@ -365,7 +378,7 @@ lazy val root = (project in file("."))
 
 lazy val hearthBetterPrinters = projectMatrix
   .in(file("hearth-better-printers"))
-  .someVariations(versions.scalas, versions.platforms)(dev.only1VersionInIDE *)
+  .someVariations(versions.scalas, versions.platforms)(only1VersionInIDE *)
   .disablePlugins(WelcomePlugin)
   .settings(
     moduleName := "hearth-better-printers",
@@ -382,7 +395,7 @@ lazy val hearthBetterPrinters = projectMatrix
 
 lazy val hearthCrossQuotes = projectMatrix
   .in(file("hearth-cross-quotes"))
-  .someVariations(versions.scalas, versions.platforms)((defineCrossQuotes ++ dev.only1VersionInIDE) *)
+  .someVariations(versions.scalas, versions.platforms)((defineCrossQuotes ++ only1VersionInIDE) *)
   .enablePlugins(SourceGenPlugin)
   .disablePlugins(WelcomePlugin, MimaPlugin)
   .settings(
@@ -407,11 +420,12 @@ lazy val hearthCrossQuotes = projectMatrix
   )
   .settings(settings *)
   .settings(publishSettings *)
+  .jvmPlatform(Seq(versions.scala3), jvmOnlySettings)
   .dependsOn(hearthBetterPrinters)
 
 lazy val hearthMicroFp = projectMatrix
   .in(file("hearth-micro-fp"))
-  .someVariations(versions.scalas, versions.platforms)(dev.only1VersionInIDE *)
+  .someVariations(versions.scalas, versions.platforms)(only1VersionInIDE *)
   .disablePlugins(WelcomePlugin)
   .settings(
     moduleName := "hearth-micro-fp",
@@ -426,10 +440,11 @@ lazy val hearthMicroFp = projectMatrix
   .settings(publishSettings *)
   .settings(dependencies *)
   .settings(mimaSettings *)
+  .jvmPlatform(Seq(versions.scala3), jvmOnlySettings)
 
 lazy val hearth = projectMatrix
   .in(file("hearth"))
-  .someVariations(versions.scalas, versions.platforms)(((dev.only1VersionInIDE ++ useCrossQuotes)) *)
+  .someVariations(versions.scalas, versions.platforms)(((only1VersionInIDE ++ useCrossQuotes)) *)
   .enablePlugins(SourceGenPlugin)
   .disablePlugins(WelcomePlugin)
   .settings(
@@ -450,12 +465,13 @@ lazy val hearth = projectMatrix
   .settings(dependencies *)
   .settings(mimaSettings *)
   .settings(macroExtensionTraits := Seq("hearth.std.StandardMacroExtension"))
+  .jvmPlatform(Seq(versions.scala3), jvmOnlySettings)
   .dependsOn(hearthMicroFp)
   .dependsOn(hearthBetterPrinters)
 
 lazy val hearthMunit = projectMatrix
   .in(file("hearth-munit"))
-  .someVariations(versions.scalas, versions.platforms)(dev.only1VersionInIDE *)
+  .someVariations(versions.scalas, versions.platforms)(only1VersionInIDE *)
   .disablePlugins(WelcomePlugin)
   .settings(
     moduleName := "hearth-munit",
@@ -474,13 +490,14 @@ lazy val hearthMunit = projectMatrix
   .settings(settings *)
   .settings(publishSettings *)
   .settings(mimaSettings *)
+  .jvmPlatform(Seq(versions.scala3), jvmOnlySettings)
   .dependsOn(hearth)
 
 // Test normal use cases
 
 lazy val hearthTests = projectMatrix
   .in(file("hearth-tests"))
-  .someVariations(versions.scalas, versions.platforms)((dev.only1VersionInIDE ++ useCrossQuotes) *)
+  .someVariations(versions.scalas, versions.platforms)((only1VersionInIDE ++ useCrossQuotes) *)
   .enablePlugins(SourceGenPlugin)
   .disablePlugins(WelcomePlugin)
   .settings(
@@ -545,6 +562,7 @@ lazy val hearthTests = projectMatrix
       "hearth.TotallyFailedMacroExtension"
     )
   )
+  .jvmPlatform(Seq(versions.scala3), jvmOnlySettings)
   .dependsOn(hearth)
   .dependsOn(hearthMunit)
 
@@ -575,10 +593,11 @@ lazy val hearthSandwichExamples3 = projectMatrix
     name := "hearth-sandwich-examples-3",
     description := "Tests cases compiled with Scala 3 to test macros in 2.13x3 cross-compilation (non-publishable)"
   )
+  .jvmPlatform(Seq(versions.scala3), jvmOnlySettings)
 
 lazy val hearthSandwichTests = projectMatrix
   .in(file("hearth-sandwich-tests"))
-  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(dev.only1VersionInIDE *)
+  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(only1VersionInIDE *)
   .settings(settings *)
   .settings(scalaNewestSettings *)
   .settings(publishSettings *)
@@ -590,6 +609,7 @@ lazy val hearthSandwichTests = projectMatrix
     name := "hearth-sandwich-tests",
     description := "Tests macros in 2.13x3 cross-compilation (non-publishable)"
   )
+  .jvmPlatform(Seq(versions.scala3), jvmOnlySettings)
   .dependsOn(hearth % s"$Test->$Test;$Compile->$Compile")
   .dependsOn(hearthSandwichExamples213 % s"$Test->$Test;$Compile->$Compile")
   .dependsOn(hearthSandwichExamples3 % s"$Test->$Test;$Compile->$Compile")
@@ -599,7 +619,7 @@ lazy val hearthSandwichTests = projectMatrix
 
 lazy val debugHearthBetterPrinters = projectMatrix
   .in(file("debug-hearth-better-printers"))
-  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(dev.only1VersionInIDE *)
+  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(only1VersionInIDE *)
   .settings(settings *)
   .settings(publishSettings *)
   .settings(noPublishSettings *)
@@ -609,11 +629,12 @@ lazy val debugHearthBetterPrinters = projectMatrix
     name := "debug-hearth-better-printers",
     description := "Debugging module for hearth-better-printers, intended to recompile as little as possible when working on better-printers issue, should not be published not contain any commited code"
   )
+  .jvmPlatform(Seq(versions.scala3), jvmOnlySettings)
   .dependsOn(hearthBetterPrinters)
 
 lazy val debugHearth = projectMatrix
   .in(file("debug-hearth"))
-  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(dev.only1VersionInIDE *)
+  .someVariations(List(versions.scala213, versions.scala3), List(VirtualAxis.jvm))(only1VersionInIDE *)
   .settings(settings *)
   .settings(publishSettings *)
   .settings(noPublishSettings *)
@@ -623,6 +644,7 @@ lazy val debugHearth = projectMatrix
     name := "debug-hearth",
     description := "Debugging module for hearth, intended to recompile as little as possible when working on hearth issue, should not be published not contain any commited code"
   )
+  .jvmPlatform(Seq(versions.scala3), jvmOnlySettings)
   .dependsOn(hearth)
 
 // when having memory/GC-related errors during build, uncommenting this may be useful:
