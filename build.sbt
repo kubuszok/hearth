@@ -11,7 +11,7 @@ lazy val isNewestScalaTests = sys.env.get("NEWEST_SCALA_TESTS").contains("true")
 val versions = new {
   // Versions we are publishing for.
   val scala213 = "2.13.16"
-  val scala3 = "3.3.8-RC2"
+  val scala3 = "3.3.8"
 
   // Versions we can compile tests against if needed, to check for regressions.
   val scala213Newest = "2.13.18"
@@ -23,7 +23,7 @@ val versions = new {
 
   // Dependencies.
   val kindProjector = "0.13.4"
-  val munit = "1.3.2"
+  val munit = "1.3.3"
   val scalacheck = "1.19.0"
   val scalaXml = "2.4.0"
 }
@@ -328,7 +328,7 @@ lazy val root = (project in file("."))
          |${if (isNewestScalaTests)
           s" - Testing against Scala ${versions.scala213Newest} and ${versions.scala3Newest} for forward compatibility and newest features support\n"
         else ""}
-         |This build uses sbt-projectmatrix with sbt-commandmatrix helper:
+         |This build uses sbt-projectmatrix with sbt-commdmatrix helper:
          | - Scala JVM adds no suffix to a project name seen in build.sbt
          | - Scala.js adds the "JS" suffix to a project name seen in build.sbt
          | - Scala Native adds the "Native" suffix to a project name seen in build.sbt
