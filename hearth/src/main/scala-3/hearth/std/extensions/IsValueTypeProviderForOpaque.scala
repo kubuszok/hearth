@@ -25,36 +25,40 @@ final class IsValueTypeProviderForOpaque extends StandardMacroExtension { loader
       /** Get the underlying type of an opaque type.
         *
         * Strategy:
-        *   1. Try `simplified` which reduces TypeRefs to their underlying type when in scope
-        *   2. Outside the opaque type's scope
+        *   1. Try `UntypedType.opaqueUnderlyingType` (compiler-supported `TypeRef.translucentSuperType`) - it sees the
+        *      real RHS even from outside the defining scope, correct through bounds, nested opaque chains, and applied
+        *      parameterized opaques
+        *   2. Fall back to the smart-constructor heuristic when the compiler-supported lookup cannot determine the
+        *      underlying type:
+        *      - try `simplified` which reduces TypeRefs to their underlying type when in scope
         *      - try to infer from PlainValue ctor (the one that returns A directly, not Either[?, A])
         *      - fall back to the underlying type of the opaque type
-        *
-        * Note: We cannot use `sym.tree` from outside the opaque type's scope because it only shows TypeBounds, not the
-        * actual underlying type.
         */
       def underlyingTypeReprImpl(repr: TypeRepr)(using ctx: MacroCommons & StdExtensions): TypeRepr = {
         val tpe = repr.dealias
         val sym = tpe.typeSymbol
         if sym.flags.is(Flags.Opaque) then {
-          // Strategy 1: simplified reduces TypeRefs to their underlying type when in scope.
-          val simplifiedTpe = tpe.simplified
-          if simplifiedTpe.typeSymbol != sym then simplifiedTpe
-          else {
-            // Strategy 2: Infer from PlainValue smart constructor.
-            // A PlainValue ctor has signature (Input => Output) where Output is the opaque type.
-            // The Input type is the underlying type.
-            CtorLikes
-              .unapply(tpe.asTyped[Any])
-              .map { nel =>
-                def preferPlain = nel.toList.collectFirst {
-                  case existential if existential.value.isInstanceOf[CtorLikeOf.PlainValue[?, ?]] =>
-                    existential.Underlying.asUntyped
+          // Strategy 1: translucentSuperType-based lookup (works from outside the defining scope).
+          UntypedType.opaqueUnderlyingType(tpe).getOrElse {
+            // Strategy 2a: simplified reduces TypeRefs to their underlying type when in scope.
+            val simplifiedTpe = tpe.simplified
+            if simplifiedTpe.typeSymbol != sym then simplifiedTpe
+            else {
+              // Strategy 2b: Infer from PlainValue smart constructor.
+              // A PlainValue ctor has signature (Input => Output) where Output is the opaque type.
+              // The Input type is the underlying type.
+              CtorLikes
+                .unapply(tpe.asTyped[Any])
+                .map { nel =>
+                  def preferPlain = nel.toList.collectFirst {
+                    case existential if existential.value.isInstanceOf[CtorLikeOf.PlainValue[?, ?]] =>
+                      existential.Underlying.asUntyped
+                  }
+                  def fallback = nel.head.Underlying.asUntyped
+                  preferPlain getOrElse fallback
                 }
-                def fallback = nel.head.Underlying.asUntyped
-                preferPlain getOrElse fallback
-              }
-              .getOrElse(tpe)
+                .getOrElse(tpe)
+            }
           }
         } else sym.typeRef
       }

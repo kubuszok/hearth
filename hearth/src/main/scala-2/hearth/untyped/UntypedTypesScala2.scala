@@ -152,6 +152,9 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
     override def isOpaqueType(instanceTpe: UntypedType): Boolean = false
 
+    // Scala 2 has no opaque types, so there is never an underlying type to resolve.
+    override def opaqueUnderlyingType(instanceTpe: UntypedType): Option[UntypedType] = None
+
     override def isTuple(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
       A != NoSymbol && {

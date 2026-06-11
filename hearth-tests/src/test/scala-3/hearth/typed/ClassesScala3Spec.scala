@@ -135,6 +135,27 @@ final class ClassesScala3Spec extends MacroSuite {
     }
 
     test(
+      "Enum[A].{matchOn and parMatchOn} should match on the union with an opaque member with disjoint underlying class (OpaqueId | String)"
+    ) {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+
+      def code(input: examples.unions.OpaqueIdOrString) = testEnumMatchOnAndParMatchOn(input)
+      code(examples.unions.OpaqueId(42L)) <==>
+        "sequential: subtype name: hearth.examples.unions.OpaqueId, expr: hearth.examples.unions.OpaqueId, parallel: subtype name: hearth.examples.unions.OpaqueId, expr: hearth.examples.unions.OpaqueId"
+      code("hello") <==>
+        "sequential: subtype name: java.lang.String, expr: java.lang.String, parallel: subtype name: java.lang.String, expr: java.lang.String"
+    }
+
+    test(
+      "Enum[A].{matchOn and parMatchOn} should return <no enum> for union of an opaque member and its underlying type (OpaqueId | Long)"
+    ) {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+
+      def code(input: examples.unions.OpaqueIdOrLong) = testEnumMatchOnAndParMatchOn(input)
+      code(42L) <==> "<no enum>"
+    }
+
+    test(
       "Enum[A].{matchOn and parMatchOn} should return <no enum> for non-disjoint union type (List[Int] | List[String])"
     ) {
       import ClassesFixtures.testEnumMatchOnAndParMatchOn
