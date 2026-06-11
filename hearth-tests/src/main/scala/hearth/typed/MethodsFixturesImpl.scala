@@ -615,6 +615,47 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     Expr(Data.list((typeAnnotations ++ methodAnnotations)*))
   }
 
+  private def renderParameterAnnotations(parameters: Parameters): Data = {
+    val rendered = parameters.flatten.map { case (paramName, param) =>
+      val annotations = param.annotations.flatMap { ann =>
+        import ann.Underlying as AnnType
+        val isExampleAnnotation = ann.Underlying =:= Type.of[hearth.examples.methods.ExampleAnnotation]
+        val isExampleAnnotation2 = ann.Underlying =:= Type.of[hearth.examples.methods.ExampleAnnotation2]
+        if (!isExampleAnnotation && !isExampleAnnotation2) None
+        else
+          Some(
+            Data.map(
+              "isExampleAnnotation" -> Data(isExampleAnnotation),
+              "isExampleAnnotation2" -> Data(isExampleAnnotation2),
+              "destructuredArgs" -> Data(destructureAnnotationValues(ann))
+            )
+          )
+      }
+      Data.map(
+        "name" -> Data(paramName),
+        "annotations" -> Data.list(annotations*)
+      )
+    }
+    Data.list(rendered*)
+  }
+
+  def testParameterAnnotations[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
+    case Expr(name) =>
+      Type[A].methods.filter(_.name == name) match {
+        case method :: Nil => Expr(renderParameterAnnotations(method.totalParameters))
+        case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
+        case _             => Environment.reportErrorAndAbort(s"Method $name is not unique")
+      }
+    case _ =>
+      Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+  }
+
+  def testConstructorParameterAnnotations[A: Type]: Expr[Data] =
+    Type[A].primaryConstructor match {
+      case Some(constructor) => Expr(renderParameterAnnotations(constructor.totalParameters))
+      case None              => Expr(Data("<no primary constructor>"))
+    }
+
   def testDefaultValueOnGenericMethod[A: Type](
       instance: Expr[A],
       methodName: Expr[String]

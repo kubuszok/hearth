@@ -2094,6 +2094,54 @@ final class MethodsSpec extends MacroSuite {
     }
   }
 
+  group("methods: parameter annotations") {
+    import MethodsFixtures.{testConstructorParameterAnnotations, testParameterAnnotations}
+
+    test("method parameter annotations are typed and destructurable") {
+      testParameterAnnotations[examples.methods.NoCompanionClass]("methodWithAnnotatedParam") <==> Data.list(
+        Data.map(
+          "name" -> Data("arg"),
+          "annotations" -> Data.list(
+            Data.map(
+              "isExampleAnnotation" -> Data(true),
+              "isExampleAnnotation2" -> Data(false),
+              "destructuredArgs" -> Data("")
+            )
+          )
+        )
+      )
+    }
+
+    test("case class constructor parameter annotations are typed and destructurable") {
+      testConstructorParameterAnnotations[examples.methods.WithAnnotatedParams] <==> Data.list(
+        Data.map(
+          "name" -> Data("a"),
+          "annotations" -> Data.list(
+            Data.map(
+              "isExampleAnnotation" -> Data(true),
+              "isExampleAnnotation2" -> Data(false),
+              "destructuredArgs" -> Data("")
+            )
+          )
+        ),
+        Data.map(
+          "name" -> Data("b"),
+          "annotations" -> Data.list(
+            Data.map(
+              "isExampleAnnotation" -> Data(false),
+              "isExampleAnnotation2" -> Data(true),
+              "destructuredArgs" -> Data("1")
+            )
+          )
+        ),
+        Data.map(
+          "name" -> Data("c"),
+          "annotations" -> Data.list()
+        )
+      )
+    }
+  }
+
   group("methods: fold on abstract trait method") {
     import MethodsFixtures.testCallInstanceViaFold
 
