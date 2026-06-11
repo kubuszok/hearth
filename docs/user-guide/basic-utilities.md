@@ -485,8 +485,10 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
 1. `directChildren` and `exhaustiveChildren` work for sealed traits, Scala 3 enums, Java enums, and
    **disjoint union types** (Scala 3 only). For union types like `String | Int`, the flattened members
    are returned when they are safe for exhaustive pattern matching at runtime — meaning no subtype overlap,
-   no duplicate erasures, and no opaque types. Unsafe unions (e.g. `List[Int] | List[String]`, which
-   erase to the same runtime class) return `None`.
+   no related runtime classes (after boxing of primitives), and no opaque types. Unsafe unions
+   (e.g. `List[Int] | Seq[String]`, where a `List` value would be caught by either branch) return `None`.
+   Stable singleton members (e.g. `Color.Red.type`, case objects) are matched by value, so they are
+   accepted even when they share a runtime class.
 
 **Visibility checks**:
 
@@ -3380,18 +3382,25 @@ pipeline used by sealed traits and enums. Use `Type.isUnionType` to detect them.
 recognized by `Enum.parse`, so `matchOn`/`parMatchOn` work on them just like on sealed traits and enums.
 
 `directChildren` returns `Some` for **disjoint** unions — those whose members can be reliably
-distinguished at runtime via pattern matching:
+distinguished at runtime via pattern matching. Class-tested members must have unrelated runtime classes
+(primitives are compared after boxing, since union values are boxed), while stable singleton members
+(literal types, case objects, parameterless Scala 3 enum cases) are matched by value and are exempt
+from the runtime-class requirement:
 
 | Union type              | `directChildren`           | Reason                                    |
 |-------------------------|----------------------------|-------------------------------------------|
-| `String \| Int`         | `Some(String, Int)`        | distinct runtime classes                  |
-| `Boolean \| Double`     | `Some(Boolean, Double)`    | distinct runtime classes                  |
+| `String \| Int`         | `Some(String, Int)`        | unrelated runtime classes                 |
+| `Boolean \| Double`     | `Some(Boolean, Double)`    | unrelated runtime classes                 |
 | `String \| Int \| Boolean` | `Some(String, Int, Boolean)` | nested unions are flattened           |
+| `Color.Red.type \| Color.Blue.type` | `Some(Red, Blue)` | singletons are matched by value      |
+| `Color.Red.type \| String` | `Some(Red, String)`     | singleton + unrelated class               |
 | `String \| AnyRef`      | `None`                     | subtype overlap (`String <:< AnyRef`)     |
-| `List[Int] \| List[String]` | `None`                | same erasure (both erase to `List`)       |
+| `List[Int] \| List[String]` | `None`                | same runtime class (both are `List`)      |
+| `List[Int] \| Seq[String]` | `None`                  | related runtime classes (`List <: Seq`)   |
+| `Int \| java.lang.Integer` | `None`                  | same runtime class after boxing           |
 | `Nothing \| String`     | `None`                     | `Nothing` filtered out, leaving 1 member  |
 | `String \| String`      | `None`                     | duplicate, leaving 1 member               |
-| `OpaqueId \| String`    | `None`                     | opaque types have unknown runtime erasure |
+| `OpaqueId \| String`    | `None`                     | opaque types have unknown runtime class   |
 
 On Scala 2, `isUnionType` always returns `false` and `directChildren` is not affected.
 
