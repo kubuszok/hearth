@@ -96,6 +96,15 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
     )
   )
 
+  def testOpaqueUnderlyingType[A: Type]: Expr[Data] = Expr(
+    Data.map(
+      "Type.isOpaqueType" -> Data(Type[A].isOpaqueType),
+      "Type.opaqueUnderlyingType" -> Type[A].opaqueUnderlyingType
+        .map(underlying => Data(underlying.plainPrint))
+        .getOrElse(Data("<no underlying type>"))
+    )
+  )
+
   def testUnionMembers[A: Type]: Expr[Data] = Expr(
     Data.map(
       "Type.isUnionType" -> Data(Type[A].isUnionType),

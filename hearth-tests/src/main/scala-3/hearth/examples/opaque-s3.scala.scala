@@ -19,6 +19,29 @@ object opaqueid {
   }
 }
 
+/** Example opaque types for testing `Type.opaqueUnderlyingType`. */
+object opaqueunderlying {
+
+  /** Bounded opaque type - the underlying type should be the RHS (`Int`), not the bound. */
+  opaque type Bounded <: Int = Int
+  object Bounded { def apply(v: Int): Bounded = v }
+
+  /** Innermost opaque type of a nested chain. */
+  opaque type Inner = Int
+  object Inner { def apply(v: Int): Inner = v }
+
+  /** Opaque type whose RHS is another opaque type - should resolve to the innermost underlying (`Int`). */
+  opaque type Outer = Inner
+  object Outer { def apply(v: Inner): Outer = v }
+
+  /** Parameterized opaque type - `Wrapper[Int]` should resolve to `List[Int]`, NOT the bare `List` constructor. */
+  opaque type Wrapper[A] = List[A]
+  object Wrapper { def apply[A](v: List[A]): Wrapper[A] = v }
+
+  /** Plain (non-opaque) alias to an opaque type - should resolve to the opaque's underlying type (`Long`). */
+  type AliasToOpaque = opaqueid.OpaqueId
+}
+
 /** Example opaque type with only [[CtorLikeOf.PlainValue]] smart constructor. */
 object plainctor {
 

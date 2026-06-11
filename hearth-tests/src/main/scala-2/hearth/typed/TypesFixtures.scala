@@ -37,6 +37,8 @@ final private class TypesFixtures(val c: blackbox.Context) extends MacroCommonsS
   def testOneWayCodecsImpl: c.Expr[Data] = testOneWayCodecs
 
   def testUnionMembersImpl[A: c.WeakTypeTag]: c.Expr[Data] = testUnionMembers[A]
+
+  def testOpaqueUnderlyingTypeImpl[A: c.WeakTypeTag]: c.Expr[Data] = testOpaqueUnderlyingType[A]
 }
 
 object TypesFixtures {
@@ -68,4 +70,6 @@ object TypesFixtures {
   def testOneWayCodecs: Data = macro TypesFixtures.testOneWayCodecsImpl
 
   def testUnionMembers[A]: Data = macro TypesFixtures.testUnionMembersImpl[A]
+
+  def testOpaqueUnderlyingType[A]: Data = macro TypesFixtures.testOpaqueUnderlyingTypeImpl[A]
 }
