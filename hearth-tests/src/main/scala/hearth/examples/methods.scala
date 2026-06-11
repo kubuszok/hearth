@@ -35,6 +35,12 @@ class NoCompanionClass extends Trait {
   override def inheritedAbstractMethod(arg: Int): Int = arg + 1
 }
 
+case class WithAnnotatedParams(
+    @ExampleAnnotation a: Int,
+    @ExampleAnnotation2(1) b: String,
+    c: Double
+)
+
 final class WithCompanion(arg: Int) {
 
   def method(arg2: Int): Int = arg + arg2
