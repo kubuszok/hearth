@@ -594,32 +594,65 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           }
           if hasSubtypeOverlap then None
           else {
-            // Check erasure safety: no two members should erase to the same runtime class
-            def erasure(tpe: TypeRepr): Option[TypeRepr] =
-              // Opaque types hide their underlying representation, so we can't determine
-              // their runtime erasure from outside the defining scope.
-              if isOpaqueType(tpe) then None
-              else {
-                val widened = tpe.widen.dealias
-                widened match {
-                  case AppliedType(tycon, _) => Some(tycon)
-                  case other                 =>
-                    if other.classSymbol.isDefined then Some(other)
-                    else None // unknown → can't prove safety
-                }
-              }
+            // Stable singleton members (literal types, case objects/modules, Scala 3 enum case vals)
+            // are matched BY VALUE (equality/identity test), not by a runtime class test, so they are
+            // exempt from the runtime-class disjointness requirement below. They never overlap with
+            // class-tested members either: that would require a static subtype relationship
+            // (e.g. Color.Red.type <:< Color), which was already rejected by the pre-check above.
+            def isSingletonMember(tpe: TypeRepr): Boolean = tpe match {
+              case _: ConstantType => true
+              case _               =>
+                val termSym = tpe.termSymbol
+                def isModuleRef =
+                  !tpe.typeSymbol.isNoSymbol && tpe.typeSymbol.flags.is(Flags.Module)
+                def isEnumCaseVal =
+                  !termSym.isNoSymbol && termSym.flags.is(Flags.Enum) &&
+                    (termSym.flags.is(Flags.JavaStatic) || termSym.flags.is(Flags.StableRealizable))
+                isModuleRef || isEnumCaseVal
+            }
 
-            val erasures = members.map(erasure)
-            // If any member has unknown erasure, be conservative
-            if erasures.exists(_.isEmpty) then None
+            val classMembers = members.filterNot(isSingletonMember)
+
+            // Union values are boxed at runtime, so primitives have to be normalized to their boxed
+            // representations (e.g. Int and java.lang.Integer are NOT disjoint at runtime).
+            val boxedClasses = Map[java.lang.Class[?], java.lang.Class[?]](
+              classOf[Unit] -> classOf[scala.runtime.BoxedUnit],
+              classOf[Boolean] -> classOf[java.lang.Boolean],
+              classOf[Byte] -> classOf[java.lang.Byte],
+              classOf[Short] -> classOf[java.lang.Short],
+              classOf[Int] -> classOf[java.lang.Integer],
+              classOf[Long] -> classOf[java.lang.Long],
+              classOf[Float] -> classOf[java.lang.Float],
+              classOf[Double] -> classOf[java.lang.Double],
+              classOf[Char] -> classOf[java.lang.Character]
+            )
+
+            // Compute the runtime class used by the `case x: Member` class test. Members whose runtime
+            // class cannot be determined (abstract types, type params, refinements, opaques) are refused
+            // conservatively - we cannot prove that the class tests dispatch soundly.
+            def runtimeClass(tpe: TypeRepr): Option[java.lang.Class[?]] =
+              // Opaque types hide their underlying representation, so we can't determine
+              // their runtime class from outside the defining scope.
+              if isOpaqueType(tpe) then None
+              else toClass(tpe.widen.dealias).map(clazz => boxedClasses.getOrElse(clazz, clazz))
+
+            val classes = classMembers.map(runtimeClass)
+            // If any class-tested member has an unknown runtime class, be conservative
+            if classes.exists(_.isEmpty) then None
             else {
-              val knownErasures = erasures.flatten
-              val hasDuplicateErasure = knownErasures.indices.exists { i =>
-                knownErasures.indices.exists { j =>
-                  i != j && (knownErasures(i) =:= knownErasures(j))
+              val knownClasses = classes.flatten
+              // Reject RELATED runtime classes, not just equal ones: `case x: List[Int]` would also
+              // catch a `Seq[String]` value that happens to be a List, dispatching to the wrong branch.
+              val hasRelatedRuntimeClasses = knownClasses.indices.exists { i =>
+                knownClasses.indices.exists { j =>
+                  i != j && {
+                    val a = knownClasses(i)
+                    val b = knownClasses(j)
+                    a.isAssignableFrom(b) || b.isAssignableFrom(a)
+                  }
                 }
               }
-              if hasDuplicateErasure then None
+              if hasRelatedRuntimeClasses then None
               else
                 Some(ListMap.from(members.map { tpe =>
                   UntypedType.plainPrint(tpe) -> tpe

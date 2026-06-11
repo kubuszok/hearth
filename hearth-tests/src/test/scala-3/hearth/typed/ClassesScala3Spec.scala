@@ -99,12 +99,57 @@ final class ClassesScala3Spec extends MacroSuite {
     }
 
     test(
+      "Enum[A].{matchOn and parMatchOn} should match on the union of singleton types (Color.Red.type | Color.Blue.type)"
+    ) {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+
+      def code(input: examples.unions.RedOrBlue) = testEnumMatchOnAndParMatchOn(input)
+      code(examples.Color.Red) <==>
+        "sequential: subtype name: hearth.examples.Color.Red.type, expr: hearth.examples.Color.Red.type, parallel: subtype name: hearth.examples.Color.Red.type, expr: hearth.examples.Color.Red.type"
+      code(examples.Color.Blue) <==>
+        "sequential: subtype name: hearth.examples.Color.Blue.type, expr: hearth.examples.Color.Blue.type, parallel: subtype name: hearth.examples.Color.Blue.type, expr: hearth.examples.Color.Blue.type"
+    }
+
+    test(
+      "Enum[A].{matchOn and parMatchOn} should match on the mixed union of a singleton and a class (Color.Red.type | String)"
+    ) {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+
+      def code(input: examples.unions.RedOrString) = testEnumMatchOnAndParMatchOn(input)
+      code(examples.Color.Red) <==>
+        "sequential: subtype name: hearth.examples.Color.Red.type, expr: hearth.examples.Color.Red.type, parallel: subtype name: hearth.examples.Color.Red.type, expr: hearth.examples.Color.Red.type"
+      code("hello") <==>
+        "sequential: subtype name: java.lang.String, expr: java.lang.String, parallel: subtype name: java.lang.String, expr: java.lang.String"
+    }
+
+    test(
+      "Enum[A].{matchOn and parMatchOn} should match on the mixed union of a module singleton and a class (Marker.type | Int)"
+    ) {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+
+      def code(input: examples.unions.MarkerOrInt) = testEnumMatchOnAndParMatchOn(input)
+      code(examples.unions.Marker) <==>
+        "sequential: subtype name: hearth.examples.unions.Marker.type, expr: hearth.examples.unions.Marker.type, parallel: subtype name: hearth.examples.unions.Marker.type, expr: hearth.examples.unions.Marker.type"
+      code(42) <==>
+        "sequential: subtype name: scala.Int, expr: scala.Int, parallel: subtype name: scala.Int, expr: scala.Int"
+    }
+
+    test(
       "Enum[A].{matchOn and parMatchOn} should return <no enum> for non-disjoint union type (List[Int] | List[String])"
     ) {
       import ClassesFixtures.testEnumMatchOnAndParMatchOn
 
       def code(input: examples.unions.ListIntOrListString) = testEnumMatchOnAndParMatchOn(input)
       code(List(1)) <==> "<no enum>"
+    }
+
+    test(
+      "Enum[A].{matchOn and parMatchOn} should return <no enum> for union type with related runtime classes (List[Int] | Seq[String])"
+    ) {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+
+      def code(input: examples.unions.ListIntOrSeqString) = testEnumMatchOnAndParMatchOn(input)
+      code(List("a")) <==> "<no enum>"
     }
   }
 }
