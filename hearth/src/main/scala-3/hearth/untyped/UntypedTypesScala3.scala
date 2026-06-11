@@ -123,6 +123,30 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       !sym.isNoSymbol && sym.flags.is(Flags.Opaque)
     }
 
+    override def opaqueUnderlyingType(instanceTpe: UntypedType): Option[UntypedType] = {
+      // `TypeRef.translucentSuperType` is the compiler-supported way of looking through an opaque type:
+      // on an opaque TypeRef it returns `symbol.opaqueAlias.asSeenFrom(prefix, owner)` - the real RHS,
+      // visible from outside the defining scope, correct through bounds (`opaque type X <: Int = Int`
+      // resolves to `Int`, not the bound), nested opaque chains, and path-dependent prefixes.
+      @scala.annotation.tailrec
+      def loop(tpe: TypeRepr): TypeRepr = tpe match {
+        case tr: TypeRef if tr.isOpaqueAlias                          => loop(tr.translucentSuperType.dealias)
+        case AppliedType(tycon: TypeRef, args) if tycon.isOpaqueAlias =>
+          tycon.translucentSuperType.dealias match {
+            // For parameterized opaques (`opaque type Wrapper[A] = List[A]`) the translucent supertype of the
+            // bare constructor is a TypeLambda - re-apply the original type arguments so that `Wrapper[Int]`
+            // resolves to `List[Int]` rather than the bare `List` constructor (`appliedTo` beta-reduces).
+            case tl: TypeLambda => loop(tl.appliedTo(args).dealias)
+            // Not expected for an opaque constructor, but if the RHS is not a type lambda, stop here rather
+            // than dropping the type arguments.
+            case _ => tpe
+          }
+        case _ => tpe
+      }
+      val result = loop(instanceTpe.dealias)
+      if result =:= instanceTpe then None else Some(result)
+    }
+
     override def isTuple(instanceTpe: UntypedType): Boolean = {
       val tupleBase = fromTyped[Tuple]
       val nonEmptyBase = fromTyped[NonEmptyTuple]
@@ -628,13 +652,15 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
             )
 
             // Compute the runtime class used by the `case x: Member` class test. Members whose runtime
-            // class cannot be determined (abstract types, type params, refinements, opaques) are refused
+            // class cannot be determined (abstract types, type params, refinements) are refused
             // conservatively - we cannot prove that the class tests dispatch soundly.
-            def runtimeClass(tpe: TypeRepr): Option[java.lang.Class[?]] =
-              // Opaque types hide their underlying representation, so we can't determine
-              // their runtime class from outside the defining scope.
-              if isOpaqueType(tpe) then None
-              else toClass(tpe.widen.dealias).map(clazz => boxedClasses.getOrElse(clazz, clazz))
+            def runtimeClass(tpe: TypeRepr): Option[java.lang.Class[?]] = {
+              // Opaque types hide their underlying representation, but `opaqueUnderlyingType` can resolve
+              // it from outside the defining scope - the class test dispatches on the underlying class
+              // (e.g. `OpaqueId(= Long) | String` is accepted, while `OpaqueId | Long` is refused).
+              val classTestedTpe = opaqueUnderlyingType(tpe).getOrElse(tpe)
+              toClass(classTestedTpe.widen.dealias).map(clazz => boxedClasses.getOrElse(clazz, clazz))
+            }
 
             val classes = classMembers.map(runtimeClass)
             // If any class-tested member has an unknown runtime class, be conservative

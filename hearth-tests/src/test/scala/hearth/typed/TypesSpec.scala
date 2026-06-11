@@ -1257,6 +1257,22 @@ final class TypesSpec extends MacroSuite {
         }
       }
 
+      group("methods: Type.{opaqueUnderlyingType} expected behavior") {
+        import TypesFixtures.testOpaqueUnderlyingType
+
+        // Scala 3-only opaque types are tested in TypesScala3Spec; on Scala 2 the API always returns None.
+        test("for non-opaque types") {
+          testOpaqueUnderlyingType[String] <==> Data.map(
+            "Type.isOpaqueType" -> Data(false),
+            "Type.opaqueUnderlyingType" -> Data("<no underlying type>")
+          )
+          testOpaqueUnderlyingType[examples.classes.ExampleCaseClass] <==> Data.map(
+            "Type.isOpaqueType" -> Data(false),
+            "Type.opaqueUnderlyingType" -> Data("<no underlying type>")
+          )
+        }
+      }
+
       group("methods: <:<, =:=, expected behavior") {
         import TypesFixtures.testComparisons
 

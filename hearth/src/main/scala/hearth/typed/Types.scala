@@ -160,6 +160,24 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     )
     final def isTypeSystemSpecial[A: Type]: Boolean = UntypedType.fromTyped[A].isTypeSystemSpecial
     final def isOpaqueType[A: Type]: Boolean = UntypedType.fromTyped[A].isOpaqueType
+
+    /** Underlying type of an opaque type, as seen from outside its defining scope (Scala 3-only).
+      *
+      * Resolves the right-hand side of `opaque type X = Y` even through:
+      *   - bounds (`opaque type X <: Int = Int` resolves to `Int`, not the bound),
+      *   - chains of opaque types (`opaque type Outer = Inner` where `Inner` is itself opaque resolves to the innermost
+      *     underlying type),
+      *   - applied parameterized opaques (`opaque type Wrapper[A] = List[A]` applied as `Wrapper[Int]` resolves to
+      *     `List[Int]`),
+      *   - plain aliases to opaque types (`type Alias = X` resolves to `X`'s underlying type).
+      *
+      * Returns `None` when the type is not an opaque type, or when the underlying type cannot be determined. Always
+      * returns `None` on Scala 2 (which has no opaque types).
+      *
+      * @since 0.4.0
+      */
+    final def opaqueUnderlyingType[A: Type]: Option[??] =
+      UntypedType.fromTyped[A].opaqueUnderlyingType.map(_.as_??)
     final def isTuple[A: Type]: Boolean = UntypedType.fromTyped[A].isTuple
     final def isNamedTuple[A: Type]: Boolean = UntypedType.fromTyped[A].isNamedTuple
     final def isUnionType[A: Type]: Boolean = UntypedType.fromTyped[A].isUnionType
@@ -705,6 +723,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def isJvmBuiltIn: Boolean = Type.isJvmBuiltIn(using tpe)
     def isTypeSystemSpecial: Boolean = Type.isTypeSystemSpecial(using tpe)
     def isOpaqueType: Boolean = Type.isOpaqueType(using tpe)
+    def opaqueUnderlyingType: Option[??] = Type.opaqueUnderlyingType(using tpe)
     def isTuple: Boolean = Type.isTuple(using tpe)
     def isNamedTuple: Boolean = Type.isNamedTuple(using tpe)
     def isUnionType: Boolean = Type.isUnionType(using tpe)

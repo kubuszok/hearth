@@ -110,6 +110,23 @@ trait UntypedTypes { this: MacroCommons =>
 
     def isInJavaLangPackage(instanceTpe: UntypedType): Boolean
     def isOpaqueType(instanceTpe: UntypedType): Boolean
+
+    /** Underlying type of an opaque type, as seen from outside its defining scope (Scala 3-only).
+      *
+      * Resolves the right-hand side of `opaque type X = Y` even through:
+      *   - bounds (`opaque type X <: Int = Int` resolves to `Int`, not the bound),
+      *   - chains of opaque types (`opaque type Outer = Inner` where `Inner` is itself opaque resolves to the innermost
+      *     underlying type),
+      *   - applied parameterized opaques (`opaque type Wrapper[A] = List[A]` applied as `Wrapper[Int]` resolves to
+      *     `List[Int]`),
+      *   - plain aliases to opaque types (`type Alias = X` resolves to `X`'s underlying type).
+      *
+      * Returns `None` when the type is not an opaque type, or when the underlying type cannot be determined. Always
+      * returns `None` on Scala 2 (which has no opaque types).
+      *
+      * @since 0.4.0
+      */
+    def opaqueUnderlyingType(instanceTpe: UntypedType): Option[UntypedType]
     def isTuple(instanceTpe: UntypedType): Boolean
     def isNamedTuple(instanceTpe: UntypedType): Boolean = false
     def isUnionType(instanceTpe: UntypedType): Boolean = false
@@ -222,6 +239,7 @@ trait UntypedTypes { this: MacroCommons =>
     def isJvmBuiltIn: Boolean = UntypedType.isJvmBuiltIn(untyped)
     def isTypeSystemSpecial: Boolean = UntypedType.isTypeSystemSpecial(untyped)
     def isOpaqueType: Boolean = UntypedType.isOpaqueType(untyped)
+    def opaqueUnderlyingType: Option[UntypedType] = UntypedType.opaqueUnderlyingType(untyped)
     def isTuple: Boolean = UntypedType.isTuple(untyped)
     def isNamedTuple: Boolean = UntypedType.isNamedTuple(untyped)
     def isUnionType: Boolean = UntypedType.isUnionType(untyped)

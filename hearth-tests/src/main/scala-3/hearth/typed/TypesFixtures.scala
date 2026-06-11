@@ -130,6 +130,10 @@ object TypesFixtures {
   private def testUnionMembersImpl[A: Type](using q: Quotes): Expr[Data] =
     new TypesFixtures(q).testUnionMembers[A]
 
+  inline def testOpaqueUnderlyingType[A]: Data = ${ testOpaqueUnderlyingTypeImpl[A] }
+  private def testOpaqueUnderlyingTypeImpl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testOpaqueUnderlyingType[A]
+
   inline def testTupleXXLCodec: Data = ${ testTupleXXLCodecImpl }
   private def testTupleXXLCodecImpl(using q: Quotes): Expr[Data] = new TypesFixtures(q).testTupleXXLCodec
 }

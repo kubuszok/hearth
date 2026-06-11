@@ -649,15 +649,23 @@ final class TypesScala3Spec extends MacroSuite {
           )
         }
 
-        test("for OpaqueId | String (opaque, conservative None)") {
+        test("for OpaqueId | String (opaque with disjoint underlying class - accepted)") {
+          // OpaqueId's underlying type (Long) is resolved via opaqueUnderlyingType, and Long vs String
+          // runtime classes are disjoint, so the union is accepted.
           testUnionMembers[examples.unions.OpaqueIdOrString] <==> Data.map(
             "Type.isUnionType" -> Data(true),
-            "Type.directChildren" -> Data("<no direct children>"),
-            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+            "Type.directChildren" -> Data.map(
+              "hearth.examples.unions.OpaqueId" -> Data("hearth.examples.unions.OpaqueId"),
+              "java.lang.String" -> Data("java.lang.String")
+            ),
+            "Type.exhaustiveChildren" -> Data.map(
+              "hearth.examples.unions.OpaqueId" -> Data("hearth.examples.unions.OpaqueId"),
+              "java.lang.String" -> Data("java.lang.String")
+            )
           )
         }
 
-        test("for OpaqueId | Long (opaque + underlying type)") {
+        test("for OpaqueId | Long (opaque + its own underlying type - related classes, refused)") {
           testUnionMembers[examples.unions.OpaqueIdOrLong] <==> Data.map(
             "Type.isUnionType" -> Data(true),
             "Type.directChildren" -> Data("<no direct children>"),
@@ -665,11 +673,68 @@ final class TypesScala3Spec extends MacroSuite {
           )
         }
 
-        test("for OpaqueId | OpaqueName (two opaques)") {
+        test("for OpaqueId | OpaqueName (two opaques with disjoint underlying classes - accepted)") {
+          // OpaqueId(= Long) and OpaqueName(= String) resolve to disjoint runtime classes.
           testUnionMembers[examples.unions.OpaqueIdOrOpaqueName] <==> Data.map(
             "Type.isUnionType" -> Data(true),
-            "Type.directChildren" -> Data("<no direct children>"),
-            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+            "Type.directChildren" -> Data.map(
+              "hearth.examples.unions.OpaqueId" -> Data("hearth.examples.unions.OpaqueId"),
+              "hearth.examples.unions.OpaqueName" -> Data("hearth.examples.unions.OpaqueName")
+            ),
+            "Type.exhaustiveChildren" -> Data.map(
+              "hearth.examples.unions.OpaqueId" -> Data("hearth.examples.unions.OpaqueId"),
+              "hearth.examples.unions.OpaqueName" -> Data("hearth.examples.unions.OpaqueName")
+            )
+          )
+        }
+      }
+
+      group("methods: Type.{opaqueUnderlyingType} expected behavior") {
+        import TypesFixtures.testOpaqueUnderlyingType
+
+        test("for simple opaque types") {
+          testOpaqueUnderlyingType[examples.opaqueid.OpaqueId] <==> Data.map(
+            "Type.isOpaqueType" -> Data(true),
+            "Type.opaqueUnderlyingType" -> Data("scala.Long")
+          )
+        }
+
+        test("for bounded opaque types (resolves the RHS, not the bound)") {
+          testOpaqueUnderlyingType[examples.opaqueunderlying.Bounded] <==> Data.map(
+            "Type.isOpaqueType" -> Data(true),
+            "Type.opaqueUnderlyingType" -> Data("scala.Int")
+          )
+        }
+
+        test("for nested opaque chains (resolves the innermost underlying type)") {
+          testOpaqueUnderlyingType[examples.opaqueunderlying.Outer] <==> Data.map(
+            "Type.isOpaqueType" -> Data(true),
+            "Type.opaqueUnderlyingType" -> Data("scala.Int")
+          )
+        }
+
+        test("for applied parameterized opaque types (type arguments are preserved)") {
+          testOpaqueUnderlyingType[examples.opaqueunderlying.Wrapper[Int]] <==> Data.map(
+            "Type.isOpaqueType" -> Data(true),
+            "Type.opaqueUnderlyingType" -> Data("scala.collection.immutable.List[scala.Int]")
+          )
+        }
+
+        test("for plain aliases to opaque types") {
+          testOpaqueUnderlyingType[examples.opaqueunderlying.AliasToOpaque] <==> Data.map(
+            "Type.isOpaqueType" -> Data(true),
+            "Type.opaqueUnderlyingType" -> Data("scala.Long")
+          )
+        }
+
+        test("for non-opaque types") {
+          testOpaqueUnderlyingType[String] <==> Data.map(
+            "Type.isOpaqueType" -> Data(false),
+            "Type.opaqueUnderlyingType" -> Data("<no underlying type>")
+          )
+          testOpaqueUnderlyingType[examples.classes.ExampleCaseClass] <==> Data.map(
+            "Type.isOpaqueType" -> Data(false),
+            "Type.opaqueUnderlyingType" -> Data("<no underlying type>")
           )
         }
       }
