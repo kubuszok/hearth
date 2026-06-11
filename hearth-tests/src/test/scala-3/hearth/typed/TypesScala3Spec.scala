@@ -535,11 +535,45 @@ final class TypesScala3Spec extends MacroSuite {
           )
         }
 
-        test("for Color.Red.type | Color.Blue.type (same erasure — both erase to Color)") {
+        test("for Color.Red.type | Color.Blue.type (singletons matched by value, exempt from class disjointness)") {
           testUnionMembers[examples.unions.RedOrBlue] <==> Data.map(
             "Type.isUnionType" -> Data(true),
-            "Type.directChildren" -> Data("<no direct children>"),
-            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+            "Type.directChildren" -> Data.map(
+              "hearth.examples.Color.Red.type" -> Data("hearth.examples.Color.Red.type"),
+              "hearth.examples.Color.Blue.type" -> Data("hearth.examples.Color.Blue.type")
+            ),
+            "Type.exhaustiveChildren" -> Data.map(
+              "hearth.examples.Color.Red.type" -> Data("hearth.examples.Color.Red.type"),
+              "hearth.examples.Color.Blue.type" -> Data("hearth.examples.Color.Blue.type")
+            )
+          )
+        }
+
+        test("for Color.Red.type | String (mixed: singleton + class-tested member)") {
+          testUnionMembers[examples.unions.RedOrString] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data.map(
+              "hearth.examples.Color.Red.type" -> Data("hearth.examples.Color.Red.type"),
+              "java.lang.String" -> Data("java.lang.String")
+            ),
+            "Type.exhaustiveChildren" -> Data.map(
+              "hearth.examples.Color.Red.type" -> Data("hearth.examples.Color.Red.type"),
+              "java.lang.String" -> Data("java.lang.String")
+            )
+          )
+        }
+
+        test("for Marker.type | Int (mixed: module singleton + class-tested member)") {
+          testUnionMembers[examples.unions.MarkerOrInt] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data.map(
+              "hearth.examples.unions.Marker.type" -> Data("hearth.examples.unions.Marker.type"),
+              "scala.Int" -> Data("scala.Int")
+            ),
+            "Type.exhaustiveChildren" -> Data.map(
+              "hearth.examples.unions.Marker.type" -> Data("hearth.examples.unions.Marker.type"),
+              "scala.Int" -> Data("scala.Int")
+            )
           )
         }
 
@@ -569,6 +603,22 @@ final class TypesScala3Spec extends MacroSuite {
 
         test("for List[Int] | List[String] (same erasure)") {
           testUnionMembers[examples.unions.ListIntOrListString] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data("<no direct children>"),
+            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+          )
+        }
+
+        test("for List[Int] | Seq[String] (related runtime classes — List <: Seq)") {
+          testUnionMembers[examples.unions.ListIntOrSeqString] <==> Data.map(
+            "Type.isUnionType" -> Data(true),
+            "Type.directChildren" -> Data("<no direct children>"),
+            "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+          )
+        }
+
+        test("for Int | java.lang.Integer (same runtime class after boxing)") {
+          testUnionMembers[examples.unions.IntOrJavaInteger] <==> Data.map(
             "Type.isUnionType" -> Data(true),
             "Type.directChildren" -> Data("<no direct children>"),
             "Type.exhaustiveChildren" -> Data("<no exhaustive children>")

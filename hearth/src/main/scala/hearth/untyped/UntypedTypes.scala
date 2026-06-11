@@ -162,7 +162,13 @@ trait UntypedTypes { this: MacroCommons =>
       val isEnum = instanceTpe.isEnumeration
       directChildren(instanceTpe)
         .flatMap(_.foldLeft[Option[Vector[(String, UntypedType)]]](Some(Vector.empty)) {
-          case (None, _)                                                                    => None
+          case (None, _) => None
+          // Stable singleton subtypes (case objects, Scala 3 enum case vals, Java enum values) are leaves:
+          // they are matched by value, so we must NOT recurse into them even when their type symbol points
+          // at a sealed parent (e.g. Color.Red.type's type symbol is the sealed enum class Color). Keeping
+          // the entry as-is preserves the key chosen by directChildren (e.g. plainPrint for union members).
+          case (Some(vector), nameSubtype @ (_, subtype)) if subtype.isObject || subtype.isVal =>
+            Some(vector :+ nameSubtype)
           case (Some(vector), (_, subtype)) if subtype.isSealed && !subtype.isJavaEnumValue =>
             exhaustiveChildren(subtype).map(vector ++ _.toVector)
           // For enumerations, children are value instances — they may appear abstract due to the Value class
