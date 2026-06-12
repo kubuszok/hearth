@@ -49,6 +49,10 @@ object ClassesFixtures {
   private def testEnumMatchOnAndParMatchOnImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
     new ClassesFixtures(q).testEnumMatchOnAndParMatchOn[A](expr)
 
+  inline def testEnumParseDiagnostic[A]: String = ${ testEnumParseDiagnosticImpl[A] }
+  private def testEnumParseDiagnosticImpl[A: Type](using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testEnumParseDiagnostic[A]
+
   inline def testDependentEnumDiagnostic[A]: String = ${ testDependentEnumDiagnosticImpl[A] }
   private def testDependentEnumDiagnosticImpl[A: Type](using q: Quotes): Expr[String] =
     new ClassesFixtures(q).testDependentEnumDiagnostic[A]

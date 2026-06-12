@@ -131,6 +131,28 @@ trait UntypedTypes { this: MacroCommons =>
     def isNamedTuple(instanceTpe: UntypedType): Boolean = false
     def isUnionType(instanceTpe: UntypedType): Boolean = false
 
+    /** Whether the given member of the given union type has to be discriminated with a user-provided
+      * `scala.reflect.TypeTest[Union, Member]` rather than a runtime class test (Scala 3-only).
+      *
+      * `true` for non-singleton union members whose runtime class either cannot be determined (abstract types, type
+      * parameters) or is not disjoint from another member's runtime class (same/related erasure, e.g. `List[Int]` and
+      * `List[String]`). Always `false` on Scala 2 (which has no union types).
+      *
+      * @since 0.4.0
+      */
+    def unionMemberRequiresTypeTest(unionTpe: UntypedType, member: UntypedType): Boolean = false
+
+    /** Human-readable reason why [[directChildren]] refused to decompose the given union type (Scala 3-only).
+      *
+      * Currently provided only when some members are not runtime-distinguishable and no implicit
+      * `scala.reflect.TypeTest[Union, Member]` was found for them - the message names the missing instances. Returns
+      * `None` when the type is not a refused union, or when the refusal has no actionable fix (e.g. members with static
+      * subtype relationships). Always `None` on Scala 2 (which has no union types).
+      *
+      * @since 0.4.0
+      */
+    def unionRefusalReason(instanceTpe: UntypedType): Option[String] = None
+
     def isAbstract(instanceTpe: UntypedType): Boolean
     def isFinal(instanceTpe: UntypedType): Boolean
     def isTrait(instanceTpe: UntypedType): Boolean
@@ -243,6 +265,9 @@ trait UntypedTypes { this: MacroCommons =>
     def isTuple: Boolean = UntypedType.isTuple(untyped)
     def isNamedTuple: Boolean = UntypedType.isNamedTuple(untyped)
     def isUnionType: Boolean = UntypedType.isUnionType(untyped)
+    def unionMemberRequiresTypeTest(member: UntypedType): Boolean =
+      UntypedType.unionMemberRequiresTypeTest(untyped, member)
+    def unionRefusalReason: Option[String] = UntypedType.unionRefusalReason(untyped)
 
     def isAbstract: Boolean = UntypedType.isAbstract(untyped)
     def isFinal: Boolean = UntypedType.isFinal(untyped)

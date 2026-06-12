@@ -371,25 +371,50 @@ trait Classes { this: MacroCommons =>
 
     lazy val exhaustiveChildren: Option[NonEmptyMap[String, ??<:[A]]] = tpe.exhaustiveChildren
 
+    /** Children in the order their match cases have to be emitted.
+      *
+      * For sealed hierarchies/enumerations the declaration order is kept (cases are disjoint, order is irrelevant). For
+      * union types the order matters: value/identity matches (precise) are emitted first, then TypeTest extractor cases
+      * (total, user-provided discriminators for members a class test cannot tell apart), and runtime class tests last -
+      * a class-tested value can only reach its case after every TypeTest-discriminated member had the chance to consume
+      * it, so overlapping erasures cannot dispatch to the wrong branch.
+      */
+    private lazy val childrenInMatchOrder: List[(String, ??<:[A])] =
+      if (!Type.isUnionType[A]) directChildren.toList
+      else
+        // $COVERAGE-OFF$ union types exist only on Scala 3
+        directChildren.toList.sortBy { case (_, child) =>
+          import child.Underlying as A0
+          if (Type.isVal[A0] || Type.isObject[A0]) 0 // matched by value/identity
+          else if (Type.unionMemberRequiresTypeTest[A, A0]) 1 // matched by user-provided TypeTest
+          else 2 // matched by runtime class test
+        } // sortBy is stable: members of the same group keep their declaration order
+    // $COVERAGE-ON$
+
+    private def matchCaseFor[A0: Type](name: String): MatchCase[Expr[A0]] =
+      if (Type.isUnionType[A] && Type.unionMemberRequiresTypeTest[A, A0])
+        // $COVERAGE-OFF$ TypeTest-discriminated union members exist only on Scala 3
+        MatchCase.typeTestMatch[A, A0](name)
+      // $COVERAGE-ON$
+      // Use eqValue for enum vals with erased types (Scala 3 parameterless enum cases, Java enum vals)
+      // but NOT for case objects where typeMatch preserves exhaustivity checking
+      else if (Type.isVal[A0] && !Type.isObject[A0])
+        Expr.singletonOf[A0] match {
+          // $COVERAGE-OFF$ singletonOf returns Some only for Scala 3 enum vals, not testable on Scala 2
+          case Some(singleton) => MatchCase.eqValue[A0](singleton, name)
+          // $COVERAGE-ON$
+          case None => MatchCase.typeMatch[A0](name)
+        }
+      else MatchCase.typeMatch[A0](name)
+
     def matchOn[F[_]: DirectStyle: Applicative, B: Type](
         value: Expr[A]
     )(handle: Expr_??<:[A] => F[Expr[B]]): F[Option[Expr[B]]] =
-      directChildren.toList
+      childrenInMatchOrder
         .traverse { case (name, child) =>
           DirectStyle[F].scoped { runSafe =>
             import child.Underlying as A0
-            // Use eqValue for enum vals with erased types (Scala 3 parameterless enum cases, Java enum vals)
-            // but NOT for case objects where typeMatch preserves exhaustivity checking
-            val mc: MatchCase[Expr[A0]] =
-              if (Type.isVal[A0] && !Type.isObject[A0])
-                Expr.singletonOf[A0] match {
-                  // $COVERAGE-OFF$ singletonOf returns Some only for Scala 3 enum vals, not testable on Scala 2
-                  case Some(singleton) => MatchCase.eqValue[A0](singleton, name)
-                  // $COVERAGE-ON$
-                  case None => MatchCase.typeMatch[A0](name)
-                }
-              else MatchCase.typeMatch[A0](name)
-            mc.map { matched =>
+            matchCaseFor[A0](name).map { matched =>
               runSafe(handle(matched.as_??<:[A]))
             }
           }
@@ -403,22 +428,11 @@ trait Classes { this: MacroCommons =>
     def parMatchOn[F[_]: DirectStyle: Parallel, B: Type](
         value: Expr[A]
     )(handle: Expr_??<:[A] => F[Expr[B]]): F[Option[Expr[B]]] =
-      directChildren.toList
+      childrenInMatchOrder
         .parTraverse { case (name, child) =>
           DirectStyle[F].scoped { runSafe =>
             import child.Underlying as A0
-            // Use eqValue for enum vals with erased types (Scala 3 parameterless enum cases, Java enum vals)
-            // but NOT for case objects where typeMatch preserves exhaustivity checking
-            val mc: MatchCase[Expr[A0]] =
-              if (Type.isVal[A0] && !Type.isObject[A0])
-                Expr.singletonOf[A0] match {
-                  // $COVERAGE-OFF$ singletonOf returns Some only for Scala 3 enum vals, not testable on Scala 2
-                  case Some(singleton) => MatchCase.eqValue[A0](singleton, name)
-                  // $COVERAGE-ON$
-                  case None => MatchCase.typeMatch[A0](name)
-                }
-              else MatchCase.typeMatch[A0](name)
-            mc.map { matched =>
+            matchCaseFor[A0](name).map { matched =>
               runSafe(handle(matched.as_??<:[A]))
             }
           }
@@ -452,11 +466,14 @@ trait Classes { this: MacroCommons =>
       unapply(Type[A]) match {
         case Some(e) => ClassViewResult.Compatible(e)
         case None    =>
-          if (Type.isSealed[A] || Type.isEnumeration[A] || Type.isUnionType[A])
+          if (Type.isSealed[A] || Type.isEnumeration[A] || Type.isUnionType[A]) {
+            // For refused unions we might know an actionable reason (e.g. members that need a TypeTest) -
+            // unionRefusalReason is Scala 3-only and always None on Scala 2.
+            val reason = Type.unionRefusalReason[A].fold("")(r => s": $r")
             ClassViewResult.Incompatible(
-              s"${Type.prettyPrint[A]} is sealed/enumeration/union but has no direct children"
+              s"${Type.prettyPrint[A]} is sealed/enumeration/union but has no direct children$reason"
             )
-          else
+          } else
             ClassViewResult.Incompatible(
               s"${Type.prettyPrint[A]} is not sealed, not an enumeration, and not a union type"
             )

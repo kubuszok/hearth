@@ -687,6 +687,29 @@ final class TypesScala3Spec extends MacroSuite {
             )
           )
         }
+
+        test("for List[Int] | List[String] (same erasure) WITH user-provided TypeTests in scope - accepted") {
+          import TypesFixtures.testChildrenNames
+          import examples.unions.typetests.given
+
+          testChildrenNames[examples.unions.ListIntOrListString] <==> Data.map(
+            "scala.collection.immutable.List[scala.Int]" -> Data("List"),
+            "scala.collection.immutable.List[java.lang.String]" -> Data("List")
+          )
+        }
+
+        test(
+          "for Color.Red.type | List[Int] | List[String] (mixed singleton + same-erasure members) WITH user-provided TypeTests in scope - accepted"
+        ) {
+          import TypesFixtures.testChildrenNames
+          import examples.unions.typetests.given
+
+          testChildrenNames[examples.unions.RedOrListIntOrListString] <==> Data.map(
+            "hearth.examples.Color.Red.type" -> Data("Red"),
+            "scala.collection.immutable.List[scala.Int]" -> Data("List"),
+            "scala.collection.immutable.List[java.lang.String]" -> Data("List")
+          )
+        }
       }
 
       group("methods: Type.{opaqueUnderlyingType} expected behavior") {

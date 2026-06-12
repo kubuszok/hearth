@@ -1403,6 +1403,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     final private case class TypeMatch[A](name: Symbol, expr: Expr_??, result: A) extends MatchCase[A]
     final private case class EqValue[A](name: Symbol, matchedExpr: Expr_??, valueExpr: Expr_??, result: A)
         extends MatchCase[A]
+    final private case class TypeTestMatch[A](name: Symbol, typeTest: Term, expr: Expr_??, result: A)
+        extends MatchCase[A]
 
     override def typeMatch[A: Type](freshName: FreshName): MatchCase[Expr[A]] = {
       val name = freshTerm.bind[A](freshName, Flags.EmptyFlags)
@@ -1414,6 +1416,21 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val name = freshTerm.bind[A](freshName, Flags.EmptyFlags)
       val matched: Expr[A] = Ref(name).asExprOf[A]
       EqValue(name, matched.as_??, expr.as_??, matched)
+    }
+
+    private lazy val typeTestSymbol = Symbol.requiredClass("scala.reflect.TypeTest")
+
+    override def typeTestMatch[A: Type, B: Type](freshName: FreshName): MatchCase[Expr[B]] = {
+      val typeTest = Implicits.search(typeTestSymbol.typeRef.appliedTo(List(TypeRepr.of[A], TypeRepr.of[B]))) match {
+        case success: ImplicitSearchSuccess => success.tree
+        case _                              =>
+          assertionFailed(
+            s"MatchCase.typeTestMatch: no implicit scala.reflect.TypeTest[${Type.plainPrint[A]}, ${Type.plainPrint[B]}] found at the macro expansion point"
+          )
+      }
+      val name = freshTerm.bind[B](freshName, Flags.EmptyFlags)
+      val expr: Expr[B] = Ref(name).asExprOf[B]
+      TypeTestMatch(name, typeTest, expr.as_??, expr)
     }
 
     @scala.annotation.tailrec
@@ -1450,6 +1467,25 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             CaseDef(Bind(name, Ref(sym)), None, body)
             // case arg : Enum.Value => ...
             else CaseDef(Bind(name, Typed(Wildcard(), TypeTree.of[Matched])), None, body)
+
+          case TypeTestMatch(name, typeTest, expr, result) =>
+            import expr.value as toSuppress
+
+            // val body = '{ val _ = $toSuppress; $result }
+            val body = Block(
+              List(Expr.suppressUnused(toSuppress).asTerm),
+              stripInlined(result.asTerm)
+            )
+
+            // case tt(name @ _) => ... - the TypeTest instance is the extractor, its unapply is total
+            // over the scrutinee and returns Some only for values of the narrowed type. This is the same
+            // tree shape the compiler itself produces when it inserts a contextual TypeTest for an
+            // uncheckable `case name: Matched =>`.
+            CaseDef(
+              Unapply(Select.unique(typeTest, "unapply"), Nil, List(Bind(name, Wildcard()))),
+              None,
+              body
+            )
 
           case EqValue(name, matchedExpr, valueExpr, result) =>
             import matchedExpr.value as toSuppress
@@ -1498,6 +1534,11 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             case Left(value)  => Left(EqValue(name, matchedExpr, valueExpr, value))
             case Right(value) => Right(EqValue(name, matchedExpr, valueExpr, value))
           }
+        case TypeTestMatch(name, typeTest, expr, result) =>
+          f(result) match {
+            case Left(value)  => Left(TypeTestMatch(name, typeTest, expr, value))
+            case Right(value) => Right(TypeTestMatch(name, typeTest, expr, value))
+          }
       }
 
     override val traverse: fp.Traverse[MatchCase] = new fp.Traverse[MatchCase] {
@@ -1506,41 +1547,48 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         fa match {
           case TypeMatch(name, expr, a)                 => f(a).map(b => TypeMatch(name, expr, b))
           case EqValue(name, matchedExpr, valueExpr, a) => f(a).map(b => EqValue(name, matchedExpr, valueExpr, b))
+          case TypeTestMatch(name, typeTest, expr, a)   => f(a).map(b => TypeTestMatch(name, typeTest, expr, b))
         }
 
       override def parTraverse[G[_]: fp.Parallel, A, B](fa: MatchCase[A])(f: A => G[B]): G[MatchCase[B]] =
         fa match {
           case TypeMatch(name, expr, a)                 => f(a).map(b => TypeMatch(name, expr, b))
           case EqValue(name, matchedExpr, valueExpr, a) => f(a).map(b => EqValue(name, matchedExpr, valueExpr, b))
+          case TypeTestMatch(name, typeTest, expr, a)   => f(a).map(b => TypeTestMatch(name, typeTest, expr, b))
         }
     }
 
     override val directStyle: fp.DirectStyle[MatchCase] = new fp.DirectStyle[MatchCase] {
       private val saved =
-        scala.collection.mutable.Map.empty[Any, (quotes.reflect.Symbol, Expr_??, Option[Expr_??])]
+        scala.collection.mutable.Map
+          .empty[Any, (quotes.reflect.Symbol, Expr_??, Option[Expr_??], Option[quotes.reflect.Term])]
 
       override protected def scopedUnsafe[A](owner: fp.DirectStyle.ScopeOwner[MatchCase])(thunk: => A): MatchCase[A] = {
         val result = fp.effect.DirectStyleExecutor(thunk)
-        val (name, expr, valueExprOpt) = saved
+        val (name, expr, valueExprOpt, typeTestOpt) = saved
           .remove(owner)
           // $COVERAGE-OFF$
           .getOrElse(
             hearthRequirementFailed("MatchCase.directStyle: runSafe was not called inside scoped")
           )
         // $COVERAGE-ON$
-        valueExprOpt match {
-          case Some(valueExpr) => EqValue(name, expr, valueExpr, result)
-          case None            => TypeMatch(name, expr, result)
+        (valueExprOpt, typeTestOpt) match {
+          case (Some(valueExpr), _)   => EqValue(name, expr, valueExpr, result)
+          case (None, Some(typeTest)) => TypeTestMatch(name, typeTest, expr, result)
+          case (None, None)           => TypeMatch(name, expr, result)
         }
       }
 
       override protected def runUnsafe[A](owner: fp.DirectStyle.ScopeOwner[MatchCase])(value: => MatchCase[A]): A =
         fp.effect.DirectStyleExecutor(value) match {
           case TypeMatch(name, expr, result) =>
-            saved(owner) = (name, expr, None)
+            saved(owner) = (name, expr, None, None)
             result.asInstanceOf[A]
           case EqValue(name, matchedExpr, valueExpr, result) =>
-            saved(owner) = (name, matchedExpr, Some(valueExpr))
+            saved(owner) = (name, matchedExpr, Some(valueExpr), None)
+            result.asInstanceOf[A]
+          case TypeTestMatch(name, typeTest, expr, result) =>
+            saved(owner) = (name, expr, None, Some(typeTest))
             result.asInstanceOf[A]
         }
     }
