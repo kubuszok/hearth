@@ -91,6 +91,24 @@ final class TypesSpec extends MacroSuite {
           )
         }
 
+        // Pins the current behavior for wildcard (Scala 3) / existential (Scala 2) type arguments.
+        test("for wildcard type arguments (pinned current behavior)") {
+          testNamesPrinters[List[?]] <==> Data.map(
+            "Type.shortName" -> Data("List"),
+            "Type.fqcn" -> Data("scala.collection.immutable.List"),
+            // Scala 3 keeps the wildcard as explicit type bounds, while on Scala 2 the wildcard passed as
+            // a type argument is absorbed into its upper bound (Any) by the time the macro sees it.
+            "Type.plainPrint" -> Data(
+              if (LanguageVersion.byHearth.isScala3) "scala.collection.immutable.List[_ >: scala.Nothing <: scala.Any]"
+              else "scala.collection.immutable.List[scala.Any]"
+            ),
+            "Type.prettyPrint" -> Data(
+              if (LanguageVersion.byHearth.isScala3) "scala.collection.immutable.List[_ >: scala.Nothing <: scala.Any]"
+              else "scala.collection.immutable.List[scala.Any]"
+            )
+          )
+        }
+
         test("for top-level classes (non-sealed)") {
           List(
             testNamesPrinters[examples.classes.ExampleTrait] -> (("ExampleTrait", "")),
@@ -877,6 +895,39 @@ final class TypesSpec extends MacroSuite {
               "Type.isAvailable(AtCallSite)" -> Data(true)
             )
           }
+        }
+
+        // Pins the current behavior of predicates for wildcard (Scala 3) / existential (Scala 2) type arguments.
+        test("for wildcard type arguments (pinned current behavior)") {
+          testFlags[List[?]] <==> Data.map(
+            "Type.isPrimitive" -> Data(false),
+            "Type.isArray" -> Data(false),
+            "Type.isIArray" -> Data(false),
+            "Type.isJvmBuiltIn" -> Data(false),
+            "Type.isAbstract" -> Data(true),
+            "Type.isFinal" -> Data(false),
+            "Type.isClass" -> Data(true),
+            "Type.isTypeSystemSpecial" -> Data(false),
+            "Type.isOpaqueType" -> Data(false),
+            "Type.isTuple" -> Data(false),
+            "Type.isNamedTuple" -> Data(false),
+            "Type.isUnionType" -> Data(false),
+            "Type.notJvmBuiltInClass" -> Data(true),
+            "Type.isPlainOldJavaObject" -> Data(false),
+            "Type.isJavaBean" -> Data(false),
+            "Type.isSealed" -> Data(true),
+            "Type.isJavaEnum" -> Data(false),
+            "Type.isJavaEnumValue" -> Data(false),
+            "Type.isEnumeration" -> Data(false),
+            "Type.isCase" -> Data(false),
+            "Type.isObject" -> Data(false),
+            "Type.isVal" -> Data(false),
+            "Type.isCaseClass" -> Data(false),
+            "Type.isCaseObject" -> Data(false),
+            "Type.isCaseVal" -> Data(false),
+            "Type.isAvailable(Everywhere)" -> Data(true),
+            "Type.isAvailable(AtCallSite)" -> Data(true)
+          )
         }
 
         test("for built-in types") {

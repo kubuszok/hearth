@@ -103,3 +103,15 @@ class WithImplicits {
   implicit def implicitConversion(x: Int): String = x.toString
   def methodWithImplicitParam(implicit x: Int): String = x.toString
 }
+
+// Regression examples for commit 68e1781: setters (name_=) must not be marked as
+// constructor arguments nor case fields, and visibility declared on a var must
+// propagate from the getter/val to the synthesized setter.
+
+final class WithVarCtorParam(var name: String)
+
+case class CaseClassWithVarCtorParam(var name: String)
+
+class WithRestrictedVar {
+  private[examples] var counter: Int = 0
+}

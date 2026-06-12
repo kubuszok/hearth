@@ -37,6 +37,15 @@ final private class AnonymousInstanceFixtures(val c: blackbox.Context)
       finalMethodName: c.Expr[String]
   ): c.Expr[String] =
     testAnonymousInstanceConstructOverridingFinal[A](finalMethodName)
+
+  def testAnonymousInstanceCapturedOverrideImpl(captured: c.Expr[String]): c.Expr[String] =
+    testAnonymousInstanceCapturedOverride(captured)
+
+  def testAnonymousInstanceOverrideUsingParamsImpl(captured: c.Expr[String]): c.Expr[String] =
+    testAnonymousInstanceOverrideUsingParams(captured)
+
+  def testAnonymousInstanceOverrideReferencingQuoteParamImpl: c.Expr[String => String] =
+    testAnonymousInstanceOverrideReferencingQuoteParam
 }
 
 object AnonymousInstanceFixtures {
@@ -66,4 +75,13 @@ object AnonymousInstanceFixtures {
 
   def testAnonymousInstanceConstructOverridingFinal[A](finalMethodName: String): String =
     macro AnonymousInstanceFixtures.testAnonymousInstanceConstructOverridingFinalImpl[A]
+
+  def testAnonymousInstanceCapturedOverride(captured: String): String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceCapturedOverrideImpl
+
+  def testAnonymousInstanceOverrideUsingParams(captured: String): String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceOverrideUsingParamsImpl
+
+  def testAnonymousInstanceOverrideReferencingQuoteParam: String => String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceOverrideReferencingQuoteParamImpl
 }

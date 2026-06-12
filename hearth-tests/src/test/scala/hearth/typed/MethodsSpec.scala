@@ -1610,6 +1610,282 @@ final class MethodsSpec extends MacroSuite {
         }
       }
 
+      // Regression for commit 68e1781: a `var` constructor parameter produces a getter and a setter (name_=);
+      // only the getter may be flagged as a constructor argument / case field — the setter must not be.
+      group("regression: setters are not constructor arguments nor case fields") {
+        import MethodsFixtures.testMethodProperties
+
+        test("plain class with var constructor parameter: getter is the constructor argument") {
+          testMethodProperties[examples.methods.WithVarCtorParam]("name") <==> Data.map(
+            "name" -> Data.map(
+              "invocation" -> Data("OnInstance"),
+              "hasTypeParameters" -> Data(false),
+              "position" -> methodsPosition(111, 33),
+              "annotations" -> Data.list(),
+              "isConstructor" -> Data(false),
+              "isVal" -> Data(false),
+              "isVar" -> Data(true),
+              "isLazy" -> Data(false),
+              "isDef" -> Data(false),
+              "isFinal" -> Data(false),
+              "isAbstract" -> Data(false),
+              "isOverride" -> Data(false),
+              "isImplicit" -> Data(false),
+              "isDeclared" -> Data(true),
+              "isSynthetic" -> Data(false),
+              "isInherited" -> Data(false),
+              "isAvailable(Everywhere)" -> Data(true),
+              "isAvailable(AtCallSite)" -> Data(true),
+              "arity" -> Data(0),
+              "isNullary" -> Data(true),
+              "isUnary" -> Data(false),
+              "isBinary" -> Data(false),
+              "isConstructorArgument" -> Data(true),
+              "isCaseField" -> Data(false),
+              "isScalaGetter" -> Data(true),
+              "isScalaSetter" -> Data(false),
+              "isScalaAccessor" -> Data(true),
+              "isJavaGetter" -> Data(false),
+              "isJavaSetter" -> Data(false),
+              "isJavaAccessor" -> Data(false),
+              "isAccessor" -> Data(true),
+              "scalaAccessorName" -> Data("name"),
+              "javaAccessorName" -> Data("<no java accessor name>"),
+              "accessorName" -> Data("name")
+            )
+          )
+        }
+
+        test("plain class with var constructor parameter: setter is not a constructor argument") {
+          testMethodProperties[examples.methods.WithVarCtorParam]("name_=") <==> Data.map(
+            "name_=(String)" -> Data.map(
+              "invocation" -> Data("OnInstance"),
+              "hasTypeParameters" -> Data(false),
+              "position" -> methodsPosition(111, 33),
+              "annotations" -> Data.list(),
+              "isConstructor" -> Data(false),
+              "isVal" -> Data(false),
+              "isVar" -> Data(true),
+              "isLazy" -> Data(false),
+              "isDef" -> Data(true),
+              "isFinal" -> Data(false),
+              "isAbstract" -> Data(false),
+              "isOverride" -> Data(false),
+              "isImplicit" -> Data(false),
+              "isDeclared" -> Data(true),
+              "isSynthetic" -> Data(false),
+              "isInherited" -> Data(false),
+              "isAvailable(Everywhere)" -> Data(true),
+              "isAvailable(AtCallSite)" -> Data(true),
+              "arity" -> Data(1),
+              "isNullary" -> Data(false),
+              "isUnary" -> Data(true),
+              "isBinary" -> Data(false),
+              "isConstructorArgument" -> Data(false),
+              "isCaseField" -> Data(false),
+              "isScalaGetter" -> Data(false),
+              "isScalaSetter" -> Data(true),
+              "isScalaAccessor" -> Data(true),
+              "isJavaGetter" -> Data(false),
+              "isJavaSetter" -> Data(false),
+              "isJavaAccessor" -> Data(false),
+              "isAccessor" -> Data(true),
+              "scalaAccessorName" -> Data("name"),
+              "javaAccessorName" -> Data("<no java accessor name>"),
+              "accessorName" -> Data("name")
+            )
+          )
+        }
+
+        test("case class with var constructor parameter: getter is a case field") {
+          testMethodProperties[examples.methods.CaseClassWithVarCtorParam]("name") <==> Data.map(
+            "name" -> Data.map(
+              "invocation" -> Data("OnInstance"),
+              "hasTypeParameters" -> Data(false),
+              "position" -> methodsPosition(113, 32),
+              "annotations" -> Data.list(),
+              "isConstructor" -> Data(false),
+              "isVal" -> Data(false),
+              "isVar" -> Data(true),
+              "isLazy" -> Data(false),
+              "isDef" -> Data(false),
+              "isFinal" -> Data(false),
+              "isAbstract" -> Data(false),
+              "isOverride" -> Data(false),
+              "isImplicit" -> Data(false),
+              "isDeclared" -> Data(true),
+              "isSynthetic" -> Data(false),
+              "isInherited" -> Data(false),
+              "isAvailable(Everywhere)" -> Data(true),
+              "isAvailable(AtCallSite)" -> Data(true),
+              "arity" -> Data(0),
+              "isNullary" -> Data(true),
+              "isUnary" -> Data(false),
+              "isBinary" -> Data(false),
+              "isConstructorArgument" -> Data(true),
+              "isCaseField" -> Data(true),
+              "isScalaGetter" -> Data(true),
+              "isScalaSetter" -> Data(false),
+              "isScalaAccessor" -> Data(true),
+              "isJavaGetter" -> Data(false),
+              "isJavaSetter" -> Data(false),
+              "isJavaAccessor" -> Data(false),
+              "isAccessor" -> Data(true),
+              "scalaAccessorName" -> Data("name"),
+              "javaAccessorName" -> Data("<no java accessor name>"),
+              "accessorName" -> Data("name")
+            )
+          )
+        }
+
+        test("case class with var constructor parameter: setter is not a case field") {
+          testMethodProperties[examples.methods.CaseClassWithVarCtorParam]("name_=") <==> Data.map(
+            "name_=(String)" -> Data.map(
+              "invocation" -> Data("OnInstance"),
+              "hasTypeParameters" -> Data(false),
+              "position" -> methodsPosition(113, 32),
+              "annotations" -> Data.list(),
+              "isConstructor" -> Data(false),
+              "isVal" -> Data(false),
+              "isVar" -> Data(true),
+              "isLazy" -> Data(false),
+              "isDef" -> Data(true),
+              "isFinal" -> Data(false),
+              "isAbstract" -> Data(false),
+              "isOverride" -> Data(false),
+              "isImplicit" -> Data(false),
+              "isDeclared" -> Data(true),
+              "isSynthetic" -> Data(false),
+              "isInherited" -> Data(false),
+              "isAvailable(Everywhere)" -> Data(true),
+              "isAvailable(AtCallSite)" -> Data(true),
+              "arity" -> Data(1),
+              "isNullary" -> Data(false),
+              "isUnary" -> Data(true),
+              "isBinary" -> Data(false),
+              "isConstructorArgument" -> Data(false),
+              "isCaseField" -> Data(false),
+              "isScalaGetter" -> Data(false),
+              "isScalaSetter" -> Data(true),
+              "isScalaAccessor" -> Data(true),
+              "isJavaGetter" -> Data(false),
+              "isJavaSetter" -> Data(false),
+              "isJavaAccessor" -> Data(false),
+              "isAccessor" -> Data(true),
+              "scalaAccessorName" -> Data("name"),
+              "javaAccessorName" -> Data("<no java accessor name>"),
+              "accessorName" -> Data("name")
+            )
+          )
+        }
+      }
+
+      // Regression for commit 68e1781: visibility declared on a var (private[examples]) must propagate
+      // from the getter/val to the synthesized setter (counter_=), on both platforms.
+      group("regression: setter inherits the visibility of its var") {
+        import MethodsFixtures.{testMethodProperties, testMethodVisibility}
+
+        // The original motivation for the fix: scala.collection.immutable.:: declares
+        // `private[scala] var next` — for the precompiled stdlib class on Scala 3 the synthesized
+        // setter symbol does not carry the visibility flags itself, so they must be looked up on the field.
+        test("private[scala] var next of scala.collection.immutable.:: restricts the setter too") {
+          testMethodVisibility[scala.collection.immutable.::[Int]]("next") <==> Data.map(
+            "next" -> Data.map(
+              "isAvailable(Everywhere)" -> Data(false),
+              "isAvailable(AtCallSite)" -> Data(false)
+            )
+          )
+          testMethodVisibility[scala.collection.immutable.::[Int]]("next_=") <==> Data.map(
+            "next_=" -> Data.map(
+              "isAvailable(Everywhere)" -> Data(false),
+              "isAvailable(AtCallSite)" -> Data(false)
+            )
+          )
+        }
+
+        test("restricted var getter is not available outside its scope") {
+          testMethodProperties[examples.methods.WithRestrictedVar]("counter") <==> Data.map(
+            "counter" -> Data.map(
+              "invocation" -> Data("OnInstance"),
+              "hasTypeParameters" -> Data(false),
+              "position" -> methodsPosition(116, 24),
+              "annotations" -> Data.list(),
+              "isConstructor" -> Data(false),
+              "isVal" -> Data(false),
+              "isVar" -> Data(true),
+              "isLazy" -> Data(false),
+              "isDef" -> Data(false),
+              "isFinal" -> Data(false),
+              "isAbstract" -> Data(false),
+              "isOverride" -> Data(false),
+              "isImplicit" -> Data(false),
+              "isDeclared" -> Data(true),
+              "isSynthetic" -> Data(false),
+              "isInherited" -> Data(false),
+              "isAvailable(Everywhere)" -> Data(false),
+              "isAvailable(AtCallSite)" -> Data(false),
+              "arity" -> Data(0),
+              "isNullary" -> Data(true),
+              "isUnary" -> Data(false),
+              "isBinary" -> Data(false),
+              "isConstructorArgument" -> Data(false),
+              "isCaseField" -> Data(false),
+              "isScalaGetter" -> Data(true),
+              "isScalaSetter" -> Data(false),
+              "isScalaAccessor" -> Data(true),
+              "isJavaGetter" -> Data(false),
+              "isJavaSetter" -> Data(false),
+              "isJavaAccessor" -> Data(false),
+              "isAccessor" -> Data(true),
+              "scalaAccessorName" -> Data("counter"),
+              "javaAccessorName" -> Data("<no java accessor name>"),
+              "accessorName" -> Data("counter")
+            )
+          )
+        }
+
+        test("restricted var setter is not available outside its scope either") {
+          testMethodProperties[examples.methods.WithRestrictedVar]("counter_=") <==> Data.map(
+            "counter_=(Int)" -> Data.map(
+              "invocation" -> Data("OnInstance"),
+              "hasTypeParameters" -> Data(false),
+              "position" -> methodsPosition(116, 24),
+              "annotations" -> Data.list(),
+              "isConstructor" -> Data(false),
+              "isVal" -> Data(false),
+              "isVar" -> Data(true),
+              "isLazy" -> Data(false),
+              "isDef" -> Data(true),
+              "isFinal" -> Data(false),
+              "isAbstract" -> Data(false),
+              "isOverride" -> Data(false),
+              "isImplicit" -> Data(false),
+              "isDeclared" -> Data(true),
+              "isSynthetic" -> Data(false),
+              "isInherited" -> Data(false),
+              "isAvailable(Everywhere)" -> Data(false),
+              "isAvailable(AtCallSite)" -> Data(false),
+              "arity" -> Data(1),
+              "isNullary" -> Data(false),
+              "isUnary" -> Data(true),
+              "isBinary" -> Data(false),
+              "isConstructorArgument" -> Data(false),
+              "isCaseField" -> Data(false),
+              "isScalaGetter" -> Data(false),
+              "isScalaSetter" -> Data(true),
+              "isScalaAccessor" -> Data(true),
+              "isJavaGetter" -> Data(false),
+              "isJavaSetter" -> Data(false),
+              "isJavaAccessor" -> Data(false),
+              "isAccessor" -> Data(true),
+              "scalaAccessorName" -> Data("counter"),
+              "javaAccessorName" -> Data("<no java accessor name>"),
+              "accessorName" -> Data("counter")
+            )
+          )
+        }
+      }
+
       group("calling methods, return Expr with a called method result") {
         import MethodsFixtures.testCallNoInstanceIntMethod
         import MethodsFixtures.testCallInstanceIntMethod
