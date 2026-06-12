@@ -101,6 +101,9 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
   def testAnnotationValueDecodedImpl[A: c.WeakTypeTag]: c.Expr[Data] =
     testAnnotationValueDecoded[A]
 
+  def testFieldNameReproducerImpl[A: c.WeakTypeTag]: c.Expr[Data] =
+    testFieldNameReproducer[A]
+
   def testSplicedAnnotationValueImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
     testSplicedAnnotationValue[A](methodName)
 
@@ -192,6 +195,9 @@ object MethodsFixtures {
 
   def testAnnotationValueDecoded[A]: Data =
     macro MethodsFixtures.testAnnotationValueDecodedImpl[A]
+
+  def testFieldNameReproducer[A]: Data =
+    macro MethodsFixtures.testFieldNameReproducerImpl[A]
 
   def testSplicedAnnotationValue[A](methodName: String): Data =
     macro MethodsFixtures.testSplicedAnnotationValueImpl[A]

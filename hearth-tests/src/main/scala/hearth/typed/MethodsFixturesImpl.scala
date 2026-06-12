@@ -265,6 +265,10 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     Type.of[hearth.examples.methods.ParentAnnotation]
   private val ChildAnnotationType: Type[hearth.examples.methods.ChildAnnotation] =
     Type.of[hearth.examples.methods.ChildAnnotation]
+  private val FieldNameType: Type[hearth.examples.methods.fieldName] =
+    Type.of[hearth.examples.methods.fieldName]
+  private val FieldFlagsType: Type[hearth.examples.methods.fieldFlags] =
+    Type.of[hearth.examples.methods.fieldFlags]
 
   private def applyAndBuild(method: Method, arguments: Arguments): Either[String, Expr_??] =
     method match {
@@ -894,6 +898,45 @@ trait MethodsFixturesImpl { this: MacroCommons =>
           .getOrElse("<no constructor arguments>")
         Expr(Data.map("wholeAnnotation" -> Data(wholeAnnotation), "firstArgument" -> Data(firstArgument)))
       case other => Expr(Data(s"<expected exactly one ExampleAnnotation2, got ${other.size}>"))
+    }
+  }
+
+  /** Reproducer for issue #283: read literal annotation arguments (String/Boolean/Double, not just Int) off a plain
+    * (non-case) annotation class with `val` constructor parameters, attached to case class constructor parameters.
+    *
+    * `fieldNames` uses the exact composition recommended to users (annotationsOfType + decodedConstructorArguments);
+    * `fieldFlags` decodes every argument, exercising Boolean and Double literals.
+    */
+  def testFieldNameReproducer[A: Type]: Expr[Data] = {
+    implicit val fieldNameType: Type[hearth.examples.methods.fieldName] = this.FieldNameType
+    implicit val fieldFlagsType: Type[hearth.examples.methods.fieldFlags] = this.FieldFlagsType
+
+    Type[A].primaryConstructor match {
+      case Some(ctor) =>
+        val params = ctor.totalParameters.flatten.map { case (paramName, param) =>
+          val names = param
+            .annotationsOfType[hearth.examples.methods.fieldName]
+            .flatMap { ann =>
+              Annotations
+                .decodedConstructorArguments(ann)
+                .flatMap(_.headOption.flatMap(_.toOption))
+                .collect { case s: String => s }
+            }
+          val flags = param.annotationsOfType[hearth.examples.methods.fieldFlags].map { ann =>
+            Annotations.decodedConstructorArguments(ann) match {
+              case Some(args) =>
+                Data.list(args.map(_.fold(error => Data(s"<failed: $error>"), value => Data(value.toString)))*)
+              case None => Data("<not a constructor call>")
+            }
+          }
+          Data.map(
+            "name" -> Data(paramName),
+            "fieldNames" -> Data.list(names.map(Data(_))*),
+            "fieldFlags" -> Data.list(flags*)
+          )
+        }
+        Expr(Data.list(params*))
+      case None => Expr(Data("<no primary constructor>"))
     }
   }
 
