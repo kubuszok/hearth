@@ -273,9 +273,19 @@ trait Classes { this: MacroCommons =>
         }
       }
 
+    /** Returns the values of all case fields of the given instance.
+      *
+      * By default ([[Unrestricted]]) ALL case fields are returned, regardless of their visibility. Pass [[AtCallSite]]
+      * to keep only the fields accessible at the macro expansion point, or [[Everywhere]] to keep only the fields
+      * accessible from any scope (public).
+      *
+      * On Scala 2 a non-public case field `b` is read through the public synthetic accessor `b$access$1` that scalac
+      * generates for it; the returned map is keyed by the declared field name (`b`) on both platforms, and visibility
+      * filtering follows the declared field's visibility on both platforms as well.
+      */
     def caseFieldValuesAt(
         instance: Expr[A],
-        visibility: Accessible = Everywhere
+        visibility: Accessible = Unrestricted
     ): ListMap[String, Expr_??] = ListMap.from(caseFields.filter(_.isAvailable(visibility)).map { field =>
       (field match {
         case oi: Method.OnInstance if field.isNullary =>
@@ -284,7 +294,7 @@ trait Classes { this: MacroCommons =>
             case r: Method.Result[?] =>
               import r.Returned
               r.build() match {
-                case Right(value) => field.name -> value.as_??
+                case Right(value) => CaseClass.declaredCaseFieldName(field.name) -> value.as_??
                 case Left(error)  =>
                   throw new AssertionError(
                     s"Failed to get the value of the field ${field.name} of ${tpe.prettyPrint}: $error"
@@ -310,6 +320,16 @@ trait Classes { this: MacroCommons =>
     }
   }
   object CaseClass {
+
+    /** On Scala 2 the case accessor of a non-public case field `b` is the public synthetic `b$access$N` method.
+      * Normalizes such names back to the declared field name, so that e.g. [[CaseClass.caseFieldValuesAt]] is keyed
+      * identically on Scala 2 and Scala 3.
+      */
+    private[Classes] val syntheticCaseAccessorName = "(.+)\\$access\\$\\d+".r
+    private[Classes] def declaredCaseFieldName(name: String): String = name match {
+      case syntheticCaseAccessorName(fieldName) => fieldName
+      case _                                    => name
+    }
 
     def unapply[A](tpe: Type[A]): Option[CaseClass[A]] =
       if (tpe.isCaseClass) tpe.primaryConstructor.map(new CaseClass(tpe, _))

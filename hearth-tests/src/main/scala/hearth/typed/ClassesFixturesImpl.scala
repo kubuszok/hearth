@@ -165,6 +165,22 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** Like [[testCaseClassCaseFieldValuesAt]] but passes `Everywhere` visibility explicitly, so non-public fields should
+    * be skipped on both platforms.
+    */
+  def testCaseClassCaseFieldValuesAtEverywhere[A: Type](expr: Expr[A]): Expr[String] = Expr {
+    CaseClass.parse[A].toOption.fold("<no case class>") { caseClass =>
+      caseClass
+        .caseFieldValuesAt(expr, visibility = Everywhere)
+        .toList
+        .sortBy(_._1)
+        .map { case (name, value) =>
+          s"$name: ${value.plainPrint}"
+        }
+        .mkString("(", ", ", ")")
+    }
+  }
+
   def testEnumMatchOnAndParMatchOn[A: Type](expr: Expr[A]): Expr[String] =
     Enum.parse[A].toOption.fold(Expr("<no enum>")) { enumm =>
       implicit val StringType: Type[String] = stringType
