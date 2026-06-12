@@ -39,6 +39,28 @@ final class AnonymousInstanceSpec extends MacroSuite {
             )
           )
         }
+
+        test("rejects type not accessible at the call site") {
+          AnonymousInstanceFixtures.testAnonymousInstanceParseInaccessible <==> Data.map(
+            "result" -> Data("incompatible"),
+            "reason" -> Data(
+              "Type hearth.examples.anonymous_instances.PackagePrivateTrait is not accessible at the call site"
+            )
+          )
+        }
+
+        test("rejects more than one class parent") {
+          AnonymousInstanceFixtures.testAnonymousInstanceParseWithMixins[
+            examples.anonymous_instances.AbstractClassNoArgs,
+            examples.anonymous_instances.AbstractClassWithArgs
+          ] <==> Data.map(
+            "result" -> Data("incompatible"),
+            "reason" -> Data(
+              "At most one class parent allowed, got: hearth.examples.anonymous_instances.AbstractClassNoArgs, " +
+                "hearth.examples.anonymous_instances.AbstractClassWithArgs"
+            )
+          )
+        }
       }
 
       group("parse: method classification for single parent") {
@@ -278,6 +300,43 @@ final class AnonymousInstanceSpec extends MacroSuite {
         test("rejects sealed trait") {
           testAnonymousInstanceConstruct[examples.anonymous_instances.SealedTrait] <==>
             "incompatible: Cannot create anonymous instance of sealed type hearth.examples.anonymous_instances.SealedTrait"
+        }
+      }
+
+      group("construct: error reporting") {
+        import AnonymousInstanceFixtures.{
+          testAnonymousInstanceConstructNoOverrides,
+          testAnonymousInstanceConstructNoOverridesWithMixins,
+          testAnonymousInstanceConstructOverridingFinal
+        }
+
+        test("reports missing required override") {
+          testAnonymousInstanceConstructNoOverrides[examples.anonymous_instances.SimpleTrait] <==>
+            "errors: Missing required override: value (hearth.examples.anonymous_instances.SimpleTrait: def value: scala.Int)"
+        }
+
+        test("aggregates multiple missing required overrides") {
+          testAnonymousInstanceConstructNoOverridesWithMixins[
+            examples.anonymous_instances.MixinA,
+            examples.anonymous_instances.MixinB
+          ] <==>
+            ("errors: Missing required override: fromA (hearth.examples.anonymous_instances.MixinA: def fromA: java.lang.String); " +
+              "Missing required override: fromB (hearth.examples.anonymous_instances.MixinA: def fromB: scala.Int)")
+        }
+
+        test("reports overriding a final method") {
+          testAnonymousInstanceConstructOverridingFinal[examples.anonymous_instances.TraitWithFinalMethod](
+            "finalMethod"
+          ) <==>
+            "errors: Cannot override final method: finalMethod (hearth.examples.anonymous_instances.TraitWithFinalMethod: final def finalMethod: scala.Int)"
+        }
+
+        test("reports unresolved diamond conflict") {
+          testAnonymousInstanceConstructNoOverridesWithMixins[
+            examples.anonymous_instances.DiamondLeft,
+            examples.anonymous_instances.DiamondRight
+          ] <==>
+            "errors: Diamond conflict for method 'method' — conflicting implementations from: hearth.examples.anonymous_instances.DiamondLeft"
         }
       }
 

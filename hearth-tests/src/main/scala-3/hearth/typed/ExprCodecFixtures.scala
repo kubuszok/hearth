@@ -14,4 +14,28 @@ object ExprCodecFixtures {
   }
   private def testExprCodecRoundTripImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprCodecFixtures(q).testExprCodecRoundTrip[A](expr)
+
+  inline def testSemiQuotePrimitives: Data = ${ testSemiQuotePrimitivesImpl }
+  private def testSemiQuotePrimitivesImpl(using q: Quotes): Expr[Data] =
+    new ExprCodecFixtures(q).testSemiQuotePrimitives
+
+  inline def testSemiQuoteCaseClass: Data = ${ testSemiQuoteCaseClassImpl }
+  private def testSemiQuoteCaseClassImpl(using q: Quotes): Expr[Data] =
+    new ExprCodecFixtures(q).testSemiQuoteCaseClass
+
+  inline def testSemiQuoteSealedChild: Data = ${ testSemiQuoteSealedChildImpl }
+  private def testSemiQuoteSealedChildImpl(using q: Quotes): Expr[Data] =
+    new ExprCodecFixtures(q).testSemiQuoteSealedChild
+
+  inline def testSemiQuoteSingleton: Data = ${ testSemiQuoteSingletonImpl }
+  private def testSemiQuoteSingletonImpl(using q: Quotes): Expr[Data] =
+    new ExprCodecFixtures(q).testSemiQuoteSingleton
+
+  inline def testSemiQuoteWithOverride: Data = ${ testSemiQuoteWithOverrideImpl }
+  private def testSemiQuoteWithOverrideImpl(using q: Quotes): Expr[Data] =
+    new ExprCodecFixtures(q).testSemiQuoteWithOverride
+
+  inline def testSemiQuoteFailure: Data = ${ testSemiQuoteFailureImpl }
+  private def testSemiQuoteFailureImpl(using q: Quotes): Expr[Data] =
+    new ExprCodecFixtures(q).testSemiQuoteFailure
 }

@@ -2102,6 +2102,41 @@ final class MethodsSpec extends MacroSuite {
       }
     }
 
+    group("method calling via foldF") {
+
+      test("nullary — nullaryNoParamList returns 42") {
+        MethodsFixtures.testCallInstanceViaFoldF(new examples.methods.NullaryMethods)("nullaryNoParamList")() <==>
+          Data("42")
+      }
+
+      test("singleParamList(1, test) returns true") {
+        MethodsFixtures.testCallInstanceViaFoldF(new examples.methods.MultiParamListMethods)("singleParamList")(
+          1
+        ) <==> Data("true")
+      }
+
+      test("multiParamList(1)(test) returns true") {
+        MethodsFixtures.testCallInstanceViaFoldF(new examples.methods.MultiParamListMethods)("multiParamList")(
+          1
+        ) <==> Data("true")
+      }
+
+      test("missing required Int argument short-circuits the whole foldF to None") {
+        MethodsFixtures.testCallInstanceViaFoldF(new examples.methods.MultiParamListMethods)(
+          "singleParamList"
+        )() <==> Data("<not applicable>")
+      }
+
+      test("wrong application — providing no arguments at all fails with a requirement error") {
+        MethodsFixtures.testCallInstanceViaFoldMissingArgs(new examples.methods.MultiParamListMethods)(
+          "singleParamList"
+        ) <==> Data(
+          "REQUIREMENT FAILED: Expected that hearth.examples.methods.MultiParamListMethods's singleParamList parameter `arg1` would be provided or have a default value.\n" +
+            "Ensure that all arguments are provided or have a default value."
+        )
+      }
+    }
+
     group("prettyPrint (ANSI coloring)") {
 
       test("prettyPrint stripped of ANSI equals plainPrint — nullary") {

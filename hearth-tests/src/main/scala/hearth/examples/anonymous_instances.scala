@@ -105,3 +105,10 @@ abstract class AbstractClassWithDefaults(val x: Int, val y: String = "default") 
 trait TraitWithVarargMethod {
   def sum(xs: Int*): Int
 }
+
+/** Only visible inside `hearth.examples.anonymous_instances` — test fixtures resolve it via `UntypedType.fromClassName`
+  * to exercise the `TypeInaccessible` error (the call site cannot even name it).
+  */
+private[anonymous_instances] trait PackagePrivateTrait {
+  def value: Int
+}
