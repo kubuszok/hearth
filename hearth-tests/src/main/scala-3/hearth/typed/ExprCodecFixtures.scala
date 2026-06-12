@@ -38,4 +38,8 @@ object ExprCodecFixtures {
   inline def testSemiQuoteFailure: Data = ${ testSemiQuoteFailureImpl }
   private def testSemiQuoteFailureImpl(using q: Quotes): Expr[Data] =
     new ExprCodecFixtures(q).testSemiQuoteFailure
+
+  inline def testBuiltInCodecExprTypes: Data = ${ testBuiltInCodecExprTypesImpl }
+  private def testBuiltInCodecExprTypesImpl(using q: Quotes): Expr[Data] =
+    new ExprCodecFixtures(q).testBuiltInCodecExprTypes
 }

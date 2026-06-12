@@ -22,6 +22,8 @@ final private class ExprCodecFixtures(val c: blackbox.Context) extends MacroComm
   def testSemiQuoteWithOverrideImpl: c.Expr[Data] = testSemiQuoteWithOverride
 
   def testSemiQuoteFailureImpl: c.Expr[Data] = testSemiQuoteFailure
+
+  def testBuiltInCodecExprTypesImpl: c.Expr[Data] = testBuiltInCodecExprTypes
 }
 
 object ExprCodecFixtures {
@@ -40,4 +42,6 @@ object ExprCodecFixtures {
   def testSemiQuoteWithOverride: Data = macro ExprCodecFixtures.testSemiQuoteWithOverrideImpl
 
   def testSemiQuoteFailure: Data = macro ExprCodecFixtures.testSemiQuoteFailureImpl
+
+  def testBuiltInCodecExprTypes: Data = macro ExprCodecFixtures.testBuiltInCodecExprTypesImpl
 }
