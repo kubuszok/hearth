@@ -897,6 +897,47 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** Splices annotation exprs into the macro OUTPUT (not just reading them at macro time): the generated code calls
+    * `.value` on the spliced annotation instance at runtime. On Scala 3, annotation trees carry no source spans, so
+    * this verifies that Hearth makes them spliceable (would otherwise fail `-Xcheck-macros` with "position not set").
+    */
+  def testSplicedAnnotationValue[A: Type](methodName: Expr[String]): Expr[Data] = {
+    implicit val exampleAnnotation2Type: Type[hearth.examples.methods.ExampleAnnotation2] = this.ExampleAnnotation2Type
+
+    def spliceFirst(annotations: List[Expr[hearth.examples.methods.ExampleAnnotation2]]): Expr[Int] =
+      annotations match {
+        case ann :: _ => Expr.quote(Expr.splice(ann).value)
+        case Nil      => Expr(-1)
+      }
+
+    val typeValue = spliceFirst(Type[A].annotationsOfType[hearth.examples.methods.ExampleAnnotation2])
+
+    val methodValue = Expr.unapply(methodName).filter(_.nonEmpty) match {
+      case Some(name) =>
+        Type[A].methods.filter(_.name == name) match {
+          case method :: Nil => spliceFirst(method.annotationsOfType[hearth.examples.methods.ExampleAnnotation2])
+          case _             => Expr(-2)
+        }
+      case None => Expr(-1)
+    }
+
+    val parameterValue = Type[A].primaryConstructor match {
+      case Some(constructor) =>
+        spliceFirst(constructor.totalParameters.flatten.toList.flatMap { case (_, param) =>
+          param.annotationsOfType[hearth.examples.methods.ExampleAnnotation2]
+        })
+      case None => Expr(-1)
+    }
+
+    Expr.quote {
+      Data.map(
+        "typeValue" -> Data(Expr.splice(typeValue)),
+        "methodValue" -> Data(Expr.splice(methodValue)),
+        "parameterValue" -> Data(Expr.splice(parameterValue))
+      )
+    }
+  }
+
   def testDefaultValueOnGenericMethod[A: Type](
       instance: Expr[A],
       methodName: Expr[String]

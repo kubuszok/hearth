@@ -99,6 +99,34 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         callReflectMethod[List[TypeRepr]](tpe, "parents")
       def typeReprBaseClasses(tpe: TypeRepr): List[Symbol] =
         callReflectMethod[List[Symbol]](tpe, "baseClasses")
+
+      /** Makes an annotation tree obtained from `Symbol.annotations` spliceable into macro output.
+        *
+        * On Scala 3, annotation trees carry no source spans, so splicing them into the macro result is rejected by
+        * `-Xcheck-macros` ("position not set"). There is no public API to set a span on an existing tree, but every
+        * tree created through the public `quotes.reflect` constructors is automatically assigned the macro-expansion
+        * position. So we rebuild the annotation tree node by node: this preserves the structure (constructor call +
+        * argument trees), keeping macro-time reading (e.g. `DestructuredExpr`, `Expr.semiEval`) intact while making the
+        * tree safe to splice.
+        *
+        * Tree shapes that cannot appear in (or are irrelevant for) annotation constructor calls are returned as-is.
+        */
+      def repositionAnnotation(annotation: Term): Term = {
+        def rebuild(term: Term): Term = term match {
+          case Apply(fun, args)      => Apply(rebuild(fun), args.map(rebuild))
+          case TypeApply(fun, args)  => TypeApply(rebuild(fun), args.map(arg => Inferred(arg.tpe)))
+          case Select(qualifier, _)  => Select(rebuild(qualifier), term.symbol)
+          case New(tpt)              => New(Inferred(tpt.tpe))
+          case Literal(constant)     => Literal(constant)
+          case ident: Ident          => if ident.symbol.isTerm then Ref(ident.symbol) else ident
+          case Typed(expr, tpt)      => Typed(rebuild(expr), Inferred(tpt.tpe))
+          case NamedArg(name, arg)   => NamedArg(name, rebuild(arg))
+          case Repeated(elems, tpt)  => Repeated(elems.map(rebuild), Inferred(tpt.tpe))
+          case Inlined(_, Nil, body) => rebuild(body)
+          case other                 => other
+        }
+        rebuild(annotation)
+      }
     }
     import platformSpecific.*
 
@@ -784,7 +812,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       untyped.appliedTo(args)
 
     override def annotations(untyped: UntypedType): List[UntypedExpr] =
-      untyped.typeSymbol.annotations
+      untyped.typeSymbol.annotations.map(repositionAnnotation)
     override def annotationTypes(untyped: UntypedType): List[UntypedType] =
       untyped.typeSymbol.annotations.map(_.tpe)
   }
