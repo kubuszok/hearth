@@ -643,14 +643,14 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       /** Stable singletons (literal types, modules, Scala 3 enum case vals) - matched by value/identity. */
       case object ByValue extends UnionMemberDispatch
 
-      /** Members whose runtime class is determinable and disjoint from every other member's - matched with a
+      /** Members whose erased class is determinable and disjoint from every other member's - matched with a
         * `case x: Member` class test.
         */
-      final case class ByClassTest(runtimeClass: java.lang.Class[?]) extends UnionMemberDispatch
+      case object ByClassTest extends UnionMemberDispatch
 
-      /** Members whose runtime class is undeterminable (abstract types, type params) or related to another member's
-        * (same/related erasure, e.g. `List[Int]` vs `List[String]`) - a class test would be unsound, so they require a
-        * user-provided `scala.reflect.TypeTest[Union, Member]` extractor.
+      /** Members whose erased class is undeterminable (abstract types, type params, refinements) or related to another
+        * member's (same/related erasure, e.g. `List[Int]` vs `List[String]`) - a class test would be unsound, so they
+        * require a user-provided `scala.reflect.TypeTest[Union, Member]` extractor.
         */
       case object ByTypeTest extends UnionMemberDispatch
     }
@@ -691,8 +691,8 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           if hasSubtypeOverlap then None
           else {
             // Stable singleton members (literal types, case objects/modules, Scala 3 enum case vals)
-            // are matched BY VALUE (equality/identity test), not by a runtime class test, so they are
-            // exempt from the runtime-class disjointness requirement below. They never overlap with
+            // are matched BY VALUE (equality/identity test), not by a class test, so they are
+            // exempt from the erased-class disjointness requirement below. They never overlap with
             // class-tested members either: that would require a static subtype relationship
             // (e.g. Color.Red.type <:< Color), which was already rejected by the pre-check above.
             def isSingletonMember(tpe: TypeRepr): Boolean = tpe match {
@@ -707,57 +707,68 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
                 isModuleRef || isEnumCaseVal
             }
 
-            // Union values are boxed at runtime, so primitives have to be normalized to their boxed
-            // representations (e.g. Int and java.lang.Integer are NOT disjoint at runtime).
-            val boxedClasses = Map[java.lang.Class[?], java.lang.Class[?]](
-              classOf[Unit] -> classOf[scala.runtime.BoxedUnit],
-              classOf[Boolean] -> classOf[java.lang.Boolean],
-              classOf[Byte] -> classOf[java.lang.Byte],
-              classOf[Short] -> classOf[java.lang.Short],
-              classOf[Int] -> classOf[java.lang.Integer],
-              classOf[Long] -> classOf[java.lang.Long],
-              classOf[Float] -> classOf[java.lang.Float],
-              classOf[Double] -> classOf[java.lang.Double],
-              classOf[Char] -> classOf[java.lang.Character]
-            )
-
-            // Compute the runtime class used by the `case x: Member` class test. Members whose runtime
-            // class cannot be determined (abstract types, type params, refinements) cannot be proven
-            // to dispatch soundly with a class test, so they require a TypeTest.
-            def runtimeClass(tpe: TypeRepr): Option[java.lang.Class[?]] = {
+            // Compute the ERASED CLASS SYMBOL used by the `case x: Member` class test, working at the
+            // COMPILER-SYMBOL level (not via `java.lang.Class.forName`) so the check also works for types
+            // defined in the SAME compilation run as the macro expansion, whose classfiles do not exist yet.
+            //
+            // Members whose erased class cannot be determined (abstract types, type params, refinements) cannot
+            // be proven to dispatch soundly with a class test, so they require a TypeTest. Union values are boxed
+            // at runtime, so primitive value-class symbols are normalized to their boxed counterparts (e.g. `Int`
+            // and `java.lang.Integer` are NOT disjoint at runtime).
+            def erasedClassSymbol(tpe: TypeRepr): Option[Symbol] = {
               // Opaque types hide their underlying representation, but `opaqueUnderlyingType` can resolve
               // it from outside the defining scope - the class test dispatches on the underlying class
               // (e.g. `OpaqueId(= Long) | String` is accepted, while `OpaqueId | Long` requires TypeTests).
               val classTestedTpe = opaqueUnderlyingType(tpe).getOrElse(tpe)
-              toClass(classTestedTpe.widen.dealias).map(clazz => boxedClasses.getOrElse(clazz, clazz))
+              // `classSymbol` returns the class symbol of the erased type - for an `AppliedType` this is the
+              // tycon's class symbol (e.g. `List[Int]` -> `scala.collection.immutable.List`).
+              classTestedTpe.widen.dealias.classSymbol.map(sym => boxedClassSymbols.getOrElse(sym, sym))
             }
 
             val singletonFlags = members.map(isSingletonMember)
-            val classes = members.zip(singletonFlags).map { case (tpe, isSingleton) =>
-              if isSingleton then None else runtimeClass(tpe)
+            val classSymbols = members.zip(singletonFlags).map { case (tpe, isSingleton) =>
+              if isSingleton then None else erasedClassSymbol(tpe)
             }
-            // A class test is sound only when no OTHER member's runtime class is RELATED to this one:
+            // A class test is sound only when no OTHER member's erased class is RELATED to this one:
             // `case x: List[Int]` would also catch a `Seq[String]` value that happens to be a List,
             // dispatching to the wrong branch. (Equal classes - e.g. List[Int] vs List[String] - are a
-            // special case of related ones.)
-            def relatedToAnotherMember(i: Int): Boolean = classes(i).exists { a =>
-              classes.indices.exists { j =>
-                j != i && classes(j).exists(b => a.isAssignableFrom(b) || b.isAssignableFrom(a))
+            // special case of related ones.) Relatedness is checked at the class level: A and B are related
+            // iff A's erased class derives from B's OR vice versa, tested through their class symbols' typeRefs
+            // (`TypeRepr.derivesFrom(cls)` is the compiler-symbol-level subclass check).
+            def relatedToAnotherMember(i: Int): Boolean = classSymbols(i).exists { a =>
+              classSymbols.indices.exists { j =>
+                j != i && classSymbols(j).exists(b => a.typeRef.derivesFrom(b) || b.typeRef.derivesFrom(a))
               }
             }
 
             Some(members.toList.zipWithIndex.map { case (tpe, i) =>
               if singletonFlags(i) then tpe -> UnionMemberDispatch.ByValue
               else
-                classes(i) match {
-                  case Some(clazz) if !relatedToAnotherMember(i) => tpe -> UnionMemberDispatch.ByClassTest(clazz)
-                  case _                                         => tpe -> UnionMemberDispatch.ByTypeTest
+                classSymbols(i) match {
+                  case Some(_) if !relatedToAnotherMember(i) => tpe -> UnionMemberDispatch.ByClassTest
+                  case _                                     => tpe -> UnionMemberDispatch.ByTypeTest
                 }
             })
           }
         }
       }
     }
+
+    /** Union values are boxed at runtime, so primitive class symbols have to be normalized to their boxed counterparts
+      * before the disjointness comparison (e.g. `Int` and `java.lang.Integer` are NOT disjoint at runtime). Built once:
+      * keyed by the primitive value class symbol, valued by the boxed class symbol.
+      */
+    private lazy val boxedClassSymbols: Map[Symbol, Symbol] = Map(
+      TypeRepr.of[Unit].classSymbol.get -> Symbol.requiredClass("scala.runtime.BoxedUnit"),
+      TypeRepr.of[Boolean].classSymbol.get -> Symbol.requiredClass("java.lang.Boolean"),
+      TypeRepr.of[Byte].classSymbol.get -> Symbol.requiredClass("java.lang.Byte"),
+      TypeRepr.of[Short].classSymbol.get -> Symbol.requiredClass("java.lang.Short"),
+      TypeRepr.of[Int].classSymbol.get -> Symbol.requiredClass("java.lang.Integer"),
+      TypeRepr.of[Long].classSymbol.get -> Symbol.requiredClass("java.lang.Long"),
+      TypeRepr.of[Float].classSymbol.get -> Symbol.requiredClass("java.lang.Float"),
+      TypeRepr.of[Double].classSymbol.get -> Symbol.requiredClass("java.lang.Double"),
+      TypeRepr.of[Char].classSymbol.get -> Symbol.requiredClass("java.lang.Character")
+    )
 
     private lazy val typeTestSymbol = Symbol.requiredClass("scala.reflect.TypeTest")
 
