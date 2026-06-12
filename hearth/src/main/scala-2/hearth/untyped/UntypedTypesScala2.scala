@@ -80,7 +80,22 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
       def symbolName(symbol: Symbol): String = symbol.name.decodedName.toString
 
-      def symbolAvailable(symbol: Symbol, scope: Accessible): Boolean = {
+      private val syntheticCaseAccessorName = "(.+)\\$access\\$\\d+".r
+
+      def symbolAvailable(symbol0: Symbol, scope: Accessible): Boolean = {
+        // For a non-public case field `b`, Scala 2 marks the public synthetic accessor `b$access$1` as the case
+        // accessor, while the user-declared member keeps its declared visibility (Scala 3 has no such synthetic
+        // accessor and keeps the restricted `b` as the case accessor). To keep visibility filtering consistent
+        // between the platforms, we answer for the underlying user-declared member instead of the synthetic accessor.
+        val symbol = symbolName(symbol0) match {
+          case syntheticCaseAccessorName(fieldName) if symbol0.isMethod && symbol0.asMethod.isCaseAccessor =>
+            symbol0.owner.typeSignature.member(TermName(fieldName)) match {
+              case NoSymbol   => symbol0
+              case underlying => underlying
+            }
+          case _ => symbol0
+        }
+
         val owner = symbol.owner
         val enclosing = c.internal.enclosingOwner
 
@@ -105,6 +120,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
           case Everywhere => isPublic
           case AtCallSite =>
             isPublic || isPrivateButInTheSameClass || isProtectedButInTheSameClass || isPrivateWithinButInTheRightPlace
+          case Unrestricted => true
         }
       }
 

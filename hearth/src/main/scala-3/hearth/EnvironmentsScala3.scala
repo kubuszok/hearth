@@ -28,7 +28,7 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
 
     override def reportInfo(msg: String): Unit = report.info(msg, currentPosition)
     override def reportInfo(msg: String, position: Position): Unit = report.info(msg, position)
-    override def reportWarn(msg: String): Unit = report.info(msg, currentPosition)
+    override def reportWarn(msg: String): Unit = report.warning(msg, currentPosition)
     override def reportWarn(msg: String, position: Position): Unit = report.warning(msg, position)
     override def reportError(msg: String): Unit = report.error(msg, currentPosition)
     override def reportError(msg: String, position: Position): Unit = report.error(msg, position)
