@@ -159,6 +159,16 @@ object MethodsFixtures {
   private def testConstructorParameterAnnotationsImpl[A: Type](using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testConstructorParameterAnnotations[A]
 
+  inline def testAnnotationsOfType[A](inline methodName: String): Data = ${
+    testAnnotationsOfTypeImpl[A]('methodName)
+  }
+  private def testAnnotationsOfTypeImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testAnnotationsOfType[A](methodName)
+
+  inline def testAnnotationValueDecoded[A]: Data = ${ testAnnotationValueDecodedImpl[A] }
+  private def testAnnotationValueDecodedImpl[A: Type](using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testAnnotationValueDecoded[A]
+
   inline def testFoldAnonymousInstanceMethod[A](inline instance: A, inline methodName: String): Data = ${
     testFoldAnonymousInstanceMethodImpl[A]('instance, 'methodName)
   }

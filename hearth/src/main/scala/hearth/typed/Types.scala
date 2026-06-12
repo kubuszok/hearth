@@ -119,6 +119,30 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       }
     }
 
+    /** Annotations on type `A` whose type is a subtype of `Ann`, with each expression typed as `Expr[Ann]`.
+      *
+      * Subtype (`<:<`) matching is used (rather than `=:=`) so that a whole annotation hierarchy can be matched by its
+      * common base type. The constructor arguments of a matched annotation can be read with
+      * [[Annotations.constructorArguments]].
+      *
+      * Example - finding case-class fields that carry a marker annotation (e.g. `@sensitiveData`):
+      *
+      * {{{
+      * val sensitiveFields = caseClass.primaryConstructor.totalParameters.flatten.collect {
+      *   case (name, param) if param.hasAnnotationOfType[sensitiveData] => name
+      * }
+      * }}}
+      *
+      * @since 0.4.0
+      */
+    final def annotationsOfType[A: Type, Ann: Type]: List[Expr[Ann]] = Annotations.filterOfType[Ann](annotations[A])
+
+    /** Whether type `A` has at least one annotation whose type is a subtype of `Ann`.
+      *
+      * @since 0.4.0
+      */
+    final def hasAnnotationOfType[A: Type, Ann: Type]: Boolean = annotations[A].exists(_.Underlying <:< Type[Ann])
+
     /** Types which might be compiled to both JVM primitives and java.lang.Object: Boolean, Byte, Short, Char, Int,
       * Long, Float, Double.
       */
@@ -711,6 +735,8 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def exhaustiveChildren: Option[NonEmptyMap[String, ??<:[A]]] = Type.exhaustiveChildren(using tpe)
 
     def annotations: List[Expr_??] = Type.annotations(using tpe)
+    def annotationsOfType[Ann: Type]: List[Expr[Ann]] = Type.annotationsOfType[A, Ann](using tpe, Type[Ann])
+    def hasAnnotationOfType[Ann: Type]: Boolean = Type.hasAnnotationOfType[A, Ann](using tpe, Type[Ann])
 
     def summonExpr: SummoningResult[A] = Expr.summonImplicit(using tpe)
     def summonExprIgnoring(excluded: UntypedMethod*): SummoningResult[A] =

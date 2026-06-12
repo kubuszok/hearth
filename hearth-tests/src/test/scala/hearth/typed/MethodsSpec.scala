@@ -2224,6 +2224,169 @@ final class MethodsSpec extends MacroSuite {
     }
   }
 
+  group("methods: annotationsOfType and constructorArguments") {
+    import MethodsFixtures.{testAnnotationsOfType, testAnnotationValueDecoded}
+
+    test("filters type and method annotations by type, decoding constructor args (present and absent cases)") {
+      testAnnotationsOfType[examples.methods.NoCompanionClass]("methodWithAnnotation") <==> Data.map(
+        "type" -> Data.map(
+          "hasExampleAnnotation" -> Data(false),
+          "hasExampleAnnotation2" -> Data(true),
+          "exampleAnnotation2Args" -> Data.list(Data.list(Data("1"))),
+          "parentAnnotations" -> Data(0),
+          "childAnnotations" -> Data(0)
+        ),
+        "method" -> Data.map(
+          "hasExampleAnnotation" -> Data(true),
+          "hasExampleAnnotation2" -> Data(false),
+          "exampleAnnotation2Args" -> Data.list(),
+          "parentAnnotations" -> Data(0),
+          "childAnnotations" -> Data(0),
+          "parameters" -> Data.list(
+            Data.map(
+              "name" -> Data("arg"),
+              "hasExampleAnnotation" -> Data(false),
+              "exampleAnnotation2Args" -> Data.list(),
+              "parentAnnotations" -> Data(0),
+              "childAnnotations" -> Data(0)
+            )
+          )
+        ),
+        "constructor" -> Data.list()
+      )
+    }
+
+    test("filters method parameter annotations by type") {
+      testAnnotationsOfType[examples.methods.NoCompanionClass]("methodWithAnnotatedParam") <==> Data.map(
+        "type" -> Data.map(
+          "hasExampleAnnotation" -> Data(false),
+          "hasExampleAnnotation2" -> Data(true),
+          "exampleAnnotation2Args" -> Data.list(Data.list(Data("1"))),
+          "parentAnnotations" -> Data(0),
+          "childAnnotations" -> Data(0)
+        ),
+        "method" -> Data.map(
+          "hasExampleAnnotation" -> Data(false),
+          "hasExampleAnnotation2" -> Data(false),
+          "exampleAnnotation2Args" -> Data.list(),
+          "parentAnnotations" -> Data(0),
+          "childAnnotations" -> Data(0),
+          "parameters" -> Data.list(
+            Data.map(
+              "name" -> Data("arg"),
+              "hasExampleAnnotation" -> Data(true),
+              "exampleAnnotation2Args" -> Data.list(),
+              "parentAnnotations" -> Data(0),
+              "childAnnotations" -> Data(0)
+            )
+          )
+        ),
+        "constructor" -> Data.list()
+      )
+    }
+
+    test("filters case class constructor parameter annotations by type, decoding constructor args") {
+      testAnnotationsOfType[examples.methods.WithAnnotatedParams]("") <==> Data.map(
+        "type" -> Data.map(
+          "hasExampleAnnotation" -> Data(false),
+          "hasExampleAnnotation2" -> Data(false),
+          "exampleAnnotation2Args" -> Data.list(),
+          "parentAnnotations" -> Data(0),
+          "childAnnotations" -> Data(0)
+        ),
+        "method" -> Data("<no method requested>"),
+        "constructor" -> Data.list(
+          Data.map(
+            "name" -> Data("a"),
+            "hasExampleAnnotation" -> Data(true),
+            "exampleAnnotation2Args" -> Data.list(),
+            "parentAnnotations" -> Data(0),
+            "childAnnotations" -> Data(0)
+          ),
+          Data.map(
+            "name" -> Data("b"),
+            "hasExampleAnnotation" -> Data(false),
+            "exampleAnnotation2Args" -> Data.list(Data.list(Data("1"))),
+            "parentAnnotations" -> Data(0),
+            "childAnnotations" -> Data(0)
+          ),
+          Data.map(
+            "name" -> Data("c"),
+            "hasExampleAnnotation" -> Data(false),
+            "exampleAnnotation2Args" -> Data.list(),
+            "parentAnnotations" -> Data(0),
+            "childAnnotations" -> Data(0)
+          )
+        )
+      )
+    }
+
+    test("<:< filtering matches annotation subtypes by their base type (type, method and parameter)") {
+      testAnnotationsOfType[examples.methods.WithChildAnnotation]("annotatedMethod") <==> Data.map(
+        "type" -> Data.map(
+          "hasExampleAnnotation" -> Data(false),
+          "hasExampleAnnotation2" -> Data(false),
+          "exampleAnnotation2Args" -> Data.list(),
+          "parentAnnotations" -> Data(1),
+          "childAnnotations" -> Data(1)
+        ),
+        "method" -> Data.map(
+          "hasExampleAnnotation" -> Data(false),
+          "hasExampleAnnotation2" -> Data(false),
+          "exampleAnnotation2Args" -> Data.list(),
+          "parentAnnotations" -> Data(1),
+          "childAnnotations" -> Data(1),
+          "parameters" -> Data.list(
+            Data.map(
+              "name" -> Data("arg"),
+              "hasExampleAnnotation" -> Data(false),
+              "exampleAnnotation2Args" -> Data.list(),
+              "parentAnnotations" -> Data(1),
+              "childAnnotations" -> Data(1)
+            )
+          )
+        ),
+        "constructor" -> Data.list()
+      )
+    }
+
+    test("<:< filtering does not match a base annotation when its subtype is requested") {
+      testAnnotationsOfType[examples.methods.WithChildAnnotation]("annotatedMethod2") <==> Data.map(
+        "type" -> Data.map(
+          "hasExampleAnnotation" -> Data(false),
+          "hasExampleAnnotation2" -> Data(false),
+          "exampleAnnotation2Args" -> Data.list(),
+          "parentAnnotations" -> Data(1),
+          "childAnnotations" -> Data(1)
+        ),
+        "method" -> Data.map(
+          "hasExampleAnnotation" -> Data(false),
+          "hasExampleAnnotation2" -> Data(true),
+          "exampleAnnotation2Args" -> Data.list(Data.list(Data("42"))),
+          "parentAnnotations" -> Data(1),
+          "childAnnotations" -> Data(0),
+          "parameters" -> Data.list(
+            Data.map(
+              "name" -> Data("arg"),
+              "hasExampleAnnotation" -> Data(false),
+              "exampleAnnotation2Args" -> Data.list(),
+              "parentAnnotations" -> Data(0),
+              "childAnnotations" -> Data(0)
+            )
+          )
+        ),
+        "constructor" -> Data.list()
+      )
+    }
+
+    test("typed annotation expression from annotationsOfType decodes to values at macro time") {
+      testAnnotationValueDecoded[examples.methods.NoCompanionClass] <==> Data.map(
+        "wholeAnnotation" -> Data("1"),
+        "firstArgument" -> Data("1")
+      )
+    }
+  }
+
   group("methods: fold on abstract trait method") {
     import MethodsFixtures.testCallInstanceViaFold
 
