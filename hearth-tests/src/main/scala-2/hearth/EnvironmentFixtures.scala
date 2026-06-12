@@ -15,6 +15,12 @@ final private class EnvironmentFixtures(val c: blackbox.Context)
 
   def testErrorAndAbortImpl: c.Expr[Any] = testErrorAndAbort
 
+  def testReportInfoAtPositionImpl[A: c.WeakTypeTag]: c.Expr[Data] = testReportInfoAtPosition[A]
+
+  def testReportErrorAtPositionImpl: c.Expr[Data] = testReportErrorAtPosition
+
+  def testReportErrorAndAbortAtPositionImpl: c.Expr[Any] = testReportErrorAndAbortAtPosition
+
   def testIsExpandedAtImpl(position: c.Expr[String]): c.Expr[Boolean] = testIsExpandedAt(position)
 
   def testLoadingExtensionsImpl: c.Expr[Data] = testLoadingExtensions
@@ -31,6 +37,9 @@ object EnvironmentFixtures {
   def testPosition: Data = macro EnvironmentFixtures.testPositionImpl
   def testEnvironment: Data = macro EnvironmentFixtures.testEnvironmentImpl
   def testErrorAndAbort: Any = macro EnvironmentFixtures.testErrorAndAbortImpl
+  def testReportInfoAtPosition[A]: Data = macro EnvironmentFixtures.testReportInfoAtPositionImpl[A]
+  def testReportErrorAtPosition: Data = macro EnvironmentFixtures.testReportErrorAtPositionImpl
+  def testReportErrorAndAbortAtPosition: Any = macro EnvironmentFixtures.testReportErrorAndAbortAtPositionImpl
   def testIsExpandedAt(position: String): Boolean = macro EnvironmentFixtures.testIsExpandedAtImpl
   def testLoadingExtensions: Data = macro EnvironmentFixtures.testLoadingExtensionsImpl
   def testLoadingExtensionsExcluding: Data = macro EnvironmentFixtures.testLoadingExtensionsExcludingImpl

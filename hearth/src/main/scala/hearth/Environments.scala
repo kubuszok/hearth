@@ -76,9 +76,40 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
     final def typedSettings: Either[String, data.Data] = data.Data.parseList(XMacroSettings)
 
     def reportInfo(msg: String): Unit
+
+    /** Reports an info message at the given [[Position]] instead of the macro expansion point, e.g. to point at the
+      * specific field/parameter that a derivation step refers to.
+      *
+      * @since 0.4.0
+      */
+    def reportInfo(msg: String, position: Position): Unit
+
     def reportWarn(msg: String): Unit
+
+    /** Reports a warning at the given [[Position]] instead of the macro expansion point, e.g. to point at the specific
+      * field/parameter that a derivation step refers to.
+      *
+      * @since 0.4.0
+      */
+    def reportWarn(msg: String, position: Position): Unit
+
     def reportError(msg: String): Unit
+
+    /** Reports an error at the given [[Position]] instead of the macro expansion point, e.g. to point at the specific
+      * field/parameter that made a derivation step fail.
+      *
+      * @since 0.4.0
+      */
+    def reportError(msg: String, position: Position): Unit
+
     def reportErrorAndAbort(msg: String): Nothing
+
+    /** Reports an error at the given [[Position]] instead of the macro expansion point and aborts the expansion, e.g.
+      * to point at the specific field/parameter that made a derivation step fail.
+      *
+      * @since 0.4.0
+      */
+    def reportErrorAndAbort(msg: String, position: Position): Nothing
 
     /** Pass position like "File.scala:12" or "File.scala:12:34", and it will check if current expansion matches it.
       *
