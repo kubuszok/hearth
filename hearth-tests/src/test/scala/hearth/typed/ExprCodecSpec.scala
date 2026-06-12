@@ -41,6 +41,18 @@ final class ExprCodecSpec extends MacroSuite {
           )
         )
       }
+
+      test("vararg case class") {
+        // fromExpr semi-evaluates the vararg apply call, toExpr re-lifts the (normalized) Seq[Int] field through
+        // the built-in SeqExprCodec and re-splices it as `seq: _*` via the vararg-aware construct path.
+        testExprCodecRoundTrip(VarargNumbers(1, 2, 3)) <==> Data.map(
+          "decoded" -> Data("VarargNumbers(List(1, 2, 3))"),
+          "reLifted" -> caseClassReLifted(
+            s2 = "new hearth.examples.expr_codecs.VarargNumbers((scala.collection.immutable.Seq(1, 2, 3): _*))",
+            s3 = "new hearth.examples.expr_codecs.VarargNumbers(scala.Seq.apply[scala.Int](1, 2, 3): _*)"
+          )
+        )
+      }
     }
 
     group("sealed traits") {

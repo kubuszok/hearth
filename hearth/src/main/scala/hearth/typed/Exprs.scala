@@ -1678,6 +1678,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
         }
       case lam: DestructuredExpr.Lambda => List(lam.body)
       case b: DestructuredExpr.Block    => b.statements :+ b.result
+      case va: DestructuredExpr.Varargs => va.elements
     }
 
     final def collect[B](pf: PartialFunction[DestructuredExpr, B]): List[B] = {
@@ -1900,6 +1901,31 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
         val stmts = (statements.map(_.plainPrint) :+ result.plainPrint).mkString("; ")
         s"{ $stmts }"
       }
+    }
+
+    /** A vararg (repeated) argument slot filled with individual elements: `method(a, b, c)` where the parameter is
+      * declared as `xs: A*`.
+      *
+      * The whole slot is represented as **one** argument inside [[MethodCall.AppliedValues]], mirroring how
+      * [[Method.ApplyValues]] expects a single `Expr[Seq[A]]` argument for a vararg parameter (see
+      * [[Parameter.isVararg]]). [[tpe]] is the normalized `scala.collection.immutable.Seq[A]` on both platforms, and
+      * the individual element expressions stay recoverable through [[elements]].
+      *
+      * Note: when the call site spreads an existing sequence (`method(seq*)`), there is no `Varargs` node — the slot is
+      * simply the destructured sequence expression itself (already of type `Seq[A]`).
+      *
+      * [[toUntypedExpr]] synthesizes a `scala.collection.immutable.Seq(elements*)` expression, since the raw repeated
+      * argument tree is not a valid standalone expression.
+      *
+      * @since 0.4.0
+      */
+    final class Varargs private[hearth] (
+        val tpe: ??,
+        val elements: List[DestructuredExpr],
+        private[hearth] val rebuild: () => UntypedExpr
+    ) extends DestructuredExpr {
+      def toUntypedExpr: UntypedExpr = rebuild()
+      def plainPrint: String = elements.map(_.plainPrint).mkString(", ")
     }
 
     /** A sub-expression that could not be destructured into a semantic node.

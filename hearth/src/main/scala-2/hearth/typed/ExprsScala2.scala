@@ -3659,12 +3659,13 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         val ctor =
           if (coreSym != null && coreSym != NoSymbol) ctors.find(_.symbol == coreSym).orElse(ctors.headOption)
           else ctors.headOption
-        ctor.map { method =>
+        ctor.map { untypedCtor =>
+          val method = untypedCtor.asTyped[Any](using UntypedType.toTyped[Any](ctorTpe))
           val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
-          dstrBuildAppliedSteps(steps, lambdaParams, applied)
+          dstrBuildAppliedSteps(steps, lambdaParams, applied, dstrParameterClauses(method))
           new DestructuredExpr.MethodCall(
             dstrTpeOf(tree),
-            method.asTyped[Any](using UntypedType.toTyped[Any](ctorTpe)),
+            method,
             applied.result(),
             () => tree
           )
@@ -3689,7 +3690,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           dstrResolveMethod(qualTpe, coreSym).map { method =>
             val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
             applied += new DestructuredExpr.MethodCall.AppliedInstance(dstrImpl(qualifier, lambdaParams))
-            dstrBuildAppliedSteps(steps, lambdaParams, applied)
+            dstrBuildAppliedSteps(steps, lambdaParams, applied, dstrParameterClauses(method))
             new DestructuredExpr.MethodCall(dstrTpeOf(tree), method, applied.result(), () => tree)
           }
 
@@ -3699,7 +3700,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
             val moduleTpe = ownerSym.asModule.moduleClass.asType.toType
             dstrResolveMethod(moduleTpe, coreSym).map { method =>
               val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
-              dstrBuildAppliedSteps(steps, lambdaParams, applied)
+              dstrBuildAppliedSteps(steps, lambdaParams, applied, dstrParameterClauses(method))
               new DestructuredExpr.MethodCall(dstrTpeOf(tree), method, applied.result(), () => tree)
             }
           } else None
@@ -3725,14 +3726,53 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       lambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param],
       applied: scala.collection.mutable.Builder[DestructuredExpr.MethodCall.Applied, List[
         DestructuredExpr.MethodCall.Applied
-      ]]
-  ): Unit =
+      ]],
+      parameterClauses: List[List[Parameter]]
+  ): Unit = {
+    var valueClauseIdx = 0
     steps.foreach {
       case DstrTypeStep(targs) =>
         applied += new DestructuredExpr.MethodCall.AppliedTypes(targs.map(dstrTpeOf))
       case DstrValueStep(args) =>
-        applied += new DestructuredExpr.MethodCall.AppliedValues(args.map(dstrImpl(_, lambdaParams)))
+        val clause = parameterClauses.lift(valueClauseIdx)
+        valueClauseIdx += 1
+        applied += new DestructuredExpr.MethodCall.AppliedValues(dstrValueArgs(args, clause, lambdaParams))
     }
+  }
+
+  /** Destructures one value-argument clause, handling vararg (repeated) parameters.
+    *
+    * On Scala 2 there is no tree-level marker on individual vararg elements (`m(1, 2, 3)` is just an `Apply` with 3
+    * args), so the resolved [[Method]]'s parameter clause is consulted: when the last parameter `isVararg` the trailing
+    * arguments are grouped into one [[DestructuredExpr.Varargs]] slot - mirroring how [[Method.ApplyValues]] expects a
+    * single `Expr[Seq[A]]` argument for the vararg parameter. A spread sequence (`m(seq: _*)`, i.e.
+    * `Typed(seq, Ident(WILDCARD_STAR))`) is left to [[dstrImpl]], whose `Typed` case unwraps it to the sequence
+    * expression itself - matching what Scala 3 produces for `m(seq*)`.
+    */
+  private def dstrValueArgs(
+      args: List[Tree],
+      clause: Option[List[Parameter]],
+      lambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param]
+  ): List[DestructuredExpr] = clause match {
+    case Some(params) if params.lastOption.exists(_.isVararg) && !dstrIsSpreadCall(args, params.size) =>
+      val (regular, repeated) = args.splitAt(params.size - 1)
+      regular.map(dstrImpl(_, lambdaParams)) :+ new DestructuredExpr.Varargs(
+        params.last.tpe,
+        repeated.map(dstrImpl(_, lambdaParams)),
+        () => q"_root_.scala.collection.immutable.Seq(..$repeated)"
+      )
+    case _ =>
+      args.map(dstrImpl(_, lambdaParams))
+  }
+
+  private def dstrIsSpreadCall(args: List[Tree], clauseSize: Int): Boolean =
+    args.lengthCompare(clauseSize) == 0 && (args.lastOption match {
+      case Some(Typed(_, Ident(typeNames.WILDCARD_STAR))) => true
+      case _                                              => false
+    })
+
+  private def dstrParameterClauses(method: Method): List[List[Parameter]] =
+    method.totalParameters.map(_.values.toList)
 
   private def dstrResolveMethod(qualTpe: c.Type, methodSym: Symbol): Option[Method] = {
     val instanceTpe: UntypedType = qualTpe.widen

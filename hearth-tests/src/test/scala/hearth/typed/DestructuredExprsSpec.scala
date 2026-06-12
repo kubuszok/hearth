@@ -90,6 +90,128 @@ final class DestructuredExprsSpec extends MacroSuite {
       }
     }
 
+    group("parseDetailed: vararg call sites") {
+      import DestructuredExprsFixtures.testParseDetailed
+
+      // The vararg slot is represented as ONE argument in AppliedValues (matching Method.ApplyValues, which expects
+      // a single Expr[Seq[A]] for a vararg parameter): individual elements become a Varargs node (elements
+      // recoverable), a spread sequence (`seq*`) becomes the destructured sequence expression itself.
+
+      test("vararg call with individual elements becomes one Varargs slot") {
+        testParseDetailed((w: examples.methods.WithVarargs) => w.varargMethod(1, 2, 3)) <==> Data.map(
+          "nodeType" -> Data("Lambda"),
+          "params" -> Data.list(
+            Data.map("name" -> Data("w"), "type" -> Data("hearth.examples.methods.WithVarargs"))
+          ),
+          "body" -> Data.map(
+            "nodeType" -> Data("MethodCall"),
+            "methodName" -> Data("varargMethod"),
+            "returnType" -> Data("scala.Int"),
+            "applied" -> Data.list(
+              Data.map(
+                "kind" -> Data("Instance"),
+                "value" -> Data.map("nodeType" -> Data("ParamRef"), "paramName" -> Data("w"))
+              ),
+              Data.map(
+                "kind" -> Data("Values"),
+                "args" -> Data.list(
+                  Data.map(
+                    "nodeType" -> Data("Varargs"),
+                    "type" -> Data("scala.collection.immutable.Seq[scala.Int]"),
+                    "elements" -> Data.list(
+                      Data.map("nodeType" -> Data("Literal"), "value" -> Data("1")),
+                      Data.map("nodeType" -> Data("Literal"), "value" -> Data("2")),
+                      Data.map("nodeType" -> Data("Literal"), "value" -> Data("3"))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      }
+
+      test("vararg call with no elements becomes an empty Varargs slot") {
+        testParseDetailed((w: examples.methods.WithVarargs) => w.varargMethod()) <==> Data.map(
+          "nodeType" -> Data("Lambda"),
+          "params" -> Data.list(
+            Data.map("name" -> Data("w"), "type" -> Data("hearth.examples.methods.WithVarargs"))
+          ),
+          "body" -> Data.map(
+            "nodeType" -> Data("MethodCall"),
+            "methodName" -> Data("varargMethod"),
+            "returnType" -> Data("scala.Int"),
+            "applied" -> Data.list(
+              Data.map(
+                "kind" -> Data("Instance"),
+                "value" -> Data.map("nodeType" -> Data("ParamRef"), "paramName" -> Data("w"))
+              ),
+              Data.map(
+                "kind" -> Data("Values"),
+                "args" -> Data.list(
+                  Data.map(
+                    "nodeType" -> Data("Varargs"),
+                    "type" -> Data("scala.collection.immutable.Seq[scala.Int]"),
+                    "elements" -> Data.list()
+                  )
+                )
+              )
+            )
+          )
+        )
+      }
+
+      test("vararg call with spread sequence becomes the sequence expression itself") {
+        testParseDetailed((w: examples.methods.WithVarargs, xs: Seq[Int]) => w.varargMethod(xs*)) <==> Data.map(
+          "nodeType" -> Data("Lambda"),
+          "params" -> Data.list(
+            Data.map("name" -> Data("w"), "type" -> Data("hearth.examples.methods.WithVarargs")),
+            Data.map("name" -> Data("xs"), "type" -> Data("scala.collection.immutable.Seq[scala.Int]"))
+          ),
+          "body" -> Data.map(
+            "nodeType" -> Data("MethodCall"),
+            "methodName" -> Data("varargMethod"),
+            "returnType" -> Data("scala.Int"),
+            "applied" -> Data.list(
+              Data.map(
+                "kind" -> Data("Instance"),
+                "value" -> Data.map("nodeType" -> Data("ParamRef"), "paramName" -> Data("w"))
+              ),
+              Data.map(
+                "kind" -> Data("Values"),
+                "args" -> Data.list(
+                  Data.map("nodeType" -> Data("ParamRef"), "paramName" -> Data("xs"))
+                )
+              )
+            )
+          )
+        )
+      }
+
+      test("vararg constructor call with individual elements becomes one Varargs slot") {
+        testParseDetailed(new examples.methods.WithVarargsCtor("a", "b")) <==> Data.map(
+          "nodeType" -> Data("MethodCall"),
+          "methodName" -> Data("<init>"),
+          "returnType" -> Data("hearth.examples.methods.WithVarargsCtor"),
+          "applied" -> Data.list(
+            Data.map(
+              "kind" -> Data("Values"),
+              "args" -> Data.list(
+                Data.map(
+                  "nodeType" -> Data("Varargs"),
+                  "type" -> Data("scala.collection.immutable.Seq[java.lang.String]"),
+                  "elements" -> Data.list(
+                    Data.map("nodeType" -> Data("Literal"), "value" -> Data("\"a\"")),
+                    Data.map("nodeType" -> Data("Literal"), "value" -> Data("\"b\""))
+                  )
+                )
+              )
+            )
+          )
+        )
+      }
+    }
+
     group("outermost MethodCall: DSL patterns with implicit evidence") {
       import DestructuredExprsFixtures.testOutermostMethodCall
       import examples.parsed_exprs.dsl.*

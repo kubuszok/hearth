@@ -264,6 +264,26 @@ final class ClassesSpec extends MacroSuite {
       testCaseClassConstructRoundTrip[examples.classes.ExampleCaseClass] <==> "a=42"
     }
 
+    test("CaseClass with vararg field: parse, construct via vararg-aware ApplyValues, Seq-typed accessor") {
+      import ClassesFixtures.testVarargCaseClassConstruct
+
+      // The vararg constructor parameter is normalized to scala.collection.immutable.Seq[A] (isVararg=true),
+      // construct receives one Expr[Seq[A]] argument and re-splices it as `seq*`, and the case-field accessor
+      // exposes a plain Seq[A]. Runtime equality verifies the constructed instance.
+      testVarargCaseClassConstruct(hearth.examples.classes.ExampleCaseClassWithVarargs(1, 2, 3)) <==> Data.map(
+        "primaryConstructor" -> Data("(xs: scala.collection.immutable.Seq[scala.Int] (vararg))"),
+        "caseFields" -> Data("(xs: scala.collection.immutable.Seq[scala.Int])"),
+        "constructedEqualsExpected" -> Data(true)
+      )
+    }
+
+    test("CaseClass[A].caseFieldValuesAt should extract the Seq-typed field of a vararg case class") {
+      import ClassesFixtures.testCaseClassCaseFieldValuesAt
+
+      testCaseClassCaseFieldValuesAt(hearth.examples.classes.ExampleCaseClassWithVarargs(1, 2, 3)) <==>
+        "(xs: hearth.examples.classes.ExampleCaseClassWithVarargs.apply(1, 2, 3).xs)"
+    }
+
     test("SingletonValue round-trip: evaluate singleton expression at runtime") {
       import ClassesFixtures.testSingletonRoundTrip
 
