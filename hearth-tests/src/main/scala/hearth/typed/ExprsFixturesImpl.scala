@@ -9,6 +9,8 @@ import hearth.fp.syntax.*
 /** Fixtures for testing [[ExprsSpec]]. */
 trait ExprsFixturesImpl { this: MacroCommons =>
 
+  private val stringTypeEF: Type[String] = Type.of[String]
+
   // Expr methods
 
   def testExprPrinters[A: Type](expr: Expr[A]): Expr[Data] = Expr(
@@ -152,6 +154,26 @@ trait ExprsFixturesImpl { this: MacroCommons =>
                 "matchCase" -> Data(matchedExpr.plainPrint)
               )
             )
+          }
+        })
+      }
+  }
+
+  /** Regression for commit 68e1781 (splice isolation): each case body is built via a nested [[Expr.quote]] that splices
+    * both the matched expression and the inline-macro argument (which on Scala 3 arrives as an `Inlined` tree).
+    * `matchOn` must not let splice ownership of such nested quotes leak across the match-case boundary.
+    */
+  def testMatchOnWithNestedQuote[A: Type](expr: Expr[A], suffix: Expr[String]): Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeEF
+
+    Type[A].exhaustiveChildren
+      .fold(Expr("<no exhaustive children>")) { children =>
+        expr.matchOn(children.toNonEmptyList.map { case (name, child) =>
+          import child.Underlying as Child
+          MatchCase.typeMatch[Child](FreshName.FromType).map { matchedExpr =>
+            Expr.quote {
+              Expr.splice(Expr(name)) + ": " + Expr.splice(matchedExpr).toString + Expr.splice(suffix)
+            }
           }
         })
       }

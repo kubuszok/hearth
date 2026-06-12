@@ -8,6 +8,10 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
   private val intTypeAI: Type[Int] = Type.of[Int]
   private val stringTypeAI: Type[String] = Type.of[String]
   private val booleanTypeAI: Type[Boolean] = Type.of[Boolean]
+  private val traitWithConcreteMethodTypeAI: Type[examples.anonymous_instances.TraitWithConcreteMethod] =
+    Type.of[examples.anonymous_instances.TraitWithConcreteMethod]
+  private val genericParentOfStringTypeAI: Type[examples.anonymous_instances.GenericParent[String]] =
+    Type.of[examples.anonymous_instances.GenericParent[String]]
 
   private val jvmInheritedMethodNames: Set[String] = Set(
     "clone",
@@ -210,6 +214,106 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
           case None    => Map.empty
         }
         constructAndSplice(ai, ctor, ctorArgs, overrides)
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(s"incompatible: $reason")
+    }
+  }
+
+  /** Regression for commit 7c82fc9 (Scala 2 anonymous instance scope): the override body splices an expression captured
+    * at the call site (a reference to a local val), and the constructed instance's overridden method is called at
+    * runtime. A premature `c.typecheck` of the generated `new ... { ... }` tree must not break this.
+    */
+  def testAnonymousInstanceCapturedOverride(captured: Expr[String]): Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val TraitType: Type[examples.anonymous_instances.TraitWithConcreteMethod] =
+      traitWithConcreteMethodTypeAI
+
+    AnonymousInstance.parse[examples.anonymous_instances.TraitWithConcreteMethod] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? =
+              Expr.quote(Expr.splice(captured) + "!").as_??
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote {
+              Expr.splice(constructed).abstractMethod
+            }
+          case Left(errors) =>
+            Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(s"incompatible: $reason")
+    }
+  }
+
+  /** Regression for commit 7c82fc9 (the cats-tagless pattern): the anonymous instance is constructed inside
+    * `Expr.splice`, and its override body references a lambda parameter bound by the enclosing [[Expr.quote]]. A
+    * premature `c.typecheck` of the generated `new` tree cannot resolve such a reference (the binding only exists in
+    * the quote under construction), so construct must keep the tree untyped until final splicing.
+    */
+  def testAnonymousInstanceOverrideReferencingQuoteParam: Expr[String => String] =
+    Expr.quote { (prefix: String) =>
+      val _ = prefix
+      Expr.splice {
+        buildInstanceReturning(Expr.quote(prefix))
+      }
+    }
+
+  private def buildInstanceReturning(prefixExpr: Expr[String]): Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val TraitType: Type[examples.anonymous_instances.TraitWithConcreteMethod] =
+      traitWithConcreteMethodTypeAI
+
+    AnonymousInstance.parse[examples.anonymous_instances.TraitWithConcreteMethod] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? =
+              Expr.quote(Expr.splice(prefixExpr) + "!").as_??
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote {
+              Expr.splice(constructed).abstractMethod
+            }
+          case Left(errors) =>
+            Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(s"incompatible: $reason")
+    }
+  }
+
+  /** Companion regression for commit 7c82fc9: override bodies that use the override's own parameters (`Ident` refs to
+    * the generated method's params) together with a captured call-site expression.
+    */
+  def testAnonymousInstanceOverrideUsingParams(captured: Expr[String]): Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val ParentType: Type[examples.anonymous_instances.GenericParent[String]] =
+      genericParentOfStringTypeAI
+
+    AnonymousInstance.parse[examples.anonymous_instances.GenericParent[String]] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? =
+              if (cm.method.name == "transform") ctx.parameters.head
+              else Expr.quote(Expr.splice(captured) + "!").as_??
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote {
+              val instance = Expr.splice(constructed)
+              instance.value + " " + instance.transform("echo")
+            }
+          case Left(errors) =>
+            Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
       case ClassViewResult.Incompatible(reason) =>
         Expr(s"incompatible: $reason")
     }

@@ -292,6 +292,31 @@ final class AnonymousInstanceSpec extends MacroSuite {
           ] <==> "success"
         }
 
+        // Regression for commit 7c82fc9 (Scala 2: premature c.typecheck of the generated `new` tree broke
+        // anonymous instances in call-site-local scopes).
+        test("anonymous instance of a trait defined locally at the call site") {
+          trait LocalTrait {
+            def value: Int
+          }
+          testAnonymousInstanceConstruct[LocalTrait] <==> "success"
+        }
+
+        // Regression for commit 7c82fc9 (Scala 2: premature c.typecheck of the generated `new` tree broke
+        // anonymous instances whose override bodies reference call-site-scoped expressions).
+        test("override body can splice an expression captured from the call site") {
+          val captured = List("captured", "value").mkString("-") // a local val, not a literal
+          AnonymousInstanceFixtures.testAnonymousInstanceCapturedOverride(captured) <==> "captured-value!"
+        }
+
+        test("override body can reference a lambda parameter of an enclosing Expr.quote (cats-tagless pattern)") {
+          AnonymousInstanceFixtures.testAnonymousInstanceOverrideReferencingQuoteParam.apply("quoted") <==> "quoted!"
+        }
+
+        test("override body can use the override's own parameters together with captured expressions") {
+          val captured = List("ctx").mkString
+          AnonymousInstanceFixtures.testAnonymousInstanceOverrideUsingParams(captured) <==> "ctx! echo"
+        }
+
         test("rejects final class") {
           testAnonymousInstanceConstruct[examples.anonymous_instances.FinalClass] <==>
             "incompatible: Cannot create anonymous instance of final type hearth.examples.anonymous_instances.FinalClass"

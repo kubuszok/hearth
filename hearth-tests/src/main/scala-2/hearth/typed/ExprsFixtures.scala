@@ -31,6 +31,9 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
 
   def testMatchCaseTypeMatchImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] = testMatchCaseTypeMatch[A](expr)
 
+  def testMatchOnWithNestedQuoteImpl[A: c.WeakTypeTag](expr: c.Expr[A], suffix: c.Expr[String]): c.Expr[String] =
+    testMatchOnWithNestedQuote[A](expr, suffix)
+
   def testMatchCaseEqValueImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
     testMatchCaseEqValue[A](expr)
 
@@ -174,6 +177,9 @@ object ExprsFixtures {
   def testVarArgs[A](exprs: A*): Data = macro ExprsFixtures.testVarArgsImpl[A]
 
   def testMatchCaseTypeMatch[A](expr: A): Data = macro ExprsFixtures.testMatchCaseTypeMatchImpl[A]
+
+  def testMatchOnWithNestedQuote[A](expr: A, suffix: String): String =
+    macro ExprsFixtures.testMatchOnWithNestedQuoteImpl[A]
 
   def testMatchCaseEqValue[A](expr: A): Data = macro ExprsFixtures.testMatchCaseEqValueImpl[A]
 

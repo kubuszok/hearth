@@ -21,6 +21,12 @@ final private class ClassesFixtures(val c: blackbox.Context) extends MacroCommon
   def testCaseClassCaseFieldValuesAtImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] =
     testCaseClassCaseFieldValuesAt[A](expr)
 
+  def testCaseClassCaseFieldValuesAtCallSiteImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] =
+    testCaseClassCaseFieldValuesAtCallSite[A](expr)
+
+  def testEnumParMatchOnNestedQuoteImpl[A: c.WeakTypeTag](expr: c.Expr[A], suffix: c.Expr[String]): c.Expr[String] =
+    testEnumParMatchOnNestedQuote[A](expr, suffix)
+
   def testEnumMatchOnAndParMatchOnImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] =
     testEnumMatchOnAndParMatchOn[A](expr)
 
@@ -60,6 +66,12 @@ object ClassesFixtures {
     macro ClassesFixtures.testSingletonExprImpl[A]
 
   def testCaseClassCaseFieldValuesAt[A](expr: A): String = macro ClassesFixtures.testCaseClassCaseFieldValuesAtImpl[A]
+
+  def testCaseClassCaseFieldValuesAtCallSite[A](expr: A): String =
+    macro ClassesFixtures.testCaseClassCaseFieldValuesAtCallSiteImpl[A]
+
+  def testEnumParMatchOnNestedQuote[A](expr: A, suffix: String): String =
+    macro ClassesFixtures.testEnumParMatchOnNestedQuoteImpl[A]
 
   def testEnumMatchOnAndParMatchOn[A](expr: A): String = macro ClassesFixtures.testEnumMatchOnAndParMatchOnImpl[A]
 
