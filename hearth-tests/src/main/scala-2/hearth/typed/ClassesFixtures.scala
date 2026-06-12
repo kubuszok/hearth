@@ -42,6 +42,9 @@ final private class ClassesFixtures(val c: blackbox.Context) extends MacroCommon
   def testCaseClassConstructRoundTripImpl[A: c.WeakTypeTag]: c.Expr[String] =
     testCaseClassConstructRoundTrip[A]
 
+  def testVarargCaseClassConstructImpl[A: c.WeakTypeTag](expected: c.Expr[A]): c.Expr[Data] =
+    testVarargCaseClassConstruct[A](expected)
+
   def testSingletonRoundTripImpl[A: c.WeakTypeTag]: c.Expr[String] =
     testSingletonRoundTrip[A]
 
@@ -86,6 +89,9 @@ object ClassesFixtures {
 
   def testCaseClassConstructRoundTrip[A]: String =
     macro ClassesFixtures.testCaseClassConstructRoundTripImpl[A]
+
+  def testVarargCaseClassConstruct[A](expected: A): Data =
+    macro ClassesFixtures.testVarargCaseClassConstructImpl[A]
 
   def testSingletonRoundTrip[A]: String =
     macro ClassesFixtures.testSingletonRoundTripImpl[A]

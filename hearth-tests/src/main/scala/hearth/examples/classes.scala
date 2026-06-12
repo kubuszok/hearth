@@ -12,6 +12,7 @@ final class ExampleClass
 final class ExampleClassWithTypeParam[A]
 
 case class ExampleCaseClass(a: Int)
+case class ExampleCaseClassWithVarargs(xs: Int*)
 case class ExampleCaseClassWithTypeParam[A](a: A)
 case class ExampleCaseClassWithDefaults(a: Int, b: String = "default-b")
 

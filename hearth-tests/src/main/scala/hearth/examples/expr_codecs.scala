@@ -17,6 +17,8 @@ case object Sentinel
 
 case class DataHolder(label: String, payload: hearth.data.Data)
 
+case class VarargNumbers(xs: Int*)
+
 case class ConfigWithFunctions(
     mapper: String => String = identity,
     flag: Boolean = false,

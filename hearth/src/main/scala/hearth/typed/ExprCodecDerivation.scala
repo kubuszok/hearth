@@ -58,7 +58,11 @@ trait ExprCodecDerivation { this: MacroCommons =>
             val fieldValue = product.productElement(idx)
             semiQuoteInternal[F](fieldValue.asInstanceOf[F], overrides) match {
               case Right(fieldExpr) =>
-                Right(acc + (field.name -> fieldExpr.as_??(using Expr.typeOf(fieldExpr))))
+                // Expr.typeOf can report a stale/abstract type for exprs built by generic built-in codecs (e.g. on
+                // Scala 2 SeqExprCodec[A] captures its own type parameter A) - fall back to the declared field type.
+                val exprType = Expr.typeOf(fieldExpr)
+                val fieldType0 = if (exprType <:< Type[F]) exprType else Type[F]
+                Right(acc + (field.name -> fieldExpr.as_??(using fieldType0)))
               case Left(err) => Left(err)
             }
         }
@@ -208,5 +212,18 @@ trait ExprCodecDerivation { this: MacroCommons =>
     else if (Type[F] =:= Type.of[BigInt]) Some(Expr.BigIntExprCodec.asInstanceOf[ExprCodec[Any]])
     else if (Type[F] =:= Type.of[BigDecimal]) Some(Expr.BigDecimalExprCodec.asInstanceOf[ExprCodec[Any]])
     else if (Type[F] =:= Type.of[hearth.data.Data]) Some(Expr.DataExprCodec.asInstanceOf[ExprCodec[Any]])
-    else None
+    else
+      // Vararg case-class fields/parameters are normalized to scala.collection.immutable.Seq[A], so Seq of
+      // built-in-codec elements has to be supported for vararg case classes to round-trip.
+      seqTypeCtor.unapply(Type[F]).flatMap { elem =>
+        import elem.Underlying as E
+        if (Type[F] =:= seqTypeCtor[E])
+          lookupBuiltInExprCodec[E].map { elemCodec =>
+            implicit val elemExprCodec: ExprCodec[E] = elemCodec.asInstanceOf[ExprCodec[E]]
+            Expr.SeqExprCodec[E].asInstanceOf[ExprCodec[Any]]
+          }
+        else None
+      }
+
+  private lazy val seqTypeCtor: Type.Ctor1[Seq] = Type.Ctor1.of[Seq]
 }

@@ -766,6 +766,36 @@ final class MethodsJvmSpec extends MacroSuite {
           )
         }
       }
+
+      group("isVararg: Java varargs (int... xs) detection and calls") {
+        import MethodsFixtures.{testCallVarargIntMethod, testParameterProperties}
+
+        test("parameter-level isVararg for Java vararg parameter") {
+          // Java parameter names are not preserved (javac without -parameters), so each platform synthesizes one.
+          val paramName = if (LanguageVersion.byHearth.isScala2_13) "x$1" else "x$0"
+
+          testParameterProperties[examples.classes.ExampleJavaVarargs]("sum") <==> Data.map(
+            paramName -> Data.map(
+              "isImplicit" -> Data(false),
+              "hasDefault" -> Data(false),
+              "isByName" -> Data(false),
+              "isVararg" -> Data(true)
+            )
+          )
+        }
+
+        test("calling a Java vararg method with multiple values via Method API") {
+          testCallVarargIntMethod[examples.classes.ExampleJavaVarargs](
+            new examples.classes.ExampleJavaVarargs
+          )("sum")(1, 2, 3) ==> 6
+        }
+
+        test("calling a Java vararg method with no values via Method API") {
+          testCallVarargIntMethod[examples.classes.ExampleJavaVarargs](
+            new examples.classes.ExampleJavaVarargs
+          )("sum")() ==> 0
+        }
+      }
     }
   }
 }

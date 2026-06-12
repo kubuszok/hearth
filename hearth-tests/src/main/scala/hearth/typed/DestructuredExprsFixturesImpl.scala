@@ -95,6 +95,7 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
       case _: DestructuredExpr.Literal           => "Literal"
       case _: DestructuredExpr.Singleton         => "Singleton"
       case _: DestructuredExpr.Block             => "Block"
+      case _: DestructuredExpr.Varargs           => "Varargs"
       case _: DestructuredExpr.NonDestructurable => "NonDestructurable"
     }
     val extra: List[(String, Data)] = parsed match {
@@ -144,6 +145,12 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
         "nodeType" -> Data("Block"),
         "statements" -> Data(b.statements.map(renderDetailed)),
         "result" -> renderDetailed(b.result)
+      )
+    case va: DestructuredExpr.Varargs =>
+      Data.map(
+        "nodeType" -> Data("Varargs"),
+        "type" -> Data(va.tpe.plainPrint),
+        "elements" -> Data(va.elements.map(renderDetailed))
       )
     case nd: DestructuredExpr.NonDestructurable =>
       Data.map("nodeType" -> Data("NonDestructurable"), "description" -> Data(nd.description))

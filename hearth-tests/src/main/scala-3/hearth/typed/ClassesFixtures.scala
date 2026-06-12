@@ -164,6 +164,12 @@ object ClassesFixtures {
   private def testCaseClassConstructRoundTripImpl[A: Type](using q: Quotes): Expr[String] =
     new ClassesFixtures(q).testCaseClassConstructRoundTrip[A]
 
+  inline def testVarargCaseClassConstruct[A](inline expected: A): Data = ${
+    testVarargCaseClassConstructImpl[A]('expected)
+  }
+  private def testVarargCaseClassConstructImpl[A: Type](expected: Expr[A])(using q: Quotes): Expr[Data] =
+    new ClassesFixtures(q).testVarargCaseClassConstruct[A](expected)
+
   inline def testSingletonRoundTrip[A]: String = ${ testSingletonRoundTripImpl[A] }
   private def testSingletonRoundTripImpl[A: Type](using q: Quotes): Expr[String] =
     new ClassesFixtures(q).testSingletonRoundTrip[A]
