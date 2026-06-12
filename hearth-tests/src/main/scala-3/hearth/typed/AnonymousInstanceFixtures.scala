@@ -42,4 +42,32 @@ object AnonymousInstanceFixtures {
       ctorIndex: Expr[Int]
   )(using q: Quotes): Expr[String] =
     new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructWithCtorIndex[A](ctorIndex)
+
+  inline def testAnonymousInstanceParseInaccessible: Data = ${ testAnonymousInstanceParseInaccessibleImpl }
+  private def testAnonymousInstanceParseInaccessibleImpl(using q: Quotes): Expr[Data] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceParseInaccessible
+
+  inline def testAnonymousInstanceConstructNoOverrides[A]: String = ${
+    testAnonymousInstanceConstructNoOverridesImpl[A]
+  }
+  private def testAnonymousInstanceConstructNoOverridesImpl[A: Type](using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructNoOverrides[A]
+
+  inline def testAnonymousInstanceConstructNoOverridesWithMixins[A, M1]: String = ${
+    testAnonymousInstanceConstructNoOverridesWithMixinsImpl[A, M1]
+  }
+  private def testAnonymousInstanceConstructNoOverridesWithMixinsImpl[A: Type, M1: Type](using
+      q: Quotes
+  ): Expr[String] = {
+    val mc = new AnonymousInstanceFixtures(q)
+    mc.testAnonymousInstanceConstructNoOverridesWithMixins[A](mc.UntypedType.fromTyped[M1].as_??)
+  }
+
+  inline def testAnonymousInstanceConstructOverridingFinal[A](inline finalMethodName: String): String = ${
+    testAnonymousInstanceConstructOverridingFinalImpl[A]('finalMethodName)
+  }
+  private def testAnonymousInstanceConstructOverridingFinalImpl[A: Type](
+      finalMethodName: Expr[String]
+  )(using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructOverridingFinal[A](finalMethodName)
 }

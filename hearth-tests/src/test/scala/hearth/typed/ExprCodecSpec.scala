@@ -105,4 +105,70 @@ final class ExprCodecSpec extends MacroSuite {
       }
     }
   }
+
+  group("Expr.semiQuote direct usage") {
+
+    test("quotes primitives and String via built-in codecs") {
+      ExprCodecFixtures.testSemiQuotePrimitives <==> Data.map(
+        "int" -> Data("42"),
+        "string" -> Data("\"quoted\""),
+        "boolean" -> Data("true"),
+        "double" -> Data("3.14")
+      )
+    }
+
+    test("quotes case classes (recursively)") {
+      ExprCodecFixtures.testSemiQuoteCaseClass <==> Data.map(
+        "simple" -> caseClassReLifted(
+          s2 = "new hearth.examples.expr_codecs.ServerConfig((\"localhost\": scala.Predef.String), (8080: scala.Int))",
+          s3 = "new hearth.examples.expr_codecs.ServerConfig(\"localhost\", 8080)"
+        ),
+        "nested" -> caseClassReLifted(
+          s2 =
+            "new hearth.examples.expr_codecs.AppConfig(new hearth.examples.expr_codecs.ServerConfig((\"db.local\": scala.Predef.String), (5432: scala.Int)), (true: scala.Boolean))",
+          s3 =
+            "new hearth.examples.expr_codecs.AppConfig(new hearth.examples.expr_codecs.ServerConfig(\"db.local\", 5432), true)"
+        )
+      )
+    }
+
+    test("quotes children of a sealed hierarchy (upcast to the parent)") {
+      ExprCodecFixtures.testSemiQuoteSealedChild <==> Data.map(
+        "caseClassChild" -> caseClassReLifted(
+          s2 =
+            "(new hearth.examples.expr_codecs.Shape.Circle((3.14: scala.Double)): hearth.examples.expr_codecs.Shape)",
+          s3 = "new hearth.examples.expr_codecs.Shape.Circle(3.14)"
+        ),
+        "caseObjectChild" -> singletonReLifted(
+          s2fqn = "(hearth.examples.expr_codecs.Shape.Origin: hearth.examples.expr_codecs.Shape)",
+          s3short = "expr_codecs.Shape.Origin"
+        )
+      )
+    }
+
+    test("quotes a standalone case object") {
+      ExprCodecFixtures.testSemiQuoteSingleton <==> Data.map(
+        "caseObject" -> singletonReLifted(
+          s2fqn = "hearth.examples.expr_codecs.Sentinel",
+          s3short = "expr_codecs.Sentinel"
+        )
+      )
+    }
+
+    test("QuoteOverride customizes quoting for a chosen type (also inside case classes)") {
+      ExprCodecFixtures.testSemiQuoteWithOverride <==> Data.map(
+        "direct" -> Data("\"HELLO\""),
+        "nested" -> caseClassReLifted(
+          s2 = "new hearth.examples.expr_codecs.ServerConfig((\"LOCALHOST\": scala.Predef.String), (8080: scala.Int))",
+          s3 = "new hearth.examples.expr_codecs.ServerConfig(\"LOCALHOST\", 8080)"
+        )
+      )
+    }
+
+    test("returns Left with a message for a type that cannot be quoted") {
+      ExprCodecFixtures.testSemiQuoteFailure <==> Data.map(
+        "notQuotable" -> Data("<failed: Cannot semi-quote value of type hearth.examples.expr_codecs.NotQuotable>")
+      )
+    }
+  }
 }

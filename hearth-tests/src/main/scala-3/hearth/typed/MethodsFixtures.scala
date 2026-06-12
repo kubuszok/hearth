@@ -135,6 +135,25 @@ object MethodsFixtures {
   private def testCallConstructorViaFoldImpl[A: Type](params: Expr[Seq[Int]])(using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testCallConstructorViaFold[A](params)
 
+  inline def testCallInstanceViaFoldF[A](inline instance: A)(inline methodName: String)(inline params: Int*): Data = ${
+    testCallInstanceViaFoldFImpl[A]('instance, 'methodName, 'params)
+  }
+  private def testCallInstanceViaFoldFImpl[A: Type](
+      instance: Expr[A],
+      methodName: Expr[String],
+      params: Expr[Seq[Int]]
+  )(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testCallInstanceViaFoldF[A](instance)(methodName)(params)
+
+  inline def testCallInstanceViaFoldMissingArgs[A](inline instance: A)(inline methodName: String): Data = ${
+    testCallInstanceViaFoldMissingArgsImpl[A]('instance, 'methodName)
+  }
+  private def testCallInstanceViaFoldMissingArgsImpl[A: Type](
+      instance: Expr[A],
+      methodName: Expr[String]
+  )(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testCallInstanceViaFoldMissingArgs[A](instance)(methodName)
+
   inline def testConstructNamedTuple[A]: Data = ${ testConstructNamedTupleImpl[A] }
   private def testConstructNamedTupleImpl[A: Type](using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testConstructNamedTuple[A]

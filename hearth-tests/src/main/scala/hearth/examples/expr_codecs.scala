@@ -27,3 +27,6 @@ class Preference[A]
 object Preference {
   def apply[A]: Preference[A] = new Preference[A]
 }
+
+/** Not a case class, not a singleton, not a sealed hierarchy — nothing in `semiQuoteInternal` can handle it. */
+class NotQuotable(val value: Int)

@@ -128,6 +128,93 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
+  def testAnonymousInstanceParseInaccessible: Expr[Data] = {
+    val inaccessible =
+      UntypedType.fromClassName("hearth.examples.anonymous_instances.PackagePrivateTrait").as_??
+    import inaccessible.Underlying as Inaccessible
+    AnonymousInstance.parse[Inaccessible] match {
+      case ClassViewResult.Compatible(_) =>
+        Expr(Data.map("result" -> Data("compatible")))
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(Data.map("result" -> Data("incompatible"), "reason" -> Data(reason)))
+    }
+  }
+
+  def testAnonymousInstanceConstructNoOverrides[A: Type]: Expr[String] = {
+    implicit val IntType: Type[Int] = intTypeAI
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val BooleanType: Type[Boolean] = booleanTypeAI
+
+    AnonymousInstance.parse[A] match {
+      case ClassViewResult.Compatible(ai) =>
+        val ctor = ai.classParent.flatMap(_._2.headOption)
+        val ctorArgs: Arguments = ctor match {
+          case Some(c) => buildDefaultCtorArgs(c)
+          case None    => Map.empty
+        }
+        constructAndSplice(ai, ctor, ctorArgs, Map.empty)
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(s"incompatible: $reason")
+    }
+  }
+
+  def testAnonymousInstanceConstructNoOverridesWithMixins[A: Type](mixin1: ??): Expr[String] = {
+    implicit val IntType: Type[Int] = intTypeAI
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val BooleanType: Type[Boolean] = booleanTypeAI
+
+    AnonymousInstance.parseWithMixins[A](List(mixin1)) match {
+      case ClassViewResult.Compatible(ai) =>
+        val ctor = ai.classParent.flatMap(_._2.headOption)
+        val ctorArgs: Arguments = ctor match {
+          case Some(c) => buildDefaultCtorArgs(c)
+          case None    => Map.empty
+        }
+        constructAndSplice(ai, ctor, ctorArgs, Map.empty)
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(s"incompatible: $reason")
+    }
+  }
+
+  def testAnonymousInstanceConstructOverridingFinal[A: Type](finalMethodName: Expr[String]): Expr[String] = {
+    implicit val IntType: Type[Int] = intTypeAI
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val BooleanType: Type[Boolean] = booleanTypeAI
+
+    val name = Expr
+      .unapply(finalMethodName)
+      .getOrElse(
+        Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${finalMethodName.prettyPrint}")
+      )
+
+    AnonymousInstance.parse[A] match {
+      case ClassViewResult.Compatible(ai) =>
+        val finalOverrides: Map[UntypedMethod, OverrideBody] = ai.cannotOverride.collect {
+          case cm if cm.method.name == name =>
+            cm.method.asUntyped -> new OverrideBody {
+              def apply(ctx: OverrideContext): Expr_?? = {
+                import ctx.returnType.Underlying as R
+                if (Type[R] <:< Type[Int]) Expr(0).as_??
+                else if (Type[R] <:< Type[String]) Expr("stub").as_??
+                else if (Type[R] <:< Type[Boolean]) Expr(false).as_??
+                else Expr.quote(null.asInstanceOf[R]).as_??
+              }
+            }
+        }.toMap
+        if (finalOverrides.isEmpty)
+          Environment.reportErrorAndAbort(s"No final (CannotOverride) method named $name found")
+        val overrides = buildDefaultOverrides(ai) ++ finalOverrides
+        val ctor = ai.classParent.flatMap(_._2.headOption)
+        val ctorArgs: Arguments = ctor match {
+          case Some(c) => buildDefaultCtorArgs(c)
+          case None    => Map.empty
+        }
+        constructAndSplice(ai, ctor, ctorArgs, overrides)
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(s"incompatible: $reason")
+    }
+  }
+
   private def constructWithDefaults[A: Type](ai: AnonymousInstance[A])(implicit
       IntType: Type[Int],
       StringType: Type[String],

@@ -24,6 +24,19 @@ final private class AnonymousInstanceFixtures(val c: blackbox.Context)
       ctorIndex: c.Expr[Int]
   ): c.Expr[String] =
     testAnonymousInstanceConstructWithCtorIndex[A](ctorIndex)
+
+  def testAnonymousInstanceParseInaccessibleImpl: c.Expr[Data] = testAnonymousInstanceParseInaccessible
+
+  def testAnonymousInstanceConstructNoOverridesImpl[A: c.WeakTypeTag]: c.Expr[String] =
+    testAnonymousInstanceConstructNoOverrides[A]
+
+  def testAnonymousInstanceConstructNoOverridesWithMixinsImpl[A: c.WeakTypeTag, M1: c.WeakTypeTag]: c.Expr[String] =
+    testAnonymousInstanceConstructNoOverridesWithMixins[A](Type.of[M1].as_??)
+
+  def testAnonymousInstanceConstructOverridingFinalImpl[A: c.WeakTypeTag](
+      finalMethodName: c.Expr[String]
+  ): c.Expr[String] =
+    testAnonymousInstanceConstructOverridingFinal[A](finalMethodName)
 }
 
 object AnonymousInstanceFixtures {
@@ -41,4 +54,16 @@ object AnonymousInstanceFixtures {
 
   def testAnonymousInstanceConstructWithCtorIndex[A](ctorIndex: Int): String =
     macro AnonymousInstanceFixtures.testAnonymousInstanceConstructWithCtorIndexImpl[A]
+
+  def testAnonymousInstanceParseInaccessible: Data =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceParseInaccessibleImpl
+
+  def testAnonymousInstanceConstructNoOverrides[A]: String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceConstructNoOverridesImpl[A]
+
+  def testAnonymousInstanceConstructNoOverridesWithMixins[A, M1]: String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceConstructNoOverridesWithMixinsImpl[A, M1]
+
+  def testAnonymousInstanceConstructOverridingFinal[A](finalMethodName: String): String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceConstructOverridingFinalImpl[A]
 }
