@@ -599,4 +599,12 @@ trait Methods { this: MacroCommons =>
 
   /** Class/Method might package private/protected modifier but we are in the same package */
   case object AtCallSite extends Accessible
+
+  /** No accessibility requirement - every class/method matches, regardless of its visibility.
+    *
+    * Useful when we only want to enumerate members (e.g. all case fields) without filtering out the non-public ones.
+    *
+    * @since 0.4.0
+    */
+  case object Unrestricted extends Accessible
 }
