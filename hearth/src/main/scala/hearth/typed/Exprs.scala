@@ -434,6 +434,24 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def eqValue[A: Type](expr: Expr[A], freshName: FreshName = FreshName.FromExpr): MatchCase[Expr[A]]
 
+    /** Creates a case that matches the value with a user-provided `scala.reflect.TypeTest` extractor (Scala 3-only).
+      *
+      * Generates `case name @ tt(_) => ...` where `tt` is the implicit `scala.reflect.TypeTest[A, B]` summoned at the
+      * macro expansion point (`A` being the type of the matched value, `B` the type the case narrows it to). Used for
+      * union members that a runtime class test cannot discriminate soundly (same/related erasure like
+      * `List[Int] | List[String]`, abstract types, type parameters) - the `TypeTest` acts as a total runtime
+      * discriminator supplied by the user.
+      *
+      * Fails (with an `AssertionError`) when no implicit `scala.reflect.TypeTest[A, B]` is in scope; guard calls with
+      * [[Type.unionMemberRequiresTypeTest]] + [[Type.directChildren]] (which verifies summonability for unions), or
+      * make sure the instance exists. On Scala 2 (which has no `scala.reflect.TypeTest`) this method always fails the
+      * same way; guard calls with [[Type.isUnionType]] / [[Type.unionMemberRequiresTypeTest]], which are always `false`
+      * on Scala 2.
+      *
+      * @since 0.4.0
+      */
+    def typeTestMatch[A: Type, B: Type](freshName: FreshName = FreshName.FromType): MatchCase[Expr[B]]
+
     def matchOn[A: Type, B: Type](toMatch: Expr[A])(cases: NonEmptyVector[MatchCase[Expr[B]]]): Expr[B]
 
     def partition[A, B, C](matchCase: MatchCase[A])(f: A => Either[B, C]): Either[MatchCase[B], MatchCase[C]]

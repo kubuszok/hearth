@@ -206,6 +206,29 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     final def isNamedTuple[A: Type]: Boolean = UntypedType.fromTyped[A].isNamedTuple
     final def isUnionType[A: Type]: Boolean = UntypedType.fromTyped[A].isUnionType
 
+    /** Whether the member `B` of the union type `A` has to be discriminated with a user-provided
+      * `scala.reflect.TypeTest[A, B]` rather than a runtime class test (Scala 3-only).
+      *
+      * `true` for non-singleton union members whose runtime class either cannot be determined (abstract types, type
+      * parameters) or is not disjoint from another member's runtime class (same/related erasure, e.g. `List[Int]` and
+      * `List[String]`). Always `false` on Scala 2 (which has no union types).
+      *
+      * @since 0.4.0
+      */
+    final def unionMemberRequiresTypeTest[A: Type, B: Type]: Boolean =
+      UntypedType.fromTyped[A].unionMemberRequiresTypeTest(UntypedType.fromTyped[B])
+
+    /** Human-readable reason why [[directChildren]] refused to decompose the union type `A` (Scala 3-only).
+      *
+      * Currently provided only when some members are not runtime-distinguishable and no implicit
+      * `scala.reflect.TypeTest[A, Member]` was found for them - the message names the missing instances. Returns `None`
+      * when the type is not a refused union, or when the refusal has no actionable fix (e.g. members with static
+      * subtype relationships). Always `None` on Scala 2 (which has no union types).
+      *
+      * @since 0.4.0
+      */
+    final def unionRefusalReason[A: Type]: Option[String] = UntypedType.fromTyped[A].unionRefusalReason
+
     final def isAbstract[A: Type]: Boolean = UntypedType.fromTyped[A].isAbstract
     final def isFinal[A: Type]: Boolean = UntypedType.fromTyped[A].isFinal
     final def isTrait[A: Type]: Boolean = UntypedType.fromTyped[A].isTrait
@@ -753,6 +776,8 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def isTuple: Boolean = Type.isTuple(using tpe)
     def isNamedTuple: Boolean = Type.isNamedTuple(using tpe)
     def isUnionType: Boolean = Type.isUnionType(using tpe)
+    def unionMemberRequiresTypeTest[B: Type]: Boolean = Type.unionMemberRequiresTypeTest[A, B](using tpe, Type[B])
+    def unionRefusalReason: Option[String] = Type.unionRefusalReason(using tpe)
 
     def isAbstract: Boolean = Type.isAbstract(using tpe)
     def isFinal: Boolean = Type.isFinal(using tpe)
