@@ -8,7 +8,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
   import quotes.*, quotes.reflect.*
 
-  import UntypedType.platformSpecific.{positionOf, symbolAvailable}
+  import UntypedType.platformSpecific.{positionOf, repositionAnnotation, symbolAvailable}
 
   // Repeated (vararg) parameters appear in two shapes on Scala 3:
   //   - `scala.<repeated>[A]` (an `AppliedType` of `defn.RepeatedParamClass`) in method signatures,
@@ -53,7 +53,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def name: String = symbol.name
     override def position: Option[Position] = positionOf(symbol)
 
-    override def annotations: List[UntypedExpr] = symbol.annotations
+    override def annotations: List[UntypedExpr] = symbol.annotations.map(repositionAnnotation)
     override def annotationTypes: List[UntypedType] = symbol.annotations.map(_.tpe)
 
     // By-name-ness is not visible on the parameter symbol itself (its termRef widens the ByNameType away),
@@ -378,7 +378,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override lazy val name: String = symbol.name
     override def position: Option[Position] = positionOf(symbol)
 
-    override def annotations: List[UntypedExpr] = symbol.annotations
+    override def annotations: List[UntypedExpr] = symbol.annotations.map(repositionAnnotation)
     override def annotationTypes: List[UntypedType] = symbol.annotations.map(_.tpe)
 
     override def isConstructor: Boolean = symbol.isClassConstructor

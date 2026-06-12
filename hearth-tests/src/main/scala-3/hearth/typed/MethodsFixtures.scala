@@ -194,6 +194,12 @@ object MethodsFixtures {
   private def testAnnotationValueDecodedImpl[A: Type](using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testAnnotationValueDecoded[A]
 
+  inline def testSplicedAnnotationValue[A](inline methodName: String): Data = ${
+    testSplicedAnnotationValueImpl[A]('methodName)
+  }
+  private def testSplicedAnnotationValueImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testSplicedAnnotationValue[A](methodName)
+
   inline def testFoldAnonymousInstanceMethod[A](inline instance: A, inline methodName: String): Data = ${
     testFoldAnonymousInstanceMethodImpl[A]('instance, 'methodName)
   }
