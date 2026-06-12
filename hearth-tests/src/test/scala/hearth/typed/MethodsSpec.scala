@@ -2698,6 +2698,34 @@ final class MethodsSpec extends MacroSuite {
     }
   }
 
+  group("methods: splicing annotation exprs into macro output") {
+    import MethodsFixtures.testSplicedAnnotationValue
+
+    test("type annotation expr spliced into generated code evaluates at runtime") {
+      testSplicedAnnotationValue[examples.methods.NoCompanionClass]("") <==> Data.map(
+        "typeValue" -> Data(1),
+        "methodValue" -> Data(-1),
+        "parameterValue" -> Data(-1)
+      )
+    }
+
+    test("method annotation expr spliced into generated code evaluates at runtime") {
+      testSplicedAnnotationValue[examples.methods.WithChildAnnotation]("annotatedMethod2") <==> Data.map(
+        "typeValue" -> Data(-1),
+        "methodValue" -> Data(42),
+        "parameterValue" -> Data(-1)
+      )
+    }
+
+    test("constructor parameter annotation expr spliced into generated code evaluates at runtime") {
+      testSplicedAnnotationValue[examples.methods.WithAnnotatedParams]("") <==> Data.map(
+        "typeValue" -> Data(-1),
+        "methodValue" -> Data(-1),
+        "parameterValue" -> Data(1)
+      )
+    }
+  }
+
   group("methods: fold on abstract trait method") {
     import MethodsFixtures.testCallInstanceViaFold
 
