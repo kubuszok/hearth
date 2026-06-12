@@ -1504,7 +1504,9 @@ final class MethodsSpec extends MacroSuite {
           testParameterProperties[examples.methods.WithImplicits]("methodWithImplicitParam") <==> Data.map(
             "x" -> Data.map(
               "isImplicit" -> Data(true),
-              "hasDefault" -> Data(false)
+              "hasDefault" -> Data(false),
+              "isByName" -> Data(false),
+              "isVararg" -> Data(false)
             )
           )
         }
@@ -1513,7 +1515,9 @@ final class MethodsSpec extends MacroSuite {
           testParameterProperties[examples.methods.WithImplicits]("implicitConversion") <==> Data.map(
             "x" -> Data.map(
               "isImplicit" -> Data(false),
-              "hasDefault" -> Data(false)
+              "hasDefault" -> Data(false),
+              "isByName" -> Data(false),
+              "isVararg" -> Data(false)
             )
           )
         }
@@ -1522,8 +1526,86 @@ final class MethodsSpec extends MacroSuite {
           testParameterProperties[examples.methods.NoCompanionClass]("method") <==> Data.map(
             "arg" -> Data.map(
               "isImplicit" -> Data(false),
-              "hasDefault" -> Data(false)
+              "hasDefault" -> Data(false),
+              "isByName" -> Data(false),
+              "isVararg" -> Data(false)
             )
+          )
+        }
+      }
+
+      group("isVararg: vararg (repeated) parameter detection and calls") {
+        import MethodsFixtures.{testCallVarargIntMethod, testConstructVarargCtor, testParameterProperties}
+
+        test("parameter-level isVararg for vararg method parameter") {
+          testParameterProperties[examples.methods.WithVarargs]("varargMethod") <==> Data.map(
+            "xs" -> Data.map(
+              "isImplicit" -> Data(false),
+              "hasDefault" -> Data(false),
+              "isByName" -> Data(false),
+              "isVararg" -> Data(true)
+            )
+          )
+        }
+
+        test("parameter-level isVararg is false for normal parameter") {
+          testParameterProperties[examples.methods.WithVarargs]("normalMethod") <==> Data.map(
+            "x" -> Data.map(
+              "isImplicit" -> Data(false),
+              "hasDefault" -> Data(false),
+              "isByName" -> Data(false),
+              "isVararg" -> Data(false)
+            )
+          )
+        }
+
+        test("parameter-level isVararg is false for by-name parameter") {
+          testParameterProperties[examples.methods.WithVarargs]("byNameMethod") <==> Data.map(
+            "x" -> Data.map(
+              "isImplicit" -> Data(false),
+              "hasDefault" -> Data(false),
+              "isByName" -> Data(true),
+              "isVararg" -> Data(false)
+            )
+          )
+        }
+
+        test("parameter-level isVararg for vararg constructor parameter") {
+          MethodsFixtures.testConstructorsExtraction[examples.methods.WithVarargsCtor] <==> Data.map(
+            "primaryConstructor" -> Data("(xs: scala.collection.immutable.Seq[java.lang.String])"),
+            "defaultConstructor" -> Data("<no default constructor>"),
+            "constructors" -> Data.list(
+              Data("(xs: scala.collection.immutable.Seq[java.lang.String])")
+            )
+          )
+        }
+
+        test("vararg method rendered as A* in plainPrint") {
+          val data = MethodsFixtures.testMethodPrettyPrint[examples.methods.WithVarargs]("varargMethod")
+          val map = data.asList.get.head.asMap.get
+          val plain = map("plainPrint").asString.get
+          val stripped = map("prettyPrintStripped").asString.get
+          assert(plain.contains("(xs: scala.Int*)"), s"plainPrint should render vararg as scala.Int*, got: $plain")
+          assert(stripped == plain, s"stripped: $stripped\nplain:    $plain")
+        }
+
+        test("calling a vararg method with multiple values via Method API") {
+          testCallVarargIntMethod[examples.methods.WithVarargs](new examples.methods.WithVarargs)("varargMethod")(
+            1,
+            2,
+            3
+          ) ==> 6
+        }
+
+        test("calling a vararg method with no values via Method API") {
+          testCallVarargIntMethod[examples.methods.WithVarargs](new examples.methods.WithVarargs)(
+            "varargMethod"
+          )() ==> 0
+        }
+
+        test("constructing a class with vararg constructor via Method API") {
+          testConstructVarargCtor[examples.methods.WithVarargsCtor]("a", "b", "c") <==> Data(
+            "WithVarargsCtor(a,b,c)"
           )
         }
       }

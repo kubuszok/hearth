@@ -96,6 +96,7 @@ trait UntypedMethods { this: MacroCommons =>
     def annotationTypes: List[UntypedType]
 
     def isByName: Boolean
+    def isVararg: Boolean
     def isImplicit: Boolean
     def hasDefault: Boolean
 
@@ -157,7 +158,7 @@ trait UntypedMethods { this: MacroCommons =>
             // Default value is called on the same instance as it's method, and without any arguments
             method.unsafeApply(instanceTpe)(instance, Map.empty)
           }
-          arguments.get(paramName).orElse(defaultValue).getOrElse {
+          val provided = arguments.get(paramName).orElse(defaultValue).getOrElse {
             // $COVERAGE-OFF$
             hearthRequirementFailed(
               s"""Expected that ${instanceTpe.prettyPrint}'s ${method.name} parameter `$paramName` would be provided or have a default value.
@@ -165,9 +166,20 @@ trait UntypedMethods { this: MacroCommons =>
             )
             // $COVERAGE-ON$
           }
+          // Vararg (repeated) parameters expect an Expr[Seq[A]] argument - splice it as `seq: _*`.
+          if (untyped.isVararg) adaptVarargArgument(provided) else provided
         }.toList
       }
   }
+
+  /** Platform-specific: wraps an `Expr[Seq[A]]` argument so that it can be spliced into a vararg (repeated) parameter
+    * position - the equivalent of writing `method(seq: _*)` (Scala 2) / `method(seq*)` (Scala 3) in source code.
+    *
+    * Used by [[UntypedArgumentsMethods.adaptToParams]] when the corresponding [[UntypedParameter]] `isVararg`.
+    *
+    * @since 0.4.0
+    */
+  protected def adaptVarargArgument(expr: UntypedExpr): UntypedExpr
 
   /** Platform-specific method representation (`c.universe.MethodSymbol` in 2, `quotes.reflect.Symbol` in 3).
     *

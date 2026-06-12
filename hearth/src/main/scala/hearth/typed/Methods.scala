@@ -31,7 +31,12 @@ trait Methods { this: MacroCommons =>
     *   - annotations
     *   - resolved type
     *   - checking if parameter is by-name
+    *   - checking if parameter is vararg (repeated)
     *   - checking if parameter is implicit
+    *
+    * For vararg parameters [[tpe]] is normalized to `scala.collection.immutable.Seq[A]` on both platforms (instead of
+    * the platform-specific repeated-parameter marker type `A*`), and the argument passed for such parameter should be
+    * an `Expr[Seq[A]]` - it will be spliced into the call as `seq: _*`.
     *
     * @since 0.1.0
     */
@@ -70,6 +75,16 @@ trait Methods { this: MacroCommons =>
     }
 
     lazy val isByName: Boolean = asUntyped.isByName
+
+    /** Whether the parameter is a vararg/repeated parameter (`xs: A*`).
+      *
+      * For such parameters [[tpe]] is normalized to `scala.collection.immutable.Seq[A]` on both platforms, and the
+      * argument provided when calling the method (via [[Method.ApplyValues]], `fold`, etc.) should be an `Expr[Seq[A]]` -
+      * it will be spliced into the call as `seq: _*`.
+      *
+      * @since 0.4.0
+      */
+    lazy val isVararg: Boolean = asUntyped.isVararg
     lazy val isImplicit: Boolean = asUntyped.isImplicit
   }
 

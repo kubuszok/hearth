@@ -10,6 +10,43 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
   import UntypedType.platformSpecific.{positionOf, symbolAvailable}
 
+  // Repeated (vararg) parameters appear in two shapes on Scala 3:
+  //   - `scala.<repeated>[A]` (an `AppliedType` of `defn.RepeatedParamClass`) in method signatures,
+  //   - `Seq[A] @scala.annotation.internal.Repeated` (an `AnnotatedType`) when widening the parameter's term ref.
+  private lazy val repeatedAnnotationSymbol: Symbol = Symbol.requiredClass("scala.annotation.internal.Repeated")
+  private lazy val immutableSeqTypeConstructor: TypeRepr = TypeRepr.of[scala.collection.immutable.Seq[Any]] match {
+    case AppliedType(tycon, _) => tycon
+    // $COVERAGE-OFF$ Should never happen - Seq[Any] is always an AppliedType
+    case other => other
+    // $COVERAGE-ON$
+  }
+
+  private def isRepeatedParamType(tpe: TypeRepr): Boolean = tpe match {
+    case AppliedType(tycon, _) => tycon.typeSymbol == defn.RepeatedParamClass
+    case AnnotatedType(_, ann) => ann.tpe.typeSymbol == repeatedAnnotationSymbol
+    case _                     => false
+  }
+
+  /** Normalizes the raw repeated-parameter marker type (`scala.<repeated>[A]` or `Seq[A] @Repeated`) to
+    * `scala.collection.immutable.Seq[A]`, so that [[Parameter.tpe]] is a real, usable type, consistent between Scala 2
+    * and Scala 3. Non-repeated types are returned unchanged.
+    */
+  private def normalizeRepeatedParamType(tpe: TypeRepr): TypeRepr = tpe match {
+    case AppliedType(tycon, List(elem)) if tycon.typeSymbol == defn.RepeatedParamClass =>
+      immutableSeqTypeConstructor.appliedTo(elem)
+    case AnnotatedType(underlying, ann) if ann.tpe.typeSymbol == repeatedAnnotationSymbol => underlying
+    case other                                                                            => other
+  }
+
+  override protected def adaptVarargArgument(expr: UntypedExpr): UntypedExpr = {
+    val argTpe = expr.tpe.widenTermRefByName.dealias
+    val elementType = argTpe.baseType(immutableSeqTypeConstructor.typeSymbol) match {
+      case AppliedType(_, List(elem)) => elem
+      case _                          => argTpe.typeArgs.headOption.getOrElse(TypeRepr.of[Any])
+    }
+    Typed(expr, Inferred(defn.RepeatedParamClass.typeRef.appliedTo(elementType)))
+  }
+
   class UntypedParameter private[UntypedMethodsScala3] (val method: UntypedMethod, val symbol: Symbol, val index: Int)
       extends UntypedParameterMethods {
 
@@ -19,10 +56,22 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def annotations: List[UntypedExpr] = symbol.annotations
     override def annotationTypes: List[UntypedType] = symbol.annotations.map(_.tpe)
 
-    override def isByName: Boolean = symbol.typeRef.simplified match {
-      case ByNameType(_) => true
-      case _             => false
+    // By-name-ness is not visible on the parameter symbol itself (its termRef widens the ByNameType away),
+    // so we look the parameter up in the owning method's signature, where it appears as `ByNameType`.
+    override def isByName: Boolean = {
+      def loop(tpe: TypeRepr): Boolean = tpe match {
+        case MethodType(names, types, returnType) =>
+          names.zip(types).collectFirst { case (n, t) if n == symbol.name => t } match {
+            case Some(ByNameType(_)) => true
+            case Some(_)             => false
+            case None                => loop(returnType)
+          }
+        case PolyType(_, _, returnType) => loop(returnType)
+        case _                          => false
+      }
+      loop(safeMemberType(method.symbol.owner.typeRef, method.symbol))
     }
+    override def isVararg: Boolean = isRepeatedParamType(symbol.termRef.widenTermRefByName)
     override def isImplicit: Boolean = symbol.flags.is(Flags.Implicit) || symbol.flags.is(Flags.Given)
     override def hasDefault: Boolean = symbol.flags.is(Flags.HasDefault)
   }
@@ -106,7 +155,11 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       untyped.map { params =>
         params.flatMap { case (paramName, untyped) =>
           typesByParamName.get(paramName).map { tpe =>
-            val param = Parameter(asUntyped = untyped, untypedInstanceType = instanceTpe, tpe = tpe.as_??)
+            val param = Parameter(
+              asUntyped = untyped,
+              untypedInstanceType = instanceTpe,
+              tpe = normalizeRepeatedParamType(tpe).as_??
+            )
             paramName -> param
           }
         }
@@ -368,7 +421,13 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         if isConstructor && instanceTpe.typeArgs.nonEmpty then rawMemberType.appliedTo(instanceTpe.typeArgs)
         else rawMemberType
       def typePrint(t: TypeRepr): String = {
-        val raw = t.plainPrint
+        val raw = t match {
+          case AppliedType(tycon, List(elem)) if tycon.typeSymbol == defn.RepeatedParamClass =>
+            s"${elem.plainPrint}*"
+          case AnnotatedType(underlying, ann) if ann.tpe.typeSymbol == repeatedAnnotationSymbol =>
+            underlying.typeArgs.headOption.map(elem => s"${elem.plainPrint}*").getOrElse(underlying.plainPrint)
+          case _ => t.plainPrint
+        }
         if hl.TypeDefColor.isEmpty then raw else hl.highlightTypeDef(raw)
       }
       def collectParamLists(tpe: TypeRepr): (List[List[(String, String)]], String) = tpe match {
@@ -484,6 +543,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def annotations: List[UntypedExpr] = Nil
     override def annotationTypes: List[UntypedType] = Nil
     override def isByName: Boolean = false
+    override def isVararg: Boolean = false
     override def isImplicit: Boolean = false
     override def hasDefault: Boolean = false
   }

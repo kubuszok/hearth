@@ -21,6 +21,10 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       symbol.annotations.map(_.tree.tpe)
 
     override def isByName: Boolean = symbol.isByNameParam
+    override def isVararg: Boolean = {
+      val tpeSymbol = symbol.typeSignature.typeSymbol
+      tpeSymbol == definitions.RepeatedParamClass || tpeSymbol == definitions.JavaRepeatedParamClass
+    }
     override def isImplicit: Boolean = symbol.isImplicit
     override def hasDefault: Boolean = symbol.asTerm.isParamWithDefault
   }
@@ -31,6 +35,22 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       if (symbol.isTerm) Right(new UntypedParameter(method, symbol.asTerm, index))
       else Left(s"Expected param Symbol, got $symbol")
   }
+
+  /** Normalizes the raw repeated-parameter marker type `A*` (`scala.<repeated>[A]` / `scala.<repeated...>[A]`) to
+    * `scala.collection.immutable.Seq[A]`, so that [[Parameter.tpe]] is a real, usable type, consistent between Scala 2
+    * and Scala 3. Non-repeated types are returned unchanged.
+    */
+  private def normalizeRepeatedParamType(tpe: c.universe.Type): c.universe.Type = {
+    val tpeSymbol = tpe.typeSymbol
+    if (
+      (tpeSymbol == definitions.RepeatedParamClass || tpeSymbol == definitions.JavaRepeatedParamClass) &&
+      tpe.typeArgs.sizeIs == 1
+    )
+      appliedType(c.typeOf[scala.collection.immutable.Seq[Any]].typeConstructor, tpe.typeArgs)
+    else tpe
+  }
+
+  override protected def adaptVarargArgument(expr: UntypedExpr): UntypedExpr = q"$expr: _*"
 
   object UntypedParameters extends UntypedParametersModule {
 
@@ -68,7 +88,11 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       untyped.map { params =>
         params.flatMap { case (paramName, untyped) =>
           typesByParamName.get(paramName).map { tpe =>
-            val param = new Parameter(asUntyped = untyped, untypedInstanceType = instanceTpe, tpe = tpe.as_??)
+            val param = new Parameter(
+              asUntyped = untyped,
+              untypedInstanceType = instanceTpe,
+              tpe = normalizeRepeatedParamType(tpe).as_??
+            )
             paramName -> param
           }
         }
@@ -293,6 +317,9 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
           case _                               => false
         }
         def printType(t: c.universe.Type): String = t.dealias match {
+          case TypeRef(_, sym, List(arg))
+              if sym == definitions.RepeatedParamClass || sym == definitions.JavaRepeatedParamClass =>
+            s"${printType(arg)}*"
           case TypeRef(_, sym, Nil) if isTP(sym)                                                    => symbolName(sym)
           case TypeRef(_, sym, Nil) if sym.isType && sym.owner.isClass && !sym.owner.isPackageClass =>
             s"${sym.owner.fullName}#${symbolName(sym)}"
