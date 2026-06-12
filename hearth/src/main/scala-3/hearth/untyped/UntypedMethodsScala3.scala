@@ -766,7 +766,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
             case other          => other
           }
           val memberType = safeMemberType(instanceTpe, untyped.symbol).widenByName
-          Some(finalResultType(memberType).as_??)
+          // E.g. the case-field accessor of a vararg parameter would otherwise return `scala.<repeated>[A]`.
+          Some(normalizeRepeatedParamType(finalResultType(memberType)).as_??)
         }
 
       val buildExpr: (Option[UntypedExpr], UntypedTypeArguments, UntypedArguments) => Either[String, UntypedExpr] =

@@ -6119,7 +6119,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
                 applied += new DestructuredExpr.MethodCall.AppliedInstance(dstrImpl(receiverTerm, lambdaParams))
                 if restArgs.nonEmpty then applied += new DestructuredExpr.MethodCall.AppliedValues(
-                  restArgs.map(a => dstrImpl(a, lambdaParams))
+                  restArgs.map(a => dstrArg(a, lambdaParams))
                 )
                 dstrBuildAppliedSteps(restSteps, lambdaParams, applied)
                 new DestructuredExpr.MethodCall(dstrTpeOf(term), method, applied.result(), () => term)
@@ -6130,7 +6130,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                   val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
                   applied += new DestructuredExpr.MethodCall.AppliedInstance(dstrImpl(receiverTerm, lambdaParams))
                   if restArgs.nonEmpty then applied += new DestructuredExpr.MethodCall.AppliedValues(
-                    restArgs.map(a => dstrImpl(a, lambdaParams))
+                    restArgs.map(a => dstrArg(a, lambdaParams))
                   )
                   dstrBuildAppliedSteps(restSteps, lambdaParams, applied)
                   new DestructuredExpr.MethodCall(dstrTpeOf(term), method, applied.result(), () => term)
@@ -6151,7 +6151,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                   typeStep.targs.map(t => UntypedType.as_??(t.asInstanceOf[TypeTree].tpe))
                 )
                 if restArgs.nonEmpty then applied += new DestructuredExpr.MethodCall.AppliedValues(
-                  restArgs.map(a => dstrImpl(a, lambdaParams))
+                  restArgs.map(a => dstrArg(a, lambdaParams))
                 )
                 dstrBuildAppliedSteps(restSteps, lambdaParams, applied)
                 new DestructuredExpr.MethodCall(dstrTpeOf(term), method, applied.result(), () => term)
@@ -6205,9 +6205,59 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         )
       case DstrValueStep(args) =>
         applied += new DestructuredExpr.MethodCall.AppliedValues(
-          args.map(a => dstrImpl(a, lambdaParams))
+          args.map(a => dstrArg(a, lambdaParams))
         )
     }
+  }
+
+  /** Destructures a single value argument, handling vararg (repeated) argument trees.
+    *
+    * Individual elements (`m(1, 2, 3)`) arrive as `Typed(Repeated(elems, _), _)` (or a bare `Repeated`) and become one
+    * [[DestructuredExpr.Varargs]] slot. A spread sequence (`m(seq*)`) arrives as `Typed(seq, <repeated tpt>)` and is
+    * unwrapped to the destructured sequence expression itself - matching what Scala 2 produces for `m(seq: _*)`.
+    */
+  private def dstrArg(argAny: Any, lambdaParams: Map[Any, DestructuredExpr.Lambda.Param]): DestructuredExpr = {
+    import quotes.reflect.*
+    argAny.asInstanceOf[Term] match {
+      case Repeated(elems, elemTpt)                         => dstrVarargs(elems, elemTpt, lambdaParams)
+      case Typed(Repeated(elems, elemTpt), _)               => dstrVarargs(elems, elemTpt, lambdaParams)
+      case Typed(inner, tpt) if dstrIsRepeatedParamTpt(tpt) => dstrImpl(inner, lambdaParams)
+      case other                                            => dstrImpl(other, lambdaParams)
+    }
+  }
+
+  private def dstrIsRepeatedParamTpt(tptAny: Any): Boolean = {
+    import quotes.reflect.*
+    tptAny.asInstanceOf[TypeTree].tpe match {
+      case AppliedType(tycon, _)   => tycon.typeSymbol == defn.RepeatedParamClass
+      case AnnotatedType(_, annot) => annot.tpe.typeSymbol == defn.RepeatedAnnot
+      case _                       => false
+    }
+  }
+
+  private def dstrVarargs(
+      elemsAny: List[Any],
+      elemTptAny: Any,
+      lambdaParams: Map[Any, DestructuredExpr.Lambda.Param]
+  ): DestructuredExpr = {
+    import quotes.reflect.*
+    val elems = elemsAny.map(_.asInstanceOf[Term])
+    val elemTpe = elemTptAny.asInstanceOf[TypeTree].tpe.widen
+    val seqTpe = TypeRepr.of[scala.collection.immutable.Seq[Any]] match {
+      case AppliedType(tycon, _) => tycon.appliedTo(elemTpe)
+      case other                 => other
+    }
+    new DestructuredExpr.Varargs(
+      UntypedType.as_??(seqTpe),
+      elems.map(e => dstrImpl(e, lambdaParams)),
+      () =>
+        Select.overloaded(
+          Ref(Symbol.requiredModule("scala.collection.immutable.Seq")),
+          "apply",
+          List(elemTpe),
+          elems
+        )
+    )
   }
 
   private def dstrResolveMethod(qualTpeAny: Any, methodSymAny: Any): Option[Method] = {

@@ -334,6 +334,41 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
+  private val seqIntType: Type[Seq[Int]] = Type.of[Seq[Int]]
+
+  /** Vararg case-class coverage: parses the case class, pins the primary-constructor signature (the vararg parameter
+    * type is normalized to `scala.collection.immutable.Seq[A]`) and the case-field accessor types, then constructs an
+    * instance through the vararg-aware [[Method.ApplyValues]] path and compares it with `expected` at runtime.
+    */
+  def testVarargCaseClassConstruct[A: Type](expected: Expr[A]): Expr[Data] = {
+    implicit val SeqIntType: Type[Seq[Int]] = seqIntType
+    CaseClass.parse[A].toOption.fold(Expr(Data("<no case class>"))) { caseClass =>
+      val signature = caseClass.primaryConstructor.totalParameters.flatten
+        .map { case (name, param) => s"$name: ${param.tpe.plainPrint}${if (param.isVararg) " (vararg)" else ""}" }
+        .mkString("(", ", ", ")")
+      val fields = caseClass.caseFields
+        .map(field => s"${field.name}: ${field.knownReturning.fold("<unknown>")(_.plainPrint)}")
+        .mkString("(", ", ", ")")
+      val makeArgument: Parameter => MIO[Expr_??] = param =>
+        if (param.isVararg) MIO.pure(Expr.quote(Seq(1, 2, 3)).as_??)
+        else MIO.fail(new Exception(s"Expected only a vararg parameter, got ${param.name}: ${param.tpe.plainPrint}"))
+      caseClass.construct(makeArgument).unsafe.runSync._2 match {
+        case Right(Some(constructedExpr)) =>
+          val signatureExpr = Expr(signature)
+          val fieldsExpr = Expr(fields)
+          Expr.quote {
+            Data.map(
+              "primaryConstructor" -> Data(Expr.splice(signatureExpr)),
+              "caseFields" -> Data(Expr.splice(fieldsExpr)),
+              "constructedEqualsExpected" -> Data(Expr.splice(constructedExpr) == Expr.splice(expected))
+            )
+          }
+        case Right(None)  => Expr(Data("<not constructible>"))
+        case Left(errors) => Expr(Data(s"<failed: ${errors.mkString(", ")}>"))
+      }
+    }
+  }
+
   /** Evaluates the singleton expression at runtime and returns its `.toString`.
     */
   def testSingletonRoundTrip[A: Type]: Expr[String] =

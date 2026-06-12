@@ -516,7 +516,8 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
             case ExistentialType(_, underlying) => underlying
             case other                          => other
           }
-          Some(sig.finalResultType.dealias.as_??)
+          // E.g. the case-field accessor of a vararg parameter would otherwise return `scala.<repeated>[A]`.
+          Some(normalizeRepeatedParamType(sig.finalResultType.dealias).as_??)
         }
 
       val buildExpr: (Option[UntypedExpr], UntypedTypeArguments, UntypedArguments) => Either[String, UntypedExpr] =
