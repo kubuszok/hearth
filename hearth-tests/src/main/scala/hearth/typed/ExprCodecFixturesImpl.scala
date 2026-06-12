@@ -24,6 +24,10 @@ trait ExprCodecFixturesImpl { this: MacroCommons =>
     Type.of[hearth.examples.expr_codecs.Sentinel.type]
   private val notQuotableTypeEC: Type[hearth.examples.expr_codecs.NotQuotable] =
     Type.of[hearth.examples.expr_codecs.NotQuotable]
+  private val seqIntTypeEC: Type[Seq[Int]] = Type.of[Seq[Int]]
+  private val listIntTypeEC: Type[List[Int]] = Type.of[List[Int]]
+  private val optionIntTypeEC: Type[Option[Int]] = Type.of[Option[Int]]
+  private val mapStringIntTypeEC: Type[Map[String, Int]] = Type.of[Map[String, Int]]
 
   private def renderSemiQuote[A: Type](result: Either[String, Expr[A]]): Data =
     result.fold(error => Data(s"<failed: ${removeAnsiColors(error)}>"), expr => Data(expr.plainPrint))
@@ -110,6 +114,38 @@ trait ExprCodecFixturesImpl { this: MacroCommons =>
     Expr(
       Data.map(
         "notQuotable" -> renderSemiQuote(Expr.semiQuote(new hearth.examples.expr_codecs.NotQuotable(1)))
+      )
+    )
+  }
+
+  // -- Expr.typeOf on exprs produced by built-in parameterized codecs --
+
+  def testBuiltInCodecExprTypes: Expr[Data] = {
+    implicit val intType: Type[Int] = intTypeEC
+    implicit val stringType: Type[String] = stringTypeEC
+
+    // Regression test: on Scala 2, ExprCodec.make used to let c.Expr[A](tree) materialize a WeakTypeTag for the
+    // codec's own free type parameter A, so Expr.typeOf on the produced expr reported `A` instead of the concrete
+    // instantiated type (e.g. Seq[Int]), breaking downstream upcasts.
+    def reportedType[A: ExprCodec](value: A)(implicit expected: Type[A]): Data = {
+      val reported = Expr.typeOf(ExprCodec[A].toExpr(value))
+      if (reported <:< expected) Data("ok")
+      else Data(s"<reported ${reported.plainPrint} which is not a subtype of ${expected.plainPrint}>")
+    }
+
+    val seqOfInt = { implicit val tpe: Type[Seq[Int]] = seqIntTypeEC; reportedType(Seq(1, 2, 3)) }
+    val listOfInt = { implicit val tpe: Type[List[Int]] = listIntTypeEC; reportedType(List(1, 2, 3)) }
+    val optionOfInt = { implicit val tpe: Type[Option[Int]] = optionIntTypeEC; reportedType(Option(42)) }
+    val mapOfStringInt = {
+      implicit val tpe: Type[Map[String, Int]] = mapStringIntTypeEC; reportedType(Map("a" -> 1))
+    }
+
+    Expr(
+      Data.map(
+        "Seq[Int]" -> seqOfInt,
+        "List[Int]" -> listOfInt,
+        "Option[Int]" -> optionOfInt,
+        "Map[String, Int]" -> mapOfStringInt
       )
     )
   }

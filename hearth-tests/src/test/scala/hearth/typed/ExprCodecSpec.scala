@@ -118,6 +118,20 @@ final class ExprCodecSpec extends MacroSuite {
     }
   }
 
+  group("built-in parameterized codecs") {
+
+    test("Expr.typeOf reports the concrete instantiated type for exprs produced by built-in codecs") {
+      // Regression: on Scala 2 ExprCodec.make captured the codec's own free type parameter A in the WeakTypeTag,
+      // so Expr.typeOf reported `A` instead of e.g. Seq[Int], breaking downstream upcast calls.
+      ExprCodecFixtures.testBuiltInCodecExprTypes <==> Data.map(
+        "Seq[Int]" -> Data("ok"),
+        "List[Int]" -> Data("ok"),
+        "Option[Int]" -> Data("ok"),
+        "Map[String, Int]" -> Data("ok")
+      )
+    }
+  }
+
   group("Expr.semiQuote direct usage") {
 
     test("quotes primitives and String via built-in codecs") {

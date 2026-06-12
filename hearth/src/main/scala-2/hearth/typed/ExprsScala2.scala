@@ -23,7 +23,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
       final class ExprCodecImpl[A](typeCodec: Option[TypeCodec[A]])(implicit
           val to: Liftable[A],
-          val from: Unliftable[A]
+          val from: Unliftable[A],
+          tag: WeakTypeTag[A]
       ) extends ExprCodec[A] {
 
         override def toExpr(value: A): Expr[A] = typeCodec match {
@@ -31,7 +32,9 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
             val aType = codec.toType(value).as_??
             import aType.Underlying as B
             c.Expr[B](to.apply(value)).asInstanceOf[Expr[A]]
-          case _ => c.Expr[A](to.apply(value))
+          // Quasiquote-built trees are untyped, so Expr.typeOf falls back to the WeakTypeTag - it has to capture
+          // the concrete instantiated type (passed by make/withTypeCodec), not ExprCodecImpl's own type parameter A.
+          case _ => c.Expr[A](to.apply(value))(tag)
         }
 
         override def fromExpr(expr: Expr[A]): Option[A] = from.unapply(expr.tree)
@@ -39,10 +42,10 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
       implicit final class ExprCodecCompanionOps(private val self: ExprCodec.type) {
 
-        def make[A: Liftable: Unliftable]: ExprCodec[A] =
+        def make[A: Liftable: Unliftable: Type]: ExprCodec[A] =
           new ExprCodecImpl[A](None)
 
-        def withTypeCodec[A: Liftable: Unliftable: TypeCodec]: ExprCodec[A] =
+        def withTypeCodec[A: Liftable: Unliftable: TypeCodec: Type]: ExprCodec[A] =
           new ExprCodecImpl[A](Some(TypeCodec[A]))
       }
 

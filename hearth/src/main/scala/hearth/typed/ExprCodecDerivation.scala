@@ -58,11 +58,7 @@ trait ExprCodecDerivation { this: MacroCommons =>
             val fieldValue = product.productElement(idx)
             semiQuoteInternal[F](fieldValue.asInstanceOf[F], overrides) match {
               case Right(fieldExpr) =>
-                // Expr.typeOf can report a stale/abstract type for exprs built by generic built-in codecs (e.g. on
-                // Scala 2 SeqExprCodec[A] captures its own type parameter A) - fall back to the declared field type.
-                val exprType = Expr.typeOf(fieldExpr)
-                val fieldType0 = if (exprType <:< Type[F]) exprType else Type[F]
-                Right(acc + (field.name -> fieldExpr.as_??(using fieldType0)))
+                Right(acc + (field.name -> fieldExpr.as_??(using Expr.typeOf(fieldExpr))))
               case Left(err) => Left(err)
             }
         }
