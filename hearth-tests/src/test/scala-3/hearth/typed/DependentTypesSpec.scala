@@ -49,36 +49,39 @@ final class DependentTypesSpec extends MacroSuite {
       import ClassesFixtures.testDependentEnumDiagnostic
 
       test("inner sealed trait is recognized as enum") {
-        val diag = testDependentEnumDiagnostic[InnerSealedTrait]
-        diag.contains("InnerCC") ==> true
-        diag.contains("InnerObj") ==> true
+        testDependentEnumDiagnostic[InnerSealedTrait] <==>
+          """child=InnerCC: type=hearth.typed.DependentTypesSpec.InnerSealedTrait.InnerCC, pretty=hearth.typed.DependentTypesSpec.InnerSealedTrait.InnerCC, isVal=false, isObject=false, isCaseClass=true, isCaseObject=false, isCaseVal=false, hasSingleton=false, singletonPrint=<none>
+            |child=InnerObj: type=hearth.typed.DependentTypesSpec.InnerSealedTrait.InnerObj.type, pretty=hearth.typed.DependentTypesSpec.InnerSealedTrait.InnerObj.type, isVal=false, isObject=true, isCaseClass=false, isCaseObject=true, isCaseVal=false, hasSingleton=true, singletonPrint=typed.DependentTypesSpec.InnerSealedTrait.InnerObj""".stripMargin
       }
 
       test("inner enum is recognized as enum") {
-        val diag = testDependentEnumDiagnostic[InnerEnum]
-        diag.contains("Bar") ==> true
-        diag.contains("Baz") ==> true
-        diag.contains("Qux") ==> true
+        testDependentEnumDiagnostic[InnerEnum] <==>
+          """child=Bar: type=hearth.typed.DependentTypesSpec.InnerEnum.Bar, pretty=hearth.typed.DependentTypesSpec.InnerEnum.Bar, isVal=false, isObject=false, isCaseClass=true, isCaseObject=false, isCaseVal=false, hasSingleton=false, singletonPrint=<none>
+            |child=Baz: type=hearth.typed.DependentTypesSpec.InnerEnum.Baz, pretty=hearth.typed.DependentTypesSpec.InnerEnum.Baz, isVal=false, isObject=false, isCaseClass=true, isCaseObject=false, isCaseVal=false, hasSingleton=false, singletonPrint=<none>
+            |child=Qux: type=hearth.typed.DependentTypesSpec.InnerEnum.Qux.type, pretty=hearth.typed.DependentTypesSpec.InnerEnum.Qux.type, isVal=true, isObject=false, isCaseClass=false, isCaseObject=false, isCaseVal=true, hasSingleton=true, singletonPrint=typed.DependentTypesSpec.InnerEnum.Qux""".stripMargin
       }
 
       test("inner enum with type param is recognized as enum") {
-        val diag = testDependentEnumDiagnostic[InnerEnumWithTypeParam[Int]]
-        diag.contains("Wrapped") ==> true
-        diag.contains("Empty") ==> true
+        testDependentEnumDiagnostic[InnerEnumWithTypeParam[Int]] <==>
+          """child=Wrapped: type=hearth.typed.DependentTypesSpec.InnerEnumWithTypeParam.Wrapped[scala.Int], pretty=hearth.typed.DependentTypesSpec.InnerEnumWithTypeParam.Wrapped[scala.Int], isVal=false, isObject=false, isCaseClass=true, isCaseObject=false, isCaseVal=false, hasSingleton=false, singletonPrint=<none>
+            |child=Empty: type=hearth.typed.DependentTypesSpec.InnerEnumWithTypeParam.Empty.type, pretty=hearth.typed.DependentTypesSpec.InnerEnumWithTypeParam.Empty.type, isVal=true, isObject=false, isCaseClass=false, isCaseObject=false, isCaseVal=true, hasSingleton=true, singletonPrint=typed.DependentTypesSpec.InnerEnumWithTypeParam.Empty""".stripMargin
       }
     }
 
     group("Diagnostic: inner enum TypeRepr details") {
       import ClassesFixtures.testDependentEnumTypeReprDiagnostic
 
+      // The report embeds raw compiler output (`TypeRepr.show`, `flags.show`, summoned Mirror trees), which
+      // differs between Scala 3 minor versions — this spec is also compiled under the NEWEST_SCALA_TESTS
+      // (Scala 3.8.4) matrix — so we pin only the structure: one `child=` block per case, in declaration order.
       test("should report TypeRepr details for inner enum") {
         val report: String = testDependentEnumTypeReprDiagnostic[InnerEnum]
-        report.nonEmpty ==> true
+        report.linesIterator.filter(_.startsWith("child=")).mkString("\n") <==> "child=Bar:\nchild=Baz:\nchild=Qux:"
       }
 
       test("should report TypeRepr details for inner sealed trait") {
         val report: String = testDependentEnumTypeReprDiagnostic[InnerSealedTrait]
-        report.nonEmpty ==> true
+        report.linesIterator.filter(_.startsWith("child=")).mkString("\n") <==> "child=InnerCC:\nchild=InnerObj:"
       }
     }
 
@@ -87,12 +90,14 @@ final class DependentTypesSpec extends MacroSuite {
 
       test("should match on inner sealed trait case class") {
         def code(input: InnerSealedTrait) = testEnumMatchOnAndParMatchOn(input)
-        code(InnerSealedTrait.InnerCC(1)).contains("InnerCC") ==> true
+        code(InnerSealedTrait.InnerCC(1)) <==>
+          "sequential: subtype name: hearth.typed.DependentTypesSpec.InnerSealedTrait.InnerCC, expr: InnerCC, parallel: subtype name: hearth.typed.DependentTypesSpec.InnerSealedTrait.InnerCC, expr: InnerCC"
       }
 
       test("should match on inner sealed trait case object") {
         def code(input: InnerSealedTrait) = testEnumMatchOnAndParMatchOn(input)
-        code(InnerSealedTrait.InnerObj).contains("InnerObj") ==> true
+        code(InnerSealedTrait.InnerObj) <==>
+          "sequential: subtype name: hearth.typed.DependentTypesSpec.InnerSealedTrait.InnerObj.type, expr: InnerObj, parallel: subtype name: hearth.typed.DependentTypesSpec.InnerSealedTrait.InnerObj.type, expr: InnerObj"
       }
     }
 
@@ -101,17 +106,20 @@ final class DependentTypesSpec extends MacroSuite {
 
       test("should match on inner enum case class (Bar)") {
         def code(input: InnerEnum) = testEnumMatchOnAndParMatchOn(input)
-        code(InnerEnum.Bar(42)).contains("Bar") ==> true
+        code(InnerEnum.Bar(42)) <==>
+          "sequential: subtype name: hearth.typed.DependentTypesSpec.InnerEnum.Bar, expr: Bar, parallel: subtype name: hearth.typed.DependentTypesSpec.InnerEnum.Bar, expr: Bar"
       }
 
       test("should match on inner enum case class (Baz)") {
         def code(input: InnerEnum) = testEnumMatchOnAndParMatchOn(input)
-        code(InnerEnum.Baz("hello")).contains("Baz") ==> true
+        code(InnerEnum.Baz("hello")) <==>
+          "sequential: subtype name: hearth.typed.DependentTypesSpec.InnerEnum.Baz, expr: Baz, parallel: subtype name: hearth.typed.DependentTypesSpec.InnerEnum.Baz, expr: Baz"
       }
 
       test("should match on inner enum parameterless case (Qux) without ClassCastException") {
         def code(input: InnerEnum) = testEnumMatchOnAndParMatchOn(input)
-        code(InnerEnum.Qux).contains("Qux") ==> true
+        code(InnerEnum.Qux) <==>
+          "sequential: subtype name: hearth.typed.DependentTypesSpec.InnerEnum.Qux.type, expr: Qux, parallel: subtype name: hearth.typed.DependentTypesSpec.InnerEnum.Qux.type, expr: Qux"
       }
     }
 
@@ -120,12 +128,14 @@ final class DependentTypesSpec extends MacroSuite {
 
       test("should match on inner enum with type param (Wrapped)") {
         def code(input: InnerEnumWithTypeParam[Int]) = testEnumMatchOnAndParMatchOn(input)
-        code(InnerEnumWithTypeParam.Wrapped(42)).contains("Wrapped") ==> true
+        code(InnerEnumWithTypeParam.Wrapped(42)) <==>
+          "sequential: subtype name: hearth.typed.DependentTypesSpec.InnerEnumWithTypeParam.Wrapped[scala.Int], expr: Wrapped, parallel: subtype name: hearth.typed.DependentTypesSpec.InnerEnumWithTypeParam.Wrapped[scala.Int], expr: Wrapped"
       }
 
       test("should match on inner enum with type param (Empty) without ClassCastException") {
         def code(input: InnerEnumWithTypeParam[Int]) = testEnumMatchOnAndParMatchOn(input)
-        code(InnerEnumWithTypeParam.Empty).contains("Empty") ==> true
+        code(InnerEnumWithTypeParam.Empty) <==>
+          "sequential: subtype name: hearth.typed.DependentTypesSpec.InnerEnumWithTypeParam.Empty.type, expr: Empty, parallel: subtype name: hearth.typed.DependentTypesSpec.InnerEnumWithTypeParam.Empty.type, expr: Empty"
       }
     }
 
@@ -133,13 +143,19 @@ final class DependentTypesSpec extends MacroSuite {
       import ExprsFixtures.testMatchCaseTypeMatch
 
       test("should type-match on inner sealed trait case class") {
-        val result: Data = testMatchCaseTypeMatch[InnerSealedTrait](InnerSealedTrait.InnerCC(1))
-        result.toString.contains("InnerCC") ==> true
+        testMatchCaseTypeMatch[InnerSealedTrait](InnerSealedTrait.InnerCC(1)) <==> Data.map(
+          "name" -> Data("InnerCC"),
+          "type" -> Data("hearth.typed.DependentTypesSpec.InnerSealedTrait.InnerCC"),
+          "matchCase" -> Data("innercc")
+        )
       }
 
       test("should type-match on inner sealed trait case object") {
-        val result: Data = testMatchCaseTypeMatch[InnerSealedTrait](InnerSealedTrait.InnerObj)
-        result.toString.contains("InnerObj") ==> true
+        testMatchCaseTypeMatch[InnerSealedTrait](InnerSealedTrait.InnerObj) <==> Data.map(
+          "name" -> Data("InnerObj"),
+          "type" -> Data("hearth.typed.DependentTypesSpec.InnerSealedTrait.InnerObj.type"),
+          "matchCase" -> Data("innerobj")
+        )
       }
     }
 
@@ -147,13 +163,19 @@ final class DependentTypesSpec extends MacroSuite {
       import ExprsFixtures.testMatchCaseTypeMatch
 
       test("should type-match on inner enum case class") {
-        val result: Data = testMatchCaseTypeMatch[InnerEnum](InnerEnum.Bar(42))
-        result.toString.contains("Bar") ==> true
+        testMatchCaseTypeMatch[InnerEnum](InnerEnum.Bar(42)) <==> Data.map(
+          "name" -> Data("Bar"),
+          "type" -> Data("hearth.typed.DependentTypesSpec.InnerEnum.Bar"),
+          "matchCase" -> Data("bar")
+        )
       }
 
       test("should type-match on inner enum parameterless case") {
-        val result: Data = testMatchCaseTypeMatch[InnerEnum](InnerEnum.Qux)
-        result.toString.contains("Qux") ==> true
+        testMatchCaseTypeMatch[InnerEnum](InnerEnum.Qux) <==> Data.map(
+          "name" -> Data("Qux"),
+          "type" -> Data("hearth.typed.DependentTypesSpec.InnerEnum.Qux.type"),
+          "matchCase" -> Data("qux")
+        )
       }
     }
 
@@ -161,13 +183,19 @@ final class DependentTypesSpec extends MacroSuite {
       import ExprsFixtures.testMatchCaseTypeMatch
 
       test("should type-match on inner enum with type param (Wrapped)") {
-        val result: Data = testMatchCaseTypeMatch[InnerEnumWithTypeParam[Int]](InnerEnumWithTypeParam.Wrapped(42))
-        result.toString.contains("Wrapped") ==> true
+        testMatchCaseTypeMatch[InnerEnumWithTypeParam[Int]](InnerEnumWithTypeParam.Wrapped(42)) <==> Data.map(
+          "name" -> Data("Wrapped"),
+          "type" -> Data("hearth.typed.DependentTypesSpec.InnerEnumWithTypeParam.Wrapped[scala.Int]"),
+          "matchCase" -> Data("wrapped")
+        )
       }
 
       test("should type-match on inner enum with type param (Empty)") {
-        val result: Data = testMatchCaseTypeMatch[InnerEnumWithTypeParam[Int]](InnerEnumWithTypeParam.Empty)
-        result.toString.contains("Empty") ==> true
+        testMatchCaseTypeMatch[InnerEnumWithTypeParam[Int]](InnerEnumWithTypeParam.Empty) <==> Data.map(
+          "name" -> Data("Empty"),
+          "type" -> Data("hearth.typed.DependentTypesSpec.InnerEnumWithTypeParam.Empty.type"),
+          "matchCase" -> Data("empty")
+        )
       }
     }
 

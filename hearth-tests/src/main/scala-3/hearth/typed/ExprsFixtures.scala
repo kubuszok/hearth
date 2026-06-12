@@ -67,6 +67,14 @@ object ExprsFixtures {
   private def testMatchCaseTypeMatchImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testMatchCaseTypeMatch[A](expr)
 
+  inline def testMatchOnWithNestedQuote[A](inline expr: A, inline suffix: String): String = ${
+    testMatchOnWithNestedQuoteImpl[A]('expr, 'suffix)
+  }
+  private def testMatchOnWithNestedQuoteImpl[A: Type](expr: Expr[A], suffix: Expr[String])(using
+      q: Quotes
+  ): Expr[String] =
+    new ExprsFixtures(q).testMatchOnWithNestedQuote[A](expr, suffix)
+
   inline def testMatchCaseEqValue[A](inline expr: A): Data = ${ testMatchCaseEqValueImpl[A]('expr) }
   private def testMatchCaseEqValueImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testMatchCaseEqValue[A](expr)

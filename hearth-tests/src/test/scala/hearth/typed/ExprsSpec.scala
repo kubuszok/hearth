@@ -96,15 +96,12 @@ final class ExprsSpec extends MacroSuite {
           implicit val pref: examples.expr_codecs.Preference[examples.expr_codecs.ServerConfig] =
             examples.expr_codecs.Preference[examples.expr_codecs.ServerConfig]
 
-          val result = testSummonViaUntypedRoundtrip[examples.expr_codecs.ServerConfig]
-          val map = result.asMap.get
-          assert(map("direct").asBoolean.get == true, s"direct should succeed, got: $result")
-          assert(map("fromTyped").asBoolean.get == true, s"fromTyped roundtrip should succeed, got: $result")
-          if (LanguageVersion.byHearth.isScala3)
-            assert(
-              map("fromClass").asBoolean.get == true,
-              s"fromClass roundtrip should succeed on Scala 3, got: $result"
-            )
+          testSummonViaUntypedRoundtrip[examples.expr_codecs.ServerConfig] <==> Data.map(
+            "direct" -> Data(true),
+            "fromTyped" -> Data(true),
+            "fromClass" -> Data(true),
+            "summonByType" -> Data(true)
+          )
         }
       }
 
@@ -116,6 +113,30 @@ final class ExprsSpec extends MacroSuite {
             "status" -> Data("success"),
             "value" -> Data("42"),
             "class" -> Data("java.lang.Integer")
+          )
+        }
+
+        // Regression for commits 481f734 and 1472324: asInstanceOf/isInstanceOf are compiler intrinsics, not
+        // real JVM methods — semiEval must not try to invoke them reflectively (this is the cross-platform
+        // counterpart of the Scala 3-only tests in ExprsScala3Spec; the Scala 2 code path had no coverage).
+        test("should evaluate asInstanceOf as an intrinsic (pass value through)") {
+          testSemiEval(("hello": Any).asInstanceOf[String].length) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("5"),
+            "class" -> Data("java.lang.Integer")
+          )
+        }
+
+        test("should evaluate isInstanceOf via runtime class check") {
+          testSemiEval(("hello": Any).isInstanceOf[String]) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("true"),
+            "class" -> Data("java.lang.Boolean")
+          )
+          testSemiEval((42: Any).isInstanceOf[String]) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("false"),
+            "class" -> Data("java.lang.Boolean")
           )
         }
 
@@ -398,6 +419,20 @@ final class ExprsSpec extends MacroSuite {
           "type" -> Data("hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type"),
           "matchCase" -> Data("examplesealedtraitobject")
         )
+      }
+
+      test("matchOn with case bodies built from nested Expr.quote with splices (regression for 68e1781)") {
+        import ExprsFixtures.testMatchOnWithNestedQuote
+
+        val suffix = List(" (handled)").mkString // a local val, so on Scala 3 it arrives as an Inlined argument
+
+        def expand(example: examples.enums.ExampleSealedTrait): String =
+          testMatchOnWithNestedQuote(example, suffix)
+
+        expand(examples.enums.ExampleSealedTrait.ExampleSealedTraitClass(1)) <==>
+          "ExampleSealedTraitClass: ExampleSealedTraitClass(1) (handled)"
+        expand(examples.enums.ExampleSealedTrait.ExampleSealedTraitObject) <==>
+          "ExampleSealedTraitObject: ExampleSealedTraitObject (handled)"
       }
 
       test("method MatchCase.eqValue should allow pattern-matching by value equality") {

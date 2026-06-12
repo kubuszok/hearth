@@ -70,4 +70,22 @@ object AnonymousInstanceFixtures {
       finalMethodName: Expr[String]
   )(using q: Quotes): Expr[String] =
     new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructOverridingFinal[A](finalMethodName)
+
+  inline def testAnonymousInstanceCapturedOverride(inline captured: String): String = ${
+    testAnonymousInstanceCapturedOverrideImpl('captured)
+  }
+  private def testAnonymousInstanceCapturedOverrideImpl(captured: Expr[String])(using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceCapturedOverride(captured)
+
+  inline def testAnonymousInstanceOverrideUsingParams(inline captured: String): String = ${
+    testAnonymousInstanceOverrideUsingParamsImpl('captured)
+  }
+  private def testAnonymousInstanceOverrideUsingParamsImpl(captured: Expr[String])(using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceOverrideUsingParams(captured)
+
+  inline def testAnonymousInstanceOverrideReferencingQuoteParam: String => String = ${
+    testAnonymousInstanceOverrideReferencingQuoteParamImpl
+  }
+  private def testAnonymousInstanceOverrideReferencingQuoteParamImpl(using q: Quotes): Expr[String => String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceOverrideReferencingQuoteParam
 }

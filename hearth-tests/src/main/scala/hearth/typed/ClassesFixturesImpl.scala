@@ -149,6 +149,22 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** Like [[testCaseClassCaseFieldValuesAt]] but passes `AtCallSite` visibility, so fields inaccessible at the macro
+    * expansion point should be skipped (regression for commit 68e1781).
+    */
+  def testCaseClassCaseFieldValuesAtCallSite[A: Type](expr: Expr[A]): Expr[String] = Expr {
+    CaseClass.parse[A].toOption.fold("<no case class>") { caseClass =>
+      caseClass
+        .caseFieldValuesAt(expr, visibility = AtCallSite)
+        .toList
+        .sortBy(_._1)
+        .map { case (name, value) =>
+          s"$name: ${value.plainPrint}"
+        }
+        .mkString("(", ", ", ")")
+    }
+  }
+
   def testEnumMatchOnAndParMatchOn[A: Type](expr: Expr[A]): Expr[String] =
     Enum.parse[A].toOption.fold(Expr("<no enum>")) { enumm =>
       implicit val StringType: Type[String] = stringType
@@ -168,6 +184,27 @@ trait ClassesFixturesImpl { this: MacroCommons =>
             s"sequential: ${Expr.splice(sequential)}, parallel: ${Expr.splice(parallel)}"
           }
         }
+        .unsafe
+        .runSync
+        ._2
+        .fold(errors => Expr(s"<failed to construct: ${errors.mkString(", ")}>"), identity)
+    }
+
+  /** Regression for commit 68e1781 (splice isolation): parMatchOn handlers whose results are built from nested
+    * [[Expr.quote]] calls splicing the matched expression must not leak splice ownership across case boundaries.
+    */
+  def testEnumParMatchOnNestedQuote[A: Type](expr: Expr[A], suffix: Expr[String]): Expr[String] =
+    Enum.parse[A].toOption.fold(Expr("<no enum>")) { enumm =>
+      implicit val StringType: Type[String] = stringType
+      val handle: Expr_??<:[A] => MIO[Expr[String]] = matched => {
+        import matched.{Underlying as Subtype, value as matchedExpr}
+        MIO.pure(Expr.quote {
+          Expr.splice(matchedExpr).toString + Expr.splice(suffix)
+        })
+      }
+      enumm
+        .parMatchOn(expr)(handle)
+        .map(_.getOrElse(Expr("<failed to perform exhaustive match>")))
         .unsafe
         .runSync
         ._2
@@ -194,7 +231,7 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         val hasSingleton = singletonExpr.isDefined
         val singletonPrint = singletonExpr.fold("<none>")(_.plainPrint)
         val typePrint = Type.plainPrint[A0]
-        val prettyPrint = Type.prettyPrint[A0]
+        val prettyPrint = removeAnsiColors(Type.prettyPrint[A0])
         s"child=$name: type=$typePrint, pretty=$prettyPrint, isVal=$isVal, isObject=$isObject, " +
           s"isCaseClass=$isCaseClass, isCaseObject=$isCaseObject, isCaseVal=$isCaseVal, " +
           s"hasSingleton=$hasSingleton, singletonPrint=$singletonPrint"

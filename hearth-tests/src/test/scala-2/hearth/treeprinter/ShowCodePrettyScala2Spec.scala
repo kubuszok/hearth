@@ -1743,6 +1743,31 @@ final class ShowCodePrettyScala2Spec extends MacroSuite {
                    |}] with hearth.treeprinter.ShowCodePrettyScala2Spec.Outer#Inner""".stripMargin
   }
 
+  // Regression for commit 481f734: Scala 2.13 uses LiteralType for explicit literal type annotations
+  // (distinct from FoldableConstantType, used for constant folding) — showCodePretty must render
+  // literal types used as type arguments (as in Witness-based refined predicates like Greater[5]).
+  test("showCodePretty should render literal types (LiteralType) on Scala 2") {
+
+    ShowCodePrettyFixtures.testTypePlainPrint[(5, "[a-z]+", 3.14f)] <==>
+      """scala.Tuple3[5, "[a-z]+", 3.14f]"""
+
+    @scala.annotation.nowarn
+    val printed = ShowCodePrettyFixtures.testExprPlainPrint {
+      val five: 5 = 5
+      val word: "[a-z]+" = "[a-z]+"
+      val pi: 3.14f = 3.14f
+      (five, word, pi)
+    }
+
+    printed <==>
+      """{
+        |  val five: 5.type = 5;
+        |  val word: "[a-z]+".type = "[a-z]+";
+        |  val pi: 3.14f.type = 3.14f;
+        |  scala.Tuple3.apply[scala.Int, java.lang.String, scala.Float](five, word, pi)
+        |}""".stripMargin
+  }
+
   test("showCodePretty(..., SyntaxHighlight.plain) should handle kind-projector placeholder syntax on Scala 2") {
 
     @scala.annotation.nowarn

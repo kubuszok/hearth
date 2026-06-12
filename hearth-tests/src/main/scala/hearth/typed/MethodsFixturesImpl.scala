@@ -157,6 +157,23 @@ trait MethodsFixturesImpl { this: MacroCommons =>
       Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
   }
 
+  /** Reports only availability of the matching methods — usable for types from precompiled libraries, where pinning
+    * positions or full signatures would not be stable.
+    */
+  def testMethodVisibility[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
+    case Expr(name) =>
+      val methods = Type[A].methods.filter(_.name == name)
+      val rendered = methods.map { method =>
+        method.name -> Data.map(
+          "isAvailable(Everywhere)" -> Data(method.isAvailable(Everywhere)),
+          "isAvailable(AtCallSite)" -> Data(method.isAvailable(AtCallSite))
+        )
+      }
+      Expr(Data(rendered.toMap))
+    case _ =>
+      Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+  }
+
   def testMethodOrdering[A: Type]: Expr[Data] = {
     val methods = Type[A].methods
     val names = methods.map(_.name)

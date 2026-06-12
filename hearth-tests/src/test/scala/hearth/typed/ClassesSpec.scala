@@ -228,6 +228,29 @@ final class ClassesSpec extends MacroSuite {
         "(a: hearth.examples.classes.ExampleCaseClass.apply(0).a)"
     }
 
+    // Regression for commit 68e1781: caseFieldValuesAt(instance, visibility) filters case fields by
+    // accessibility. The `private[hearth]` field b IS accessible at this call site (inside hearth),
+    // so AtCallSite keeps it, while the default Everywhere visibility (b is not public) skips it.
+    test("CaseClass[A].caseFieldValuesAt should filter fields by the requested visibility") {
+      import ClassesFixtures.{testCaseClassCaseFieldValuesAt, testCaseClassCaseFieldValuesAtCallSite}
+
+      // Pinned cross-platform divergence: on Scala 2 the case accessor of a private[hearth] val is the
+      // synthetic b$access$1, which scalac makes fully public — so it is reported even under Everywhere.
+      // On Scala 3 the accessor b keeps its restricted visibility, so Everywhere filters it out while
+      // AtCallSite (expanding inside the hearth package) keeps it.
+      val b = if (LanguageVersion.byHearth.isScala2_13) "b$access$1" else "b"
+
+      testCaseClassCaseFieldValuesAtCallSite(hearth.examples.classes.ExampleCaseClassWithPrivateField(0, "b")) <==>
+        s"(a: hearth.examples.classes.ExampleCaseClassWithPrivateField.apply(0, \"b\").a, $b: hearth.examples.classes.ExampleCaseClassWithPrivateField.apply(0, \"b\").$b)"
+
+      testCaseClassCaseFieldValuesAt(hearth.examples.classes.ExampleCaseClassWithPrivateField(0, "b")) <==> (
+        if (LanguageVersion.byHearth.isScala2_13)
+          "(a: hearth.examples.classes.ExampleCaseClassWithPrivateField.apply(0, \"b\").a, b$access$1: hearth.examples.classes.ExampleCaseClassWithPrivateField.apply(0, \"b\").b$access$1)"
+        else
+          "(a: hearth.examples.classes.ExampleCaseClassWithPrivateField.apply(0, \"b\").a)"
+      )
+    }
+
     test("CaseClass[A] should detect default values on constructor parameters") {
       import ClassesFixtures.testCaseClassDefaultValues
 
@@ -246,6 +269,20 @@ final class ClassesSpec extends MacroSuite {
 
       testSingletonRoundTrip[examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type] <==>
         "ExampleSealedTraitObject"
+    }
+
+    // Regression for commit 68e1781 (splice isolation): handlers build their results from nested
+    // Expr.quote calls that splice the matched expression and an Inlined macro argument.
+    test("Enum[A].parMatchOn with handler results built from nested Expr.quote") {
+      import ClassesFixtures.testEnumParMatchOnNestedQuote
+
+      val suffix = List(" (handled)").mkString // a local val, so on Scala 3 it arrives as an Inlined argument
+
+      def code(input: hearth.examples.enums.ExampleSealedTrait) = testEnumParMatchOnNestedQuote(input, suffix)
+      code(hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitClass(1)) <==>
+        "ExampleSealedTraitClass(1) (handled)"
+      code(hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitObject) <==>
+        "ExampleSealedTraitObject (handled)"
     }
 
     test("Enum[A].{matchOn and parMatchOn} should match on the sealed trait") {

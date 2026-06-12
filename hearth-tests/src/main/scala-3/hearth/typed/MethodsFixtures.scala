@@ -99,6 +99,12 @@ object MethodsFixtures {
   private def testMethodPropertiesImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testMethodProperties[A](methodName)
 
+  inline def testMethodVisibility[A](inline methodName: String): Data = ${
+    testMethodVisibilityImpl[A]('methodName)
+  }
+  private def testMethodVisibilityImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testMethodVisibility[A](methodName)
+
   inline def testMethodExpectations[A](inline methodName: String): Data = ${
     testMethodExpectationsImpl[A]('methodName)
   }
