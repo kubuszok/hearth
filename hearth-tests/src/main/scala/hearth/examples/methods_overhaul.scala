@@ -91,3 +91,13 @@ trait SimpleAlg {
 class SimpleAlgImpl extends SimpleAlg {
   def getUser(id: Int): String = s"user:$id"
 }
+
+class WithVarargs {
+  def varargMethod(xs: Int*): Int = xs.sum
+  def normalMethod(x: Int): Int = x
+  def byNameMethod(x: => Int): Int = x
+}
+
+class WithVarargsCtor(val xs: String*) {
+  override def toString(): String = s"WithVarargsCtor(${xs.mkString(",")})"
+}
