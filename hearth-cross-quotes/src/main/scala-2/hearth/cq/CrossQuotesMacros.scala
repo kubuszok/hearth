@@ -140,10 +140,14 @@ import scala.util.chaining.*
   *
   * ==Gotchas and limitations (Scala 2)==
   *
-  *   - '''Self-referential implicit Type/Type.CtorN:''' `implicit val A: Type[A] = Type.of[A]` generates
-  *     `implicit val A: Type[A] = A` (infinite recursion), because `weakTypeTag[A]` picks up the implicit in scope. The
-  *     same applies to `Type.CtorN` and to `Type.of` with local type params inside `Expr.splice` (forward reference
-  *     error). Use a non-implicit val or assign the result in a different scope, then pass explicitly.
+  *   - '''Self-referential implicit Type (fixed by hearth#285):'''
+  *     `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]` used to generate
+  *     `implicit val ConfigT: Type[Configuration] = ConfigT` (forward-reference error in blocks, null self-assignment
+  *     in class bodies), because `weakTypeTag[Configuration]` picked up the implicit being defined. `typeOfImpl` now
+  *     emits `selfReferenceShadows` (`val ConfigT: Unit = ()`) at the top of the generated block — Scala 2 implicit
+  *     search skips shadowed implicits, so the WeakTypeTag materializer is used instead. Note that
+  *     `implicit val A: Type[A] = Type.of[A]` where `A` is an abstract type whose ONLY `Type` instance would be the val
+  *     itself still cannot work (there is genuinely no way to materialize it).
   *   - '''Free types from local type params do not cross quasiquote boundaries:''' When `Expr.splice` inside
   *     `Expr.quote` uses local type params (from methods defined inside the quote body), these are resolved via free
   *     type symbols in the quasiquote. Free types resolve only within the quasiquote where they were created. If a
@@ -243,6 +247,41 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     def isImportedCrossTypeImplicit: Boolean = ImportedCrossTypeImplicit(name.decodedName.toString)
   }
 
+  /* [hearth#285] `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]` — the very value being
+   * defined is the best implicit candidate for the `Type[Configuration]` lookup performed by the generated code
+   * (via `convertProvidedTypesForCrossQuotes`), producing `implicit val ConfigT = ConfigT` (a forward-reference
+   * error in blocks, a null self-assignment in class/trait bodies).
+   *
+   * To prevent that, we walk the owner chain from the expansion site up to the closest class/object and collect
+   * every implicit term definition we are lexically inside of (its RHS is being typechecked right now, so any
+   * reference to it would be a self-reference). For each such name `selfReferenceShadows` emits
+   * `val $name: Unit = ()` at the top of the generated block — Scala 2 implicit search ignores implicits whose
+   * simple name is shadowed by a closer definition, so the generated code falls back to the compiler's
+   * WeakTypeTag materializer instead of referencing the value being defined.
+   */
+  protected def selfReferenceShadowNames: Set[String] = {
+    // Names that the generated code itself references — never shadow them.
+    val unsafeNames = Set("Type", "Expr", "CrossQuotes")
+    var owner = c.internal.enclosingOwner
+    val names = Set.newBuilder[String]
+    while (owner != NoSymbol && !owner.isClass) {
+      if (owner.isTerm && owner.isImplicit) {
+        val name = owner.name.decodedName.toString.trim
+        if (name.nonEmpty && !name.contains("$") && !unsafeNames(name)) names += name
+      }
+      owner = owner.owner
+    }
+    names.result()
+  }
+
+  protected def selfReferenceShadows: List[c.Tree] = selfReferenceShadowNames.toList.sorted.flatMap { name =>
+    val shadow = TermName(name)
+    List(
+      q"val $shadow: _root_.scala.Unit = ()",
+      q"_root_.hearth.fp.ignore($shadow)"
+    )
+  }
+
   /* Replaces:
    *   Type.of[A]
    * with:
@@ -259,6 +298,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     // is kind of a hack, because apparently these types were not sanitized during printing.
     // We should fix the printing, so that we don't have to introduce this import.
     val unchecked = q"""
+    ..$selfReferenceShadows
     val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
     import _root_.scala.reflect.api.{Mirror, TypeCreator, Universe}
     import $ctx.universe.{ TypeRef, TypeRefTag }
@@ -520,19 +560,30 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         excludingSet(renamed)
       }
 
+    // [hearth#285] Implicit term definitions whose RHS we are lexically inside of — referencing them from the
+    // generated code would be a self-reference (forward-reference error or null self-assignment).
+    val selfShadowedNames = selfReferenceShadowNames
+
     val importedUnderlying = candidates.view
       .filterNot { case (_, renamed) => excludingSet(renamed) }
       .flatMap { case (tpeToReplace, renamed) =>
         try {
           val typeValue: Tree =
             c.inferImplicitValue(c.typecheck(tq"Type[$tpeToReplace]", mode = c.TYPEmode).tpe, silent = false)
-          val weakTypeTagValue = q"""$typeValue.asInstanceOf[$ctx2.WeakTypeTag[$tpeToReplace]]"""
+          typeValue match {
+            // [hearth#285] The inferred implicit is the very definition being initialized — skip the candidate,
+            // the fallback path (WeakTypeTag materializer with `selfReferenceShadows` in scope) handles it.
+            case Ident(name) if selfShadowedNames(name.decodedName.toString) =>
+              Iterable.empty
+            case _ =>
+              val weakTypeTagValue = q"""$typeValue.asInstanceOf[$ctx2.WeakTypeTag[$tpeToReplace]]"""
 
-          val paramName = freshTypeName(renamed)
-          val paramDef: TypeDef = q"type $paramName"
-          val paramVal: ValDef = q"val ${freshName(renamed)}: $ctx2.WeakTypeTag[$paramName]"
+              val paramName = freshTypeName(renamed)
+              val paramDef: TypeDef = q"type $paramName"
+              val paramVal: ValDef = q"val ${freshName(renamed)}: $ctx2.WeakTypeTag[$paramName]"
 
-          Iterable((paramDef, paramVal, tpeToReplace, weakTypeTagValue))
+              Iterable((paramDef, paramVal, tpeToReplace, weakTypeTagValue))
+          }
         } catch {
           // HKT types (F[_] from Type.CtorN[F]) can't be handled by the workaround mechanism
           // because WeakTypeTag doesn't support higher-kinded types in Scala 2.

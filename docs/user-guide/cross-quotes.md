@@ -542,11 +542,10 @@ to a local `implicit val` or using context bounds:
 
 **Why this pattern works and alternatives don't:**
 
-1. **`implicit val evA: Type[A] = Type.of[A]` — circular resolution.** Cross Quotes expands
-   `Type.of[A]` by looking for an implicit `Type[A]` in scope. If the result is assigned to
-   an implicit val with the same type, the compiler resolves `Type.of[A]` to the val being
-   initialized — infinite recursion. This is the same issue described in
-   [the self-referential implicit gotcha](#known-issues-and-gotchas).
+1. **`implicit val evA: Type[A] = Type.of[A]` — nothing to resolve `A` from.** Cross Quotes expands
+   `Type.of[A]` by looking for an implicit `Type[A]` in scope. The val being initialized is excluded
+   from that search (see [the self-referential implicit gotcha](#known-issues-and-gotchas)), and for
+   a local type param `A` there is no other source of `Type[A]` at that point — so this cannot work.
 
 2. **`val tpeA = Type.of[A]; someHelper[A](tpeA)` — works but less ergonomic.** Using a
    non-implicit `val` avoids circular resolution, but forces the helper to take `Type` as a
@@ -954,35 +953,35 @@ While all of these are inconvenient, they can usually be worked around. The issu
 
 !!! warning "Self-referential implicit `Type` / `Type.CtorN` initialization"
 
-    Both `weakTypeTag[A]` (Scala 2) and `scala.quoted.Type.of[A]` (Scala 3) pick up an implicit if it is in scope.
-    Writing:
+    Both `weakTypeTag[A]` (Scala 2) and `scala.quoted.Type.of[A]` (Scala 3) pick up an implicit if it is in scope —
+    including the very `implicit val` being defined. Since the fix for
+    [#285](https://github.com/MateuszKubuszok/hearth/issues/285), Cross Quotes excludes the definition currently
+    being initialized from that implicit search, so for **statically-known types** the natural pattern just works:
 
     ```scala
-    implicit val A: Type[A] = Type.of[A]
-    ```
-
-    generates `implicit val A: Type[A] = A` — an infinite recursion. **Run `Type.of` in a scope where its result
-    is not being pulled in as an implicit/given.**
-
-    The same applies to `Type.CtorN` and to `Type.of` with local type params inside `Expr.splice`:
-
-    ```scala
-    // BAD — circular initialization:
+    // OK — the value being defined is excluded from the search,
+    // the Type is materialized directly from the literal type argument:
+    implicit val ConfigT: Type[Configuration] = Type.of[Configuration]
     implicit val FC: Type.Ctor1[Option] = Type.Ctor1.of[Option]
-
-    // GOOD — create the value outside, then assign:
-    val optCtor = Type.Ctor1.of[Option] // or a factory method
-    implicit val FC: Type.Ctor1[Option] = optCtor
     ```
 
+    The exclusion cannot help when the type argument is an **abstract type** whose only `Type` instance would be
+    the val itself — there is genuinely nothing to materialize it from:
+
     ```scala
-    // BAD — inside Expr.splice, this causes a forward reference error on Scala 2:
-    Expr.splice {
-      implicit val evA: Type[A] = Type.of[A]
-      someHelper[A]
+    // BAD — A is abstract and its only Type[A] would be the val being defined:
+    def body[A] = {
+      implicit val evA: Type[A] = Type.of[A] // error: no Type[A] available
+      ...
     }
 
-    // GOOD — use non-implicit vals and pass explicitly:
+    // GOOD — get Type[A] from a context bound or an implicit parameter instead:
+    def body[A: Type] = ...
+    ```
+
+    For local type params inside `Expr.splice`, prefer non-implicit vals passed explicitly:
+
+    ```scala
     Expr.splice {
       val tpeA = Type.of[A]
       val tpeB = Type.of[B]
