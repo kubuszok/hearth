@@ -412,6 +412,84 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     }
   }
 
+  def testCallInstanceViaFoldF[A: Type](instance: Expr[A])(methodName: Expr[String])(
+      params: VarArgs[Int]
+  ): Expr[Data] = {
+    implicit val IntType: Type[Int] = this.IntType
+    implicit val StringType: Type[String] = this.StringType
+    val name = Expr
+      .unapply(methodName)
+      .getOrElse(
+        Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+      )
+    val method = Type[A].methods.filter(_.name == name) match {
+      case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
+      case method :: Nil => method
+      case _             => Environment.reportErrorAndAbort(s"Method $name is ambiguous")
+    }
+    val providedParams = params.toVector
+    var paramIdx = 0
+    val result: Option[Either[String, Expr_??]] = method.foldF[Option](
+      onInstance = _ => Some(instance.as_??),
+      onTypes = _ => Some(Map.empty),
+      onValues = av => {
+        val resolved = av.parameters.flatten.foldLeft[Option[List[(String, Expr_??)]]](Some(List.empty)) {
+          case (None, _)                   => None
+          case (Some(acc), (pName, param)) =>
+            import param.tpe.Underlying
+            if (param.hasDefault && paramIdx >= providedParams.size) {
+              paramIdx += 1
+              Some(acc)
+            } else if (Underlying <:< Type.of[Int] && paramIdx < providedParams.size) {
+              val v = providedParams(paramIdx)
+              paramIdx += 1
+              Some(acc :+ (pName -> v.as_??))
+            } else if (Underlying <:< Type.of[String]) {
+              paramIdx += 1
+              Some(acc :+ (pName -> Expr("test").as_??))
+            } else {
+              None // unsupported parameter type or not enough arguments - short-circuit the whole foldF
+            }
+        }
+        resolved.map(_.toMap)
+      }
+    )
+    result match {
+      case Some(Right(expr)) =>
+        import expr.Underlying as R
+        Expr.quote(Data(Expr.splice(expr.value.asInstanceOf[Expr[R]]).toString))
+      case Some(Left(error)) => Expr(Data(s"FAILED: $error"))
+      case None              => Expr(Data("<not applicable>"))
+    }
+  }
+
+  def testCallInstanceViaFoldMissingArgs[A: Type](instance: Expr[A])(methodName: Expr[String]): Expr[Data] = {
+    val name = Expr
+      .unapply(methodName)
+      .getOrElse(
+        Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+      )
+    val method = Type[A].methods.filter(_.name == name) match {
+      case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
+      case method :: Nil => method
+      case _             => Environment.reportErrorAndAbort(s"Method $name is ambiguous")
+    }
+    val result =
+      try
+        method.fold(
+          onInstance = _ => instance.as_??,
+          onTypes = _ => Map.empty,
+          onValues = _ => Map.empty // wrong application: no arguments provided at all
+        ) match {
+          case Right(_)    => "UNEXPECTED SUCCESS"
+          case Left(error) => s"LEFT: $error"
+        }
+      catch {
+        case e: HearthRequirementError => s"REQUIREMENT FAILED: ${removeAnsiColors(e.description)}"
+      }
+    Expr(Data(result))
+  }
+
   private def buildPartialArguments(parameters: Parameters, providedParams: Vector[Expr[Int]]): Arguments = {
     implicit val IntType: Type[Int] = this.IntType
     parameters.flatten.zipWithIndex.flatMap { case ((name, param), index) =>

@@ -337,6 +337,34 @@ final class ExprsSpec extends MacroSuite {
             "class" -> Data("java.lang.String")
           )
         }
+
+        test("should fail with Left for a reference to a runtime-only local value") {
+          @scala.annotation.nowarn // the val is only used inside the macro-inspected tree
+          def run = {
+            val runtimeValue = "only known at runtime"
+            testSemiEval(runtimeValue) <==> Data.map(
+              "status" -> Data("failure"),
+              "errors" -> Data.list(Data("Cannot semi-evaluate expression: runtimeValue"))
+            )
+          }
+          run
+        }
+
+        test("should aggregate multiple independent errors in a NonEmptyVector") {
+          @scala.annotation.nowarn // the vals are only used inside the macro-inspected tree
+          def run = {
+            val first = "first runtime value"
+            val second = "second runtime value"
+            testSemiEval(List(first, second)) <==> Data.map(
+              "status" -> Data("failure"),
+              "errors" -> Data.list(
+                Data("Cannot semi-evaluate expression: first"),
+                Data("Cannot semi-evaluate expression: second")
+              )
+            )
+          }
+          run
+        }
       }
 
     }
