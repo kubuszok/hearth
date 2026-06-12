@@ -93,6 +93,34 @@ final class EnvironmentSpec extends MacroSuite {
       }
     }
 
+    group("methods: Environment.reportInfo(msg, position), expected behavior") {
+      import EnvironmentFixtures.testReportInfoAtPosition
+
+      test("should report info at the given position and continue the expansion") {
+        // Apparently, there is no way to check if there were some info/warn messages,
+        // so we only verify that reporting at a Method's position succeeds and the expansion continues.
+        testReportInfoAtPosition[examples.methods.NoCompanionClass] <==> Data.map(
+          "infoReported" -> Data(true)
+        )
+      }
+    }
+
+    group("methods: Environment.reportError(msg, position), expected behavior") {
+
+      test("should report error at the given position") {
+        compileErrors("EnvironmentFixtures.testReportErrorAtPosition").check("Error at position message")
+      }
+    }
+
+    group("methods: Environment.reportErrorAndAbort(msg, position), expected behavior") {
+
+      test("should report error at the given position and abort") {
+        compileErrors("EnvironmentFixtures.testReportErrorAndAbortAtPosition").check(
+          "Error and abort at position message"
+        )
+      }
+    }
+
     group("methods: Environment.loadMacroExtensions, expected behavior") {
       import EnvironmentFixtures.testLoadingExtensions
 

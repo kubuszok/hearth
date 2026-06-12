@@ -43,9 +43,13 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
     override lazy val XMacroSettings: List[String] = c.settings
 
     override def reportInfo(msg: String): Unit = c.echo(c.enclosingPosition, msg)
+    override def reportInfo(msg: String, position: Position): Unit = c.echo(position, msg)
     override def reportWarn(msg: String): Unit = c.warning(c.enclosingPosition, msg)
+    override def reportWarn(msg: String, position: Position): Unit = c.warning(position, msg)
     override def reportError(msg: String): Unit = c.error(c.enclosingPosition, msg)
+    override def reportError(msg: String, position: Position): Unit = c.error(position, msg)
     override def reportErrorAndAbort(msg: String): Nothing = c.abort(c.enclosingPosition, msg)
+    override def reportErrorAndAbort(msg: String, position: Position): Nothing = c.abort(position, msg)
   }
 
   /** Do not use this module, it exists only to be used by Scala 2 Cross-Quotes macros and Scala 3 Cross-Quotes compiler
