@@ -19,6 +19,18 @@ object EnvironmentFixtures {
   inline def testErrorAndAbort: Any = ${ testErrorAndAbortImpl }
   private def testErrorAndAbortImpl(using q: Quotes): Expr[Any] = new EnvironmentFixtures(q).testErrorAndAbort
 
+  inline def testReportInfoAtPosition[A]: Data = ${ testReportInfoAtPositionImpl[A] }
+  private def testReportInfoAtPositionImpl[A: Type](using q: Quotes): Expr[Data] =
+    new EnvironmentFixtures(q).testReportInfoAtPosition[A]
+
+  inline def testReportErrorAtPosition: Data = ${ testReportErrorAtPositionImpl }
+  private def testReportErrorAtPositionImpl(using q: Quotes): Expr[Data] =
+    new EnvironmentFixtures(q).testReportErrorAtPosition
+
+  inline def testReportErrorAndAbortAtPosition: Any = ${ testReportErrorAndAbortAtPositionImpl }
+  private def testReportErrorAndAbortAtPositionImpl(using q: Quotes): Expr[Any] =
+    new EnvironmentFixtures(q).testReportErrorAndAbortAtPosition
+
   inline def testIsExpandedAt(inline position: String): Boolean = ${ testIsExpandedAtImpl('position) }
   private def testIsExpandedAtImpl(position: Expr[String])(using q: Quotes): Expr[Boolean] =
     new EnvironmentFixtures(q).testIsExpandedAt(position)

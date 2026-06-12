@@ -45,6 +45,23 @@ trait EnvironmentFixturesImpl { this: MacroCommons =>
 
   def testErrorAndAbort: Expr[Any] = Environment.reportErrorAndAbort("Error and abort message")
 
+  def testReportInfoAtPosition[A: Type]: Expr[Data] = {
+    // Scala 2 does not store positions for symbols from a previous compilation unit (they would be None),
+    // so we fall back to the macro expansion position to keep the test cross-platform.
+    val methodPosition = Type[A].methods.flatMap(_.position).headOption
+    val position = methodPosition.getOrElse(Environment.currentPosition)
+    Environment.reportInfo(s"Position-targeted info message at ${position.prettyPrint}", position)
+    Expr(Data.map("infoReported" -> Data(true)))
+  }
+
+  def testReportErrorAtPosition: Expr[Data] = {
+    Environment.reportError("Error at position message", Environment.currentPosition)
+    Expr(Data.map("errorReported" -> Data(true)))
+  }
+
+  def testReportErrorAndAbortAtPosition: Expr[Any] =
+    Environment.reportErrorAndAbort("Error and abort at position message", Environment.currentPosition)
+
   def testIsExpandedAt(position: Expr[String]): Expr[Boolean] = Expr
     .unapply(position)
     .fold(
