@@ -92,6 +92,13 @@ object TypeConstructorsGen {
         |      def apply[G[_]](using GCtor: Type.Ctor1[G]): Type[HKT[G]]
         |      def unapply[A](A: Type[A]): Option[UntypedType]
         |      def asUntyped: UntypedType
+        |
+        |      /** Checks whether this type constructor and `other` (a bare constructor or an applied type) share the same
+        |        * type constructor symbol (after dealiasing).
+        |        *
+        |        * @since 0.4.0
+        |        */
+        |      final def sameTypeConstructorAs(other: UntypedType): Boolean = UntypedType.sameTypeConstructorAs(asUntyped, other)
         |    }
         |    object CtorK1 {
         |
@@ -201,6 +208,13 @@ object TypeConstructorsGen {
     sb ++= s"        def apply[${ArityGen.applyParams(n)}]: Type[HKT[${allParams(n)}]]\n"
     sb ++= s"        def unapply[A](A: Type[A]): Option[${boundsTuple(n)}]\n"
     sb ++= s"        def asUntyped: UntypedType\n"
+    sb ++= s"\n"
+    sb ++= s"        /** Checks whether this type constructor and `other` (a bare constructor or an applied type) share the same\n"
+    sb ++= s"          * type constructor symbol (after dealiasing), e.g. `Type.Ctor1.of[List].sameTypeConstructorAs(UntypedType.fromTyped[List[Int]])`.\n"
+    sb ++= s"          *\n"
+    sb ++= s"          * @since 0.4.0\n"
+    sb ++= s"          */\n"
+    sb ++= s"        final def sameTypeConstructorAs(other: UntypedType): Boolean = UntypedType.sameTypeConstructorAs(asUntyped, other)\n"
 
     // set methods
     for (pos <- 0 until n) {
@@ -504,6 +518,13 @@ object TypeConstructorsGen {
         |      def apply[G[_]](implicit GCtor: Type.Ctor1[G]): Type[HKT[G]]
         |      def unapply[A](A: Type[A]): Option[UntypedType]
         |      def asUntyped: UntypedType = CtorK1.reflectiveAsUntyped(this)
+        |
+        |      /** Checks whether this type constructor and `other` (a bare constructor or an applied type) share the same
+        |        * type constructor symbol (after dealiasing).
+        |        *
+        |        * @since 0.4.0
+        |        */
+        |      final def sameTypeConstructorAs(other: UntypedType): Boolean = UntypedType.sameTypeConstructorAs(asUntyped, other)
         |    }
         |    object CtorK1 {
         |
@@ -564,6 +585,13 @@ object TypeConstructorsGen {
       sb ++= s"        /** Returns the underlying untyped type constructor representation. */\n"
     }
     sb ++= s"        def asUntyped: UntypedType = $cn.Bounded.reflectiveAsUntyped(this)\n"
+    sb ++= s"\n"
+    sb ++= s"        /** Checks whether this type constructor and `other` (a bare constructor or an applied type) share the same\n"
+    sb ++= s"          * type constructor symbol (after dealiasing), e.g. `Type.Ctor1.of[List].sameTypeConstructorAs(UntypedType.fromTyped[List[Int]])`.\n"
+    sb ++= s"          *\n"
+    sb ++= s"          * @since 0.4.0\n"
+    sb ++= s"          */\n"
+    sb ++= s"        final def sameTypeConstructorAs(other: UntypedType): Boolean = UntypedType.sameTypeConstructorAs(asUntyped, other)\n"
 
     // set methods
     for (pos <- 0 until n) {

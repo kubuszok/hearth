@@ -806,11 +806,23 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           )
       }
 
+    override def dealias(untyped: UntypedType): UntypedType =
+      untyped.dealias
+
+    override def typeConstructor(untyped: UntypedType): UntypedType =
+      untyped.dealias match {
+        case AppliedType(tycon, _) => tycon
+        case other                 => other
+      }
+
     override def typeArguments(untyped: UntypedType): List[UntypedType] =
       untyped.typeArgs
 
     override def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType =
       untyped.appliedTo(args)
+
+    override def sameTypeConstructorAs(a: UntypedType, b: UntypedType): Boolean =
+      typeConstructor(a).typeSymbol == typeConstructor(b).typeSymbol
 
     override def annotations(untyped: UntypedType): List[UntypedExpr] =
       untyped.typeSymbol.annotations.map(repositionAnnotation)

@@ -39,6 +39,18 @@ final private class TypesFixtures(val c: blackbox.Context) extends MacroCommonsS
   def testUnionMembersImpl[A: c.WeakTypeTag]: c.Expr[Data] = testUnionMembers[A]
 
   def testOpaqueUnderlyingTypeImpl[A: c.WeakTypeTag]: c.Expr[Data] = testOpaqueUnderlyingType[A]
+
+  def testTypeArgumentsImpl[A: c.WeakTypeTag]: c.Expr[Data] = testTypeArguments[A]
+
+  def testDecompose1Impl[A: c.WeakTypeTag]: c.Expr[Data] = testDecompose1[A]
+
+  def testDecompose2Impl[A: c.WeakTypeTag]: c.Expr[Data] = testDecompose2[A]
+
+  def testMiniFunctorDerivationImpl[A: c.WeakTypeTag]: c.Expr[Data] = testMiniFunctorDerivation[A]
+
+  def testDecomposeSummonNameImpl[A: c.WeakTypeTag]: c.Expr[String] = testDecomposeSummonName[A]
+
+  def testCtorK1FromDiscoveredPartsImpl[A: c.WeakTypeTag]: c.Expr[Data] = testCtorK1FromDiscoveredParts[A]
 }
 
 object TypesFixtures {
@@ -72,4 +84,16 @@ object TypesFixtures {
   def testUnionMembers[A]: Data = macro TypesFixtures.testUnionMembersImpl[A]
 
   def testOpaqueUnderlyingType[A]: Data = macro TypesFixtures.testOpaqueUnderlyingTypeImpl[A]
+
+  def testTypeArguments[A]: Data = macro TypesFixtures.testTypeArgumentsImpl[A]
+
+  def testDecompose1[A]: Data = macro TypesFixtures.testDecompose1Impl[A]
+
+  def testDecompose2[A]: Data = macro TypesFixtures.testDecompose2Impl[A]
+
+  def testMiniFunctorDerivation[A]: Data = macro TypesFixtures.testMiniFunctorDerivationImpl[A]
+
+  def testDecomposeSummonName[A]: String = macro TypesFixtures.testDecomposeSummonNameImpl[A]
+
+  def testCtorK1FromDiscoveredParts[A]: Data = macro TypesFixtures.testCtorK1FromDiscoveredPartsImpl[A]
 }

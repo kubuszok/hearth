@@ -28,6 +28,29 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     */
   type Type[A]
 
+  /** Phantom type constructor of kind `* -> *`, standing in for a type constructor that was discovered during macro
+    * execution rather than written literally in the macro's sources (see [[Type.decompose1]]).
+    *
+    * It is never instantiated nor extended — only its role as a placeholder label matters: a `Type[AnyK1[X]]` returned
+    * by APIs using this placeholder is backed by the platform representation of the real constructor (e.g. `G[X]`), so
+    * printing, comparisons and implicit summoning all see the real type, even though static typing shows `AnyK1`.
+    *
+    * @since 0.4.0
+    */
+  sealed trait AnyK1[A]
+
+  /** Phantom type constructor of kind `(*, *) -> *`, standing in for a type constructor that was discovered during
+    * macro execution rather than written literally in the macro's sources (see [[Type.decompose2]]).
+    *
+    * It is never instantiated nor extended — only its role as a placeholder label matters: a `Type[AnyK2[X, Y]]`
+    * returned by APIs using this placeholder is backed by the platform representation of the real constructor (e.g.
+    * `G[X, Y]`), so printing, comparisons and implicit summoning all see the real type, even though static typing shows
+    * `AnyK2`.
+    *
+    * @since 0.4.0
+    */
+  sealed trait AnyK2[A, B]
+
   val Type: TypeModule
   trait TypeModule extends Ctors with TypeCrossQuotes with TypeCompat { this: Type.type =>
 
@@ -263,6 +286,70 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
 
     final def isSubtypeOf[A: Type, B: Type]: Boolean = UntypedType.fromTyped[A] <:< UntypedType.fromTyped[B]
     final def isSameAs[A: Type, B: Type]: Boolean = UntypedType.fromTyped[A] =:= UntypedType.fromTyped[B]
+
+    /** Type arguments of an applied type, e.g. `List(Type[Int])` for `List[Int]`, `Nil` for non-applied types.
+      *
+      * Typed counterpart of `UntypedType.typeArguments`.
+      *
+      * @since 0.4.0
+      */
+    final def typeArguments[A: Type]: List[??] = UntypedType.typeArguments(UntypedType.fromTyped[A]).map(_.as_??)
+
+    /** Checks whether 2 types are built from the same type constructor (compared by type symbol, after dealiasing),
+      * ignoring their type arguments, e.g. `List[Int]` and `List[String]` agree, but `List[Int]` and `Vector[Int]` do
+      * not.
+      *
+      * Typed counterpart of `UntypedType.sameTypeConstructorAs`. To compare against a constructor obtained from
+      * `Type.CtorN`, use `ctor.sameTypeConstructorAs(other)` instead.
+      *
+      * @since 0.4.0
+      */
+    final def hasSameTypeConstructor[A: Type, B: Type]: Boolean =
+      UntypedType.sameTypeConstructorAs(UntypedType.fromTyped[A], UntypedType.fromTyped[B])
+
+    /** Decomposes an applied type `G[X]` (where the constructor `G` is NOT known statically) into its type constructor
+      * and its type argument, e.g. turns `Type[List[Int]]` into `Type.Ctor1` of `List` and `Type[Int]` (as `??`).
+      *
+      * The constructor is returned as a fully functional `Type.Ctor1` (created via `Type.Ctor1.fromUntyped`), so it can
+      * be re-applied to other types (`ctor[B]`), pattern-matched against other applied types (`ctor.unapply`), compared
+      * (`ctor.sameTypeConstructorAs`), or passed where `Type.Ctor1` is expected (e.g. `Type.CtorK1#apply` to build
+      * `Type[HKT[G]]` and summon a type class for the discovered constructor). Since `G` has no statically known name,
+      * the phantom label [[AnyK1]] is used in its place - the underlying platform representation is the real
+      * constructor.
+      *
+      * Returns `None` for non-applied types and for types applied to a number of arguments different than 1 (the type
+      * is dealiased first, so e.g. `type StringMap[V] = Map[String, V]` decomposes as `Map[String, V]` would - into 2
+      * arguments - rather than as a unary constructor).
+      *
+      * @since 0.4.0
+      */
+    final def decompose1[A: Type]: Option[(Ctor1[AnyK1], ??)] = {
+      val dealiased = UntypedType.dealias(UntypedType.fromTyped[A])
+      UntypedType.typeArguments(dealiased) match {
+        case arg :: Nil => Some((Ctor1.fromUntyped[AnyK1](UntypedType.typeConstructor(dealiased)), arg.as_??))
+        case _          => None
+      }
+    }
+
+    /** Decomposes an applied type `G[X, Y]` (where the constructor `G` is NOT known statically) into its type
+      * constructor and its type arguments, e.g. turns `Type[Map[String, Int]]` into `Type.Ctor2` of `Map` and
+      * `(Type[String], Type[Int])` (as `??`s).
+      *
+      * Binary-constructor counterpart of [[decompose1]] - see its documentation for the details of the contract. Since
+      * `G` has no statically known name, the phantom label [[AnyK2]] is used in its place.
+      *
+      * Returns `None` for non-applied types and for types applied to a number of arguments different than 2.
+      *
+      * @since 0.4.0
+      */
+    final def decompose2[A: Type]: Option[(Ctor2[AnyK2], (??, ??))] = {
+      val dealiased = UntypedType.dealias(UntypedType.fromTyped[A])
+      UntypedType.typeArguments(dealiased) match {
+        case arg1 :: arg2 :: Nil =>
+          Some((Ctor2.fromUntyped[AnyK2](UntypedType.typeConstructor(dealiased)), (arg1.as_??, arg2.as_??)))
+        case _ => None
+      }
+    }
 
     // Literal types
 
