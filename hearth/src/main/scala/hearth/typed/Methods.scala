@@ -74,6 +74,30 @@ trait Methods { this: MacroCommons =>
       UntypedExpr.as_??(expr, tpe)
     }
 
+    /** Annotations on this parameter whose type is a subtype of `Ann`, with each expression typed as `Expr[Ann]`.
+      *
+      * Subtype (`<:<`) matching is used (rather than `=:=`) so that a whole annotation hierarchy can be matched by its
+      * common base type. The constructor arguments of a matched annotation can be read with
+      * [[Annotations.constructorArguments]].
+      *
+      * Example - finding case-class fields that carry a marker annotation (e.g. `@sensitiveData`):
+      *
+      * {{{
+      * val sensitiveFields = caseClass.primaryConstructor.totalParameters.flatten.collect {
+      *   case (name, param) if param.hasAnnotationOfType[sensitiveData] => name
+      * }
+      * }}}
+      *
+      * @since 0.4.0
+      */
+    def annotationsOfType[Ann: Type]: List[Expr[Ann]] = Annotations.filterOfType[Ann](annotations)
+
+    /** Whether this parameter has at least one annotation whose type is a subtype of `Ann`.
+      *
+      * @since 0.4.0
+      */
+    def hasAnnotationOfType[Ann: Type]: Boolean = annotations.exists(_.Underlying <:< Type[Ann])
+
     lazy val isByName: Boolean = asUntyped.isByName
 
     /** Whether the parameter is a vararg/repeated parameter (`xs: A*`).
@@ -160,6 +184,22 @@ trait Methods { this: MacroCommons =>
       asUntyped.annotations.zip(asUntyped.annotationTypes).map { case (expr, tpe) =>
         UntypedExpr.as_??(expr, tpe)
       }
+
+    /** Annotations on this method whose type is a subtype of `Ann`, with each expression typed as `Expr[Ann]`.
+      *
+      * Subtype (`<:<`) matching is used (rather than `=:=`) so that a whole annotation hierarchy can be matched by its
+      * common base type. The constructor arguments of a matched annotation can be read with
+      * [[Annotations.constructorArguments]].
+      *
+      * @since 0.4.0
+      */
+    final def annotationsOfType[Ann: Type]: List[Expr[Ann]] = Annotations.filterOfType[Ann](annotations)
+
+    /** Whether this method has at least one annotation whose type is a subtype of `Ann`.
+      *
+      * @since 0.4.0
+      */
+    final def hasAnnotationOfType[Ann: Type]: Boolean = annotations.exists(_.Underlying <:< Type[Ann])
 
     final lazy val isConstructor: Boolean = asUntyped.isConstructor
 

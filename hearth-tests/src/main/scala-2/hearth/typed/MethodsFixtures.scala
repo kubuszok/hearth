@@ -79,6 +79,12 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
   def testConstructorParameterAnnotationsImpl[A: c.WeakTypeTag]: c.Expr[Data] =
     testConstructorParameterAnnotations[A]
 
+  def testAnnotationsOfTypeImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
+    testAnnotationsOfType[A](methodName)
+
+  def testAnnotationValueDecodedImpl[A: c.WeakTypeTag]: c.Expr[Data] =
+    testAnnotationValueDecoded[A]
+
   def testDefaultValueOnGenericMethodImpl[A: c.WeakTypeTag](
       instance: c.Expr[A],
       methodName: c.Expr[String]
@@ -149,6 +155,12 @@ object MethodsFixtures {
 
   def testConstructorParameterAnnotations[A]: Data =
     macro MethodsFixtures.testConstructorParameterAnnotationsImpl[A]
+
+  def testAnnotationsOfType[A](methodName: String): Data =
+    macro MethodsFixtures.testAnnotationsOfTypeImpl[A]
+
+  def testAnnotationValueDecoded[A]: Data =
+    macro MethodsFixtures.testAnnotationValueDecodedImpl[A]
 
   def testDefaultValueOnGenericMethod[A](instance: A, methodName: String): Data =
     macro MethodsFixtures.testDefaultValueOnGenericMethodImpl[A]
