@@ -1986,7 +1986,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     * `Parameter.annotations`.
     *
     * Annotation expressions are constructor invocations (`new MyAnnotation(args...)`), so their arguments can be
-    * recovered structurally via [[DestructuredExpr]] - [[constructorArguments]] does exactly that. Combined with the
+    * recovered structurally via [[DestructuredExpr]] - `constructorArguments` does exactly that. Combined with the
     * `annotationsOfType`/`hasAnnotationOfType` filters this allows reading annotations without dropping to
     * platform-specific APIs:
     *
@@ -2056,7 +2056,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     /** Extracts the constructor arguments of an annotation expression and decodes each to its runtime value.
       *
-      * Convenience over [[constructorArguments]] + `semiEval`: each argument is evaluated at macro time, so literal
+      * Convenience over `constructorArguments` + `semiEval`: each argument is evaluated at macro time, so literal
       * arguments (e.g. the `"first_name"` in `@fieldName("first_name")`) come back as plain values. Arguments that
       * cannot be evaluated are returned as `Left` with the evaluation errors, without failing the whole list.
       *

@@ -149,7 +149,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
       * It would pretty print the last known state of MIO for debugging and consider
       * `-Xmacro-settings:hearth.mioTerminationShouldUseReportError=true|false` option (false by default), which could
       * be used to tell the macro whether it should use:
-      *   - [[Environment.reportErrorAndAbort]] to terminate the macro expansion and show the error message using the
+      *   - `Environment.reportErrorAndAbort` to terminate the macro expansion and show the error message using the
       *     reporter, which would terminate only the current macro,
       *   - or just print the error message to `stderr` and throw the exception to terminate the whole compilation
       *     process (on Scala 3, on Scala 3 each looped macro has to be terminated individually).
