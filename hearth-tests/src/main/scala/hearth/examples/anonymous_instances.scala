@@ -101,3 +101,7 @@ abstract class PackagePrivateConstructor private[anonymous_instances] (val x: In
 abstract class AbstractClassWithDefaults(val x: Int, val y: String = "default") {
   def abstractMethod: Int
 }
+
+trait TraitWithVarargMethod {
+  def sum(xs: Int*): Int
+}

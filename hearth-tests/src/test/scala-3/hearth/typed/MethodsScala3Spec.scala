@@ -207,7 +207,9 @@ final class MethodsScala3Spec extends MacroSuite {
           testParameterProperties[examples.methods.WithGivens]("methodWithUsingParam") <==> Data.map(
             "x" -> Data.map(
               "isImplicit" -> Data(true),
-              "hasDefault" -> Data(false)
+              "hasDefault" -> Data(false),
+              "isByName" -> Data(false),
+              "isVararg" -> Data(false)
             )
           )
         }

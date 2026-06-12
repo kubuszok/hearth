@@ -77,6 +77,22 @@ object MethodsFixtures {
   private def testParameterPropertiesImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testParameterProperties[A](methodName)
 
+  inline def testCallVarargIntMethod[A](inline instance: A)(inline methodName: String)(inline params: Int*): Int = ${
+    testCallVarargIntMethodImpl[A]('instance, 'methodName, 'params)
+  }
+  private def testCallVarargIntMethodImpl[A: Type](
+      instance: Expr[A],
+      methodName: Expr[String],
+      params: Expr[Seq[Int]]
+  )(using q: Quotes): Expr[Int] =
+    new MethodsFixtures(q).testCallVarargIntMethod[A](instance)(methodName)(params)
+
+  inline def testConstructVarargCtor[A](inline params: String*): Data = ${
+    testConstructVarargCtorImpl[A]('params)
+  }
+  private def testConstructVarargCtorImpl[A: Type](params: Expr[Seq[String]])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testConstructVarargCtor[A](params)
+
   inline def testMethodProperties[A](inline methodName: String): Data = ${
     testMethodPropertiesImpl[A]('methodName)
   }

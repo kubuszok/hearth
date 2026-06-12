@@ -56,6 +56,18 @@ final class AnonymousInstanceSpec extends MacroSuite {
           )
         }
 
+        test("trait with vararg abstract method") {
+          testAnonymousInstanceParse[examples.anonymous_instances.TraitWithVarargMethod] <==> Data.map(
+            "result" -> Data("compatible"),
+            "classParent" -> Data("<none>"),
+            "traitParents" -> Data("hearth.examples.anonymous_instances.TraitWithVarargMethod"),
+            "mustOverride" -> Data("sum"),
+            "mayOverride" -> Data(""),
+            "cannotOverride" -> Data(""),
+            "diamondConflicts" -> Data("")
+          )
+        }
+
         test("trait with concrete and abstract methods") {
           testAnonymousInstanceParse[examples.anonymous_instances.TraitWithConcreteMethod] <==> Data.map(
             "result" -> Data("compatible"),
@@ -238,6 +250,10 @@ final class AnonymousInstanceSpec extends MacroSuite {
 
         test("abstract class with default constructor args") {
           testAnonymousInstanceConstruct[examples.anonymous_instances.AbstractClassWithDefaults] <==> "success"
+        }
+
+        test("trait with vararg abstract method") {
+          testAnonymousInstanceConstruct[examples.anonymous_instances.TraitWithVarargMethod] <==> "success"
         }
 
         test("class parent with trait mixin") {

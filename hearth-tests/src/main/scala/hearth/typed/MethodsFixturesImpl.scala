@@ -146,7 +146,9 @@ trait MethodsFixturesImpl { this: MacroCommons =>
         method.totalParameters.flatten.map { case (paramName, param) =>
           paramName -> Data.map(
             "isImplicit" -> Data(param.isImplicit),
-            "hasDefault" -> Data(param.hasDefault)
+            "hasDefault" -> Data(param.hasDefault),
+            "isByName" -> Data(param.isByName),
+            "isVararg" -> Data(param.isVararg)
           )
         }
       }
@@ -236,6 +238,8 @@ trait MethodsFixturesImpl { this: MacroCommons =>
   private val IntType: Type[Int] = Type.of[Int]
   private val StringType: Type[String] = Type.of[String]
   private val ProductType: Type[Product] = Type.of[Product]
+  private val SeqIntType: Type[Seq[Int]] = Type.of[Seq[Int]]
+  private val SeqStringType: Type[Seq[String]] = Type.of[Seq[String]]
 
   private def applyAndBuild(method: Method, arguments: Arguments): Either[String, Expr_??] =
     method match {
@@ -557,6 +561,57 @@ trait MethodsFixturesImpl { this: MacroCommons =>
         result.asTyped[Int]
       case _ =>
         Environment.reportErrorAndAbort(s"Method $name is not an instance method")
+    }
+  }
+
+  def testCallVarargIntMethod[A: Type](instance: Expr[A])(methodName: Expr[String])(params: VarArgs[Int]): Expr[Int] = {
+    implicit val SeqIntType: Type[Seq[Int]] = this.SeqIntType
+    val name = Expr
+      .unapply(methodName)
+      .getOrElse(
+        Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+      )
+    val method = Type[A].methods.filter(_.name == name) match {
+      case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
+      case method :: Nil => method
+      case _             => Environment.reportErrorAndAbort(s"Method $name is ambiguous")
+    }
+    val seqExpr: Expr[Seq[Int]] = params.toVector.foldLeft(Expr.quote(Seq.empty[Int])) { (acc, value) =>
+      Expr.quote(Expr.splice(acc) :+ Expr.splice(value))
+    }
+    val result = method.fold(
+      onInstance = _ => instance.as_??,
+      onTypes = _ => Map.empty,
+      onValues = av =>
+        av.parameters.flatten.map { case (pName, param) =>
+          if (param.isVararg) pName -> seqExpr.as_??
+          else Environment.reportErrorAndAbort(s"Expected a vararg parameter, got $pName: ${param.tpe.plainPrint}")
+        }.toMap
+    )
+    result match {
+      case Right(expr) => expr.value.asInstanceOf[Expr[Int]]
+      case Left(error) => Environment.reportErrorAndAbort(s"Failed to call method $name: $error")
+    }
+  }
+
+  def testConstructVarargCtor[A: Type](params: VarArgs[String]): Expr[Data] = {
+    implicit val SeqStringType: Type[Seq[String]] = this.SeqStringType
+    Type[A].primaryConstructor match {
+      case Some(ctor) =>
+        val seqExpr: Expr[Seq[String]] = params.toVector.foldLeft(Expr.quote(Seq.empty[String])) { (acc, value) =>
+          Expr.quote(Expr.splice(acc) :+ Expr.splice(value))
+        }
+        val arguments: Arguments = ctor.totalParameters.flatten.map { case (pName, param) =>
+          if (param.isVararg) pName -> seqExpr.as_??
+          else Environment.reportErrorAndAbort(s"Expected a vararg parameter, got $pName: ${param.tpe.plainPrint}")
+        }.toMap
+        applyAndBuild(ctor, arguments) match {
+          case Right(result) =>
+            import result.Underlying as R
+            Expr.quote(Data(Expr.splice(result.value.asInstanceOf[Expr[R]]).toString))
+          case Left(error) => Expr(Data(s"FAILED: $error"))
+        }
+      case None => Expr(Data("<no primary constructor>"))
     }
   }
 
