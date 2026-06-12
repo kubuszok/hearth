@@ -240,6 +240,14 @@ trait MethodsFixturesImpl { this: MacroCommons =>
   private val ProductType: Type[Product] = Type.of[Product]
   private val SeqIntType: Type[Seq[Int]] = Type.of[Seq[Int]]
   private val SeqStringType: Type[Seq[String]] = Type.of[Seq[String]]
+  private val ExampleAnnotationType: Type[hearth.examples.methods.ExampleAnnotation] =
+    Type.of[hearth.examples.methods.ExampleAnnotation]
+  private val ExampleAnnotation2Type: Type[hearth.examples.methods.ExampleAnnotation2] =
+    Type.of[hearth.examples.methods.ExampleAnnotation2]
+  private val ParentAnnotationType: Type[hearth.examples.methods.ParentAnnotation] =
+    Type.of[hearth.examples.methods.ParentAnnotation]
+  private val ChildAnnotationType: Type[hearth.examples.methods.ChildAnnotation] =
+    Type.of[hearth.examples.methods.ChildAnnotation]
 
   private def applyAndBuild(method: Method, arguments: Arguments): Either[String, Expr_??] =
     method match {
@@ -615,20 +623,11 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     }
   }
 
-  private def destructureAnnotationValues(ann: Expr_??): String = {
-    val destructured = DestructuredExpr.parseUntyped(ann.value.asUntyped)
-    destructured match {
-      case mc: DestructuredExpr.MethodCall =>
-        mc.applied
-          .flatMap {
-            case av: DestructuredExpr.MethodCall.AppliedValues =>
-              av.args.map(_.plainPrint)
-            case _ => Nil
-          }
-          .mkString(", ")
-      case _ => "<not a method call>"
+  private def destructureAnnotationValues(ann: Expr_??): String =
+    Annotations.constructorArguments(ann) match {
+      case Some(args) => args.map(_.plainPrint).mkString(", ")
+      case None       => "<not a method call>"
     }
-  }
 
   def testAnnotationDestructuring[A: Type]: Expr[Data] = {
     val typeAnnotations = Type.annotations[A].flatMap { ann =>
@@ -710,6 +709,98 @@ trait MethodsFixturesImpl { this: MacroCommons =>
       case Some(constructor) => Expr(renderParameterAnnotations(constructor.totalParameters))
       case None              => Expr(Data("<no primary constructor>"))
     }
+
+  def testAnnotationsOfType[A: Type](methodName: Expr[String]): Expr[Data] = {
+    implicit val exampleAnnotationType: Type[hearth.examples.methods.ExampleAnnotation] = this.ExampleAnnotationType
+    implicit val exampleAnnotation2Type: Type[hearth.examples.methods.ExampleAnnotation2] = this.ExampleAnnotation2Type
+    implicit val parentAnnotationType: Type[hearth.examples.methods.ParentAnnotation] = this.ParentAnnotationType
+    implicit val childAnnotationType: Type[hearth.examples.methods.ChildAnnotation] = this.ChildAnnotationType
+
+    def decodeArgs(ann: Expr_??): Data =
+      Annotations.constructorArguments(ann) match {
+        case Some(args) =>
+          Data.list(args.map { arg =>
+            arg.value.semiEval.fold(errors => Data(s"<failed: ${errors.head}>"), value => Data(value.toString))
+          }*)
+        case None => Data("<not a constructor call>")
+      }
+
+    val typeSection = Data.map(
+      "hasExampleAnnotation" -> Data(Type[A].hasAnnotationOfType[hearth.examples.methods.ExampleAnnotation]),
+      "hasExampleAnnotation2" -> Data(Type[A].hasAnnotationOfType[hearth.examples.methods.ExampleAnnotation2]),
+      "exampleAnnotation2Args" -> Data.list(
+        Type[A].annotationsOfType[hearth.examples.methods.ExampleAnnotation2].map(ann => decodeArgs(ann.as_??))*
+      ),
+      "parentAnnotations" -> Data(Type[A].annotationsOfType[hearth.examples.methods.ParentAnnotation].size),
+      "childAnnotations" -> Data(Type[A].annotationsOfType[hearth.examples.methods.ChildAnnotation].size)
+    )
+
+    def describeParameter(paramName: String, param: Parameter): Data = Data.map(
+      "name" -> Data(paramName),
+      "hasExampleAnnotation" -> Data(param.hasAnnotationOfType[hearth.examples.methods.ExampleAnnotation]),
+      "exampleAnnotation2Args" -> Data.list(
+        param.annotationsOfType[hearth.examples.methods.ExampleAnnotation2].map(ann => decodeArgs(ann.as_??))*
+      ),
+      "parentAnnotations" -> Data(param.annotationsOfType[hearth.examples.methods.ParentAnnotation].size),
+      "childAnnotations" -> Data(param.annotationsOfType[hearth.examples.methods.ChildAnnotation].size)
+    )
+
+    val methodSection = Expr.unapply(methodName).filter(_.nonEmpty) match {
+      case None       => Data("<no method requested>")
+      case Some(name) =>
+        Type[A].methods.filter(_.name == name) match {
+          case method :: Nil =>
+            Data.map(
+              "hasExampleAnnotation" -> Data(method.hasAnnotationOfType[hearth.examples.methods.ExampleAnnotation]),
+              "hasExampleAnnotation2" -> Data(method.hasAnnotationOfType[hearth.examples.methods.ExampleAnnotation2]),
+              "exampleAnnotation2Args" -> Data.list(
+                method.annotationsOfType[hearth.examples.methods.ExampleAnnotation2].map(ann => decodeArgs(ann.as_??))*
+              ),
+              "parentAnnotations" -> Data(method.annotationsOfType[hearth.examples.methods.ParentAnnotation].size),
+              "childAnnotations" -> Data(method.annotationsOfType[hearth.examples.methods.ChildAnnotation].size),
+              "parameters" -> Data.list(method.totalParameters.flatten.map { case (paramName, param) =>
+                describeParameter(paramName, param)
+              }*)
+            )
+          case Nil => Data("<method not found>")
+          case _   => Data("<method ambiguous>")
+        }
+    }
+
+    val constructorSection = Type[A].primaryConstructor match {
+      case Some(constructor) =>
+        Data.list(constructor.totalParameters.flatten.map { case (paramName, param) =>
+          describeParameter(paramName, param)
+        }*)
+      case None => Data("<no primary constructor>")
+    }
+
+    Expr(
+      Data.map(
+        "type" -> typeSection,
+        "method" -> methodSection,
+        "constructor" -> constructorSection
+      )
+    )
+  }
+
+  def testAnnotationValueDecoded[A: Type]: Expr[Data] = {
+    implicit val exampleAnnotation2Type: Type[hearth.examples.methods.ExampleAnnotation2] = this.ExampleAnnotation2Type
+    Type[A].annotationsOfType[hearth.examples.methods.ExampleAnnotation2] match {
+      case ann :: Nil =>
+        // `ann` is a properly typed `Expr[ExampleAnnotation2]`, so it can be evaluated as a whole at macro time...
+        val wholeAnnotation =
+          ann.semiEval.fold(errors => s"<failed: ${errors.head}>", instance => instance.value.toString)
+        // ... and its constructor arguments can be extracted and decoded one by one.
+        val firstArgument = Annotations
+          .constructorArguments(ann)
+          .flatMap(_.headOption)
+          .map(arg => arg.value.semiEval.fold(errors => s"<failed: ${errors.head}>", value => value.toString))
+          .getOrElse("<no constructor arguments>")
+        Expr(Data.map("wholeAnnotation" -> Data(wholeAnnotation), "firstArgument" -> Data(firstArgument)))
+      case other => Expr(Data(s"<expected exactly one ExampleAnnotation2, got ${other.size}>"))
+    }
+  }
 
   def testDefaultValueOnGenericMethod[A: Type](
       instance: Expr[A],

@@ -1937,4 +1937,77 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       val params: List[DestructuredExpr.Lambda.Param],
       val body: DestructuredExpr
   )
+
+  /** Utilities for working with annotation expressions returned by `Type.annotations`, `Method.annotations` and
+    * `Parameter.annotations`.
+    *
+    * Annotation expressions are constructor invocations (`new MyAnnotation(args...)`), so their arguments can be
+    * recovered structurally via [[DestructuredExpr]] - [[constructorArguments]] does exactly that. Combined with the
+    * `annotationsOfType`/`hasAnnotationOfType` filters this allows reading annotations without dropping to
+    * platform-specific APIs:
+    *
+    * {{{
+    * // Read the Int argument of the first @MyAnnotation(n) on type A:
+    * val n: Option[Int] = Type.annotationsOfType[A, MyAnnotation].headOption
+    *   .flatMap(ann => Annotations.constructorArguments(ann))
+    *   .flatMap(_.headOption)
+    *   .flatMap { arg =>
+    *     import arg.Underlying as ArgType
+    *     arg.value.semiEval.toOption.collect { case n: Int => n }
+    *   }
+    * }}}
+    *
+    * @since 0.4.0
+    */
+  object Annotations {
+
+    /** Filters annotation expressions to those whose type is a subtype of `Ann`, typing each result as `Expr[Ann]`.
+      *
+      * Subtype (`<:<`) matching is used (rather than `=:=`) so that a whole annotation hierarchy can be matched by its
+      * common base type. The upcast is safe because each annotation expression carries its exact type.
+      *
+      * @since 0.4.0
+      */
+    def filterOfType[Ann: Type](annotations: List[Expr_??]): List[Expr[Ann]] =
+      annotations.collect {
+        case ann if ann.Underlying <:< Type[Ann] =>
+          import ann.Underlying as ExactAnn
+          ann.value.upcast[Ann]
+      }
+
+    /** Extracts the constructor arguments of an annotation expression (`new MyAnnotation(args...)`).
+      *
+      * Returns the argument expressions flattened across all parameter lists, in order, each with its exact type
+      * (`Some(Nil)` for no-argument annotations). Returns `None` if the expression is not a constructor invocation.
+      *
+      * Individual arguments can then be decoded with `arg.value.semiEval` (after `import arg.Underlying`) or via
+      * [[ExprCodec]]-based `Expr.unapply`.
+      *
+      * @since 0.4.0
+      */
+    def constructorArguments(annotation: Expr_??): Option[List[Expr_??]] =
+      constructorArguments(annotation.value)
+
+    /** Extracts the constructor arguments of an annotation expression (`new MyAnnotation(args...)`).
+      *
+      * Variant of the `Expr_??` overload for already-typed annotation expressions, e.g. those returned by
+      * `annotationsOfType`.
+      *
+      * @since 0.4.0
+      */
+    def constructorArguments[A](annotation: Expr[A]): Option[List[Expr_??]] =
+      DestructuredExpr.parseUntyped(UntypedExpr.fromTyped(annotation)) match {
+        case mc: DestructuredExpr.MethodCall if mc.method.isConstructor =>
+          Some(
+            mc.applied
+              .collect { case av: DestructuredExpr.MethodCall.AppliedValues => av.args }
+              .flatten
+              .map { arg =>
+                import arg.tpe.Underlying as ArgType
+                arg.toUntypedExpr.asTyped[ArgType].as_??
+              }
+          )
+        case _ => None
+      }
+  }
 }

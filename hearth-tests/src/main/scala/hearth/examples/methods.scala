@@ -5,6 +5,20 @@ package methods
 class ExampleAnnotation extends scala.annotation.StaticAnnotation
 class ExampleAnnotation2(val value: Int) extends scala.annotation.StaticAnnotation
 
+class ParentAnnotation extends scala.annotation.StaticAnnotation
+class ChildAnnotation extends ParentAnnotation
+
+@ChildAnnotation
+class WithChildAnnotation {
+
+  @ChildAnnotation
+  def annotatedMethod(@ChildAnnotation arg: Int): Int = arg
+
+  @ExampleAnnotation2(42)
+  @ParentAnnotation
+  def annotatedMethod2(arg: Int): Int = arg
+}
+
 @ExampleAnnotation
 trait Trait {
 
