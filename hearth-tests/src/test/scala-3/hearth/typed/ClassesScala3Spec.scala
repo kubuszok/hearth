@@ -224,5 +224,78 @@ final class ClassesScala3Spec extends MacroSuite {
       testEnumParseDiagnostic[examples.unions.ListIntOrListString] <==>
         "parsed with children: scala.collection.immutable.List[scala.Int], scala.collection.immutable.List[java.lang.String]"
     }
+
+    // Regression for the union-member disjointness check (research-hardening-0.4): the member types of these
+    // unions are defined IN THIS COMPILATION UNIT, so no classfile exists at macro-expansion time. A runtime
+    // `Class.forName`-style disjointness check fails (returns None → ByTypeTest → union refused), but a
+    // compiler-symbol-level check correctly accepts/refuses them. See ClassesScala3Spec.LocalUnions.
+    test(
+      "Enum[A].{matchOn and parMatchOn} should match on a disjoint union of types from the SAME compilation run (regression)"
+    ) {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+      import ClassesScala3Spec.LocalUnions.*
+
+      def code(input: LocalParrot | LocalHamster) = testEnumMatchOnAndParMatchOn(input)
+      code(LocalParrot("Polly", 7)) <==>
+        "sequential: subtype name: hearth.typed.ClassesScala3Spec.LocalUnions.LocalParrot, expr: hearth.typed.ClassesScala3Spec.LocalUnions.LocalParrot, parallel: subtype name: hearth.typed.ClassesScala3Spec.LocalUnions.LocalParrot, expr: hearth.typed.ClassesScala3Spec.LocalUnions.LocalParrot"
+      code(LocalHamster("Hammy", 4.5)) <==>
+        "sequential: subtype name: hearth.typed.ClassesScala3Spec.LocalUnions.LocalHamster, expr: hearth.typed.ClassesScala3Spec.LocalUnions.LocalHamster, parallel: subtype name: hearth.typed.ClassesScala3Spec.LocalUnions.LocalHamster, expr: hearth.typed.ClassesScala3Spec.LocalUnions.LocalHamster"
+    }
+
+    test(
+      "Type.directChildren should accept a disjoint union of types from the SAME compilation run (regression)"
+    ) {
+      import TypesFixtures.testUnionMembers
+      import ClassesScala3Spec.LocalUnions.*
+
+      testUnionMembers[LocalParrot | LocalHamster] <==> Data.map(
+        "Type.isUnionType" -> Data(true),
+        "Type.directChildren" -> Data.map(
+          "hearth.typed.ClassesScala3Spec.LocalUnions.LocalParrot" -> Data(
+            "hearth.typed.ClassesScala3Spec.LocalUnions.LocalParrot"
+          ),
+          "hearth.typed.ClassesScala3Spec.LocalUnions.LocalHamster" -> Data(
+            "hearth.typed.ClassesScala3Spec.LocalUnions.LocalHamster"
+          )
+        ),
+        "Type.exhaustiveChildren" -> Data.map(
+          "hearth.typed.ClassesScala3Spec.LocalUnions.LocalParrot" -> Data(
+            "hearth.typed.ClassesScala3Spec.LocalUnions.LocalParrot"
+          ),
+          "hearth.typed.ClassesScala3Spec.LocalUnions.LocalHamster" -> Data(
+            "hearth.typed.ClassesScala3Spec.LocalUnions.LocalHamster"
+          )
+        )
+      )
+    }
+
+    test(
+      "Type.directChildren should still REFUSE a related-class union of SAME-compilation-run types (LocalBox[Int] | LocalBoxSub[String]) (regression)"
+    ) {
+      import TypesFixtures.testUnionMembers
+      import ClassesScala3Spec.LocalUnions.*
+
+      // LocalBoxSub <: LocalBox at the class level (but the MEMBERS themselves have no subtype relation, since
+      // LocalBox[Int] is not <:< LocalBoxSub[String]), so symbol-level relatedness must still refuse this union.
+      testUnionMembers[LocalBox[Int] | LocalBoxSub[String]] <==> Data.map(
+        "Type.isUnionType" -> Data(true),
+        "Type.directChildren" -> Data("<no direct children>"),
+        "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
+      )
+    }
+  }
+}
+
+object ClassesScala3Spec {
+
+  /** Union member types defined in the SAME compilation unit as the spec that expands the macro - exercising the
+    * compiler-symbol-level disjointness check (no classfile exists at macro-expansion time).
+    */
+  object LocalUnions {
+    case class LocalParrot(name: String, vocabulary: Int)
+    case class LocalHamster(name: String, wheelSize: Double)
+
+    class LocalBox[A](val value: A)
+    class LocalBoxSub[A](value: A) extends LocalBox[A](value)
   }
 }

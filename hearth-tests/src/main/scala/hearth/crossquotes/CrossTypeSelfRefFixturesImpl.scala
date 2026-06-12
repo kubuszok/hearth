@@ -9,8 +9,8 @@ import hearth.data.Data
   * the generated implicit/given lookup resolve to the very value being defined:
   *   - Scala 2: `weakTypeTag` picked up the in-definition implicit via `convertProvidedTypesForCrossQuotes`, producing
   *     `implicit val ConfigT = ConfigT` (forward-reference error in blocks, null/infinite recursion in class bodies),
-  *   - Scala 3: the plugin injected `given castedConfigT: scala.quoted.Type[...] = Type[...]...` which summoned the
-  *     val being initialized (forward-reference error in blocks, null at runtime in class bodies).
+  *   - Scala 3: the plugin injected `given castedConfigT: scala.quoted.Type[...] = Type[...]...` which summoned the val
+  *     being initialized (forward-reference error in blocks, null at runtime in class bodies).
   *
   * The fix excludes the definition currently being initialized from the implicit search performed by the generated
   * code, so `Type.of`/`Type.CtorN.of` fall back to direct materialization from the literal type argument.
