@@ -4,7 +4,7 @@ package typed
 import hearth.data.Data
 
 /** Fixtures for testing [[TypesSpec]] and [[TypesJvmSpec]]. */
-trait TypesFixturesImpl { this: MacroTypedCommons =>
+trait TypesFixturesImpl { this: MacroCommons =>
 
   // Type methods
 
@@ -630,10 +630,136 @@ trait TypesFixturesImpl { this: MacroTypedCommons =>
     )
   }
 
+  // Type constructor discovery (issue #284):
+  // Type.{typeArguments, decompose1, decompose2}, Ctor.sameTypeConstructorAs, CtorK1 + summoning
+
+  def testTypeArguments[A: Type]: Expr[Data] = Expr(
+    Data.map(
+      "Type.typeArguments" -> Data.list(Type.typeArguments[A].map(arg => Data(arg.plainPrint))*)
+    )
+  )
+
+  def testDecompose1[A: Type]: Expr[Data] = {
+    val listCtor = Type.Ctor1.of[List]
+    val optionCtor = Type.Ctor1.of[Option]
+    Type.decompose1[A] match {
+      case Some((ctor, arg)) =>
+        implicit val StringType: Type[String] = stringType
+        Expr(
+          Data.map(
+            "decomposed" -> Data(true),
+            "arg" -> Data(arg.plainPrint),
+            "reappliedToString" -> Data(ctor.apply[String].plainPrint),
+            "sameCtorAsList" -> Data(ctor.sameTypeConstructorAs(listCtor.asUntyped)),
+            "sameCtorAsOption" -> Data(ctor.sameTypeConstructorAs(optionCtor.asUntyped)),
+            "sameCtorAsSelf" -> Data(ctor.sameTypeConstructorAs(UntypedType.fromTyped[A]))
+          )
+        )
+      case None => Expr(Data.map("decomposed" -> Data(false)))
+    }
+  }
+
+  def testDecompose2[A: Type]: Expr[Data] = {
+    val mapCtor = Type.Ctor2.of[Map]
+    val eitherCtor = Type.Ctor2.of[Either]
+    Type.decompose2[A] match {
+      case Some((ctor, (arg1, arg2))) =>
+        implicit val StringType: Type[String] = stringType
+        implicit val IntType: Type[Int] = intType
+        Expr(
+          Data.map(
+            "decomposed" -> Data(true),
+            "arg1" -> Data(arg1.plainPrint),
+            "arg2" -> Data(arg2.plainPrint),
+            "reappliedToStringInt" -> Data(ctor.apply[String, Int].plainPrint),
+            "sameCtorAsMap" -> Data(ctor.sameTypeConstructorAs(mapCtor.asUntyped)),
+            "sameCtorAsEither" -> Data(ctor.sameTypeConstructorAs(eitherCtor.asUntyped))
+          )
+        )
+      case None => Expr(Data.map("decomposed" -> Data(false)))
+    }
+  }
+
+  /** Mini-Functor-derivation flow: for each field `g: G[X]` of a case class, discovers `G` and `X` via
+    * `Type.decompose1`, compares `G` against literal constructors, re-applies `G` to another type, and summons
+    * `MyTC[G]` for the discovered `G` (via `Type.CtorK1`).
+    */
+  def testMiniFunctorDerivation[A: Type]: Expr[Data] = {
+    import hearth.examples.kinds.MyTC
+    implicit val StringType: Type[String] = stringType
+    val listCtor = Type.Ctor1.of[List]
+    val optionCtor = Type.Ctor1.of[Option]
+    val myTCCtor = Type.CtorK1.of[MyTC]
+    CaseClass.parse[A].toOption.fold(Expr(Data.map("error" -> Data("not a case class")))) { caseClass =>
+      val fields = caseClass.primaryConstructor.parameters.flatten.toList.map { case (name, param) =>
+        import param.tpe.Underlying as FieldType
+        val fieldData = Type.decompose1[FieldType] match {
+          case Some((gCtor, arg)) =>
+            implicit val MyTCofG: Type[MyTC[AnyK1]] = myTCCtor.apply(using gCtor)
+            Data.map(
+              "arg" -> Data(arg.plainPrint),
+              "reappliedToString" -> Data(gCtor.apply[String].plainPrint),
+              "isList" -> Data(gCtor.sameTypeConstructorAs(listCtor.asUntyped)),
+              "isOption" -> Data(gCtor.sameTypeConstructorAs(optionCtor.asUntyped)),
+              "myTCInstanceFound" -> Data(Expr.summonImplicit[MyTC[AnyK1]].isDefined)
+            )
+          case None => Data("not an applied type")
+        }
+        name -> fieldData
+      }
+      Expr(Data.map(fields*))
+    }
+  }
+
+  /** Summons `MyTC[G]` for `G` discovered via `Type.decompose1` and splices the instance's `name` into the result, so
+    * the test asserts that the RIGHT instance was found (not just that something was found).
+    */
+  def testDecomposeSummonName[A: Type]: Expr[String] = {
+    import hearth.examples.kinds.{HasName, MyTC}
+    val myTCCtor = Type.CtorK1.of[MyTC]
+    Type.decompose1[A] match {
+      case Some((gCtor, _)) =>
+        implicit val MyTCofG: Type[MyTC[AnyK1]] = myTCCtor.apply(using gCtor)
+        Expr.summonImplicit[MyTC[AnyK1]].toOption match {
+          case Some(instance) =>
+            implicit val HasNameType: Type[HasName] = hasNameType
+            val upcasted = Expr.upcast[MyTC[AnyK1], HasName](instance)
+            Expr.quote(Expr.splice(upcasted).name)
+          case None => Expr("<no instance found>")
+        }
+      case None => Expr("<not an applied type>")
+    }
+  }
+
+  /** Builds `Type[Alg[G]]` where BOTH `Alg` (kind `(* -> *) -> *`) and `G` (kind `* -> *`) are discovered during
+    * expansion: `Alg` via `UntypedType.typeConstructor` + `Type.CtorK1.fromUntyped`, `G` via `Type.decompose1`.
+    */
+  def testCtorK1FromDiscoveredParts[A: Type]: Expr[Data] = {
+    import hearth.examples.kinds.HigherKinded1
+    val optionCtor = Type.Ctor1.of[Option]
+    val appliedHK1: Type[HigherKinded1[Option]] = Type.CtorK1.of[HigherKinded1].apply[Option](using optionCtor)
+    val algUntyped = UntypedType.typeConstructor(UntypedType.fromTyped(using appliedHK1))
+    val alg = Type.CtorK1.fromUntyped[HigherKinded1](algUntyped)
+    Type.decompose1[A] match {
+      case Some((gCtor, _)) =>
+        val algOfG = alg.apply(using gCtor)
+        Expr(
+          Data.map(
+            "appliedSameCtorAsAlg" -> Data(alg.sameTypeConstructorAs(UntypedType.fromTyped(using algOfG))),
+            "memberCtorMatches" -> Data(
+              alg.unapply(algOfG).fold(false)(g => UntypedType.sameTypeConstructorAs(g, gCtor.asUntyped))
+            )
+          )
+        )
+      case None => Expr(Data.map("error" -> Data("not an applied type")))
+    }
+  }
+
   // types using in fixtures
 
   private val aStringType = Type.of["a"]
   private val bStringType = Type.of["b"]
   private val intType = Type.of[Int]
   private val stringType = Type.of[String]
+  private val hasNameType = Type.of[hearth.examples.kinds.HasName]
 }

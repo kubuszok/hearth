@@ -480,11 +480,20 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       } else None
     }
 
+    override def dealias(untyped: UntypedType): UntypedType =
+      untyped.dealias
+
+    override def typeConstructor(untyped: UntypedType): UntypedType =
+      untyped.dealias.typeConstructor
+
     override def typeArguments(untyped: UntypedType): List[UntypedType] =
       untyped.typeArgs
 
     override def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType =
       appliedType(untyped.typeConstructor, args)
+
+    override def sameTypeConstructorAs(a: UntypedType, b: UntypedType): Boolean =
+      a.dealias.typeConstructor.typeSymbol == b.dealias.typeConstructor.typeSymbol
 
     override def annotations(untyped: UntypedType): List[UntypedExpr] =
       untyped.typeSymbol.annotations.map(ann => c.untypecheck(ann.tree))

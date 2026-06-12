@@ -31,6 +31,31 @@ trait Arity23[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, 
 
 trait HigherKinded1[F[_]]
 
+/** Non-generic supertype of [[MyTC]], so that macro fixtures can splice `instance.name` without referencing the phantom
+  * constructor label in generated trees (issue #284).
+  */
+trait HasName {
+  def name: String
+}
+
+/** Tiny type class for testing summoning of instances for type constructors discovered via `Type.decompose1` (issue
+  * #284).
+  */
+trait MyTC[F[_]] extends HasName
+object MyTC {
+  implicit val myTCForList: MyTC[List] = new MyTC[List] {
+    def name: String = "MyTC[List]"
+  }
+  implicit val myTCForOption: MyTC[Option] = new MyTC[Option] {
+    def name: String = "MyTC[Option]"
+  }
+}
+
+/** Mini-Functor-derivation test case: each field is some `G[A]` where `G` is only discovered during expansion (issue
+  * #284).
+  */
+final case class Box[A](items: List[A], maybe: Option[A])
+
 // format: off
 object Alias {
   type Renamed1[A] = Arity1[A]
