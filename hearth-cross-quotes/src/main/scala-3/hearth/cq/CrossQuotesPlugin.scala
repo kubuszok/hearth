@@ -174,12 +174,15 @@ final class CrossQuotesPlugin extends StandardPlugin {
   *
   * ==Gotchas and limitations (Scala 3)==
   *
-  *   - '''Self-referential implicit Type:''' `implicit val A: Type[A] = Type.of[A]` generates an infinite loop, because
-  *     `scala.quoted.Type.of[A]` picks up the `given` in scope. Use a non-implicit val or assign in a different scope.
-  *   - '''Self-referential implicit Type.CtorN initialization:''' `implicit val F: Type.Ctor1[F] = Type.Ctor1.of[F]`
-  *     can cause circular initialization when the plugin injects a `given` that references the val being initialized.
-  *     Create the value outside the block:
-  *     `val optCtor = makeOptionCtor; implicit val OptionCtor: Type.Ctor1[Option] = optCtor`.
+  *   - '''Self-referential implicit Type/Type.CtorN (fixed by hearth#285):'''
+  *     `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]` and
+  *     `implicit val OptionCtor: Type.Ctor1[Option] = Type.Ctor1.of[Option]` used to inject a `given` that summoned the
+  *     very value being initialized (forward-reference error in blocks, "Infinite loop in function body" or null
+  *     self-assignment in class bodies). The plugin now excludes the definition being initialized (and, in blocks, any
+  *     implicit val declared in a later statement) from the injected `casted` givens, so the type is materialized
+  *     directly from the literal type argument. Note that `implicit val A: Type[A] = Type.of[A]` where `A` is an
+  *     abstract type whose ONLY `Type` instance would be the val itself cannot work — it is now reported as a missing
+  *     `Type[A]` instead of an infinite loop.
   *   - '''`Type.of[A]` requires a parameterless given:''' `scala.quoted.Type.of[A]` and `'{ ... }: Expr[A]` ignore
   *     `Type[A]` values that require implicit resolution to obtain. Only `implicit val`/parameterless `given`
   *     definitions are picked up. The plugin uses a best-effort approach to detect such cases and create local
@@ -256,6 +259,12 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
 
       private var givenCandidates = List.empty[untpd.ValDef]
       private var givensInjected = Set.empty[untpd.ValDef]
+      // [hearth#285] Names of implicit val/def definitions whose RHS is currently being transformed.
+      // Their `casted$name` given candidates must NOT be injected inside their own RHS — the generated given
+      // would summon the very value being initialized (forward-reference error in blocks, "Infinite loop in
+      // function body" / null self-assignment in class bodies). With the candidate excluded,
+      // `scala.quoted.Type.of[A]` / `Type.CtorN.Bounded.Impl` materialize the type directly instead.
+      private var selfDefNames = Set.empty[String]
 
       private val ctorSize = (1 to 22).map(i => s"Ctor$i" -> i).toMap
       private val isCtor = ctorSize.keySet
@@ -466,6 +475,13 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
           )
           .withFlags(Flags.Given)
 
+      // [hearth#285] Does an implicit val/def with this declared type produce a `casted$name` given candidate
+      // (see blockGivenCandidates)? Used to exclude that candidate while transforming the definition itself.
+      private def producesSelfGivenCandidate(tpt: untpd.Tree): Boolean =
+        TypeAppliedTypeTree.unapply(tpt).isDefined ||
+          TypeCtorAppliedTypeTree.unapply(tpt).isDefined ||
+          TypeCtorK1AppliedTypeTree.unapply(tpt).isDefined
+
       private def blockGivenCandidates(trees: List[untpd.Tree]): List[untpd.ValDef] = trees.collect {
         // Handle imports with @ImportedCrossTypeImplicit (e.g. Underlying, Result, etc.)
         // Uses makeGivenFromUntyped which works for both Type[X] and Type.CtorN[X] values
@@ -605,9 +621,14 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
             case _ => None
           }
 
+      // [hearth#285] Drops candidates that would reference the definition whose RHS is being transformed.
+      private def withoutSelfReferences(candidates: List[untpd.ValDef]): List[untpd.ValDef] =
+        if selfDefNames.isEmpty then candidates
+        else candidates.filterNot(vd => selfDefNames.exists(name => vd.name.show == s"casted$name"))
+
       private def injectGivens(thunk: => untpd.Tree): untpd.Tree = {
         val oldGivensInjected = givensInjected
-        val newGivensInjected = givenCandidates.filterNot(givensInjected)
+        val newGivensInjected = withoutSelfReferences(givenCandidates.filterNot(givensInjected))
         val newGivensInjectedWithSuppression = newGivensInjected.flatMap { valdef =>
           /* Returns code:
            *   new_given
@@ -903,6 +924,19 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
         case Apply(Select(Ident(expr), splice), List(thunk)) if expr.show == "Expr" && splice.show == "splice" =>
           replaceExprSplice(tree, thunk)
 
+        /* [hearth#285] An implicit val/given whose declared type is Type[A]/Type.CtorN[HKT]/Type.CtorK1[HKT] is
+         * itself a given candidate (see blockGivenCandidates). While transforming ITS OWN definition (in
+         * particular its RHS, e.g. `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]`), that
+         * candidate must not be injected — the generated given would summon the value being initialized.
+         */
+        case vd: untpd.ValDef if vd.isImplicit && producesSelfGivenCandidate(vd.tpt) =>
+          val oldSelfDefNames = selfDefNames
+          try {
+            selfDefNames = oldSelfDefNames + vd.name.show
+            super.transform(vd)
+          } finally
+            selfDefNames = oldSelfDefNames
+
         /* Looking for blocks with imports that contain Underlying, or implicit val/def/given returning Type[A].
          * For each such import we inject:
          *   given castedUnderlying: scala.quoted.Type[Underlying] =
@@ -911,11 +945,25 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          *   given casted$name: scala.quoted.Type[A] = Type[A].asInstanceOf[scala.quoted.Type[A]]
          */
         case block: Block =>
-          val newGivenCandidates = blockGivenCandidates(block.stats)
           val oldGivenCandidates = givenCandidates
           try {
-            givenCandidates = oldGivenCandidates ++ newGivenCandidates
-            super.transform(block)
+            // Imports and (implicit) defs can legally be forward-referenced from earlier statements in a block,
+            // so their candidates are visible to every expansion in the block.
+            givenCandidates = oldGivenCandidates ++ blockGivenCandidates(
+              block.stats.filterNot(_.isInstanceOf[untpd.ValDef])
+            )
+            // [hearth#285] Candidates from implicit vals become visible only AFTER their defining statement —
+            // injecting them into earlier expansions would generate an illegal forward reference to the val.
+            val newStats = block.stats.map { stat =>
+              val transformed = transform(stat)
+              stat match {
+                case vd: untpd.ValDef => givenCandidates = givenCandidates ++ blockGivenCandidates(vd :: Nil)
+                case _                => ()
+              }
+              transformed
+            }
+            val newExpr = transform(block.expr)
+            cpy.Block(block)(newStats, newExpr)
           } finally
             givenCandidates = oldGivenCandidates
 
@@ -960,13 +1008,24 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
           // }
           // when found, handle new cases in CtxBoundsTypeTree.
 
+          // [hearth#285] A parameterless implicit def returning Type[A]/Type.CtorN[HKT]/Type.CtorK1[HKT] is itself
+          // a given candidate — exclude it while transforming its own body (calling it there would recurse forever).
+          val selfName =
+            if dd.isImplicit && paramss.flatten.isEmpty && producesSelfGivenCandidate(returnTpe)
+            then Some(methodName.show)
+            else None
+
           val oldGivenCandidates = givenCandidates
+          val oldSelfDefNames = selfDefNames
           try {
             givenCandidates = oldGivenCandidates ++ newGivenCandidates
+            selfDefNames = oldSelfDefNames ++ selfName
             // untpd.DefDef(methodName, paramss, returnTpe, transform(body)).withMods(dd.mods)
             super.transform(dd)
-          } finally
+          } finally {
             givenCandidates = oldGivenCandidates
+            selfDefNames = oldSelfDefNames
+          }
 
         case t =>
           super.transform(t)
