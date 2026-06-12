@@ -172,5 +172,57 @@ final class ClassesScala3Spec extends MacroSuite {
       def code(input: examples.unions.ListIntOrSeqString) = testEnumMatchOnAndParMatchOn(input)
       code(List("a")) <==> "<no enum>"
     }
+
+    test(
+      "Enum[A].{matchOn and parMatchOn} should match on the same-erasure union (List[Int] | List[String]) when TypeTests are provided at the call site"
+    ) {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+      import examples.unions.typetests.given
+
+      def code(input: examples.unions.ListIntOrListString) = testEnumMatchOnAndParMatchOn(input)
+      code(List(1, 2, 3)) <==>
+        "sequential: subtype name: scala.collection.immutable.List[scala.Int], expr: scala.collection.immutable.List[scala.Int], parallel: subtype name: scala.collection.immutable.List[scala.Int], expr: scala.collection.immutable.List[scala.Int]"
+      code(List("a", "b")) <==>
+        "sequential: subtype name: scala.collection.immutable.List[java.lang.String], expr: scala.collection.immutable.List[java.lang.String], parallel: subtype name: scala.collection.immutable.List[java.lang.String], expr: scala.collection.immutable.List[java.lang.String]"
+      // Empty lists are runtime-ambiguous; the TypeTest givens deterministically claim them for List[Int]
+      code(Nil) <==>
+        "sequential: subtype name: scala.collection.immutable.List[scala.Int], expr: scala.collection.immutable.List[scala.Int], parallel: subtype name: scala.collection.immutable.List[scala.Int], expr: scala.collection.immutable.List[scala.Int]"
+    }
+
+    test(
+      "Enum[A].{matchOn and parMatchOn} should match on the mixed union (Color.Red.type | List[Int] | List[String]) when TypeTests are provided at the call site"
+    ) {
+      import ClassesFixtures.testEnumMatchOnAndParMatchOn
+      import examples.unions.typetests.given
+
+      def code(input: examples.unions.RedOrListIntOrListString) = testEnumMatchOnAndParMatchOn(input)
+      code(examples.Color.Red) <==>
+        "sequential: subtype name: hearth.examples.Color.Red.type, expr: hearth.examples.Color.Red.type, parallel: subtype name: hearth.examples.Color.Red.type, expr: hearth.examples.Color.Red.type"
+      code(List(1)) <==>
+        "sequential: subtype name: scala.collection.immutable.List[scala.Int], expr: scala.collection.immutable.List[scala.Int], parallel: subtype name: scala.collection.immutable.List[scala.Int], expr: scala.collection.immutable.List[scala.Int]"
+      code(List("a")) <==>
+        "sequential: subtype name: scala.collection.immutable.List[java.lang.String], expr: scala.collection.immutable.List[java.lang.String], parallel: subtype name: scala.collection.immutable.List[java.lang.String], expr: scala.collection.immutable.List[java.lang.String]"
+    }
+
+    test(
+      "Enum.parse should name the missing TypeTest instances for the same-erasure union (List[Int] | List[String]) without givens"
+    ) {
+      import ClassesFixtures.testEnumParseDiagnostic
+
+      testEnumParseDiagnostic[examples.unions.ListIntOrListString] <==>
+        "scala.collection.immutable.List[scala.Int] | scala.collection.immutable.List[scala.Predef.String] is sealed/enumeration/union but has no direct children: " +
+        "union member scala.collection.immutable.List[scala.Int] is not runtime-distinguishable; provide an implicit scala.reflect.TypeTest[scala.collection.immutable.List[scala.Int] | scala.collection.immutable.List[scala.Predef.String], scala.collection.immutable.List[scala.Int]], " +
+        "union member scala.collection.immutable.List[java.lang.String] is not runtime-distinguishable; provide an implicit scala.reflect.TypeTest[scala.collection.immutable.List[scala.Int] | scala.collection.immutable.List[scala.Predef.String], scala.collection.immutable.List[java.lang.String]]"
+    }
+
+    test(
+      "Enum.parse should accept the same-erasure union (List[Int] | List[String]) with TypeTests provided at the call site"
+    ) {
+      import ClassesFixtures.testEnumParseDiagnostic
+      import examples.unions.typetests.given
+
+      testEnumParseDiagnostic[examples.unions.ListIntOrListString] <==>
+        "parsed with children: scala.collection.immutable.List[scala.Int], scala.collection.immutable.List[java.lang.String]"
+    }
   }
 }

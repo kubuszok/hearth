@@ -592,14 +592,57 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
             .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
         }
       )
-      else if isUnionType(instanceTpe) then {
-        val nothingType = TypeRepr.of[Nothing]
-
-        // Flatten nested OrType tree
-        def flatten(tpe: TypeRepr): List[TypeRepr] = tpe.dealias match {
-          case OrType(left, right) => flatten(left) ++ flatten(right)
-          case other               => List(other)
+      else if isUnionType(instanceTpe) then unionMemberDispatch(instanceTpe).flatMap { dispatch =>
+        // Members that cannot be soundly discriminated by a runtime class test are acceptable only when
+        // the user provides an implicit scala.reflect.TypeTest[Union, Member] (a total runtime
+        // discriminator); otherwise the whole union is refused (see unionRefusalReason for diagnostics).
+        val allMembersDiscriminable = dispatch.forall {
+          case (member, UnionMemberDispatch.ByTypeTest) => userProvidedUnionTypeTestExists(instanceTpe, member)
+          case _                                        => true
         }
+        if allMembersDiscriminable then Some(ListMap.from(dispatch.map { case (tpe, _) =>
+          UntypedType.plainPrint(tpe) -> tpe
+        }))
+        else None
+      }
+      else None
+
+    /** How a generated pattern match would dispatch on a particular union member. */
+    sealed private trait UnionMemberDispatch extends Product with Serializable
+    private object UnionMemberDispatch {
+
+      /** Stable singletons (literal types, modules, Scala 3 enum case vals) - matched by value/identity. */
+      case object ByValue extends UnionMemberDispatch
+
+      /** Members whose runtime class is determinable and disjoint from every other member's - matched with a
+        * `case x: Member` class test.
+        */
+      final case class ByClassTest(runtimeClass: java.lang.Class[?]) extends UnionMemberDispatch
+
+      /** Members whose runtime class is undeterminable (abstract types, type params) or related to another member's
+        * (same/related erasure, e.g. `List[Int]` vs `List[String]`) - a class test would be unsound, so they require a
+        * user-provided `scala.reflect.TypeTest[Union, Member]` extractor.
+        */
+      case object ByTypeTest extends UnionMemberDispatch
+    }
+
+    /** Classifies the members of a union type by how a generated pattern match has to dispatch on them.
+      *
+      * Returns `None` when the type is not a union we could ever decompose: not an `OrType` at all, fewer than 2
+      * distinct members after dropping `Nothing` and duplicates, or members with static subtype relationships between
+      * them (where "which branch should win" has no sound answer).
+      */
+    private def unionMemberDispatch(instanceTpe: UntypedType): Option[List[(UntypedType, UnionMemberDispatch)]] = {
+      val nothingType = TypeRepr.of[Nothing]
+
+      // Flatten nested OrType tree
+      def flatten(tpe: TypeRepr): List[TypeRepr] = tpe.dealias match {
+        case OrType(left, right) => flatten(left) ++ flatten(right)
+        case other               => List(other)
+      }
+
+      if !isUnionType(instanceTpe) then None
+      else {
         val allMembers = flatten(instanceTpe.dealias)
 
         // Filter Nothing, deduplicate
@@ -635,8 +678,6 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
                 isModuleRef || isEnumCaseVal
             }
 
-            val classMembers = members.filterNot(isSingletonMember)
-
             // Union values are boxed at runtime, so primitives have to be normalized to their boxed
             // representations (e.g. Int and java.lang.Integer are NOT disjoint at runtime).
             val boxedClasses = Map[java.lang.Class[?], java.lang.Class[?]](
@@ -652,41 +693,89 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
             )
 
             // Compute the runtime class used by the `case x: Member` class test. Members whose runtime
-            // class cannot be determined (abstract types, type params, refinements) are refused
-            // conservatively - we cannot prove that the class tests dispatch soundly.
+            // class cannot be determined (abstract types, type params, refinements) cannot be proven
+            // to dispatch soundly with a class test, so they require a TypeTest.
             def runtimeClass(tpe: TypeRepr): Option[java.lang.Class[?]] = {
               // Opaque types hide their underlying representation, but `opaqueUnderlyingType` can resolve
               // it from outside the defining scope - the class test dispatches on the underlying class
-              // (e.g. `OpaqueId(= Long) | String` is accepted, while `OpaqueId | Long` is refused).
+              // (e.g. `OpaqueId(= Long) | String` is accepted, while `OpaqueId | Long` requires TypeTests).
               val classTestedTpe = opaqueUnderlyingType(tpe).getOrElse(tpe)
               toClass(classTestedTpe.widen.dealias).map(clazz => boxedClasses.getOrElse(clazz, clazz))
             }
 
-            val classes = classMembers.map(runtimeClass)
-            // If any class-tested member has an unknown runtime class, be conservative
-            if classes.exists(_.isEmpty) then None
-            else {
-              val knownClasses = classes.flatten
-              // Reject RELATED runtime classes, not just equal ones: `case x: List[Int]` would also
-              // catch a `Seq[String]` value that happens to be a List, dispatching to the wrong branch.
-              val hasRelatedRuntimeClasses = knownClasses.indices.exists { i =>
-                knownClasses.indices.exists { j =>
-                  i != j && {
-                    val a = knownClasses(i)
-                    val b = knownClasses(j)
-                    a.isAssignableFrom(b) || b.isAssignableFrom(a)
-                  }
-                }
-              }
-              if hasRelatedRuntimeClasses then None
-              else
-                Some(ListMap.from(members.map { tpe =>
-                  UntypedType.plainPrint(tpe) -> tpe
-                }))
+            val singletonFlags = members.map(isSingletonMember)
+            val classes = members.zip(singletonFlags).map { case (tpe, isSingleton) =>
+              if isSingleton then None else runtimeClass(tpe)
             }
+            // A class test is sound only when no OTHER member's runtime class is RELATED to this one:
+            // `case x: List[Int]` would also catch a `Seq[String]` value that happens to be a List,
+            // dispatching to the wrong branch. (Equal classes - e.g. List[Int] vs List[String] - are a
+            // special case of related ones.)
+            def relatedToAnotherMember(i: Int): Boolean = classes(i).exists { a =>
+              classes.indices.exists { j =>
+                j != i && classes(j).exists(b => a.isAssignableFrom(b) || b.isAssignableFrom(a))
+              }
+            }
+
+            Some(members.toList.zipWithIndex.map { case (tpe, i) =>
+              if singletonFlags(i) then tpe -> UnionMemberDispatch.ByValue
+              else
+                classes(i) match {
+                  case Some(clazz) if !relatedToAnotherMember(i) => tpe -> UnionMemberDispatch.ByClassTest(clazz)
+                  case _                                         => tpe -> UnionMemberDispatch.ByTypeTest
+                }
+            })
           }
         }
-      } else None
+      }
+    }
+
+    private lazy val typeTestSymbol = Symbol.requiredClass("scala.reflect.TypeTest")
+
+    /** Whether a USER-PROVIDED `scala.reflect.TypeTest[Union, Member]` can be summoned at the expansion point.
+      *
+      * The compiler synthesizes `TypeTest` instances on its own whenever it considers the underlying class test
+      * checkable (e.g. for `TypeTest[Int | java.lang.Integer, Int]`) - but members are classified as
+      * [[UnionMemberDispatch.ByTypeTest]] precisely because that class test is NOT a sound discriminator at runtime, so
+      * compiler-synthesized instances (inlined anonymous classes, returned as `Block` trees) are ignored; only actual
+      * givens/implicits (resolved as references to a real symbol) count.
+      */
+    private def userProvidedUnionTypeTestExists(unionTpe: UntypedType, member: UntypedType): Boolean = {
+      @scala.annotation.tailrec
+      def isUserProvided(term: Term): Boolean = term match {
+        case Inlined(_, _, inner) => isUserProvided(inner)
+        case Typed(inner, _)      => isUserProvided(inner)
+        case Block(_, _)          => false // compiler-synthesized anonymous TypeTest instance
+        case other                => !other.symbol.isNoSymbol
+      }
+      Implicits.search(typeTestSymbol.typeRef.appliedTo(List(unionTpe.dealias, member))) match {
+        case success: ImplicitSearchSuccess => isUserProvided(success.tree)
+        case _                              => false
+      }
+    }
+
+    override def unionMemberRequiresTypeTest(unionTpe: UntypedType, member: UntypedType): Boolean =
+      unionMemberDispatch(unionTpe).exists(_.exists { case (tpe, dispatch) =>
+        dispatch == UnionMemberDispatch.ByTypeTest && tpe =:= member
+      })
+
+    override def unionRefusalReason(instanceTpe: UntypedType): Option[String] =
+      unionMemberDispatch(instanceTpe).flatMap { dispatch =>
+        val missing = dispatch.collect {
+          case (member, UnionMemberDispatch.ByTypeTest) if !userProvidedUnionTypeTestExists(instanceTpe, member) =>
+            member
+        }
+        if missing.isEmpty then None
+        else
+          Some(
+            missing
+              .map { member =>
+                s"union member ${UntypedType.plainPrint(member)} is not runtime-distinguishable; " +
+                  s"provide an implicit scala.reflect.TypeTest[${UntypedType.plainPrint(instanceTpe)}, ${UntypedType.plainPrint(member)}]"
+              }
+              .mkString(", ")
+          )
+      }
 
     override def typeArguments(untyped: UntypedType): List[UntypedType] =
       untyped.typeArgs

@@ -190,6 +190,20 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         .fold(errors => Expr(s"<failed to construct: ${errors.mkString(", ")}>"), identity)
     }
 
+  /** Surfaces the full [[Enum.parse]] result: the (ANSI-stripped) error message when the type is rejected, or the
+    * direct children when it parses. Used to assert union refusal diagnostics (e.g. which
+    * `scala.reflect.TypeTest[Union, Member]` instances are missing).
+    */
+  def testEnumParseDiagnostic[A: Type]: Expr[String] = Expr(
+    Enum
+      .parse[A]
+      .toEither
+      .fold(
+        error => removeAnsiColors(error),
+        enumm => s"parsed with children: ${enumm.directChildren.keys.mkString(", ")}"
+      )
+  )
+
   /** Regression for commit 68e1781 (splice isolation): parMatchOn handlers whose results are built from nested
     * [[Expr.quote]] calls splicing the matched expression must not leak splice ownership across case boundaries.
     */

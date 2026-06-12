@@ -1251,6 +1251,14 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       EqValue(name, matched.as_??, expr.as_??, matched)
     }
 
+    override def typeTestMatch[A: Type, B: Type](freshName: FreshName): MatchCase[Expr[B]] =
+      // $COVERAGE-OFF$ Scala 3-only API, should never be reached on Scala 2
+      assertionFailed(
+        "MatchCase.typeTestMatch is only supported on Scala 3 (scala.reflect.TypeTest does not exist on Scala 2.13). " +
+          "Guard calls with Type.isUnionType / Type.unionMemberRequiresTypeTest, which are always false on Scala 2."
+      )
+    // $COVERAGE-ON$
+
     override def matchOn[A: Type, B: Type](toMatch: Expr[A])(cases: NonEmptyVector[MatchCase[Expr[B]]]): Expr[B] = {
       val caseTrees = cases.toVector.map {
         case TypeMatch(name, expr, result) =>
