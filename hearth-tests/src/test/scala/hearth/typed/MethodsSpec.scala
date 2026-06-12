@@ -2536,7 +2536,7 @@ final class MethodsSpec extends MacroSuite {
   }
 
   group("methods: annotationsOfType and constructorArguments") {
-    import MethodsFixtures.{testAnnotationsOfType, testAnnotationValueDecoded}
+    import MethodsFixtures.{testAnnotationsOfType, testAnnotationValueDecoded, testFieldNameReproducer}
 
     test("filters type and method annotations by type, decoding constructor args (present and absent cases)") {
       testAnnotationsOfType[examples.methods.NoCompanionClass]("methodWithAnnotation") <==> Data.map(
@@ -2694,6 +2694,23 @@ final class MethodsSpec extends MacroSuite {
       testAnnotationValueDecoded[examples.methods.NoCompanionClass] <==> Data.map(
         "wholeAnnotation" -> Data("1"),
         "firstArgument" -> Data("1")
+      )
+    }
+
+    test(
+      "issue #283 reproducer: @fieldName(\"first_name\") on case class ctor param decodes String/Boolean/Double literals"
+    ) {
+      testFieldNameReproducer[examples.methods.Person] <==> Data.list(
+        Data.map(
+          "name" -> Data("firstName"),
+          "fieldNames" -> Data.list(Data("first_name")),
+          "fieldFlags" -> Data.list()
+        ),
+        Data.map(
+          "name" -> Data("age"),
+          "fieldNames" -> Data.list(Data("age")),
+          "fieldFlags" -> Data.list(Data.list(Data("true"), Data("1.5")))
+        )
       )
     }
   }

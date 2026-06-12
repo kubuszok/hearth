@@ -108,6 +108,18 @@ class WithImplicits {
 // constructor arguments nor case fields, and visibility declared on a var must
 // propagate from the getter/val to the synthesized setter.
 
+// Reproducer for issue #283: a plain (non-case) `final` annotation class with `val` constructor
+// parameters, attached to a case class constructor parameter; literal args must be readable
+// cross-platform (String, Boolean, Double — not just Int).
+
+final class fieldName(val name: String) extends scala.annotation.StaticAnnotation
+final class fieldFlags(val enabled: Boolean, val weight: Double) extends scala.annotation.StaticAnnotation
+
+final case class Person(
+    @fieldName("first_name") firstName: String,
+    @fieldName("age") @fieldFlags(true, 1.5) age: Int
+)
+
 final class WithVarCtorParam(var name: String)
 
 case class CaseClassWithVarCtorParam(var name: String)

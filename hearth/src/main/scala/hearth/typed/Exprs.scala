@@ -2053,5 +2053,38 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
           )
         case _ => None
       }
+
+    /** Extracts the constructor arguments of an annotation expression and decodes each to its runtime value.
+      *
+      * Convenience over [[constructorArguments]] + `semiEval`: each argument is evaluated at macro time, so literal
+      * arguments (e.g. the `"first_name"` in `@fieldName("first_name")`) come back as plain values. Arguments that
+      * cannot be evaluated are returned as `Left` with the evaluation errors, without failing the whole list.
+      *
+      * Returns `None` if the expression is not a constructor invocation. Example:
+      *
+      * {{{
+      * // Read the String argument of the first @fieldName(...) on a constructor parameter:
+      * val name: Option[String] = param.annotationsOfType[fieldName].headOption
+      *   .flatMap(ann => Annotations.decodedConstructorArguments(ann))
+      *   .flatMap(_.headOption.flatMap(_.toOption))
+      *   .collect { case s: String => s }
+      * }}}
+      *
+      * @since 0.4.0
+      */
+    def decodedConstructorArguments(annotation: Expr_??): Option[List[Either[String, Any]]] =
+      decodedConstructorArguments(annotation.value)
+
+    /** Extracts the constructor arguments of an annotation expression and decodes each to its runtime value.
+      *
+      * Variant of the `Expr_??` overload for already-typed annotation expressions, e.g. those returned by
+      * `annotationsOfType`.
+      *
+      * @since 0.4.0
+      */
+    def decodedConstructorArguments[A](annotation: Expr[A]): Option[List[Either[String, Any]]] =
+      constructorArguments(annotation).map(_.map { arg =>
+        (arg.value.semiEval: Either[NonEmptyVector[String], Any]).left.map(_.mkString(", "))
+      })
   }
 }
