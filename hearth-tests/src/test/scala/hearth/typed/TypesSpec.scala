@@ -1757,6 +1757,125 @@ final class TypesSpec extends MacroSuite {
           )
         }
       }
+
+      group("methods: Type.{typeArguments, decompose1, decompose2}, Ctor.sameTypeConstructorAs, expected behavior") {
+        import TypesFixtures.{
+          testTypeArguments,
+          testDecompose1,
+          testDecompose2,
+          testMiniFunctorDerivation,
+          testDecomposeSummonName,
+          testCtorK1FromDiscoveredParts
+        }
+
+        test("typeArguments returns type arguments of applied types and Nil otherwise") {
+          testTypeArguments[List[Int]] <==> Data.map(
+            "Type.typeArguments" -> Data.list(Data("scala.Int"))
+          )
+          testTypeArguments[Map[String, Int]] <==> Data.map(
+            "Type.typeArguments" -> Data.list(Data("java.lang.String"), Data("scala.Int"))
+          )
+          testTypeArguments[Int] <==> Data.map(
+            "Type.typeArguments" -> Data.list()
+          )
+        }
+
+        test("decompose1 on an applied unary type returns a re-applicable Ctor1 and the type argument") {
+          testDecompose1[List[Int]] <==> Data.map(
+            "decomposed" -> Data(true),
+            "arg" -> Data("scala.Int"),
+            "reappliedToString" -> Data("scala.collection.immutable.List[java.lang.String]"),
+            "sameCtorAsList" -> Data(true),
+            "sameCtorAsOption" -> Data(false),
+            "sameCtorAsSelf" -> Data(true)
+          )
+          testDecompose1[Option[String]] <==> Data.map(
+            "decomposed" -> Data(true),
+            "arg" -> Data("java.lang.String"),
+            "reappliedToString" -> Data("scala.Option[java.lang.String]"),
+            "sameCtorAsList" -> Data(false),
+            "sameCtorAsOption" -> Data(true),
+            "sameCtorAsSelf" -> Data(true)
+          )
+        }
+
+        test("decompose1 on a non-applied type or a non-unary applied type returns None") {
+          testDecompose1[Int] <==> Data.map("decomposed" -> Data(false))
+          testDecompose1[String] <==> Data.map("decomposed" -> Data(false))
+          testDecompose1[Map[String, Int]] <==> Data.map("decomposed" -> Data(false))
+        }
+
+        test("decompose2 on an applied binary type returns a re-applicable Ctor2 and the type arguments") {
+          testDecompose2[Map[String, Int]] <==> Data.map(
+            "decomposed" -> Data(true),
+            "arg1" -> Data("java.lang.String"),
+            "arg2" -> Data("scala.Int"),
+            "reappliedToStringInt" -> Data("scala.collection.immutable.Map[java.lang.String, scala.Int]"),
+            "sameCtorAsMap" -> Data(true),
+            "sameCtorAsEither" -> Data(false)
+          )
+          testDecompose2[Either[Int, String]] <==> Data.map(
+            "decomposed" -> Data(true),
+            "arg1" -> Data("scala.Int"),
+            "arg2" -> Data("java.lang.String"),
+            "reappliedToStringInt" -> Data("scala.util.Either[java.lang.String, scala.Int]"),
+            "sameCtorAsMap" -> Data(false),
+            "sameCtorAsEither" -> Data(true)
+          )
+          testDecompose2[List[Int]] <==> Data.map("decomposed" -> Data(false))
+          testDecompose2[Int] <==> Data.map("decomposed" -> Data(false))
+        }
+
+        test("decompose1/decompose2 dealias before decomposing") {
+          @scala.annotation.unused
+          type StringMap[V] = Map[String, V]
+          testDecompose1[StringMap[Int]] <==> Data.map("decomposed" -> Data(false))
+          testDecompose2[StringMap[Int]] <==> Data.map(
+            "decomposed" -> Data(true),
+            "arg1" -> Data("java.lang.String"),
+            "arg2" -> Data("scala.Int"),
+            "reappliedToStringInt" -> Data("scala.collection.immutable.Map[java.lang.String, scala.Int]"),
+            "sameCtorAsMap" -> Data(true),
+            "sameCtorAsEither" -> Data(false)
+          )
+        }
+
+        test("mini-Functor derivation: discover each field's constructor, compare, re-apply, summon type class") {
+          testMiniFunctorDerivation[examples.kinds.Box[Int]] <==> Data.map(
+            "items" -> Data.map(
+              "arg" -> Data("scala.Int"),
+              "reappliedToString" -> Data("scala.collection.immutable.List[java.lang.String]"),
+              "isList" -> Data(true),
+              "isOption" -> Data(false),
+              "myTCInstanceFound" -> Data(true)
+            ),
+            "maybe" -> Data.map(
+              "arg" -> Data("scala.Int"),
+              "reappliedToString" -> Data("scala.Option[java.lang.String]"),
+              "isList" -> Data(false),
+              "isOption" -> Data(true),
+              "myTCInstanceFound" -> Data(true)
+            )
+          )
+        }
+
+        test("summoning a type-class instance for a discovered constructor finds the RIGHT instance") {
+          testDecomposeSummonName[List[Int]] <==> "MyTC[List]"
+          testDecomposeSummonName[Option[String]] <==> "MyTC[Option]"
+          testDecomposeSummonName[Vector[Int]] <==> "<no instance found>"
+          testDecomposeSummonName[Int] <==> "<not an applied type>"
+        }
+
+        test(
+          "CtorK1 applied to a discovered Ctor1, where the CtorK1 itself was discovered from an untyped constructor"
+        ) {
+          testCtorK1FromDiscoveredParts[List[Int]] <==> Data.map(
+            "appliedSameCtorAsAlg" -> Data(true),
+            "memberCtorMatches" -> Data(true)
+          )
+          testCtorK1FromDiscoveredParts[Int] <==> Data.map("error" -> Data("not an applied type"))
+        }
+      }
     }
 
     group("type TypeCodec") {

@@ -224,8 +224,34 @@ trait UntypedTypes { this: MacroCommons =>
         .flatMap(NonEmptyMap.fromListMap(_))
     }
 
+    /** Strips type aliases, e.g. turns `type StringList = List[String]` into `List[String]`.
+      *
+      * @since 0.4.0
+      */
+    def dealias(untyped: UntypedType): UntypedType
+
+    /** Extracts the type constructor of an applied type (after dealiasing), e.g. `List` for `List[Int]`.
+      *
+      * For non-applied types returns the (dealiased) type itself. The result can be re-applied with [[applyTypeArgs]],
+      * or wrapped back into the typed layer with `Type.CtorN.fromUntyped`.
+      *
+      * @since 0.4.0
+      */
+    def typeConstructor(untyped: UntypedType): UntypedType
+
     def typeArguments(untyped: UntypedType): List[UntypedType]
     def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType
+
+    /** Checks whether 2 types are built from the same type constructor (compared by type symbol, after dealiasing),
+      * ignoring their type arguments, e.g. `List[Int]` and `List[String]` agree, but `List[Int]` and `Vector[Int]` do
+      * not.
+      *
+      * Works for both applied types (`List[Int]`) and bare constructors (`List` obtained from [[typeConstructor]] or
+      * `Type.CtorN.asUntyped`).
+      *
+      * @since 0.4.0
+      */
+    def sameTypeConstructorAs(a: UntypedType, b: UntypedType): Boolean
 
     def annotations(untyped: UntypedType): List[UntypedExpr]
     def annotationTypes(untyped: UntypedType): List[UntypedType]
@@ -307,7 +333,9 @@ trait UntypedTypes { this: MacroCommons =>
 
     def defaultValue(param: UntypedParameter): Option[UntypedMethod] = UntypedMethod.defaultValue(untyped)(param)
 
+    def typeArguments: List[UntypedType] = UntypedType.typeArguments(untyped)
     def applyTypeArgs(args: List[UntypedType]): UntypedType = UntypedType.applyTypeArgs(untyped, args)
+    def sameTypeConstructorAs(other: UntypedType): Boolean = UntypedType.sameTypeConstructorAs(untyped, other)
 
     def annotations: List[UntypedExpr] = UntypedType.annotations(untyped)
     def annotationTypes: List[UntypedType] = UntypedType.annotationTypes(untyped)

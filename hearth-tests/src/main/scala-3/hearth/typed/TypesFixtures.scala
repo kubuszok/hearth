@@ -136,4 +136,28 @@ object TypesFixtures {
 
   inline def testTupleXXLCodec: Data = ${ testTupleXXLCodecImpl }
   private def testTupleXXLCodecImpl(using q: Quotes): Expr[Data] = new TypesFixtures(q).testTupleXXLCodec
+
+  inline def testTypeArguments[A]: Data = ${ testTypeArgumentsImpl[A] }
+  private def testTypeArgumentsImpl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testTypeArguments[A]
+
+  inline def testDecompose1[A]: Data = ${ testDecompose1Impl[A] }
+  private def testDecompose1Impl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testDecompose1[A]
+
+  inline def testDecompose2[A]: Data = ${ testDecompose2Impl[A] }
+  private def testDecompose2Impl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testDecompose2[A]
+
+  inline def testMiniFunctorDerivation[A]: Data = ${ testMiniFunctorDerivationImpl[A] }
+  private def testMiniFunctorDerivationImpl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testMiniFunctorDerivation[A]
+
+  inline def testDecomposeSummonName[A]: String = ${ testDecomposeSummonNameImpl[A] }
+  private def testDecomposeSummonNameImpl[A: Type](using q: Quotes): Expr[String] =
+    new TypesFixtures(q).testDecomposeSummonName[A]
+
+  inline def testCtorK1FromDiscoveredParts[A]: Data = ${ testCtorK1FromDiscoveredPartsImpl[A] }
+  private def testCtorK1FromDiscoveredPartsImpl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testCtorK1FromDiscoveredParts[A]
 }
