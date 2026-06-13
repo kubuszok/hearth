@@ -70,6 +70,15 @@ abstract class ClassWithMixins extends MixinA {
 trait TraitWithOverloads {
   def overloaded(a: Int): String
   def overloaded(a: String): Int
+  def overloaded(a: Int, b: Int): Int
+}
+
+trait TraitWithGenericMethod {
+  def identity[T](t: T): T
+}
+
+trait TraitWithBoundedGenericMethod {
+  def firstOf[T <: AnyRef](xs: List[T]): T
 }
 
 @scala.annotation.nowarn

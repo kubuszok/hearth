@@ -877,34 +877,49 @@ trait Classes { this: MacroCommons =>
           .map(m => (m, parentType))
       }
 
-      val grouped: Map[String, List[(Method, ??)]] = allMethods.groupBy(_._1.name)
+      // Group by name AND value-parameter signature so that overloaded methods (same name, different parameter
+      // lists) stay distinct ClassifiedMethods, while genuine cross-parent overrides/diamonds (same name AND
+      // signature declared in multiple parents) are still collapsed into a single group.
+      val grouped: Map[(String, List[List[String]]), List[(Method, ??)]] =
+        allMethods.groupBy { case (m, _) => (m.name, methodSignatureKey(m)) }
 
-      grouped.toList.sortBy(_._1).flatMap { case (_, methodsWithParent) =>
-        val representative = methodsWithParent.head
-        val method = representative._1
-        val declaredIn = representative._2
+      grouped.toList
+        .sortBy { case ((name, sig), _) =>
+          (name, sig.map(_.mkString(",")).mkString(";"))
+        }
+        .flatMap { case (_, methodsWithParent) =>
+          val representative = methodsWithParent.head
+          val method = representative._1
+          val declaredIn = representative._2
 
-        if (method.isFinal) {
-          List(ClassifiedMethod(method, MethodClassification.CannotOverride, declaredIn))
-        } else if (method.isAbstract) {
-          val concreteImpls = methodsWithParent.filterNot(_._1.isAbstract)
-          if (concreteImpls.isEmpty) {
-            List(ClassifiedMethod(method, MethodClassification.MustOverride, declaredIn))
-          } else if (hasDistinctDeclaredImpls(concreteImpls)) {
-            List(ClassifiedMethod(method, MethodClassification.DiamondConflict, declaredIn))
+          if (method.isFinal) {
+            List(ClassifiedMethod(method, MethodClassification.CannotOverride, declaredIn))
+          } else if (method.isAbstract) {
+            val concreteImpls = methodsWithParent.filterNot(_._1.isAbstract)
+            if (concreteImpls.isEmpty) {
+              List(ClassifiedMethod(method, MethodClassification.MustOverride, declaredIn))
+            } else if (hasDistinctDeclaredImpls(concreteImpls)) {
+              List(ClassifiedMethod(method, MethodClassification.DiamondConflict, declaredIn))
+            } else {
+              List(ClassifiedMethod(concreteImpls.head._1, MethodClassification.MayOverride, concreteImpls.head._2))
+            }
           } else {
-            List(ClassifiedMethod(concreteImpls.head._1, MethodClassification.MayOverride, concreteImpls.head._2))
-          }
-        } else {
-          val concreteImpls = methodsWithParent.filterNot(_._1.isAbstract)
-          if (concreteImpls.size > 1 && hasDistinctDeclaredImpls(concreteImpls)) {
-            List(ClassifiedMethod(method, MethodClassification.DiamondConflict, declaredIn))
-          } else {
-            List(ClassifiedMethod(method, MethodClassification.MayOverride, declaredIn))
+            val concreteImpls = methodsWithParent.filterNot(_._1.isAbstract)
+            if (concreteImpls.size > 1 && hasDistinctDeclaredImpls(concreteImpls)) {
+              List(ClassifiedMethod(method, MethodClassification.DiamondConflict, declaredIn))
+            } else {
+              List(ClassifiedMethod(method, MethodClassification.MayOverride, declaredIn))
+            }
           }
         }
-      }
     }
+
+    /** A structural signature key for a method's value parameters: one inner list per parameter clause, each holding
+      * the printed parameter types. Distinguishes overloads (different arity / parameter types) while remaining equal
+      * for the same method seen through multiple parents (overrides / diamonds).
+      */
+    private def methodSignatureKey(m: Method): List[List[String]] =
+      m.totalParameters.map(_.toList.map { case (_, param) => param.tpe.plainPrint })
 
     private def hasDistinctDeclaredImpls(impls: List[(Method, ??)]): Boolean = {
       val declared = impls.filter(_._1.isDeclared)

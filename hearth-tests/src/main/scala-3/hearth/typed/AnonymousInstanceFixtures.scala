@@ -88,4 +88,12 @@ object AnonymousInstanceFixtures {
   }
   private def testAnonymousInstanceOverrideReferencingQuoteParamImpl(using q: Quotes): Expr[String => String] =
     new AnonymousInstanceFixtures(q).testAnonymousInstanceOverrideReferencingQuoteParam
+
+  inline def testAnonymousInstanceConstructOverloads: String = ${ testAnonymousInstanceConstructOverloadsImpl }
+  private def testAnonymousInstanceConstructOverloadsImpl(using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructOverloads
+
+  inline def testAnonymousInstanceConstructGeneric: String = ${ testAnonymousInstanceConstructGenericImpl }
+  private def testAnonymousInstanceConstructGenericImpl(using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructGeneric
 }
