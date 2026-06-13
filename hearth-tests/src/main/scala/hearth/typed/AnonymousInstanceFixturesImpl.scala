@@ -319,6 +319,80 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** Builds an anonymous instance of [[examples.anonymous_instances.TraitWithOverloads]] where each abstract overload
+    * gets a DISTINCT override body, then invokes all three overloads at runtime and joins their results. Proves that
+    * overload resolution picks the correct override per arity / parameter-type (not a single collapsed-by-name method).
+    */
+  def testAnonymousInstanceConstructOverloads: Expr[String] = {
+    implicit val IntType: Type[Int] = intTypeAI
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val OverloadsType: Type[examples.anonymous_instances.TraitWithOverloads] =
+      Type.of[examples.anonymous_instances.TraitWithOverloads]
+
+    AnonymousInstance.parse[examples.anonymous_instances.TraitWithOverloads] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? = {
+              import ctx.returnType.Underlying as R
+              // Distinguish the three `overloaded` overloads by their (arity, parameter types) signature.
+              val paramTypes = cm.method.totalParameters.flatten.toList.map { case (_, p) => p.tpe.plainPrint }
+              val tag =
+                if (paramTypes == List("scala.Int")) "int->string"
+                else if (paramTypes == List("java.lang.String")) 1
+                else if (paramTypes == List("scala.Int", "scala.Int")) 2
+                else "?"
+              if (Type[R] <:< Type[String]) Expr(tag.toString).as_??
+              else Expr(tag.asInstanceOf[Int]).as_??
+            }
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote {
+              val inst = Expr.splice(constructed)
+              inst.overloaded(0) + "|" + inst.overloaded("x").toString + "|" + inst.overloaded(0, 0).toString
+            }
+          case Left(errors) =>
+            Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(s"incompatible: $reason")
+    }
+  }
+
+  /** Builds an anonymous instance of [[examples.anonymous_instances.TraitWithGenericMethod]] whose generic method
+    * `identity[T](t: T): T` is overridden with the natural identity body (return the single parameter whose type equals
+    * the return type), then invokes it at two distinct instantiations to prove the polymorphic override works.
+    */
+  def testAnonymousInstanceConstructGeneric: Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val GenericType: Type[examples.anonymous_instances.TraitWithGenericMethod] =
+      Type.of[examples.anonymous_instances.TraitWithGenericMethod]
+
+    AnonymousInstance.parse[examples.anonymous_instances.TraitWithGenericMethod] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? =
+              // Identity: exactly one parameter whose type is the return type — return it unchanged.
+              ctx.parameters.head
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote {
+              val inst = Expr.splice(constructed)
+              inst.identity("hello") + "|" + inst.identity(42).toString
+            }
+          case Left(errors) =>
+            Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(s"incompatible: $reason")
+    }
+  }
+
   private def constructWithDefaults[A: Type](ai: AnonymousInstance[A])(implicit
       IntType: Type[Int],
       StringType: Type[String],

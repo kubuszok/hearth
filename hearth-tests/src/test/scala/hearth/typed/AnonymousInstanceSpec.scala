@@ -173,6 +173,42 @@ final class AnonymousInstanceSpec extends MacroSuite {
             "diamondConflicts" -> Data("")
           )
         }
+
+        test("trait with overloaded abstract methods — each overload is MustOverride") {
+          testAnonymousInstanceParse[examples.anonymous_instances.TraitWithOverloads] <==> Data.map(
+            "result" -> Data("compatible"),
+            "classParent" -> Data("<none>"),
+            "traitParents" -> Data("hearth.examples.anonymous_instances.TraitWithOverloads"),
+            "mustOverride" -> Data("overloaded, overloaded, overloaded"),
+            "mayOverride" -> Data(""),
+            "cannotOverride" -> Data(""),
+            "diamondConflicts" -> Data("")
+          )
+        }
+
+        test("trait with generic abstract method — MustOverride") {
+          testAnonymousInstanceParse[examples.anonymous_instances.TraitWithGenericMethod] <==> Data.map(
+            "result" -> Data("compatible"),
+            "classParent" -> Data("<none>"),
+            "traitParents" -> Data("hearth.examples.anonymous_instances.TraitWithGenericMethod"),
+            "mustOverride" -> Data("identity"),
+            "mayOverride" -> Data(""),
+            "cannotOverride" -> Data(""),
+            "diamondConflicts" -> Data("")
+          )
+        }
+
+        test("trait with bounded generic abstract method — MustOverride") {
+          testAnonymousInstanceParse[examples.anonymous_instances.TraitWithBoundedGenericMethod] <==> Data.map(
+            "result" -> Data("compatible"),
+            "classParent" -> Data("<none>"),
+            "traitParents" -> Data("hearth.examples.anonymous_instances.TraitWithBoundedGenericMethod"),
+            "mustOverride" -> Data("firstOf"),
+            "mayOverride" -> Data(""),
+            "cannotOverride" -> Data(""),
+            "diamondConflicts" -> Data("")
+          )
+        }
       }
 
       group("parse: multiple parents") {
@@ -276,6 +312,20 @@ final class AnonymousInstanceSpec extends MacroSuite {
 
         test("trait with vararg abstract method") {
           testAnonymousInstanceConstruct[examples.anonymous_instances.TraitWithVarargMethod] <==> "success"
+        }
+
+        test("trait with overloaded abstract methods (default override bodies)") {
+          testAnonymousInstanceConstruct[examples.anonymous_instances.TraitWithOverloads] <==> "success"
+        }
+
+        test("each overloaded override is generated distinctly and resolved at runtime") {
+          // overloaded(Int): String -> "int->string"; overloaded(String): Int -> 1; overloaded(Int, Int): Int -> 2
+          AnonymousInstanceFixtures.testAnonymousInstanceConstructOverloads <==> "int->string|1|2"
+        }
+
+        test("generic override body is polymorphic and applied at distinct instantiations") {
+          // identity[T](t) returns its argument, exercised at T = String and T = Int
+          AnonymousInstanceFixtures.testAnonymousInstanceConstructGeneric <==> "hello|42"
         }
 
         test("class parent with trait mixin") {
