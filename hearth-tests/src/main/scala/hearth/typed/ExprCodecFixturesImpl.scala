@@ -24,6 +24,10 @@ trait ExprCodecFixturesImpl { this: MacroCommons =>
     Type.of[hearth.examples.expr_codecs.Sentinel.type]
   private val notQuotableTypeEC: Type[hearth.examples.expr_codecs.NotQuotable] =
     Type.of[hearth.examples.expr_codecs.NotQuotable]
+  private val holderOfNotQuotableTypeEC: Type[hearth.examples.expr_codecs.HolderOfNotQuotable] =
+    Type.of[hearth.examples.expr_codecs.HolderOfNotQuotable]
+  private val twoHostsTypeEC: Type[hearth.examples.expr_codecs.TwoHosts] =
+    Type.of[hearth.examples.expr_codecs.TwoHosts]
   private val seqIntTypeEC: Type[Seq[Int]] = Type.of[Seq[Int]]
   private val listIntTypeEC: Type[List[Int]] = Type.of[List[Int]]
   private val optionIntTypeEC: Type[Option[Int]] = Type.of[Option[Int]]
@@ -146,6 +150,57 @@ trait ExprCodecFixturesImpl { this: MacroCommons =>
         "List[Int]" -> listOfInt,
         "Option[Int]" -> optionOfInt,
         "Map[String, Int]" -> mapOfStringInt
+      )
+    )
+  }
+
+  // -- ExprCodec.derived negative path --
+
+  // Derives a codec for a type whose nested field type (NotQuotable) has no codec and cannot be derived, then exercises
+  // toExpr. The derived toExpr cannot quote the field, so it must abort with a clean, positioned compiler diagnostic
+  // (asserted via compileErrors(...).check(...)) rather than an opaque uncaught AssertionError.
+  def testDeriveToExprFailure: Expr[Data] = {
+    implicit val holderType: Type[hearth.examples.expr_codecs.HolderOfNotQuotable] = holderOfNotQuotableTypeEC
+    val codec = ExprCodec.derived[hearth.examples.expr_codecs.HolderOfNotQuotable]
+    val expr = codec.toExpr(
+      new hearth.examples.expr_codecs.HolderOfNotQuotable("x", new hearth.examples.expr_codecs.NotQuotable(1))
+    )
+    Expr(Data.map("reLifted" -> Data(expr.plainPrint)))
+  }
+
+  // Asymmetry of the derived codec on an otherwise-unquotable type: toExpr cannot QUOTE a `new NotQuotable(...)`
+  // (semiQuoteInternal has no case for a plain class), but fromExpr delegates to Expr.semiEval, which CAN evaluate a
+  // generic constructor call. So fromExpr succeeds here even though toExpr aborts. Pin that decoded `.value` to keep
+  // the assertion deterministic (the default toString carries a hashcode).
+  def testDeriveFromExprFailure(expr: Expr[hearth.examples.expr_codecs.NotQuotable]): Expr[Data] = {
+    implicit val notQuotableType: Type[hearth.examples.expr_codecs.NotQuotable] = notQuotableTypeEC
+    val codec = ExprCodec.derived[hearth.examples.expr_codecs.NotQuotable]
+    val decoded = codec.fromExpr(expr)
+    Expr(Data.map("decodedValue" -> Data(decoded.fold("<none>")(_.value.toString))))
+  }
+
+  // -- override-map =:= cache behavior --
+
+  // A case class with TWO fields of the SAME type (String), quoted through a single QuoteOverride keyed by that type.
+  // The override map looks up by =:=, so BOTH occurrences must resolve to the one override (uppercasing). This proves
+  // dedup-by-=:= (one discovered override reused for every field of that type) does not drop one occurrence.
+  def testOverrideMapReuseForRepeatedFieldType: Expr[Data] = {
+    implicit val stringType: Type[String] = stringTypeEC
+    implicit val twoHostsType: Type[hearth.examples.expr_codecs.TwoHosts] = twoHostsTypeEC
+    val noOverride: Existential[QuoteOverride] = {
+      implicit val anyType: Type[Any] = anyTypeEC
+      Existential[QuoteOverride, Any](QuoteOverride.none[Any])
+    }
+    val overrides: UntypedType => Existential[QuoteOverride] = { tpe =>
+      if (tpe =:= UntypedType.fromTyped[String])
+        Existential[QuoteOverride, String](QuoteOverride[String](value => Right(Expr(value.toUpperCase))))
+      else noOverride
+    }
+    Expr(
+      Data.map(
+        "bothFieldsOverridden" -> renderSemiQuote(
+          Expr.semiQuote(hearth.examples.expr_codecs.TwoHosts("alpha", "beta"), overrides)
+        )
       )
     )
   }
