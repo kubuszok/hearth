@@ -29,6 +29,28 @@ trait TypesFixturesImpl { this: MacroCommons =>
     )
   )
 
+  /** Exercises the type-hierarchy accessors `Type.isTrait`, `Type.parents` and `Type.baseClasses`. The exact parent
+    * lists differ across platforms/versions (Object/Any/Serializable/Product orderings), so we assert stable structural
+    * facts: whether `Parent` is among the direct parents / base classes, and that the self type and `scala.Any` are
+    * always among the base classes.
+    */
+  def testTypeHierarchy[A: Type, Parent: Type]: Expr[Data] = {
+    val parents = Type.parents[A]
+    val baseClasses = Type.baseClasses[A]
+    def containsType(types: List[??], needle: ??): Boolean = types.exists(_.Underlying =:= needle.Underlying)
+    Expr(
+      Data.map(
+        "isTrait" -> Data(Type.isTrait[A]),
+        "parentContainsParent" -> Data(containsType(parents, Type[Parent].as_??)),
+        "baseClassesContainsParent" -> Data(containsType(baseClasses, Type[Parent].as_??)),
+        "baseClassesContainsSelf" -> Data(containsType(baseClasses, Type[A].as_??)),
+        "baseClassesContainsAny" -> Data(containsType(baseClasses, Type.of[Any].as_??)),
+        // The full linearization (baseClasses) is at least as long as the direct parents.
+        "baseClassesAtLeastParents" -> Data(baseClasses.size >= parents.size)
+      )
+    )
+  }
+
   def testChildren[A: Type]: Expr[Data] = Expr(
     Data.map(
       "Type.directChildren" -> Type[A].directChildren

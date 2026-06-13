@@ -1758,6 +1758,48 @@ final class TypesSpec extends MacroSuite {
         }
       }
 
+      // Type-hierarchy accessors. The full parent/baseClass lists vary across platform & version (Object/Any/
+      // Serializable/Product orderings), so we assert stable membership facts rather than exact lists.
+      group("methods: Type.{isTrait, parents, baseClasses}") {
+        import TypesFixtures.testTypeHierarchy
+
+        test("a case class subtype of a sealed trait has the sealed trait among its parents and base classes") {
+          testTypeHierarchy[
+            examples.enums.ExampleSealedTrait.ExampleSealedTraitClass,
+            examples.enums.ExampleSealedTrait
+          ] <==> Data.map(
+            "isTrait" -> Data(false),
+            "parentContainsParent" -> Data(true),
+            "baseClassesContainsParent" -> Data(true),
+            "baseClassesContainsSelf" -> Data(true),
+            "baseClassesContainsAny" -> Data(true),
+            "baseClassesAtLeastParents" -> Data(true)
+          )
+        }
+
+        test("a sealed trait reports isTrait=true and lists itself and Any among its base classes") {
+          testTypeHierarchy[examples.enums.ExampleSealedTrait, scala.Any] <==> Data.map(
+            "isTrait" -> Data(true),
+            "parentContainsParent" -> Data(false),
+            "baseClassesContainsParent" -> Data(true),
+            "baseClassesContainsSelf" -> Data(true),
+            "baseClassesContainsAny" -> Data(true),
+            "baseClassesAtLeastParents" -> Data(true)
+          )
+        }
+
+        test("a final class is not a trait") {
+          testTypeHierarchy[examples.classes.ExampleClass, scala.Any] <==> Data.map(
+            "isTrait" -> Data(false),
+            "parentContainsParent" -> Data(false),
+            "baseClassesContainsParent" -> Data(true),
+            "baseClassesContainsSelf" -> Data(true),
+            "baseClassesContainsAny" -> Data(true),
+            "baseClassesAtLeastParents" -> Data(true)
+          )
+        }
+      }
+
       group("methods: Type.{typeArguments, decompose1, decompose2}, Ctor.sameTypeConstructorAs, expected behavior") {
         import TypesFixtures.{
           testTypeArguments,

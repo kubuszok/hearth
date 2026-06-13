@@ -62,6 +62,9 @@ final private class ClassesFixtures(val c: blackbox.Context) extends MacroCommon
 
   def testJavaBeanConstructWithSettersAndParConstructWithSettersImpl[A: c.WeakTypeTag]: c.Expr[String] =
     testJavaBeanConstructWithSettersAndParConstructWithSetters[A]
+
+  def testClassViewParseReasonsImpl[A: c.WeakTypeTag]: c.Expr[Data] =
+    testClassViewParseReasons[A]
 }
 
 object ClassesFixtures {
@@ -116,4 +119,7 @@ object ClassesFixtures {
 
   def testJavaBeanConstructWithSettersAndParConstructWithSetters[A]: String =
     macro ClassesFixtures.testJavaBeanConstructWithSettersAndParConstructWithSettersImpl[A]
+
+  def testClassViewParseReasons[A]: Data =
+    macro ClassesFixtures.testClassViewParseReasonsImpl[A]
 }

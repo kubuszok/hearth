@@ -199,4 +199,8 @@ object ClassesFixtures {
   }
   private def testJavaBeanConstructWithSettersAndParConstructWithSettersImpl[A: Type](using q: Quotes): Expr[String] =
     new ClassesFixtures(q).testJavaBeanConstructWithSettersAndParConstructWithSetters[A]
+
+  inline def testClassViewParseReasons[A]: Data = ${ testClassViewParseReasonsImpl[A] }
+  private def testClassViewParseReasonsImpl[A: Type](using q: Quotes): Expr[Data] =
+    new ClassesFixtures(q).testClassViewParseReasons[A]
 }

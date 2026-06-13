@@ -230,6 +230,79 @@ trait MethodsFixturesImpl { this: MacroCommons =>
       Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${other.prettyPrint}")
   }
 
+  /** Exercises `Method.toString` AFTER the builder chain has been partially consumed, so the applied-state rendering
+    * branch is hit (instance step -> "on ...", value step -> "applied (...)", plus the inferred "returning ..."
+    * suffix).
+    */
+  def testMethodAppliedToString[A: Type](instance: Expr[A])(methodName: Expr[String]): Expr[Data] = {
+    implicit val IntType: Type[Int] = this.IntType
+    implicit val StringType: Type[String] = this.StringType
+    val name = Expr
+      .unapply(methodName)
+      .getOrElse(
+        Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+      )
+    val method = Type[A].methods.filter(_.name == name) match {
+      case method :: Nil => method
+      case Nil           => Environment.reportErrorAndAbort(s"Method $name not found")
+      case _             => Environment.reportErrorAndAbort(s"Method $name is ambiguous")
+    }
+    method match {
+      case oi: Method.OnInstance =>
+        // After applying the instance the next step carries an AppliedStep.Instance, so toString renders "on <expr>".
+        val afterInstance = oi.applyUntyped(instance.asUntyped)
+        val afterValues = afterInstance match {
+          case av: Method.ApplyValues =>
+            val args: Arguments = av.parameters.flatten.map { case (pName, param) =>
+              import param.tpe.Underlying
+              if (Underlying <:< Type.of[Int]) pName -> Expr(1).as_??
+              else if (Underlying <:< Type.of[String]) pName -> Expr("x").as_??
+              else Environment.reportErrorAndAbort(s"Unsupported parameter type for $pName: ${param.tpe.plainPrint}")
+            }.toMap
+            av.apply(args).toString
+          case other => other.toString
+        }
+        Expr(
+          Data.map(
+            "beforeApplication" -> Data(removeAnsiColors(method.toString)),
+            "afterInstance" -> Data(removeAnsiColors(afterInstance.toString)),
+            "afterInstanceAndValues" -> Data(removeAnsiColors(afterValues))
+          )
+        )
+      case other =>
+        Environment.reportErrorAndAbort(s"Method $name is not an instance method, got ${other.getClass.getSimpleName}")
+    }
+  }
+
+  /** Exercises constructor `toString` after applying its value arguments — hits the "applied (...)" + "returning ..."
+    * rendering of the applied state for a no-instance (constructor) chain.
+    */
+  def testConstructorAppliedToString[A: Type]: Expr[Data] = {
+    implicit val IntType: Type[Int] = this.IntType
+    implicit val StringType: Type[String] = this.StringType
+    Type[A].primaryConstructor match {
+      case Some(ctor) =>
+        val afterValues = ctor match {
+          case av: Method.ApplyValues =>
+            val args: Arguments = av.parameters.flatten.map { case (pName, param) =>
+              import param.tpe.Underlying
+              if (Underlying <:< Type.of[Int]) pName -> Expr(1).as_??
+              else if (Underlying <:< Type.of[String]) pName -> Expr("x").as_??
+              else Environment.reportErrorAndAbort(s"Unsupported parameter type for $pName: ${param.tpe.plainPrint}")
+            }.toMap
+            av.apply(args).toString
+          case other => other.toString
+        }
+        Expr(
+          Data.map(
+            "beforeApplication" -> Data(removeAnsiColors(ctor.toString)),
+            "afterValues" -> Data(removeAnsiColors(afterValues))
+          )
+        )
+      case None => Expr(Data("<no primary constructor>"))
+    }
+  }
+
   def testConstructorExpectations[A: Type]: Expr[Data] = {
     val ctors = Type[A].constructors
     val rendered = ctors.map { ctor =>

@@ -115,6 +115,18 @@ object MethodsFixtures {
   private def testConstructorExpectationsImpl[A: Type](using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testConstructorExpectations[A]
 
+  inline def testMethodAppliedToString[A](inline instance: A)(inline methodName: String): Data = ${
+    testMethodAppliedToStringImpl[A]('instance, 'methodName)
+  }
+  private def testMethodAppliedToStringImpl[A: Type](instance: Expr[A], methodName: Expr[String])(using
+      q: Quotes
+  ): Expr[Data] =
+    new MethodsFixtures(q).testMethodAppliedToString[A](instance)(methodName)
+
+  inline def testConstructorAppliedToString[A]: Data = ${ testConstructorAppliedToStringImpl[A] }
+  private def testConstructorAppliedToStringImpl[A: Type](using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testConstructorAppliedToString[A]
+
   inline def testMethodOrdering[A]: Data = ${ testMethodOrderingImpl[A] }
   private def testMethodOrderingImpl[A: Type](using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testMethodOrdering[A]

@@ -116,6 +116,10 @@ object TypesFixtures {
   private def testComparisonsImpl[A: Type, B: Type](using q: Quotes): Expr[Data] =
     new TypesFixtures(q).testComparisons[A, B]
 
+  inline def testTypeHierarchy[A, Parent]: Data = ${ testTypeHierarchyImpl[A, Parent] }
+  private def testTypeHierarchyImpl[A: Type, Parent: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testTypeHierarchy[A, Parent]
+
   inline def testBidirectionalCodecs: Data = ${ testBidirectionalCodecsImpl }
   private def testBidirectionalCodecsImpl(using q: Quotes): Expr[Data] = new TypesFixtures(q).testBidirectionalCodecs
 

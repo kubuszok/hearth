@@ -351,6 +351,60 @@ final class ClassesSpec extends MacroSuite {
         "ExampleSealedTraitObject (handled)"
     }
 
+    // The individual `parse` methods of the class-views return a ClassViewResult.Incompatible carrying a
+    // human-readable reason when the type does not fit the view. Those reason strings are public-facing
+    // diagnostics; here we pin them per rejected view. The type-name prefix is stripped in the fixture so the
+    // asserted suffix is identical on Scala 2 and Scala 3.
+    group("class-view parse: Incompatible reasons") {
+      import ClassesFixtures.testClassViewParseReasons
+
+      test("a plain trait is rejected by every specific view (and Class is always compatible)") {
+        testClassViewParseReasons[examples.classes.ExampleTrait] <==> Data.map(
+          "asSingleton" -> Data("is not a singleton type"),
+          "asNamedTuple" -> Data("is not a named tuple"),
+          "asCaseClass" -> Data("is not a case class"),
+          "asEnum" -> Data("is not sealed, not an enumeration, and not a union type"),
+          "asJavaBean" -> Data("is not a plain old Java object"),
+          "asClass" -> Data("<compatible>")
+        )
+      }
+
+      test("a case class is compatible with CaseClass but rejected by the other specific views") {
+        testClassViewParseReasons[examples.classes.ExampleCaseClass] <==> Data.map(
+          "asSingleton" -> Data("is not a singleton type"),
+          "asNamedTuple" -> Data("is not a named tuple"),
+          "asCaseClass" -> Data("<compatible>"),
+          "asEnum" -> Data("is not sealed, not an enumeration, and not a union type"),
+          // A Scala case class is recognised as a POJO on the JVM, but its primary constructor takes arguments,
+          // so it is rejected as a JavaBean for lacking a public default (no-arg) constructor.
+          "asJavaBean" -> Data("is a POJO but has no public default constructor"),
+          "asClass" -> Data("<compatible>")
+        )
+      }
+
+      test("a case object is compatible as SingletonValue and Enum-rejection points to SingletonValue for CaseClass") {
+        testClassViewParseReasons[examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type] <==> Data.map(
+          "asSingleton" -> Data("<compatible>"),
+          "asNamedTuple" -> Data("is not a named tuple"),
+          "asCaseClass" -> Data("is a singleton, use SingletonValue instead of CaseClass"),
+          "asEnum" -> Data("is not sealed, not an enumeration, and not a union type"),
+          "asJavaBean" -> Data("is not a plain old Java object"),
+          "asClass" -> Data("<compatible>")
+        )
+      }
+
+      test("a sealed trait is compatible as Enum but rejected by the value-shaped views") {
+        testClassViewParseReasons[examples.enums.ExampleSealedTrait] <==> Data.map(
+          "asSingleton" -> Data("is not a singleton type"),
+          "asNamedTuple" -> Data("is not a named tuple"),
+          "asCaseClass" -> Data("is not a case class"),
+          "asEnum" -> Data("<compatible>"),
+          "asJavaBean" -> Data("is not a plain old Java object"),
+          "asClass" -> Data("<compatible>")
+        )
+      }
+    }
+
     test("Enum[A].{matchOn and parMatchOn} should match on the sealed trait") {
       import ClassesFixtures.testEnumMatchOnAndParMatchOn
 
