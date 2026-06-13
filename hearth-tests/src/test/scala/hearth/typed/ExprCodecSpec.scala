@@ -118,6 +118,42 @@ final class ExprCodecSpec extends MacroSuite {
     }
   }
 
+  group("ExprCodec.derived negative paths") {
+
+    test("toExpr on a type with an unquotable field aborts with a clean message naming the type") {
+      // HolderOfNotQuotable has a `payload: NotQuotable` field; NotQuotable is neither case class, singleton, sealed,
+      // nor has a built-in/summonable codec. The derived toExpr cannot quote it, so it must abort with a clean,
+      // positioned diagnostic (not an opaque uncaught AssertionError).
+      compileErrors("ExprCodecFixtures.testDeriveToExprFailure").check(
+        "ExprCodec.derived[hearth.examples.expr_codecs.HolderOfNotQuotable].toExpr failed",
+        "Cannot semi-quote value of type hearth.examples.expr_codecs.NotQuotable"
+      )
+    }
+
+    test("fromExpr on an unsupported type still succeeds via generic semiEval (asymmetric with toExpr)") {
+      // toExpr aborts for NotQuotable (no quote case), but fromExpr decodes the `new NotQuotable(1)` constructor call
+      // through Expr.semiEval, so it round-trips the value rather than failing.
+      ExprCodecFixtures.testDeriveFromExprFailure(new NotQuotable(1)) <==> Data.map(
+        "decodedValue" -> Data("1")
+      )
+    }
+  }
+
+  group("ExprCodec override-map =:= cache") {
+
+    test("one override keyed by a type is reused for every field of that type") {
+      // TwoHosts has two String fields; a single QuoteOverride keyed by String must apply to BOTH (=:= lookup,
+      // not identity), proving dedup-by-=:= does not drop a repeated occurrence.
+      ExprCodecFixtures.testOverrideMapReuseForRepeatedFieldType <==> Data.map(
+        "bothFieldsOverridden" -> caseClassReLifted(
+          s2 =
+            "new hearth.examples.expr_codecs.TwoHosts((\"ALPHA\": scala.Predef.String), (\"BETA\": scala.Predef.String))",
+          s3 = "new hearth.examples.expr_codecs.TwoHosts(\"ALPHA\", \"BETA\")"
+        )
+      )
+    }
+  }
+
   group("built-in parameterized codecs") {
 
     test("Expr.typeOf reports the concrete instantiated type for exprs produced by built-in codecs") {

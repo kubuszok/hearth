@@ -11,8 +11,8 @@ trait SourceTextFixturesImpl { this: MacroCommons =>
 
   /** Source text of a position that does not point at real source (a NoPosition on Scala 2, an out-of-range span on
     * Scala 3). Implemented per-platform because there is no portable way to obtain a "positionless" tree: on Scala 3
-    * every term built during macro expansion (even a freshly-built `Literal`) inherits the macro-expansion position,
-    * so we must construct a deliberately invalid [[Position]] to exercise the guard.
+    * every term built during macro expansion (even a freshly-built `Literal`) inherits the macro-expansion position, so
+    * we must construct a deliberately invalid [[Position]] to exercise the guard.
     */
   protected def noSourcePositionSourceCode: Option[String]
 
@@ -20,8 +20,8 @@ trait SourceTextFixturesImpl { this: MacroCommons =>
   def testSyntheticSourceText: Expr[Data] =
     Expr(Data(noSourcePositionSourceCode.map(_.trim).getOrElse("<none>")))
 
-  /** Destructures an expression and reports the source text of each direct subexpression — proves the assert-macro
-    * use case: walk subexpressions and recover their original source.
+  /** Destructures an expression and reports the source text of each direct subexpression — proves the assert-macro use
+    * case: walk subexpressions and recover their original source.
     */
   def testDestructuredSourceText[A: Type](expr: Expr[A]): Expr[Data] = {
     val parsed = DestructuredExpr.parse(expr)

@@ -42,4 +42,20 @@ object ExprCodecFixtures {
   inline def testBuiltInCodecExprTypes: Data = ${ testBuiltInCodecExprTypesImpl }
   private def testBuiltInCodecExprTypesImpl(using q: Quotes): Expr[Data] =
     new ExprCodecFixtures(q).testBuiltInCodecExprTypes
+
+  inline def testDeriveToExprFailure: Data = ${ testDeriveToExprFailureImpl }
+  private def testDeriveToExprFailureImpl(using q: Quotes): Expr[Data] =
+    new ExprCodecFixtures(q).testDeriveToExprFailure
+
+  inline def testDeriveFromExprFailure(inline expr: hearth.examples.expr_codecs.NotQuotable): Data = ${
+    testDeriveFromExprFailureImpl('expr)
+  }
+  private def testDeriveFromExprFailureImpl(
+      expr: Expr[hearth.examples.expr_codecs.NotQuotable]
+  )(using q: Quotes): Expr[Data] =
+    new ExprCodecFixtures(q).testDeriveFromExprFailure(expr)
+
+  inline def testOverrideMapReuseForRepeatedFieldType: Data = ${ testOverrideMapReuseForRepeatedFieldTypeImpl }
+  private def testOverrideMapReuseForRepeatedFieldTypeImpl(using q: Quotes): Expr[Data] =
+    new ExprCodecFixtures(q).testOverrideMapReuseForRepeatedFieldType
 }
