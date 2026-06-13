@@ -24,6 +24,11 @@ private[source] trait SourceMacros { this: MacroCommons =>
     Expr.quote(FileName.wrap(Expr.splice(fileName)))
   }
 
+  def text[T: Type](value: Expr[T]): Expr[Text[T]] = {
+    val source = Expr(value.sourceCode.map(_.trim).getOrElse(value.plainPrint))
+    Expr.quote(Text(Expr.splice(value), Expr.splice(source)))
+  }
+
   private def currentMethod: UntypedMethod = UntypedMethod.enclosing.getOrElse(
     Environment.reportErrorAndAbort(s"No method found for position ${Environment.currentPosition}")
   )

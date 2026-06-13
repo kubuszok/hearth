@@ -182,6 +182,20 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def asUntyped: UntypedExpr = UntypedExpr.fromTyped(expr)
 
+    /** Returns the [[Position]] of this expression's underlying tree, if available.
+      *
+      * @since 0.4.0
+      */
+    def position: Option[Position] = UntypedExpr.position(UntypedExpr.fromTyped(expr))
+
+    /** Returns the original source text of this expression, if available.
+      *
+      * Useful for assert-style macros that want to show the source of a (sub)expression in a failure message.
+      *
+      * @since 0.4.0
+      */
+    def sourceCode: Option[String] = position.flatMap(Position.sourceCode)
+
     def as_??(implicit A: Type[A]): Expr_?? = Existential[Expr, A](expr)
     def as_??>:[L <: A](implicit A: Type[A]): Expr_??>:[L] = Existential.LowerBounded[L, Expr, A](expr)
     def as_??<:[U >: A](implicit A: Type[A]): Expr_??<:[U] = Existential.UpperBounded[U, Expr, A](expr)

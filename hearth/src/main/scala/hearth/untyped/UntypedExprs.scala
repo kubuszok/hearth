@@ -30,6 +30,15 @@ trait UntypedExprs { this: MacroCommons =>
     def fromTyped[A](expr: Expr[A]): UntypedExpr
     def toTyped[A: Type](untyped: UntypedExpr): Expr[A]
     def as_??(untyped: UntypedExpr): Expr_??
+
+    /** Returns the [[Position]] of this expression's underlying tree, if available.
+      *
+      * Useful for assert-style macros that want to recover the original source text of a (sub)expression via
+      * [[PositionMethods.sourceCode]].
+      *
+      * @since 0.4.0
+      */
+    def position(untyped: UntypedExpr): Option[Position]
     final def as_??(untyped: UntypedExpr, knownType: UntypedType): Expr_?? = {
       implicit val tpe: Type[Any] = UntypedType.toTyped[Any](knownType)
       toTyped[Any](untyped).as_??
@@ -40,5 +49,17 @@ trait UntypedExprs { this: MacroCommons =>
 
     def asTyped[A: Type]: Expr[A] = UntypedExpr.toTyped(untyped)
     def as_?? : Expr_?? = UntypedExpr.as_??(untyped)
+
+    /** Returns the [[Position]] of this expression's underlying tree, if available.
+      *
+      * @since 0.4.0
+      */
+    def position: Option[Position] = UntypedExpr.position(untyped)
+
+    /** Returns the original source text of this expression, if available.
+      *
+      * @since 0.4.0
+      */
+    def sourceCode: Option[String] = UntypedExpr.position(untyped).flatMap(Position.sourceCode)
   }
 }

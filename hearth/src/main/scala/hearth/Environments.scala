@@ -22,6 +22,15 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
     def line(pos: Position): Int
     def column(pos: Position): Int
 
+    /** Returns the original source text spanned by this [[Position]], if available.
+      *
+      * Useful for assert-style macros (expecty/munit/scalatest) that want to show the source of a (sub)expression in a
+      * failure message. Returns [[None]] for synthetic positions that do not point at real source code.
+      *
+      * @since 0.4.0
+      */
+    def sourceCode(pos: Position): Option[String]
+
     final def fileName(pos: Position): Option[String] = pos.file.map(_.getFileName().toString)
     final def prettyPrint(pos: Position): String =
       fileName(pos).map(f => s"$f:${pos.line}:${pos.column}").getOrElse(s"<unknown>:${pos.line}:${pos.column}")
@@ -34,6 +43,12 @@ trait Environments extends EnvironmentCrossQuotesSupport { env =>
     def offset: Int = Position.offset(position)
     def line: Int = Position.line(position)
     def column: Int = Position.column(position)
+
+    /** Returns the original source text spanned by this [[Position]], if available.
+      *
+      * @since 0.4.0
+      */
+    def sourceCode: Option[String] = Position.sourceCode(position)
 
     def fileName: Option[String] = Position.fileName(position)
     def prettyPrint: String = Position.prettyPrint(position)

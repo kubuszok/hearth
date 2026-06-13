@@ -16,5 +16,6 @@ trait UntypedExprsScala3 extends UntypedExprs { this: MacroCommonsScala3 =>
       import resultType.Underlying as Result
       toTyped[Result](untyped).as_??
     }
+    override def position(untyped: UntypedExpr): Option[Position] = scala.util.Try(untyped.pos).toOption
   }
 }

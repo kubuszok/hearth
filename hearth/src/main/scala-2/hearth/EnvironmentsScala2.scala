@@ -13,6 +13,21 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
     override def line(pos: Position): Int = pos.line
     override def column(pos: Position): Int = pos.column - macroPositionCorrection(pos)
 
+    // NOTE: slicing uses the RAW pos.start/pos.end (not macroPositionCorrection, which only adjusts reporting
+    // offsets) so we extract the exact source characters that the position spans.
+    override def sourceCode(pos: Position): Option[String] = scala.util
+      .Try {
+        if (pos == c.universe.NoPosition) None
+        else {
+          val content = pos.source.content
+          if (pos.start >= 0 && pos.start <= pos.end && pos.end <= content.length)
+            Some(new String(content.slice(pos.start, pos.end)))
+          else None
+        }
+      }
+      .toOption
+      .flatten
+
     /** So, apparently when we are expanding a macro, the position of the macro expansion is computed differently for
       * macro-methods that have no parameter lists and for those that have:
       *
