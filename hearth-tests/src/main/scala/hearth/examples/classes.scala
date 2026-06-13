@@ -16,8 +16,16 @@ case class ExampleCaseClassWithVarargs(xs: Int*)
 case class ExampleCaseClassWithTypeParam[A](a: A)
 case class ExampleCaseClassWithDefaults(a: Int, b: String = "default-b")
 
-// Regression example for commit 68e1781: caseFieldValuesAt(instance, visibility) filters fields
-// by accessibility. By default (Anywhere) `b` is always returned; it is accessible from within
-// the `hearth` package (so AtCallSite keeps it when expanding inside hearth), but it is not
-// accessible "everywhere" (so explicit Everywhere skips it).
+// Example for caseFieldValuesAt(instance, visibility) field filtering by accessibility.
+// `b` is `private[hearth]`: accessible from within the `hearth` package, so it is kept by the
+// default (AtCallSite) and by AtCallSite when expanding inside hearth, but it is not public, so
+// explicit Everywhere skips it. Anywhere keeps it regardless. This class CANNOT distinguish
+// AtCallSite from Anywhere at an in-hearth call site (both keep `b`) - use the class-private
+// example below for that.
 case class ExampleCaseClassWithPrivateField(a: Int, private[hearth] val b: String)
+
+// Example that DISTINGUISHES all three visibility scopes. `b` is class-private (`private val`),
+// so it is inaccessible even at an in-hearth call site:
+//   - AtCallSite (the default) and Everywhere DROP `b` -> (a)
+//   - Anywhere KEEPS `b` -> (a, b) (enumeration use case)
+case class ExampleCaseClassWithClassPrivateField(a: Int, private val b: String)

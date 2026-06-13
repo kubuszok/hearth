@@ -27,6 +27,9 @@ final private class ClassesFixtures(val c: blackbox.Context) extends MacroCommon
   def testCaseClassCaseFieldValuesAtEverywhereImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] =
     testCaseClassCaseFieldValuesAtEverywhere[A](expr)
 
+  def testCaseClassCaseFieldValuesAtAnywhereImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] =
+    testCaseClassCaseFieldValuesAtAnywhere[A](expr)
+
   def testEnumParMatchOnNestedQuoteImpl[A: c.WeakTypeTag](expr: c.Expr[A], suffix: c.Expr[String]): c.Expr[String] =
     testEnumParMatchOnNestedQuote[A](expr, suffix)
 
@@ -78,6 +81,9 @@ object ClassesFixtures {
 
   def testCaseClassCaseFieldValuesAtEverywhere[A](expr: A): String =
     macro ClassesFixtures.testCaseClassCaseFieldValuesAtEverywhereImpl[A]
+
+  def testCaseClassCaseFieldValuesAtAnywhere[A](expr: A): String =
+    macro ClassesFixtures.testCaseClassCaseFieldValuesAtAnywhereImpl[A]
 
   def testEnumParMatchOnNestedQuote[A](expr: A, suffix: String): String =
     macro ClassesFixtures.testEnumParMatchOnNestedQuoteImpl[A]
