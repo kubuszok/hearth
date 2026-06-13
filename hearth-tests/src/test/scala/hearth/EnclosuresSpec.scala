@@ -28,6 +28,29 @@ final class EnclosuresSpec extends MacroSuite {
     def callsHelper: Int = EnclosuresFixtures.testCallEnclosingHelper
   }
 
+  // The macro is expanded inside a method that declares local vals BEFORE the call (and one AFTER, which must not be
+  // discovered). Defined as plain methods (not test lambdas) to avoid synthetic `$anonfun` owners.
+  object LocalNest {
+
+    def localValues: Data = {
+      val a: Int = 1
+      val b: String = "x"
+      val discovered: Data = EnclosuresFixtures.testEnclosingLocalValues
+      val c: Long = 3L // declared AFTER the macro call: must NOT appear
+      val _ = (a, b, c)
+      discovered
+    }
+
+    def sumInts: Int = {
+      val a: Int = 10
+      val b: Int = 20
+      val c: Int = 30
+      val result: Int = EnclosuresFixtures.testSumEnclosingLocalInts
+      val _ = (a, b, c)
+      result
+    }
+  }
+
   group("trait hearth.Enclosures") {
 
     group("Environment.enclosingScope, expected behavior") {
@@ -54,6 +77,36 @@ final class EnclosuresSpec extends MacroSuite {
 
       test("locates and calls a nullary Int-returning member on the enclosing object") {
         NestObj.callsHelper ==> 7
+      }
+    }
+
+    group("Environment.enclosingScope local values (macwire case), expected behavior") {
+
+      // PLATFORM ASYMMETRY: on Scala 2 `c.enclosingMethod` gives the enclosing method body, so local vals declared
+      // before the macro call are discoverable. On Scala 3 `Symbol.tree` returns a `DefDef` whose `rhs` is `None`
+      // during the method's own expansion (the body is not yet available), so `localValues` is empty there. See
+      // `Enclosure.LocalValue` scaladoc.
+      if (LanguageVersion.byHearth.isScala3) {
+
+        test("Scala 3: localValues is empty (method body unavailable during expansion)") {
+          LocalNest.localValues <==> Data.list()
+        }
+
+        test("Scala 3: no refs to sum, result is 0") {
+          LocalNest.sumInts ==> 0
+        }
+      } else {
+
+        test("Scala 2: discovers local vals declared before the macro call, and not those declared after") {
+          LocalNest.localValues <==> Data.list(
+            Data.map("name" -> Data("a"), "type" -> Data("scala.Int")),
+            Data.map("name" -> Data("b"), "type" -> Data("java.lang.String"))
+          )
+        }
+
+        test("Scala 2: the discovered refs are usable as expressions in generated code") {
+          LocalNest.sumInts ==> 60
+        }
       }
     }
   }

@@ -52,4 +52,35 @@ trait EnclosuresFixturesImpl { this: MacroCommons =>
 
     call.getOrElse(Environment.reportErrorAndAbort("No nullary Int-returning `helper` found in the enclosing scope"))
   }
+
+  /** Render the `localValues` of the immediately-enclosing method as a list of `{name, type}` maps. Proves that local
+    * `val`s declared before the macro call are discoverable (the macwire case).
+    */
+  def testEnclosingLocalValues: Expr[Data] = {
+    val locals: List[Enclosure.LocalValue] = enclosingScope.iterator
+      .collectFirst { case m: Enclosure.Method => m.localValues }
+      .getOrElse(Nil)
+    val rendered = locals.map(lv => Data.map("name" -> Data(lv.name), "type" -> Data(lv.tpe.plainPrint)))
+    Expr(Data.list(rendered*))
+  }
+
+  /** Sum the discovered local `Int` vals by USING their `ref` expressions in the generated code. Proves the ref is a
+    * usable expression (not just metadata).
+    */
+  def testSumEnclosingLocalInts: Expr[Int] = {
+    val refs: List[Expr[Int]] = enclosingScope.iterator
+      .collectFirst { case m: Enclosure.Method => m.localValues }
+      .getOrElse(Nil)
+      .collect {
+        case lv if lv.tpe.Underlying =:= Type.of[Int] =>
+          lv.ref.value.asInstanceOf[Expr[Int]]
+      }
+    refs match {
+      case Nil          => Expr(0)
+      case head :: tail =>
+        tail.foldLeft(head) { (acc, next) =>
+          Expr.quote(Expr.splice(acc) + Expr.splice(next))
+        }
+    }
+  }
 }

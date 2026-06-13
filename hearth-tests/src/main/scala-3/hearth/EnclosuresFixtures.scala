@@ -19,4 +19,12 @@ object EnclosuresFixtures {
   private def testCallEnclosingHelperImpl(using q: Quotes): Expr[Int] = new EnclosuresFixtures(
     q
   ).testCallEnclosingHelper
+
+  inline def testEnclosingLocalValues: Data = ${ testEnclosingLocalValuesImpl }
+  private def testEnclosingLocalValuesImpl(using q: Quotes): Expr[Data] =
+    new EnclosuresFixtures(q).testEnclosingLocalValues
+
+  inline def testSumEnclosingLocalInts: Int = ${ testSumEnclosingLocalIntsImpl }
+  private def testSumEnclosingLocalIntsImpl(using q: Quotes): Expr[Int] =
+    new EnclosuresFixtures(q).testSumEnclosingLocalInts
 }
