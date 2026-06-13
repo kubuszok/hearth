@@ -355,6 +355,80 @@ final class DestructuredExprsSpec extends MacroSuite {
       }
     }
 
+    group("optics marker paths") {
+      import DestructuredExprsFixtures.testMarkerPath
+      import examples.parsed_exprs.dsl.*
+
+      // Monocle-Focus / quicklens-style optics use MARKER methods in the lambda path: `.each` (traverse a collection),
+      // `.when[Sub]`/`.as[Sub]` (prism / subtype focus), `.some` (Option focus). These are plain `MethodCall`s in the
+      // destructured tree (the DSL exposes them via implicit-class extension methods). A macro author can recognize
+      // them purely from structure — the marker call's name, and for prisms the focused subtype recovered as the
+      // marker's own type argument — regardless of how Scala 2 vs Scala 3 desugar the implicit-class plumbing. This is
+      // the core of building a Monocle/quicklens-style API on top of Hearth. The fixture peels the plumbing and emits
+      // a clean root -> leaf logical path; expectations below are identical on both platforms.
+
+      test(".each traversal marker recognized between plain field selects") {
+        // _.items.each : `items` is a plain field, `each` is a traversal marker.
+        testMarkerPath((c: examples.parsed_exprs.Container) => c.items.each) <==> Data.map(
+          "segments" -> Data.list(
+            Data.map("name" -> Data("items"), "kind" -> Data("field"), "typeArgs" -> Data.list()),
+            Data.map("name" -> Data("each"), "kind" -> Data("marker"), "typeArgs" -> Data.list())
+          )
+        )
+      }
+
+      test(".as[Sub] prism marker recovers the focused subtype as its type argument") {
+        // _.animal.as[Dog].name : `animal` field, `as` prism marker carrying `Dog`, `name` field.
+        testMarkerPath((h: examples.parsed_exprs.AnimalHolder) => h.animal.as[examples.parsed_exprs.Dog].name) <==> Data
+          .map(
+            "segments" -> Data.list(
+              Data.map("name" -> Data("animal"), "kind" -> Data("field"), "typeArgs" -> Data.list()),
+              Data.map(
+                "name" -> Data("as"),
+                "kind" -> Data("marker"),
+                "typeArgs" -> Data.list(Data("hearth.examples.parsed_exprs.Dog"))
+              ),
+              Data.map("name" -> Data("name"), "kind" -> Data("field"), "typeArgs" -> Data.list())
+            )
+          )
+      }
+
+      test(".when[Sub] prism marker recovers the focused subtype as its type argument") {
+        // _.animal.when[Cat] : `animal` field, `when` prism marker carrying `Cat`.
+        testMarkerPath((h: examples.parsed_exprs.AnimalHolder) => h.animal.when[examples.parsed_exprs.Cat]) <==> Data
+          .map(
+            "segments" -> Data.list(
+              Data.map("name" -> Data("animal"), "kind" -> Data("field"), "typeArgs" -> Data.list()),
+              Data.map(
+                "name" -> Data("when"),
+                "kind" -> Data("marker"),
+                "typeArgs" -> Data.list(Data("hearth.examples.parsed_exprs.Cat"))
+              )
+            )
+          )
+      }
+
+      test(".some Option focus marker recognized before a plain field") {
+        // _.nested.some.street : `nested` field, `some` Option-focus marker, `street` field.
+        testMarkerPath((c: examples.parsed_exprs.Container) => c.nested.some.street) <==> Data.map(
+          "segments" -> Data.list(
+            Data.map("name" -> Data("nested"), "kind" -> Data("field"), "typeArgs" -> Data.list()),
+            Data.map("name" -> Data("some"), "kind" -> Data("marker"), "typeArgs" -> Data.list()),
+            Data.map("name" -> Data("street"), "kind" -> Data("field"), "typeArgs" -> Data.list())
+          )
+        )
+      }
+
+      test("pure field path has no markers") {
+        testMarkerPath((p: examples.parsed_exprs.Person) => p.address.street) <==> Data.map(
+          "segments" -> Data.list(
+            Data.map("name" -> Data("address"), "kind" -> Data("field"), "typeArgs" -> Data.list()),
+            Data.map("name" -> Data("street"), "kind" -> Data("field"), "typeArgs" -> Data.list())
+          )
+        )
+      }
+    }
+
     group("collect") {
       import DestructuredExprsFixtures.testCollectMethodCalls
 

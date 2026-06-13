@@ -87,6 +87,77 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
     Expr(renderDetailed(parsed))
   }
 
+  /** Optics-style marker path recognition.
+    *
+    * A macro author building a Monocle/quicklens-style optic destructures the lambda and recognizes optics MARKERS
+    * (`.each`, `.when[Sub]`/`.as[Sub]`, `.some`) purely from structure. Because the cross-platform DSL exposes these as
+    * `implicit class` extension methods, a marker call appears as a `MethodCall` whose name is the marker and whose
+    * receiver Instance is the implicit-wrapper `MethodCall` (`EachOps`/`WhenOps`/`SomeOps`); the wrapper's FIRST value
+    * argument is the real underlying expression the optic focuses on. (The exact desugaring differs between Scala 2 and
+    * Scala 3 — extra module-path refs, evidence terms, wrapper applied-kinds — but the marker call and the real
+    * receiver are recoverable identically on both.) Type arguments of a prism (`.as[Dog]`) surface as an `AppliedTypes`
+    * on the marker call itself. Plain field selects are `MethodCall`s with only a receiver Instance.
+    *
+    * This fixture walks the body, unwrapping the implicit-class plumbing, and emits a clean root -> leaf path where
+    * each segment is classified `field` or `marker` (with the marker's recovered type arguments) — proving that optics
+    * markers are cleanly recognizable regardless of platform desugaring.
+    */
+  def testMarkerPath[A: Type](expr: Expr[A]): Expr[Data] = {
+    val markerWrappers = Map("each" -> "EachOps", "when" -> "WhenOps", "as" -> "WhenOps", "some" -> "SomeOps")
+
+    def instanceOf(mc: DestructuredExpr.MethodCall): Option[DestructuredExpr] =
+      mc.applied.collectFirst { case ai: DestructuredExpr.MethodCall.AppliedInstance => ai.value }
+
+    def firstValueArg(mc: DestructuredExpr.MethodCall): Option[DestructuredExpr] =
+      mc.applied.collectFirst { case av: DestructuredExpr.MethodCall.AppliedValues if av.args.nonEmpty => av.args.head }
+
+    // Is `node` an implicit-wrapper MethodCall for the given marker? If so, return the real focused expression.
+    def unwrapWrapper(node: DestructuredExpr, marker: String): Option[DestructuredExpr] = node match {
+      case mc: DestructuredExpr.MethodCall if markerWrappers.get(marker).contains(mc.method.name) =>
+        firstValueArg(mc)
+      case _ => None
+    }
+
+    def segmentOf(mc: DestructuredExpr.MethodCall): Data = {
+      val name = mc.method.name
+      val isMarker = markerWrappers.contains(name)
+      val typeArgs = mc.applied.collect { case at: DestructuredExpr.MethodCall.AppliedTypes => at.typeArgs }.flatten
+      Data.map(
+        "name" -> Data(name),
+        "kind" -> Data(if (isMarker) "marker" else "field"),
+        "typeArgs" -> Data(typeArgs.map(t => Data(t.plainPrint)))
+      )
+    }
+
+    // Walk from leaf back to root, peeling one logical segment at a time, returning segments root -> leaf.
+    def walk(node: DestructuredExpr, acc: List[Data]): Either[String, List[Data]] = node match {
+      case _: DestructuredExpr.Lambda.ParamRef => Right(acc)
+      case mc: DestructuredExpr.MethodCall     =>
+        val name = mc.method.name
+        val seg = segmentOf(mc)
+        val nextReceiver: Option[DestructuredExpr] =
+          if (markerWrappers.contains(name))
+            // For a marker call, the true receiver is hidden inside the implicit wrapper held as the marker's Instance.
+            instanceOf(mc).flatMap(unwrapWrapper(_, name))
+          else
+            instanceOf(mc)
+        nextReceiver match {
+          case Some(r) => walk(r, seg :: acc)
+          case None    => Right(seg :: acc)
+        }
+      case other => Left(s"Unexpected node in path: ${other.plainPrint}")
+    }
+
+    DestructuredExpr.extractLambda(expr) match {
+      case Right(info) =>
+        walk(info.body, Nil) match {
+          case Right(segments) => Expr(Data.map("segments" -> Data(segments)))
+          case Left(error)     => Expr(Data.map("error" -> Data(error)))
+        }
+      case Left(error) => Expr(Data.map("error" -> Data(error)))
+    }
+  }
+
   private def renderNode(parsed: DestructuredExpr): Data = {
     val nodeType = parsed match {
       case _: DestructuredExpr.MethodCall        => "MethodCall"

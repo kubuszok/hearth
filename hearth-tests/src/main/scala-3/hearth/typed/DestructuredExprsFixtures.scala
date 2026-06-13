@@ -36,4 +36,8 @@ object DestructuredExprsFixtures {
   inline def testParseDetailed[A](inline expr: A): Data = ${ testParseDetailedImpl[A]('expr) }
   private def testParseDetailedImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new DestructuredExprsFixtures(q).testParseDetailed[A](expr)
+
+  inline def testMarkerPath[A](inline expr: A): Data = ${ testMarkerPathImpl[A]('expr) }
+  private def testMarkerPathImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new DestructuredExprsFixtures(q).testMarkerPath[A](expr)
 }
