@@ -5,9 +5,7 @@ import hearth.data.Data
 
 import scala.quoted.*
 
-final private class SourceTextFixtures(q: Quotes)
-    extends MacroCommonsScala3(using q),
-      SourceTextFixturesImpl {
+final private class SourceTextFixtures(q: Quotes) extends MacroCommonsScala3(using q), SourceTextFixturesImpl {
 
   import quotes.reflect.*
 

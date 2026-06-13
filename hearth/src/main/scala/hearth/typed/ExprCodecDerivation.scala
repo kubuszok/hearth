@@ -98,7 +98,11 @@ trait ExprCodecDerivation { this: MacroCommons =>
       def toExpr(value: A): Expr[A] =
         semiQuoteInternal(value, quoteOverrides) match {
           case Right(expr) => expr
-          case Left(error) => assertionFailed(s"ExprCodec.derived[${Type.prettyPrint[A]}].toExpr failed: $error")
+          case Left(error) =>
+            // A clean, positioned compiler diagnostic (rather than an uncaught AssertionError, whose presentation
+            // differs across Scala 2/3 and surfaces as an opaque "exception during macro expansion") so that callers
+            // deriving a codec for an unsupported type get an actionable message naming the offending type.
+            Environment.reportErrorAndAbort(s"ExprCodec.derived[${Type.prettyPrint[A]}].toExpr failed: $error")
         }
 
       def fromExpr(expr: Expr[A]): Option[A] =

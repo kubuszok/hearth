@@ -24,6 +24,14 @@ final private class ExprCodecFixtures(val c: blackbox.Context) extends MacroComm
   def testSemiQuoteFailureImpl: c.Expr[Data] = testSemiQuoteFailure
 
   def testBuiltInCodecExprTypesImpl: c.Expr[Data] = testBuiltInCodecExprTypes
+
+  def testDeriveToExprFailureImpl: c.Expr[Data] = testDeriveToExprFailure
+
+  def testDeriveFromExprFailureImpl(
+      expr: c.Expr[hearth.examples.expr_codecs.NotQuotable]
+  ): c.Expr[Data] = testDeriveFromExprFailure(expr)
+
+  def testOverrideMapReuseForRepeatedFieldTypeImpl: c.Expr[Data] = testOverrideMapReuseForRepeatedFieldType
 }
 
 object ExprCodecFixtures {
@@ -44,4 +52,12 @@ object ExprCodecFixtures {
   def testSemiQuoteFailure: Data = macro ExprCodecFixtures.testSemiQuoteFailureImpl
 
   def testBuiltInCodecExprTypes: Data = macro ExprCodecFixtures.testBuiltInCodecExprTypesImpl
+
+  def testDeriveToExprFailure: Data = macro ExprCodecFixtures.testDeriveToExprFailureImpl
+
+  def testDeriveFromExprFailure(expr: hearth.examples.expr_codecs.NotQuotable): Data =
+    macro ExprCodecFixtures.testDeriveFromExprFailureImpl
+
+  def testOverrideMapReuseForRepeatedFieldType: Data =
+    macro ExprCodecFixtures.testOverrideMapReuseForRepeatedFieldTypeImpl
 }

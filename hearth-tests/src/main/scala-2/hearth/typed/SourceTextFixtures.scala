@@ -6,9 +6,7 @@ import hearth.data.Data
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
 
-final private class SourceTextFixtures(val c: blackbox.Context)
-    extends MacroCommonsScala2
-    with SourceTextFixturesImpl {
+final private class SourceTextFixtures(val c: blackbox.Context) extends MacroCommonsScala2 with SourceTextFixturesImpl {
 
   // NoPosition has no source, so sourceCode is None.
   protected def noSourcePositionSourceCode: Option[String] = Position.sourceCode(c.universe.NoPosition)
