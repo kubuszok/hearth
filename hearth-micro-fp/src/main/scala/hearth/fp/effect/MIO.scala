@@ -26,6 +26,26 @@ import hearth.fp.data.NonEmptyVector
   * actually run any serious side-effects in macros, and no reason to use an actual async/parallel execution, though the
   * model mighy be useful for designing how to combine results of a few independent ("parellel") computations.
   *
+  * ==Execution model: JVM-only, by design==
+  *
+  * MIO (and the rest of `hearth.fp.effect`) is '''macro-time''' machinery. A macro always '''runs on the JVM that hosts
+  * the compiler''', even when the code being compiled targets Scala.js or Scala Native - the macro expands on the JVM
+  * and only its ''output'' is then linked for the target platform. Accordingly, MIO's stack-safety relies on
+  * `DirectStyleExecutor`, which uses `java.util.concurrent` and (when available) JDK 17+ virtual threads. These are
+  * JVM-only APIs that are '''deliberately not, and never will be, ported''' to Scala.js / Scala Native.
+  *
+  * Consequence for usage: MIO is meant to be used '''only from inside macros'''. Referencing it from ordinary
+  * (non-macro) Scala.js / Scala Native runtime code will fail to ''link'' (missing JVM intrinsics) - this is intended,
+  * not a defect.
+  *
+  * Consequence for testing: the effect specs (`MIO`, `MLocal`, `MEval`, `MState`, the `NonEmpty*` data, etc.) live
+  * under `hearth-tests/src/test/scalajvm` '''on purpose''' and must stay there. Making them cross-platform would not
+  * increase meaningful coverage (the exercised code only ever executes on the JVM) and would instead break linking on
+  * Scala.js / Scala Native, turning the whole suite red. The JVM toolchain used to expand macros for a Scala.js /
+  * Native build is the same one the JVM-only specs run against, so the JVM-only specs already cover the cross-platform
+  * macro case. ''If a future coverage audit flags "fp/effect tested only on JVM" as a gap, this is the answer: it is a
+  * permanent design constraint, not a gap.''
+  *
   * Example using [[MLocal]] and [[Log]]:
   *
   * {{{

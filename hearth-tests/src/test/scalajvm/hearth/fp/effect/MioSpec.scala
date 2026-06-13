@@ -6,6 +6,12 @@ import scala.math.Ordering.Implicits.*
 import hearth.fp.data.NonEmptyVector
 import org.scalacheck.Prop.{Exception as _, *}
 
+// NOTE: this spec lives under `src/test/scalajvm` ON PURPOSE and must NOT be made cross-platform.
+// MIO is macro-time machinery: it always executes on the JVM that hosts the compiler (even when the
+// compiled code targets Scala.js / Native), and its stack-safety depends on `DirectStyleExecutor`
+// (java.util.concurrent + JDK 17+ virtual threads) - JVM-only APIs never ported to JS / Native.
+// Cross-compiling this suite would break linking on JS / Native for zero added coverage. See the
+// "Execution model: JVM-only, by design" section in MIO's scaladoc for the full rationale.
 final class MioSpec extends ScalaCheckSuite with Laws {
 
   group("MIO's redeem's family of methods'") {
