@@ -16,5 +16,7 @@ object EnclosuresFixtures {
     new EnclosuresFixtures(q).testEnclosingScopeReachesPackage
 
   inline def testCallEnclosingHelper: Int = ${ testCallEnclosingHelperImpl }
-  private def testCallEnclosingHelperImpl(using q: Quotes): Expr[Int] = new EnclosuresFixtures(q).testCallEnclosingHelper
+  private def testCallEnclosingHelperImpl(using q: Quotes): Expr[Int] = new EnclosuresFixtures(
+    q
+  ).testCallEnclosingHelper
 }

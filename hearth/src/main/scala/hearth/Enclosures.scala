@@ -5,8 +5,8 @@ import hearth.fp.data.NonEmptyVector
 /** Lexical-scope (enclosure) inspection for the current macro expansion.
   *
   * [[enclosingScope]] returns the chain of enclosures surrounding the expansion point, from the INNERMOST (closest to
-  * the expansion) OUTWARDS to the root package. This is the enabler for call-site-aware macros (macwire-style dependency
-  * injection, proxy/mock generation, etc.).
+  * the expansion) OUTWARDS to the root package. This is the enabler for call-site-aware macros (macwire-style
+  * dependency injection, proxy/mock generation, etc.).
   *
   * @since 0.4.0
   */
@@ -64,6 +64,7 @@ trait Enclosures { this: MacroCommons =>
       case _: Enclosure.Package => "package"
     }
   }
+
   /** Stable alias to the cake's `Method` type, so the nested `Enclosure.Method` case class does not shadow it. */
   type CakeMethod = Method
 
@@ -98,8 +99,8 @@ trait Enclosures { this: MacroCommons =>
     /** An enclosing `class`/`trait`.
       *
       * [[members]] lists the callable methods/values of the enclosing type. [[thisRef]] is a `this` reference for the
-      * enclosing instance, present only for the IMMEDIATELY-enclosing class (a sound `this` for an OUTER enclosing class
-      * cannot be materialized cross-platform, so it is [[None]] there).
+      * enclosing instance, present only for the IMMEDIATELY-enclosing class (a sound `this` for an OUTER enclosing
+      * class cannot be materialized cross-platform, so it is [[None]] there).
       *
       * @since 0.4.0
       */
@@ -134,16 +135,16 @@ trait Enclosures { this: MacroCommons =>
         position: Option[Position]
     ) extends Enclosure
 
-    /** A local `val`/`def` declared inside an enclosing [[Enclosure.Method]] body, with a reference expression so it can
-      * be used as a constructor argument (the macwire use case).
+    /** A local `val`/`def` declared inside an enclosing [[Enclosure.Method]] body, with a reference expression so it
+      * can be used as a constructor argument (the macwire use case).
       *
       * @since 0.4.0
       */
     final case class LocalValue(name: String, tpe: ??, ref: Expr_??)
   }
 
-  /** The chain of lexical enclosures (scopes) surrounding the current macro-expansion point, from the INNERMOST (closest
-    * to the expansion) OUTWARDS to the root package.
+  /** The chain of lexical enclosures (scopes) surrounding the current macro-expansion point, from the INNERMOST
+    * (closest to the expansion) OUTWARDS to the root package.
     *
     * There is always at least one element (the root package), so the result is a [[hearth.fp.data.NonEmptyVector]].
     *
