@@ -72,8 +72,14 @@ trait Enclosures { this: MacroCommons =>
 
     /** An enclosing `def` (or the initializer scope of a `val`/`var`/`lazy val` seen as a method owner).
       *
-      * Local `val`s/`def`s declared INSIDE this method body (the literal macwire case) are exposed best-effort via
-      * [[localValues]] — see its documentation for platform limitations.
+      * Local `val`s declared INSIDE this method body, BEFORE the macro call (the literal macwire case), are exposed
+      * best-effort via [[localValues]]. This is populated only for the IMMEDIATELY-enclosing method; outer enclosing
+      * methods always have an empty [[localValues]].
+      *
+      * '''Platform asymmetry''': on Scala 2 (`c.enclosingMethod` exposes the enclosing method body) the in-scope local
+      * `val`s are discoverable. On Scala 3, `Symbol.tree` returns the method's `DefDef` but its `rhs` is `None` while
+      * the method is being compiled (the body is not yet available during its own macro expansion), so [[localValues]]
+      * is empty there. See [[Enclosure.LocalValue]].
       *
       * @since 0.4.0
       */
@@ -135,8 +141,12 @@ trait Enclosures { this: MacroCommons =>
         position: Option[Position]
     ) extends Enclosure
 
-    /** A local `val`/`def` declared inside an enclosing [[Enclosure.Method]] body, with a reference expression so it
-      * can be used as a constructor argument (the macwire use case).
+    /** A local `val` declared inside an enclosing [[Enclosure.Method]] body, BEFORE the macro call, with a reference
+      * expression ([[ref]]) so it can be used as a constructor argument (the macwire use case).
+      *
+      * '''Platform asymmetry''': discovered only on Scala 2 today. On Scala 3 the enclosing method's body is not
+      * available during its own macro expansion (`DefDef.rhs` is `None`), so [[Enclosure.Method.localValues]] is empty.
+      * See [[Enclosure.Method]].
       *
       * @since 0.4.0
       */
