@@ -2460,6 +2460,50 @@ final class MethodsSpec extends MacroSuite {
         assert(prettyPrint != plainPrint, "prettyPrint should contain ANSI codes and differ from plainPrint")
       }
     }
+
+    // Method.toString renders the *applied state* once the builder chain has been partially consumed: the bare
+    // signature when nothing has been applied, "(on <instance>)" after an instance step, and "(applied (...))"
+    // after value arguments. These branches are not exercised by the expectations tests (which toString an
+    // un-applied method).
+    group("toString of a partially-applied builder chain") {
+
+      test("instance method: signature, then 'on <instance>', then 'applied (...)'") {
+        val map = MethodsFixtures
+          .testMethodAppliedToString(new examples.methods.MultiParamListMethods)("singleParamList")
+          .asMap
+          .get
+        val before = map("beforeApplication").asString.get
+        val afterInstance = map("afterInstance").asString.get
+        val afterValues = map("afterInstanceAndValues").asString.get
+
+        // Un-applied: bare signature, no applied-state suffix.
+        before ==>
+          "hearth.examples.methods.MultiParamListMethods: def singleParamList(arg1: scala.Int, arg2: java.lang.String): scala.Boolean"
+        // After supplying the instance the chain records an Instance step rendered as "on ...".
+        assert(
+          afterInstance.contains("(on ") && afterInstance.startsWith(before),
+          s"afterInstance should keep the signature and append the instance step, got: $afterInstance"
+        )
+        // After supplying value arguments the chain records a Values step rendered as "applied (...)".
+        assert(
+          afterValues.contains("applied (") && afterValues.contains("arg1 = ") && afterValues.contains("arg2 = "),
+          s"afterValues should render the applied value arguments, got: $afterValues"
+        )
+      }
+
+      test("constructor: signature, then 'applied (...)' for the value arguments") {
+        val map = MethodsFixtures.testConstructorAppliedToString[examples.methods.SimpleConstructor].asMap.get
+        val before = map("beforeApplication").asString.get
+        val afterValues = map("afterValues").asString.get
+
+        before ==>
+          "new hearth.examples.methods.SimpleConstructor(a: scala.Int, b: java.lang.String)"
+        assert(
+          afterValues.contains("applied (") && afterValues.contains("a = ") && afterValues.contains("b = "),
+          s"afterValues should render the applied constructor arguments, got: $afterValues"
+        )
+      }
+    }
   }
 
   group("methods: annotation type matching and destructuring") {

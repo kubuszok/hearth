@@ -65,6 +65,12 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
   def testConstructorExpectationsImpl[A: c.WeakTypeTag]: c.Expr[Data] =
     testConstructorExpectations[A]
 
+  def testMethodAppliedToStringImpl[A: c.WeakTypeTag](instance: c.Expr[A])(methodName: c.Expr[String]): c.Expr[Data] =
+    testMethodAppliedToString[A](instance)(methodName)
+
+  def testConstructorAppliedToStringImpl[A: c.WeakTypeTag]: c.Expr[Data] =
+    testConstructorAppliedToString[A]
+
   def testMethodPrettyPrintImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
     testMethodPrettyPrint[A](methodName)
 
@@ -165,6 +171,12 @@ object MethodsFixtures {
     macro MethodsFixtures.testMethodExpectationsImpl[A]
 
   def testConstructorExpectations[A]: Data = macro MethodsFixtures.testConstructorExpectationsImpl[A]
+
+  def testMethodAppliedToString[A](instance: A)(methodName: String): Data =
+    macro MethodsFixtures.testMethodAppliedToStringImpl[A]
+
+  def testConstructorAppliedToString[A]: Data =
+    macro MethodsFixtures.testConstructorAppliedToStringImpl[A]
 
   def testMethodPrettyPrint[A](methodName: String): Data =
     macro MethodsFixtures.testMethodPrettyPrintImpl[A]

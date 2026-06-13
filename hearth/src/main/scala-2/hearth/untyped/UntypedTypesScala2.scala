@@ -272,7 +272,14 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       symbolAvailable(instanceTpe.typeSymbol, scope)
 
     override def parents(instanceTpe: UntypedType): List[UntypedType] =
-      instanceTpe.parents
+      // NOTE: scala-reflect's `Type` has no `parents` member (only `ClassInfoType` does), so `instanceTpe.parents`
+      // resolves to Hearth's own `UntypedTypeMethods.parents` extension and recurses infinitely. We read the direct
+      // parents off the class info and resolve any type parameters against `instanceTpe` via `asSeenFrom`.
+      instanceTpe.typeSymbol.typeSignatureIn(instanceTpe) match {
+        case ci: ClassInfoTypeApi =>
+          ci.parents.map(_.asSeenFrom(instanceTpe, instanceTpe.typeSymbol))
+        case _ => Nil
+      }
 
     override def baseClasses(instanceTpe: UntypedType): List[UntypedType] =
       instanceTpe.baseClasses.map(_.asType.toType)
