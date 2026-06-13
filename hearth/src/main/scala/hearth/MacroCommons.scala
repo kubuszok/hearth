@@ -6,7 +6,6 @@ trait MacroUntypedCommons extends untyped.UntypedTypes with untyped.UntypedExprs
 
 trait MacroTypedCommons
     extends Environments
-    with Enclosures
     with MIOIntegrations
     with typed.Types
     with typed.Exprs
