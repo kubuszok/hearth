@@ -181,6 +181,23 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** Like [[testCaseClassCaseFieldValuesAt]] but passes `Anywhere` visibility explicitly, so ALL case fields are
+    * returned regardless of visibility (enumeration use case). Preserves coverage of the `Anywhere` branch now that the
+    * default is `AtCallSite`.
+    */
+  def testCaseClassCaseFieldValuesAtAnywhere[A: Type](expr: Expr[A]): Expr[String] = Expr {
+    CaseClass.parse[A].toOption.fold("<no case class>") { caseClass =>
+      caseClass
+        .caseFieldValuesAt(expr, visibility = Anywhere)
+        .toList
+        .sortBy(_._1)
+        .map { case (name, value) =>
+          s"$name: ${value.plainPrint}"
+        }
+        .mkString("(", ", ", ")")
+    }
+  }
+
   def testEnumMatchOnAndParMatchOn[A: Type](expr: Expr[A]): Expr[String] =
     Enum.parse[A].toOption.fold(Expr("<no enum>")) { enumm =>
       implicit val StringType: Type[String] = stringType

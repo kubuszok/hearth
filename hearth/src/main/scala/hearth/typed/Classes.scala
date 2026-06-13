@@ -275,9 +275,10 @@ trait Classes { this: MacroCommons =>
 
     /** Returns the values of all case fields of the given instance.
       *
-      * By default ([[Anywhere]]) ALL case fields are returned, regardless of their visibility. Pass [[AtCallSite]] to
-      * keep only the fields accessible at the macro expansion point, or [[Everywhere]] to keep only the fields
-      * accessible from any scope (public).
+      * By default ([[AtCallSite]]) only the fields accessible at the macro expansion point are returned - this is the
+      * safe default for derivation, since the generated code (`instance.field`) has to compile at that point. Pass
+      * [[Everywhere]] to keep only the fields accessible from any scope (public), or [[Anywhere]] to return ALL case
+      * fields regardless of visibility (useful only for enumeration, not for generating field accesses).
       *
       * On Scala 2 a non-public case field `b` is read through the public synthetic accessor `b$access$1` that scalac
       * generates for it; the returned map is keyed by the declared field name (`b`) on both platforms, and visibility
@@ -285,7 +286,7 @@ trait Classes { this: MacroCommons =>
       */
     def caseFieldValuesAt(
         instance: Expr[A],
-        visibility: Accessible = Anywhere
+        visibility: Accessible = AtCallSite
     ): ListMap[String, Expr_??] = ListMap.from(caseFields.filter(_.isAvailable(visibility)).map { field =>
       (field match {
         case oi: Method.OnInstance if field.isNullary =>

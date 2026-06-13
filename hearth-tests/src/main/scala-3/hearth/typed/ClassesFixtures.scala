@@ -41,6 +41,12 @@ object ClassesFixtures {
   private def testCaseClassCaseFieldValuesAtEverywhereImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
     new ClassesFixtures(q).testCaseClassCaseFieldValuesAtEverywhere[A](expr)
 
+  inline def testCaseClassCaseFieldValuesAtAnywhere[A](inline expr: A): String = ${
+    testCaseClassCaseFieldValuesAtAnywhereImpl[A]('expr)
+  }
+  private def testCaseClassCaseFieldValuesAtAnywhereImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testCaseClassCaseFieldValuesAtAnywhere[A](expr)
+
   inline def testEnumParMatchOnNestedQuote[A](inline expr: A, inline suffix: String): String = ${
     testEnumParMatchOnNestedQuoteImpl[A]('expr, 'suffix)
   }

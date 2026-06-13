@@ -228,15 +228,17 @@ final class ClassesSpec extends MacroSuite {
         "(a: hearth.examples.classes.ExampleCaseClass.apply(0).a)"
     }
 
-    // Regression for commit 68e1781: caseFieldValuesAt(instance, visibility) filters case fields by
-    // accessibility. By default (Anywhere) ALL case fields are returned (pre-68e1781 behavior);
-    // the `private[hearth]` field b IS accessible at this call site (inside hearth), so AtCallSite
-    // keeps it, while explicit Everywhere (b is not public) skips it on both platforms.
+    // caseFieldValuesAt(instance, visibility) filters case fields by accessibility. The DEFAULT is now
+    // AtCallSite (0.4.0 breaking change): only fields accessible at the macro expansion point are returned,
+    // because the generated `instance.field` access has to compile there. `private[hearth]` field b IS
+    // accessible at this call site (inside hearth), so default + AtCallSite both keep it, while explicit
+    // Everywhere (b is not public) skips it on both platforms. Anywhere keeps every field regardless.
     test("CaseClass[A].caseFieldValuesAt should filter fields by the requested visibility") {
       import ClassesFixtures.{
         testCaseClassCaseFieldValuesAt,
         testCaseClassCaseFieldValuesAtCallSite,
-        testCaseClassCaseFieldValuesAtEverywhere
+        testCaseClassCaseFieldValuesAtEverywhere,
+        testCaseClassCaseFieldValuesAtAnywhere
       }
 
       // On Scala 2 the non-public case field b is read through the public synthetic accessor b$access$1, on
@@ -245,17 +247,54 @@ final class ClassesSpec extends MacroSuite {
       // accessor call differs.
       val bCall = if (LanguageVersion.byHearth.isScala2_13) "b$access$1" else "b"
 
-      // Default: every case field, regardless of visibility.
+      // Default (AtCallSite): b is private[hearth] and we expand inside hearth, so it is kept.
       testCaseClassCaseFieldValuesAt(hearth.examples.classes.ExampleCaseClassWithPrivateField(0, "b")) <==>
         s"(a: hearth.examples.classes.ExampleCaseClassWithPrivateField.apply(0, \"b\").a, b: hearth.examples.classes.ExampleCaseClassWithPrivateField.apply(0, \"b\").$bCall)"
 
-      // AtCallSite: b is private[hearth] and we expand inside hearth, so it is kept.
+      // AtCallSite (explicit): same as the default.
       testCaseClassCaseFieldValuesAtCallSite(hearth.examples.classes.ExampleCaseClassWithPrivateField(0, "b")) <==>
         s"(a: hearth.examples.classes.ExampleCaseClassWithPrivateField.apply(0, \"b\").a, b: hearth.examples.classes.ExampleCaseClassWithPrivateField.apply(0, \"b\").$bCall)"
 
       // Everywhere: b is not public, so it is dropped on both platforms.
       testCaseClassCaseFieldValuesAtEverywhere(hearth.examples.classes.ExampleCaseClassWithPrivateField(0, "b")) <==>
         "(a: hearth.examples.classes.ExampleCaseClassWithPrivateField.apply(0, \"b\").a)"
+
+      // Anywhere: every case field regardless of visibility - kept here too.
+      testCaseClassCaseFieldValuesAtAnywhere(hearth.examples.classes.ExampleCaseClassWithPrivateField(0, "b")) <==>
+        s"(a: hearth.examples.classes.ExampleCaseClassWithPrivateField.apply(0, \"b\").a, b: hearth.examples.classes.ExampleCaseClassWithPrivateField.apply(0, \"b\").$bCall)"
+    }
+
+    // The class-private case field `b` (`private val`) is inaccessible even at the in-hearth call site, so it
+    // distinguishes the three scopes: default (AtCallSite) and Everywhere DROP it, while Anywhere KEEPS it.
+    test("CaseClass[A].caseFieldValuesAt distinguishes AtCallSite/Everywhere (drop) from Anywhere (keep)") {
+      import ClassesFixtures.{
+        testCaseClassCaseFieldValuesAt,
+        testCaseClassCaseFieldValuesAtCallSite,
+        testCaseClassCaseFieldValuesAtEverywhere,
+        testCaseClassCaseFieldValuesAtAnywhere
+      }
+
+      // On Scala 2 the class-private case field b is read through the public synthetic accessor b$access$1, on
+      // Scala 3 through the restricted accessor b. Same normalization as above.
+      val bCall = if (LanguageVersion.byHearth.isScala2_13) "b$access$1" else "b"
+
+      // Default (AtCallSite): b is inaccessible at the call site -> dropped.
+      testCaseClassCaseFieldValuesAt(hearth.examples.classes.ExampleCaseClassWithClassPrivateField(0, "b")) <==>
+        "(a: hearth.examples.classes.ExampleCaseClassWithClassPrivateField.apply(0, \"b\").a)"
+
+      // AtCallSite (explicit): same as default -> dropped.
+      testCaseClassCaseFieldValuesAtCallSite(hearth.examples.classes.ExampleCaseClassWithClassPrivateField(0, "b")) <==>
+        "(a: hearth.examples.classes.ExampleCaseClassWithClassPrivateField.apply(0, \"b\").a)"
+
+      // Everywhere: b is not public -> dropped.
+      testCaseClassCaseFieldValuesAtEverywhere(
+        hearth.examples.classes.ExampleCaseClassWithClassPrivateField(0, "b")
+      ) <==>
+        "(a: hearth.examples.classes.ExampleCaseClassWithClassPrivateField.apply(0, \"b\").a)"
+
+      // Anywhere: ALL case fields regardless of visibility -> b kept.
+      testCaseClassCaseFieldValuesAtAnywhere(hearth.examples.classes.ExampleCaseClassWithClassPrivateField(0, "b")) <==>
+        s"(a: hearth.examples.classes.ExampleCaseClassWithClassPrivateField.apply(0, \"b\").a, b: hearth.examples.classes.ExampleCaseClassWithClassPrivateField.apply(0, \"b\").$bCall)"
     }
 
     test("CaseClass[A] should detect default values on constructor parameters") {
