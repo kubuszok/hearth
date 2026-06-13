@@ -58,8 +58,12 @@ object JDKVersion extends JDKVersionsCompanionCompat {
     JDKVersion(major, minor)
   }
 
-  // Try JDK 9+ API via reflection to stay binary-compatible with JDK 8
-  private val fromRuntimeApi: Option[Int] =
+  // Try JDK 9+ API via reflection to stay binary-compatible with JDK 8.
+  // MUST be lazy (not an eager `val`): as an object-init `val` it makes `JDKVersion`'s companion `<init>` reference
+  // java.lang.reflect.Method, which fails to link on Scala.js / Scala Native whenever any cross-platform code merely
+  // references `JDKVersion` (e.g. constructing a value). As a lazy val the reflection lives in the lazy initializer,
+  // reachable only via `runtimeJDKVersion` (JVM-only by usage), so it is dead-code-eliminated on JS/Native.
+  private lazy val fromRuntimeApi: Option[Int] =
     try {
       val rt = classOf[java.lang.Runtime]
       val vMethod = rt.getMethod("version")
