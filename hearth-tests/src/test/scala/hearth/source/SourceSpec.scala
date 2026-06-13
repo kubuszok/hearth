@@ -65,4 +65,21 @@ final class SourceSpec extends MacroSuite {
       locationString ==> "hearth-tests/src/test/scala/hearth/source/SourceSpec.scala:49"
     }
   }
+
+  group("source.Text") {
+
+    test("should capture both the value and the source text of an expression") {
+      val a = 1
+      val b = 2
+      val captured = Text.generate(a + b)
+      captured.value ==> 3
+      captured.source ==> "a + b"
+    }
+
+    test("should capture a method-call expression's source text") {
+      val captured = Text.generate("abc".length)
+      captured.value ==> 3
+      captured.source ==> "\"abc\".length"
+    }
+  }
 }

@@ -17,5 +17,7 @@ trait UntypedExprsScala2 extends UntypedExprs { this: MacroCommonsScala2 =>
       import resultType.Underlying as Result
       toTyped[Result](untyped).as_??
     }
+    override def position(untyped: UntypedExpr): Option[Position] =
+      scala.util.Try(untyped.pos).toOption.filter(_ != c.universe.NoPosition)
   }
 }

@@ -14,6 +14,21 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
     override def offset(pos: Position): Int = pos.start
     override def line(pos: Position): Int = pos.startLine + 1 // for some reason, the line number is 0-based in Scala 3
     override def column(pos: Position): Int = pos.startColumn + 1 // same for the column number
+
+    // We slice the SourceFile content by [start, end) rather than calling `pos.sourceCode` directly, because
+    // `pos.sourceCode` (a quotes.reflect extension) would clash with our own `PositionMethods.sourceCode` implicit
+    // class (in scope here) and resolve to it, causing infinite recursion.
+    override def sourceCode(pos: Position): Option[String] = scala.util
+      .Try {
+        pos.sourceFile.content.flatMap { content =>
+          val start = pos.start
+          val end = pos.end
+          if start >= 0 && start <= end && end <= content.length then Some(content.substring(start, end))
+          else None
+        }
+      }
+      .toOption
+      .flatten
   }
 
   object Environment extends EnvironmentModule {
