@@ -606,5 +606,5 @@ trait Methods { this: MacroCommons =>
     *
     * @since 0.4.0
     */
-  case object Unrestricted extends Accessible
+  case object Anywhere extends Accessible
 }

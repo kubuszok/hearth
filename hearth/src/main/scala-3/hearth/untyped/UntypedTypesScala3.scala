@@ -75,7 +75,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           case Everywhere => isPublic
           case AtCallSite =>
             isPublic || isPrivateButInTheSameClass || isProtectedButInTheSameClass || isPrivateWithinButInTheRightPlace
-          case Unrestricted => true
+          case Anywhere => true
         }
       }
 
