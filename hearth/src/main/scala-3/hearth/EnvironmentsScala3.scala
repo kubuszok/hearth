@@ -36,6 +36,53 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
     // positions, so the plain `symbol.pos` is sufficient.
     def positionOf(symbol: Symbol): Option[Position] = symbol.pos
 
+    // `Symbol.tree` is @experimental on Scala 3.3.x. We reach it through Java reflection on `quotes.reflect`
+    // (`SymbolMethods.tree(symbol)`), the same bypass `UntypedTypesScala3` uses for `TypeReprMethods`.
+    def symbolTree(symbol: Symbol): Option[Tree] = scala.util.Try {
+      val q = quotes
+      val reflectModule = q.getClass.getMethod("reflect").invoke(q)
+      val symbolMethods = reflectModule.getClass.getMethod("SymbolMethods").invoke(reflectModule)
+      val method = symbolMethods.getClass.getMethod("tree", classOf[Object])
+      method.invoke(symbolMethods, symbol).asInstanceOf[Tree]
+    }.toOption
+
+    // Local `val`s declared inside the immediately-enclosing method body that are in scope at the macro-expansion
+    // point (declared textually BEFORE the macro call). This is the literal macwire case.
+    //
+    // EMPIRICAL FINDING (Scala 3.3.x / 3.8.x): `Symbol.tree` DOES return a `DefDef` for the enclosing method during
+    // its own expansion, BUT that `DefDef.rhs` is `None` - the method body is not yet available while the method is
+    // being compiled. So the code below correctly yields `Nil` on Scala 3 today. It is written defensively (rather
+    // than hard-coding `Nil`) so it will start working automatically should a future Scala version expose the body.
+    // See `Enclosure.LocalValue` scaladoc for the platform asymmetry. Scala 2 (`c.enclosingMethod`) does work.
+    def localValuesOf(methodSymbol: Symbol): List[Enclosure.LocalValue] = scala.util
+      .Try {
+        val macroStart = quotes.reflect.Position.ofMacroExpansion.start
+        symbolTree(methodSymbol) match {
+          case Some(dd: DefDef) =>
+            val stmts: List[Statement] = dd.rhs match {
+              case Some(Block(s, _)) => s
+              case _                 => Nil
+            }
+            stmts.flatMap {
+              case vd: ValDef =>
+                // Only definitions that end before the macro call are in scope at the call site.
+                val endsBefore = scala.util.Try(vd.pos.end <= macroStart).getOrElse(false)
+                if !endsBefore then None
+                else
+                  scala.util.Try {
+                    val tpe = vd.tpt.tpe
+                    val ev = UntypedType.as_??(tpe)
+                    val ref = UntypedExpr.as_??(Ref(vd.symbol): Term, tpe)
+                    Enclosure.LocalValue(vd.name.stripSuffix("$").trim, ev, ref)
+                  }.toOption
+              case _ => None
+            }
+          case _ => Nil
+        }
+      }
+      .toOption
+      .getOrElse(Nil)
+
     def decodedName(symbol: Symbol): String = symbol.name.stripSuffix("$").trim
 
     // Owners we never want to surface to the user (compiler-internal wrappers).
@@ -111,6 +158,8 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
 
     // `This(symbol)` is only sound for the immediately-enclosing class - blank it out for outer ones.
     var seenImmediateClass = false
+    // `localValues` is populated only for the immediately-enclosing method (the macwire case); outer methods keep Nil.
+    var seenImmediateMethod = false
     val enclosures = scala.collection.mutable.ArrayBuffer.empty[Enclosure]
     var current = Symbol.spliceOwner
     while !current.isNoSymbol do {
@@ -118,6 +167,9 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
         case c: Enclosure.Class =>
           if seenImmediateClass then enclosures += c.copy(thisRef = None)
           else { enclosures += c; seenImmediateClass = true }
+        case m: Enclosure.Method =>
+          if seenImmediateMethod then enclosures += m
+          else { enclosures += m.copy(localValues = localValuesOf(current)); seenImmediateMethod = true }
         case other => enclosures += other
       }
       current = current.maybeOwner

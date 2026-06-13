@@ -61,6 +61,41 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
 
     def decodedName(symbol: Symbol): String = symbol.name.decodedName.toString.trim
 
+    // Local `val`s declared inside the immediately-enclosing method body that are in scope at the macro-expansion
+    // point (declared textually BEFORE the macro call). This is the literal macwire case. `c.enclosingMethod` is
+    // deprecated but is the only way on Scala 2 to reach the enclosing `DefDef` body tree.
+    @scala.annotation.nowarn("cat=deprecation")
+    def localValuesOf(methodSymbol: Symbol): List[Enclosure.LocalValue] = scala.util
+      .Try {
+        val macroStart = c.macroApplication.pos.start
+        c.enclosingMethod match {
+          case dd: DefDef if dd.symbol == methodSymbol =>
+            val stmts: List[Tree] = dd.rhs match {
+              case Block(s, _) => s
+              case _           => Nil
+            }
+            stmts.flatMap {
+              case vd: ValDef =>
+                val endsBefore = scala.util.Try(vd.pos.end <= macroStart).getOrElse(false)
+                if (!endsBefore) None
+                else
+                  scala.util.Try {
+                    val sym = vd.symbol
+                    val tpe: UntypedType =
+                      if (sym != null && sym != NoSymbol && sym.typeSignature != NoType) sym.typeSignature
+                      else vd.tpt.tpe
+                    val ev = UntypedType.as_??(tpe)
+                    val refTree: c.Tree = c.universe.internal.gen.mkAttributedRef(sym)
+                    Enclosure.LocalValue(decodedName(sym), ev, UntypedExpr.as_??(refTree, tpe))
+                  }.toOption
+              case _ => None
+            }
+          case _ => Nil
+        }
+      }
+      .toOption
+      .getOrElse(Nil)
+
     def isHiddenOwner(symbol: Symbol): Boolean = {
       val n = decodedName(symbol)
       n == "<root>" || n == "<empty>" || n == "<none>" ||
@@ -115,6 +150,8 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
       else None
 
     var seenImmediateClass = false
+    // `localValues` is populated only for the immediately-enclosing method (the macwire case); outer methods keep Nil.
+    var seenImmediateMethod = false
     val enclosures = scala.collection.mutable.ArrayBuffer.empty[Enclosure]
     var current: Symbol = c.internal.enclosingOwner
     while (current != NoSymbol) {
@@ -122,6 +159,9 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
         case cls: Enclosure.Class =>
           if (seenImmediateClass) enclosures += cls.copy(thisRef = None)
           else { enclosures += cls; seenImmediateClass = true }
+        case m: Enclosure.Method =>
+          if (seenImmediateMethod) enclosures += m
+          else { enclosures += m.copy(localValues = localValuesOf(current)); seenImmediateMethod = true }
         case other => enclosures += other
       }
       current = current.owner
