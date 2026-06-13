@@ -6,8 +6,8 @@ import scala.collection.immutable.ListMap
 /** Pure-logic tests for the runtime `Data` API itself (constructors, accessors, folding, updating, parsing, rendering,
   * equality and diffing).
   *
-  * The existing [[DataSpec]] verifies the macro round-trip; this spec drives the public value API directly so it runs on
-  * every platform without a macro fixture.
+  * The existing [[DataSpec]] verifies the macro round-trip; this spec drives the public value API directly so it runs
+  * on every platform without a macro fixture.
   */
 final class DataValuesSpec extends MacroSuite {
 

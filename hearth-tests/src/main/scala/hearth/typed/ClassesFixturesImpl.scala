@@ -98,6 +98,31 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         .mkString
     )
 
+  /** Exercises every `parse` of every class-view on a type that is NOT compatible with it, asserting the human-readable
+    * `Incompatible.reason` strings (the public-facing diagnostics). The type-name prefix (`Type.prettyPrint[A]`) is
+    * stripped so the asserted suffix is stable across Scala 2 / Scala 3 and ANSI is removed.
+    */
+  def testClassViewParseReasons[A: Type]: Expr[Data] = {
+    val prefix = removeAnsiColors(Type.prettyPrint[A]) + " "
+    def reasonOf[V](result: ClassViewResult[V]): Data = result match {
+      case ClassViewResult.Compatible(_)     => Data("<compatible>")
+      case ClassViewResult.Incompatible(why) =>
+        val cleaned = removeAnsiColors(why)
+        Data(if (cleaned.startsWith(prefix)) cleaned.drop(prefix.length) else cleaned)
+    }
+    Expr(
+      Data.map(
+        "asSingleton" -> reasonOf(SingletonValue.parse[A]),
+        "asNamedTuple" -> reasonOf(NamedTuple.parse[A]),
+        "asCaseClass" -> reasonOf(CaseClass.parse[A]),
+        "asEnum" -> reasonOf(Enum.parse[A]),
+        "asJavaBean" -> reasonOf(JavaBean.parse[A]),
+        // Class.parse is the most general view and is always Compatible.
+        "asClass" -> reasonOf(Class.parse[A])
+      )
+    )
+  }
+
   private val booleanType: Type[Boolean] = Type.of[Boolean]
   private val intType: Type[Int] = Type.of[Int]
   private val stringType: Type[String] = Type.of[String]

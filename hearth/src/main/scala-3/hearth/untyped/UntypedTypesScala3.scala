@@ -96,10 +96,21 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         val method = typeReprMethods.getClass.getMethod(methodName, classOf[Object])
         method.invoke(typeReprMethods, tpe).asInstanceOf[R]
       }
-      def typeReprParents(tpe: TypeRepr): List[TypeRepr] =
-        callReflectMethod[List[TypeRepr]](tpe, "parents")
       def typeReprBaseClasses(tpe: TypeRepr): List[Symbol] =
         callReflectMethod[List[Symbol]](tpe, "baseClasses")
+
+      // `TypeReprMethods` has no `parents` member on Scala 3.3.x (only `baseClasses`), and `Symbol.declaredParents`
+      // does not exist there either. We derive the *direct* parents from the linearization: a base class is a direct
+      // parent when no other base class (other than the type itself) has it among ITS own base classes. The result is
+      // resolved against the instance type via `baseType` so type arguments are propagated.
+      def typeReprDirectParents(tpe: TypeRepr): List[TypeRepr] = {
+        val selfSym = tpe.typeSymbol
+        val bases = typeReprBaseClasses(tpe).filterNot(_ == selfSym)
+        // baseClasses of each base (excluding the base itself and self), used to drop transitive ancestors.
+        val ancestorsOfBases: Set[Symbol] =
+          bases.flatMap(b => typeReprBaseClasses(b.typeRef).filterNot(s => s == b || s == selfSym)).toSet
+        bases.filterNot(ancestorsOfBases.contains).map(tpe.baseType)
+      }
 
       /** Makes an annotation tree obtained from `Symbol.annotations` spliceable into macro output.
         *
@@ -341,7 +352,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         case AndType(left, right) => List(left, right)
         case _                    =>
           if instanceTpe.typeSymbol.isNoSymbol then Nil
-          else typeReprParents(instanceTpe)
+          else typeReprDirectParents(instanceTpe)
       }
 
     override def baseClasses(instanceTpe: UntypedType): List[UntypedType] =
