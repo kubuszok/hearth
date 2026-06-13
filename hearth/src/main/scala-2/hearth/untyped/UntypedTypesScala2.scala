@@ -120,7 +120,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
           case Everywhere => isPublic
           case AtCallSite =>
             isPublic || isPrivateButInTheSameClass || isProtectedButInTheSameClass || isPrivateWithinButInTheRightPlace
-          case Unrestricted => true
+          case Anywhere => true
         }
       }
 

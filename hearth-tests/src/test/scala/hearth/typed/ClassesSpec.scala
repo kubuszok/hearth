@@ -229,7 +229,7 @@ final class ClassesSpec extends MacroSuite {
     }
 
     // Regression for commit 68e1781: caseFieldValuesAt(instance, visibility) filters case fields by
-    // accessibility. By default (Unrestricted) ALL case fields are returned (pre-68e1781 behavior);
+    // accessibility. By default (Anywhere) ALL case fields are returned (pre-68e1781 behavior);
     // the `private[hearth]` field b IS accessible at this call site (inside hearth), so AtCallSite
     // keeps it, while explicit Everywhere (b is not public) skips it on both platforms.
     test("CaseClass[A].caseFieldValuesAt should filter fields by the requested visibility") {
