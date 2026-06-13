@@ -292,10 +292,22 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
         val rawSig = sym.asMethod.typeSignatureIn(targetType)
         val paramLists = rawSig.paramLists
 
+        // Reconstruct the method's type parameters (for generic / polymorphic methods like `def f[T](t: T): T`).
+        // The parameter types and result type computed from `typeSignatureIn` still reference the ORIGINAL
+        // type-parameter symbols, so we create matching TypeDefs and substitute old symbols -> new symbols, keeping
+        // the override's signature in sync with the abstract method's polymorphic signature.
+        val originalTypeParams: List[Symbol] = sym.asMethod.typeParams
+        val typeParamDefs: List[TypeDef] = originalTypeParams.map(tp => c.internal.typeDef(tp))
+        val newTypeParamSyms: List[Symbol] = typeParamDefs.map(_.symbol)
+
+        def subst(tpe: c.universe.Type): c.universe.Type =
+          if (originalTypeParams.isEmpty) tpe
+          else tpe.substituteSymbols(originalTypeParams, newTypeParamSyms)
+
         val (paramDefs, paramRefs) = paramLists.map { paramList =>
           paramList.map { param =>
             val paramName = TermName(param.name.toString)
-            val paramType = param.typeSignature
+            val paramType = subst(param.typeSignature)
             val vd = ValDef(Modifiers(Flag.PARAM), paramName, TypeTree(paramType), EmptyTree)
             val ref: UntypedExpr = Ident(paramName)
             (vd, ref)
@@ -305,8 +317,8 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
         val selfIdent: UntypedExpr = q"this"
         val bodyExpr = ovr.body(selfIdent, paramRefs.flatten)
 
-        val resultType = rawSig.finalResultType
-        DefDef(Modifiers(Flag.OVERRIDE), methodName, Nil, paramDefs, TypeTree(resultType), bodyExpr)
+        val resultType = subst(rawSig.finalResultType)
+        DefDef(Modifiers(Flag.OVERRIDE), methodName, typeParamDefs, paramDefs, TypeTree(resultType), bodyExpr)
       }
 
       val classParentTypes = parentTypes.filterNot(pt => pt.typeSymbol.isClass && pt.typeSymbol.asClass.isTrait)
