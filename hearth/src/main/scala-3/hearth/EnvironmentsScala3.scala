@@ -31,6 +31,105 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
       .flatten
   }
 
+  override lazy val enclosingScope: hearth.fp.data.NonEmptyVector[Enclosure] = {
+    // NOTE: we intentionally do NOT call `pos.sourceFile` here. Owner symbols in user code do not carry `.sig`
+    // positions, so the plain `symbol.pos` is sufficient.
+    def positionOf(symbol: Symbol): Option[Position] = symbol.pos
+
+    def decodedName(symbol: Symbol): String = symbol.name.stripSuffix("$").trim
+
+    // Owners we never want to surface to the user (compiler-internal wrappers).
+    def isHiddenOwner(symbol: Symbol): Boolean = {
+      val n = symbol.name
+      n == "<root>" || n == "<empty>" || n == "<none>" ||
+      // The `inline def`/`${ }` splice expansion glue is a synthetic owner literally named "macro".
+      n == "macro" ||
+      // synthetic anonymous functions / by-name wrappers
+      n.startsWith("$anonfun") || n.contains("$anon") ||
+      // macro-expansion synthetic method wrappers (the `inline def` expansion glue)
+      (symbol.isDefDef && symbol.flags.is(Flags.Synthetic) && symbol.flags.is(Flags.Macro))
+    }
+
+    def toEnclosure(symbol: Symbol): Option[Enclosure] =
+      if symbol.isNoSymbol || isHiddenOwner(symbol) then None
+      else if symbol.isPackageDef then Some(
+        Enclosure.Package(decodedName(symbol), Some(symbol.fullName), positionOf(symbol))
+      )
+      else if symbol.isClassDef then {
+        // A package object surfaces as a ClassDef whose name ends with `package$` - treat as Package.
+        if symbol.flags.is(Flags.Package) then Some(
+          Enclosure.Package(decodedName(symbol), Some(symbol.fullName), positionOf(symbol))
+        )
+        else {
+          val tpe = symbol.typeRef
+          val ev = UntypedType.as_??(tpe)
+          import ev.Underlying
+          val members = UntypedMethod.methods(tpe).map(_.asTyped[ev.Underlying])
+          if symbol.flags.is(Flags.Module) then {
+            // object/module: stable path, members callable via module Ref. On Scala 3 the owner is the module CLASS,
+            // whose `companionModule` is the object's term (val) symbol that `Ref` can reference.
+            val moduleSym = {
+              val cm = symbol.companionModule
+              if cm.isNoSymbol then symbol else cm
+            }
+            val refTerm: Term = Ref(moduleSym)
+            Some(
+              Enclosure.Object(
+                decodedName(symbol),
+                Some(symbol.fullName),
+                positionOf(symbol),
+                ev,
+                members,
+                UntypedExpr.as_??(refTerm)
+              )
+            )
+          } else {
+            // class/trait: `this` reference only for the immediately-enclosing class.
+            val thisRef =
+              scala.util.Try(UntypedExpr.as_??(This(symbol): Term)).toOption
+            Some(
+              Enclosure.Class(
+                decodedName(symbol),
+                Some(symbol.fullName),
+                positionOf(symbol),
+                ev,
+                members,
+                thisRef
+              )
+            )
+          }
+        }
+      } else if symbol.isValDef then {
+        val tpe = symbol.termRef.widen
+        Some(Enclosure.Value(decodedName(symbol), Some(symbol.fullName), positionOf(symbol), UntypedType.as_??(tpe)))
+      } else if symbol.isDefDef then
+      // Result type is intentionally None: a non-experimental, cross-platform-consistent way to read a def's result
+      // type from an owner Symbol alone is not available on Scala 3 (`Symbol.info` is @experimental), so we keep the
+      // method enclosure's `tpe` None on both platforms for identical output.
+      Some(Enclosure.Method(decodedName(symbol), Some(symbol.fullName), positionOf(symbol), None, Nil))
+      else None
+
+    // `This(symbol)` is only sound for the immediately-enclosing class - blank it out for outer ones.
+    var seenImmediateClass = false
+    val enclosures = scala.collection.mutable.ArrayBuffer.empty[Enclosure]
+    var current = Symbol.spliceOwner
+    while !current.isNoSymbol do {
+      toEnclosure(current).foreach {
+        case c: Enclosure.Class =>
+          if seenImmediateClass then enclosures += c.copy(thisRef = None)
+          else { enclosures += c; seenImmediateClass = true }
+        case other => enclosures += other
+      }
+      current = current.maybeOwner
+    }
+
+    hearth.fp.data.NonEmptyVector
+      .fromVector(enclosures.toVector)
+      .getOrElse(
+        hearth.fp.data.NonEmptyVector.one(Enclosure.Package("<root>", Some("<root>"), None))
+      )
+  }
+
   object Environment extends EnvironmentModule {
 
     override lazy val currentScalaVersion: ScalaVersion = ScalaVersion.byScalaLibrary(quotes)

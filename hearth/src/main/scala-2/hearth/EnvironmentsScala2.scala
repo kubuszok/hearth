@@ -51,6 +51,89 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
     }
   }
 
+  override lazy val enclosingScope: hearth.fp.data.NonEmptyVector[Enclosure] = {
+    import c.universe.{Position as _, *}
+
+    def positionOf(symbol: Symbol): Option[Position] =
+      Option(symbol.pos)
+        .filter(_ != NoPosition)
+        .filter(pos => scala.util.Try(pos.start).isSuccess)
+
+    def decodedName(symbol: Symbol): String = symbol.name.decodedName.toString.trim
+
+    def isHiddenOwner(symbol: Symbol): Boolean = {
+      val n = decodedName(symbol)
+      n == "<root>" || n == "<empty>" || n == "<none>" ||
+      n.startsWith("$anonfun") || n.contains("$anon") ||
+      // synthetic accessor/macro glue methods
+      (symbol.isMethod && symbol.isSynthetic)
+    }
+
+    def toEnclosure(symbol: Symbol): Option[Enclosure] =
+      if (symbol == NoSymbol || isHiddenOwner(symbol)) None
+      else if (symbol.isPackage || symbol.isPackageClass)
+        Some(Enclosure.Package(decodedName(symbol), Some(symbol.fullName), positionOf(symbol)))
+      else if (symbol.isModule || symbol.isModuleClass) {
+        val moduleSym = if (symbol.isModuleClass) symbol.asClass.module else symbol
+        val tpe: UntypedType = symbol.asClass.toType
+        val ev = UntypedType.as_??(tpe)
+        import ev.Underlying
+        val members = UntypedMethod.methods(tpe).map(_.asTyped[ev.Underlying])
+        val refTree: c.Tree = c.universe.internal.gen.mkAttributedRef(moduleSym)
+        Some(
+          Enclosure.Object(
+            decodedName(symbol),
+            Some(symbol.fullName),
+            positionOf(symbol),
+            ev,
+            members,
+            UntypedExpr.as_??(refTree)
+          )
+        )
+      } else if (symbol.isClass) {
+        val tpe: UntypedType = symbol.asClass.toType
+        val ev = UntypedType.as_??(tpe)
+        import ev.Underlying
+        val members = UntypedMethod.methods(tpe).map(_.asTyped[ev.Underlying])
+        val thisRef = scala.util.Try(UntypedExpr.as_??(c.universe.internal.gen.mkAttributedThis(symbol))).toOption
+        Some(
+          Enclosure.Class(
+            decodedName(symbol),
+            Some(symbol.fullName),
+            positionOf(symbol),
+            ev,
+            members,
+            thisRef
+          )
+        )
+      } else if (symbol.isTerm && (symbol.asTerm.isVal || symbol.asTerm.isVar)) {
+        val tpe: UntypedType = symbol.typeSignature
+        Some(Enclosure.Value(decodedName(symbol), Some(symbol.fullName), positionOf(symbol), UntypedType.as_??(tpe)))
+      } else if (symbol.isMethod)
+        // Result type kept None for cross-platform parity with Scala 3 (where `Symbol.info` is @experimental).
+        Some(Enclosure.Method(decodedName(symbol), Some(symbol.fullName), positionOf(symbol), None, Nil))
+      else None
+
+    var seenImmediateClass = false
+    val enclosures = scala.collection.mutable.ArrayBuffer.empty[Enclosure]
+    var current: Symbol = c.internal.enclosingOwner
+    while (current != NoSymbol) {
+      toEnclosure(current).foreach {
+        case cls: Enclosure.Class =>
+          if (seenImmediateClass) enclosures += cls.copy(thisRef = None)
+          else { enclosures += cls; seenImmediateClass = true }
+        case other => enclosures += other
+      }
+      current = current.owner
+    }
+
+    hearth.fp.data.NonEmptyVector
+      .fromVector(enclosures.toVector)
+      .getOrElse(
+        hearth.fp.data.NonEmptyVector.one(Enclosure.Package("<root>", Some("<root>"), None))
+      )
+  }
+
   object Environment extends EnvironmentModule {
 
     override lazy val currentScalaVersion: ScalaVersion = ScalaVersion.byScalaLibrary(c)
