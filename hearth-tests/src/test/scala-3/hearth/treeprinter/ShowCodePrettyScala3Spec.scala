@@ -708,4 +708,103 @@ final class ShowCodePrettyScala3Spec extends MacroSuite {
     // Exact code might change between Scala versions, and we don't care about particular output - only that whole tree was handled.
     assert(printed.nonEmpty)
   }
+
+  // The monster fixtures above exercise structural breadth but never feed the printer a literal whose characters
+  // require escaping. These focused cases pin the literal-escaping branches (escapedStringValue / escapedChar /
+  // requiresFormat / quadNibble) that are otherwise cold.
+
+  test("AST printer escapes control/special characters inside String literals on Scala 3") {
+    @scala.annotation.nowarn
+    val printed = ShowCodePrettyFixtures.testExprPlainAST {
+      "tab\tnewline\nquote\"backslash\\carriage\rbackspace\bformnull "
+    }
+    // Escaped forms must appear verbatim in the rendered AST literal.
+    assert(printed.contains("\\t"), s"expected escaped tab in: $printed")
+    assert(printed.contains("\\n"), s"expected escaped newline in: $printed")
+    assert(printed.contains("\\\""), s"expected escaped quote in: $printed")
+    assert(printed.contains("\\\\"), s"expected escaped backslash in: $printed")
+    assert(printed.contains("\\r"), s"expected escaped carriage return in: $printed")
+    assert(printed.contains("\\b"), s"expected escaped backspace in: $printed")
+    // Control chars without a short escape go through the \\uXXXX quad-nibble path.
+    assert(printed.contains("\\u0000"), s"expected unicode-escaped NUL in: $printed")
+    assert(printed.contains("StringConstant"), s"expected StringConstant node in: $printed")
+  }
+
+  test("AST printer escapes a Char literal that needs escaping on Scala 3") {
+    @scala.annotation.nowarn
+    val printed = ShowCodePrettyFixtures.testExprPlainAST {
+      '\n'
+    }
+    assert(printed.contains("CharConstant"), s"expected CharConstant node in: $printed")
+    assert(printed.contains("'\\n'"), s"expected escaped char literal in: $printed")
+  }
+
+  test("AST printer renders a plain (non-escaped) Char literal on Scala 3") {
+    @scala.annotation.nowarn
+    val printed = ShowCodePrettyFixtures.testExprPlainAST {
+      'c'
+    }
+    assert(printed.contains("CharConstant"), s"expected CharConstant node in: $printed")
+    assert(printed.contains("'c'"), s"expected unescaped char literal in: $printed")
+  }
+
+  test("AST printer renders a Long literal with the L suffix on Scala 3") {
+    @scala.annotation.nowarn
+    val printed = ShowCodePrettyFixtures.testExprPlainAST {
+      9999999999L
+    }
+    assert(printed.contains("LongConstant"), s"expected LongConstant node in: $printed")
+    assert(printed.contains("9999999999L"), s"expected L-suffixed long literal in: $printed")
+  }
+
+  test("AST printer renders a Float literal with the f suffix on Scala 3") {
+    @scala.annotation.nowarn
+    val printed = ShowCodePrettyFixtures.testExprPlainAST {
+      3.14f
+    }
+    assert(printed.contains("FloatConstant"), s"expected FloatConstant node in: $printed")
+    assert(printed.contains("3.14f"), s"expected f-suffixed float literal in: $printed")
+  }
+
+  test("AST printer renders Boolean / Int / Double / Unit / null literals on Scala 3") {
+    @scala.annotation.nowarn
+    val printedBool = ShowCodePrettyFixtures.testExprPlainAST(true)
+    assert(printedBool.contains("BooleanConstant"), s"expected BooleanConstant in: $printedBool")
+    assert(printedBool.contains("true"), s"expected true literal in: $printedBool")
+
+    @scala.annotation.nowarn
+    val printedInt = ShowCodePrettyFixtures.testExprPlainAST(42)
+    assert(printedInt.contains("IntConstant"), s"expected IntConstant in: $printedInt")
+    assert(printedInt.contains("42"), s"expected 42 literal in: $printedInt")
+
+    @scala.annotation.nowarn
+    val printedDouble = ShowCodePrettyFixtures.testExprPlainAST(2.5d)
+    assert(printedDouble.contains("DoubleConstant"), s"expected DoubleConstant in: $printedDouble")
+
+    @scala.annotation.nowarn
+    val printedUnit = ShowCodePrettyFixtures.testExprPlainAST(())
+    assert(printedUnit.contains("UnitConstant"), s"expected UnitConstant in: $printedUnit")
+
+    @scala.annotation.nowarn
+    val printedNull = ShowCodePrettyFixtures.testExprPlainAST((null: String))
+    assert(printedNull.nonEmpty, s"expected non-empty render for null in: $printedNull")
+  }
+
+  test("ANSI AST printer produces colored output that matches plain after stripping ANSI on Scala 3") {
+    // Use an expression without synthetic lambda params: two separate macro expansions would otherwise pick different
+    // counter-based names (`_$3` vs `_$4`), making the comparison flaky.
+    @scala.annotation.nowarn
+    val ansi = ShowCodePrettyFixtures.testExprPrettyAST {
+      val xs = List(1, 2, 3)
+      xs
+    }
+    @scala.annotation.nowarn
+    val plain = ShowCodePrettyFixtures.testExprPlainAST {
+      val xs = List(1, 2, 3)
+      xs
+    }
+    // ANSI output carries escape codes; stripping them must yield exactly the plain rendering.
+    assert(ansi.contains("["), s"expected ANSI escapes in colored output: $ansi")
+    ansi.stripANSI <==> plain
+  }
 }

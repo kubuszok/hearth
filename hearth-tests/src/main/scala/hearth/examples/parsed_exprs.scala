@@ -26,5 +26,12 @@ object dsl {
 
   implicit class WhenOps[A](private val a: A) extends AnyVal {
     def when[B <: A]: B = throw new NotImplementedError
+    // Monocle-style prism alias: focuses on a subtype.
+    def as[B <: A]: B = throw new NotImplementedError
+  }
+
+  // quicklens-style Option focus: `.some` narrows `Option[A]` to `A`.
+  implicit class SomeOps[A](private val oa: Option[A]) extends AnyVal {
+    def some: A = throw new NotImplementedError
   }
 }

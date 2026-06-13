@@ -27,6 +27,9 @@ final private class DestructuredExprsFixtures(val c: blackbox.Context)
 
   def testParseDetailedImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
     testParseDetailed[A](expr)
+
+  def testMarkerPathImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testMarkerPath[A](expr)
 }
 
 object DestructuredExprsFixtures {
@@ -42,4 +45,6 @@ object DestructuredExprsFixtures {
   def testOutermostMethodCall[A](expr: A): Data = macro DestructuredExprsFixtures.testOutermostMethodCallImpl[A]
 
   def testParseDetailed[A](expr: A): Data = macro DestructuredExprsFixtures.testParseDetailedImpl[A]
+
+  def testMarkerPath[A](expr: A): Data = macro DestructuredExprsFixtures.testMarkerPathImpl[A]
 }
