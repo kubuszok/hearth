@@ -190,13 +190,16 @@ trait UntypedTypes { this: MacroCommons =>
       *   - `returnType` — the override's result type, fully resolved against the instance type and the re-bound type
       *     parameters (never `Any` for a method whose declared return is concrete, even when the method is generic),
       *   - `typeParameters` — the override's own type parameters (re-bound to the synthesized member), so a body can
-      *     name `T` to cast through it; empty for a monomorphic method.
+      *     name `T` to cast through it; empty for a monomorphic method,
+      *   - `returnsThisType` — whether the overridden method declares a `this.type` result. The `returnType` is the
+      *     widened parent (indistinguishable from an ordinary method by `=:=`/`<:<`), so this is the only reliable
+      *     signal that the body must return `self` (the only inhabitant of the subtype's `this.type`).
       *
       * @since 0.4.0
       */
     final case class UntypedOverride(
         method: UntypedMethod,
-        body: (UntypedExpr, List[UntypedExpr], UntypedType, List[UntypedType]) => UntypedExpr
+        body: (UntypedExpr, List[UntypedExpr], UntypedType, List[UntypedType], Boolean) => UntypedExpr
     )
 
     def unsafeNewSubtype(

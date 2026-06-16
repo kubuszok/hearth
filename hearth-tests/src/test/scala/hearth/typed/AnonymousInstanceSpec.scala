@@ -353,9 +353,10 @@ final class AnonymousInstanceSpec extends MacroSuite {
           AnonymousInstanceFixtures.testAnonymousInstanceConstructAbstractVal <==> "the-val"
         }
 
-        test("this.type return resolves to the synthesized subtype") {
-          // chain: this.type — override returns `this`, which must conform to the override's this.type
-          AnonymousInstanceFixtures.testAnonymousInstanceConstructThisType <==> "true"
+        test("this.type return resolves to the synthesized subtype, gated via OverrideContext.returnsThisType") {
+          // chain: this.type returns `this` (returnsThisType=true); sibling: Int returns 7 (returnsThisType=false) —
+          // proves the flag distinguishes them and `this` conforms to the override's this.type
+          AnonymousInstanceFixtures.testAnonymousInstanceConstructThisType <==> "true|7"
         }
 
         test("class parent with trait mixin") {

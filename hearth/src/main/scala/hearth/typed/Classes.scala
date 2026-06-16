@@ -721,7 +721,11 @@ trait Classes { this: MacroCommons =>
     *     String`) this is the concrete type, NOT `Any`; for `def f[T](t: T): T` it is the re-bound `T`,
     *   - `typeParameters` — the override's own type parameters (re-bound to the synthesized member). A body can use
     *     these to name `T` (e.g. for `null.asInstanceOf[T]`) when no parameter already carries it; empty for a
-    *     monomorphic method.
+    *     monomorphic method,
+    *   - `returnsThisType` — whether the overridden method declares a `this.type` result (e.g. a fluent
+    *     `def chain: this.type`). Because `returnType` is the widened parent type (indistinguishable from an ordinary
+    *     method by `=:=`/`<:<`), this flag is the reliable way to gate a "return `self`" body: when `true`, return
+    *     `self` (the only inhabitant of the subtype's `this.type`) WITHOUT casting it to `returnType`.
     *
     * @since 0.4.0
     */
@@ -730,7 +734,8 @@ trait Classes { this: MacroCommons =>
       method: UntypedMethod,
       parameters: List[Expr_??],
       returnType: ??,
-      typeParameters: List[??]
+      typeParameters: List[??],
+      returnsThisType: Boolean
   )
 
   @FunctionalInterface
@@ -810,14 +815,16 @@ trait Classes { this: MacroCommons =>
                   selfExpr: UntypedExpr,
                   params: List[UntypedExpr],
                   returnTpe: UntypedType,
-                  typeParams: List[UntypedType]
+                  typeParams: List[UntypedType],
+                  returnsThisType: Boolean
               ) => {
                 val ctx = OverrideContext(
                   self = selfExpr.as_??,
                   method = untypedMethod,
                   parameters = params.map(_.as_??),
                   returnType = returnTpe.as_??,
-                  typeParameters = typeParams.map(_.as_??)
+                  typeParameters = typeParams.map(_.as_??),
+                  returnsThisType = returnsThisType
                 )
                 UntypedExpr.fromTyped(body(ctx).value)
               }

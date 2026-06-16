@@ -341,7 +341,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
         val typeParamTypes: List[UntypedType] = newTypeParamSyms.map(_.asType.toType)
 
         val selfIdent: UntypedExpr = q"this"
-        val bodyExpr = ovr.body(selfIdent, paramRefs.flatten, resultType, typeParamTypes)
+        val bodyExpr = ovr.body(selfIdent, paramRefs.flatten, resultType, typeParamTypes, isThisTypeReturn)
 
         val returnTpt: Tree = if (isThisTypeReturn) tq"this.type" else TypeTree(resultType)
 
