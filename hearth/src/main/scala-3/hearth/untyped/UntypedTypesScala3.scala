@@ -449,9 +449,52 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           }
         catch { case _: Throwable => false }
 
+      def isContextFunctionType(tpe: TypeRepr): Boolean = {
+        val sym = tpe.dealias.typeSymbol
+        !sym.isNoSymbol && sym.fullName.startsWith("scala.ContextFunction")
+      }
+
+      // A context-function result `def f(x): B ?=> C`. On newer Scala 3 (e.g. 3.8.4) `safeMemberType` desugars the
+      // return into a trailing `using` parameter clause (`MethodType(x)(MethodType(using B)(C))`), which makes the
+      // synthesized override return `C` where the trait returns `B ?=> C` — a runtime `ClassCastException` at the call
+      // site. The source return type is still visible on the symbol's tree, so detect it there and recover both the
+      // ContextFunctionN result and the count of REAL (pre-desugaring) value parameter clauses. On 3.3.8 the member
+      // type is not desugared and this collapses to a no-op.
+      def contextFunctionReturn(sym: Symbol): Option[(Int, TypeRepr)] =
+        try
+          sym.tree match {
+            case d: DefDef if isContextFunctionType(d.returnTpt.tpe) =>
+              val valueClauses = d.paramss.count {
+                case _: TermParamClause => true
+                case _                  => false
+              }
+              Some((valueClauses, d.returnTpt.tpe))
+            case _ => None
+          }
+        catch { case _: Throwable => None }
+
+      // Keeps the first `valueClauses` value parameter clauses of `tpe` and replaces everything after with `result`
+      // (so a desugared trailing `using` clause from a context-function return is dropped). Type-parameter (Poly)
+      // clauses pass through without consuming a value-clause budget.
+      def truncateToResult(tpe: TypeRepr, valueClauses: Int, result: TypeRepr): TypeRepr =
+        if valueClauses <= 0 then result
+        else
+          tpe match {
+            case mt: MethodType =>
+              MethodType(mt.paramNames)(_ => mt.paramTypes, _ => truncateToResult(mt.resType, valueClauses - 1, result))
+            case pt: PolyType =>
+              PolyType(pt.paramNames)(_ => pt.paramBounds, _ => truncateToResult(pt.resType, valueClauses, result))
+            case _ => result
+          }
+
       val overrideDecls = overrides.map { ovr =>
         val methodSym = ovr.method.symbol
-        val memberType = safeMemberType(targetType, methodSym)
+        val rawMemberType = safeMemberType(targetType, methodSym)
+        // Recover a context-function return that a newer compiler desugared into a trailing `using` clause.
+        val memberType = contextFunctionReturn(methodSym) match {
+          case Some((valueClauses, ctxFn)) => truncateToResult(rawMemberType, valueClauses, ctxFn)
+          case None                        => rawMemberType
+        }
         // An abstract `val` must be overridden with a `val`, not a `def` (Scala 3 rejects a method overriding a
         // stable value: "wrong type, expect a method type"). Vars keep the def/setter shape.
         val isValTarget = ovr.method.isVal && !ovr.method.isVar
@@ -499,25 +542,28 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       val methodTargets = overrideDecls.filterNot(_._4)
       val valTargets = overrideDecls.filter(_._4)
 
-      val methodDefs = cls.declaredMethods.zip(methodTargets).map { case (newMethodSym, (ovr, _, memberType, _, _)) =>
-        DefDef(
-          newMethodSym,
-          argss => {
-            val selfExpr: Term = This(cls)
-            // Type arguments come first in `argss` for a generic member (re-bound type-parameter references), value
-            // arguments are the Terms. Splitting them lets us surface the type parameters to the override body and
-            // resolve the return type against this member's own type parameters.
-            val typeParamReprs: List[TypeRepr] = argss.flatten.collect { case t: TypeTree => t.tpe }
-            val flatParams: List[Term] = argss.flatten.collect { case t: Term => t }
-            val returnTpe: TypeRepr = methodResultType(memberType, typeParamReprs)
-            Some(ovr.body(selfExpr, flatParams, returnTpe, typeParamReprs).changeOwner(newMethodSym))
-          }
-        )
-      }
+      val methodDefs =
+        cls.declaredMethods.zip(methodTargets).map { case (newMethodSym, (ovr, _, memberType, _, isThisTypeTarget)) =>
+          DefDef(
+            newMethodSym,
+            argss => {
+              val selfExpr: Term = This(cls)
+              // Type arguments come first in `argss` for a generic member (re-bound type-parameter references), value
+              // arguments are the Terms. Splitting them lets us surface the type parameters to the override body and
+              // resolve the return type against this member's own type parameters.
+              val typeParamReprs: List[TypeRepr] = argss.flatten.collect { case t: TypeTree => t.tpe }
+              val flatParams: List[Term] = argss.flatten.collect { case t: Term => t }
+              val returnTpe: TypeRepr = methodResultType(memberType, typeParamReprs)
+              Some(
+                ovr.body(selfExpr, flatParams, returnTpe, typeParamReprs, isThisTypeTarget).changeOwner(newMethodSym)
+              )
+            }
+          )
+        }
 
       val valDefs = cls.declaredFields.zip(valTargets).map { case (newValSym, (ovr, _, memberType, _, _)) =>
         val valType = methodResultType(memberType, Nil)
-        ValDef(newValSym, Some(ovr.body(This(cls), Nil, valType, Nil).changeOwner(newValSym)))
+        ValDef(newValSym, Some(ovr.body(This(cls), Nil, valType, Nil, false).changeOwner(newValSym)))
       }
 
       val overrideDefs = methodDefs ++ valDefs

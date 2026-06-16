@@ -553,7 +553,7 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     * constructed instance — proving the override's `this.type` result resolves to the synthesized subtype.
     */
   def testAnonymousInstanceConstructThisType: Expr[String] = {
-    implicit val StringType: Type[String] = stringTypeAI
+    implicit val IntType: Type[Int] = intTypeAI
     implicit val ChainType: Type[examples.anonymous_instances.TraitWithThisTypeReturn] =
       Type.of[examples.anonymous_instances.TraitWithThisTypeReturn]
 
@@ -561,14 +561,19 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
       case ClassViewResult.Compatible(ai) =>
         val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
           cm.method.asUntyped -> new OverrideBody {
-            def apply(ctx: OverrideContext): Expr_?? = ctx.self
+            def apply(ctx: OverrideContext): Expr_?? =
+              // The fluent-mock pattern: a `this.type` method must return `self`; an ordinary method must return a
+              // real value. `returnsThisType` is the only signal that distinguishes them (the resolved `returnType`
+              // cannot). A wrong flag is a compile error here (self isn't an Int; 7 isn't a this.type).
+              if (ctx.returnsThisType) ctx.self
+              else Expr(7).as_??
           }
         }.toMap
         ai.construct(None, Map.empty, overrides) match {
           case Right(constructed) =>
             Expr.quote {
               val inst = Expr.splice(constructed)
-              (inst.chain eq inst).toString
+              (inst.chain eq inst).toString + "|" + inst.sibling.toString
             }
           case Left(errors) => Expr(s"errors: ${errors.toVector.mkString("; ")}")
         }
