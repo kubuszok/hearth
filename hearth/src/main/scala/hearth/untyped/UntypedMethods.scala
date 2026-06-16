@@ -100,6 +100,16 @@ trait UntypedMethods { this: MacroCommons =>
     def isImplicit: Boolean
     def hasDefault: Boolean
 
+    /** For a by-name parameter (`a: => A`), the underlying type `A`; `None` for any non-by-name parameter.
+      *
+      * Normalizes a platform difference: on Scala 2 a by-name parameter's type is the applied wrapper `<byname>[A]` (so
+      * `A` is recoverable as its sole type argument), while on Scala 3 it is a `ByNameType(A)` which is NOT an applied
+      * type (so `typeArguments` returns `Nil`). This surfaces `A` uniformly across platforms.
+      *
+      * @since 0.4.0
+      */
+    def byNameUnderlying: Option[UntypedType]
+
     final def default(instanceTpe: UntypedType): Option[UntypedMethod] = UntypedMethod.defaultValue(instanceTpe)(this)
   }
 

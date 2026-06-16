@@ -50,6 +50,20 @@ final private class AnonymousInstanceFixtures(val c: blackbox.Context)
   def testAnonymousInstanceConstructOverloadsImpl: c.Expr[String] = testAnonymousInstanceConstructOverloads
 
   def testAnonymousInstanceConstructGenericImpl: c.Expr[String] = testAnonymousInstanceConstructGeneric
+
+  def testAnonymousInstanceConstructGenericConcreteReturnImpl: c.Expr[String] =
+    testAnonymousInstanceConstructGenericConcreteReturn
+
+  def testAnonymousInstanceConstructGenericFactoryImpl: c.Expr[String] =
+    testAnonymousInstanceConstructGenericFactory
+
+  def testAnonymousInstanceConstructSymbolicImpl: c.Expr[String] = testAnonymousInstanceConstructSymbolic
+
+  def testAnonymousInstanceConstructImplicitParamImpl: c.Expr[String] = testAnonymousInstanceConstructImplicitParam
+
+  def testAnonymousInstanceConstructAbstractValImpl: c.Expr[String] = testAnonymousInstanceConstructAbstractVal
+
+  def testAnonymousInstanceConstructThisTypeImpl: c.Expr[String] = testAnonymousInstanceConstructThisType
 }
 
 object AnonymousInstanceFixtures {
@@ -94,4 +108,22 @@ object AnonymousInstanceFixtures {
 
   def testAnonymousInstanceConstructGeneric: String =
     macro AnonymousInstanceFixtures.testAnonymousInstanceConstructGenericImpl
+
+  def testAnonymousInstanceConstructGenericConcreteReturn: String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceConstructGenericConcreteReturnImpl
+
+  def testAnonymousInstanceConstructGenericFactory: String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceConstructGenericFactoryImpl
+
+  def testAnonymousInstanceConstructSymbolic: String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceConstructSymbolicImpl
+
+  def testAnonymousInstanceConstructImplicitParam: String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceConstructImplicitParamImpl
+
+  def testAnonymousInstanceConstructAbstractVal: String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceConstructAbstractValImpl
+
+  def testAnonymousInstanceConstructThisType: String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceConstructThisTypeImpl
 }

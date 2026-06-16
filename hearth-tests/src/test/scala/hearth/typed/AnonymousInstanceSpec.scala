@@ -328,6 +328,36 @@ final class AnonymousInstanceSpec extends MacroSuite {
           AnonymousInstanceFixtures.testAnonymousInstanceConstructGeneric <==> "hello|42"
         }
 
+        test("generic method with concrete return sees returnType=String (not Any)") {
+          // describe[T](x): String — override returns a String, requires ctx.returnType to be the concrete String
+          AnonymousInstanceFixtures.testAnonymousInstanceConstructGenericConcreteReturn <==> "described|described"
+        }
+
+        test("generic method with no value params can name its type parameter via ctx.typeParameters") {
+          // emptyList[T]: List[T] — override builds List.empty[T] using ctx.typeParameters.head
+          AnonymousInstanceFixtures.testAnonymousInstanceConstructGenericFactory <==> "[]|0"
+        }
+
+        test("symbolic/operator method name is synthesized and resolved") {
+          // +(x: Int): Int — override returns its argument
+          AnonymousInstanceFixtures.testAnonymousInstanceConstructSymbolic <==> "41"
+        }
+
+        test("method with a trailing implicit parameter clause keeps the implicit modifier") {
+          // run(cmd)(implicit cfg): String — override joins both, invoked with implicit cfg = 7
+          AnonymousInstanceFixtures.testAnonymousInstanceConstructImplicitParam <==> "go7"
+        }
+
+        test("abstract val is overridden with a val member") {
+          // val abstractVal: String — override emits a val
+          AnonymousInstanceFixtures.testAnonymousInstanceConstructAbstractVal <==> "the-val"
+        }
+
+        test("this.type return resolves to the synthesized subtype") {
+          // chain: this.type — override returns `this`, which must conform to the override's this.type
+          AnonymousInstanceFixtures.testAnonymousInstanceConstructThisType <==> "true"
+        }
+
         test("class parent with trait mixin") {
           testAnonymousInstanceConstructWithMixins[
             examples.anonymous_instances.AbstractClassNoArgs,

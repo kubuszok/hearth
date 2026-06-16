@@ -27,6 +27,11 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     }
     override def isImplicit: Boolean = symbol.isImplicit
     override def hasDefault: Boolean = symbol.asTerm.isParamWithDefault
+
+    // A by-name parameter's type is the applied wrapper `<byname>[A]`, so the underlying `A` is its sole type argument.
+    override def byNameUnderlying: Option[c.universe.Type] =
+      if (symbol.isByNameParam) symbol.typeSignature.typeArgs.headOption
+      else None
   }
 
   object UntypedParameter extends UntypedParameterModule {

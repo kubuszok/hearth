@@ -81,6 +81,47 @@ trait TraitWithBoundedGenericMethod {
   def firstOf[T <: AnyRef](xs: List[T]): T
 }
 
+/** Generic method whose declared return is CONCRETE (`String`), independent of the method's type parameter. The
+  * override body must see `OverrideContext.returnType = String` (not `Any`) — the regression Kindlings hit while
+  * porting ScalaMock.
+  */
+trait TraitWithGenericConcreteReturn {
+  def describe[T](x: T): String
+}
+
+/** Generic method with NO value parameter list, so the override body cannot recover the type parameter from any
+  * argument — it must use `OverrideContext.typeParameters` to name `T` and `returnType` (`List[T]`) to build a result.
+  */
+trait TraitWithGenericFactory {
+  def emptyList[T]: List[T]
+}
+
+/** Symbolic / operator method name — the override member must be emitted under the operator name `+`. */
+trait TraitWithSymbolicMethod {
+  def +(x: Int): Int
+}
+
+/** Method with a trailing implicit parameter clause — the override must keep the `implicit` modifier on the second
+  * clause, otherwise it stays abstract (signature mismatch) and the instance cannot be constructed.
+  */
+trait TraitWithImplicitParam {
+  def run(cmd: String)(implicit cfg: Int): String
+}
+
+/** Abstract `val` member — overriding it with a `def` is rejected ("stable, immutable value required"), so the override
+  * must be emitted as a `val`.
+  */
+trait TraitWithAbstractVal {
+  val abstractVal: String
+}
+
+/** `this.type` return — the override's declared result must be the synthesized subtype's `this.type`, otherwise
+  * returning `this` does not conform (the member type's `this.type` points at the parent trait).
+  */
+trait TraitWithThisTypeReturn {
+  def chain: this.type
+}
+
 @scala.annotation.nowarn
 trait TraitWithVisibility {
   def publicMethod: Int

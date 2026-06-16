@@ -209,7 +209,8 @@ final class MethodsScala3Spec extends MacroSuite {
               "isImplicit" -> Data(true),
               "hasDefault" -> Data(false),
               "isByName" -> Data(false),
-              "isVararg" -> Data(false)
+              "isVararg" -> Data(false),
+              "byNameUnderlying" -> Data("<none>")
             )
           )
         }

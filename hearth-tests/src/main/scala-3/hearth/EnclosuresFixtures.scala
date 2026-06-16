@@ -27,4 +27,8 @@ object EnclosuresFixtures {
   inline def testSumEnclosingLocalInts: Int = ${ testSumEnclosingLocalIntsImpl }
   private def testSumEnclosingLocalIntsImpl(using q: Quotes): Expr[Int] =
     new EnclosuresFixtures(q).testSumEnclosingLocalInts
+
+  inline def testEnclosingClassHasSelfTypeMember: Data = ${ testEnclosingClassHasSelfTypeMemberImpl }
+  private def testEnclosingClassHasSelfTypeMemberImpl(using q: Quotes): Expr[Data] =
+    new EnclosuresFixtures(q).testEnclosingClassHasSelfTypeMember
 }

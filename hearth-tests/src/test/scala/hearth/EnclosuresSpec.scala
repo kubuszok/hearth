@@ -28,6 +28,15 @@ final class EnclosuresSpec extends MacroSuite {
     def callsHelper: Int = EnclosuresFixtures.testCallEnclosingHelper
   }
 
+  // A trait carrying a self-type requirement: the member `fromSelfType` is declared on the required `SelfProvider`,
+  // NOT on `SelfTyped` itself, so it is only visible through `this`. The macro is expanded inside `SelfTyped`.
+  trait SelfProvider {
+    def fromSelfType: Int
+  }
+  trait SelfTyped { this: SelfProvider =>
+    def selfTypeMembers: Data = EnclosuresFixtures.testEnclosingClassHasSelfTypeMember
+  }
+
   // The macro is expanded inside a method that declares local vals BEFORE the call (and one AFTER, which must not be
   // discovered). Defined as plain methods (not test lambdas) to avoid synthetic `$anonfun` owners.
   object LocalNest {
@@ -77,6 +86,13 @@ final class EnclosuresSpec extends MacroSuite {
 
       test("locates and calls a nullary Int-returning member on the enclosing object") {
         NestObj.callsHelper ==> 7
+      }
+
+      // Regression: a trait's self-type requirement (`this: SelfProvider =>`) contributes members visible on `this`.
+      // These must appear in the enclosing class's `members` (wiring/DI relies on it) on BOTH platforms.
+      test("includes self-type requirement members of the enclosing trait") {
+        val instance = new SelfTyped with SelfProvider { def fromSelfType: Int = 1 }
+        instance.selfTypeMembers <==> Data(true)
       }
     }
 

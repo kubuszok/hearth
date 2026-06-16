@@ -295,7 +295,9 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
       val overrideDefs: List[Tree] = overrides.map { ovr =>
         val sym = ovr.method.symbol
-        val methodName = TermName(ovr.method.name)
+        // Use the symbol's ORIGINAL (encoded) name, not `ovr.method.name` (which is decoded): a symbolic member like
+        // `+` is encoded as `$plus`, and a freshly built `TermName("+")` would not match the abstract member.
+        val methodName = sym.name.toTermName
         val rawSig = sym.asMethod.typeSignatureIn(targetType)
         val paramLists = rawSig.paramLists
 
@@ -312,20 +314,43 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
           else tpe.substituteSymbols(originalTypeParams, newTypeParamSyms)
 
         val (paramDefs, paramRefs) = paramLists.map { paramList =>
+          // Preserve an `implicit` parameter clause: every param of an implicit clause carries the IMPLICIT flag, and
+          // the ValDefs of the override must carry it too, otherwise the trailing clause becomes a second explicit
+          // clause and the member stays abstract (signature mismatch).
+          val clauseFlags = if (paramList.headOption.exists(_.isImplicit)) Flag.PARAM | Flag.IMPLICIT else Flag.PARAM
           paramList.map { param =>
             val paramName = TermName(param.name.toString)
             val paramType = subst(param.typeSignature)
-            val vd = ValDef(Modifiers(Flag.PARAM), paramName, TypeTree(paramType), EmptyTree)
+            val vd = ValDef(Modifiers(clauseFlags), paramName, TypeTree(paramType), EmptyTree)
             val ref: UntypedExpr = Ident(paramName)
             (vd, ref)
           }.unzip
         }.unzip
 
-        val selfIdent: UntypedExpr = q"this"
-        val bodyExpr = ovr.body(selfIdent, paramRefs.flatten)
-
         val resultType = subst(rawSig.finalResultType)
-        DefDef(Modifiers(Flag.OVERRIDE), methodName, typeParamDefs, paramDefs, TypeTree(resultType), bodyExpr)
+        // A `this.type` result (e.g. `def chain: this.type` in a fluent builder) resolves, via `typeSignatureIn`, to
+        // the PARENT type — so emitting it verbatim makes the override return the parent, which does not conform to
+        // `this.type`. Detect it from the symbol's own (un-as-seen-from) signature and emit `this.type` instead, so
+        // the return is the synthesized subtype's `this.type`.
+        val isThisTypeReturn = sym.typeSignature.finalResultType match {
+          case ThisType(owner) => owner == sym.owner
+          case _               => false
+        }
+        // The re-bound type parameters, surfaced to the override body so it can name `T` for casts. These are the
+        // NEW symbols created above, hence in scope inside the generated DefDef.
+        val typeParamTypes: List[UntypedType] = newTypeParamSyms.map(_.asType.toType)
+
+        val selfIdent: UntypedExpr = q"this"
+        val bodyExpr = ovr.body(selfIdent, paramRefs.flatten, resultType, typeParamTypes)
+
+        val returnTpt: Tree = if (isThisTypeReturn) tq"this.type" else TypeTree(resultType)
+
+        // An abstract `val` must be overridden with a `val`, not a `def` ("stable, immutable value required"). A val
+        // member has no parameter lists or type parameters, so emit a plain ValDef carrying the override's body.
+        if (ovr.method.isVal && paramLists.isEmpty && originalTypeParams.isEmpty)
+          ValDef(Modifiers(Flag.OVERRIDE), methodName, returnTpt, bodyExpr)
+        else
+          DefDef(Modifiers(Flag.OVERRIDE), methodName, typeParamDefs, paramDefs, returnTpt, bodyExpr)
       }
 
       val classParentTypes = parentTypes.filterNot(pt => pt.typeSymbol.isClass && pt.typeSymbol.asClass.isTrait)
