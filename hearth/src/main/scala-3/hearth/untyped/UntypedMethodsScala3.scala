@@ -74,6 +74,22 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def isVararg: Boolean = isRepeatedParamType(symbol.termRef.widenTermRefByName)
     override def isImplicit: Boolean = symbol.flags.is(Flags.Implicit) || symbol.flags.is(Flags.Given)
     override def hasDefault: Boolean = symbol.flags.is(Flags.HasDefault)
+
+    // The underlying `A` of a by-name parameter `a: => A`. Like `isByName`, by-name-ness is only visible in the owning
+    // method's signature (the parameter's own termRef widens the `ByNameType` away), so we read `ByNameType(u)` there.
+    override def byNameUnderlying: Option[TypeRepr] = {
+      def loop(tpe: TypeRepr): Option[TypeRepr] = tpe match {
+        case MethodType(names, types, returnType) =>
+          names.zip(types).collectFirst { case (n, t) if n == symbol.name => t } match {
+            case Some(ByNameType(u)) => Some(u)
+            case Some(_)             => None
+            case None                => loop(returnType)
+          }
+        case PolyType(_, _, returnType) => loop(returnType)
+        case _                          => None
+      }
+      loop(safeMemberType(method.symbol.owner.typeRef, method.symbol))
+    }
   }
 
   object UntypedParameter extends UntypedParameterModule {
@@ -546,6 +562,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def isVararg: Boolean = false
     override def isImplicit: Boolean = false
     override def hasDefault: Boolean = false
+    override def byNameUnderlying: Option[TypeRepr] = None
   }
 
   /** Synthetic constructor for NamedTuple types.

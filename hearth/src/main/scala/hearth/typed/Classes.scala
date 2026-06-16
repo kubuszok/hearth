@@ -711,11 +711,26 @@ trait Classes { this: MacroCommons =>
       declaredIn: ??
   )
 
+  /** Context passed to an [[OverrideBody]] when synthesizing an override for an anonymous instance.
+    *
+    *   - `self` — a reference to the `$anon` instance being constructed (`this`),
+    *   - `method` — the abstract method being overridden,
+    *   - `parameters` — references to the override's own value parameters, typed with their resolved types,
+    *   - `returnType` — the override's result type, fully resolved against the instance type and the method's
+    *     (re-bound) type parameters. For a generic method with a concrete declared return (e.g. `def f[T](t: T):
+    *     String`) this is the concrete type, NOT `Any`; for `def f[T](t: T): T` it is the re-bound `T`,
+    *   - `typeParameters` — the override's own type parameters (re-bound to the synthesized member). A body can use
+    *     these to name `T` (e.g. for `null.asInstanceOf[T]`) when no parameter already carries it; empty for a
+    *     monomorphic method.
+    *
+    * @since 0.4.0
+    */
   final case class OverrideContext(
       self: Expr_??,
       method: UntypedMethod,
       parameters: List[Expr_??],
-      returnType: ??
+      returnType: ??,
+      typeParameters: List[??]
   )
 
   @FunctionalInterface
@@ -786,16 +801,23 @@ trait Classes { this: MacroCommons =>
           val effectiveParents = if (parentTypes.isEmpty) List(instanceTpe) else parentTypes
 
           val overrideList = overrides.toList.map { case (untypedMethod, body) =>
-            val typedMethod = untypedMethod.asTyped[A]
-            val returnTpe: ?? = typedMethod.knownReturning.getOrElse(Type.of[Any].as_??)
             UntypedType.UntypedOverride(
               untypedMethod,
-              (selfExpr: UntypedExpr, params: List[UntypedExpr]) => {
+              // The platform tree generator supplies the return type and type parameters resolved against the
+              // freshly synthesized member symbol — for a generic method these reference NEW type-parameter
+              // symbols, which is why they cannot be precomputed here (the old code fell back to `Any`).
+              (
+                  selfExpr: UntypedExpr,
+                  params: List[UntypedExpr],
+                  returnTpe: UntypedType,
+                  typeParams: List[UntypedType]
+              ) => {
                 val ctx = OverrideContext(
                   self = selfExpr.as_??,
                   method = untypedMethod,
                   parameters = params.map(_.as_??),
-                  returnType = returnTpe
+                  returnType = returnTpe.as_??,
+                  typeParameters = typeParams.map(_.as_??)
                 )
                 UntypedExpr.fromTyped(body(ctx).value)
               }

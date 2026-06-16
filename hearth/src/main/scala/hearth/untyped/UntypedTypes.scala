@@ -178,9 +178,25 @@ trait UntypedTypes { this: MacroCommons =>
     def parents(instanceTpe: UntypedType): List[UntypedType]
     def baseClasses(instanceTpe: UntypedType): List[UntypedType]
 
+    /** Describes a single member override for [[unsafeNewSubtype]].
+      *
+      * The `body` callback is invoked by the platform-specific tree generator once it has synthesized the override's
+      * member symbol, so it receives information that only exists at that point and that the shared layer cannot
+      * compute on its own (in particular, the return type and type parameters resolved against the freshly created
+      * member symbol, which for a generic method like `def f[T](t: T): T` reference NEW type-parameter symbols):
+      *
+      *   - `self` — a reference to the enclosing `$anon` instance (`this`),
+      *   - `parameters` — references to the override's own value parameters,
+      *   - `returnType` — the override's result type, fully resolved against the instance type and the re-bound type
+      *     parameters (never `Any` for a method whose declared return is concrete, even when the method is generic),
+      *   - `typeParameters` — the override's own type parameters (re-bound to the synthesized member), so a body can
+      *     name `T` to cast through it; empty for a monomorphic method.
+      *
+      * @since 0.4.0
+      */
     final case class UntypedOverride(
         method: UntypedMethod,
-        body: (UntypedExpr, List[UntypedExpr]) => UntypedExpr
+        body: (UntypedExpr, List[UntypedExpr], UntypedType, List[UntypedType]) => UntypedExpr
     )
 
     def unsafeNewSubtype(

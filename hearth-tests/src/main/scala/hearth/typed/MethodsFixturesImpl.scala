@@ -148,7 +148,8 @@ trait MethodsFixturesImpl { this: MacroCommons =>
             "isImplicit" -> Data(param.isImplicit),
             "hasDefault" -> Data(param.hasDefault),
             "isByName" -> Data(param.isByName),
-            "isVararg" -> Data(param.isVararg)
+            "isVararg" -> Data(param.isVararg),
+            "byNameUnderlying" -> Data(param.byNameUnderlying.map(_.plainPrint).getOrElse("<none>"))
           )
         }
       }

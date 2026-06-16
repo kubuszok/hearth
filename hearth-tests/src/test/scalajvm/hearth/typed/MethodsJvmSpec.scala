@@ -779,7 +779,8 @@ final class MethodsJvmSpec extends MacroSuite {
               "isImplicit" -> Data(false),
               "hasDefault" -> Data(false),
               "isByName" -> Data(false),
-              "isVararg" -> Data(true)
+              "isVararg" -> Data(true),
+              "byNameUnderlying" -> Data("<none>")
             )
           )
         }

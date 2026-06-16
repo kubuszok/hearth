@@ -53,6 +53,18 @@ trait EnclosuresFixturesImpl { this: MacroCommons =>
     call.getOrElse(Environment.reportErrorAndAbort("No nullary Int-returning `helper` found in the enclosing scope"))
   }
 
+  /** Render whether the immediately-enclosing class exposes a member named `fromSelfType` (declared on a self-type
+    * requirement `this: Provider =>`, not on the trait itself). Proves self-type members are folded into the enclosing
+    * class's `members`, which wiring/DI relies on. Returns `<no class>` if there is no enclosing class.
+    */
+  def testEnclosingClassHasSelfTypeMember: Expr[Data] = {
+    val result = enclosingScope.iterator
+      .collectFirst { case enc: Enclosure.Class => enc.members.map(_.name).toSet }
+      .map(names => Data(names("fromSelfType")))
+      .getOrElse(Data("<no class>"))
+    Expr(result)
+  }
+
   /** Render the `localValues` of the immediately-enclosing method as a list of `{name, type}` maps. Proves that local
     * `val`s declared before the macro call are discoverable (the macwire case).
     */

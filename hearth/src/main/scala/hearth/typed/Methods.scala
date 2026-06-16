@@ -110,6 +110,17 @@ trait Methods { this: MacroCommons =>
       */
     lazy val isVararg: Boolean = asUntyped.isVararg
     lazy val isImplicit: Boolean = asUntyped.isImplicit
+
+    /** For a by-name parameter (`a: => A`), the underlying type `A` (typed); `None` for any non-by-name parameter.
+      *
+      * Useful for wiring/DI macros that need to satisfy a by-name parameter with a strict value of `A`: unlike [[tpe]]
+      * (which is the by-name wrapper, represented differently on Scala 2 and 3), this recovers `A` uniformly across
+      * platforms — on Scala 3 the parameter type is a `ByNameType(A)` whose `A` is not reachable via
+      * `Type.typeArguments`.
+      *
+      * @since 0.4.0
+      */
+    lazy val byNameUnderlying: Option[??] = asUntyped.byNameUnderlying.map(UntypedType.as_??)
   }
 
   /** Ordered map of [[Parameter]]s by their name.
