@@ -400,10 +400,63 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     ): Either[NonEmptyVector[String], UntypedExpr] = {
       val owner = Symbol.spliceOwner
 
+      // Resolve a member's result type against its own (re-bound) type parameters. `memberType` is the abstract
+      // method's type as seen from the target (a PolyType over the ORIGINAL type-parameter binders for a generic
+      // method); applying it to the actual type arguments handed to the DefDef body substitutes those binders with
+      // the fresh type parameters and yields the concrete result — `String` for `def f[T](t: T): String`, the
+      // re-bound `T` for `def f[T](t: T): T`. This replaces the old `Any` fallback that lost concrete returns of
+      // generic methods. (We avoid `Symbol.info`, which is `@experimental`, hence the reuse of `memberType`.)
+      def methodResultType(memberType: TypeRepr, typeArgs: List[TypeRepr]): TypeRepr = {
+        val applied = memberType match {
+          case pt: PolyType if typeArgs.nonEmpty => pt.appliedTo(typeArgs)
+          case other                             => other
+        }
+        def walk(t: TypeRepr): TypeRepr = t match {
+          case MethodType(_, _, res) => walk(res)
+          case PolyType(_, _, res)   => walk(res)
+          // A nullary `def value: Int` (or an abstract `val v: Int`) has member type `ByNameType(Int)` (`=> Int`);
+          // the override's declared result is the strict `Int`, so strip the by-name wrapper to avoid synthesizing
+          // `null.asInstanceOf[=> Int]` (or an ill-typed val).
+          case ByNameType(res) => walk(res)
+          case other           => other
+        }
+        walk(applied)
+      }
+
+      // Replaces the final result type of a (possibly curried / polymorphic) member type, preserving every parameter
+      // clause. Used to retarget a `this.type` result onto the synthesized subtype.
+      def replaceResult(tpe: TypeRepr, newResult: TypeRepr): TypeRepr = tpe match {
+        case mt: MethodType => MethodType(mt.paramNames)(_ => mt.paramTypes, _ => replaceResult(mt.resType, newResult))
+        case pt: PolyType   =>
+          PolyType(pt.paramNames)(_ => pt.paramBounds, _ => replaceResult(pt.resType, newResult))
+        // A nullary `def chain: this.type` has member type `ByNameType(...)` (`=> ...`); keep the by-name wrapper so
+        // the synthesized symbol stays a method type (Scala 3 rejects a bare value type for a `def`).
+        case ByNameType(_) => ByNameType(newResult)
+        case _             => newResult
+      }
+
+      // Detects a `this.type` result (e.g. `def chain: this.type`). The member type, as seen from the target, has
+      // already widened `this.type` to the parent, so the only reliable signal is the symbol's own declared return.
+      def returnsThisType(sym: Symbol): Boolean =
+        try
+          sym.tree match {
+            case d: DefDef =>
+              d.returnTpt.tpe match {
+                case _: ThisType => true
+                case _           => false
+              }
+            case _ => false
+          }
+        catch { case _: Throwable => false }
+
       val overrideDecls = overrides.map { ovr =>
         val methodSym = ovr.method.symbol
         val memberType = safeMemberType(targetType, methodSym)
-        (ovr, methodSym, memberType)
+        // An abstract `val` must be overridden with a `val`, not a `def` (Scala 3 rejects a method overriding a
+        // stable value: "wrong type, expect a method type"). Vars keep the def/setter shape.
+        val isValTarget = ovr.method.isVal && !ovr.method.isVar
+        val isThisTypeTarget = !isValTarget && returnsThisType(methodSym)
+        (ovr, methodSym, memberType, isValTarget, isThisTypeTarget)
       }
 
       val effectiveParents =
@@ -416,28 +469,58 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         "$anon",
         effectiveParents,
         decls = cls =>
-          overrideDecls.map { case (ovr, _, memberType) =>
-            Symbol.newMethod(
+          overrideDecls.map { case (ovr, _, memberType, isValTarget, isThisTypeTarget) =>
+            if isValTarget then Symbol.newVal(
               cls,
               ovr.method.name,
-              memberType,
+              methodResultType(memberType, Nil),
               flags = Flags.Override,
               privateWithin = Symbol.noSymbol
             )
+            else {
+              // For a `this.type` result, retarget the result onto the synthesized subtype's own `this.type`, so that
+              // returning `this` (`ctx.self`) conforms — otherwise the override returns the parent (does not conform).
+              val effectiveType =
+                if isThisTypeTarget then replaceResult(memberType, This(cls).tpe) else memberType
+              Symbol.newMethod(
+                cls,
+                ovr.method.name,
+                effectiveType,
+                flags = Flags.Override,
+                privateWithin = Symbol.noSymbol
+              )
+            }
           },
         selfType = None
       )
 
-      val overrideDefs = cls.declaredMethods.zip(overrideDecls).map { case (newMethodSym, (ovr, _, _)) =>
+      // `declaredMethods`/`declaredFields` each preserve creation order, so zipping them with the same-kind subset of
+      // `overrideDecls` (also in creation order) keeps the per-member alignment — including overloads sharing a name.
+      val methodTargets = overrideDecls.filterNot(_._4)
+      val valTargets = overrideDecls.filter(_._4)
+
+      val methodDefs = cls.declaredMethods.zip(methodTargets).map { case (newMethodSym, (ovr, _, memberType, _, _)) =>
         DefDef(
           newMethodSym,
           argss => {
             val selfExpr: Term = This(cls)
+            // Type arguments come first in `argss` for a generic member (re-bound type-parameter references), value
+            // arguments are the Terms. Splitting them lets us surface the type parameters to the override body and
+            // resolve the return type against this member's own type parameters.
+            val typeParamReprs: List[TypeRepr] = argss.flatten.collect { case t: TypeTree => t.tpe }
             val flatParams: List[Term] = argss.flatten.collect { case t: Term => t }
-            Some(ovr.body(selfExpr, flatParams).changeOwner(newMethodSym))
+            val returnTpe: TypeRepr = methodResultType(memberType, typeParamReprs)
+            Some(ovr.body(selfExpr, flatParams, returnTpe, typeParamReprs).changeOwner(newMethodSym))
           }
         )
       }
+
+      val valDefs = cls.declaredFields.zip(valTargets).map { case (newValSym, (ovr, _, memberType, _, _)) =>
+        val valType = methodResultType(memberType, Nil)
+        ValDef(newValSym, Some(ovr.body(This(cls), Nil, valType, Nil).changeOwner(newValSym)))
+      }
+
+      val overrideDefs = methodDefs ++ valDefs
 
       val classParent = effectiveParents.head
       val ctorSymbol = constructor.map(_.symbol).getOrElse(classParent.typeSymbol.primaryConstructor)

@@ -313,7 +313,8 @@ The `Method` API has a layered architecture with platform-specific untyped code 
 - `AnonymousInstanceError` sealed trait with 8 error variants (rendered to strings at API boundary)
 - `MethodClassification` with 4 variants: `MustOverride`, `MayOverride`, `CannotOverride`, `DiamondConflict`
 - `ClassifiedMethod` pairs a `Method` with its classification and declaring type
-- `OverrideContext` provides `self: Expr_??` (this reference + novel type), `method: UntypedMethod`, `parameters: List[Expr_??]`, `returnType: ??`
+- `OverrideContext` provides `self: Expr_??` (this reference + novel type), `method: UntypedMethod`, `parameters: List[Expr_??]`, `returnType: ??`, `typeParameters: List[??]`
+- `returnType`/`typeParameters` are supplied by the platform `unsafeNewSubtype` (via the `UntypedOverride.body` callback `(self, params, returnType, typeParams)`), resolved against the freshly synthesized member — so a generic override `def f[T](t: T): String` sees `returnType = String` (not `Any`), and `def emptyList[T]: List[T]` can name `T` via `typeParameters` (Issue A)
 - `OverrideBody` functional interface for override body callbacks
 - `AnonymousInstance[A]` class view with `parse`, `parseWithMixins`, `construct`
 - Validation: rejects final/sealed types, checks constructor accessibility, at most one class parent
@@ -323,6 +324,7 @@ The `Method` API has a layered architecture with platform-specific untyped code 
 - Scala 2: quasiquotes `q"new $parent(..$args) with ..$traits { ..$overrides }"`
 - Scala 3: `Symbol.newClass` + `ClassDef.apply` via Java reflection (avoiding `@experimental`)
 - Scala 3: prepends `AnyRef` when first parent is a trait (required by `Symbol.newClass`)
+- Member-shape handling (Issue B): symbolic names use the symbol's encoded name (`$plus`, not a fresh `TermName("+")`); `implicit`/`using` clauses keep their modifier; abstract `val` targets emit a `val` (Scala 3: `Symbol.newVal` + `declaredFields`); `this.type` returns are retargeted to the synthesized subtype's `this.type` (Scala 2: `tq"this.type"`; Scala 3: `replaceResult` onto `This(cls).tpe`, detected via `Symbol.tree` returnTpt being a `ThisType`); context-function returns (`Int ?=> String`) already work on the primary Scala 3
 
 **Test infrastructure:**
 - `hearth-tests/src/main/scala/hearth/typed/AnonymousInstanceFixturesImpl.scala` — shared fixtures

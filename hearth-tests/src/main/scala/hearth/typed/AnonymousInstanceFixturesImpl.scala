@@ -393,6 +393,189 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** Overrides `describe[T](x: T): String` — a generic method with a CONCRETE return. The body asserts that
+    * `ctx.returnType` is `String` (not `Any`), proving the resolved-return fix. Invoked at two instantiations.
+    */
+  def testAnonymousInstanceConstructGenericConcreteReturn: Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val GenericType: Type[examples.anonymous_instances.TraitWithGenericConcreteReturn] =
+      Type.of[examples.anonymous_instances.TraitWithGenericConcreteReturn]
+
+    AnonymousInstance.parse[examples.anonymous_instances.TraitWithGenericConcreteReturn] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? = {
+              import ctx.returnType.Underlying as R
+              // returnType MUST be String here, not Any — otherwise this branch is not taken and the body is
+              // typed `Any`, which fails to override a method declared to return String.
+              if (Type[R] =:= Type[String]) Expr("described").as_??
+              else Expr(s"wrong-return-type: ${Type[R].plainPrint}").as_??
+            }
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote {
+              val inst = Expr.splice(constructed)
+              inst.describe("hello") + "|" + inst.describe(42)
+            }
+          case Left(errors) =>
+            Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(s"incompatible: $reason")
+    }
+  }
+
+  /** Overrides `emptyList[T]: List[T]` — a generic method with no value parameters, so the body must use
+    * `ctx.typeParameters` to name `T` and build `List.empty[T]`. Proves type parameters are threaded into the context.
+    */
+  def testAnonymousInstanceConstructGenericFactory: Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val FactoryType: Type[examples.anonymous_instances.TraitWithGenericFactory] =
+      Type.of[examples.anonymous_instances.TraitWithGenericFactory]
+
+    AnonymousInstance.parse[examples.anonymous_instances.TraitWithGenericFactory] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? = {
+              val tParam = ctx.typeParameters.head
+              import tParam.Underlying as T
+              implicit val listOfT: Type[List[T]] = Type.of[List[T]]
+              Expr.quote(List.empty[T]).as_??
+            }
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote {
+              val inst = Expr.splice(constructed)
+              inst.emptyList[String].mkString("[", ",", "]") + "|" + inst.emptyList[Int].sum.toString
+            }
+          case Left(errors) =>
+            Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(s"incompatible: $reason")
+    }
+  }
+
+  /** Overrides the symbolic method `+(x: Int): Int` to return its argument, proving an operator-named member is
+    * synthesized and resolved.
+    */
+  def testAnonymousInstanceConstructSymbolic: Expr[String] = {
+    implicit val OpsType: Type[examples.anonymous_instances.TraitWithSymbolicMethod] =
+      Type.of[examples.anonymous_instances.TraitWithSymbolicMethod]
+
+    AnonymousInstance.parse[examples.anonymous_instances.TraitWithSymbolicMethod] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? = ctx.parameters.head
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote {
+              val inst = Expr.splice(constructed)
+              (inst + 41).toString
+            }
+          case Left(errors) => Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) => Expr(s"incompatible: $reason")
+    }
+  }
+
+  /** Overrides `run(cmd: String)(implicit cfg: Int): String`, joining both parameters, proving the trailing implicit
+    * clause is preserved on the override (so the member is no longer abstract).
+    */
+  def testAnonymousInstanceConstructImplicitParam: Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val RunType: Type[examples.anonymous_instances.TraitWithImplicitParam] =
+      Type.of[examples.anonymous_instances.TraitWithImplicitParam]
+
+    AnonymousInstance.parse[examples.anonymous_instances.TraitWithImplicitParam] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? = {
+              val cmdE = ctx.parameters.head
+              val cfgE = ctx.parameters(1)
+              import cmdE.Underlying as Cmd
+              import cfgE.Underlying as Cfg
+              Expr
+                .quote(Expr.splice(cmdE.value: Expr[Cmd]).toString + Expr.splice(cfgE.value: Expr[Cfg]).toString)
+                .as_??
+            }
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote {
+              implicit val cfg: Int = 7
+              val inst = Expr.splice(constructed)
+              inst.run("go")
+            }
+          case Left(errors) => Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) => Expr(s"incompatible: $reason")
+    }
+  }
+
+  /** Overrides the abstract `val abstractVal: String`, proving a `val` member (not a `def`) is synthesized. */
+  def testAnonymousInstanceConstructAbstractVal: Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val HasValType: Type[examples.anonymous_instances.TraitWithAbstractVal] =
+      Type.of[examples.anonymous_instances.TraitWithAbstractVal]
+
+    AnonymousInstance.parse[examples.anonymous_instances.TraitWithAbstractVal] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? = Expr("the-val").as_??
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote {
+              val inst = Expr.splice(constructed)
+              inst.abstractVal
+            }
+          case Left(errors) => Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) => Expr(s"incompatible: $reason")
+    }
+  }
+
+  /** Overrides `chain: this.type` by returning `this` (`ctx.self`), then checks the returned reference is the
+    * constructed instance — proving the override's `this.type` result resolves to the synthesized subtype.
+    */
+  def testAnonymousInstanceConstructThisType: Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val ChainType: Type[examples.anonymous_instances.TraitWithThisTypeReturn] =
+      Type.of[examples.anonymous_instances.TraitWithThisTypeReturn]
+
+    AnonymousInstance.parse[examples.anonymous_instances.TraitWithThisTypeReturn] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? = ctx.self
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote {
+              val inst = Expr.splice(constructed)
+              (inst.chain eq inst).toString
+            }
+          case Left(errors) => Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) => Expr(s"incompatible: $reason")
+    }
+  }
+
   private def constructWithDefaults[A: Type](ai: AnonymousInstance[A])(implicit
       IntType: Type[Int],
       StringType: Type[String],

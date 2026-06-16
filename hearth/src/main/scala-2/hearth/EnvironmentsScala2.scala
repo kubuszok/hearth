@@ -126,7 +126,17 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
           )
         )
       } else if (symbol.isClass) {
-        val tpe: UntypedType = symbol.asClass.toType
+        val classTpe: UntypedType = symbol.asClass.toType
+        // A trait/class may declare a self-type requirement (`this: Provider =>`); its members are visible on `this`
+        // but absent from `toType`. Fold the self-type in (as an intersection) so the enclosing scope exposes them —
+        // wiring/DI draws candidates from `Enclosure.Class.members`. `typeOfThis` equals `toType` when there is no
+        // self-type, so non-self-typed classes are unaffected.
+        // `typeOfThis` (the type of `this`, including any self-type requirement) is only on the internal Symbol API.
+        val selfTpe: UntypedType =
+          symbol.asInstanceOf[scala.reflect.internal.Symbols#Symbol].typeOfThis.asInstanceOf[c.universe.Type]
+        val tpe: UntypedType =
+          if (selfTpe <:< classTpe) selfTpe
+          else c.internal.intersectionType(List(classTpe, selfTpe))
         val ev = UntypedType.as_??(tpe)
         import ev.Underlying
         val members = UntypedMethod.methods(tpe).map(_.asTyped[ev.Underlying])

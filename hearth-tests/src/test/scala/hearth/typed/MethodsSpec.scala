@@ -1506,7 +1506,8 @@ final class MethodsSpec extends MacroSuite {
               "isImplicit" -> Data(true),
               "hasDefault" -> Data(false),
               "isByName" -> Data(false),
-              "isVararg" -> Data(false)
+              "isVararg" -> Data(false),
+              "byNameUnderlying" -> Data("<none>")
             )
           )
         }
@@ -1517,7 +1518,8 @@ final class MethodsSpec extends MacroSuite {
               "isImplicit" -> Data(false),
               "hasDefault" -> Data(false),
               "isByName" -> Data(false),
-              "isVararg" -> Data(false)
+              "isVararg" -> Data(false),
+              "byNameUnderlying" -> Data("<none>")
             )
           )
         }
@@ -1528,7 +1530,8 @@ final class MethodsSpec extends MacroSuite {
               "isImplicit" -> Data(false),
               "hasDefault" -> Data(false),
               "isByName" -> Data(false),
-              "isVararg" -> Data(false)
+              "isVararg" -> Data(false),
+              "byNameUnderlying" -> Data("<none>")
             )
           )
         }
@@ -1543,7 +1546,8 @@ final class MethodsSpec extends MacroSuite {
               "isImplicit" -> Data(false),
               "hasDefault" -> Data(false),
               "isByName" -> Data(false),
-              "isVararg" -> Data(true)
+              "isVararg" -> Data(true),
+              "byNameUnderlying" -> Data("<none>")
             )
           )
         }
@@ -1554,7 +1558,8 @@ final class MethodsSpec extends MacroSuite {
               "isImplicit" -> Data(false),
               "hasDefault" -> Data(false),
               "isByName" -> Data(false),
-              "isVararg" -> Data(false)
+              "isVararg" -> Data(false),
+              "byNameUnderlying" -> Data("<none>")
             )
           )
         }
@@ -1565,7 +1570,8 @@ final class MethodsSpec extends MacroSuite {
               "isImplicit" -> Data(false),
               "hasDefault" -> Data(false),
               "isByName" -> Data(true),
-              "isVararg" -> Data(false)
+              "isVararg" -> Data(false),
+              "byNameUnderlying" -> Data("scala.Int")
             )
           )
         }

@@ -96,4 +96,32 @@ object AnonymousInstanceFixtures {
   inline def testAnonymousInstanceConstructGeneric: String = ${ testAnonymousInstanceConstructGenericImpl }
   private def testAnonymousInstanceConstructGenericImpl(using q: Quotes): Expr[String] =
     new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructGeneric
+
+  inline def testAnonymousInstanceConstructGenericConcreteReturn: String = ${
+    testAnonymousInstanceConstructGenericConcreteReturnImpl
+  }
+  private def testAnonymousInstanceConstructGenericConcreteReturnImpl(using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructGenericConcreteReturn
+
+  inline def testAnonymousInstanceConstructGenericFactory: String = ${
+    testAnonymousInstanceConstructGenericFactoryImpl
+  }
+  private def testAnonymousInstanceConstructGenericFactoryImpl(using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructGenericFactory
+
+  inline def testAnonymousInstanceConstructSymbolic: String = ${ testAnonymousInstanceConstructSymbolicImpl }
+  private def testAnonymousInstanceConstructSymbolicImpl(using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructSymbolic
+
+  inline def testAnonymousInstanceConstructImplicitParam: String = ${ testAnonymousInstanceConstructImplicitParamImpl }
+  private def testAnonymousInstanceConstructImplicitParamImpl(using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructImplicitParam
+
+  inline def testAnonymousInstanceConstructAbstractVal: String = ${ testAnonymousInstanceConstructAbstractValImpl }
+  private def testAnonymousInstanceConstructAbstractValImpl(using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructAbstractVal
+
+  inline def testAnonymousInstanceConstructThisType: String = ${ testAnonymousInstanceConstructThisTypeImpl }
+  private def testAnonymousInstanceConstructThisTypeImpl(using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructThisType
 }
