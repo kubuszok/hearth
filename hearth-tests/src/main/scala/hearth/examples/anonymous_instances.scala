@@ -116,10 +116,14 @@ trait TraitWithAbstractVal {
 }
 
 /** `this.type` return — the override's declared result must be the synthesized subtype's `this.type`, otherwise
-  * returning `this` does not conform (the member type's `this.type` points at the parent trait).
+  * returning `this` does not conform (the member type's `this.type` points at the parent trait). `sibling` is an
+  * ordinary method (`returnsThisType = false`), so an override body must tell the two apart via
+  * `OverrideContext.returnsThisType` — returning `self` for `chain` but a real value for `sibling`. A wrong flag in
+  * either direction is a compile error (self is not an `Int`; `7` is not a `this.type`).
   */
 trait TraitWithThisTypeReturn {
   def chain: this.type
+  def sibling: Int
 }
 
 @scala.annotation.nowarn
