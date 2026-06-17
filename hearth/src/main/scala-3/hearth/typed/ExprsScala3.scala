@@ -1457,7 +1457,11 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             // val body = '{ val _ = $toSuppress; $result }
             val body = Block(
               List(Expr.suppressUnused(toSuppress).asTerm),
-              stripInlined(result.asTerm)
+              // Re-own the case body to the splice owner (like the scrutinee above). Without this, definitions
+              // nested in the body that were built in another context — e.g. a `ValDefs.createVal` whose value
+              // contains an inline lambda — keep stale owners and trip "Block contains definitions with different
+              // owners" when the body is spliced into the CaseDef.
+              stripInlined(result.asTerm).changeOwner(Symbol.spliceOwner)
             )
 
             val sym = TypeRepr.of[Matched].typeSymbol
@@ -1474,7 +1478,11 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             // val body = '{ val _ = $toSuppress; $result }
             val body = Block(
               List(Expr.suppressUnused(toSuppress).asTerm),
-              stripInlined(result.asTerm)
+              // Re-own the case body to the splice owner (like the scrutinee above). Without this, definitions
+              // nested in the body that were built in another context — e.g. a `ValDefs.createVal` whose value
+              // contains an inline lambda — keep stale owners and trip "Block contains definitions with different
+              // owners" when the body is spliced into the CaseDef.
+              stripInlined(result.asTerm).changeOwner(Symbol.spliceOwner)
             )
 
             // case tt(name @ _) => ... - the TypeTest instance is the extractor, its unapply is total
@@ -1493,7 +1501,11 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             // val body = '{ val _ = $valueRef; $result }
             val body = Block(
               List(Expr.suppressUnused(toSuppress).asTerm),
-              stripInlined(result.asTerm)
+              // Re-own the case body to the splice owner (like the scrutinee above). Without this, definitions
+              // nested in the body that were built in another context — e.g. a `ValDefs.createVal` whose value
+              // contains an inline lambda — keep stale owners and trip "Block contains definitions with different
+              // owners" when the body is spliced into the CaseDef.
+              stripInlined(result.asTerm).changeOwner(Symbol.spliceOwner)
             )
             val valueTerm = valueRef.asTerm
             valueTerm match {
