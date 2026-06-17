@@ -2,6 +2,9 @@ package hearth
 package std
 package extensions
 
+import hearth.fp.data.NonEmptyVector
+import hearth.fp.syntax.*
+
 /** Macro extension providing support for Scala eithers.
   *
   * Supports all Scala built-in eithers, turns them into [[scala.Either]] by upcasting. Treats them as types without
@@ -19,6 +22,8 @@ final class IsEitherProviderForScalaEither extends StandardMacroExtension { load
       override def name: String = loader.getClass.getName
 
       private lazy val Either = Type.Ctor2.of[Either]
+      private lazy val RightCtor = Type.Ctor2.of[Right]
+      private lazy val LeftCtor = Type.Ctor2.of[Left]
 
       private def isEither[A: Type, LeftValue0, RightValue0](
           toEither: Expr[A] => Expr[Either[LeftValue0, RightValue0]],
@@ -38,15 +43,24 @@ final class IsEitherProviderForScalaEither extends StandardMacroExtension { load
 
           override def fold[B: Type](
               either: Expr[A]
-          )(onLeft: Expr[LeftValue0] => Expr[B], onRight: Expr[RightValue0] => Expr[B]): Expr[B] =
-            Expr.quote {
-              Expr
-                .splice(toEither(either))
-                .fold[B](
-                  Expr.splice(LambdaBuilder.of1[LeftValue0]("left").buildWith(onLeft)),
-                  Expr.splice(LambdaBuilder.of1[RightValue0]("right").buildWith(onRight))
-                )
-            }
+          )(onLeft: Expr[LeftValue0] => Expr[B], onRight: Expr[RightValue0] => Expr[B]): Expr[B] = {
+            // Zero-closure fold: generate a `match` and splice the compile-time `onLeft`/`onRight` bodies directly
+            // into the branches, instead of `either.fold(<runtime closure>, <runtime closure>)`. `onLeft`/`onRight`
+            // are macro-level functions applied at expansion time, so no `Function1` is allocated at runtime.
+            implicit val EitherLR: Type[Either[LeftValue0, RightValue0]] = Either[LeftValue0, RightValue0]
+            implicit val RightLR: Type[Right[LeftValue0, RightValue0]] = RightCtor[LeftValue0, RightValue0]
+            implicit val LeftLR: Type[Left[LeftValue0, RightValue0]] = LeftCtor[LeftValue0, RightValue0]
+            MatchCase.matchOn[Either[LeftValue0, RightValue0], B](toEither(either))(
+              NonEmptyVector(
+                MatchCase.typeMatch[Right[LeftValue0, RightValue0]]("right").map { rightExpr =>
+                  onRight(Expr.quote(Expr.splice(rightExpr).value))
+                },
+                MatchCase.typeMatch[Left[LeftValue0, RightValue0]]("left").map { leftExpr =>
+                  onLeft(Expr.quote(Expr.splice(leftExpr).value))
+                }
+              )
+            )
+          }
 
           override def getOrElse(either: Expr[A])(default: Expr[RightValue0]): Expr[RightValue0] =
             Expr.quote {
