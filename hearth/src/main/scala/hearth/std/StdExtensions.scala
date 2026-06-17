@@ -288,10 +288,17 @@ trait StdExtensions { this: MacroCommons =>
         case Some(item) =>
           import item.Underlying as I
           val castIterableExpr = iterableExpr.asInstanceOf[Expr[Iterable[I]]]
-          val lambda =
-            LambdaBuilder.of1[I]("item").buildWith(f.asInstanceOf[Expr[I] => Expr[Unit]])(using Type.of[Unit])
+          val fI = f.asInstanceOf[Expr[I] => Expr[Unit]]
+          // Zero-closure default: walk the iterator with a `while` loop and splice the per-item body directly into
+          // the loop, rather than allocating a `Function1` for `Iterable.foreach`. The closure form often fails to
+          // scalarize at megamorphic call sites (e.g. map entry encoding), so the `while` form is both never worse
+          // and frequently faster. Providers with a cheaper traversal (e.g. arrays by index) still override this.
           Expr.quote {
-            Expr.splice(castIterableExpr).foreach(Expr.splice(lambda))
+            val it = Expr.splice(castIterableExpr).iterator
+            while (it.hasNext) {
+              val elem = it.next()
+              Expr.splice(fI(Expr.quote(elem)))
+            }
           }
         case None =>
           hearthRequirementFailed(
