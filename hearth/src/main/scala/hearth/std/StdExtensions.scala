@@ -307,6 +307,14 @@ trait StdExtensions { this: MacroCommons =>
       }
     }
 
+    /** If this collection is actually a map, returns its map proof (whose `Pair` is this `Item`); `None` for a plain
+      * collection. Lets a caller that already holds an `IsCollectionOf` discover map-ness without a second
+      * `IsCollection.parse` and without an erasure-unsound `isInstanceOf[IsMapOf[?, ?]]`.
+      *
+      * @since 0.3.1
+      */
+    def asMap: Option[IsMapOf[CollA, Item]] = None
+
     type CtorResult
     @ImportedCrossTypeImplicit
     implicit val CtorResult: Type[CtorResult]
@@ -372,6 +380,8 @@ trait StdExtensions { this: MacroCommons =>
     def key(pair: Expr[Pair]): Expr[Key]
     def value(pair: Expr[Pair]): Expr[Value]
     def pair(key: Expr[Key], value: Expr[Value]): Expr[Pair]
+
+    override def asMap: Option[IsMapOf[MapKV, Pair]] = Some(this)
   }
 
   /** An alias indicating the type is a map of some key and value types, but the exact key and value types are an
@@ -389,7 +399,7 @@ trait StdExtensions { this: MacroCommons =>
 
     def parse[A: Type]: ProviderResult[IsMap[A]] =
       IsCollection.parse[A] match {
-        case ProviderResult.Matched(isCollection) if isCollection.value.isInstanceOf[IsMapOf[?, ?]] =>
+        case ProviderResult.Matched(isCollection) if isCollection.value.asMap.isDefined =>
           ProviderResult.Matched(isCollection.asInstanceOf[IsMap[A]])
         case ProviderResult.Matched(_) =>
           ProviderResult.skipped("IsMap", s"${Type[A].prettyPrint} is a collection but not a Map")
