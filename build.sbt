@@ -11,7 +11,7 @@ lazy val isNewestScalaTests = sys.env.get("NEWEST_SCALA_TESTS").contains("true")
 val versions = new {
   // Versions we are publishing for.
   val scala213 = "2.13.16"
-  val scala3 = "3.3.8"
+  val scala3 = "3.8.4"
 
   // Versions we can compile tests against if needed, to check for regressions.
   val scala213Newest = "2.13.18"
