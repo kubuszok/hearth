@@ -955,7 +955,7 @@ While all of these are inconvenient, they can usually be worked around. The issu
 
     Both `weakTypeTag[A]` (Scala 2) and `scala.quoted.Type.of[A]` (Scala 3) pick up an implicit if it is in scope —
     including the very `implicit val` being defined. Since the fix for
-    [#285](https://github.com/MateuszKubuszok/hearth/issues/285), Cross Quotes excludes the definition currently
+    [#285](https://github.com/kubuszok/hearth/issues/285), Cross Quotes excludes the definition currently
     being initialized from that implicit search, so for **statically-known types** the natural pattern just works:
 
     ```scala

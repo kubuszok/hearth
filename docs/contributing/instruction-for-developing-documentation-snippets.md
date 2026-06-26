@@ -44,7 +44,7 @@ When writing snippets:
  * `{{ hearth_version() }}` is replaced by value passed via `--extra "hearth-version=..."`
  * `docs/mkdocs.yml`'s `extra` section can be passed and interpolated as well to e.g. provide a Scala 2 version
    with `{{ scala.2_13 }}` or a dependency version with `{{ libraries.munit }}`
- * the rules of passing/failing tests are provided in [the ScalaCLI.md Spec README](https://github.com/MateuszKubuszok/scala-cli-md-spec)
+ * the rules of passing/failing tests are provided in [the ScalaCLI.md Spec README](https://github.com/kubuszok/scala-cli-md-spec)
 
 To ensure that snippets are cross-compilable, and actually expand macros, 4 files would be needed:
 
@@ -116,7 +116,7 @@ the same markdown section and contains `// file: [path to file] - part of [examp
 
 ## How to run and test runnable snippets
 
-[ScalaCLI.md Spec](https://github.com/MateuszKubuszok/scala-cli-md-spec) requires [Scala CLI](https://scala-cli.virtuslab.org/) installed.
+[ScalaCLI.md Spec](https://github.com/kubuszok/scala-cli-md-spec) requires [Scala CLI](https://scala-cli.virtuslab.org/) installed.
 It also requires that all snippets are implemented as Scala CLI snippets.
 
 Our documentation uses dependencies like:
