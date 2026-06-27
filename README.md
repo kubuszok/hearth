@@ -14,16 +14,19 @@ Goals:
  - cross-compilable API, allowing reuse of the macro code for both Scala 2 and Scala 3
  - exhaustive documentation lowering the barrier of entry
  - no dependencies on additional ecosystems (some FP-utilities are already provided!)
+ - promote best-practices in macro development, to deliver great developer experience
 
 ## Call for Feedback
 
 Hearth is an evolution of the [chimney-macro-commons](https://github.com/scalalandio/chimney-macro-commons/) idea,
 but one that could serve not only the [Chimney](https://chimney.readthedocs.io/) but also any other library that uses macros.
 
-The current version does not yet have all planned features, and we'd like to hear from you: is the current API good enough, or what should change?
+The current version has all planned features, beside bugfixes no further changes will be made unless community will request for them or contribute them.
 
-Please, take a look at [Roadmap](https://github.com/kubuszok/hearth/issues/10) for more information about what is already done,
-and what's in the scope for future releases.
+Please, take a look at [Roadmap](https://github.com/kubuszok/hearth/issues/10) for more information about what is already done.
+
+See [Kindlings](https://github.com/kubuszok/kindlings), [Pipez](https://github.com/kubuszok/pipez) and [Refined-compat](https://github.com/kubuszok/refined-compat)
+for examples how Hearth can be used to implement a macro-powered library.
 
 ## Contribution
 
