@@ -18,6 +18,32 @@
   * arities (n >= 20).
   *
   * Uses [[ArityGen]] for shared naming helpers (paramName, lower, upper, etc.).
+  *
+  * ==Hygiene: fully-qualify every type/term used inside the emitted quasiquotes==
+  *
+  * Scala 2 quasiquotes are NOT hygienic. Every tree we build here is spliced back
+  * into the user's macro-expansion site and typechecked in THEIR scope, so any bare
+  * identifier (`List`, `Seq`, `Option`, `None`, `Any`, ...) can be captured by a
+  * user definition that happens to share the name. This bites in practice because
+  * users routinely stash `Type.CtorN.of[...]` results in vals named after the type
+  * they hold:
+  *
+  * {{{
+  *   val List: Type.Ctor1[List] = Type.Ctor1.of[List] // shadows scala.List
+  *   val Map:  Type.Ctor2[Map]  = Type.Ctor2.of[Map]  // shadows scala.Map/Seq
+  * }}}
+  *
+  * When the emitted `unapply` used a bare `List(...)` / `Seq(...)` extractor, it
+  * resolved to the user's `Type.CtorN` value instead of the collection companion,
+  * producing baffling `Nothing <:??<: Any` type-mismatch errors deep inside the
+  * generated code (kubuszok/hearth#300).
+  *
+  * RULE: anything with a stable full path MUST be written as `_root_.scala.<X>` (or
+  * `_root_.pkg.<X>`) in the emitted strings — never bare. Path-dependent members of
+  * the macro bundle (`Type`, `CrossQuotes`, `<:??<:`, `as_<:??<:`) resolve through
+  * the enclosing `this` and cannot be `_root_`-qualified; those stay bare by
+  * necessity, but every `scala.*` reference here is fully qualified on purpose.
+  * This was originally sanitized and got lost across rewrites — keep it sanitized.
   */
 object CrossQuotesMacrosGen {
 
@@ -161,14 +187,14 @@ object CrossQuotesMacrosGen {
     sb ++= s"        val A0 = A.asInstanceOf[$$ctx.WeakTypeTag[$$${ArityGen.paramName(0)}]].tpe\n"
     sb ++= s"        A0.dealias.widen.baseType(HKT.typeSymbol) match {\n"
     val tpList = (1 to n).map(i => s"tp$i").mkString(", ")
-    sb ++= s"          case TypeRef(_, _, List($tpList)) =>\n"
+    sb ++= s"          case TypeRef(_, _, _root_.scala.List($tpList)) =>\n"
     sb ++= s"            matchResult($tpList)\n"
     sb ++= s"          case _ =>\n"
     sb ++= s"            if (A0.typeConstructor == HKT && A0.typeArgs.size == $n) {\n"
-    sb ++= s"              val Seq($tpList) = A0.typeArgs\n"
+    sb ++= s"              val _root_.scala.Seq($tpList) = A0.typeArgs\n"
     sb ++= s"              matchResult($tpList)\n"
     sb ++= s"            }\n"
-    sb ++= s"            else None\n"
+    sb ++= s"            else _root_.scala.None\n"
     sb ++= s"        }\n"
     sb ++= s"      }\n"
     sb ++= s"      $tq\n"
@@ -292,14 +318,14 @@ object CrossQuotesMacrosGen {
     sb ++= s"        val A0 = A.asInstanceOf[$$ctx.WeakTypeTag[$$${ArityGen.paramName(0)}]].tpe\n"
     sb ++= s"        A0.dealias.widen.baseType(HKT.typeSymbol) match {\n"
     val tpList = (1 to n).map(i => s"tp$i").mkString(", ")
-    sb ++= s"          case TypeRef(_, _, List($tpList)) =>\n"
+    sb ++= s"          case TypeRef(_, _, _root_.scala.List($tpList)) =>\n"
     sb ++= s"            matchResult($tpList)\n"
     sb ++= s"          case _ =>\n"
     sb ++= s"            if (A0.typeConstructor == HKT && A0.typeArgs.size == $n) {\n"
-    sb ++= s"              val Seq($tpList) = A0.typeArgs\n"
+    sb ++= s"              val _root_.scala.Seq($tpList) = A0.typeArgs\n"
     sb ++= s"              matchResult($tpList)\n"
     sb ++= s"            }\n"
-    sb ++= s"            else None\n"
+    sb ++= s"            else _root_.scala.None\n"
     sb ++= s"        }\n"
     sb ++= s"      }\n"
     sb ++= s"      $tq\n"
@@ -360,8 +386,9 @@ object CrossQuotesMacrosGen {
     */
   private def unapplyOptionType(n: Int, isFromUntyped: Boolean): String = {
     val bounds = (1 to n).map(i => s"$$${ArityGen.lower(i)} <:??<: $$${ArityGen.upper(i)}").mkString(", ")
-    if (n == 1 && !isFromUntyped) s"Option[$bounds]"
-    else s"Option[($bounds)]"
+    // `_root_.scala.Option` — see the hygiene note in this object's Scaladoc.
+    if (n == 1 && !isFromUntyped) s"_root_.scala.Option[$bounds]"
+    else s"_root_.scala.Option[($bounds)]"
   }
 
   /** matchResult body: the `_root_.scala.Some(...)` expression.
@@ -373,13 +400,13 @@ object CrossQuotesMacrosGen {
     val indent = " " * baseIndent
     val exprIndent = " " * (baseIndent + 6) // aligning with inner Some(
     if (n == 1) {
-      val expr = s"$$ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$$${ArityGen.lower(1)}, $$${ArityGen.upper(1)}]"
+      val expr = s"$$ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[_root_.scala.Any]].as_<:??<:[$$${ArityGen.lower(1)}, $$${ArityGen.upper(1)}]"
       s"${indent}_root_.scala.Some($expr)\n"
     } else {
       val sb = new StringBuilder
       sb ++= s"${indent}_root_.scala.Some((\n"
       for (i <- 1 to n) {
-        val expr = s"$$ctx.WeakTypeTag(tp$i.dealias.widen).asInstanceOf[Type[scala.Any]].as_<:??<:[$$${ArityGen.lower(i)}, $$${ArityGen.upper(i)}]"
+        val expr = s"$$ctx.WeakTypeTag(tp$i.dealias.widen).asInstanceOf[Type[_root_.scala.Any]].as_<:??<:[$$${ArityGen.lower(i)}, $$${ArityGen.upper(i)}]"
         if (i < n) sb ++= s"$exprIndent$expr,\n"
         else sb ++= s"$exprIndent$expr\n"
       }
