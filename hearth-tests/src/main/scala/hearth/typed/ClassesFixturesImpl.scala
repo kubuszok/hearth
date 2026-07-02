@@ -223,6 +223,54 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** Issue #246: reports the canonical `copy` method discovered by [[CaseClass.copyMethod]] under each visibility
+    * scope. Renders the untyped parameter-name shape (e.g. `(i)(s)`) so the assertion is stable across Scala 2/3, or
+    * `<none>` when no accessible canonical copy exists (private copy under AtCallSite/Everywhere, abstract case class
+    * under any scope).
+    */
+  def testCaseClassCopyMethod[A: Type]: Expr[Data] = {
+    def describe(visibility: Accessible)(cc: CaseClass[A]): Data =
+      cc.copyMethod(visibility) match {
+        case None       => Data("<none>")
+        case Some(copy) => Data(copy.asUntyped.parameters.map(_.keys.mkString("(", ", ", ")")).mkString)
+      }
+    Expr(
+      CaseClass.parse[A].toOption.fold(Data("<no case class>")) { cc =>
+        Data.map(
+          "atCallSite" -> describe(AtCallSite)(cc),
+          "everywhere" -> describe(Everywhere)(cc),
+          "anywhere" -> describe(Anywhere)(cc)
+        )
+      }
+    )
+  }
+
+  /** Issue #246: exercises the [[CaseClass.copyMethod]] builder chain by overriding every `Int` field with `99` and
+    * leaving the remaining fields at their defaults (i.e. the original values, via `copy`'s default arguments), then
+    * evaluates the resulting instance's `toString` at runtime.
+    */
+  def testCaseClassCopyRoundTrip[A: Type](instance: Expr[A]): Expr[String] = {
+    implicit val IntType: Type[Int] = intType
+    CaseClass.parse[A].toOption.flatMap(cc => cc.copyMethod().map(cc -> _)) match {
+      case None            => Expr("<no copy>")
+      case Some((_, copy)) =>
+        copy.fold(
+          onInstance = _ => instance.as_??,
+          onTypes = _ => Map.empty,
+          onValues = av =>
+            av.parameters.flatten.flatMap { case (name, parameter) =>
+              import parameter.tpe.Underlying as FieldType
+              if (FieldType <:< Type[Int]) List(name -> Expr(99).as_??) else Nil
+            }.toMap
+        ) match {
+          case Right(result) =>
+            import result.{Underlying, value}
+            Expr.quote(Expr.splice(value).toString)
+          case Left(error) => Expr(s"<failed: $error>")
+        }
+    }
+  }
+
   def testEnumMatchOnAndParMatchOn[A: Type](expr: Expr[A]): Expr[String] =
     Enum.parse[A].toOption.fold(Expr("<no enum>")) { enumm =>
       implicit val StringType: Type[String] = stringType

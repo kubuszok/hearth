@@ -187,13 +187,19 @@ Agent: [Updates dev.properties to set ide.scala = 3]
 
 ### Binary Compatibility
 
-The project uses **MiMa** (Migration Manager) for binary compatibility checking.
+The project uses **MiMa** (Migration Manager) for binary compatibility checking, enabled against the last released
+version (`mimaPreviousVersion` in `build.sbt`, currently `0.4.0`).
 
 When making changes:
 - Be aware of binary compatibility constraints
 - Breaking changes require major version bumps
-- MiMa checks run automatically via CI
-- Consult MCP server for compatibility reports
+- MiMa checks run automatically via CI (`mimaReportBinaryIssues` is part of the `ci-*` aliases)
+- **Before suppressing any MiMa error**, read [Binary compatibility and mix-ins](docs/contributing/binary-compatibility-and-mixins.md):
+  because Hearth's public API is traits that users mix in, a **top-level** trait member added between releases is
+  breaking (forwarder obligation during linearization), while a member added in a **nested** scope is not
+  user-observable (the implementation is evicted together with the interface) and may be suppressed in
+  `mimaBinaryIssueFilters` with a comment citing why
+- Bump `mimaPreviousVersion` on every release
 
 ### CI/CD Pipeline
 

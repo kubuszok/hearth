@@ -3031,6 +3031,20 @@ Specialized view for case classes, providing access to primary constructor and c
 | `cc.primaryConstructor`    | `Method`                             | primary constructor           |
 | `cc.nonPrimaryConstructors`| `List[Method]`                       | other constructors            |
 | `cc.caseFields`            | `List[Method]`                       | case class fields             |
+| `cc.copyMethod()`          | `Option[Method.OnInstance.Of[A]]`    | canonical `copy` method       |
+
+!!! tip "`cc.copyMethod()` for updating case class instances"
+
+    `copyMethod` returns the compiler-synthesized `copy` — the instance method whose value-parameter clauses mirror the
+    primary constructor (so it handles multiple parameter lists like `case class Boo(i: Int)(s: Int)` and generic case
+    classes). It returns `None` when no such method is accessible — e.g. a `sealed abstract case class` (no `copy` is
+    generated), or when `copy` is not visible under the requested scope.
+
+    The optional `visibility: Accessible` parameter defaults to `AtCallSite`, the safe default for derivation: the
+    method is returned only if `instance.copy(...)` would compile at the macro-expansion point. Pass `Everywhere` to
+    require it to be public, or `Anywhere` to ignore accessibility. Because it is a builder chain, drive it as
+    `copy.apply(instance)` → (type args, for generics) → `.apply(args)` → `.build()`; arguments you omit fall back to
+    `copy`'s defaults (the original field values), so you only supply the fields you want to change.
 
 !!! example "Constructing case class instances"
 

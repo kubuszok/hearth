@@ -227,6 +227,41 @@ trait Classes { this: MacroCommons =>
       constructors.filter(_ != primaryConstructor)
     lazy val caseFields: List[Method] = methods.filter(_.isCaseField)
 
+    /** The canonical, compiler-synthesized `copy` method, if one exists.
+      *
+      * The "canonical" `copy` is the instance method named `copy` whose value-parameter clauses mirror the primary
+      * constructor's value-parameter clauses (same number of clauses, and the same parameter names, in order). This is
+      * exactly the shape scalac generates, so it also handles multiple parameter lists (`case class Boo(i: Int)(s:
+      * Int)` → `def copy(i: Int = i)(s: Int = s): Boo`) and generic case classes (`case class Foo[A](a: A)` →
+      * `def copy[A1](a: A1 = a): Foo[A1]`). The comparison is done on the untyped parameter names so it works even for
+      * generic `copy`, whose value parameters are only known once its type arguments are applied.
+      *
+      * Returns [[scala.None]] when the compiler synthesizes no `copy` at all - e.g. a `sealed abstract case class`, or
+      * a case class with a repeated/vararg parameter (`case class Foo(xs: Int*)`), for which neither Scala 2 nor Scala
+      * 3 generates `copy` (a repeated parameter cannot carry the default argument `copy` would need) - or when the
+      * `copy` exists but is not accessible under `visibility`.
+      *
+      * By default ([[AtCallSite]]) the method is returned only if it is accessible at the macro-expansion point - the
+      * safe default for derivation, since the generated `instance.copy(...)` has to compile there. Pass [[Everywhere]]
+      * to require it to be public, or [[Anywhere]] to ignore accessibility entirely.
+      *
+      * The returned [[Method.OnInstance]] is a fresh builder chain: apply the instance, then (for generic case classes)
+      * the type arguments, then the argument map, then `build()`.
+      *
+      * @since 0.4.1
+      */
+    def copyMethod(visibility: Accessible = AtCallSite): Option[Method.OnInstance.Of[A]] =
+      canonicalCopyMethod.filter(_.isAvailable(visibility))
+
+    private lazy val canonicalCopyMethod: Option[Method.OnInstance.Of[A]] = {
+      val constructorShape = primaryConstructor.asUntyped.parameters.map(_.keys.toList)
+      methods.collectFirst {
+        case oi: Method.OnInstance
+            if oi.name == "copy" && oi.asUntyped.parameters.map(_.keys.toList) == constructorShape =>
+          oi.asInstanceOf[Method.OnInstance.Of[A]]
+      }
+    }
+
     def construct[F[_]: DirectStyle: Applicative](
         makeArgument: CaseClass.ConstructField[F],
         visibility: Accessible = Everywhere

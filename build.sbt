@@ -2,6 +2,8 @@ import sbtwelcome.UsefulTask
 import commandmatrix.extra.*
 import kubuszok.sbt._
 import kubuszok.sbt.KubuszokPlugin.autoImport._
+import com.typesafe.tools.mima.core._
+import com.typesafe.tools.mima.core.ProblemFilters._
 
 // Used to compile tests against the newest Scala versions, to check for regressions.
 lazy val isNewestScalaTests = sys.env.get("NEWEST_SCALA_TESTS").contains("true")
@@ -277,28 +279,56 @@ val publishSettings = Seq(
   projectType := ProjectType.ScalaLibrary
 )
 
+// The last released version we check binary compatibility against. Bump this on every release.
+val mimaPreviousVersion = "0.4.0"
+
 val mimaSettings = Seq(
   mimaPreviousArtifacts := {
     val previousVersions = moduleName.value match {
       case "hearth-better-printers" | "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" | "hearth-munit" =>
-        Set() // fix after 0.2.0 release
+        Set(mimaPreviousVersion)
       case "hearth-build" | "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" |
           "hearth-sandwich-tests" | "debug-hearth-better-printers" | "debug-hearth" =>
         Set()
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
     }
-    previousVersions.map(organization.value %% moduleName.value % _)
+    // `.cross(crossVersion.value)` applies the project's own, platform-aware cross-version (CrossVersion.binary on
+    // JVM, ScalaJSCrossVersion.binary on JS, ScalaNativeCrossVersion.binary on Native) so that MiMa compares each
+    // artifact against the matching previous one (`hearth_sjs1_2.13`, `hearth_native0.5_2.13`, ...) instead of always
+    // resolving the JVM artifact (`hearth_2.13`) - which would report all JVM-only classes as "missing".
+    previousVersions.map(v => (organization.value % moduleName.value % v).cross(crossVersion.value))
   },
   mimaFailOnNoPrevious := {
     moduleName.value match {
       case "hearth-better-printers" | "hearth-cross-quotes" | "hearth-micro-fp" | "hearth" | "hearth-munit" =>
-        false // fix after 0.2.0 release
+        true
       case "hearth-build" | "hearth-tests" | "hearth-sandwich-examples-213" | "hearth-sandwich-examples-3" |
           "hearth-sandwich-tests" | "debug-hearth-better-printers" | "debug-hearth" =>
         false
       case name => sys.error(s"All modules should be explicitly checked or ignored for MiMa, missing: $name")
     }
-  }
+  },
+  // Binary-compatibility exceptions.
+  //
+  // Hearth's public surface is a set of traits (MacroCommons and the traits it mixes in) that ONLY we implement and
+  // that USERS mix into their own macro bundles. For such mix-ins the rule that matters is:
+  //
+  //   * A NEW TOP-LEVEL member (val/var/object, or an abstract def) added to a mixed-in trait IS breaking: during
+  //     linearization the user's bundle must now provide/forward it, so a bundle compiled against the old version
+  //     fails to link against the new one. MiMa flags these as ReversedMissingMethodProblem / (Inherited)
+  //     NewAbstractMethodProblem - keep them.
+  //   * A member added inside a NESTED scope (a method/val/object on a nested class or object, e.g. a method on
+  //     `Classes#CaseClass`) is NOT observable by users: the only code that instantiates or mixes in those nested
+  //     definitions is Hearth's own, which is evicted together with the interface. A user upgrading gets both the
+  //     new interface and its new implementation atomically, so the change can never be witnessed as a link error.
+  //     (MiMa does not even report adding a method to a nested *class* - only trait members turn into forwarders.)
+  //
+  // Only the second kind may be excluded here, and each exclusion must cite why it is not user-observable. See
+  // docs/contributing/binary-compatibility-and-mixins.md for the full policy and worked examples.
+  //
+  // Example of an allowed exclusion (a member added to a NESTED trait/object that MiMa would otherwise flag):
+  //   exclude[ReversedMissingMethodProblem]("hearth.typed.SomeTrait#SomeNestedTrait.newHelper")
+  mimaBinaryIssueFilters ++= Seq.empty[ProblemFilter]
 )
 
 val noPublishSettings =

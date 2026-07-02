@@ -405,6 +405,74 @@ final class ClassesSpec extends MacroSuite {
       }
     }
 
+    // Issue #246: CaseClass.copyMethod returns the canonical, compiler-synthesized `copy` (matching the primary
+    // constructor's value-parameter clauses), filtered by an availability scope that defaults to AtCallSite.
+    group("CaseClass[A].copyMethod (issue #246)") {
+      import ClassesFixtures.testCaseClassCopyMethod
+
+      test("finds the canonical copy for a simple case class under every visibility") {
+        testCaseClassCopyMethod[examples.classes.ExampleCaseClass] <==> Data.map(
+          "atCallSite" -> Data("(a)"),
+          "everywhere" -> Data("(a)"),
+          "anywhere" -> Data("(a)")
+        )
+      }
+
+      test("matches multiple parameter lists of the primary constructor") {
+        testCaseClassCopyMethod[examples.classes.ExampleCaseClassMultipleParamLists] <==> Data.map(
+          "atCallSite" -> Data("(i)(s)"),
+          "everywhere" -> Data("(i)(s)"),
+          "anywhere" -> Data("(i)(s)")
+        )
+      }
+
+      test("finds the canonical copy for a generic case class (untyped params known before type args)") {
+        testCaseClassCopyMethod[examples.classes.ExampleCaseClassWithTypeParam[Int]] <==> Data.map(
+          "atCallSite" -> Data("(a)"),
+          "everywhere" -> Data("(a)"),
+          "anywhere" -> Data("(a)")
+        )
+      }
+
+      test("returns None for a vararg case class (no copy is synthesized on either platform)") {
+        // Neither Scala 2 nor Scala 3 generates `copy` for a case class with a repeated parameter, so there is no
+        // canonical copy to return regardless of visibility.
+        testCaseClassCopyMethod[examples.classes.ExampleCaseClassWithVarargs] <==> Data.map(
+          "atCallSite" -> Data("<none>"),
+          "everywhere" -> Data("<none>"),
+          "anywhere" -> Data("<none>")
+        )
+      }
+
+      test("respects the availability scope for a private-constructor copy") {
+        // A private primary constructor makes `copy` non-public on Scala 3 (dropped by AtCallSite/Everywhere, kept
+        // by Anywhere), whereas Scala 2.13 leaves `copy` public. Either way, `copyMethod` reflects the platform's
+        // own accessibility via the availability filter.
+        val expected =
+          if (LanguageVersion.byHearth.isScala2_13)
+            Data.map("atCallSite" -> Data("(a)"), "everywhere" -> Data("(a)"), "anywhere" -> Data("(a)"))
+          else
+            Data.map("atCallSite" -> Data("<none>"), "everywhere" -> Data("<none>"), "anywhere" -> Data("(a)"))
+        testCaseClassCopyMethod[examples.classes.ExampleCaseClassPrivateCopy] <==> expected
+      }
+
+      test("an abstract case class has no synthesized copy under any visibility") {
+        testCaseClassCopyMethod[examples.classes.ExampleSealedAbstractCaseClass] <==> Data.map(
+          "atCallSite" -> Data("<none>"),
+          "everywhere" -> Data("<none>"),
+          "anywhere" -> Data("<none>")
+        )
+      }
+    }
+
+    test("CaseClass[A].copyMethod round-trip: override an Int field, keep the rest at their defaults") {
+      import ClassesFixtures.testCaseClassCopyRoundTrip
+
+      testCaseClassCopyRoundTrip(hearth.examples.classes.ExampleCaseClass(1)) <==> "ExampleCaseClass(99)"
+      testCaseClassCopyRoundTrip(hearth.examples.classes.ExampleCaseClassWithDefaults(1, "kept")) <==>
+        "ExampleCaseClassWithDefaults(99,kept)"
+    }
+
     test("Enum[A].{matchOn and parMatchOn} should match on the sealed trait") {
       import ClassesFixtures.testEnumMatchOnAndParMatchOn
 
