@@ -1389,8 +1389,13 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
       override def pure[A](a: A): ValDefs[A] = new ValDefs[A](Vector.empty, a)
 
-      override def map2[A, B, C](fa: ValDefs[A], fb: => ValDefs[B])(f: (A, B) => C): ValDefs[C] =
-        new ValDefs[C](fa.definitions ++ fb.definitions, f(fa.value, fb.value))
+      override def map2[A, B, C](fa: ValDefs[A], fb: => ValDefs[B])(f: (A, B) => C): ValDefs[C] = {
+        // fb is by-name, so we MUST evaluate it exactly once: forcing it twice (once for .definitions and
+        // once for .value) would materialize its definitions twice, e.g. create a fresh val/var/def twice
+        // and leave the .value referring to a definition that was discarded.
+        val fbValue = fb
+        new ValDefs[C](fa.definitions ++ fbValue.definitions, f(fa.value, fbValue.value))
+      }
 
       override def traverse[G[_]: fp.Applicative, A, B](fa: ValDefs[A])(f: A => G[B]): G[ValDefs[B]] =
         f(fa.value).map(b => new ValDefs[B](fa.definitions, b))

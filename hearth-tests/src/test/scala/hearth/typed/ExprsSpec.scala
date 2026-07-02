@@ -577,6 +577,14 @@ final class ExprsSpec extends MacroSuite {
 
         testValDefsDirectStyleAndClose[Seq[Int], List[Int]](List(1, 2, 3)) ==> List(1, 2, 3)
       }
+
+      test("ValDefs.map2 should evaluate its by-name argument exactly once (no double-created definitions)") {
+        import ExprsFixtures.testValDefsMap2DoesNotDoubleCreate
+
+        testValDefsMap2DoesNotDoubleCreate ==> Data.map(
+          "summed" -> Data(10 + 20 + 30)
+        )
+      }
     }
 
     group("type ValDefBuilder") {

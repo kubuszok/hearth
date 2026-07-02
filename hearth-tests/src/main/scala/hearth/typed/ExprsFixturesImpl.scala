@@ -387,6 +387,26 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     option.fold[Expr[B]](runtimeFail)(_.close)
   }
 
+  def testValDefsMap2DoesNotDoubleCreate: Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+
+    // Regression: ValDefs.map2's second argument is by-name. When `traverse`/`sequence` route a freshly
+    // created val through it, forcing it twice would materialize two conflicting fresh vals - the emitted
+    // definitions coming from the first evaluation while the referenced Ref comes from the second (discarded)
+    // one, producing a dangling reference in the generated code. Each element must be created exactly once.
+    val summed: Expr[Int] = List(Expr(10), Expr(20), Expr(30))
+      .traverse(e => ValDefs.createVal(e, "x"))
+      .use { (refs: List[Expr[Int]]) =>
+        refs.foldLeft(Expr(0))((acc, ref) => Expr.quote(Expr.splice(acc) + Expr.splice(ref)))
+      }
+
+    Expr.quote {
+      Data.map(
+        "summed" -> Data(Expr.splice(summed))
+      )
+    }
+  }
+
   // ValDefBuilder methods
 
   def testValDefBuilderCreateAndUse: Expr[Data] = {
