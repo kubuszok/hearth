@@ -126,6 +126,10 @@ object ExprsFixtures {
   private def testValDefsTraverseAndCloseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
     new ExprsFixtures(q).testValDefsTraverseAndClose[A, B](expr)
 
+  inline def testValDefsMap2DoesNotDoubleCreate: Data = ${ testValDefsMap2DoesNotDoubleCreateImpl }
+  private def testValDefsMap2DoesNotDoubleCreateImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testValDefsMap2DoesNotDoubleCreate
+
   inline def testValDefBuilderCreateAndUse: Data = ${ testValDefBuilderCreateAndUseImpl }
   private def testValDefBuilderCreateAndUseImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testValDefBuilderCreateAndUse
