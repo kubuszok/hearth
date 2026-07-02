@@ -9,6 +9,7 @@ as well as guide agentic coding and debugging.
  1. [Architecture overview](architecture-overview.md) - always relevant for implementing new features and debugging or fixing existing ones
  2. [Guidelines for code style](guidelines-for-code-style.md) - always relevant for creating new or modifying existing code
  3. [Guidelines for tests](guidelines-for-tests.md) - relevant for writing new tests
+ 4. [Binary compatibility and mix-ins](binary-compatibility-and-mixins.md) - how MiMa is configured and which breakages actually affect users (mix-in linearization vs. nested additions); read before suppressing any MiMa error
 
 
 ## Instructions for adding new code, tests and documentation
