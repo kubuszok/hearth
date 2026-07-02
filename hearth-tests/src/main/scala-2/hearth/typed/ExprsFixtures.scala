@@ -65,6 +65,8 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
   def testValDefsTraverseAndCloseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
     testValDefsTraverseAndClose[A, B](expr)
 
+  def testValDefsMap2DoesNotDoubleCreateImpl: c.Expr[Data] = testValDefsMap2DoesNotDoubleCreate
+
   def testValDefBuilderCreateAndUseImpl: c.Expr[Data] = testValDefBuilderCreateAndUse
 
   def testValDefBuilderPartitionAndCloseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
@@ -204,6 +206,8 @@ object ExprsFixtures {
   def testValDefsPartitionAndClose[A, B](expr: A): B = macro ExprsFixtures.testValDefsPartitionAndCloseImpl[A, B]
 
   def testValDefsTraverseAndClose[A, B](expr: A): B = macro ExprsFixtures.testValDefsTraverseAndCloseImpl[A, B]
+
+  def testValDefsMap2DoesNotDoubleCreate: Data = macro ExprsFixtures.testValDefsMap2DoesNotDoubleCreateImpl
 
   def testValDefBuilderCreateAndUse: Data = macro ExprsFixtures.testValDefBuilderCreateAndUseImpl
 
