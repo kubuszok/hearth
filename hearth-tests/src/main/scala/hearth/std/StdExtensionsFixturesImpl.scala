@@ -78,15 +78,11 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       implicit val builderType: Type[scala.collection.mutable.Builder[Elem, CtorResult]] =
         BuilderType[Elem, CtorResult]
 
-      // Build iteration without calling provider for Option/Optional (ctx capture) or EnumSet (pattern var "item" capture) in Scala 2.
+      // Build iteration without calling provider for Option/Optional (ctx capture) in Scala 2.
+      // EnumSet now routes through the provider's `asIterable` like every other collection: issue #322
+      // extracted its quotes into the `isEnumSet` helper so the trees no longer capture the local `item`.
       val iteration =
-        if (Type[A].plainPrint.startsWith("java.util.EnumSet["))
-          Expr.quote {
-            val set = Expr.splice(value).asInstanceOf[java.util.Set[Any]]
-            val lst = scala.jdk.javaapi.CollectionConverters.asScala(set).toList
-            Data(lst.map(elem => Data(elem.toString)).toList)
-          }
-        else if (Type[A].plainPrint.startsWith("scala.Option["))
+        if (Type[A].plainPrint.startsWith("scala.Option["))
           Expr.quote {
             val lst = Expr.splice(value).asInstanceOf[scala.Option[Any]].toList
             Data(lst.map(elem => Data(elem.toString)).toList)
@@ -113,11 +109,10 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
           Expr.quote(Data(Expr.splice(a).toString.takeWhile(c => c != ';' && c != '@' && c != '$')))
         else Expr.quote(Data(Expr.splice(a).toString))
       }
-      // For Option/Optional/EnumSet, build without using provider's factory/build to avoid free term capture in Scala 2.
+      // For Option/Optional, build without using provider's factory/build to avoid free term capture in Scala 2.
+      // (EnumSet has a non-String element, so it falls through to the final "<not a collection of string>" branch.)
       val building =
-        if (Type[A].plainPrint.startsWith("java.util.EnumSet["))
-          Expr(Data("<not a collection of string>"))
-        else if (Type[A].plainPrint.startsWith("scala.Option[") && Elem <:< StringType)
+        if (Type[A].plainPrint.startsWith("scala.Option[") && Elem <:< StringType)
           Expr.quote(Data(Option(Expr.splice(Expr("one"))).toString))
         else if (Type[A].plainPrint.startsWith("java.util.Optional[") && Elem <:< StringType)
           Expr.quote(Data(java.util.Optional.of(Expr.splice(Expr("one"))).toString))
