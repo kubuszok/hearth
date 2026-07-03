@@ -265,6 +265,15 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
       // function body" / null self-assignment in class bodies). With the candidate excluded,
       // `scala.quoted.Type.of[A]` / `Type.CtorN.Bounded.Impl` materialize the type directly instead.
       private var selfDefNames = Set.empty[String]
+      // [hearth#316] Names of the sibling implicit `Type[_]`/`Type.CtorN[_]` val/def definitions declared in the
+      // enclosing TEMPLATE (class/trait/object body). Unlike a block, template members are mutually visible with no
+      // statement ordering, so injecting one sibling's `casted$name` given into another sibling's RHS forces it
+      // (via the `hearth.fp.ignore` suppression), and its RHS forces back — a mutual lazy-val init deadlock (hangs
+      // on the lazy-val CountDownLatch, no diagnostic). While initializing ANY such definition's RHS we therefore
+      // exclude ALL siblings (see the ValDef/DefDef cases): a concrete `Type.of[T]` RHS never legitimately needs a
+      // sibling `Type` given, because concrete types are materialized directly. Abstract-type givens come from
+      // context bounds / implicit params (`boundGivenCandidates`), which are NOT in this set and stay available.
+      private var enclosingTemplateTypeDefNames = Set.empty[String]
 
       private val ctorSize = (1 to 22).map(i => s"Ctor$i" -> i).toMap
       private val isCtor = ctorSize.keySet
@@ -481,6 +490,16 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
         TypeAppliedTypeTree.unapply(tpt).isDefined ||
           TypeCtorAppliedTypeTree.unapply(tpt).isDefined ||
           TypeCtorK1AppliedTypeTree.unapply(tpt).isDefined
+
+      // [hearth#316] Names of the implicit `Type[_]`/`Type.CtorN[_]` val/(parameterless) def members of a template
+      // body — i.e. the members that produce mutually-visible `casted$name` given candidates and could deadlock each
+      // other during initialization. See `enclosingTemplateTypeDefNames`.
+      private def templateTypeDefNames(body: List[untpd.Tree]): Set[String] = body.collect {
+        case vd: untpd.ValDef if vd.isImplicit && producesSelfGivenCandidate(vd.tpt) => vd.name.show
+        case dd @ untpd.DefDef(_, paramss, returnTpe, _)
+            if dd.isImplicit && paramss.flatten.isEmpty && producesSelfGivenCandidate(returnTpe) =>
+          dd.name.show
+      }.toSet
 
       private def blockGivenCandidates(trees: List[untpd.Tree]): List[untpd.ValDef] = trees.collect {
         // Handle imports with @ImportedCrossTypeImplicit (e.g. Underlying, Result, etc.)
@@ -932,7 +951,9 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
         case vd: untpd.ValDef if vd.isImplicit && producesSelfGivenCandidate(vd.tpt) =>
           val oldSelfDefNames = selfDefNames
           try {
-            selfDefNames = oldSelfDefNames + vd.name.show
+            // [hearth#316] Exclude self AND every sibling template-level implicit Type member: injecting a sibling's
+            // casted given here would force it (and it would force back) — a mutual lazy-val init deadlock.
+            selfDefNames = oldSelfDefNames + vd.name.show ++ enclosingTemplateTypeDefNames
             super.transform(vd)
           } finally
             selfDefNames = oldSelfDefNames
@@ -977,11 +998,17 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
         case tpl: Template =>
           val newGivenCandidates = blockGivenCandidates(tpl.body)
           val oldGivenCandidates = givenCandidates
+          val oldEnclosingTemplateTypeDefNames = enclosingTemplateTypeDefNames
           try {
             givenCandidates = oldGivenCandidates ++ newGivenCandidates
+            // [hearth#316] Record this template's mutually-visible implicit Type members so that each one's RHS can
+            // exclude its siblings (avoiding the mutual lazy-val init deadlock). Templates nest, so accumulate.
+            enclosingTemplateTypeDefNames = oldEnclosingTemplateTypeDefNames ++ templateTypeDefNames(tpl.body)
             super.transform(tpl)
-          } finally
+          } finally {
             givenCandidates = oldGivenCandidates
+            enclosingTemplateTypeDefNames = oldEnclosingTemplateTypeDefNames
+          }
 
         /* The cross-quotes code would have type bounds like:
          *  [A: Type, B: Type]
@@ -1019,7 +1046,11 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
           val oldSelfDefNames = selfDefNames
           try {
             givenCandidates = oldGivenCandidates ++ newGivenCandidates
-            selfDefNames = oldSelfDefNames ++ selfName
+            // [hearth#316] For an implicit parameterless Type def (selfName defined), also exclude sibling
+            // template-level implicit Type members to avoid the mutual init deadlock. Regular methods keep all
+            // sibling givens available (their bodies legitimately summon sibling Type[_]).
+            selfDefNames =
+              oldSelfDefNames ++ selfName ++ (if selfName.isDefined then enclosingTemplateTypeDefNames else Set.empty)
             // untpd.DefDef(methodName, paramss, returnTpe, transform(body)).withMods(dd.mods)
             super.transform(dd)
           } finally {

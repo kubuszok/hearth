@@ -2,8 +2,8 @@ package hearth
 
 import hearth.crossquotes.Issue320ReproFixtures
 
-/** Regression for hearth#320: on Scala 2, object/companion references inside an `Expr.quote` from one compilation
-  * scope must survive being re-materialized at a foreign expansion site.
+/** Regression for hearth#320: on Scala 2, object/companion references inside an `Expr.quote` from one compilation scope
+  * must survive being re-materialized at a foreign expansion site.
   *
   * This spec lives in package `hearth` while the quoted `CrossUnitWrapper`/`CrossUnitSupport` objects (and the fixture
   * that quotes them) live in package `hearth.crossquotes`, and only the fixture object is imported here — so the quoted
