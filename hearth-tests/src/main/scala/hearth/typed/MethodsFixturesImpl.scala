@@ -842,6 +842,31 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     Expr(Data.list((typeAnnotations ++ methodAnnotations)*))
   }
 
+  // Issue #306: type-position annotations (`name: String @ExampleAnnotation`). Renders each primary-constructor
+  // field's name to the annotations found on its TYPE (via `Type.typeAnnotations`), plus the annotations directly on A.
+  def testTypeAnnotations[A: Type]: Expr[Data] = {
+    def annNames(anns: List[Expr_??]): Data = Data.list(anns.map { ann =>
+      if (ann.Underlying =:= Type.of[hearth.examples.methods.ExampleAnnotation2]) Data("ExampleAnnotation2")
+      else if (ann.Underlying =:= Type.of[hearth.examples.methods.ExampleAnnotation]) Data("ExampleAnnotation")
+      else Data(ann.Underlying.plainPrint)
+    }*)
+
+    val fields = Type[A].primaryConstructor.toList.flatMap(_.totalParameters.flatten).map { case (paramName, param) =>
+      import param.tpe.Underlying as FieldTpe
+      Data.map(
+        "name" -> Data(paramName),
+        "typeAnnotations" -> annNames(Type.typeAnnotations[FieldTpe])
+      )
+    }
+
+    Expr(
+      Data.map(
+        "own" -> annNames(Type.typeAnnotations[A]),
+        "fields" -> Data.list(fields*)
+      )
+    )
+  }
+
   private def renderParameterAnnotations(parameters: Parameters): Data = {
     val rendered = parameters.flatten.map { case (paramName, param) =>
       val annotations = param.annotations.flatMap { ann =>

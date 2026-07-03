@@ -933,7 +933,8 @@ final class TypesSpec extends MacroSuite {
         test("for built-in types") {
 
           testFlags[Unit] <==> Data.map(
-            "Type.isPrimitive" -> Data(false),
+            // scalac's `isPrimitiveValueClass` counts `Unit`, so for parity Hearth's `isPrimitive` does too (#310).
+            "Type.isPrimitive" -> Data(true),
             "Type.isArray" -> Data(false),
             "Type.isIArray" -> Data(false),
             "Type.isJvmBuiltIn" -> Data(true),

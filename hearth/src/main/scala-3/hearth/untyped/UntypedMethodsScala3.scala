@@ -615,24 +615,38 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       val orderedArgs = fieldNames.map { fname =>
         arguments.getOrElse(fname, hearthRequirementFailed(s"Missing argument for field '$fname'"))
       }
-      // Get the underlying tuple type (second type arg of NamedTuple[Names, Values])
-      val underlyingTupleTpe = instanceTpe match {
-        case AppliedType(_, List(_, valuesTpe)) => valuesTpe
-        case _ => hearthAssertionFailed(s"Expected NamedTuple AppliedType, got ${instanceTpe.show}")
-      }
-      // Construct the underlying tuple via its constructor: new TupleN(arg1, arg2, ...)
-      type Underlying
-      given scala.quoted.Type[Underlying] = underlyingTupleTpe.asType.asInstanceOf[scala.quoted.Type[Underlying]]
-      val tupleCtor = underlyingTupleTpe.typeSymbol.primaryConstructor
-      val select = New(TypeTree.of[Underlying]).select(tupleCtor)
-      val applied =
-        if underlyingTupleTpe.typeArgs.nonEmpty then select.appliedToTypes(underlyingTupleTpe.typeArgs)
-        else select
-      val tupleExpr = applied.appliedToArgss(List(orderedArgs))
-      // Type-ascribe the tuple to the NamedTuple type: (tupleExpr : NamedTupleType)
       type NT
       given scala.quoted.Type[NT] = instanceTpe.asType.asInstanceOf[scala.quoted.Type[NT]]
-      Typed(tupleExpr, TypeTree.of[NT])
+      // A NamedTuple is represented at runtime by its underlying value tuple, so casting the tuple to the named-tuple
+      // type is sound. We use a cast (rather than a type ascription) for the EmptyTuple/TupleXXL shapes because they
+      // are not statically seen as subtypes of the (opaque) NamedTuple type.
+      def castToNamedTuple(expr: scala.quoted.Expr[Any]): UntypedExpr = '{ $expr.asInstanceOf[NT] }.asTerm
+
+      orderedArgs.length match {
+        case 0 =>
+          // Empty named tuple (e.g. NamedTuple.Empty) -> EmptyTuple. See issue #313.
+          castToNamedTuple('{ scala.EmptyTuple })
+        case n if n < 23 =>
+          // Construct the underlying tuple via its constructor: new TupleN(arg1, arg2, ...)
+          val underlyingTupleTpe = instanceTpe.dealias match {
+            case AppliedType(_, List(_, valuesTpe)) => valuesTpe
+            case _ => hearthAssertionFailed(s"Expected NamedTuple AppliedType, got ${instanceTpe.show}")
+          }
+          type Underlying
+          given scala.quoted.Type[Underlying] = underlyingTupleTpe.asType.asInstanceOf[scala.quoted.Type[Underlying]]
+          val tupleCtor = underlyingTupleTpe.typeSymbol.primaryConstructor
+          val select = New(TypeTree.of[Underlying]).select(tupleCtor)
+          val applied =
+            if underlyingTupleTpe.typeArgs.nonEmpty then select.appliedToTypes(underlyingTupleTpe.typeArgs)
+            else select
+          // Type-ascribe the tuple to the NamedTuple type: (tupleExpr : NamedTupleType)
+          Typed(applied.appliedToArgss(List(orderedArgs)), TypeTree.of[NT])
+        case _ =>
+          // TupleXXL (arity >= 23) has no public N-ary constructor - build the runtime tuple via Tuple.fromArray,
+          // boxing each element to Object. See issue #314.
+          val boxed = orderedArgs.map(arg => '{ ${ arg.asExpr }.asInstanceOf[Object] })
+          castToNamedTuple('{ scala.Tuple.fromArray(scala.Array[Object](${ scala.quoted.Varargs(boxed) }*)) })
+      }
     }
 
     override lazy val name: String = "<init>"
@@ -693,11 +707,13 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         name
       }
 
-    instanceTpe match {
-      case AppliedType(_, List(namesTpe, valuesTpe)) if UntypedType.isNamedTuple(instanceTpe) =>
+    // Dealias so that alias forms such as `scala.NamedTuple.Empty` (= `NamedTuple[EmptyTuple, EmptyTuple]`) are
+    // recognized. The empty named tuple has zero fields, so we must allow `names.length == 0`. See issue #313.
+    instanceTpe.dealias match {
+      case applied @ AppliedType(_, List(namesTpe, valuesTpe)) if UntypedType.isNamedTuple(applied) =>
         val names = extractStringLiterals(namesTpe)
         val types = extractTupleElements(valuesTpe)
-        if names.nonEmpty && names.length == types.length then Some((names, types))
+        if names.length == types.length then Some((names, types))
         else None
       case _ => None
     }
@@ -806,7 +822,10 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       namedTupleComponents(instanceTpe) match {
         case Some((names, types)) => Some(new SyntheticNamedTupleConstructor(names, types))
         case None                 =>
-          Option(instanceTpe.typeSymbol.primaryConstructor)
+          // Dealias so that an `export`-created alias (`export Inner.Foo`) resolves to the underlying class symbol -
+          // otherwise `typeSymbol` is the alias and reports no constructors. Scala 2's `typeSymbol` auto-dealiases.
+          // See issue #315.
+          Option(instanceTpe.dealias.typeSymbol.primaryConstructor)
             .filterNot(_.isNoSymbol)
             .flatMap(
               UntypedMethod
@@ -823,7 +842,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       namedTupleComponents(instanceTpe) match {
         case Some((names, types)) => List(new SyntheticNamedTupleConstructor(names, types))
         case None                 =>
-          instanceTpe.typeSymbol.declarations
+          instanceTpe.dealias.typeSymbol.declarations // dealias for `export`-created aliases, see issue #315
             .filterNot(_.isNoSymbol)
             .filter(_.isClassConstructor)
             .flatMap(
@@ -839,8 +858,23 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       }
     override def methods(instanceTpe: UntypedType): List[UntypedMethod] = {
       val symbol = instanceTpe.typeSymbol
+      // `fieldMembers` only returns the type's OWN fields, so `val` fields inherited from parent CLASSES (e.g. the
+      // constructor vals of an abstract parent) are neither methods nor own fields and would vanish entirely. Walk the
+      // base classes and pick up their public, non-synthetic fields, deduplicating by name (closest class wins, since
+      // `baseClasses` is ordered subclass-first) and never shadowing an own member. Scala 2's `.members` already sees
+      // them. See issue #327. `UntypedType.baseClasses` is used explicitly to avoid the extension-shadowing footgun.
+      val ownMembers = symbol.methodMembers ++ symbol.fieldMembers
+      val seenNames = scala.collection.mutable.Set.from(ownMembers.iterator.map(_.name))
+      val inheritedFields = UntypedType
+        .baseClasses(instanceTpe)
+        .iterator
+        .flatMap(_.typeSymbol.fieldMembers)
+        .filter(f =>
+          !f.isNoSymbol && !f.flags.is(Flags.Private) && !f.flags.is(Flags.Synthetic) && seenNames.add(f.name)
+        )
+        .toList
       // Defined in the type or its parent, or synthetic
-      val classMembers = symbol.methodMembers ++ symbol.fieldMembers
+      val classMembers = ownMembers ++ inheritedFields
       // Defined exatcly in the type
       val classDeclared = symbol.declaredMethods.toSet ++ symbol.declaredFields.toSet ++ declaredByJvmOrScala(symbol)
 

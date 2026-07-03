@@ -335,7 +335,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     }
 
     final private def loadMacroExtensionsFrom[Extension <: MacroExtension[?]](
-        extensions: Either[Throwable, Vector[Extension]]
+        extensions: Either[Throwable, platformSpecificServiceLoader.Loaded[Extension]]
     ): ExtensionLoadingResult[Extension] = {
       // Allow aggregating errors from each extension loading.
       // Extensions that were already applied in this macro expansion are skipped to avoid duplicate side effects
@@ -367,8 +367,17 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
           }
 
       extensions match {
-        case Right(extensions) =>
-          val sorted = extensions.sortBy(_.priority)(Ordering[Int].reverse)
+        // No provider could even be instantiated (e.g. every candidate threw, or the only service jar has a
+        // forward-incompatible TASTy file): preserve the historical `LoaderFailed` shape so the cause stays visible.
+        case Right(loaded) if loaded.services.isEmpty && loaded.failures.nonEmpty =>
+          ExtensionLoadingResult.LoaderFailed(loaded.failures.head._2)
+        case Right(loaded) =>
+          // A subset of providers could not be instantiated (e.g. one unloadable extension jar sitting next to
+          // Hearth's own built-in providers). The loader skipped just those rather than aborting the whole run, so the
+          // built-ins and the other extensions still load instead of poisoning EVERY derivation in the module. We do
+          // NOT `reportInfo`/`reportWarn` the skipped providers here: a macro may emit only one such message, and
+          // spending it inside shared loading machinery would steal it from the user's own macro. See issue #325.
+          val sorted = loaded.services.sortBy(_.priority)(Ordering[Int].reverse)
           val (failure, success) = sorted.partitionMap(safeLoadExtension)
           val loadedExtensions = ListSet.from(success)
           NonEmptyMap.fromListMap(ListMap.from(failure)) match {

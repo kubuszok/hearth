@@ -97,7 +97,11 @@ trait UntypedTypes { this: MacroCommons =>
     protected def toClassJvmBuiltInExtra(untyped: UntypedType): Option[java.lang.Class[?]] = None
 
     final def isPrimitive(instanceTpe: UntypedType): Boolean =
-      Type.primitiveTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying))
+      // `Unit` is not in `primitiveTypes` (it does not box to `java.lang.Object` the way the 8 value types do), but
+      // scalac's `Symbol.isPrimitive`/`isPrimitiveValueClass` counts it, so for parity we count it here too. Otherwise
+      // a `!isPrimitive && isClass && !isAbstract` classifier treats `Unit` as an instantiable POJO. See issue #310.
+      Type.primitiveTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying)) ||
+        instanceTpe <:< fromTyped(using Type.of[Unit])
     final def isArray(instanceTpe: UntypedType): Boolean =
       ArrayCtor.unapply(toTyped[Any](instanceTpe)).isDefined
     def isIArray(instanceTpe: UntypedType): Boolean = false
@@ -216,6 +220,20 @@ trait UntypedTypes { this: MacroCommons =>
     def companionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)]
 
     def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]]
+
+    /** Like [[directChildren]], but returns an ordered `List` instead of a `ListMap` keyed by simple name.
+      *
+      * [[directChildren]] keys by SIMPLE name, so same-named subtypes living in different scopes (e.g.
+      * `object Color { case object Green }` alongside a top-level `case object Green`) collapse into one entry and the
+      * ambiguity becomes undetectable. This list form preserves every subtype (duplicate simple names included) and
+      * their extraction order, so a caller can detect ambiguity and order/flatten as it sees fit. The extraction
+      * strategy otherwise mirrors [[directChildren]] (which on Scala 2 pre-flattens nested sealed hierarchies while
+      * Scala 3 returns direct children). See issue #309.
+      *
+      * @since 0.4.1
+      */
+    def directChildrenList(instanceTpe: UntypedType): Option[List[(String, UntypedType)]] =
+      directChildren(instanceTpe).map(_.toList)
     final def exhaustiveChildren(instanceTpe: UntypedType): Option[NonEmptyMap[String, UntypedType]] = {
       val isEnum = instanceTpe.isEnumeration
       directChildren(instanceTpe)
@@ -274,6 +292,17 @@ trait UntypedTypes { this: MacroCommons =>
 
     def annotations(untyped: UntypedType): List[UntypedExpr]
     def annotationTypes(untyped: UntypedType): List[UntypedType]
+
+    /** Annotations attached to the TYPE POSITION of the given type - the `@Ann` in `X @Ann`, represented by
+      * `AnnotatedType(X, @Ann)` on both Scala 2 and Scala 3. This is distinct from [[annotations]], which reads
+      * annotations declared on the type's SYMBOL (`@Ann class X` / `@Ann val x`). Stacked type annotations (`X @A @B`)
+      * are all returned, outermost first, and alias forms (`type Y = X @Ann`) are seen through. Returns `Nil` when the
+      * type carries no type-position annotations. See issue #306.
+      *
+      * @since 0.4.1
+      */
+    def typeAnnotations(untyped: UntypedType): List[UntypedExpr] = Nil
+    def typeAnnotationTypes(untyped: UntypedType): List[UntypedType] = Nil
 
     private lazy val ArrayCtor = Type.Ctor1.of[Array]
 
@@ -338,6 +367,17 @@ trait UntypedTypes { this: MacroCommons =>
     def parents: List[UntypedType] = UntypedType.parents(untyped)
     def baseClasses: List[UntypedType] = UntypedType.baseClasses(untyped)
 
+    /** Alias for [[baseClasses]] that does not collide with `quotes.reflect`'s `TypeRepr#baseClasses`.
+      *
+      * On Scala 3 `UntypedType` IS `quotes.reflect.TypeRepr`, so the [[baseClasses]] extension above shadows
+      * `TypeRepr#baseClasses` (which returns `List[Symbol]`) inside a `MacroCommonsScala3` cake - a footgun, since the
+      * two have different element types. Prefer this `baseClassTypes` name in mixed Hearth + `quotes.reflect` code; to
+      * reach the reflection one explicitly, call `quotes.reflect.TypeReprMethods.baseClasses(repr)`. See issue #328.
+      *
+      * @since 0.4.1
+      */
+    def baseClassTypes: List[UntypedType] = UntypedType.baseClasses(untyped)
+
     def <:<(other: UntypedType): Boolean = UntypedType.isSubtypeOf(untyped, other)
     def =:=(other: UntypedType): Boolean = UntypedType.isSameAs(untyped, other)
 
@@ -348,6 +388,7 @@ trait UntypedTypes { this: MacroCommons =>
     def companionObject: Option[(UntypedType, UntypedExpr)] = UntypedType.companionObject(untyped)
 
     def directChildren: Option[ListMap[String, UntypedType]] = UntypedType.directChildren(untyped)
+    def directChildrenList: Option[List[(String, UntypedType)]] = UntypedType.directChildrenList(untyped)
     def exhaustiveChildren: Option[NonEmptyMap[String, UntypedType]] = UntypedType.exhaustiveChildren(untyped)
 
     def defaultValue(param: UntypedParameter): Option[UntypedMethod] = UntypedMethod.defaultValue(untyped)(param)
@@ -358,5 +399,7 @@ trait UntypedTypes { this: MacroCommons =>
 
     def annotations: List[UntypedExpr] = UntypedType.annotations(untyped)
     def annotationTypes: List[UntypedType] = UntypedType.annotationTypes(untyped)
+    def typeAnnotations: List[UntypedExpr] = UntypedType.typeAnnotations(untyped)
+    def typeAnnotationTypes: List[UntypedType] = UntypedType.typeAnnotationTypes(untyped)
   }
 }

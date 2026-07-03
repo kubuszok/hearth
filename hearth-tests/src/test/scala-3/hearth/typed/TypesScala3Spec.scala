@@ -477,7 +477,9 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isJavaEnum" -> Data(false),
             "Type.isJavaEnumValue" -> Data(false),
             "Type.isEnumeration" -> Data(false),
-            "Type.isCase" -> Data(false),
+            // `EmptyTuple`'s value is a `case object`, whose `Case` flag lives on the term symbol - now detected (#311).
+            // The composite classifiers stay `false` because `isClass`/`isObject`/`isVal` are all `false` here.
+            "Type.isCase" -> Data(true),
             "Type.isObject" -> Data(false),
             "Type.isVal" -> Data(false),
             "Type.isCaseClass" -> Data(false),

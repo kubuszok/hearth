@@ -1579,3 +1579,28 @@ Type[A] match {
       }
     }
     ```
+
+### Which provider matched — `lastMatchProvenance`
+
+Skip reasons name every provider that *declined* (`lastUnapplyFailure`), but a *successful* match historically told you nothing about **which** provider produced it. `lastMatchProvenance` closes that gap: after a successful `parse`/`unapply`, each of `IsCollection`, `IsOption`, `IsEither`, `IsValueType` and `IsMap` exposes an `Option[ProviderProvenance]` describing the matching provider:
+
+```scala
+Type[A] match {
+  case IsValueType(isValueType) =>
+    val origin = IsValueType.lastMatchProvenance
+    // origin.exists(_.isBuiltIn)         -> true for Hearth's own built-ins
+    // origin.map(_.providerName)         -> the provider's `name`
+    // origin.map(_.providerClassName)    -> the implementing class (built-ins live in `hearth.std.extensions`)
+    ...
+}
+```
+
+`ProviderProvenance.isBuiltIn` is `true` when the matching provider is one of Hearth's built-ins (they all live in the `hearth.std.extensions` package) and `false` for a third-party `StandardMacroExtension`. This lets a consumer apply different policies per origin (e.g. only honour extension-provided value types) without maintaining a hand-curated list of built-in types to exclude.
+
+### JDK baseline of emitted code
+
+Hearth itself requires **JDK 11+** to *run* (it constrains the compiler's runtime). Independently of that, the **built-in providers emit Java API calls into your generated code**, so the code they produce has its own minimum-JDK contract — your module must compile with a high enough `-release`/`--release` for the emitted calls to type-check.
+
+Currently the notable case is the Java **map** providers, whose generated code calls **`java.util.Map.entry(...)`**, which is **JDK 9+**. A consumer compiling a `java.util.Map`-target derivation with `-release 8` will get type-check failures pointing at the generated code rather than at the real cause.
+
+**Recommendation:** compile consuming modules with **`-release 11`** (or newer) when you rely on the Java-collection providers. This baseline may rise in future releases; such changes will be called out in the release notes.

@@ -328,7 +328,19 @@ val mimaSettings = Seq(
   //
   // Example of an allowed exclusion (a member added to a NESTED trait/object that MiMa would otherwise flag):
   //   exclude[ReversedMissingMethodProblem]("hearth.typed.SomeTrait#SomeNestedTrait.newHelper")
-  mimaBinaryIssueFilters ++= Seq.empty[ProblemFilter]
+  mimaBinaryIssueFilters ++= Seq(
+    // #329: `lastMatchProvenance` provider-provenance state added to the NESTED trait `StdExtensions#ProvidedCompanion`.
+    // That trait is part of the MacroCommons cake and is implemented ONLY by Hearth's own std companion objects
+    // (IsCollection/IsOption/IsEither/IsValueType/CtorLikes), which live in the same trait - so the interface and its
+    // implementations are always evicted together and no user has a standalone implementation to break. The public
+    // accessor is a `final def`; these two are just the synthetic getter/setter of its `private var` backing field.
+    exclude[ReversedMissingMethodProblem](
+      "hearth.std.StdExtensions#ProvidedCompanion.hearth$std$StdExtensions$ProvidedCompanion$$lastMatchProvenanceValue"
+    ),
+    exclude[ReversedMissingMethodProblem](
+      "hearth.std.StdExtensions#ProvidedCompanion.hearth$std$StdExtensions$ProvidedCompanion$$lastMatchProvenanceValue_="
+    )
+  )
 )
 
 val noPublishSettings =

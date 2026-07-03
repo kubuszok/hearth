@@ -1153,10 +1153,9 @@ final class ExprsSpec extends MacroSuite {
             "decoded" -> Data("a")
           ),
           "Class" -> Data.map(
-            "encoded" -> Data(
-              if (LanguageVersion.byHearth.isScala2_13) "scala.Predef.classOf[scala.Int]"
-              else "scala.Predef.classOf[scala.Int]"
-            ),
+            // #321: emitted as a class LITERAL now (renders as plain `classOf[fqcn]`), identical on both platforms,
+            // so the encoding survives a downstream `c.untypecheck` + re-typecheck.
+            "encoded" -> Data("classOf[scala.Int]"),
             "decoded" -> Data("int")
           ),
           "ClassTag" -> Data.map(

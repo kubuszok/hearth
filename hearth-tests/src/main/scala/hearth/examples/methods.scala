@@ -8,6 +8,13 @@ class ExampleAnnotation2(val value: Int) extends scala.annotation.StaticAnnotati
 class ParentAnnotation extends scala.annotation.StaticAnnotation
 class ChildAnnotation extends ParentAnnotation
 
+// Type-position annotations (`x: T @Ann`), for issue #306 - distinct from field annotations (`@Ann x: T`).
+case class WithTypeAnnotations(
+    name: String @ExampleAnnotation,
+    age: Int,
+    nickname: String @ExampleAnnotation2(42) @ExampleAnnotation
+)
+
 @ChildAnnotation
 class WithChildAnnotation {
 
