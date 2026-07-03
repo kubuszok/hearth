@@ -186,6 +186,10 @@ object MethodsFixtures {
   private def testAnnotationDestructuringImpl[A: Type](using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testAnnotationDestructuring[A]
 
+  inline def testTypeAnnotations[A]: Data = ${ testTypeAnnotationsImpl[A] }
+  private def testTypeAnnotationsImpl[A: Type](using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testTypeAnnotations[A]
+
   inline def testParameterAnnotations[A](inline methodName: String): Data = ${
     testParameterAnnotationsImpl[A]('methodName)
   }

@@ -2535,6 +2535,22 @@ final class MethodsSpec extends MacroSuite {
       val args = annOnMethod.get.asMap.get("destructuredArgs").asString.get
       assert(args == "", s"no-arg annotation should destructure to empty args, got: '$args'")
     }
+
+    test("type-position annotations on case-class field types are exposed (#306)") {
+      import MethodsFixtures.testTypeAnnotations
+
+      testTypeAnnotations[examples.methods.WithTypeAnnotations] <==> Data.map(
+        "own" -> Data.list(),
+        "fields" -> Data.list(
+          Data.map("name" -> Data("name"), "typeAnnotations" -> Data.list(Data("ExampleAnnotation"))),
+          Data.map("name" -> Data("age"), "typeAnnotations" -> Data.list()),
+          Data.map(
+            "name" -> Data("nickname"),
+            "typeAnnotations" -> Data.list(Data("ExampleAnnotation"), Data("ExampleAnnotation2"))
+          )
+        )
+      )
+    }
   }
 
   group("methods: parameter annotations") {

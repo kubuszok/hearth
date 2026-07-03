@@ -73,7 +73,17 @@ final class IsCollectionProviderForJavaIterable extends StandardMacroExtension {
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
           implicit val IterableItem: Type[java.lang.Iterable[Item]] = Iterable[Item]
-          ProviderResult.Matched(isIterable[A, Item](A, _.upcast[java.lang.Iterable[Item]], _.upcast[A]))
+          // Only match the EXACT `java.lang.Iterable[Item]`. The factory builds a `java.util.ArrayList` and hands it
+          // back as `A`; that is sound only when `A` really is `java.lang.Iterable[Item]`. A PROPER subtype (e.g.
+          // `java.util.EnumSet[E]`) is handled by a more specific provider - matching it here and then casting a plain
+          // Iterable to the subtype (`_.upcast[A]`) would assert, since the built ArrayList is not an instance of it.
+          // See issue #324.
+          if (Type[A] =:= IterableItem)
+            ProviderResult.Matched(isIterable[A, Item](A, _.upcast[java.lang.Iterable[Item]], _.upcast[A]))
+          else
+            skipped(
+              s"${tpe.prettyPrint} is a proper subtype of java.lang.Iterable[_]; only exact java.lang.Iterable is handled here"
+            )
         case _ => skipped(s"${tpe.prettyPrint} is not <: java.lang.Iterable[_]")
       }
     })

@@ -967,6 +967,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     // with more cases).
 
     override def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = {
+      // Emit a proper class LITERAL (`Literal(ClassOfConstant(tpe))`, rendered as `classOf[fqcn]`) so the encoding
+      // survives a downstream re-typecheck and matches Scala 2's `Literal(Constant(tpe))`. See issue #321.
+      given ToExpr[java.lang.Class[A]] = new {
+        override def apply(value: java.lang.Class[A])(using scala.quoted.Quotes): Expr[java.lang.Class[A]] =
+          Literal(ClassOfConstant(TypeRepr.of[A])).asExprOf[java.lang.Class[A]]
+      }
       given FromExpr[java.lang.Class[A]] = new {
         override def unapply(expr: Expr[java.lang.Class[A]])(using scala.quoted.Quotes): Option[java.lang.Class[A]] = {
           def matchTerm(tree: Tree): Option[java.lang.Class[A]] = tree match {

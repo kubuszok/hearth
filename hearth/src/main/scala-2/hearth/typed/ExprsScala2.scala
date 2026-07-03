@@ -745,7 +745,10 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     override def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = {
       implicit val liftable: Liftable[java.lang.Class[A]] = Liftable[java.lang.Class[A]] { _ =>
-        q"scala.Predef.classOf[${Type[A]}]"
+        // Emit a real class LITERAL (`Literal(Constant(tpe))`, which scalac renders as `classOf[fqcn]`) rather than a
+        // `classOf[${Type[A]}]` quasiquote: the type splice produced a path-dependent reference into the provider's
+        // `parse` method that did not survive a downstream `c.untypecheck` + re-typecheck. See issue #321.
+        Literal(Constant(UntypedType.fromTyped[A]))
       }
       implicit val unliftable: Unliftable[java.lang.Class[A]] = new Unliftable[java.lang.Class[A]] {
         def unapply(tree: Tree): Option[java.lang.Class[A]] = Type[A].getRuntimeClass
@@ -1383,7 +1386,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     override def closeScope[A](scoped: ValDefs[Expr[A]]): Expr[A] =
       if (scoped.definitions.isEmpty) scoped.value
       else
-        c.Expr[A](q"..${scoped.definitions}; ${scoped.value}")
+        // The block tree is quasiquote-built and therefore untyped, so a bare `c.Expr[A](block)` would materialize an
+        // UNRESOLVED `WeakTypeTag[A]` (literally the abstract type parameter `A`), corrupting every `Expr.typeOf` on the
+        // result. `closeScope` has no `Type[A]` bound (adding one would break binary compatibility), but `scoped.value`
+        // already carries the caller's real type - so we re-tag with it. See issue #308.
+        c.Expr[A](q"..${scoped.definitions}; ${scoped.value}")(Expr.typeOf(scoped.value))
 
     override val traverse: fp.ApplicativeTraverse[ValDefs] = new fp.ApplicativeTraverse[ValDefs] {
 

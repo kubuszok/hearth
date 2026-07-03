@@ -48,6 +48,54 @@ trait StdExtensions { this: MacroCommons =>
         lastUnapplyFailure = reasons
         None
     }
+
+    /** Whether `A` is a bottom type (`Nothing` or `Null`).
+      *
+      * Bottom types conform to EVERY type via `<:<`, so a provider that selects by `<:<` matches them and then crashes
+      * while eagerly building exprs it cannot build (e.g. upcasting `java.util.Optional[Nothing]` to `Null`). No
+      * provider can produce a value of a bottom type, so `parse` skips them up front rather than crashing. See #319.
+      */
+    final protected def isBottomType[A: Type]: Boolean =
+      Type[A] <:< Type.of[Null] || Type[A] <:< Type.of[Nothing]
+    // A `def` (not a `val`): a new trait `val`/`var` adds an abstract accessor to the compiled interface, breaking
+    // binary compatibility; a `final def` compiles to a provided default method and does not. See issue #319.
+    final protected def bottomTypeSkipReason: String =
+      "bottom types (Nothing/Null) conform to every type but no provider can build a value of them"
+
+    // Backing field is `private` so it stays out of the compiled interface (see the note above); the public accessor is
+    // a `final def`. Read-only is also better API - callers should only inspect the provenance, not set it.
+    private var lastMatchProvenanceValue: Option[ProviderProvenance] = None
+
+    /** Provenance of the provider that produced the most recent successful match through [[parse]]/[[unapply]], or
+      * `None` when the last call did not match. Populated by [[firstMatch]] (and thus by every companion whose `parse`
+      * delegates to it). Lets callers tell built-in results apart from specific extensions. See issue #329.
+      */
+    final def lastMatchProvenance: Option[ProviderProvenance] = lastMatchProvenanceValue
+
+    final protected def recordMatch(provider: Provider): Unit =
+      lastMatchProvenanceValue = Some(ProviderProvenance(provider.name, provider.getClass.getName))
+
+    /** Standard "first provider that matches wins, otherwise aggregate the skip reasons" loop, shared by the companions
+      * with that shape (IsCollection/IsOption/IsEither/IsValueType). Records [[lastMatchProvenance]] on a match (#329).
+      */
+    final protected def firstMatch[A: Type](companionName: String): ProviderResult[Provided[A]] = {
+      lastMatchProvenanceValue = None
+      var skippedReasons = ListMap.empty[String, Either[Throwable, String]]
+      val it = providers.iterator
+      while (it.hasNext) {
+        val provider = it.next()
+        provider.parse(Type[A]) match {
+          case matched: ProviderResult.Matched[Provided[A] @unchecked] =>
+            recordMatch(provider)
+            return matched
+          case ProviderResult.Skipped(reasons) => skippedReasons ++= reasons.iterator
+        }
+      }
+      NonEmptyMap.fromListMap(skippedReasons) match {
+        case Some(nem) => ProviderResult.Skipped(nem)
+        case None      => ProviderResult.skipped(companionName, "No providers registered")
+      }
+    }
   }
 
   /** Represents a possible smart constructor for the given input and output types.
@@ -175,7 +223,9 @@ trait StdExtensions { this: MacroCommons =>
   type CtorLikes[A] = NonEmptyList[CtorLike[A]]
   object CtorLikes extends ProvidedCompanion[CtorLikes] {
 
-    override def parse[A: Type]: ProviderResult[CtorLikes[A]] = {
+    override def parse[A: Type]: ProviderResult[CtorLikes[A]] = if (isBottomType[A])
+      ProviderResult.skipped("CtorLikes", bottomTypeSkipReason)
+    else {
       var matched: Option[CtorLikes[A]] = None
       var skippedReasons = ListMap.empty[String, Either[Throwable, String]]
       providers.foreach { provider =>
@@ -334,21 +384,9 @@ trait StdExtensions { this: MacroCommons =>
   type IsCollection[A] = Existential[IsCollectionOf[A, *]]
   object IsCollection extends ProvidedCompanion[IsCollection] {
 
-    override def parse[A: Type]: ProviderResult[IsCollection[A]] = {
-      var skippedReasons = ListMap.empty[String, Either[Throwable, String]]
-      val it = providers.iterator
-      while (it.hasNext) {
-        val provider = it.next()
-        provider.parse(Type[A]) match {
-          case matched: ProviderResult.Matched[IsCollection[A] @unchecked] => return matched
-          case ProviderResult.Skipped(reasons)                             => skippedReasons ++= reasons.iterator
-        }
-      }
-      NonEmptyMap.fromListMap(skippedReasons) match {
-        case Some(nem) => ProviderResult.Skipped(nem)
-        case None      => ProviderResult.skipped("IsCollection", "No providers registered")
-      }
-    }
+    override def parse[A: Type]: ProviderResult[IsCollection[A]] = if (isBottomType[A])
+      ProviderResult.skipped("IsCollection", bottomTypeSkipReason)
+    else firstMatch[A]("IsCollection")
   }
 
   /** Proof that the type is a map of the given key and value types.
@@ -396,6 +434,11 @@ trait StdExtensions { this: MacroCommons =>
   object IsMap {
 
     var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, String]] = _
+
+    /** Provenance of the provider behind the most recent successful match - mirrors
+      * [[IsCollection.lastMatchProvenance]] since `IsMap` decodes through the collection providers. See issue #329.
+      */
+    def lastMatchProvenance: Option[ProviderProvenance] = IsCollection.lastMatchProvenance
 
     def parse[A: Type]: ProviderResult[IsMap[A]] =
       IsCollection.parse[A] match {
@@ -455,21 +498,9 @@ trait StdExtensions { this: MacroCommons =>
   type IsOption[A] = Existential[IsOptionOf[A, *]]
   object IsOption extends ProvidedCompanion[IsOption] {
 
-    override def parse[A: Type]: ProviderResult[IsOption[A]] = {
-      var skippedReasons = ListMap.empty[String, Either[Throwable, String]]
-      val it = providers.iterator
-      while (it.hasNext) {
-        val provider = it.next()
-        provider.parse(Type[A]) match {
-          case matched: ProviderResult.Matched[IsOption[A] @unchecked] => return matched
-          case ProviderResult.Skipped(reasons)                         => skippedReasons ++= reasons.iterator
-        }
-      }
-      NonEmptyMap.fromListMap(skippedReasons) match {
-        case Some(nem) => ProviderResult.Skipped(nem)
-        case None      => ProviderResult.skipped("IsOption", "No providers registered")
-      }
-    }
+    override def parse[A: Type]: ProviderResult[IsOption[A]] = if (isBottomType[A])
+      ProviderResult.skipped("IsOption", bottomTypeSkipReason)
+    else firstMatch[A]("IsOption")
   }
 
   /** Proof that the type is an either of the given left and right types.
@@ -526,21 +557,9 @@ trait StdExtensions { this: MacroCommons =>
   }
   object IsEither extends ProvidedCompanion[IsEither] {
 
-    override def parse[A: Type]: ProviderResult[IsEither[A]] = {
-      var skippedReasons = ListMap.empty[String, Either[Throwable, String]]
-      val it = providers.iterator
-      while (it.hasNext) {
-        val provider = it.next()
-        provider.parse(Type[A]) match {
-          case matched: ProviderResult.Matched[IsEither[A] @unchecked] => return matched
-          case ProviderResult.Skipped(reasons)                         => skippedReasons ++= reasons.iterator
-        }
-      }
-      NonEmptyMap.fromListMap(skippedReasons) match {
-        case Some(nem) => ProviderResult.Skipped(nem)
-        case None      => ProviderResult.skipped("IsEither", "No providers registered")
-      }
-    }
+    override def parse[A: Type]: ProviderResult[IsEither[A]] = if (isBottomType[A])
+      ProviderResult.skipped("IsEither", bottomTypeSkipReason)
+    else firstMatch[A]("IsEither")
   }
 
   /** Proof that the type is a value type of the given inner type.
@@ -578,21 +597,9 @@ trait StdExtensions { this: MacroCommons =>
   type IsValueType[A] = Existential[IsValueTypeOf[A, *]]
   object IsValueType extends ProvidedCompanion[IsValueType] {
 
-    override def parse[A: Type]: ProviderResult[IsValueType[A]] = {
-      var skippedReasons = ListMap.empty[String, Either[Throwable, String]]
-      val it = providers.iterator
-      while (it.hasNext) {
-        val provider = it.next()
-        provider.parse(Type[A]) match {
-          case matched: ProviderResult.Matched[IsValueType[A] @unchecked] => return matched
-          case ProviderResult.Skipped(reasons)                            => skippedReasons ++= reasons.iterator
-        }
-      }
-      NonEmptyMap.fromListMap(skippedReasons) match {
-        case Some(nem) => ProviderResult.Skipped(nem)
-        case None      => ProviderResult.skipped("IsValueType", "No providers registered")
-      }
-    }
+    override def parse[A: Type]: ProviderResult[IsValueType[A]] = if (isBottomType[A])
+      ProviderResult.skipped("IsValueType", bottomTypeSkipReason)
+    else firstMatch[A]("IsValueType")
   }
 
   implicit final class EnvironmentStdExtensionsOps(private val environment: Environment.type) {

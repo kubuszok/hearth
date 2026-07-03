@@ -446,7 +446,10 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
           if companionClass != NoSymbol && companionClass.isType
         } yield (subtypeTypeOf(untyped, companionClass.asType), q"$companion")
 
-    override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] = {
+    override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
+      directChildrenList(instanceTpe).map(ListMap.from)
+
+    override def directChildrenList(instanceTpe: UntypedType): Option[List[(String, UntypedType)]] = {
       val A = instanceTpe.typeSymbol
 
       if (isEnumeration(instanceTpe)) {
@@ -493,16 +496,15 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
               }
 
             if (children.isEmpty) None
-            else Some(ListMap.from(children))
+            else Some(children.toList)
           }
         }
       } else if (isJavaEnum(instanceTpe)) {
         Some(
-          ListMap.from(
-            instanceTpe.companion.decls
-              .filter(_.isJavaEnum)
-              .map(termSymbol => termSymbol.name.toString -> termSymbol.asTerm.typeSignature)
-          )
+          instanceTpe.companion.decls
+            .filter(_.isJavaEnum)
+            .map(termSymbol => termSymbol.name.toString -> termSymbol.asTerm.typeSignature)
+            .toList
         )
       } else if (isJavaEnumValue(instanceTpe)) {
         None
@@ -514,12 +516,11 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
           else Vector(t)
 
         Some(
-          ListMap.from(
-            // calling .distinct here as `knownDirectSubclasses` returns duplicates for multiply-inherited types
-            extractRecursively(A.asType).distinct
-              .sorted(symbolOrdering)
-              .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
-          )
+          // calling .distinct here as `knownDirectSubclasses` returns duplicates for multiply-inherited types
+          extractRecursively(A.asType).distinct
+            .sorted(symbolOrdering)
+            .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
+            .toList
         )
       } else None
     }
@@ -543,5 +544,20 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       untyped.typeSymbol.annotations.map(ann => c.untypecheck(ann.tree))
     override def annotationTypes(untyped: UntypedType): List[UntypedType] =
       untyped.typeSymbol.annotations.map(_.tree.tpe)
+
+    // Type-position annotations live on `AnnotatedType(annotations, underlying)` wrappers (`X @Ann`), not on the type
+    // symbol; stacked annotations nest, so we walk them all. Dealias so alias forms (`type Y = X @Ann`) are seen
+    // through. See issue #306.
+    private def annotatedTypeAnnotations(untyped: UntypedType): List[c.universe.Annotation] = {
+      def loop(tpe: c.Type): List[c.universe.Annotation] = tpe.dealias match {
+        case AnnotatedType(annots, underlying) => annots ++ loop(underlying)
+        case _                                 => Nil
+      }
+      loop(untyped)
+    }
+    override def typeAnnotations(untyped: UntypedType): List[UntypedExpr] =
+      annotatedTypeAnnotations(untyped).map(ann => c.untypecheck(ann.tree))
+    override def typeAnnotationTypes(untyped: UntypedType): List[UntypedType] =
+      annotatedTypeAnnotations(untyped).map(_.tree.tpe)
   }
 }

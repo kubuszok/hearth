@@ -330,8 +330,11 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     }
 
     override def isCase(instanceTpe: UntypedType): Boolean = {
-      val A = instanceTpe.typeSymbol
-      !A.isNoSymbol && A.flags.is(Flags.Case)
+      // Parameterless Scala 3 enum cases (`enum Foo { case A }`) present their singleton with the enum CLASS as the
+      // type symbol (no Case flag) while the `Case|Enum|StableRealizable` flags live on the TERM symbol - so we have to
+      // inspect both, mirroring `isVal`. See issue #311.
+      def hasCase(sym: Symbol): Boolean = !sym.isNoSymbol && sym.flags.is(Flags.Case)
+      hasCase(instanceTpe.typeSymbol) || hasCase(instanceTpe.termSymbol)
     }
     override def isObject(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
@@ -689,6 +692,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       }
 
     override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
+      directChildrenList(instanceTpe).map(ListMap.from)
+
+    override def directChildrenList(instanceTpe: UntypedType): Option[List[(String, UntypedType)]] =
       if isEnumeration(instanceTpe) then {
         // Determine if we have the object type or the Value type
         val enumObjectTypeOpt: Option[UntypedType] = if instanceTpe.typeSymbol.flags.is(Flags.Module) then {
@@ -744,23 +750,21 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
               }
 
             if children.isEmpty then None
-            else Some(ListMap.from(children))
+            else Some(children.toList)
           }
         }
-      } else if isSealed(instanceTpe) || isJavaEnum(instanceTpe) then Some(
-        ListMap.from {
-          def handleSymbols(sym: Symbol): Symbol =
-            if sym.flags.is(Flags.Enum) then sym.typeRef.typeSymbol
-            else if sym.flags.is(Flags.Module) then sym.typeRef.typeSymbol.moduleClass
-            else sym
+      } else if isSealed(instanceTpe) || isJavaEnum(instanceTpe) then Some {
+        def handleSymbols(sym: Symbol): Symbol =
+          if sym.flags.is(Flags.Enum) then sym.typeRef.typeSymbol
+          else if sym.flags.is(Flags.Module) then sym.typeRef.typeSymbol.moduleClass
+          else sym
 
-          // calling .distinct here as `children` returns duplicates for multiply-inherited types
-          instanceTpe.typeSymbol.children
-            .map(handleSymbols)
-            .sorted
-            .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
-        }
-      )
+        // calling .distinct here as `children` returns duplicates for multiply-inherited types
+        instanceTpe.typeSymbol.children
+          .map(handleSymbols)
+          .sorted
+          .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
+      }
       else if isUnionType(instanceTpe) then unionMemberDispatch(instanceTpe).flatMap { dispatch =>
         // Members that cannot be soundly discriminated by a runtime class test are acceptable only when
         // the user provides an implicit scala.reflect.TypeTest[Union, Member] (a total runtime
@@ -769,9 +773,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           case (member, UnionMemberDispatch.ByTypeTest) => userProvidedUnionTypeTestExists(instanceTpe, member)
           case _                                        => true
         }
-        if allMembersDiscriminable then Some(ListMap.from(dispatch.map { case (tpe, _) =>
+        if allMembersDiscriminable then Some(dispatch.map { case (tpe, _) =>
           UntypedType.plainPrint(tpe) -> tpe
-        }))
+        }.toList)
         else None
       }
       else None
@@ -970,7 +974,11 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       untyped.typeArgs
 
     override def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType =
-      untyped.appliedTo(args)
+      // Apply to the (dealiased) type CONSTRUCTOR rather than the type as-given, so that re-applying an
+      // already-applied type (e.g. a wildcard example `F[Any, ?]`) replaces its arguments instead of silently
+      // producing a malformed `F[Any, ?][Int, String]`. This matches Scala 2's `appliedType(typeConstructor, args)`.
+      // See issue #312.
+      typeConstructor(untyped).appliedTo(args)
 
     override def sameTypeConstructorAs(a: UntypedType, b: UntypedType): Boolean =
       typeConstructor(a).typeSymbol == typeConstructor(b).typeSymbol
@@ -979,5 +987,25 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       untyped.typeSymbol.annotations.map(repositionAnnotation)
     override def annotationTypes(untyped: UntypedType): List[UntypedType] =
       untyped.typeSymbol.annotations.map(_.tpe)
+
+    // Type-position annotations live on `AnnotatedType(underlying, annot)` wrappers (`X @Ann`), not on the type symbol;
+    // stacked annotations nest (`X @A @B` => `AnnotatedType(AnnotatedType(X, @A), @B)`), so we walk them all. Dealias so
+    // alias forms (`type Y = X @Ann`) are seen through. See issue #306.
+    private def annotatedTypeTerms(untyped: UntypedType): List[Term] = {
+      // Match `AnnotatedType` BEFORE dealiasing: on Scala 3 `AnnotatedType(X, @Ann).dealias` strips the annotation.
+      // Dealias only to see through a plain alias to an annotated type (`type Y = X @Ann`); the `d != tpe` guard stops
+      // recursion at a fixpoint.
+      def loop(tpe: TypeRepr): List[Term] = tpe match {
+        case AnnotatedType(underlying, annot) => annot :: loop(underlying)
+        case _                                =>
+          val d = tpe.dealias
+          if d != tpe then loop(d) else Nil
+      }
+      loop(untyped)
+    }
+    override def typeAnnotations(untyped: UntypedType): List[UntypedExpr] =
+      annotatedTypeTerms(untyped).map(repositionAnnotation)
+    override def typeAnnotationTypes(untyped: UntypedType): List[UntypedType] =
+      annotatedTypeTerms(untyped).map(_.tpe)
   }
 }

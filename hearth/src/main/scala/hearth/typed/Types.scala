@@ -132,6 +132,19 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
 
     final def directChildren[A: Type]: Option[ListMap[String, ??<:[A]]] =
       UntypedType.fromTyped[A].directChildren.map(m => ListMap.from(m.view.mapValues(_.asTyped[A].as_??<:[A])))
+
+    /** Like [[directChildren]], but returns an ordered `List` preserving duplicate simple names and extraction order,
+      * so same-named subtypes in different scopes are all observable (and their ambiguity detectable). See issue #309.
+      *
+      * @since 0.4.1
+      */
+    final def directChildrenList[A: Type]: Option[List[(String, ??<:[A])]] =
+      UntypedType
+        .fromTyped[A]
+        .directChildrenList
+        .map(_.map { case (name, subtype) =>
+          name -> subtype.asTyped[A].as_??<:[A]
+        })
     final def exhaustiveChildren[A: Type]: Option[NonEmptyMap[String, ??<:[A]]] =
       UntypedType.fromTyped[A].exhaustiveChildren.map(m => m.map { case (k, v) => (k, v.asTyped[A].as_??<:[A]) })
 
@@ -159,6 +172,28 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       * @since 0.4.0
       */
     final def annotationsOfType[A: Type, Ann: Type]: List[Expr[Ann]] = Annotations.filterOfType[Ann](annotations[A])
+
+    /** Annotations in the TYPE POSITION of `A` - the `@Ann` in `X @Ann` (an `AnnotatedType`), as opposed to
+      * [[annotations]] which reads annotations on the type's SYMBOL. Typically used to inspect annotations placed AFTER
+      * the type of a case-class field (`name: String @Action("anonymize")`). Stacked annotations are all returned. See
+      * issue #306.
+      *
+      * @since 0.4.1
+      */
+    final def typeAnnotations[A: Type]: List[Expr_??] = {
+      val untyped = UntypedType.fromTyped[A]
+      untyped.typeAnnotations.zip(untyped.typeAnnotationTypes).map { case (expr, tpe) =>
+        UntypedExpr.as_??(expr, tpe)
+      }
+    }
+
+    /** Type-position annotations on `A` (see [[typeAnnotations]]) whose type is a subtype of `Ann`, each typed as
+      * `Expr[Ann]`. `<:<` matching (like [[annotationsOfType]]), so an annotation hierarchy can be matched by its base.
+      *
+      * @since 0.4.1
+      */
+    final def typeAnnotationsOfType[A: Type, Ann: Type]: List[Expr[Ann]] =
+      Annotations.filterOfType[Ann](typeAnnotations[A])
 
     /** Whether type `A` has at least one annotation whose type is a subtype of `Ann`.
       *
@@ -846,6 +881,8 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
 
     def annotations: List[Expr_??] = Type.annotations(using tpe)
     def annotationsOfType[Ann: Type]: List[Expr[Ann]] = Type.annotationsOfType[A, Ann](using tpe, Type[Ann])
+    def typeAnnotations: List[Expr_??] = Type.typeAnnotations(using tpe)
+    def typeAnnotationsOfType[Ann: Type]: List[Expr[Ann]] = Type.typeAnnotationsOfType[A, Ann](using tpe, Type[Ann])
     def hasAnnotationOfType[Ann: Type]: Boolean = Type.hasAnnotationOfType[A, Ann](using tpe, Type[Ann])
 
     def summonExpr: SummoningResult[A] = Expr.summonImplicit(using tpe)

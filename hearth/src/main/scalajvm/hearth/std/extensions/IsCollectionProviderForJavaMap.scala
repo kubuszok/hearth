@@ -36,6 +36,9 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
       private lazy val juIdentityHashMap = Type.Ctor2.of[java.util.IdentityHashMap]
 
       private lazy val juEnumType = Type.of[java.lang.Enum[?]]
+      // `EnumMap[Nothing, Nothing]` is a well-formed application of the F-bounded `EnumMap[K <: Enum[K], V]`, used only
+      // to compare type constructors symbolically - see `isEnumMapType` below and issue #323.
+      private lazy val juEnumMapType = Type.of[java.util.EnumMap[Nothing, Nothing]]
 
       private lazy val Entry = Type.Ctor2.of[java.util.Map.Entry]
       private lazy val Builder = Type.Ctor2.of[scala.collection.mutable.Builder]
@@ -234,25 +237,20 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
                 .orElse(leaf(juWeakHashMap, Expr.quote(new java.util.WeakHashMap[Key, Value])))
                 .orElse(leaf(juIdentityHashMap, Expr.quote(new java.util.IdentityHashMap[Key, Value])))
                 .orElse {
-                  // EnumMap requires K <: Enum[K] bound which cannot be expressed as a Type.Ctor2.
-                  // We check for EnumMap by comparing the runtime class at macro time, and delegate
-                  // to isEnumMap helper which uses casts through Nothing for bounds.
+                  // EnumMap requires a `K <: Enum[K]` bound which cannot be expressed as a Type.Ctor2. Detect it
+                  // SYMBOLICALLY (same type constructor as `java.util.EnumMap`) and emit `classOf[Key]` as a literal
+                  // directly, rather than gating on a macro-time `Class.forName` of the target/key which returned
+                  // nothing on Scala 3 and never matched enums from the current compilation run. See issue #323.
                   if (Key <:< juEnumType) {
-                    val isEnumMapType = Type.classOfType(using tpe).exists { c =>
-                      classOf[java.util.EnumMap[?, ?]].isAssignableFrom(c)
-                    }
+                    val isEnumMapType =
+                      UntypedType.fromTyped(using tpe).sameTypeConstructorAs(juEnumMapType.asUntyped)
                     if (isEnumMapType) {
-                      Type.classOfType[Key].flatMap { keyClass =>
-                        val keyClassExpr: Expr[java.lang.Class[Key]] = {
-                          implicit val classCodec: ExprCodec[java.lang.Class[Key]] =
-                            Expr.ClassExprCodec[Key]
-                          Expr(keyClass)
-                        }
-                        Some(
-                          isEnumMap[Key, Value, A](tpe, Type[Key], Type[Value], keyClassExpr)
-                            .asInstanceOf[IsCollection[A]]
-                        )
-                      }
+                      val keyClassExpr: Expr[java.lang.Class[Key]] =
+                        Expr.ClassExprCodec[Key].toExpr(classOf[Any].asInstanceOf[java.lang.Class[Key]])
+                      Some(
+                        isEnumMap[Key, Value, A](tpe, Type[Key], Type[Value], keyClassExpr)
+                          .asInstanceOf[IsCollection[A]]
+                      )
                     } else None
                   } else None
                 }

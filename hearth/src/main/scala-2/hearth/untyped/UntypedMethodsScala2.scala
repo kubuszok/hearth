@@ -281,7 +281,13 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
     override def isConstructor: Boolean = symbol.isConstructor
 
-    override def isVal: Boolean = symbol.isVal || accessedOf(symbol).exists(_.isVal) || isLazy
+    // A stable deferred accessor (e.g. the `value` member of a structural refinement `{ val value: String }`) is a
+    // method symbol with no accessed field and `symbol.isVal == false`, yet scalac's `MethodSymbol.isStable` is the
+    // authoritative "this reads like a val" signal - without it such accessors are misclassified as plain methods.
+    // See issue #326.
+    override def isVal: Boolean =
+      symbol.isVal || accessedOf(symbol).exists(_.isVal) || isLazy ||
+        (symbol.isMethod && symbol.asMethod.isStable && !symbol.isConstructor)
     override def isVar: Boolean = symbol.isVar || accessedOf(symbol).exists(_.isVar)
     override def isLazy: Boolean = symbol.isLazy || accessedOf(symbol).exists(_.isLazy)
     override def isDef: Boolean = !isVal && (!isVar || name.endsWith("_=")) // var's setter should both var AND def
