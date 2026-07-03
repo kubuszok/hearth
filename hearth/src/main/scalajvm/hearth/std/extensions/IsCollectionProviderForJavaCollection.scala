@@ -100,6 +100,62 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
           }
         })
 
+      // Helper for EnumSet: mirrors `isCollection` but without requiring a `Type.Ctor1` (which cannot express the
+      // `E <: Enum[E]` bound). Written as a method with a regular `Item` type parameter (and an implicit `Type[Item]`)
+      // so the emitted quotes reference `Item` through its reified type - NOT the provider's local existential `item`
+      // path - and therefore survive a downstream `c.untypecheck` + re-typecheck on Scala 2. See issue #322.
+      private def isEnumSet[Item, A](
+          A: Type[A],
+          itemType: Type[Item],
+          enumClassExpr: Expr[java.lang.Class[Item]]
+      ): IsCollection[A] = {
+        implicit val Item: Type[Item] = itemType
+        Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
+          override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
+            scala.jdk.javaapi.CollectionConverters
+              .asScala(
+                Expr.splice(value).asInstanceOf[java.util.Set[Item]].iterator()
+              )
+              .to(Iterable)
+          }
+          override type CtorResult = A
+          implicit override val CtorResult: Type[CtorResult] = A
+          override def factory: Expr[scala.collection.Factory[Item, CtorResult]] =
+            Expr.quote {
+              new scala.collection.Factory[Item, A] {
+                override def newBuilder: scala.collection.mutable.Builder[Item, A] =
+                  new scala.collection.mutable.Builder[Item, A] {
+                    @SuppressWarnings(Array("unchecked"))
+                    private val impl: java.util.EnumSet[?] = {
+                      // Bypass EnumSet.noneOf type bound (E <: Enum[E]) via reflection:
+                      // Scala 2 cannot infer E for the static method call due to
+                      // F-bounded polymorphism + Class invariance.
+                      val cls: java.lang.Class[?] = Expr.splice(enumClassExpr)
+                      classOf[java.util.EnumSet[?]]
+                        .getMethod("noneOf", classOf[java.lang.Class[?]])
+                        .invoke(null, cls)
+                        .asInstanceOf[java.util.EnumSet[?]]
+                    }
+                    override def clear(): Unit = impl.clear()
+                    override def result(): A = impl.asInstanceOf[A]
+                    override def addOne(elem: Item): this.type = {
+                      impl.asInstanceOf[java.util.Set[AnyRef]].add(elem.asInstanceOf[AnyRef]);
+                      this
+                    }
+                  }
+                override def fromSpecific(it: IterableOnce[Item]): A =
+                  newBuilder.addAll(it).result()
+              }
+            }
+          override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], A] =
+            CtorLikeOf.PlainValue(
+              (expr: Expr[scala.collection.mutable.Builder[Item, CtorResult]]) =>
+                Expr.quote(Expr.splice(expr).result()),
+              None
+            )
+        })
+      }
+
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = {
         def isCollectionOf[Coll[I] <: java.util.Collection[I], Item: Type, Coll2[I] <: Coll[I]](
             coll: Type.Ctor1[Coll],
@@ -176,60 +232,19 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
                       // (so EnumSet only matched via the Iterable fallback) and never matched enums from the current
                       // compilation run. See issue #323.
                       if (Item <:< juEnumType) {
-                        val isEnumSet = UntypedType.fromTyped(using tpe).sameTypeConstructorAs(juEnumSetType.asUntyped)
-                        if (isEnumSet) {
+                        val isEnumSetType =
+                          UntypedType.fromTyped(using tpe).sameTypeConstructorAs(juEnumSetType.asUntyped)
+                        if (isEnumSetType) {
                           // `classOf[Item]` is emitted as a literal from `Type[Item]` (ClassExprCodec ignores the value
                           // argument), so gating on a macro-time `Type.classOfType[Item]` (a `Class.forName`) is
                           // pointless AND wrongly rejects nested enums on Scala 3 and enums from the current compilation
                           // run. Emit the literal directly. See issue #323.
                           val enumClassExpr: Expr[java.lang.Class[Item]] =
                             Expr.ClassExprCodec[Item].toExpr(classOf[Any].asInstanceOf[java.lang.Class[Item]])
-                          Some(
-                            Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
-                              override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
-                                scala.jdk.javaapi.CollectionConverters
-                                  .asScala(
-                                    Expr.splice(value).asInstanceOf[java.util.Set[Item]].iterator()
-                                  )
-                                  .to(Iterable)
-                              }
-                              override type CtorResult = A
-                              implicit override val CtorResult: Type[CtorResult] = tpe
-                              override def factory: Expr[scala.collection.Factory[Item, CtorResult]] =
-                                Expr.quote {
-                                  new scala.collection.Factory[Item, A] {
-                                    override def newBuilder: scala.collection.mutable.Builder[Item, A] =
-                                      new scala.collection.mutable.Builder[Item, A] {
-                                        @SuppressWarnings(Array("unchecked"))
-                                        private val impl: java.util.EnumSet[?] = {
-                                          // Bypass EnumSet.noneOf type bound (E <: Enum[E]) via reflection:
-                                          // Scala 2 cannot infer E for the static method call due to
-                                          // F-bounded polymorphism + Class invariance.
-                                          val cls: java.lang.Class[?] = Expr.splice(enumClassExpr)
-                                          classOf[java.util.EnumSet[?]]
-                                            .getMethod("noneOf", classOf[java.lang.Class[?]])
-                                            .invoke(null, cls)
-                                            .asInstanceOf[java.util.EnumSet[?]]
-                                        }
-                                        override def clear(): Unit = impl.clear()
-                                        override def result(): A = impl.asInstanceOf[A]
-                                        override def addOne(elem: Item): this.type = {
-                                          impl.asInstanceOf[java.util.Set[AnyRef]].add(elem.asInstanceOf[AnyRef]);
-                                          this
-                                        }
-                                      }
-                                    override def fromSpecific(it: IterableOnce[Item]): A =
-                                      newBuilder.addAll(it).result()
-                                  }
-                                }
-                              override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], A] =
-                                CtorLikeOf.PlainValue(
-                                  (expr: Expr[scala.collection.mutable.Builder[Item, CtorResult]]) =>
-                                    Expr.quote(Expr.splice(expr).result()),
-                                  None
-                                )
-                            })
-                          )
+                          // Route through the `isEnumSet` helper (regular `Item` type parameter) so the emitted quotes
+                          // do not reference the provider's local existential `item` path - required for downstream
+                          // re-typecheck on Scala 2. See issue #322.
+                          Some(isEnumSet[Item, A](tpe, Type[Item], enumClassExpr).asInstanceOf[IsCollection[A]])
                         } else None
                       } else None
                     }
