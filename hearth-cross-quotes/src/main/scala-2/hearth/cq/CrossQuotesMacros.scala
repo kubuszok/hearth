@@ -467,6 +467,44 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     result
   } catch { case e: Throwable => reportIssue(e) }
 
+  /** [hearth#320] Scala 2 quasiquotes are not hygienic: Cross-Quotes reifies an `Expr.quote` body by printing it back
+    * to source and re-parsing it at the (possibly separately-compiled) expansion site. A reference to a top-level
+    * object printed by its SHORT name can there be captured by a same-named class/companion or be out of scope (e.g.
+    * `value wrap is not a member of ...Wrapper; did you mean unwrap?` for a companion call, or `not found: value
+    * support` for a plain object) — exactly what broke separately-compiled `StandardMacroExtension`s in the Chimney
+    * migration.
+    *
+    * By the time the body is printed it has already been untypechecked (symbols stripped), so we cannot qualify at
+    * print time. Instead, while `expr.tree` is still fully typed, we rewrite every reference to a
+    * statically-addressable public object into a fully-qualified, ROOTED `Select` chain (`_root_.a.b.C`). Being a
+    * structural rewrite (rather than a symbol on a bare `Ident`), it survives the later untypecheck and prints as the
+    * full path — the same hygiene treatment #300 gave to bare `scala.*` names, generalised to arbitrary objects.
+    *
+    * Statically-addressable public objects only: hearth API objects like `Expr`/`Type` are instance members (not
+    * reachable via `mirror.staticModule`) and are left untouched, so `Expr.splice`/`Expr.quote` detection downstream is
+    * unaffected; likewise locals, instance-nested objects and symbol-less stubs are never rewritten.
+    */
+  private def qualifyStaticModuleRefs(tree: c.Tree): c.Tree = {
+    def rootedSelect(fullName: String): c.Tree =
+      fullName.split('.').foldLeft(Ident(TermName("_root_")): c.Tree)((acc, part) => Select(acc, TermName(part)))
+    def qualifiedName(sym: Symbol): Option[String] =
+      if (sym == null || sym == NoSymbol || !sym.isTerm || !sym.asTerm.isModule || !sym.isPublic) None
+      else {
+        val full = sym.fullName
+        if (full.isEmpty || full.contains('$') || full.contains('<')) None
+        // `mirror.staticModule(full)` succeeds and returns THIS symbol iff `_root_.full` is a valid stable path to it
+        // (i.e. it is a genuinely static, top-level-reachable object) — the robust addressability check.
+        else scala.util.Try(c.mirror.staticModule(full)).toOption.filter(_ == sym).map(_ => full)
+      }
+    object transformer extends Transformer {
+      override def transform(t: Tree): Tree = t match {
+        case id: Ident => qualifiedName(id.symbol).fold(super.transform(t))(rootedSelect)
+        case _         => super.transform(t)
+      }
+    }
+    transformer.transform(tree)
+  }
+
   /* Replaces:
    *   Expr.quote[A](a)
    * with:
@@ -499,7 +537,9 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           }
           resolved
       }
-    val quasiquote = convert(ctx)(expr.tree)
+    // [hearth#320] Fully-qualify statically-addressable object references while the tree is still typed (see
+    // `qualifyStaticModuleRefs`), so they survive convert's print-then-reparse at a separately-compiled expansion site.
+    val quasiquote = convert(ctx)(qualifyStaticModuleRefs(expr.tree))
 
     val quasiquoteFresh = freshName("Quasiquote")
     val unchecked = q"""
