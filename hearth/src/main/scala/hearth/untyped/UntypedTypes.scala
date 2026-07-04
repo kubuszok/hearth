@@ -81,6 +81,11 @@ trait UntypedTypes { this: MacroCommons =>
                     value
                   }
                 else
+                  // A type recognized as a JVM built-in for which NO branch exists is a genuine gap — a new built-in
+                  // added to `isJvmBuiltIn` without a corresponding `toClass` branch. Keep asserting so it cannot slip
+                  // through silently. Branches that legitimately have no runtime class (e.g. `IArray` with an element
+                  // that has none) must answer for themselves in `toClassJvmBuiltInExtra` rather than fall through
+                  // here — see issue #333.
                   // $COVERAGE-OFF$
                   hearthAssertionFailed(
                     s"${untyped.prettyPrint} is recognized as built-in type, but is not handled by a built-in branch"

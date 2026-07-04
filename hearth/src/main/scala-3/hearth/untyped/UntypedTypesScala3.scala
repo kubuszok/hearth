@@ -233,9 +233,15 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def toClassJvmBuiltInExtra(untyped: UntypedType): Option[java.lang.Class[?]] =
       untyped.asTyped[Any] match {
         case IArrayCtor(elementType) =>
-          toClass(elementType.asUntyped).map { elementClass =>
-            scala.reflect.ClassTag(elementClass).newArray(0).getClass()
-          }
+          // [hearth#333] `IArray[E]` erases to an array, so its branch must ALWAYS answer with a `Class` (never fall
+          // through to the shared "unhandled built-in" assertion, which exists to catch built-ins that have no branch
+          // at all). Use the element's runtime class when resolvable; when it is not — e.g. `IArray[Int | String]`,
+          // whose element is a union with no single class — fall back to the erased array-of-Object class.
+          Some(
+            toClass(elementType.asUntyped)
+              .map(elementClass => scala.reflect.ClassTag(elementClass).newArray(0).getClass())
+              .getOrElse(classOf[Array[Object]])
+          )
         case _ => None
       }
 
