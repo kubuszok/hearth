@@ -393,6 +393,18 @@ final class AnonymousInstanceSpec extends MacroSuite {
           AnonymousInstanceFixtures.testAnonymousInstanceOverrideReferencingQuoteParam.apply("quoted") <==> "quoted!"
         }
 
+        // Coverage for the scenario behind #317/#318: an anonymous instance whose override body is derived via
+        // DirectStyle (continuation on a DirectStyleExecutor thread) + ValDefs.createVal, constructed INSIDE an
+        // Expr.splice, and (second test) two instances derived in one expansion. Hearth's ValDefs/AnonymousInstance
+        // keep owners/scopes consistent here under -Xcheck-macros; these guard against regressing that.
+        test("anonymous instance with a DirectStyle+createVal body derived inside a splice (scenario of #317/#318)") {
+          AnonymousInstanceFixtures.testAnonymousInstanceValDefBodyInSplice <==> "base-one"
+        }
+
+        test("two anonymous instances with DirectStyle+createVal bodies derived in one splice expansion") {
+          AnonymousInstanceFixtures.testAnonymousInstanceTwoValDefInstancesInSplice <==> "base-one|base-two"
+        }
+
         test("override body can use the override's own parameters together with captured expressions") {
           val captured = List("ctx").mkString
           AnonymousInstanceFixtures.testAnonymousInstanceOverrideUsingParams(captured) <==> "ctx! echo"

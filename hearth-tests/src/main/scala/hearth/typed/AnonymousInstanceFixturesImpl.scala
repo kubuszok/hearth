@@ -288,6 +288,70 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** [hearth#317] Reproduces the Chimney "derive an instance inside a splice" scenario: the anonymous instance is
+    * constructed INSIDE `Expr.splice`, and its override body is produced via a `ValDefs.createVal` scope (as a real
+    * derivation would). On Scala 3 the created val used to be owned by the macro-ENTRY splice owner while the method
+    * body it is spliced into belongs to the nested (method) owner, so `-Xcheck-macros` aborted with "Block contains
+    * definition with different owners". Deriving TWO instances in one expansion additionally exercises the
+    * splice-scoping failure mode (mode 2). The fix makes Hearth symbol creation follow `CrossQuotes.ctx`.
+    */
+  def testAnonymousInstanceValDefBodyInSplice: Expr[String] =
+    Expr.quote {
+      val outer = "base"
+      Expr.splice {
+        buildInstanceWithValDefBody(Expr.quote(outer), "-one")
+      }
+    }
+
+  def testAnonymousInstanceTwoValDefInstancesInSplice: Expr[String] =
+    Expr.quote {
+      val outer = "base"
+      Expr.splice {
+        buildTwoInstancesWithValDefBody(Expr.quote(outer))
+      }
+    }
+
+  private def buildTwoInstancesWithValDefBody(captured: Expr[String]): Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    val first = buildInstanceWithValDefBody(captured, "-one")
+    val second = buildInstanceWithValDefBody(captured, "-two")
+    Expr.quote(Expr.splice(first) + "|" + Expr.splice(second))
+  }
+
+  private def buildInstanceWithValDefBody(captured: Expr[String], suffix: String): Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val TraitType: Type[examples.anonymous_instances.TraitWithConcreteMethod] =
+      traitWithConcreteMethodTypeAI
+    val suffixExpr = Expr(suffix)
+    AnonymousInstance.parse[examples.anonymous_instances.TraitWithConcreteMethod] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? = {
+              // Build the body via DirectStyle (runs the continuation on a DirectStyleExecutor thread) — the shape a
+              // real derivation uses. Combined with construction inside a splice + repeated evaluation (two instances),
+              // this is what tripped the -Xcheck-macros scope checker in the Chimney migration (#317 mode 2 / #318).
+              val vd: ValDefs[Expr[String]] = fp.DirectStyle[ValDefs].scoped { runSafe =>
+                val c: Expr[String] = runSafe(ValDefs.createVal(captured, "captured"))
+                Expr.quote(Expr.splice(c) + Expr.splice(suffixExpr))
+              }
+              vd.close.as_??
+            }
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote {
+              Expr.splice(constructed).abstractMethod
+            }
+          case Left(errors) =>
+            Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(s"incompatible: $reason")
+    }
+  }
+
   /** Companion regression for commit 7c82fc9: override bodies that use the override's own parameters (`Ident` refs to
     * the generated method's params) together with a captured call-site expression.
     */

@@ -47,6 +47,11 @@ final private class AnonymousInstanceFixtures(val c: blackbox.Context)
   def testAnonymousInstanceOverrideReferencingQuoteParamImpl: c.Expr[String => String] =
     testAnonymousInstanceOverrideReferencingQuoteParam
 
+  def testAnonymousInstanceValDefBodyInSpliceImpl: c.Expr[String] = testAnonymousInstanceValDefBodyInSplice
+
+  def testAnonymousInstanceTwoValDefInstancesInSpliceImpl: c.Expr[String] =
+    testAnonymousInstanceTwoValDefInstancesInSplice
+
   def testAnonymousInstanceConstructOverloadsImpl: c.Expr[String] = testAnonymousInstanceConstructOverloads
 
   def testAnonymousInstanceConstructGenericImpl: c.Expr[String] = testAnonymousInstanceConstructGeneric
@@ -102,6 +107,12 @@ object AnonymousInstanceFixtures {
 
   def testAnonymousInstanceOverrideReferencingQuoteParam: String => String =
     macro AnonymousInstanceFixtures.testAnonymousInstanceOverrideReferencingQuoteParamImpl
+
+  def testAnonymousInstanceValDefBodyInSplice: String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceValDefBodyInSpliceImpl
+
+  def testAnonymousInstanceTwoValDefInstancesInSplice: String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceTwoValDefInstancesInSpliceImpl
 
   def testAnonymousInstanceConstructOverloads: String =
     macro AnonymousInstanceFixtures.testAnonymousInstanceConstructOverloadsImpl
