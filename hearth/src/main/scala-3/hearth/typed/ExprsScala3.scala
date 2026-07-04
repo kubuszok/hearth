@@ -33,6 +33,17 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         def resetOwner(using Type[A]): Expr[A] = expr.asTerm.changeOwner(Symbol.spliceOwner).asExprOf[A]
       }
 
+      /** [hearth#317] The splice owner of the CURRENTLY-ACTIVE Cross-Quotes context (`CrossQuotes.ctx`), NOT the
+        * macro-entry `quotes`. When a derivation runs inside an `Expr.splice` (under `nestedCtx`) — e.g. a whole
+        * instance derivation running in `new Show[A] { def show(a) = ${ derive } }` — fresh vals/defs/binds must be
+        * owned by that nested splice's owner (here `def show`). Otherwise a `Block` (from `ValDefs.closeScope`) mixing
+        * such a symbol with trees built by cross-quoted helpers (owned by the nested owner) aborts under
+        * `-Xcheck-macros`: "Block contains definition with different owners". In the common, non-nested case
+        * `CrossQuotes.ctx == quotes`, so this is exactly the entry splice owner and nothing changes.
+        */
+      private def currentSpliceOwner: Symbol =
+        CrossQuotes.ctx[scala.quoted.Quotes].reflect.Symbol.spliceOwner.asInstanceOf[Symbol]
+
       object freshTerm {
         // Workaround to contain @experimental from polluting the whole codebase
         private val impl = quotes.reflect.Symbol.getClass.getMethod("freshName", classOf[String])
@@ -46,11 +57,11 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         }
 
         def bind[A: Type](freshName: FreshName, flags: Flags): Symbol =
-          Symbol.newBind(Symbol.spliceOwner, apply[A](freshName, null), flags, TypeRepr.of[A])
+          Symbol.newBind(currentSpliceOwner, apply[A](freshName, null), flags, TypeRepr.of[A])
 
         def defdef[A: Type](freshName: FreshName, expr: Expr[A]): Symbol =
           Symbol.newMethod(
-            Symbol.spliceOwner,
+            currentSpliceOwner,
             apply[A](freshName, expr),
             MethodType(Nil)(_ => Nil, _ => TypeRepr.of[A])
           )
@@ -59,7 +70,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             freshName: FreshName,
             expr: Expr[A],
             flags: Flags,
-            owner: Symbol = Symbol.spliceOwner
+            owner: Symbol = currentSpliceOwner
         ): Symbol =
           Symbol.newVal(owner, apply[A](freshName, expr), TypeRepr.of[A], flags, Symbol.noSymbol)
 
