@@ -54,6 +54,23 @@ class HigherKinded {
   def higherKinded[F[_]](a: F[String]): F[String] = a
 }
 
+// [hearth#331] a value/implicit clause that FOLLOWS a type-parameter clause: `Method.fold` used to hand `onValues`
+// an EMPTY clause here (the params were dropped), so there was no way to supply the `Sync[F]`.
+trait Sync[F[_]]
+class HigherKindedImplicit {
+  @scala.annotation.nowarn
+  def resource[F[_]](implicit ev: Sync[F]): F[Int] = null.asInstanceOf[F[Int]]
+  @scala.annotation.nowarn
+  def make[F[_]](config: String)(implicit ev: Sync[F]): F[Int] = null.asInstanceOf[F[Int]]
+}
+
+class ProperKindedImplicit {
+  // [hearth#331] value + implicit clauses that follow a `[T]` clause; used to check that applying `T := Int` in
+  // `onTypes` substitutes into the subsequent clauses (`(t: T)(implicit ord: Ordering[T])`).
+  @scala.annotation.nowarn
+  def pick[T](t: T)(implicit ord: Ordering[T]): T = t
+}
+
 class WithImplicitParam {
   @scala.annotation.nowarn
   def withImplicit(a: Int)(implicit b: String): String = s"$a $b"

@@ -9,6 +9,11 @@ final private class MethodsFixtures(q: Quotes) extends MacroCommonsScala3(using 
 
 object MethodsFixtures {
 
+  // [hearth#331]
+  inline def testFoldSubstitutesTypeArgs: Data = ${ testFoldSubstitutesTypeArgsImpl }
+  private def testFoldSubstitutesTypeArgsImpl(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testFoldSubstitutesTypeArgs
+
   // [hearth#176]
 
   inline def testConstructorsExtraction[A]: Data = ${ testConstructorsExtractionImpl[A] }

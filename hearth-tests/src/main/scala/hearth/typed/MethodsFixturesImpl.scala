@@ -485,6 +485,41 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     }
   }
 
+  // [hearth#331] The applied type arguments must be SUBSTITUTED into a value/implicit clause that follows the
+  // type-parameter clause: applying `T := Int` to `pick[T](t: T)(implicit ord: Ordering[T])` should present
+  // `t: scala.Int` and `ord: scala.math.Ordering[scala.Int]` to `onValues` (not the abstract `T`/`Ordering[T]`).
+  def testFoldSubstitutesTypeArgs: Expr[Data] = {
+    implicit val IntType: Type[Int] = this.IntType
+    implicit val instanceType: Type[examples.methods.ProperKindedImplicit] =
+      Type.of[examples.methods.ProperKindedImplicit]
+    val method = Type[examples.methods.ProperKindedImplicit].methods
+      .find(_.name == "pick")
+      .getOrElse(Environment.reportErrorAndAbort("method `pick` not found"))
+    val captured = scala.collection.mutable.ListBuffer.empty[String]
+    val result = method.fold(
+      onInstance = _ => Expr.quote(new examples.methods.ProperKindedImplicit).as_??,
+      onTypes = at => at.typeParams.flatten.map(tp => tp -> Type.of[Int].as_??).toMap,
+      onValues = av =>
+        av.parameters.flatten.map { case (n, p) =>
+          captured += s"$n: ${p.tpe.plainPrint}"
+          import p.tpe.Underlying
+          val value: Expr_?? =
+            if (Underlying <:< Type.of[Int]) Expr(0).as_??
+            else
+              Expr
+                .summonImplicitByType(p.tpe.asUntyped)
+                .map(UntypedExpr.as_??(_))
+                .getOrElse(Environment.reportErrorAndAbort(s"cannot summon ${p.tpe.plainPrint}"))
+          n -> value
+        }.toMap
+    )
+    val built = result match {
+      case Right(_)    => "built"
+      case Left(error) => s"FAILED: $error"
+    }
+    Expr(Data.map("params" -> Data.list(captured.toList.map(Data(_))*), "result" -> Data(built)))
+  }
+
   def testCallConstructorViaFold[A: Type](params: VarArgs[Int]): Expr[Data] = {
     implicit val IntType: Type[Int] = this.IntType
     implicit val StringType: Type[String] = this.StringType

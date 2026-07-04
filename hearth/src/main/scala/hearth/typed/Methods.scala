@@ -406,7 +406,12 @@ trait Methods { this: MacroCommons =>
         totalParameters: Parameters,
         returnType: Option[??],
         buildExpr: (Option[UntypedExpr], UntypedTypeArguments, UntypedArguments) => Either[String, UntypedExpr],
-        pathDepResolvers: Map[Int, UntypedArguments => Parameters]
+        pathDepResolvers: Map[Int, UntypedArguments => Parameters],
+        // [hearth#331] Given ALL type arguments applied so far, re-resolve the (still-static) expectations so that a
+        // value/implicit clause following a type-parameter clause has the applied type arguments substituted into its
+        // parameter types (`(implicit ev: Sync[F])` -> `(implicit ev: Sync[SomeEffect])`). The platform builds this;
+        // the default is identity (used when there are no unresolved method type parameters).
+        resolveExpectationsForTypeArgs: UntypedTypeArguments => List[MethodExpectation]
     ): Method = {
       val initialState = AppliedState(hadKnownReturning = returnType.isDefined)
 
@@ -466,8 +471,12 @@ trait Methods { this: MacroCommons =>
                 totalParameters = totalParameters,
                 typeParams = asUntyped.typeParameters,
                 next = { typeArgs =>
+                  val allTypeArgs = accTypeArgs ++ typeArgs
                   val nextState = appliedState.copy(steps = appliedState.steps :+ AppliedStep.Types(typeArgs))
-                  buildFromStep(expectations, stepIndex + 1, accInstance, typeArgs, accArgs, nextState)
+                  // [hearth#331] Substitute the just-applied type arguments into the parameter types of any subsequent
+                  // value/implicit clauses, so `onValues` sees e.g. `Sync[SomeEffect]` rather than an empty clause.
+                  val resolvedExpectations = resolveExpectationsForTypeArgs(allTypeArgs)
+                  buildFromStep(resolvedExpectations, stepIndex + 1, accInstance, allTypeArgs, accArgs, nextState)
                 }
               )(instanceEvidence, appliedState)
             case MethodExpectation.NeedsValues(params) =>

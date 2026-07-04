@@ -10,6 +10,8 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
 
   // [hearth#176]
 
+  def testFoldSubstitutesTypeArgsImpl: c.Expr[Data] = testFoldSubstitutesTypeArgs
+
   def testConstructorsExtractionImpl[A: c.WeakTypeTag]: c.Expr[Data] =
     testConstructorsExtraction[A]
 
@@ -133,6 +135,8 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
 }
 
 object MethodsFixtures {
+
+  def testFoldSubstitutesTypeArgs: Data = macro MethodsFixtures.testFoldSubstitutesTypeArgsImpl
 
   def testConstructorsExtraction[A]: Data = macro MethodsFixtures.testConstructorsExtractionImpl[A]
 

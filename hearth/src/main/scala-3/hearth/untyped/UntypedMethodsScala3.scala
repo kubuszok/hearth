@@ -766,22 +766,67 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
       val untypedExpectations = untyped.methodExpectations(instanceTpe)
 
-      var seenTypeParams = false
-      val typedExpectations: List[MethodExpectation] = untypedExpectations.map {
-        case UntypedMethodExpectation.NeedsInstance   => MethodExpectation.NeedsInstance
-        case UntypedMethodExpectation.NeedsTypes(utp) =>
-          seenTypeParams = true
-          MethodExpectation.NeedsTypes(utp.map(_.map { sym =>
-            new TypeParameter(
-              asUntyped = sym,
-              upperBound = UntypedTypeParameter.upperBound(sym).as_??,
-              lowerBound = UntypedTypeParameter.lowerBound(sym).as_??
+      // [hearth#331] A value/implicit clause that FOLLOWS a type-parameter clause references the method's own type
+      // parameters (`(implicit ev: Sync[F])`). `up.asTyped[Instance]` cannot resolve those against `Instance` (it
+      // conflates method and class type parameters and can even crash), so historically the clause was dropped to
+      // `List.empty`. Instead we read the parameter types straight from the member signature (class type parameters
+      // already resolved as-seen-from `Instance`, method type parameters left abstract) and substitute the applied
+      // type arguments for the method's type parameters — abstract when none are applied yet, concrete after `onTypes`.
+      val methodTypeParamSyms: List[Symbol] = untyped.typeParameters.flatten
+      // Resolve parameter types with the method's own type parameters instantiated to `typeArgs` — applied arguments
+      // become concrete, un-applied ones become the type parameter's own (bare) ref. We `appliedTo` the member
+      // `PolyType` rather than `substituteTypes` on its inner `MethodType`, because the parameter types reference the
+      // type parameters as PolyType-BOUND refs, which `substituteTypes(symbols, …)` would not touch.
+      def resolvedParamTypesByName(typeArgs: UntypedTypeArguments): Map[String, TypeRepr] = {
+        def collect(tpe: TypeRepr): Map[String, TypeRepr] = tpe match {
+          case mt: MethodType => mt.paramNames.zip(mt.paramTypes).toMap ++ collect(mt.resType)
+          case pt: PolyType   => collect(pt.resType)
+          case _              => Map.empty
+        }
+        // When nothing is applied yet, keep the `PolyType` untouched: its BOUND parameter refs print bare (`A`, `F`),
+        // matching Scala 2. Only instantiate once there are real arguments (then the applied slots become concrete).
+        val applied = safeMemberType(instanceTpe, untyped.symbol) match {
+          case pt: PolyType if methodTypeParamSyms.nonEmpty && typeArgs.nonEmpty =>
+            pt.appliedTo(
+              methodTypeParamSyms.map(tp => typeArgs.get(tp).fold(tp.typeRef: TypeRepr)(_.Underlying.asUntyped))
             )
-          }))
-        case UntypedMethodExpectation.NeedsValues(up) =>
-          if seenTypeParams then MethodExpectation.NeedsValues(List.empty)
-          else MethodExpectation.NeedsValues(up.asTyped[Instance])
+          case other => other
+        }
+        collect(applied)
       }
+      def resolveTypeParamClauseValues(up: UntypedParameters, typeArgs: UntypedTypeArguments): Parameters = {
+        val byName = resolvedParamTypesByName(typeArgs)
+        up.map(_.flatMap { case (name, param) =>
+          byName.get(name).map { tpe =>
+            name -> Parameter(
+              asUntyped = param,
+              untypedInstanceType = instanceTpe,
+              tpe = normalizeRepeatedParamType(tpe).as_??
+            )
+          }
+        })
+      }
+
+      def resolveExpectations(typeArgs: UntypedTypeArguments): List[MethodExpectation] = {
+        var seenTypeParams = false
+        untypedExpectations.map {
+          case UntypedMethodExpectation.NeedsInstance   => MethodExpectation.NeedsInstance
+          case UntypedMethodExpectation.NeedsTypes(utp) =>
+            seenTypeParams = true
+            MethodExpectation.NeedsTypes(utp.map(_.map { sym =>
+              new TypeParameter(
+                asUntyped = sym,
+                upperBound = UntypedTypeParameter.upperBound(sym).as_??,
+                lowerBound = UntypedTypeParameter.lowerBound(sym).as_??
+              )
+            }))
+          case UntypedMethodExpectation.NeedsValues(up) =>
+            if seenTypeParams then MethodExpectation.NeedsValues(resolveTypeParamClauseValues(up, typeArgs))
+            else MethodExpectation.NeedsValues(up.asTyped[Instance])
+        }
+      }
+
+      val typedExpectations: List[MethodExpectation] = resolveExpectations(Map.empty)
 
       val hasUnresolvedTypeParams = untyped.hasTypeParameters && !untyped.isConstructor
       val totalParams: Parameters =
@@ -814,7 +859,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         totalParameters = totalParams,
         returnType = returnType,
         buildExpr = buildExpr,
-        pathDepResolvers = Map.empty
+        pathDepResolvers = Map.empty,
+        resolveExpectationsForTypeArgs = resolveExpectations
       )
     }
 
