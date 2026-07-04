@@ -90,6 +90,24 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.classOfType" -> Data(classOf[examples.ExampleEnum.ExampleEnumClass].toString)
           )
         }
+
+        test("for IArray must not throw (issue #333)") {
+          // `IArray[E]` is an opaque alias recognized as a JVM built-in; `classOfType` must degrade gracefully
+          // (return a class or None) rather than aborting the macro with a HearthAssertionError.
+          testClassOfType[IArray[Int]] <==> Data.map(
+            "Type.classOfType" -> Data("class [I")
+          )
+          testClassOfType[IArray[String]] <==> Data.map(
+            "Type.classOfType" -> Data("class [Ljava.lang.String;")
+          )
+          // Element type with no resolvable runtime class (a union): the `IArrayCtor` branch answers for itself with
+          // the erased array-of-Object class instead of falling through to the "unhandled built-in" assertion, which
+          // used to abort with a HearthAssertionError here (issue #333). The assertion itself stays in place to catch
+          // genuinely un-branched built-ins.
+          testClassOfType[IArray[Int | String]] <==> Data.map(
+            "Type.classOfType" -> Data("class [Ljava.lang.Object;")
+          )
+        }
       }
 
       group("methods: Type.{position} expected behavior") {
