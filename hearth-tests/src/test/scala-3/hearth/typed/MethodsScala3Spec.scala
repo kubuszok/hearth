@@ -10,6 +10,25 @@ final class MethodsScala3Spec extends MacroSuite {
 
     group("type Method") {
 
+      group("methods: inherited constructor-val fields (issue #327)") {
+        import MethodsFixtures.testAccessorMetadata
+
+        test("are listed as available, inherited accessors (not the subclass's private param-accessor plumbing)") {
+          // `id` (from AbstractIdStatusEntity) and `status` (from StatusEntity) are public inherited vals; the subclass
+          // re-takes them as constructor params passed to super, which Scala 3 keeps as private[this] param accessors —
+          // those must not shadow the genuine public inherited accessors.
+          val expected = Data.list(
+            Data.map(
+              "isVal" -> Data(true),
+              "isInherited" -> Data(true),
+              "isAvailable(Everywhere)" -> Data(true)
+            )
+          )
+          testAccessorMetadata[examples.methods.IdStatusEntity]("id") <==> expected
+          testAccessorMetadata[examples.methods.IdStatusEntity]("status") <==> expected
+        }
+      }
+
       group(
         "constructors: Method.{primaryConstructorOf[A], defaultConstructorOf[A], constructorsOf[A]}, returns preprocessed constructors"
       ) {

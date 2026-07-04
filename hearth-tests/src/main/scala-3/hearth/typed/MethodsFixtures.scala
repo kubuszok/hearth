@@ -93,6 +93,10 @@ object MethodsFixtures {
   private def testConstructVarargCtorImpl[A: Type](params: Expr[Seq[String]])(using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testConstructVarargCtor[A](params)
 
+  inline def testAccessorMetadata[A](inline methodName: String): Data = ${ testAccessorMetadataImpl[A]('methodName) }
+  private def testAccessorMetadataImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testAccessorMetadata[A](methodName)
+
   inline def testMethodProperties[A](inline methodName: String): Data = ${
     testMethodPropertiesImpl[A]('methodName)
   }

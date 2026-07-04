@@ -67,6 +67,22 @@ trait MethodsFixturesImpl { this: MacroCommons =>
       Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
   }
 
+  // [hearth#327] Focused report of the accessor metadata that matters for inherited constructor-`val` fields: an
+  // inherited public `val` must be listed as a usable, inherited accessor (isVal + isAvailable + isInherited), not the
+  // subclass's private param-accessor plumbing.
+  def testAccessorMetadata[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
+    case Expr(name) =>
+      Expr(Data(Type[A].methods.filter(_.name == name).map { m =>
+        Data.map(
+          "isVal" -> Data(m.isVal),
+          "isInherited" -> Data(m.isInherited),
+          "isAvailable(Everywhere)" -> Data(m.isAvailable(Everywhere))
+        )
+      }))
+    case _ =>
+      Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
+  }
+
   private def renderMethods(methods: List[Method]): Data =
     Data(
       methods

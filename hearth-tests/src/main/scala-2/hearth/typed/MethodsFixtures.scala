@@ -46,6 +46,9 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
   def testMethodPropertiesImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
     testMethodProperties[A](methodName)
 
+  def testAccessorMetadataImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
+    testAccessorMetadata[A](methodName)
+
   def testMethodVisibilityImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
     testMethodVisibility[A](methodName)
 
@@ -158,6 +161,9 @@ object MethodsFixtures {
 
   def testMethodProperties[A](methodName: String): Data =
     macro MethodsFixtures.testMethodPropertiesImpl[A]
+
+  def testAccessorMetadata[A](methodName: String): Data =
+    macro MethodsFixtures.testAccessorMetadataImpl[A]
 
   def testMethodVisibility[A](methodName: String): Data =
     macro MethodsFixtures.testMethodVisibilityImpl[A]
