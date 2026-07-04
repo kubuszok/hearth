@@ -203,6 +203,12 @@ final class TypesScala3Spec extends MacroSuite {
       ) {
         import TypesFixtures.{testFlags, testChildrenFlags}
 
+        test("an export-created alias classifies identically to its underlying class (issue #315)") {
+          // `Exported.Foo` is `export Inner.Foo`; its flags (isClass/isCase/isAbstract/...) must match `Inner.Foo`,
+          // not the (flag-less) alias symbol. Before the fix isClass/isCase were false for the export alias.
+          testFlags[examples.exports.Exported.Foo] <==> testFlags[examples.exports.Inner.Foo]
+        }
+
         test("for Scala 3 enums") {
           List(
             testFlags[examples.ExampleEnum],
