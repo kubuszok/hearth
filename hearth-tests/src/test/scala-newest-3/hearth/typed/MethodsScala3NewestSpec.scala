@@ -107,9 +107,9 @@ final class MethodsScala3NewestSpec extends MacroSuite {
               "expectations" -> Data.list(
                 Data("NeedsInstance"),
                 Data("NeedsTypes[A]"),
-                Data("NeedsValues()"),
+                Data("NeedsValues(a: A)"),
                 Data("NeedsTypes[B]"),
-                Data("NeedsValues()")
+                Data("NeedsValues(b: B)")
               ),
               "knownReturning" -> Data("<none>"),
               "toString" -> Data(

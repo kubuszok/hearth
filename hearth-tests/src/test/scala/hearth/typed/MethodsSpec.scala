@@ -2083,7 +2083,7 @@ final class MethodsSpec extends MacroSuite {
               "expectations" -> Data.list(
                 Data("NeedsInstance"),
                 Data("NeedsTypes[A]"),
-                Data("NeedsValues()")
+                Data("NeedsValues(a: A)")
               ),
               "knownReturning" -> Data("<none>"),
               "toString" -> Data(
@@ -2233,7 +2233,7 @@ final class MethodsSpec extends MacroSuite {
           Data.list(
             Data.map(
               "name" -> Data("parametric2"),
-              "expectations" -> Data.list(Data("NeedsInstance"), Data("NeedsTypes[A]"), Data("NeedsValues()")),
+              "expectations" -> Data.list(Data("NeedsInstance"), Data("NeedsTypes[A]"), Data("NeedsValues(a: A)")),
               "knownReturning" -> Data("<none>"),
               "toString" -> Data(
                 "hearth.examples.methods.Parametric: def parametric2[A]" +
@@ -2252,7 +2252,7 @@ final class MethodsSpec extends MacroSuite {
               "expectations" -> Data.list(
                 Data("NeedsInstance"),
                 Data("NeedsTypes[A <: java.lang.Comparable[A]]"),
-                Data("NeedsValues()")
+                Data("NeedsValues(a: A)")
               ),
               "knownReturning" -> Data("<none>"),
               "toString" -> Data(
@@ -2308,7 +2308,7 @@ final class MethodsSpec extends MacroSuite {
               "expectations" -> Data.list(
                 Data("NeedsInstance"),
                 Data("NeedsTypes[F]"),
-                Data("NeedsValues()")
+                Data("NeedsValues(a: F[java.lang.String])")
               ),
               "knownReturning" -> Data("<none>"),
               "toString" -> Data(
@@ -2338,9 +2338,60 @@ final class MethodsSpec extends MacroSuite {
             )
           )
       }
+
+      // [hearth#331] An implicit clause that FOLLOWS a type-parameter clause used to be dropped (`NeedsValues()`),
+      // so there was no way to supply the `Sync[F]`. It is now surfaced with the method's type parameter abstract.
+      test("resource[F[_]](implicit ev: Sync[F]): F[Int] — implicit clause after a type-param clause is kept") {
+        MethodsFixtures.testMethodExpectations[examples.methods.HigherKindedImplicit]("resource") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("resource"),
+              "expectations" -> Data.list(
+                Data("NeedsInstance"),
+                Data("NeedsTypes[F]"),
+                Data("NeedsValues(ev: hearth.examples.methods.Sync[F])")
+              ),
+              "knownReturning" -> Data("<none>"),
+              "toString" -> Data(
+                "hearth.examples.methods.HigherKindedImplicit: def resource[F](ev: hearth.examples.methods.Sync[F]): F[scala.Int]"
+              )
+            )
+          )
+      }
+
+      test(
+        "make[F[_]](config: String)(implicit ev: Sync[F]): F[Int] — value + implicit clause after a type-param clause"
+      ) {
+        MethodsFixtures.testMethodExpectations[examples.methods.HigherKindedImplicit]("make") <==>
+          Data.list(
+            Data.map(
+              "name" -> Data("make"),
+              "expectations" -> Data.list(
+                Data("NeedsInstance"),
+                Data("NeedsTypes[F]"),
+                Data("NeedsValues(config: java.lang.String)(ev: hearth.examples.methods.Sync[F])")
+              ),
+              "knownReturning" -> Data("<none>"),
+              "toString" -> Data(
+                "hearth.examples.methods.HigherKindedImplicit: def make[F](config: java.lang.String)(ev: hearth.examples.methods.Sync[F]): F[scala.Int]"
+              )
+            )
+          )
+      }
     }
 
     group("method calling via fold") {
+
+      // [hearth#331] applying `T := Int` in `onTypes` substitutes into the value/implicit clauses that follow.
+      test("fold substitutes applied type arguments into a following value/implicit clause") {
+        MethodsFixtures.testFoldSubstitutesTypeArgs <==> Data.map(
+          "params" -> Data.list(
+            Data("t: scala.Int"),
+            Data("ord: scala.math.Ordering[scala.Int]")
+          ),
+          "result" -> Data("built")
+        )
+      }
 
       test("nullary — nullaryNoParamList returns 42") {
         MethodsFixtures.testCallInstanceViaFold(new examples.methods.NullaryMethods)("nullaryNoParamList")() <==>

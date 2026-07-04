@@ -1167,7 +1167,12 @@ trait ShowCodePrettyScala2 {
           val weShouldSkipThisType = sym.isDeferred
           val preToUse = if (notRunnableExprResult && pre == NoPrefix) NoType else pre
 
-          printTypePrefix(preToUse, sym, printThisType = !weShouldSkipThisType)
+          // A free method type parameter (`def f[A](a: A)` reached as a standalone `A`, e.g. via `Method.fold` on a
+          // clause that follows the type-parameter clause) should print by its simple name — like a *bound* type
+          // parameter and like Scala 3 — not qualified by its enclosing class (`Owner.A`). See hearth#331.
+          val isMethodTypeParam =
+            sym.isType && sym.owner != null && sym.owner != NoSymbol && sym.owner.isMethod
+          if (!isMethodTypeParam) printTypePrefix(preToUse, sym, printThisType = !weShouldSkipThisType)
           printTypeNameFromSymbol(sym, isLastInChain)
           if (args.nonEmpty) {
             print("[")
