@@ -217,8 +217,22 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         case _         => false
       }
 
+    // [hearth#315] The symbol to classify a type by. For an `export`-created alias of a real CLASS (e.g.
+    // `export Inner.Foo`) the alias's own `typeSymbol` carries none of the class flags, so resolve through to the
+    // underlying class. But ONLY when the dealiased symbol is a non-module class: this leaves aliases of OBJECTS (e.g.
+    // `type EmptyTuple = EmptyTuple.type`, whose dealias is a module class and must stay `isClass=false`/non-final),
+    // direct object types (e.g. an `Enumeration` object, which classify as before), and ordinary aliases untouched —
+    // the change is purely additive (it only lets an export alias of a class see its class's flags).
+    private def classificationSymbol(instanceTpe: UntypedType): Symbol = {
+      val orig = instanceTpe.typeSymbol
+      val dealiased = instanceTpe.dealias.typeSymbol
+      if dealiased != orig && !dealiased.isNoSymbol && dealiased.isClassDef && !dealiased.flags.is(Flags.Module)
+      then dealiased
+      else orig
+    }
+
     override def isAbstract(instanceTpe: UntypedType): Boolean = {
-      val A = instanceTpe.typeSymbol
+      val A = classificationSymbol(instanceTpe)
       // We use =:= to check whether A is known to be exactly of the built-in type or is it some upper bound.
       // Also exclude enumeration Value types (they're not abstract)
       !A.isNoSymbol && (A.flags.is(Flags.Abstract) || A.flags.is(Flags.Trait)) &&
@@ -246,7 +260,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       }
 
     override def isFinal(instanceTpe: UntypedType): Boolean = {
-      val A = instanceTpe.typeSymbol
+      val A = classificationSymbol(instanceTpe) // resolve `export`-created aliases of classes, see #315
       // String is not being detected as a final in Scala 3, so we need to check it manually.
       // TODO: check if it's not a general issue with Java classes in Scala 3
       !A.isNoSymbol && ((A.flags.is(Flags.Final) || instanceTpe.asTyped[Any] <:< Type.of[String]) || isArray(
@@ -255,12 +269,12 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     }
 
     override def isTrait(instanceTpe: UntypedType): Boolean = {
-      val A = instanceTpe.typeSymbol
+      val A = classificationSymbol(instanceTpe) // resolve `export`-created aliases of classes, see #315
       !A.isNoSymbol && A.flags.is(Flags.Trait)
     }
 
     override def isClass(instanceTpe: UntypedType): Boolean = {
-      val A = instanceTpe.typeSymbol
+      val A = classificationSymbol(instanceTpe) // resolve `export`-created aliases of classes, see #315
       // String is not being detected as a class in Scala 3, so we need to check it manually.
       // TODO: check if it's not a general issue with Java classes in Scala 3
       !A.isNoSymbol && ((A.isClassDef || instanceTpe.asTyped[Any] <:< Type.of[String]) && !isArray(
@@ -269,7 +283,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     }
 
     override def isSealed(instanceTpe: UntypedType): Boolean = {
-      val A = instanceTpe.typeSymbol
+      val A = classificationSymbol(instanceTpe) // resolve `export`-created aliases of classes, see #315
       !A.isNoSymbol && A.flags.is(Flags.Sealed)
     }
     override def isJavaEnum(instanceTpe: UntypedType): Boolean = {
@@ -340,7 +354,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       // type symbol (no Case flag) while the `Case|Enum|StableRealizable` flags live on the TERM symbol - so we have to
       // inspect both, mirroring `isVal`. See issue #311.
       def hasCase(sym: Symbol): Boolean = !sym.isNoSymbol && sym.flags.is(Flags.Case)
-      hasCase(instanceTpe.typeSymbol) || hasCase(instanceTpe.termSymbol)
+      // Resolve `export`-created aliases of case classes (identity for non-alias/object types); the term symbol still
+      // carries the `Case` flag for parameterless enum cases / case objects. See #315 and #311.
+      hasCase(classificationSymbol(instanceTpe)) || hasCase(instanceTpe.termSymbol)
     }
     override def isObject(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
