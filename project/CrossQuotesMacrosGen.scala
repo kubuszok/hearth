@@ -402,14 +402,18 @@ object CrossQuotesMacrosGen {
     // Cast to `Type[U_i]` (the UPPER bound), not `Type[scala.Any]`: `as_<:??<:[L, U]` on a `Type[A]` requires `U >: A`,
     // so a `Type[scala.Any]` receiver would force `U >: Any` and reject any non-`Any` upper bound. For an unbounded
     // ctor `U_i` is `Any`, so this is unchanged there; for a bounded ctor it makes `U >: U` hold trivially. See #307.
+    //
+    // [hearth#307] `dealias` the extracted argument but do NOT `widen` it: widening decays a literal singleton
+    // (`ConstantType`, e.g. the `"fieldName"` in `Path.Select["fieldName", _]`) to `java.lang.String`, and a
+    // term singleton (`x.type`) to its widened type — an extractor must hand back the argument as written.
     if (n == 1) {
-      val expr = s"$$ctx.WeakTypeTag(tp1.dealias.widen).asInstanceOf[Type[$$${ArityGen.upper(1)}]].as_<:??<:[$$${ArityGen.lower(1)}, $$${ArityGen.upper(1)}]"
+      val expr = s"$$ctx.WeakTypeTag(tp1.dealias).asInstanceOf[Type[$$${ArityGen.upper(1)}]].as_<:??<:[$$${ArityGen.lower(1)}, $$${ArityGen.upper(1)}]"
       s"${indent}_root_.scala.Some($expr)\n"
     } else {
       val sb = new StringBuilder
       sb ++= s"${indent}_root_.scala.Some((\n"
       for (i <- 1 to n) {
-        val expr = s"$$ctx.WeakTypeTag(tp$i.dealias.widen).asInstanceOf[Type[$$${ArityGen.upper(i)}]].as_<:??<:[$$${ArityGen.lower(i)}, $$${ArityGen.upper(i)}]"
+        val expr = s"$$ctx.WeakTypeTag(tp$i.dealias).asInstanceOf[Type[$$${ArityGen.upper(i)}]].as_<:??<:[$$${ArityGen.lower(i)}, $$${ArityGen.upper(i)}]"
         if (i < n) sb ++= s"$exprIndent$expr,\n"
         else sb ++= s"$exprIndent$expr\n"
       }

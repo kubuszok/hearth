@@ -48,6 +48,13 @@ final class CrossTypesSpec extends MacroSuite {
     group("for Type.Ctor[n].of") {
       import CrossTypesFixtures.*
 
+      test("Type.CtorN.unapply preserves literal type arguments and does not widen them (issue #307)") {
+        CrossTypesFixtures.testTypeCtorLiteralPreservation <==> Data.map(
+          "ctor1Literal" -> Data("\"fieldName\""),
+          "ctor2Literal" -> Data("\"fieldName\"")
+        )
+      }
+
       test(
         "should resolve types in the context of the macro compilation, and properly handle type aliases and kind projections for Type.Ctor1"
       ) {
