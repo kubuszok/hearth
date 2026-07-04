@@ -145,6 +145,16 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = c.Expr[Unit](q"val _ = $expr; ()")
 
+    // [hearth#334] `{ @annotation val fresh = expr; fresh }`. Quasiquotes are not typed, so the annotation instance
+    // tree (`new Ann(args)`) must be `untypecheck`ed before it is spliced as a `val` modifier annotation (mixing typed
+    // and untyped trees crashes the compiler — the same reason annotation trees are untypechecked elsewhere).
+    override def annotated[A: Type, Ann](expr: Expr[A], annotation: Expr[Ann]): Expr[A] = {
+      val name = c.internal.reificationSupport.freshTermName("annotated$macro$")
+      val annotationTree = c.untypecheck(annotation.tree.duplicate)
+      c.Expr[A](q"""@$annotationTree val $name = $expr
+      $name""")
+    }
+
     override def singletonOf[A: Type]: Option[Expr[A]] = {
       val tpe = Type[A].tpe
       val sym = tpe.typeSymbol

@@ -48,6 +48,17 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit]
 
+    /** Attaches an annotation to `expr` by binding it to a fresh, annotated `val`, producing the equivalent of
+      * `{ @annotation val fresh = expr; fresh }`.
+      *
+      * `annotation` is the annotation INSTANCE expression (e.g. `Expr.quote(new scala.annotation.nowarn("msg"))` or
+      * `Expr.quote(new SuppressWarnings(Array("...")))`). Use this to wrap generated code in a user-supplied
+      * `@nowarn`/`@SuppressWarnings` (or any annotation), which is otherwise not expressible cross-platform.
+      *
+      * @since 0.4.1
+      */
+    def annotated[A: Type, Ann](expr: Expr[A], annotation: Expr[Ann]): Expr[A]
+
     def singletonOf[A: Type]: Option[Expr[A]]
 
     /** Returns the type of an expression as seen by the compiler.
@@ -167,6 +178,12 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def upcast[B](implicit A: Type[A], B: Type[B]): Expr[B] = Expr.upcast(expr)
     def suppressUnused(implicit A: Type[A]): Expr[Unit] = Expr.suppressUnused(expr)
+
+    /** Attaches an annotation to this expression — see [[ExprModule.annotated]].
+      *
+      * @since 0.4.1
+      */
+    def annotated[Ann](annotation: Expr[Ann])(implicit A: Type[A]): Expr[A] = Expr.annotated(expr, annotation)
 
     /** Returns the type of this expression as seen by the compiler.
       *
