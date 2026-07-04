@@ -147,7 +147,7 @@ object CrossQuotesMacrosGen {
     val stubTypeArgs = (1 to n).flatMap(i => Seq(s"$$${ArityGen.lower(i)}", s"$$${ArityGen.upper(i)}")).mkString(", ")
     sb ++= s"""      val ctxVal = q${tq}private val $$ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]${tq}\n"""
     sb ++= s"""      val convertDef = q${tq}private implicit def $$convertProvidedTypesForCrossQuotes[$$typeInner](implicit $$termInner: Type[$$typeInner]): $$ctx.WeakTypeTag[$$typeInner] = $$termInner.asInstanceOf[$$ctx.WeakTypeTag[$$typeInner]]${tq}\n"""
-    sb ++= s"""      val ctxImport = q${tq}import $$ctx.universe.{ TypeRef, TypeRefTag }${tq}\n"""
+    sb ++= s"""      val ctxImport = q${tq}import $$ctx.universe.{ TypeRef, TypeRefTag, ExistentialType, ExistentialTypeTag }${tq}\n"""
     sb ++= s"""      val hktVal = q${tq}private val HKT = $$ctx.weakTypeTag[Type.$cn.Stub[$stubTypeArgs, $$HKT]].tpe.typeArgs.last${tq}\n"""
     sb ++= s"      List(ctxVal, convertDef, ctxImport, hktVal)\n"
     sb ++= s"    }\n"
@@ -188,6 +188,12 @@ object CrossQuotesMacrosGen {
     sb ++= s"        A0.dealias.widen.baseType(HKT.typeSymbol) match {\n"
     val tpList = (1 to n).map(i => s"tp$i").mkString(", ")
     sb ++= s"          case TypeRef(_, _, _root_.scala.List($tpList)) =>\n"
+    sb ++= s"            matchResult($tpList)\n"
+    // [hearth#307] A WILDCARD type argument (`HKT[?]`, e.g. a `SomeFlag[?]` DSL member) makes `baseType` return a
+    // PACKED `ExistentialType(_, TypeRef(...))` instead of a bare `TypeRef`, so the case above misses. Unwrap it here
+    // (still `baseType`-symbol-based, so prefix-representation-independent) rather than falling through to the
+    // structural-`==` fallback, which additionally misses when the constructor's prefix is captured via an alias.
+    sb ++= s"          case ExistentialType(_, TypeRef(_, _, _root_.scala.List($tpList))) =>\n"
     sb ++= s"            matchResult($tpList)\n"
     sb ++= s"          case _ =>\n"
     sb ++= s"            if (A0.typeConstructor == HKT && A0.typeArgs.size == $n) {\n"
@@ -278,7 +284,7 @@ object CrossQuotesMacrosGen {
     sb ++= s"    def buildPreamble(): List[c.Tree] = {\n"
     sb ++= s"""      val ctxVal = q${tq}private val $$ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]${tq}\n"""
     sb ++= s"""      val convertDef = q${tq}private implicit def $$convertProvidedTypesForCrossQuotes[$$typeInner](implicit $$termInner: Type[$$typeInner]): $$ctx.WeakTypeTag[$$typeInner] = $$termInner.asInstanceOf[$$ctx.WeakTypeTag[$$typeInner]]${tq}\n"""
-    sb ++= s"""      val ctxImport = q${tq}import $$ctx.universe.{ TypeRef, TypeRefTag }${tq}\n"""
+    sb ++= s"""      val ctxImport = q${tq}import $$ctx.universe.{ TypeRef, TypeRefTag, ExistentialType, ExistentialTypeTag }${tq}\n"""
     sb ++= s"""      val hktVal = q${tq}private val HKT = $${untyped.tree}.asInstanceOf[$$ctx.Type]${tq}\n"""
     sb ++= s"      List(ctxVal, convertDef, ctxImport, hktVal)\n"
     sb ++= s"    }\n"
@@ -319,6 +325,12 @@ object CrossQuotesMacrosGen {
     sb ++= s"        A0.dealias.widen.baseType(HKT.typeSymbol) match {\n"
     val tpList = (1 to n).map(i => s"tp$i").mkString(", ")
     sb ++= s"          case TypeRef(_, _, _root_.scala.List($tpList)) =>\n"
+    sb ++= s"            matchResult($tpList)\n"
+    // [hearth#307] A WILDCARD type argument (`HKT[?]`, e.g. a `SomeFlag[?]` DSL member) makes `baseType` return a
+    // PACKED `ExistentialType(_, TypeRef(...))` instead of a bare `TypeRef`, so the case above misses. Unwrap it here
+    // (still `baseType`-symbol-based, so prefix-representation-independent) rather than falling through to the
+    // structural-`==` fallback, which additionally misses when the constructor's prefix is captured via an alias.
+    sb ++= s"          case ExistentialType(_, TypeRef(_, _, _root_.scala.List($tpList))) =>\n"
     sb ++= s"            matchResult($tpList)\n"
     sb ++= s"          case _ =>\n"
     sb ++= s"            if (A0.typeConstructor == HKT && A0.typeArgs.size == $n) {\n"
