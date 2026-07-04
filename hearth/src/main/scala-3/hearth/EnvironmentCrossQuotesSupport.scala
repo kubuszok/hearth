@@ -26,6 +26,9 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
 
     protected var currentCtx: scala.quoted.Quotes = _
 
+    /** The `Quotes` the macro was entered with (the outermost context). Set once by the platform on construction. */
+    protected def macroEntryCtx: scala.quoted.Quotes
+
     /** Necessary to use for achieving correct expansion when we extract some Expr.quote inside an Expr.splice,
       * otherwise nested quote-insides can't work.
       */
@@ -37,6 +40,14 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
         thunk
       finally
         currentCtx = oldContext
+    }
+
+    /** [hearth#317/#318] Runs `thunk` with the macro-ENTRY `Quotes` pinned as the active Cross-Quotes context. */
+    final def withMacroEntryCtx[A](thunk: => A): A = {
+      val oldContext = currentCtx
+      currentCtx = macroEntryCtx
+      try thunk
+      finally currentCtx = oldContext
     }
   }
 
@@ -96,4 +107,17 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
     */
   final def withQuotes[A](thunk: scala.quoted.Quotes ?=> A): A =
     thunk(using CrossQuotes.ctx[scala.quoted.Quotes])
+
+  /** Runs `thunk` with the macro-ENTRY [[scala.quoted.Quotes]] pinned as Cross-Quotes' active context.
+    *
+    * When a whole derivation runs INSIDE an `Expr.splice` (e.g. building `new Transformer[A, B] { def transform(src) =
+    * $${ derive(src) } }`), every `Expr`/`Type` it creates — including values memoized in a `lazy val`/cache and
+    * first-touched during that splice — belongs to that ONE splice evaluation. Reusing them in another evaluation (e.g.
+    * deriving a second instance in the same expansion) then aborts on Scala 3 with
+    * `ScopeException: Expression created in a splice was used outside of that splice`. Wrapping the derivation in
+    * `withMacroEntryCtx` makes those values ENTRY-scoped, so they are usable across evaluations. See issues #317/#318.
+    *
+    * @since 0.4.1
+    */
+  final def withMacroEntryCtx[A](thunk: => A): A = CrossQuotes.withMacroEntryCtx(thunk)
 }
