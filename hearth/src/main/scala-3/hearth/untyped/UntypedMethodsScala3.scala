@@ -863,16 +863,25 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       // base classes and pick up their public, non-synthetic fields, deduplicating by name (closest class wins, since
       // `baseClasses` is ordered subclass-first) and never shadowing an own member. Scala 2's `.members` already sees
       // them. See issue #327. `UntypedType.baseClasses` is used explicitly to avoid the extension-shadowing footgun.
-      val ownMembers = symbol.methodMembers ++ symbol.fieldMembers
-      val seenNames = scala.collection.mutable.Set.from(ownMembers.iterator.map(_.name))
-      val inheritedFields = UntypedType
+      // [hearth#327] The genuine PUBLIC accessors inherited from parent CLASSES (candidates, closest class first).
+      val inheritedPublicFieldCandidates = UntypedType
         .baseClasses(instanceTpe)
         .iterator
         .flatMap(_.typeSymbol.fieldMembers)
-        .filter(f =>
-          !f.isNoSymbol && !f.flags.is(Flags.Private) && !f.flags.is(Flags.Synthetic) && seenNames.add(f.name)
-        )
+        .filter(f => !f.isNoSymbol && !f.flags.is(Flags.Private) && !f.flags.is(Flags.Synthetic))
         .toList
+      val inheritedPublicFieldNames = inheritedPublicFieldCandidates.iterator.map(_.name).toSet
+      // [hearth#327] When a subclass re-takes a constructor param and only passes it to `super` (e.g. `class
+      // IdStatusEntity(id: Long, ...) extends AbstractIdStatusEntity(id, ...)`), Scala 3 keeps it as a `private[this]`
+      // `ParamAccessor` field. Such a field would `seenNames`-shadow the genuine PUBLIC inherited accessor of the same
+      // name, leaving the listing with an unavailable, "declared" member (isAvailable=false, isInherited=false). Drop it
+      // ONLY in that shadowing case — a private param-accessor that is NOT hiding an inherited accessor (an ordinary
+      // constructor argument) must still be listed. Scala 2 never retains these, so this also aligns the platforms.
+      def shadowsInheritedAccessor(f: Symbol): Boolean =
+        f.flags.is(Flags.ParamAccessor) && f.flags.is(Flags.Private) && inheritedPublicFieldNames(f.name)
+      val ownMembers = symbol.methodMembers ++ symbol.fieldMembers.filterNot(shadowsInheritedAccessor)
+      val seenNames = scala.collection.mutable.Set.from(ownMembers.iterator.map(_.name))
+      val inheritedFields = inheritedPublicFieldCandidates.filter(f => seenNames.add(f.name))
       // Defined in the type or its parent, or synthetic
       val classMembers = ownMembers ++ inheritedFields
       // Defined exatcly in the type

@@ -134,3 +134,9 @@ case class CaseClassWithVarCtorParam(var name: String)
 class WithRestrictedVar {
   private[examples] var counter: Int = 0
 }
+
+// [hearth#327] Inherited constructor-`val` fields: `id`/`status` are public vals declared in parent CLASSES; they must
+// be listed by `Type[IdStatusEntity].methods` with correct metadata (isAvailable=true, isInherited=true).
+abstract class StatusEntity(val status: String)
+abstract class AbstractIdStatusEntity(val id: Long, status: String) extends StatusEntity(status)
+class IdStatusEntity(id: Long, status: String) extends AbstractIdStatusEntity(id, status)
