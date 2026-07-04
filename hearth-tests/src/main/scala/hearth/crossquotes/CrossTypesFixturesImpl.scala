@@ -101,6 +101,28 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
     case _ => None
   }
 
+  // [hearth#307] The Scala 2 `Type.CtorN` codegen used to `.widen` each extracted type argument, decaying a literal
+  // singleton (`ConstantType`, e.g. Chimney's `Path.Select["fieldName", _]`) to `java.lang.String`. Verify the
+  // extractor now hands the argument back as written (`dealias` only, no `widen`).
+  def testTypeCtorLiteralPreservation: Expr[Data] = {
+    val Ctor1 = Type.Ctor1.of[examples.kinds.Arity1]
+    val Ctor2 = Type.Ctor2.of[examples.kinds.Arity2]
+    val ctor1Literal = Type.of[examples.kinds.Arity1["fieldName"]] match {
+      case Ctor1(a) => a.Underlying.plainPrint
+      case _        => "<no match>"
+    }
+    val ctor2Literal = Type.of[examples.kinds.Arity2["fieldName", Int]] match {
+      case Ctor2(a, _) => a.Underlying.plainPrint
+      case _           => "<no match>"
+    }
+    Expr(
+      Data.map(
+        "ctor1Literal" -> Data(ctor1Literal),
+        "ctor2Literal" -> Data(ctor2Literal)
+      )
+    )
+  }
+
   def testTypeCtor1[In: Type]: Expr[Data] = {
     val classResult = try1(Type[In], Type.Ctor1.of[examples.kinds.Arity1]) match {
       case Some(data) => Seq("as class" -> data)
