@@ -41,7 +41,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         * `-Xcheck-macros`: "Block contains definition with different owners". In the common, non-nested case
         * `CrossQuotes.ctx == quotes`, so this is exactly the entry splice owner and nothing changes.
         */
-      private def currentSpliceOwner: Symbol =
+      private[Expr] def currentSpliceOwner: Symbol =
         CrossQuotes.ctx[scala.quoted.Quotes].reflect.Symbol.spliceOwner.asInstanceOf[Symbol]
 
       object freshTerm {
@@ -174,6 +174,27 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
     override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] =
       Block(List(expr.asTerm), Literal(UnitConstant())).asExprOf[Unit]
+
+    // [hearth#334] `{ @annotation val fresh = expr; fresh }`. The annotation is carried as an `AnnotatedType` on the
+    // fresh `val`'s type. `currentSpliceOwner`/`freshTerm` are the owner-following, `@experimental`-free helpers used
+    // by `ValDefs` (see the #317 note above); `changeOwner` reparents the bound expression onto the fresh symbol so
+    // `-Xcheck-macros` accepts the block.
+    override def annotated[A: Type, Ann](expr: Expr[A], annotation: Expr[Ann]): Expr[A] = {
+      // Cross-Quotes' `Expr.quote` wraps the annotation instance in `Inlined(...)`; `AnnotatedType` wants the bare
+      // constructor call (an `Inlined` annotation also crashes the source printer), so strip the wrappers.
+      def stripInlined(t: Term): Term = t match {
+        case Inlined(_, Nil, inner) => stripInlined(inner)
+        case other                  => other
+      }
+      val name = Symbol.newVal(
+        platformSpecific.currentSpliceOwner,
+        platformSpecific.freshTerm("annotated"),
+        AnnotatedType(TypeRepr.of[A], stripInlined(annotation.asTerm)),
+        Flags.EmptyFlags,
+        Symbol.noSymbol
+      )
+      Block(List(ValDef(name, Some(expr.asTerm.changeOwner(name)))), Ref(name)).asExprOf[A]
+    }
 
     override def singletonOf[A: Type]: Option[Expr[A]] = {
       import quotes.reflect.*

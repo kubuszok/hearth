@@ -339,7 +339,11 @@ val mimaSettings = Seq(
     ),
     exclude[ReversedMissingMethodProblem](
       "hearth.std.StdExtensions#ProvidedCompanion.hearth$std$StdExtensions$ProvidedCompanion$$lastMatchProvenanceValue_="
-    )
+    ),
+    // #334: `annotated` added to the NESTED trait `Exprs#ExprModule`. That trait is part of the MacroCommons cake and
+    // is implemented ONLY by Hearth's own `Expr` object (in ExprsScala2/ExprsScala3), so the interface and its
+    // implementation are always evicted together - no user has a standalone `ExprModule` implementation to break.
+    exclude[ReversedMissingMethodProblem]("hearth.typed.Exprs#ExprModule.annotated")
   )
 )
 
