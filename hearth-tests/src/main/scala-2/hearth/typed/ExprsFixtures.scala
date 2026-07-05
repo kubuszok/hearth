@@ -57,6 +57,8 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
 
   def testValDefsCreateAndUseImpl: c.Expr[Data] = testValDefsCreateAndUse
 
+  def testValDefsInsideQuotedLambdaImpl: c.Expr[Data] = testValDefsInsideQuotedLambda
+
   def testValDefsVarInWhileLoopImpl: c.Expr[Data] = testValDefsVarInWhileLoop
 
   def testValDefsPartitionAndCloseImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[B] =
@@ -200,6 +202,8 @@ object ExprsFixtures {
   def testMatchCaseTraverse[A, B](expr: A): B = macro ExprsFixtures.testMatchCaseTraverseImpl[A, B]
 
   def testValDefsCreateAndUse: Data = macro ExprsFixtures.testValDefsCreateAndUseImpl
+
+  def testValDefsInsideQuotedLambda: Data = macro ExprsFixtures.testValDefsInsideQuotedLambdaImpl
 
   def testValDefsVarInWhileLoop: Data = macro ExprsFixtures.testValDefsVarInWhileLoopImpl
 

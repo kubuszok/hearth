@@ -315,6 +315,25 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     }
   }
 
+  // Positive coverage (Scala 3 owner hygiene): a `ValDefs.createVal(...).use { ... }` whose Block lands inside a NATIVE
+  // quoted lambda body. The fresh val must be owned by the lambda, not the macro entry, or `-Xcheck-macros` would abort
+  // "Block contains definition with different owners". This SIMPLE shape is owner-correct on the current code; the
+  // kindlings yaml-derivation failure of the same class needs the fuller MIO.scoped/ValDefsCache/recursive-derivation
+  // structure to trip it (a minimal repro of that has been elusive — see the 0.4.1 downstream-gate notes).
+  def testValDefsInsideQuotedLambda: Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+    val fn: Expr[Int => Int] = Expr.quote { (x: Int) =>
+      Expr.splice {
+        ValDefs.createVal(Expr.quote(x), "inner").use { (inner: Expr[Int]) =>
+          Expr.quote(Expr.splice(inner) * 2)
+        }
+      }
+    }
+    Expr.quote {
+      Data.map("result" -> Data(Expr.splice(fn).apply(21)))
+    }
+  }
+
   def testValDefsVarInWhileLoop: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
     implicit val stringType: Type[String] = StringType

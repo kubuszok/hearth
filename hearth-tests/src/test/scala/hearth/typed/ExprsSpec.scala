@@ -551,6 +551,12 @@ final class ExprsSpec extends MacroSuite {
         )
       }
 
+      test("ValDefs.createVal inside a native quoted lambda owns the fresh val by the lambda (Scala 3 owner hygiene)") {
+        import ExprsFixtures.testValDefsInsideQuotedLambda
+
+        testValDefsInsideQuotedLambda ==> Data.map("result" -> Data(21 * 2))
+      }
+
       test("ValDefs.createVar vars accessible in while loop with spliced dispatch") {
         import ExprsFixtures.testValDefsVarInWhileLoop
 
