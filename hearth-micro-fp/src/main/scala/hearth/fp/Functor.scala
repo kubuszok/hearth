@@ -7,6 +7,14 @@ package fp
   */
 trait Functor[F[_]] {
 
+  /** Transforms the value(s) inside `F` with `f`, preserving the `F` structure.
+    *
+    * @param fa
+    *   the value to map over
+    * @param f
+    *   the transformation applied to each `A`
+    * @since 0.1.0
+    */
   def map[A, B](fa: F[A])(f: A => B): F[B]
 }
 

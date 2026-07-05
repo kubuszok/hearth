@@ -16,6 +16,15 @@ final class Rules[R <: Rule] private (rules: NonEmptyList[R]) {
     *
     * You need to tell it how to check if rule applies, e.g. pass some value to some method defined on it.
     *
+    * The rules are tried '''in order''': the first one whose `attempt` returns [[Rule.Applicability.Matched]] wins and
+    * its result is returned as `Right`. If every rule [[Rule.Applicability.Yielded]], their reasons are aggregated by
+    * rule into the `Left` of the [[Rules.ApplicationResult]].
+    *
+    * @param attempt
+    *   how to run a single rule against the context, producing its [[Rule.Applicability]]
+    * @return
+    *   `Right(result)` from the first matching rule, or `Left` mapping each rule to why it yielded
+    *
     * @since 0.3.0
     */
   def apply[A](attempt: R => Rule.Applicability[A]): ApplicationResult[R, A] =
@@ -24,6 +33,16 @@ final class Rules[R <: Rule] private (rules: NonEmptyList[R]) {
   /** Apply the rules to the given context, but with some effect (e.g. [[MIO]]).
     *
     * You need to tell it how to check if rule applies, e.g. pass some value to some method defined on it.
+    *
+    * Same first-match-wins/aggregate-reasons contract as the pure overload, except each `attempt` is run inside
+    * [[hearth.fp.DirectStyle.scoped]] so the effect `F` can be evaluated in direct style while iterating the rules.
+    *
+    * @tparam F
+    *   the effect wrapping each attempt, evaluated in direct style via its [[hearth.fp.DirectStyle]]
+    * @param attempt
+    *   how to run a single rule against the context, producing its [[Rule.Applicability]] inside `F`
+    * @return
+    *   `Right(result)` from the first matching rule, or `Left` mapping each rule to why it yielded, wrapped in `F`
     *
     * @since 0.3.0
     */

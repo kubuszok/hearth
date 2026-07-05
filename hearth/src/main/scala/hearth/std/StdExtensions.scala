@@ -22,8 +22,27 @@ trait StdExtensions { this: MacroCommons =>
     protected val providers: scala.collection.mutable.ListBuffer[Provider] =
       scala.collection.mutable.ListBuffer[Provider]()
 
+    /** The aggregated skip/error reasons from the most recent [[unapply]] that did not match (`null` after a match), so
+      * a failing pattern match can be diagnosed. Keyed by provider name; see [[ProviderResult.Skipped]].
+      *
+      * @since 0.3.0
+      */
     var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, String]] = _
 
+    /** A single registered provider: given a `Type[A]`, decides whether it recognises `A` and, if so, produces the
+      * `Provided[A]` proof.
+      *
+      * `parse` must return [[ProviderResult.Matched]] only for a type it can actually build (do not `Matched` a type
+      * whose exprs you cannot emit); when declining it should return `skipped(reason)` so the aggregated failure
+      * reasons stay informative, and `failed(error)` when it recognised the shape but errored while building.
+      *
+      * A provider registered against a shape companion (`IsCollection`/`IsOption`/`IsEither`/`IsValueType`/`CtorLikes`)
+      * does '''not''' need its own bottom-type guard: those companions short-circuit bottom types (`Nothing`/`Null`)
+      * before dispatching to providers (see [[isBottomType]]). A provider invoked directly, or a new engine reusing
+      * this pattern, must replicate that guard itself.
+      *
+      * @since 0.3.0
+      */
     trait Provider {
 
       def name: String
@@ -35,11 +54,27 @@ trait StdExtensions { this: MacroCommons =>
         ProviderResult.failed(name, error)
     }
 
+    /** Registers a [[Provider]] with this companion; typically called from a [[StandardMacroExtension.extend]] body so
+      * the provider joins the pool tried by [[parse]]. Later registrations are tried after earlier ones.
+      *
+      * @since 0.3.0
+      */
     def registerProvider(provider: Provider): Unit =
       providers += provider
 
+    /** Runs the registered providers against `A` and aggregates the outcome: [[ProviderResult.Matched]] from the first
+      * provider that recognises `A`, otherwise a [[ProviderResult.Skipped]] combining every provider's skip/error
+      * reasons. Bottom types are skipped up front (see [[isBottomType]]).
+      *
+      * @since 0.3.0
+      */
     def parse[A: Type]: ProviderResult[Provided[A]]
 
+    /** Extractor form of [[parse]] for pattern matching: `Some(proof)` on a match, `None` otherwise (with the reasons
+      * stashed in [[lastUnapplyFailure]]).
+      *
+      * @since 0.3.0
+      */
     def unapply[A](tpe: Type[A]): Option[Provided[A]] = parse(using tpe) match {
       case ProviderResult.Matched(value) =>
         lastUnapplyFailure = null
@@ -53,7 +88,10 @@ trait StdExtensions { this: MacroCommons =>
       *
       * Bottom types conform to EVERY type via `<:<`, so a provider that selects by `<:<` matches them and then crashes
       * while eagerly building exprs it cannot build (e.g. upcasting `java.util.Optional[Nothing]` to `Null`). No
-      * provider can produce a value of a bottom type, so `parse` skips them up front rather than crashing. See #319.
+      * provider can produce a value of a bottom type, so every shape companion's `parse` skips them up front rather
+      * than crashing - which is why a registered [[Provider]] need not guard for them at those entry points. See #319.
+      *
+      * @since 0.3.0
       */
     final protected def isBottomType[A: Type]: Boolean =
       Type[A] <:< Type.of[Null] || Type[A] <:< Type.of[Nothing]
@@ -221,6 +259,13 @@ trait StdExtensions { this: MacroCommons =>
   type CtorLike[A] = Existential[CtorLikeOf[*, A]]
 
   type CtorLikes[A] = NonEmptyList[CtorLike[A]]
+
+  /** Shape companion aggregating every registered smart-constructor provider for a type. Unlike the other companions,
+    * its [[parse]] '''concatenates''' the [[CtorLikeOf]]s from all matching providers rather than stopping at the first
+    * match, so a type may be built through several constructors.
+    *
+    * @since 0.3.0
+    */
   object CtorLikes extends ProvidedCompanion[CtorLikes] {
 
     override def parse[A: Type]: ProviderResult[CtorLikes[A]] = if (isBottomType[A])
@@ -332,6 +377,21 @@ trait StdExtensions { this: MacroCommons =>
 
     def asIterable(value: Expr[CollA]): Expr[Iterable[Item]]
 
+    /** Emits code that runs `f` on every element of the collection.
+      *
+      * The default splices the per-item body directly into a `while`/iterator loop (a "zero-closure" traversal) instead
+      * of allocating a `Function1` for `Iterable.foreach`, because that closure often fails to scalarize at megamorphic
+      * call sites; the loop form is never worse and frequently faster. A provider with a cheaper traversal (e.g. arrays
+      * by index) should '''override''' this - the only contract is that `f` is applied to each element exactly once, in
+      * iteration order, and its resulting `Expr[Unit]` bodies are spliced without allocating a closure per element.
+      *
+      * @param value
+      *   the collection expression to traverse
+      * @param f
+      *   builds the per-element body from an element expression
+      *
+      * @since 0.3.0
+      */
     def foreach(value: Expr[CollA])(f: Expr[Item] => Expr[Unit]): Expr[Unit] = {
       val iterableExpr = asIterable(value)
       Type.Ctor1.of[Iterable].unapply(Expr.typeOf(iterableExpr)) match {
@@ -382,6 +442,11 @@ trait StdExtensions { this: MacroCommons =>
     * @since 0.3.0
     */
   type IsCollection[A] = Existential[IsCollectionOf[A, *]]
+
+  /** Shape companion recognising collection-shaped types; register a [[Provider]] here to teach it a custom collection.
+    *
+    * @since 0.3.0
+    */
   object IsCollection extends ProvidedCompanion[IsCollection] {
 
     override def parse[A: Type]: ProviderResult[IsCollection[A]] = if (isBottomType[A])
@@ -431,6 +496,12 @@ trait StdExtensions { this: MacroCommons =>
     * @since 0.3.0
     */
   type IsMap[A] = Existential[IsMapOf[A, *]]
+
+  /** Shape companion recognising map-shaped types. It decodes through [[IsCollection]] and keeps only collections that
+    * are actually maps (whose [[IsCollectionOf.asMap]] is defined), so map providers register on `IsCollection`.
+    *
+    * @since 0.3.0
+    */
   object IsMap {
 
     var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, String]] = _
@@ -496,6 +567,11 @@ trait StdExtensions { this: MacroCommons =>
     * @since 0.3.0
     */
   type IsOption[A] = Existential[IsOptionOf[A, *]]
+
+  /** Shape companion recognising option-shaped types; register a [[Provider]] here to teach it a custom option.
+    *
+    * @since 0.3.0
+    */
   object IsOption extends ProvidedCompanion[IsOption] {
 
     override def parse[A: Type]: ProviderResult[IsOption[A]] = if (isBottomType[A])
@@ -555,6 +631,11 @@ trait StdExtensions { this: MacroCommons =>
 
     def value: IsEitherOf[EitherLR, LeftValue, RightValue]
   }
+
+  /** Shape companion recognising either-shaped types; register a [[Provider]] here to teach it a custom either.
+    *
+    * @since 0.3.0
+    */
   object IsEither extends ProvidedCompanion[IsEither] {
 
     override def parse[A: Type]: ProviderResult[IsEither[A]] = if (isBottomType[A])
@@ -595,6 +676,11 @@ trait StdExtensions { this: MacroCommons =>
     * @since 0.3.0
     */
   type IsValueType[A] = Existential[IsValueTypeOf[A, *]]
+
+  /** Shape companion recognising value/wrapper types; register a [[Provider]] here to teach it a custom value type.
+    *
+    * @since 0.3.0
+    */
   object IsValueType extends ProvidedCompanion[IsValueType] {
 
     override def parse[A: Type]: ProviderResult[IsValueType[A]] = if (isBottomType[A])

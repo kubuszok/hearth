@@ -4,7 +4,7 @@ import hearth.data.*
 import hearth.fp.ignore
 import munit.{Location, TestOptions}
 
-/** Base trait for all Hearth tests.
+/** Base trait for all Hearth tests - extend it (or [[MacroSuite]]) to write macro tests.
   *
   * Provides some utilities like:
   *   - `group(name) { ... }` - grouping tests under a common name
@@ -16,6 +16,10 @@ import munit.{Location, TestOptions}
   *   - `actual ==> expected` - asserting that `actual` is equal to `expected`, simply failing test if they don't
   *   - `actual <==> expected` - comparing `actual` and `expected` (when they are both [[String]] or both [[Data]]), and
   *     showing an error with a [[Diff]] if they aren't equal
+  *
+  * @see
+  *   docs/contributing/guidelines-for-tests.md
+  * @since 0.3.0
   */
 trait Suite extends munit.BaseFunSuite { self =>
 
@@ -23,6 +27,16 @@ trait Suite extends munit.BaseFunSuite { self =>
 
   private def appendName(prefix: String, name: String): String = if (prefix.isEmpty) name else s"$prefix / $name"
 
+  /** Nests the `test`s registered inside `body` under a `<name> / ...` prefix.
+    *
+    * Groups may be nested; each level prepends its name to the prefix.
+    *
+    * @param name
+    *   group label prepended to contained test names
+    * @param body
+    *   block that registers the grouped tests
+    * @since 0.3.0
+    */
   def group(name: String)(body: => Any): Unit = {
     val oldPrefix = prefix
     prefix = appendName(prefix, name)
@@ -85,6 +99,20 @@ trait Suite extends munit.BaseFunSuite { self =>
   }
 
   implicit class DataAssert(actual: Data) {
+
+    /** Asserts that `actual` structurally equals `expected`, failing with a rendered [[Diff]] on mismatch.
+      *
+      * The preferred way to assert macro results in Hearth: compare whole [[Data]] structures (e.g.
+      * `result <==> Data.map("f" -> Data(1))`) so failures show a field-by-field diff instead of an opaque `!=`.
+      *
+      * @param expected
+      *   the expected [[Data]]
+      * @param loc
+      *   source location for the failure message
+      * @see
+      *   docs/contributing/guidelines-for-tests.md
+      * @since 0.3.0
+      */
     def <==>(expected: Data)(implicit loc: Location): Unit = {
       val diff = actual.diff(expected)
       Predef.assert(
@@ -98,6 +126,15 @@ trait Suite extends munit.BaseFunSuite { self =>
   }
 
   implicit class ExpectedMsgAssert(actual: String) {
+
+    /** Line-by-line comparison of two [[String]]s (ANSI-insensitive), reporting the differing lines.
+      *
+      * @param expected
+      *   the expected string
+      * @param loc
+      *   source location for the failure message
+      * @since 0.3.0
+      */
     def <==>(expected: String)(implicit loc: Location): Unit = {
       val diff = actual.split("\n").zipAll(expected.split("\n"), "", "").flatMap { case (l, r) =>
         if (l.stripANSI != r.stripANSI) List(l -> r)

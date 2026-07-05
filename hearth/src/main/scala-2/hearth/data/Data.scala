@@ -5,7 +5,16 @@ object Data extends DataCommons { self =>
 
   type Impl // null | Int | Long | Float | Double | Boolean | String | List[Data] | Map[String, Data]
 
+  /** Empty/absent [[Data]] (renders as `null`).
+    *
+    * @since 0.1.0
+    */
   override def apply(): Data = null.asInstanceOf[Data]
+
+  /** Wraps a primitive, `List[Data]` or `Map[String, Data]` as [[Data]].
+    *
+    * @since 0.1.0
+    */
   override def apply(value: Int): Data = value.asInstanceOf[Data]
   override def apply(value: Long): Data = value.asInstanceOf[Data]
   override def apply(value: Float): Data = value.asInstanceOf[Data]
@@ -17,6 +26,10 @@ object Data extends DataCommons { self =>
 
   implicit final class DataOps(private val data: Data) extends AnyVal {
 
+    /** Pattern-matches the 9 possible [[Data]] shapes, applying the matching handler.
+      *
+      * @since 0.1.0
+      */
     def fold[A](
         onNull: => A,
         onInt: Int => A,
@@ -29,6 +42,12 @@ object Data extends DataCommons { self =>
         onMap: Map[String, Data] => A
     ): A = self.fold(data)(onNull, onInt, onLong, onFloat, onDouble, onBoolean, onString, onList, onMap)
 
+    /** Optional accessors: `Some` iff this [[Data]] holds that shape, else `None`.
+      *
+      * Prefer the `<==>` assertion over `.asMap.get(...)` when writing tests.
+      *
+      * @since 0.1.0
+      */
     // format: off
     def asNull: Option[Unit] = fold(onNull = Some(()), onInt = _ => None, onLong = _ => None, onFloat = _ => None, onDouble = _ => None, onBoolean = _ => None, onString = _ => None, onList = _ => None, onMap = _ => None)
     def asInt: Option[Int] = fold(None, onInt = Some(_), onLong = _ => None, onFloat = _ => None, onDouble = _ => None, onBoolean = _ => None, onString = _ => None, onList = _ => None, onMap = _ => None)
@@ -58,8 +77,19 @@ object Data extends DataCommons { self =>
     def get(index: Int): Option[Data] = asList.flatMap(_.lift(index))
     def getOrElse(index: Int, default: Data): Data = get(index).getOrElse(default)
 
+    /** Structural diff of this [[Data]] against an `expected` one; an empty [[Diff]] means they are equal. Backs the
+      * `<==>` assertion.
+      *
+      * @param expected
+      *   the value to compare against
+      * @since 0.1.0
+      */
     def diff(expected: Data): Diff = self.diff(expected = expected, actual = data)
 
+    /** Pretty, multi-line rendering of this [[Data]].
+      *
+      * @since 0.1.0
+      */
     def render: String = self.render(data)
   }
 }

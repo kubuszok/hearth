@@ -35,6 +35,9 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     * by APIs using this placeholder is backed by the platform representation of the real constructor (e.g. `G[X]`), so
     * printing, comparisons and implicit summoning all see the real type, even though static typing shows `AnyK1`.
     *
+    * See [[Type.decompose1]] for the end-to-end recipe (discover a constructor `G` at expansion, then summon a type
+    * class `TC[G]` for it via `Type.CtorK1.of[TC].apply(using gCtor)`).
+    *
     * @since 0.4.0
     */
   sealed trait AnyK1[A]
@@ -84,8 +87,26 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       */
     def runtimeShortPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String]
 
-    /** This can only work if the type is available in the classpath, so it's not a good idea to use it for e.g. types
-      * from the current project.
+    /** Resolves the runtime `java.lang.Class` of `A` when it is available on the classpath.
+      *
+      * This can only work if the type is available in the classpath, so it's not a good idea to use it for e.g. types
+      * from the current project (which are not yet compiled and thus have no loadable class).
+      *
+      * Total and safe for callers: it returns `None` (never throws) whenever the class cannot be resolved - a
+      * user-project type, an abstract type, a type parameter, etc. The one internal assertion in the underlying
+      * `UntypedType.toClass` fires only for a genuine maintainer gap (a type flagged built-in without a matching
+      * branch), never for anything a user can express; arrays and `IArray` answer with `None` rather than throwing
+      * (issue #333).
+      *
+      * Caveat: a re-materialised parameterised `classOf` literal does not survive Scala 2 re-typechecking - e.g.
+      * splicing `classOf[EnumSet[?]]` fails with "takes type parameters" (issue #321), so prefer the raw constructor's
+      * class over a parameterised one.
+      *
+      * @return
+      *   the loaded `java.lang.Class[A]`, or `None` when the type is not resolvable on the classpath
+      * @see
+      *   [[getRuntimeClass]] for the same lookup as an extension method on `Type[A]`
+      * @since 0.1.0
       */
     final def classOfType[A: Type]: Option[java.lang.Class[A]] =
       UntypedType.toClass(UntypedType.fromTyped[A]).map(_.asInstanceOf[java.lang.Class[A]])
@@ -130,11 +151,25 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
         Existential(expr0)(using A0)
       }
 
+    /** Direct subtypes of a sealed hierarchy or enum `A`, keyed by the subtype's SIMPLE name, or `None` when `A` is not
+      * decomposable.
+      *
+      * '''The map is keyed by the subtype's SIMPLE name.''' Same-named subtypes declared in different scopes (e.g.
+      * `object Color { case object Green }` alongside a top-level `case object Green`) collapse into a single entry,
+      * hiding the ambiguity (issue #309) - use [[directChildrenList]] when you must observe every subtype. '''Do not
+      * rely on the key format''': it is retained as-is for backward compatibility only. In 0.5.0 the key changes to the
+      * subtype's FULL name (without type parameters).
+      *
+      * @since 0.1.0
+      */
     final def directChildren[A: Type]: Option[ListMap[String, ??<:[A]]] =
       UntypedType.fromTyped[A].directChildren.map(m => ListMap.from(m.view.mapValues(_.asTyped[A].as_??<:[A])))
 
     /** Like [[directChildren]], but returns an ordered `List` preserving duplicate simple names and extraction order,
       * so same-named subtypes in different scopes are all observable (and their ambiguity detectable). See issue #309.
+      *
+      * Because [[directChildren]] collapses same-simple-name subtypes - and will change its key to the subtype's FULL
+      * name in 0.5.0 - this list form is the stable way to observe every subtype regardless of the map's key format.
       *
       * @since 0.4.1
       */
@@ -145,6 +180,19 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
         .map(_.map { case (name, subtype) =>
           name -> subtype.asTyped[A].as_??<:[A]
         })
+
+    /** Recursively flattened leaf subtypes of a sealed hierarchy or `enum` `A` as a `NonEmptyMap`, or `None` when `A`
+      * is not exhaustively decomposable.
+      *
+      * Unlike [[directChildren]] (one level only), this recurses through nested sealed parents down to the concrete
+      * leaves (`case class`es, `case object`s, `enum` cases, enumeration values), so the result is the exhaustive set
+      * of value shapes a match on `A` must handle. Stable singletons and enumeration values are treated as leaves and
+      * not recursed into.
+      *
+      * @see
+      *   [[directChildren]] for a single level, [[directChildrenList]] for the ambiguity-preserving list form
+      * @since 0.1.0
+      */
     final def exhaustiveChildren[A: Type]: Option[NonEmptyMap[String, ??<:[A]]] =
       UntypedType.fromTyped[A].exhaustiveChildren.map(m => m.map { case (k, v) => (k, v.asTyped[A].as_??<:[A]) })
 
@@ -201,8 +249,15 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       */
     final def hasAnnotationOfType[A: Type, Ann: Type]: Boolean = annotations[A].exists(_.Underlying <:< Type[Ann])
 
-    /** Types which might be compiled to both JVM primitives and java.lang.Object: Boolean, Byte, Short, Char, Int,
-      * Long, Float, Double.
+    /** The 8 JVM value types that box to `java.lang.Object`: `Boolean`, `Byte`, `Short`, `Int`, `Long`, `Float`,
+      * `Double`, `Char`.
+      *
+      * '''`Unit` is intentionally NOT in this list''' - it does not box the way the 8 value types do. Beware the
+      * resulting asymmetry: [[isPrimitive]] returns `true` for `Unit` (for parity with scalac's `Symbol.isPrimitive`,
+      * issue #310) even though `Unit` is absent here. See [[isPrimitive]] for the full contract and [[jvmBuiltInTypes]]
+      * for the broader built-in set.
+      *
+      * @since 0.1.0
       */
     final val primitiveTypes: List[??] = List(
       Type.of[Boolean].as_??,
@@ -214,22 +269,43 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       Type.of[Double].as_??,
       Type.of[Char].as_??
     )
+
+    /** Whether `A` is a JVM primitive.
+      *
+      * `true` for any of the 8 value types in [[primitiveTypes]] '''and additionally for `Unit`''' - so
+      * `isPrimitive[Unit]` is `true` even though `Unit` is deliberately absent from [[primitiveTypes]]. This asymmetry
+      * exists for parity with scalac's `Symbol.isPrimitive` (issue #310). See `UntypedType.isPrimitive` for the full
+      * contract.
+      *
+      * @since 0.1.0
+      */
     final def isPrimitive[A: Type]: Boolean = UntypedType.fromTyped[A].isPrimitive
     final def isArray[A: Type]: Boolean = UntypedType.fromTyped[A].isArray
     final def isIArray[A: Type]: Boolean = UntypedType.fromTyped[A].isIArray
 
-    /** Types which are either primitives or specially treated by JVM: Unit, String, java.lang.Class.
+    /** The listable JVM built-in types: every type in [[primitiveTypes]] plus `Unit`, `String` and `java.lang.Class`.
       *
-      * Arrays are also considered built-in types, but we cannot list all possible array types, so we should check for
-      * isArray instead.
+      * This list is NOT exhaustive for [[isJvmBuiltIn]]: the built-in set is open-ended. Arrays (`isArray`/`isIArray`)
+      * and every `java.lang.*` type ([[isInJavaLangPackage]]) also count as built-in, but they are unbounded families
+      * so they are detected structurally rather than enumerated here. See [[isJvmBuiltIn]] for the full contract.
       *
-      * All other `java.lang.*` types are also considered built-in (detected via [[isInJavaLangPackage]]).
+      * @since 0.1.0
       */
     final val jvmBuiltInTypes: List[??] = primitiveTypes ++ List(
       Type.of[String].as_??,
       Type.of[Unit].as_??,
       Type.of[java.lang.Class[?]].as_??
     )
+
+    /** Whether `A` is a JVM built-in type.
+      *
+      * `true` for anything in [[jvmBuiltInTypes]] (primitives, `Unit`, `String`, `java.lang.Class`) '''or''' any array
+      * ([[isArray]]/[[isIArray]]) '''or''' any `java.lang.*` type ([[isInJavaLangPackage]]). The array and
+      * `java.lang.*` families are unbounded, so this is broader than the listable [[jvmBuiltInTypes]]. See
+      * `UntypedType.isJvmBuiltIn` for the full contract.
+      *
+      * @since 0.1.0
+      */
     final def isJvmBuiltIn[A: Type]: Boolean = UntypedType.fromTyped[A].isJvmBuiltIn
     final def isInJavaLangPackage[A: Type]: Boolean = UntypedType.fromTyped[A].isInJavaLangPackage
 
@@ -304,19 +380,87 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     final def isSealed[A: Type]: Boolean = UntypedType.fromTyped[A].isSealed
     final def isJavaEnum[A: Type]: Boolean = UntypedType.fromTyped[A].isJavaEnum
     final def isJavaEnumValue[A: Type]: Boolean = UntypedType.fromTyped[A].isJavaEnumValue
+
+    /** Whether `A` is a member of a `scala.Enumeration` (the pre-`enum` Scala 2 `Enumeration#Value` pattern).
+      *
+      * This is NOT a Scala 3 `enum` (whose cases are decomposable via [[directChildren]]/[[isCaseVal]]) and NOT a Java
+      * `enum` (see [[isJavaEnum]]). The three "enum" notions are easy to confuse (issue #311).
+      *
+      * @see
+      *   [[isJavaEnum]], [[isSealed]]
+      * @since 0.1.0
+      */
     final def isEnumeration[A: Type]: Boolean = UntypedType.fromTyped[A].isEnumeration
 
+    /** Whether `A` carries the raw `case` flag (a `case class`, `case object`, or `enum` case).
+      *
+      * This is the low-level flag; the derived predicates [[isCaseClass]], [[isCaseObject]] and [[isCaseVal]] combine
+      * it with [[isClass]]/[[isObject]]/[[isVal]] to distinguish the three shapes.
+      *
+      * @since 0.1.0
+      */
     final def isCase[A: Type]: Boolean = UntypedType.fromTyped[A].isCase
+
+    /** Whether `A` is a module singleton (`object`).
+      *
+      * Note that a parameterless Scala 3 `enum` case is a `val`, NOT an `object` - see [[isVal]] and [[isCaseVal]]
+      * (issue #311).
+      *
+      * @since 0.1.0
+      */
     final def isObject[A: Type]: Boolean = UntypedType.fromTyped[A].isObject
+
+    /** Whether `A` is a `val` singleton, in particular a parameterless Scala 3 `enum` case (which is represented as a
+      * `val`, not an `object` - issue #311).
+      *
+      * @see
+      *   [[isObject]], [[isCaseVal]]
+      * @since 0.1.0
+      */
     final def isVal[A: Type]: Boolean = UntypedType.fromTyped[A].isVal
 
     final def isCaseClass[A: Type]: Boolean = UntypedType.fromTyped[A].isCaseClass
     final def isCaseObject[A: Type]: Boolean = UntypedType.fromTyped[A].isCaseObject
+
+    /** Whether `A` is a parameterless case value - a `case object` or a parameterless Scala 3 `enum` case.
+      *
+      * Distinct from [[isCaseObject]]: a Scala 3 parameterless `enum` case is a `val`, not an `object`, so it is an
+      * `isCaseVal` but not an `isCaseObject` (issue #311 - such cases were previously missed).
+      *
+      * @see
+      *   [[isCaseObject]], [[isCaseClass]]
+      * @since 0.4.0
+      */
     final def isCaseVal[A: Type]: Boolean = UntypedType.fromTyped[A].isCaseVal
 
     final def isAvailable[A: Type](scope: Accessible): Boolean = UntypedType.fromTyped[A].isAvailable(scope)
 
+    /** Direct parents (the declared supertypes) of `A`, e.g. `List(AnyRef, Serializable, ...)`.
+      *
+      * These are only the immediate supertypes as written; use [[baseClasses]] for the full transitive linearization.
+      * On Scala 3 this is computed via Java reflection to avoid the `TypeRepr#baseClasses` extension-method shadowing
+      * that would otherwise capture the call (issue #328).
+      *
+      * @return
+      *   the direct supertypes of `A`, each as an existential `??`
+      * @see
+      *   [[baseClasses]]
+      * @since 0.4.1
+      */
     final def parents[A: Type]: List[??] = UntypedType.fromTyped[A].parents.map(_.as_??)
+
+    /** The full linearized set of base classes of `A` - transitive, and including `A` itself.
+      *
+      * Contrast [[parents]], which returns only the direct supertypes. On Scala 3, code that also imports
+      * `quotes.reflect` should prefer the `UntypedType#baseClassTypes` extension to sidestep the `TypeRepr#baseClasses`
+      * shadowing (issue #328).
+      *
+      * @return
+      *   every base class of `A` (including `A`), each as an existential `??`
+      * @see
+      *   [[parents]]
+      * @since 0.4.1
+      */
     final def baseClasses[A: Type]: List[??] = UntypedType.fromTyped[A].baseClasses.map(_.as_??)
 
     final def isSubtypeOf[A: Type, B: Type]: Boolean = UntypedType.fromTyped[A] <:< UntypedType.fromTyped[B]
@@ -355,6 +499,23 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       * Returns `None` for non-applied types and for types applied to a number of arguments different than 1 (the type
       * is dealiased first, so e.g. `type StringMap[V] = Map[String, V]` decomposes as `Map[String, V]` would - into 2
       * arguments - rather than as a unary constructor).
+      *
+      * End-to-end recipe - discover a constructor `G` (e.g. the `G` in a field `g: G[X]`) at expansion, then summon a
+      * type class `MyTC[G]` for it:
+      *
+      * {{{
+      * // `A` is the type of some field like `g: G[X]`, where `G` is unknown when the macro is authored.
+      * Type.decompose1[A] match {
+      *   case Some((gCtor, _)) => // gCtor: Ctor1[AnyK1], backed by the real `G`
+      *     implicit val tcOfG: Type[MyTC[AnyK1]] = Type.CtorK1.of[MyTC].apply(using gCtor)
+      *     Expr.summonImplicit[MyTC[AnyK1]] // finds the real `MyTC[G]` instance
+      *   case None => // `A` is not a unary applied type
+      * }
+      * }}}
+      *
+      * [[AnyK1]] is only a static label: the underlying platform type of `gCtor` is the real `G`, so implicit search
+      * actually sees `MyTC[G]`. `gCtor` can also be re-applied (`gCtor[String]`), compared
+      * (`gCtor.sameTypeConstructorAs(...)`) or pattern-matched.
       *
       * @since 0.4.0
       */

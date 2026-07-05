@@ -11,19 +11,26 @@ trait MIOIntegrations { this: MacroTypedCommons =>
       *
       * ==Contract: call once, at the top level==
       *
-      * `runToExprOrFail` is the '''single entry point''' that runs an `MIO` program for a macro expansion: it installs
-      * the global timeout ([[Environment.withMioTimeout]]), configures benchmarking, aggregates errors/logs, and
-      * threads the run's internal state. It must therefore be called '''exactly once''', at the top level of the
-      * expansion — it is deliberately '''not''' re-entrant, and nesting it (directly, or indirectly by summoning a
-      * macro-derived implicit while an outer run is still on the stack) throws a [[HearthAssertionError]].
+      * `runToExprOrFail` is the '''single entry point''' ("`main`") that runs an `MIO` program for a macro expansion:
+      * it installs the global timeout ([[Environment.withMioTimeout]]), configures benchmarking / flame-graph capture,
+      * aggregates errors, threads the run's internal state, and renders the [[Log]] journal to the compiler reporters.
+      * It must therefore be called '''exactly once''', at the top level of the expansion — it is deliberately '''not'''
+      * re-entrant, and nesting it (directly, or indirectly by summoning a macro-derived implicit while an outer run is
+      * still on the stack) throws a [[HearthAssertionError]].
       *
       * To compose a derivation that itself yields an `MIO` (the usual "derive a nested instance" case), stay inside the
-      * one program: `flatMap` the inner `MIO` (or extract it with `DirectStyle`), use its value, and re-wrap the result
-      * in `MIO` — do not start a nested `runToExprOrFail`. [[fp.effect.MIO.unsafe]]'s `runSync` and friends are
-      * internal escape hatches that set up no global state and thread no nested state; use them at your own risk and
-      * never nested. Violating this is an API misuse, not a bug.
+      * one program: `flatMap` the inner `MIO` (or extract it with [[fp.DirectStyle]] / [[fp.effect.MIO.scoped]]), use
+      * its value, and re-wrap the result in `MIO` — do not start a nested `runToExprOrFail`. [[fp.effect.MIO.unsafe]]'s
+      * `runSync` and friends are internal escape hatches that set up no global state and thread no nested state; use
+      * them at your own risk and never nested. Violating this is an API misuse, not a bug.
       *
-      * @since 0.1.0
+      * @see
+      *   [[Environment.withMioTimeout]] for the single, global timeout this installs
+      * @see
+      *   [[fp.effect.MIO.unsafe]] for the internal, own-risk escape hatch that sets up none of the above
+      * @see
+      *   the "Running `MIO`" section of `docs/user-guide/micro-fp.md` (anchor `#running-mio`)
+      * @since 0.3.0
       *
       * @param macroName
       *   name of the macro that is being expanded, it will be used as the top scope of the logs tree
@@ -39,7 +46,7 @@ trait MIOIntegrations { this: MacroTypedCommons =>
       *   maximum time allowed for the MIO computation before it is terminated with a timeout error; defaults to 2
       *   seconds
       * @param renderFailure
-      *   if macro expansion failed and there are both errors logs anf exceptions, this function will be called to
+      *   if macro expansion failed and there are both errors logs and exceptions, this function will be called to
       *   render the error message
       * @return
       *   the final expression OR fails the macro expansion with the error message
@@ -154,6 +161,20 @@ trait MIOIntegrations { this: MacroTypedCommons =>
 
   implicit final class MLocalCacheOps(private val cache: MLocal[ValDefsCache]) {
 
+    /** Declares `key` in the cache before its body is built, so recursive references from a later [[buildCachedWith]]
+      * resolve to the declaration instead of looping.
+      *
+      * Pairs with [[buildCachedWith]] (which forward-declares internally): use this directly when you need the
+      * declaration visible before you start building the body.
+      *
+      * @param key
+      *   cache key (identifies the val being declared)
+      * @param builder
+      *   the [[ValDefBuilder]] describing the val's signature
+      * @see
+      *   [[buildCachedWith]] for the combined declare-then-build operation
+      * @since 0.3.0
+      */
     def forwardDeclare[Signature, Returned, Value](
         key: String,
         builder: ValDefBuilder[Signature, Returned, Value]
@@ -163,6 +184,25 @@ trait MIOIntegrations { this: MacroTypedCommons =>
       _ <- cache.set(cache2)
     } yield ()
 
+    /** Builds a cached `ValDef` for `key`, forward-declaring it first so recursive calls from `f` resolve to the
+      * declaration, then building on the cache as refreshed by `f`'s side effects.
+      *
+      * The forward-declare-then-rebuild ordering matters: `f` is called eagerly and may add its own cache entries (e.g.
+      * via nested helper calls); the val is then built on the freshly re-read cache so those entries are not lost.
+      *
+      * '''Throws''' [[HearthRequirementError]] if `key` was already built — callers must check first with one of the
+      * `getNAry` methods (e.g. [[get0Ary]]) before building.
+      *
+      * @param key
+      *   cache key (identifies the val being built)
+      * @param builder
+      *   the [[ValDefBuilder]] describing the val's signature
+      * @param f
+      *   produces the val's body expression from the builder's value; may itself add cache entries as a side effect
+      * @see
+      *   [[forwardDeclare]] for the forward-declaration step done here internally
+      * @since 0.3.0
+      */
     def buildCachedWith[Signature, Returned, Value](
         key: String,
         builder: ValDefBuilder[Signature, Returned, Value]

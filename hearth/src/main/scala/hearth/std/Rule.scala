@@ -2,12 +2,15 @@ package hearth
 package std
 
 /** Trait used to mark values of something that can:
-  *   - represent some makr expansion "rule"
+  *   - represent some macro expansion "rule"
   *   - which would check if some condition applies ("if type represents an enum")
-  *   - attempt to expand if it does ("then genereate the code as follows")
+  *   - attempt to expand if it does ("then generate the code as follows")
   *   - and yielding to the next rule in line when it does not apply ("or try the next rule")
   *
   * @since 0.3.0
+  *
+  * @see
+  *   [[Rules]] for combining a sequence of rules into a single application result
   */
 trait Rule {
 
@@ -17,7 +20,16 @@ trait Rule {
 }
 object Rule {
 
+  /** Signals the rule applied and produced `result`; [[Rules]] stops here and returns it.
+    *
+    * @since 0.3.0
+    */
   def matched[A](result: A): Applicability[A] = Applicability.Matched(result)
+
+  /** Signals the rule did not apply, carrying `reasons` so [[Rules]] can move on and aggregate them.
+    *
+    * @since 0.3.0
+    */
   def yielded(reasons: String*): Applicability[Nothing] = Applicability.Yielded(reasons.toVector)
 
   /** The result of applying a rule to a context.

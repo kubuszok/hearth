@@ -20,18 +20,33 @@ object Log {
 
   /** Logs an info message.
     *
+    * The entry appears in the tree that [[hearth.MIOIntegrations.MioExprOps.runToExprOrFail]] renders to the reporter,
+    * filtered by the `infoRendering`/`warnRendering`/`errorRendering` knobs.
+    *
+    * @see
+    *   [[LogRendering]] for how the levels are filtered when rendered
     * @since 0.1.0
     */
   def info(message: => String): MIO[Unit] = MIO.log(Entry(Level.Info, () => message, parentScopeId = 0))
 
   /** Logs a warning message.
     *
+    * The entry appears in the tree that [[hearth.MIOIntegrations.MioExprOps.runToExprOrFail]] renders to the reporter,
+    * filtered by the `infoRendering`/`warnRendering`/`errorRendering` knobs.
+    *
+    * @see
+    *   [[LogRendering]] for how the levels are filtered when rendered
     * @since 0.1.0
     */
   def warn(message: => String): MIO[Unit] = MIO.log(Entry(Level.Warn, () => message, parentScopeId = 0))
 
   /** Logs an error message.
     *
+    * The entry appears in the tree that [[hearth.MIOIntegrations.MioExprOps.runToExprOrFail]] renders to the reporter,
+    * filtered by the `infoRendering`/`warnRendering`/`errorRendering` knobs.
+    *
+    * @see
+    *   [[LogRendering]] for how the levels are filtered when rendered
     * @since 0.1.0
     */
   def error(message: => String): MIO[Unit] = MIO.log(Entry(Level.Error, () => message, parentScopeId = 0))

@@ -3,6 +3,20 @@ package treeprinter
 
 // Copy-paste of https://github.com/scala/scala3/blob/main/compiler/src/scala/quoted/runtime/impl/printers/SyntaxHighlight.scala
 
+/** Strategy for ANSI-coloring rendered Scala trees/types/exprs.
+  *
+  * Underpins Hearth's print trio: `prettyPrint` renders with [[SyntaxHighlight.ANSI]] (colored), while `plainPrint`
+  * renders with [[SyntaxHighlight.plain]] (empty color codes) - i.e. the *same* rendering code parameterized by a
+  * highlighter, so passing the no-color strategy yields the plain form.
+  *
+  * @see
+  *   [[SyntaxHighlight.ANSI]] the colored strategy, [[SyntaxHighlight.plain]] the no-color strategy
+  * @see
+  *   the printing-trio contract on `Type`/`Expr`/`Method` (`prettyPrint`/`plainPrint`)
+  * @see
+  *   docs/user-guide/better-printers.md
+  * @since 0.2.0
+  */
 trait SyntaxHighlight {
   def KeywordColor: String
   def TypeDefColor: String
@@ -38,6 +52,10 @@ object SyntaxHighlight {
   val TypeColor = Console.MAGENTA
   val AnnotationColor = Console.MAGENTA
 
+  /** ANSI-colored strategy - used by `prettyPrint`.
+    *
+    * @since 0.2.0
+    */
   object ANSI extends SyntaxHighlight {
     val KeywordColor = SyntaxHighlight.KeywordColor
     val TypeDefColor = SyntaxHighlight.TypeColor
@@ -50,6 +68,12 @@ object SyntaxHighlight {
     val NoColor = SyntaxHighlight.NoColor
   }
 
+  /** No-op (empty-string) strategy - passing it yields the uncolored `plainPrint` form.
+    *
+    * @see
+    *   [[ANSI]]
+    * @since 0.2.0
+    */
   object plain extends SyntaxHighlight {
     val KeywordColor = ""
     val TypeDefColor = ""

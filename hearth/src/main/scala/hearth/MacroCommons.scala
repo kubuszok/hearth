@@ -16,11 +16,23 @@ trait MacroTypedCommons
   this: MacroCommons =>
 }
 
+/** The root cake of Hearth's macro API: mix this into your macro implementation to get the typed ([[typed.Types]],
+  * [[typed.Exprs]], ...) and untyped layers plus [[Environments]].
+  *
+  * @since 0.1.0
+  */
 trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
 
   /** Throws an [[AssertionError]] with the given message.
     *
     * Intended to signal that there is an invalid path in macro that hasn't been properly handled.
+    *
+    * This is the assertion a macro author calls for an unreachable/unhandled path in ''their own'' macro. The
+    * Hearth-internal [[hearthAssertionFailed]]/[[hearthRequirementFailed]] pair is different: it distinguishes a Hearth
+    * bug that should be reported from a user misusing a Hearth API.
+    *
+    * @param message
+    *   the message describing the unhandled path
     *
     * @since 0.1.0
     */
@@ -32,6 +44,9 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
     * reported as an issue.
     *
     * @since 0.1.0
+    *
+    * @see
+    *   [[HearthAssertionError]]
     */
   final private[hearth] def hearthAssertionFailed(description: String): Nothing = throw HearthAssertionError(
     description,
@@ -46,6 +61,9 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
     * Used to inform users that they are using Hearth in an invalid way, and should fix their code.
     *
     * @since 0.2.0
+    *
+    * @see
+    *   [[HearthRequirementError]]
     */
   final private[hearth] def hearthRequirementFailed(description: String): Nothing = throw HearthRequirementError(
     description,

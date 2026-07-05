@@ -3,6 +3,13 @@ package fp
 
 import scala.language.implicitConversions
 
+/** Implicit ops enabling postfix `.map` / `.map2` / `.parMap2` / `.traverse` / `.parTraverse` / `.sequence` / `.pure`
+  * syntax on any type with the matching typeclass instance in scope.
+  *
+  * Import `hearth.fp.syntax.*` to bring the conversions into scope.
+  *
+  * @since 0.1.0
+  */
 object syntax {
 
   implicit def pureSyntax[A](a: A): Applicative.PureOps[A] = new Applicative.PureOps(a)

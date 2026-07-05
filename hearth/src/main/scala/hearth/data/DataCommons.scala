@@ -17,7 +17,16 @@ private[data] trait DataCommons {
   def apply(value: List[Data]): Data
   def apply(value: Map[String, Data]): Data
 
+  /** Builds a [[Data]] array.
+    *
+    * @since 0.1.0
+    */
   final def list(values: Data*): Data = apply(values.toList)
+
+  /** Builds a [[Data]] object (insertion-ordered via `ListMap`).
+    *
+    * @since 0.1.0
+    */
   final def map(values: (String, Data)*): Data = apply(ListMap.from(values))
 
   final def parseString(string: String): Either[String, Data] = string.trim match {

@@ -6,6 +6,9 @@ package effect
   *
   * Allows avoiding hardcoding log level for rendering.
   *
+  * @see
+  *   [[hearth.MIOIntegrations.MioExprOps.runToExprOrFail]] which consumes these as its
+  *   `infoRendering`/`warnRendering`/`errorRendering` knobs
   * @since 0.1.0
   */
 sealed trait LogRendering extends Product with Serializable

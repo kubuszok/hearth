@@ -102,6 +102,12 @@ object TypeConstructorsGen {
         |    }
         |    object CtorK1 {
         |
+        |      /** Summons the `CtorK1` for a kind-`(* -> *) -> *` constructor (FunctorK-style).
+        |        *
+        |        * @return a `CtorK1[HKT]`
+        |        * @see the `CtorK1` trait
+        |        * @since 0.4.0
+        |        */
         |      @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")
         |      def of[HKT[_[_]]]: CtorK1[HKT] = sys.error("Install cross-quotes-plugin to use this method")
         |
@@ -189,6 +195,18 @@ object TypeConstructorsGen {
     sb ++= s"\n"
 
     // of method
+    sb ++= s"      /** Summons the `$cn` for a higher-kinded type constructor `HKT` ($n type param(s)), enabling `apply`/`unapply`\n"
+    sb ++= s"        * on `Type`s across Scala 2 and 3.\n"
+    sb ++= s"        *\n"
+    sb ++= s"        * The Scala-2 workaround for the missing `AnyKind` kind: `$cn` is what lets you build `Type[HKT[...]]`\n"
+    sb ++= s"        * and pattern-match a `Type` back into its arguments. Only proper (ground) type parameters are\n"
+    sb ++= s"        * supported; type aliases that reorder/rename params and kind-projector syntax are not (Scala 2\n"
+    sb ++= s"        * limitation).\n"
+    sb ++= s"        *\n"
+    sb ++= s"        * @return a `$cn[HKT]`\n"
+    sb ++= s"        * @see docs/user-guide/cross-quotes.md\n"
+    sb ++= s"        * @since 0.1.0\n"
+    sb ++= s"        */\n"
     sb ++= s"""      @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")\n"""
     sb ++= s"""      def of[HKT[${ArityGen.simpleHktSlots(n)}]]: $cn[HKT] = sys.error("Install cross-quotes-plugin to use this method")\n"""
     sb ++= s"\n"
@@ -227,6 +245,14 @@ object TypeConstructorsGen {
     // Bounded companion object
     sb ++= s"      object Bounded {\n"
     sb ++= s"\n"
+    sb ++= s"        /** Like `of`, but pins upper (and, for `Bounded`, lower) bounds on the constructor's type parameters.\n"
+    sb ++= s"          *\n"
+    sb ++= s"          * Rewritten by Cross-Quotes on '''both''' Scala 2 (macro) and Scala 3 (compiler plugin, since\n"
+    sb ++= s"          * hearth#344). Bounds let `apply`/`unapply` respect `<:`/`>:` constraints on `HKT`.\n"
+    sb ++= s"          *\n"
+    sb ++= s"          * @see `Type.$cn.of`\n"
+    sb ++= s"          * @since 0.4.0\n"
+    sb ++= s"          */\n"
     sb ++= s"""        @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")\n"""
     sb ++= s"""        def of[${ArityGen.boundsPairs(n)}, HKT[${ArityGen.hktSlots(n)}]]: Bounded[${boundsAndHkt(n)}] = sys.error("Install cross-quotes-plugin to use this method")\n"""
     sb ++= s"\n"
@@ -468,6 +494,14 @@ object TypeConstructorsGen {
     sb ++= s"      final type UpperBounded[$ubParams, HKT[$ubHkt]] = Bounded[$ubAlias, HKT]\n"
     sb ++= s"      object UpperBounded {\n"
     sb ++= s"\n"
+    sb ++= s"        /** Like `of`, but pins upper bounds on the constructor's type parameters.\n"
+    sb ++= s"          *\n"
+    sb ++= s"          * Rewritten by Cross-Quotes on '''both''' Scala 2 (macro) and Scala 3 (compiler plugin, since\n"
+    sb ++= s"          * hearth#344). Bounds let `apply`/`unapply` respect `<:` constraints on `HKT`.\n"
+    sb ++= s"          *\n"
+    sb ++= s"          * @see `Type.${ArityGen.ctorName(n)}.of`\n"
+    sb ++= s"          * @since 0.4.0\n"
+    sb ++= s"          */\n"
     sb ++= s"""        @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")\n"""
     sb ++= s"""        def of[$ubParams, HKT[$ubHkt]]: UpperBounded[$ubParams, HKT] = sys.error("Install cross-quotes-plugin to use this method")\n"""
     sb ++= s"      }\n"
@@ -528,6 +562,12 @@ object TypeConstructorsGen {
         |    }
         |    object CtorK1 {
         |
+        |      /** Summons the `CtorK1` for a kind-`(* -> *) -> *` constructor (FunctorK-style).
+        |        *
+        |        * @return a `CtorK1[HKT]`
+        |        * @see the `CtorK1` trait
+        |        * @since 0.4.0
+        |        */
         |      def of[HKT[_[_]]]: CtorK1[HKT] = macro CrossQuotesMacros.typeCtorK1Impl[HKT]
         |
         |      def fromUntyped[HKT[_[_]]](untyped: UntypedType): CtorK1[HKT] = macro CrossQuotesMacros.typeCtorK1FromUntypedImpl[HKT]
@@ -563,6 +603,18 @@ object TypeConstructorsGen {
     sb ++= s"\n"
 
     // of method (macro)
+    sb ++= s"      /** Summons the `$cn` for a higher-kinded type constructor `HKT` ($n type param(s)), enabling `apply`/`unapply`\n"
+    sb ++= s"        * on `Type`s across Scala 2 and 3.\n"
+    sb ++= s"        *\n"
+    sb ++= s"        * The Scala-2 workaround for the missing `AnyKind` kind: `$cn` is what lets you build `Type[HKT[...]]`\n"
+    sb ++= s"        * and pattern-match a `Type` back into its arguments. Only proper (ground) type parameters are\n"
+    sb ++= s"        * supported; type aliases that reorder/rename params and kind-projector syntax are not (Scala 2\n"
+    sb ++= s"        * limitation).\n"
+    sb ++= s"        *\n"
+    sb ++= s"        * @return a `$cn[HKT]`\n"
+    sb ++= s"        * @see docs/user-guide/cross-quotes.md\n"
+    sb ++= s"        * @since 0.1.0\n"
+    sb ++= s"        */\n"
     sb ++= s"      def of[HKT[${ArityGen.simpleHktSlots(n)}]]: $cn[HKT] = macro CrossQuotesMacros.typeCtor${n}Impl[${ArityGen.nothingAnyPairs(n)}, HKT]\n"
     sb ++= s"\n"
 
@@ -621,6 +673,14 @@ object TypeConstructorsGen {
     sb ++= s"\n"
 
     // Bounded.of (macro)
+    sb ++= s"        /** Like `of`, but pins upper (and, for `Bounded`, lower) bounds on the constructor's type parameters.\n"
+    sb ++= s"          *\n"
+    sb ++= s"          * Rewritten by Cross-Quotes on '''both''' Scala 2 (macro) and Scala 3 (compiler plugin, since\n"
+    sb ++= s"          * hearth#344). Bounds let `apply`/`unapply` respect `<:`/`>:` constraints on `HKT`.\n"
+    sb ++= s"          *\n"
+    sb ++= s"          * @see `Type.$cn.of`\n"
+    sb ++= s"          * @since 0.4.0\n"
+    sb ++= s"          */\n"
     sb ++= s"        def of[${ArityGen.boundsPairs(n)}, HKT[${ArityGen.hktSlots(n)}]]: Bounded[${boundsAndHkt(n)}] = macro CrossQuotesMacros.typeCtor${n}Impl[${allBoundsExplicit(n)}, HKT]\n"
     sb ++= s"      }\n"
     sb ++= s"\n"
@@ -730,6 +790,14 @@ object TypeConstructorsGen {
     sb ++= s"      final type UpperBounded[$ubParams, HKT[$ubHkt]] = Bounded[$ubAlias, HKT]\n"
     sb ++= s"      object UpperBounded {\n"
     sb ++= s"\n"
+    sb ++= s"        /** Like `of`, but pins upper bounds on the constructor's type parameters.\n"
+    sb ++= s"          *\n"
+    sb ++= s"          * Rewritten by Cross-Quotes on '''both''' Scala 2 (macro) and Scala 3 (compiler plugin, since\n"
+    sb ++= s"          * hearth#344). Bounds let `apply`/`unapply` respect `<:` constraints on `HKT`.\n"
+    sb ++= s"          *\n"
+    sb ++= s"          * @see `Type.${ArityGen.ctorName(n)}.of`\n"
+    sb ++= s"          * @since 0.4.0\n"
+    sb ++= s"          */\n"
     sb ++= s"        def of[$ubParams, HKT[$ubHkt]]: UpperBounded[$ubParams, HKT] = macro CrossQuotesMacros.typeCtor${n}Impl[$macroNothingUpper, HKT]\n"
     sb ++= s"      }\n"
 

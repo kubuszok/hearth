@@ -43,11 +43,23 @@ object Text extends TextCompanion
   */
 final case class Location(file: File, line: Line) {
 
+  /** Just the file name (last path segment) of [[file]].
+    *
+    * @since 0.1.0
+    */
   def fileName: FileName = FileName.wrap(file.split("/").last)
 
   override def toString: String = s"$file:$line"
 }
 object Location {
 
+  /** Materializes the call-site [[Location]] from the implicit [[File]] and [[Line]].
+    *
+    * @param file
+    *   the call-site file, materialized implicitly
+    * @param line
+    *   the call-site line, materialized implicitly
+    * @since 0.1.0
+    */
   implicit def derived(implicit file: File, line: Line): Location = Location(file, line)
 }

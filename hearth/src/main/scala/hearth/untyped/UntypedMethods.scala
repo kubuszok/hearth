@@ -93,6 +93,16 @@ trait UntypedMethods { this: MacroCommons =>
     def index: Int
     def position: Option[Position]
     def annotations: List[UntypedExpr]
+
+    /** The types of this parameter's [[annotations]], captured separately so the typed layer can re-tag each annotation
+      * expression with its type.
+      *
+      * Exists for the Scala 2 annotation-type-preservation fix: `c.untypecheck(ann.tree)` (required before splicing an
+      * annotation tree) strips its type, so the type is recorded here beforehand. See CLAUDE.md "Annotation type
+      * preservation".
+      *
+      * @since 0.4.0
+      */
     def annotationTypes: List[UntypedType]
 
     def isByName: Boolean
@@ -203,6 +213,12 @@ trait UntypedMethods { this: MacroCommons =>
     final def fromTyped(method: Method): UntypedMethod = method.asUntyped
     def toTyped[Instance: Type](untyped: UntypedMethod): Method
 
+    /** The untyped discovery primitives behind the typed [[Method.primaryConstructorOf]]/[[Method.constructorsOf]]/
+      * [[Method.methodsOf]] entry points and the [[AnonymousInstance]] method classification: respectively the primary
+      * constructor of `instanceTpe` (if any), all of its constructors, and all of its methods.
+      *
+      * @since 0.1.0
+      */
     def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod]
     def constructors(instanceTpe: UntypedType): List[UntypedMethod]
     def methods(instanceTpe: UntypedType): List[UntypedMethod]
@@ -253,6 +269,11 @@ trait UntypedMethods { this: MacroCommons =>
 
   trait UntypedMethodMethods { this: UntypedMethod =>
 
+    /** Resolves this untyped method against instance type `Instance`, producing a typed [[Method]] builder chain (its
+      * parameter/return types resolved against `Instance`).
+      *
+      * @since 0.1.0
+      */
     def asTyped[Instance: Type]: Method = UntypedMethod.toTyped(this)
 
     def invocation: Invocation
@@ -263,6 +284,12 @@ trait UntypedMethods { this: MacroCommons =>
 
     def methodExpectations(instanceTpe: UntypedType): List[UntypedMethodExpectation]
 
+    /** Low-level, unchecked method application: builds the call AST directly, WITHOUT validating that all arguments are
+      * present or well-typed. Prefer the safe typed API - `apply` on a pattern-matched [[Method]] variant, or
+      * [[Method.fold]]/[[Method.foldF]] - which enforce the builder-chain contract.
+      *
+      * @since 0.1.0
+      */
     def unsafeApply(instanceTpe: UntypedType)(instance: Option[UntypedExpr], arguments: UntypedArguments): UntypedExpr
     def unsafeApplyWithTypes(instanceTpe: UntypedType)(
         typeArgs: UntypedTypeArguments,
@@ -280,31 +307,115 @@ trait UntypedMethods { this: MacroCommons =>
     def position: Option[Position]
 
     def annotations: List[UntypedExpr]
+
+    /** The types of this method's [[annotations]], captured separately so the typed layer can re-tag each annotation
+      * expression with its type; needed for the Scala 2 annotation-type-preservation fix (see CLAUDE.md "Annotation
+      * type preservation").
+      *
+      * @since 0.4.0
+      */
     def annotationTypes: List[UntypedType]
 
     def isConstructor: Boolean
 
     def isConstructorArgument: Boolean
     def constructorArgumentIndex: Option[Int]
+
+    /** Whether this method is a case-class field accessor.
+      *
+      * Singletons (case objects, parameterless Scala 3 enum cases) are NOT case-class fields - they are routed to
+      * [[SingletonValue]] instead (hearth#311).
+      *
+      * @since 0.1.0
+      */
     def isCaseField: Boolean
 
+    /** Whether this member is a `val` / stable value member.
+      *
+      * This is not limited to concrete backing fields: it also holds for stable *deferred* (abstract) accessors and for
+      * inherited constructor-`val` fields (hearth#326, hearth#327). Consequently an inherited public `val` surfaces as
+      * `isVal && isInherited && isAvailable(...)`, rather than as the subclass's private param-accessor plumbing.
+      *
+      * @since 0.1.0
+      */
     def isVal: Boolean
     def isVar: Boolean
     def isLazy: Boolean
     def isDef: Boolean
+
+    /** Whether this member is declared directly on the instance type (as opposed to inherited or synthetic).
+      *
+      * `isInherited` is derived as `!isDeclared && !isSynthetic`.
+      *
+      * @since 0.1.0
+      */
     def isDeclared: Boolean
+
+    /** Whether this member was synthesized by the compiler (e.g. an accessor or `copy`/`apply` helper).
+      *
+      * @since 0.1.0
+      */
     def isSynthetic: Boolean
     final def isInherited: Boolean = !isDeclared && !isSynthetic
     def isImplicit: Boolean
 
     def isFinal: Boolean
     def isAbstract: Boolean
+
+    /** Whether this method overrides a member of a supertype.
+      *
+      * Cross-platform divergence: for `java.lang.Object` methods this is `true` on Scala 2 (they override members
+      * inherited from `Any`) but `false` on Scala 3 (`Object` is the root class). Cross-platform derivation code must
+      * not branch on this predicate for `Object` members.
+      *
+      * @since 0.1.0
+      */
     def isOverride: Boolean
 
+    /** Whether this member is (unqualified) `private`.
+      *
+      * Qualified visibility is normalized: `private[pkg]` yields `isPrivate == false` with
+      * `privateWithin == Some("pkg")`. To detect qualified-private members, check [[privateWithin]] rather than
+      * assuming `isPrivate` covers them.
+      *
+      * @since 0.1.0
+      */
     def isPrivate: Boolean
+
+    /** Whether this member is (unqualified) `protected`.
+      *
+      * As with [[isPrivate]], qualified visibility is normalized: `protected[pkg]` yields `isProtected == false` with
+      * `protectedWithin == Some("pkg")`.
+      *
+      * @since 0.1.0
+      */
     def isProtected: Boolean
+
+    /** The enclosing package/type name of a qualified-private member (`private[pkg]` -> `Some("pkg")`), else `None`.
+      *
+      * @see
+      *   [[isPrivate]] for the normalization contract
+      * @since 0.1.0
+      */
     def privateWithin: Option[String]
+
+    /** The enclosing package/type name of a qualified-protected member (`protected[pkg]` -> `Some("pkg")`), else
+      * `None`.
+      *
+      * @see
+      *   [[isProtected]] for the normalization contract
+      * @since 0.1.0
+      */
     def protectedWithin: Option[String]
+
+    /** Whether this member is reachable under the given [[Accessible]] scope.
+      *
+      * @param scope
+      *   the accessibility scope to check against
+      * @return
+      *   `true` if the member is available in that scope
+      * @since 0.1.0
+      */
     def isAvailable(scope: Accessible): Boolean
 
     def paramTypePrints(instanceTpe: UntypedType): (List[List[(String, String)]], String)
@@ -320,6 +431,18 @@ trait UntypedMethods { this: MacroCommons =>
     def signatureSegments(instanceTpe: UntypedType, hl: hearth.treeprinter.SyntaxHighlight): List[String] =
       signatureSegments(instanceTpe)
 
+    /** Renders the method's full signature (modifiers/keywords, type and value parameter clauses, return type), colored
+      * per the given [[hearth.treeprinter.SyntaxHighlight]].
+      *
+      * The shared engine behind [[plainPrint]] (uncolored, a stable comparison key) and [[prettyPrint]] (ANSI-colored
+      * for display) - the same printing-trio pattern used by the `Expr`/`Type` printers.
+      *
+      * @param instanceTpe
+      *   the type the method is rendered as a member of
+      * @param hl
+      *   the syntax highlighter controlling coloring (`plain` for none, `ANSI` for color)
+      * @since 0.4.0
+      */
     @scala.annotation.nowarn("msg=unused value|discarded non-Unit value")
     final def renderSignature(instanceTpe: UntypedType, hl: hearth.treeprinter.SyntaxHighlight): String = {
       val sb = new StringBuilder

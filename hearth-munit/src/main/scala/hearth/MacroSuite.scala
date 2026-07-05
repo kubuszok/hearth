@@ -1,6 +1,6 @@
 package hearth
 
-/** Base trait for all macro tests.
+/** Base trait for macro tests - extend it (instead of [[Suite]]) when a test needs to assert on compilation errors.
   *
   * Provides some utilities like:
   *   - `compileErrors("code").check(expectedLinesInExpectedOrder*)` - asserting that the error message contains all of
@@ -8,11 +8,21 @@ package hearth
   *   - `compileErrors("code").checkNot(absentLines*)` - asserting that the error message does not contain any of the
   *     `absent` strings
   *   - `compileErrors("code").arePresent()` - asserting that the error message is not empty
+  *
+  * @see
+  *   docs/contributing/guidelines-for-tests.md
+  * @since 0.3.0
   */
 trait MacroSuite extends Suite {
 
   implicit class CompileErrorsCheck(private val msg: String) {
 
+    /** Asserts the (color-stripped) error message contains all `msgs` in order (gaps between them are allowed).
+      *
+      * @param msgs
+      *   the expected snippets, in the order they should appear
+      * @since 0.3.0
+      */
     def check(msgs: String*): Unit = {
       val msgNoColors = msg.stripANSI
       var lastChar = 0
@@ -29,6 +39,12 @@ trait MacroSuite extends Suite {
       }
     }
 
+    /** Asserts that none of `msgs` appear in the (color-stripped) error message.
+      *
+      * @param msgs
+      *   the snippets that must be absent
+      * @since 0.3.0
+      */
     def checkNot(msgs: String*): Unit = {
       val msgNoColors = msg.stripANSI
       for (msg <- msgs)
@@ -42,6 +58,10 @@ trait MacroSuite extends Suite {
         )
     }
 
+    /** Asserts that the error message is non-empty (i.e. compilation actually failed).
+      *
+      * @since 0.3.0
+      */
     def arePresent(): Unit = Predef.assert(msg.nonEmpty, "Expected compilation errors")
   }
 }

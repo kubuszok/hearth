@@ -6,7 +6,27 @@ package hearth
   *
   * It would not be used for reporting errors caused by passing the wrong data to Hearth APIs.
   *
+  * Contrast with [[HearthRequirementError]]: this one signals an '''internal invariant broke''' (a Hearth bug - file an
+  * issue, do not change your own code), whereas `HearthRequirementError` signals a '''user misused a Hearth API''' (fix
+  * your code). Both extend [[AssertionError]], though catching either is discouraged.
+  *
   * @since 0.1.0
+  *
+  * @param description
+  *   what invariant was violated
+  * @param hearthVersion
+  *   the Hearth version in use, if known
+  * @param scalaVersion
+  *   the Scala version the macro ran under
+  * @param platform
+  *   the platform (JVM/Scala.js/Scala Native) the macro ran under
+  * @param jdkVersion
+  *   the JDK version the macro ran under
+  *
+  * @see
+  *   [[MacroCommons.hearthAssertionFailed]]
+  * @see
+  *   [[HearthRequirementError]]
   */
 final case class HearthAssertionError(
     description: String,

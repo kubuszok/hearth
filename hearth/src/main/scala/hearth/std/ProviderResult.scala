@@ -8,6 +8,13 @@ import hearth.fp.data.NonEmptyMap
   * Captures either the matched value or a [[NonEmptyMap]] of skip/error reasons keyed by provider name. This allows
   * callers to inspect why a particular type wasn't recognized.
   *
+  * A result is one of two shapes:
+  *   - [[ProviderResult.Matched]]`(value)` - a provider recognised the type and produced its proof;
+  *   - [[ProviderResult.Skipped]]`(reasons)` - every provider declined, carrying a per-provider reason map whose values
+  *     are either a `String` (the provider deliberately declined) or a `Throwable` (the provider recognised the shape
+  *     but errored while building). Create single-entry skips with [[ProviderResult.skipped]] /
+  *     [[ProviderResult.failed]].
+  *
   * @tparam A
   *   the type of the matched value
   *
@@ -15,16 +22,28 @@ import hearth.fp.data.NonEmptyMap
   */
 sealed trait ProviderResult[+A] extends Product with Serializable {
 
+  /** `Some(value)` on [[ProviderResult.Matched]], `None` on [[ProviderResult.Skipped]] (discarding the reasons).
+    *
+    * @since 0.3.0
+    */
   def toOption: Option[A] = this match {
     case ProviderResult.Matched(value) => Some(value)
     case _: ProviderResult.Skipped     => None
   }
 
+  /** Transforms the matched value; a [[ProviderResult.Skipped]] is returned unchanged (its reasons are preserved).
+    *
+    * @since 0.3.0
+    */
   def map[B](f: A => B): ProviderResult[B] = this match {
     case ProviderResult.Matched(value) => ProviderResult.Matched(f(value))
     case s: ProviderResult.Skipped     => s
   }
 
+  /** Chains another provider result off the matched value; a [[ProviderResult.Skipped]] short-circuits unchanged.
+    *
+    * @since 0.3.0
+    */
   def flatMap[B](f: A => ProviderResult[B]): ProviderResult[B] = this match {
     case ProviderResult.Matched(value) => f(value)
     case s: ProviderResult.Skipped     => s
