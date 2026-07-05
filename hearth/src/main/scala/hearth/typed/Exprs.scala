@@ -31,16 +31,127 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
   val Expr: ExprModule
   trait ExprModule extends ExprCrossQuotes with ExprCompat { this: Expr.type =>
 
+    /** Lifts a value into its [[Expr]] using the given [[ExprCodec]]: `Expr(value)` is exactly
+      * `ExprCodec[A].toExpr(value)`.
+      *
+      * '''Pitfall:''' for enum / constant values, cross-quotes may reify a constant by its simple name, which can
+      * resolve to the wrong symbol in the expansion scope; reference such values through a fully-qualified path or a
+      * companion method to stay safe.
+      *
+      * @param value
+      *   the value to lift into an expression
+      * @return
+      *   an `Expr` reproducing `value` at the splice site
+      * @see
+      *   [[unapply]] for the inverse (unlift), and plain-text `docs/user-guide/cross-quotes.md`
+      * @since 0.1.0
+      */
     final def apply[A: ExprCodec](value: A): Expr[A] = ExprCodec[A].toExpr(value)
 
+    /** Unlifts a constant [[Expr]] back to its value via the given [[ExprCodec]], enabling `case Expr(v) => ...` in a
+      * pattern match; yields `None` when `expr` is not a compile-time constant.
+      *
+      * @param expr
+      *   the expression to unlift
+      * @return
+      *   `Some(value)` if `expr` is a compile-time constant, else `None`
+      * @see
+      *   [[apply]] for the inverse (lift)
+      * @since 0.1.0
+      */
     final def unapply[A: ExprCodec](expr: Expr[A]): Option[A] = ExprCodec[A].fromExpr(expr)
 
+    /** Uncolored source-like rendering; this is the correct key for comparing/sorting/asserting on expressions — do not
+      * regex-strip ANSI escapes off [[prettyPrint]].
+      *
+      * Renders `expr` as compilable-looking source code without any ANSI color codes. Because the output is stable and
+      * free of escape sequences, it is the value you should use as a map key, in a `Set`, when sorting, or in test
+      * assertions. Its colored sibling [[prettyPrint]] is for human display only.
+      *
+      * Unlike the `Method`/`Type` renderers, the Expr-side printers take no `SyntaxHighlight` parameter — the
+      * colored/uncolored choice IS the `plain` vs `pretty` method name. For the raw compiler-tree structure (rather
+      * than source-like code) use [[plainAST]].
+      *
+      * @param expr
+      *   the expression to render
+      * @return
+      *   uncolored, source-like rendering of `expr`
+      * @see
+      *   [[prettyPrint]] for the colored, human-display variant
+      * @see
+      *   [[plainAST]] for the uncolored raw-AST (tree structure) variant
+      * @see
+      *   [[TypeModule.plainPrint]] for the analogous Type-side renderer
+      * @see
+      *   plain-text `docs/user-guide/better-printers.md`
+      * @since 0.1.0
+      */
     def plainPrint[A](expr: Expr[A]): String
+
+    /** ANSI-colored, source-like rendering for human display only (compiler messages, logs); use [[plainPrint]] for
+      * comparing, sorting or asserting on expressions.
+      *
+      * Same source-like rendering as [[plainPrint]] but with ANSI syntax highlighting. Never regex-strip the color
+      * codes off this to recover a comparison key — call [[plainPrint]] instead.
+      *
+      * @param expr
+      *   the expression to render
+      * @return
+      *   colored, source-like rendering of `expr`
+      * @see
+      *   [[plainPrint]] for the uncolored compare/sort key
+      * @see
+      *   [[prettyAST]] for the colored raw-AST (tree structure) variant
+      * @see
+      *   [[TypeModule.prettyPrint]] for the analogous Type-side renderer
+      * @since 0.1.0
+      */
     def prettyPrint[A](expr: Expr[A]): String
+
+    /** Uncolored dump of the raw compiler AST (tree structure, not source-like code) — for debugging tree shape; see
+      * [[plainPrint]] for source rendering.
+      *
+      * @param expr
+      *   the expression whose tree structure to render
+      * @return
+      *   uncolored dump of the underlying compiler AST
+      * @since 0.1.0
+      */
     def plainAST[A](expr: Expr[A]): String
+
+    /** ANSI-colored dump of the raw compiler AST (tree structure, not source-like code) — for debugging tree shape; see
+      * [[prettyPrint]] for source rendering. Use [[plainAST]] for a comparison-safe (uncolored) variant.
+      *
+      * @param expr
+      *   the expression whose tree structure to render
+      * @return
+      *   colored dump of the underlying compiler AST
+      * @since 0.1.0
+      */
     def prettyAST[A](expr: Expr[A]): String
 
+    /** Summons an implicit / given of type `A` at the macro-expansion point, returning a [[SummoningResult]] that
+      * distinguishes found / ambiguous / diverging / not-found outcomes without ever throwing.
+      *
+      * @return
+      *   a [[SummoningResult]] carrying the found `Expr[A]` or the reason none was produced
+      * @see
+      *   [[SummoningResult]] for projecting the outcome
+      * @see
+      *   [[summonImplicitIgnoring]] to exclude specific implicit definitions from the search
+      * @since 0.1.0
+      */
     def summonImplicit[A: Type]: SummoningResult[A]
+
+    /** Like [[summonImplicit]] but excludes the given implicit definitions from the search — e.g. so a macro does not
+      * summon the very instance it is currently deriving.
+      *
+      * @param excluded
+      *   implicit definitions (as [[UntypedMethod]]s) to omit from the implicit search
+      * @return
+      *   a [[SummoningResult]] as in [[summonImplicit]]
+      * @since 0.1.0
+      */
     def summonImplicitIgnoring[A: Type](excluded: UntypedMethod*): SummoningResult[A]
     def summonImplicitByType(tpe: UntypedType): Option[UntypedExpr]
 
@@ -84,13 +195,82 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       */
     def typeOf[A](expr: Expr[A]): Type[A]
 
+    /** Evaluates an expression tree at macro-expansion time via reflection, returning the runtime value.
+      *
+      * `Right` holds the statically-computed value; `Left` holds the aggregated reasons the tree is NOT statically
+      * evaluable (a non-constant sub-tree, an unsupported type, etc.). This is the inverse of [[semiQuote]].
+      *
+      * Supported without overrides: primitives, `String`, `BigInt`/`BigDecimal`, `Data`, case classes (evaluated
+      * field-by-field), enums / sealed traits (dispatched to the matching child at runtime), and singletons / case
+      * objects.
+      *
+      * `overrides` is a dispatch function keyed by the erased [[UntypedType]] of a (sub)value; it supplies custom
+      * macro-time evaluation for nested types and is checked BEFORE the built-in reflection path. Each entry is an
+      * [[EvalOverride]] (`Some(f)` to override, `None` to fall through).
+      *
+      * @param expr
+      *   the expression tree to evaluate at macro time
+      * @param overrides
+      *   per-type evaluation dispatch, keyed by [[UntypedType]]
+      * @return
+      *   `Right(value)` if statically evaluable, else `Left` with the aggregated reasons
+      * @see
+      *   [[semiQuote]] for the inverse (value → `Expr`)
+      * @see
+      *   [[EvalOverride]] for the per-type override shape
+      * @since 0.3.0
+      */
     def semiEval[A](
         expr: Expr[A],
         overrides: UntypedType => Existential[EvalOverride]
     ): Either[NonEmptyVector[String], A]
+
+    /** Evaluates an expression tree at macro time via reflection with no custom overrides — see the two-argument
+      * `semiEval` overload for the full contract.
+      *
+      * @param expr
+      *   the expression tree to evaluate at macro time
+      * @return
+      *   `Right(value)` if statically evaluable, else `Left` with the aggregated reasons
+      * @since 0.3.0
+      */
     final def semiEval[A](expr: Expr[A]): Either[NonEmptyVector[String], A] = semiEval(expr, null)
 
+    /** Turns a runtime value into an expression tree at macro time — the inverse of [[semiEval]].
+      *
+      * `Right` holds the constructed `Expr`; `Left` holds a message when the value's type is not quotable.
+      *
+      * Supported without overrides: primitives, `String`, `BigInt`/`BigDecimal`, `Data`, case classes (quoted
+      * field-by-field), enums / sealed traits (dispatched to the matching child at runtime), and singletons / case
+      * objects.
+      *
+      * `overrides` is a dispatch function keyed by the erased [[UntypedType]] of a (sub)value; it supplies custom
+      * macro-time quoting for nested types and is checked BEFORE the built-in path. Each entry is a [[QuoteOverride]]
+      * (`Some(f)` to override, `None` to fall through).
+      *
+      * @param value
+      *   the runtime value to lift into an `Expr`
+      * @param overrides
+      *   per-type quoting dispatch, keyed by [[UntypedType]]
+      * @return
+      *   `Right(expr)` if the value is quotable, else `Left` with the reason
+      * @see
+      *   [[EvalOverride]] and the `semiEval` overloads for the inverse (`Expr` → value)
+      * @see
+      *   [[QuoteOverride]] for the per-type override shape
+      * @since 0.3.0
+      */
     def semiQuote[A: Type](value: A, overrides: UntypedType => Existential[QuoteOverride]): Either[String, Expr[A]]
+
+    /** Turns a runtime value into an expression tree at macro time with no custom overrides — see the two-argument
+      * `semiQuote` overload for the full contract.
+      *
+      * @param value
+      *   the runtime value to lift into an `Expr`
+      * @return
+      *   `Right(expr)` if the value is quotable, else `Left` with the reason
+      * @since 0.3.0
+      */
     final def semiQuote[A: Type](value: A): Either[String, Expr[A]] = semiQuote(value, null)
 
     def NullExprCodec: ExprCodec[Null]
@@ -184,9 +364,30 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def value(implicit codec: ExprCodec[A]): Option[A] = codec.fromExpr(expr)
 
+    /** Uncolored source-like rendering; this is the correct key for comparing/sorting/asserting on expressions — do not
+      * regex-strip ANSI escapes off [[prettyPrint]]. See [[ExprModule.plainPrint]].
+      *
+      * @since 0.1.0
+      */
     def plainPrint: String = Expr.plainPrint(expr)
+
+    /** ANSI-colored source-like rendering for human display only; use [[plainPrint]] for comparisons — see
+      * [[ExprModule.prettyPrint]].
+      *
+      * @since 0.1.0
+      */
     def prettyPrint: String = Expr.prettyPrint(expr)
+
+    /** Uncolored dump of the raw compiler AST (tree structure, not source) — see [[ExprModule.plainAST]].
+      *
+      * @since 0.1.0
+      */
     def plainAST: String = Expr.plainAST(expr)
+
+    /** ANSI-colored dump of the raw compiler AST (tree structure, not source) — see [[ExprModule.prettyAST]].
+      *
+      * @since 0.1.0
+      */
     def prettyAST: String = Expr.prettyAST(expr)
 
     def upcast[B](implicit A: Type[A], B: Type[B]): Expr[B] = Expr.upcast(expr)
@@ -207,7 +408,18 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       */
     def tpe: Type[A] = Expr.typeOf(expr)
 
+    /** Evaluates this expression at macro time with no custom overrides — see [[ExprModule.semiEval]].
+      *
+      * @since 0.3.0
+      */
     def semiEval: Either[NonEmptyVector[String], A] = Expr.semiEval(expr)
+
+    /** Evaluates this expression at macro time with per-type overrides — see [[ExprModule.semiEval]].
+      *
+      * @param overrides
+      *   per-type evaluation dispatch, keyed by [[UntypedType]]
+      * @since 0.3.0
+      */
     def semiEval(overrides: UntypedType => Existential[EvalOverride]): Either[NonEmptyVector[String], A] =
       Expr.semiEval(expr, overrides)
 
@@ -250,9 +462,30 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     new BoundedExistentialExprMethods[Nothing, U](expr)
   implicit final class BoundedExistentialExprMethods[L, U >: L](private val expr: Expr_<:??<:[L, U]) {
 
+    /** Uncolored source-like rendering; this is the correct key for comparing/sorting/asserting on expressions — do not
+      * regex-strip ANSI escapes off [[prettyPrint]]. See [[ExprModule.plainPrint]].
+      *
+      * @since 0.1.0
+      */
     def plainPrint: String = Expr.plainPrint(expr.value)
+
+    /** ANSI-colored source-like rendering for human display only; use [[plainPrint]] for comparisons — see
+      * [[ExprModule.prettyPrint]].
+      *
+      * @since 0.1.0
+      */
     def prettyPrint: String = Expr.prettyPrint(expr.value)
+
+    /** Uncolored dump of the raw compiler AST (tree structure, not source) — see [[ExprModule.plainAST]].
+      *
+      * @since 0.1.0
+      */
     def plainAST: String = Expr.plainAST(expr.value)
+
+    /** ANSI-colored dump of the raw compiler AST (tree structure, not source) — see [[ExprModule.prettyAST]].
+      *
+      * @since 0.1.0
+      */
     def prettyAST: String = Expr.prettyAST(expr.value)
 
     def asUntyped: UntypedExpr = UntypedExpr.fromTyped(expr.value)
@@ -276,6 +509,21 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     *   - '''Sealed traits / enums''' — runtime dispatch to the matching child codec
     *   - '''Singletons''' (case objects) — lifted via `SingletonValue.singletonExpr`
     *   - '''Nested types''' — field codecs are resolved recursively
+    *
+    * `derived` is a '''semi-automatic''' derivation you call '''explicitly''' — it is NOT an implicit and is not
+    * summoned for you; hand the result to `Expr(...)` / `Expr.unapply` or keep it in a `val`.
+    *
+    * Derivation short-circuits on a fixed set of '''built-in''' types (leaves) and derives everything else
+    * structurally. That fast-path set is exactly: `Null`, `Unit`, all primitives (`Boolean`, `Byte`, `Short`, `Int`,
+    * `Long`, `Float`, `Double`, `Char`), `String`, `BigInt`, `BigDecimal`, `Data`, and `Seq[E]` where `E` is itself a
+    * built-in (this last case exists only so vararg case-class fields round-trip). Note this is NARROWER than the set
+    * of implicit `ExprCodec` instances available from this companion (which also covers
+    * `List`/`Vector`/`Set`/`Map`/`Option`/ `Either`/`Array`/`Class`/`ClassTag`/`StringContext` and Hearth
+    * version/platform types).
+    *
+    * '''Pitfall:''' when lifting enum / constant values, cross-quotes may reify a constant by its simple name, which
+    * can resolve to the wrong symbol in the expansion scope — reference such values through a fully-qualified path or a
+    * companion method (see plain-text `docs/user-guide/cross-quotes.md`).
     *
     * @see
     *   [[https://docs.scala-lang.org/overviews/quasiquotes/lifting.html]] for Scala 2 underlying concept
@@ -356,18 +604,67 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     implicit def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = Expr.SeqExprCodec[A]
   }
 
+  /** Per-type override for [[ExprModule.semiEval]]: `Some(f)` supplies custom macro-time evaluation for values of type
+    * `A`, dispatched by [[UntypedType]]; `None` falls through to the built-in reflection path.
+    *
+    * @see
+    *   [[ExprModule.semiEval]]
+    * @see
+    *   [[QuoteOverride]] for the inverse (value → `Expr`)
+    * @since 0.3.0
+    */
   type EvalOverride[A] = Option[Expr[A] => Either[String, A]]
   object EvalOverride {
+
+    /** Wraps a macro-time evaluation function as an override.
+      *
+      * @param f
+      *   evaluates an `Expr[A]` to `Right(value)` or `Left(reason)`
+      * @since 0.3.0
+      */
     def apply[A](f: Expr[A] => Either[String, A]): EvalOverride[A] = Some(f)
+
+    /** No override — fall through to the built-in reflection path.
+      *
+      * @since 0.3.0
+      */
     def none[A]: EvalOverride[A] = None
   }
 
+  /** Per-type override for [[ExprModule.semiQuote]]: `Some(f)` supplies custom macro-time quoting for values of type
+    * `A`, dispatched by [[UntypedType]]; `None` falls through to the built-in path.
+    *
+    * @see
+    *   [[ExprModule.semiQuote]]
+    * @see
+    *   [[EvalOverride]] for the inverse (`Expr` → value)
+    * @since 0.3.0
+    */
   type QuoteOverride[A] = Option[A => Either[String, Expr[A]]]
   object QuoteOverride {
+
+    /** Wraps a macro-time quoting function as an override.
+      *
+      * @param f
+      *   quotes a value of type `A` to `Right(expr)` or `Left(reason)`
+      * @since 0.3.0
+      */
     def apply[A](f: A => Either[String, Expr[A]]): QuoteOverride[A] = Some(f)
+
+    /** No override — fall through to the built-in path.
+      *
+      * @since 0.3.0
+      */
     def none[A]: QuoteOverride[A] = None
   }
 
+  /** Outcome of [[ExprModule.summonImplicit]], distinguishing found / ambiguous / diverging / not-found without
+    * throwing. Project it via `toOption`, `toEither` or `fold`.
+    *
+    * @see
+    *   [[ExprModule.summonImplicit]]
+    * @since 0.1.0
+    */
   sealed trait SummoningResult[A] extends Product with Serializable {
 
     final def isDefined: Boolean = this match {
@@ -1700,6 +1997,30 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     * leaf becomes [[DestructuredExpr.NonDestructurable]]. Compiler noise (Scala 3 `Inlined` wrappers, etc.) is stripped
     * automatically.
     *
+    * '''Recovering a singleton / enum value (the `Type.Ctor` idiom).''' To pull a singleton or (Java/Scala) enum value
+    * back out of a destructured expression, collect the [[DestructuredExpr.Singleton]] nodes (its `name` is the module
+    * path) or match a node's `tpe` against a `Type.Ctor` extractor. Beware: on Scala 2 the typer WIDENS singleton
+    * types, so a lambda parameter ascribed `Color.Black.type` shows up as `Color` in `Lambda.Param.tpe`; use
+    * [[DestructuredExpr.Lambda.Param]]'s `declaredTpe` (the syntactic type, singleton preserved — hearth#341; on Scala
+    * 3 the two are equal) when you need to `Type.Ctor`-match a selected singleton:
+    *
+    * {{{
+    * // e.g. lambda `(c: Color.Black.type) => ...` fed through the fixtures:
+    * DestructuredExpr.extractLambda(expr) match {
+    *   case Right(info) =>
+    *     info.params.map(_.declaredTpe.plainPrint) // "Color.Black.type" (not the widened "Color")
+    *   case Left(error) => // ...
+    * }
+    *
+    * // Collect every singleton/enum reference in a parsed tree:
+    * DestructuredExpr.parse(expr).collect {
+    *   case s: DestructuredExpr.Singleton => s.name // "None", "Nil", "Color.Black", ...
+    * }
+    * }}}
+    *
+    * @see
+    *   [[DestructuredExpr.Lambda.Param]] (`tpe` vs `declaredTpe`) for the widened-vs-syntactic parameter type
+    *   distinction
     * @since 0.4.0
     */
   sealed trait DestructuredExpr {
@@ -1740,6 +2061,18 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     /** Parse a typed expression into a [[DestructuredExpr]].
       *
+      * Start here, then either pattern-match on the node types (`MethodCall`, `Lambda`, `Singleton`, `Literal`,
+      * `Block`, `Varargs`, `NonDestructurable`) or use the `extract*` helpers ([[extractFieldPath]],
+      * [[extractLambda]]). To recover a singleton / enum value, collect [[Singleton]] nodes or `Type.Ctor`-match a
+      * node's `tpe` — see the [[DestructuredExpr]] trait doc for the worked idiom (and the `declaredTpe` caveat on
+      * Scala 2).
+      *
+      * @param expr
+      *   the typed expression to destructure
+      * @return
+      *   the semantic decomposition of `expr`
+      * @see
+      *   [[DestructuredExpr]] for the node types and the singleton/enum-extraction example
       * @since 0.4.0
       */
     final def parse[A: Type](expr: Expr[A]): DestructuredExpr = destructureExpr(UntypedExpr.fromTyped(expr))

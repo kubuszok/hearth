@@ -36,11 +36,33 @@ final case class NonEmptyList[+A](head: A, tail: List[A]) {
 }
 object NonEmptyList {
 
+  /** Builds a non-empty list from a required head and optional further elements.
+    *
+    * @param a
+    *   the mandatory head element
+    * @param as
+    *   any further elements
+    * @since 0.1.0
+    */
   def apply[A](a: A, as: A*): NonEmptyList[A] = NonEmptyList(a, as.toList)
+
+  /** `Some` iff the list is non-empty, else `None`.
+    *
+    * @param list
+    *   the list to convert
+    * @since 0.1.0
+    */
   def fromList[A](list: List[A]): Option[NonEmptyList[A]] = list match {
     case head :: tail => Some(NonEmptyList(head, tail))
     case Nil          => None
   }
+
+  /** Single-element non-empty list.
+    *
+    * @param a
+    *   the sole element
+    * @since 0.1.0
+    */
   def one[A](a: A): NonEmptyList[A] = NonEmptyList(a, List.empty)
 
   implicit final val TraverseForNonEmptyList: Traverse[NonEmptyList] = new Traverse[NonEmptyList] {

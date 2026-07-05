@@ -38,6 +38,15 @@ import scala.util.control.{ControlThrowable, NoStackTrace}
   * Warning: [[DirectStyle]] is not guarantted to be stack-safe. As a matter of the fact if might cause stack overflow
   * if you use it with some effect that would be stack-safe with normal combinators, e.g. [[MEval]] or [[MIO]].
   *
+  * ==Caution: don't run a whole derivation direct-style inside a splice==
+  *
+  * When you extract values with `runSafe` (or [[MIO.scoped]]) to build a splice, keep the direct-style block SMALL —
+  * pull the value out, then quote. Do NOT run an entire derivation direct-style while a lambda/instance splice is being
+  * evaluated: the entry `spliceOwner` and the `freshTerm` owner (which follows `CrossQuotes.ctx`) then belong to
+  * different owners, and the re-owning that `LambdaBuilder` does will not line up. (History: hearth#318 first blamed
+  * the `DirectStyleExecutor` thread hop; that was wrong — the real cause was running a derivation direct-style during
+  * splice evaluation. This caution reflects the corrected understanding.)
+  *
   * @since 0.1.0
   */
 trait DirectStyle[F[_]] {

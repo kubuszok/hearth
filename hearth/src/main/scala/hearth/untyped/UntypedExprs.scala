@@ -58,6 +58,10 @@ trait UntypedExprs { this: MacroCommons =>
 
     /** Returns the original source text of this expression, if available.
       *
+      * Intended as a last-resort recovery of the literal source (e.g. for assert-style macros that echo the failing
+      * expression). May be `None` when the position has no backing source — e.g. macro-synthesized trees or platforms
+      * that do not retain the text.
+      *
       * @since 0.4.0
       */
     def sourceCode: Option[String] = UntypedExpr.position(untyped).flatMap(Position.sourceCode)

@@ -8,8 +8,26 @@ package fp
   */
 trait Traverse[F[_]] extends Functor[F] {
 
+  /** Applies `f` to each element and combines the results via [[Applicative]] (sequential, fail-fast).
+    *
+    * @param fa
+    *   the structure to traverse
+    * @param f
+    *   produces a `G` effect for each element
+    * @since 0.1.0
+    */
   def traverse[G[_]: Applicative, A, B](fa: F[A])(f: A => G[B]): G[F[B]]
 
+  /** Applies `f` to each element and combines the results via [[Parallel]], accumulating errors.
+    *
+    * @param fa
+    *   the structure to traverse
+    * @param f
+    *   produces a `G` effect for each element
+    * @see
+    *   [[traverse]] for the sequential, fail-fast variant
+    * @since 0.1.0
+    */
   def parTraverse[G[_]: Parallel, A, B](fa: F[A])(f: A => G[B]): G[F[B]]
 
   override def map[A, B](fa: F[A])(f: A => B): F[B] =

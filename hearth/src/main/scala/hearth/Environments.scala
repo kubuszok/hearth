@@ -86,8 +86,30 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     final lazy val isJs: Boolean = currentPlatform.isJs
     final lazy val isNative: Boolean = currentPlatform.isNative
 
+    /** The raw `-Xmacro-settings:` strings passed to the compiler.
+      *
+      * This is the source of every `hearth.mio*` flag that rides on [[MioExprOps.runToExprOrFail]], notably:
+      *   - `hearth.mioBenchmarkScopes` — enable per-scope benchmarking / flame graphs (see
+      *     [[configureMioBenchmarking]])
+      *   - `hearth.mioBenchmarkFlameGraphDir` — directory to write speedscope flame graphs to (see
+      *     [[mioBenchmarkFlameGraphDir]])
+      *   - `hearth.mioTerminationShouldUseReportError` — how Ctrl+C termination is reported (see
+      *     [[handleMioTerminationException]])
+      *
+      * For parsed, structured access to these use [[typedSettings]] instead of reading the raw strings.
+      *
+      * @return
+      *   the raw macro-settings strings
+      * @see
+      *   [[typedSettings]] for the parsed form
+      * @since 0.1.0
+      */
     def XMacroSettings: List[String]
 
+    /** Parses [[XMacroSettings]] into structured [[data.Data]] (or a [[scala.util.Left]] error message).
+      *
+      * @since 0.1.0
+      */
     final def typedSettings: Either[String, data.Data] = data.Data.parseList(XMacroSettings)
 
     def reportInfo(msg: String): Unit
@@ -117,6 +139,15 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       */
     def reportError(msg: String, position: Position): Unit
 
+    /** Reports an error at the macro expansion point and aborts the expansion; this is the terminal reporter that
+      * [[MioExprOps.runToExprOrFail]] calls to fail a macro.
+      *
+      * @param msg
+      *   the error message to report
+      * @see
+      *   [[MioExprOps.runToExprOrFail]] which calls this to fail an expansion
+      * @since 0.1.0
+      */
     def reportErrorAndAbort(msg: String): Nothing
 
     /** Reports an error at the given [[Position]] instead of the macro expansion point and aborts the expansion, e.g.
@@ -216,11 +247,22 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       * it is a contract violation (see the assertion below), not an implementation gap.
       *
       * To compose derivations that themselves produce `MIO` values (e.g. summoning a macro-derived implicit
-      * mid-derivation), stay INSIDE the one MIO program: extract values with `flatMap` (or `DirectStyle`), use them,
-      * and re-wrap the result in `MIO`. Do not open a second timeout / run. [[fp.effect.MIO.unsafe]]'s `runSync` and
-      * friends are internal escape hatches that set up no global state and do not thread nested state — use them at
-      * your own risk, and never nested.
+      * mid-derivation), stay INSIDE the one MIO program: extract values with `flatMap` (or [[fp.DirectStyle]] /
+      * [[fp.effect.MIO.scoped]]), use them, and re-wrap the result in `MIO`. Do not open a second timeout / run.
+      * [[fp.effect.MIO.unsafe]]'s `runSync` and friends are internal escape hatches that set up no global state and do
+      * not thread nested state — use them at your own risk, and never nested.
       *
+      * @param timeout
+      *   maximum wall-clock time the thunk may run before the deadline fires and the run is terminated
+      * @param thunk
+      *   the top-level MIO run to execute under the timeout deadline
+      * @return
+      *   the thunk's result as [[Right]], or the [[fp.effect.MIO.MioTimeoutException]] as [[Left]] if the deadline
+      *   fired
+      * @see
+      *   [[MioExprOps.runToExprOrFail]] for the single, top-level entry point that calls this
+      * @see
+      *   [[fp.effect.MIO.unsafe]] for the internal, own-risk escape hatch that installs no timeout
       * @since 0.3.0
       */
     final def withMioTimeout[A](

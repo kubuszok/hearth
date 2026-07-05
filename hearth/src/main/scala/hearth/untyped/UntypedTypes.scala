@@ -42,6 +42,23 @@ trait UntypedTypes { this: MacroCommons =>
 
     def fromClass(clazz: java.lang.Class[?]): UntypedType
     def fromClassName(fullyQualifiedName: String): UntypedType
+
+    /** Resolves the runtime `java.lang.Class` of a type when it is available on the classpath, returning `None`
+      * otherwise.
+      *
+      * Total and safe for callers: unresolvable types (user-project types not yet compiled, abstract types, type
+      * parameters, ...) yield `None` rather than throwing. The internal `hearthAssertionFailed` below fires ONLY for a
+      * genuine maintainer gap - a type flagged built-in by [[isJvmBuiltIn]] for which no `toClass` branch exists - and
+      * is never a user-facing failure mode. Branches that legitimately have no runtime class (arrays / `IArray` whose
+      * element has none) answer with `None` via [[toClassJvmBuiltInExtra]] instead of falling through to the assertion
+      * (issue #333). The typed-layer counterpart is `Type.classOfType`.
+      *
+      * @param untyped
+      *   the type whose runtime class is requested
+      * @return
+      *   the loaded `java.lang.Class`, or `None` when it cannot be resolved on the classpath
+      * @since 0.1.0
+      */
     final def toClass(untyped: UntypedType): Option[java.lang.Class[?]] =
       if (isTypeSystemSpecial(untyped)) {
         if (untyped =:= Type.of[Any].asUntyped) Some(classOf[Any])
@@ -101,6 +118,17 @@ trait UntypedTypes { this: MacroCommons =>
     /** Override to add platform-specific built-in type class resolution (e.g. IArray on Scala 3). */
     protected def toClassJvmBuiltInExtra(untyped: UntypedType): Option[java.lang.Class[?]] = None
 
+    /** Whether the given type is a JVM primitive.
+      *
+      * A primitive is one of the 8 JVM value types that box to `java.lang.Object` (`Boolean`, `Byte`, `Short`, `Int`,
+      * `Long`, `Float`, `Double`, `Char`) - these are listed in `Type.primitiveTypes`. '''Additionally `Unit` counts
+      * here''': `isPrimitive` returns `true` for `Unit` even though `Unit` is deliberately excluded from
+      * `Type.primitiveTypes` (it does not box the way the value types do). The asymmetry exists for parity with
+      * scalac's `Symbol.isPrimitive`, which counts `Unit`; without it a `!isPrimitive && isClass && !isAbstract`
+      * classifier would wrongly treat `Unit` as an instantiable POJO. See issue #310.
+      *
+      * @since 0.1.0
+      */
     final def isPrimitive(instanceTpe: UntypedType): Boolean =
       // `Unit` is not in `primitiveTypes` (it does not box to `java.lang.Object` the way the 8 value types do), but
       // scalac's `Symbol.isPrimitive`/`isPrimitiveValueClass` counts it, so for parity we count it here too. Otherwise
@@ -110,6 +138,17 @@ trait UntypedTypes { this: MacroCommons =>
     final def isArray(instanceTpe: UntypedType): Boolean =
       ArrayCtor.unapply(toTyped[Any](instanceTpe)).isDefined
     def isIArray(instanceTpe: UntypedType): Boolean = false
+
+    /** Whether the given type is a JVM built-in type.
+      *
+      * The built-in set is open-ended. A type is built-in when it is `<:<` any type in `Type.jvmBuiltInTypes` (the
+      * primitives plus `Unit`, `String`, `java.lang.Class`) '''or''' it is an array ([[isArray]]/[[isIArray]]) '''or'''
+      * it is a `java.lang.*` type ([[isInJavaLangPackage]]). Arrays and the `java.lang.*` package are unbounded
+      * families that cannot be enumerated, so they are detected structurally rather than listed in
+      * `Type.jvmBuiltInTypes`.
+      *
+      * @since 0.1.0
+      */
     final def isJvmBuiltIn(instanceTpe: UntypedType): Boolean =
       Type.jvmBuiltInTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying)) || isArray(
         instanceTpe
@@ -184,7 +223,31 @@ trait UntypedTypes { this: MacroCommons =>
 
     def isAvailable(instanceTpe: UntypedType, scope: Accessible): Boolean
 
+    /** Direct parents (the declared supertypes) of `instanceTpe`, e.g. `List(AnyRef, Serializable, ...)`.
+      *
+      * Only the immediate supertypes as written; use [[baseClasses]] for the full transitive linearization. On Scala 3
+      * this is computed via Java reflection to avoid the `TypeRepr#baseClasses` extension-method shadowing (issue
+      * #328).
+      *
+      * @param instanceTpe
+      *   the type whose direct supertypes are requested
+      * @see
+      *   [[baseClasses]]
+      * @since 0.4.1
+      */
     def parents(instanceTpe: UntypedType): List[UntypedType]
+
+    /** The full linearized set of base classes of `instanceTpe` - transitive, including `instanceTpe` itself.
+      *
+      * Contrast [[parents]] (direct supertypes only). On Scala 3, code that also imports `quotes.reflect` should prefer
+      * the `baseClassTypes` extension to sidestep the `TypeRepr#baseClasses` shadowing (issue #328).
+      *
+      * @param instanceTpe
+      *   the type whose base classes are requested
+      * @see
+      *   [[parents]]
+      * @since 0.4.1
+      */
     def baseClasses(instanceTpe: UntypedType): List[UntypedType]
 
     /** Describes a single member override for [[unsafeNewSubtype]].
@@ -211,6 +274,27 @@ trait UntypedTypes { this: MacroCommons =>
         body: (UntypedExpr, List[UntypedExpr], UntypedType, List[UntypedType], Boolean) => UntypedExpr
     )
 
+    /** Low-level: synthesizes an anonymous subtype tree of `targetType` (plus any extra `parentTypes`) with the given
+      * constructor arguments and member overrides - i.e. `new targetType(...) with parentTypes... { overrides... }`.
+      *
+      * This is the raw tree generator behind the typed `AnonymousInstance` API. Prefer `AnonymousInstance` unless you
+      * specifically need the untyped primitive: it adds validation, method classification and typed override bodies on
+      * top of this.
+      *
+      * @param targetType
+      *   the primary type to subclass (a class or trait)
+      * @param parentTypes
+      *   additional parent traits to mix in
+      * @param constructor
+      *   the constructor of `targetType` to invoke, if any
+      * @param constructorArgs
+      *   the argument lists passed to `constructor`
+      * @param overrides
+      *   the member overrides to emit in the anonymous class body
+      * @return
+      *   the synthesized instance expression, or `Left` with error messages when the input is invalid
+      * @since 0.4.0
+      */
     def unsafeNewSubtype(
         targetType: UntypedType,
         parentTypes: List[UntypedType],
@@ -224,6 +308,17 @@ trait UntypedTypes { this: MacroCommons =>
 
     def companionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)]
 
+    /** Direct subtypes of a sealed hierarchy or enum, keyed by the subtype's SIMPLE name, or `None` when the type is
+      * not decomposable.
+      *
+      * '''The map is keyed by the subtype's SIMPLE name.''' Same-named subtypes declared in different scopes (e.g.
+      * `object Color { case object Green }` alongside a top-level `case object Green`) collapse into a single entry,
+      * hiding the ambiguity (issue #309) - use [[directChildrenList]] when you must observe every subtype. '''Do not
+      * rely on the key format''': it is retained as-is for backward compatibility only. In 0.5.0 the key changes to the
+      * subtype's FULL name (without type parameters).
+      *
+      * @since 0.1.0
+      */
     def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]]
 
     /** Like [[directChildren]], but returns an ordered `List` instead of a `ListMap` keyed by simple name.
@@ -239,6 +334,20 @@ trait UntypedTypes { this: MacroCommons =>
       */
     def directChildrenList(instanceTpe: UntypedType): Option[List[(String, UntypedType)]] =
       directChildren(instanceTpe).map(_.toList)
+
+    /** Recursively flattened leaf subtypes of a sealed hierarchy or `enum` as a `NonEmptyMap`, or `None` when the type
+      * is not exhaustively decomposable.
+      *
+      * Unlike [[directChildren]] (one level only), this recurses through nested sealed parents down to the concrete
+      * leaf values (`case class`es, `case object`s, `enum` cases, enumeration values); stable singletons and
+      * enumeration values are treated as leaves and not recursed into.
+      *
+      * @param instanceTpe
+      *   the sealed / `enum` type to decompose
+      * @see
+      *   [[directChildren]]
+      * @since 0.1.0
+      */
     final def exhaustiveChildren(instanceTpe: UntypedType): Option[NonEmptyMap[String, UntypedType]] = {
       val isEnum = instanceTpe.isEnumeration
       directChildren(instanceTpe)
@@ -282,6 +391,24 @@ trait UntypedTypes { this: MacroCommons =>
     def typeConstructor(untyped: UntypedType): UntypedType
 
     def typeArguments(untyped: UntypedType): List[UntypedType]
+
+    /** Applies `args` to the type CONSTRUCTOR of `untyped` (after dealiasing), NOT to `untyped` as written.
+      *
+      * This means you may pass either a bare constructor (e.g. from [[typeConstructor]]) or an already-applied type -
+      * both yield the same result, because an already-applied type's existing arguments are dropped and replaced by
+      * `args`. (Before issue #312, Scala 3 applied to the type as-given, silently producing malformed types like
+      * `F[Any, ?][Int]`; Scala 2 always applied to the constructor. Both platforms now agree.)
+      *
+      * `args.size` should match the constructor's arity; a mismatch produces a malformed type with no error.
+      *
+      * @param untyped
+      *   the type whose type constructor is used (dealiased; any existing arguments are dropped)
+      * @param args
+      *   the replacement type arguments
+      * @return
+      *   the reconstructed applied type
+      * @since 0.4.0
+      */
     def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType
 
     /** Checks whether 2 types are built from the same type constructor (compared by type symbol, after dealiasing),

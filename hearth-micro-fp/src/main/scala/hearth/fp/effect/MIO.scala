@@ -105,6 +105,12 @@ import hearth.fp.data.NonEmptyVector
   * println(result)
   * }}}
   *
+  * The example above calls `unsafe.runSync` for illustration; in a real macro you would '''not''' run the `MIO`
+  * yourself — return it and let [[hearth.MIOIntegrations.MioExprOps.runToExprOrFail]] run it exactly once, at the top
+  * level of the expansion.
+  *
+  * @see
+  *   [[hearth.MIOIntegrations.MioExprOps.runToExprOrFail]] for the single, top-level entry point that runs an `MIO`
   * @since 0.1.0
   */
 sealed trait MIO[+A] { fa =>
@@ -112,6 +118,20 @@ sealed trait MIO[+A] { fa =>
 
   // --------------------------------------- Transform both success and failure  --------------------------------------
 
+  /** Handles both outcomes of this `MIO` in one step: on success runs `onSuccess`, on failure runs `onFailure`.
+    *
+    * This is the primitive that the rest of the combinators (`flatMap`, `map`, `orElse`, `handleErrorWith`, …) delegate
+    * to. It also catches [[scala.util.control.NonFatal]] thrown while evaluating `onSuccess`/`onFailure`, turning it
+    * into an [[MErrors]] failure (logged via [[Log]]).
+    *
+    * @param onSuccess
+    *   continuation applied to the success value
+    * @param onFailure
+    *   continuation applied to the accumulated [[MErrors]]
+    * @return
+    *   the `MIO[B]` produced by whichever branch ran
+    * @since 0.1.0
+    */
   final def redeemWith[B](onSuccess: A => MIO[B])(onFailure: MErrors => MIO[B]): MIO[B] = :+ { (state, result) =>
     (try
       result.fold(onFailure, onSuccess)
@@ -139,6 +159,18 @@ sealed trait MIO[+A] { fa =>
 
   // ----------------------------------------------- Monadic operations -----------------------------------------------
 
+  /** Sequences another `MIO`-producing step after this one succeeds.
+    *
+    * This is the safe way to use a value that lives inside an `MIO`: instead of starting a nested run to reach it, stay
+    * inside the one program — `flatMap` the inner `MIO`, use its value, and return a new `MIO`. For the direct-style
+    * alternative, see [[MIO.scoped]].
+    *
+    * @param f
+    *   continuation producing the next `MIO` from this one's success value
+    * @see
+    *   [[MIO.scoped]] for the direct-style alternative to reach a value inside an `MIO`
+    * @since 0.1.0
+    */
   final def flatMap[B](f: A => MIO[B]): MIO[B] = redeemWith(f)(fail(_))
   final def flatten[B](implicit ev: A <:< MIO[B]): MIO[B] = flatMap(ev)
   final def flatTap[B](f: A => MIO[B]): MIO[A] = redeemWith(a => f(a).as(a))(fail(_))
@@ -171,12 +203,39 @@ sealed trait MIO[+A] { fa =>
     case e                     => fail(e)
   }
 
+  /** Falls back to `fb` if this `MIO` fails.
+    *
+    * If `fb` also fails, the two error vectors are '''aggregated''' (`e1 ++ e2`) rather than replaced — so the failure
+    * reported by `orElse` carries the errors of both attempts, not just the last one.
+    *
+    * @param fb
+    *   the fallback `MIO` to run if this one fails
+    * @return
+    *   this `MIO`'s success, or `fb`'s result, or a failure aggregating both error vectors
+    * @since 0.1.0
+    */
   final def orElse[A1 >: A](fb: => MIO[A1]): MIO[A1] = redeemWith[A1](pure) { e1 =>
     fb.redeemWith(pure)(e2 => fail(e1 ++ e2))
   }
 
   // ---------------------------------------------- Parallel operations -----------------------------------------------
 
+  /** Combines two `MIO`s with "parallel" semantics: both branches run from the same forked initial state and their
+    * results (and their accumulated errors) are merged afterwards.
+    *
+    * "Parallel" is a loaded word here: this is NOT real threads/fibers. Execution is sequential, with fork/join
+    * [[MState]] reconciliation (this is where [[MLocal]] fork/join runs). The key difference from `map2` is error
+    * handling: if BOTH branches fail, their error vectors are aggregated (`e1 ++ e2`), whereas `map2` short-circuits on
+    * the first failure.
+    *
+    * @param fb
+    *   the second `MIO`, run from the same forked state as this one
+    * @param f
+    *   combines the two success values
+    * @see
+    *   the class-doc note on the "parallel" semantics and [[MLocal]] for the fork/join reconciliation
+    * @since 0.1.0
+    */
   final def parMap2[B, C](fb: => MIO[B])(f: (A, B) => C): MIO[C] =
     MIO.void :+ { (previousState, _) =>
       def faForked = Pure(previousState.fork(explicitlyRewind = MState.empty), Right(())) >> fa
@@ -207,20 +266,53 @@ sealed trait MIO[+A] { fa =>
 
   // --------------------------------------------------- Utilities ----------------------------------------------------
 
+  /** Structured logging attached to this value: each method adds a [[Log]] entry and passes the value/errors/result
+    * through unchanged.
+    *
+    * @see
+    *   [[Log]] for the journal these entries are appended to
+    * @since 0.1.0
+    */
   object log {
 
+    /** Logs `message` at info level and passes this value through unchanged.
+      *
+      * @since 0.1.0
+      */
     final def info(message: => String): MIO[A] = valueAsInfo(_ => message)
+
+    /** Logs `message` at warn level and passes this value through unchanged.
+      *
+      * @since 0.1.0
+      */
     final def warn(message: => String): MIO[A] = valueAsWarn(_ => message)
+
+    /** Logs `message` at error level and passes this value through unchanged.
+      *
+      * @since 0.1.0
+      */
     final def error(message: => String): MIO[A] = valueAsError(_ => message)
 
+    /** Logs an info/warn/error message derived from this success value, passing the value through unchanged.
+      *
+      * @since 0.1.0
+      */
     final def valueAsInfo(message: A => String): MIO[A] = flatTap(a => Log.info(message(a)))
     final def valueAsWarn(message: A => String): MIO[A] = flatTap(a => Log.warn(message(a)))
     final def valueAsError(message: A => String): MIO[A] = flatTap(a => Log.error(message(a)))
 
+    /** Logs an info/warn/error message derived from the accumulated [[MErrors]], then re-fails with them.
+      *
+      * @since 0.1.0
+      */
     final def errorsAsInfo(message: MErrors => String): MIO[A] = handleErrorWith(e => Log.info(message(e)) >> fail(e))
     final def errorsAsWarn(message: MErrors => String): MIO[A] = handleErrorWith(e => Log.warn(message(e)) >> fail(e))
     final def errorsAsError(message: MErrors => String): MIO[A] = handleErrorWith(e => Log.error(message(e)) >> fail(e))
 
+    /** Logs an info/warn/error message derived from the [[MResult]] (success or failure), passing the result through.
+      *
+      * @since 0.1.0
+      */
     final def resultAsInfo(message: MResult[A] => String): MIO[A] = attemptFlatTap(r => Log.info(message(r)))
     final def resultAsWarn(message: MResult[A] => String): MIO[A] = attemptFlatTap(r => Log.warn(message(r)))
     final def resultAsError(message: MResult[A] => String): MIO[A] = attemptFlatTap(r => Log.error(message(r)))
@@ -228,11 +320,17 @@ sealed trait MIO[+A] { fa =>
 
   /** Low-level escape hatches that run an `MIO` directly.
     *
-    * These are '''internal''': `runSync` sets up NONE of the top-level machinery (timeout, error aggregation config,
-    * benchmarking) and threads NO state between nested runs. Prefer running an `MIO` through
-    * `hearth.MIOIntegrations.MioExprOps.runToExprOrFail` (the single, top-level entry point). Compose nested
-    * derivations with `flatMap`/`DirectStyle` inside one `MIO` rather than re-running here; using `unsafe` is at your
-    * own risk, and it must never be nested inside another run.
+    * These are '''internal''': `runSync` sets up NONE of the top-level machinery — no timeout deadline, no benchmarking
+    * / flame-graph capture, no error aggregation or journal rendering — and threads NO state between nested runs (each
+    * `runSync` starts from `MState.empty`). Those settings are global and are installed exactly once, at the edge of
+    * the macro, by [[hearth.MIOIntegrations.MioExprOps.runToExprOrFail]] (the single, top-level entry point). Compose
+    * nested derivations with `flatMap`/[[hearth.fp.DirectStyle]] ([[MIO.scoped]]) inside one `MIO` rather than
+    * re-running here; using `unsafe` is at your own risk, and it must never be nested inside another run. Violating
+    * this is API misuse, not a bug.
+    *
+    * @see
+    *   [[hearth.MIOIntegrations.MioExprOps.runToExprOrFail]] for the entry point that installs the global machinery
+    * @since 0.1.0
     */
   object unsafe {
 
@@ -247,12 +345,42 @@ sealed trait MIO[+A] { fa =>
 }
 object MIO {
 
+  /** Lifts an already-computed value into a successful `MIO`.
+    *
+    * @since 0.1.0
+    */
   def pure[A](a: A): MIO[A] = lift(MResult.pure(a))
+
+  /** Creates a failed `MIO` from one or more errors (aggregated into an [[MErrors]]).
+    *
+    * @since 0.1.0
+    */
   def fail[A](head: Throwable, tail: Throwable*): MIO[A] = lift(MResult.fail(head, tail*))
+
+  /** Creates a failed `MIO` from an already-built [[MErrors]] vector.
+    *
+    * @since 0.1.0
+    */
   def fail[A](errs: MErrors): MIO[A] = lift(MResult.fail(errs))
   def void: MIO[Unit] = lift(MResult.void)
 
+  /** Lazily suspends a thunk into an `MIO`, evaluating it only when the program runs.
+    *
+    * [[scala.util.control.NonFatal]] thrown by `thunk` is caught and turned into a failure; [[MioTimeoutException]] is
+    * deliberately re-thrown so a timeout is not swallowed.
+    *
+    * @param thunk
+    *   the by-name computation to suspend
+    * @since 0.1.0
+    */
   def apply[A](thunk: => A): MIO[A] = defer(pure(thunk))
+
+  /** Lazily suspends a thunk that itself produces an `MIO`, deferring its evaluation until the program runs.
+    *
+    * @param thunk
+    *   the by-name `MIO`-producing computation to suspend
+    * @since 0.1.0
+    */
   def defer[A](thunk: => MIO[A]): MIO[A] = Impure(
     MState.empty,
     MResult.void,
@@ -265,10 +393,38 @@ object MIO {
       }
     )
   )
+
+  /** Lazily lifts an eager [[MResult]] (success or failure) into an `MIO`.
+    *
+    * @param thunk
+    *   the by-name [[MResult]] to suspend
+    * @since 0.1.0
+    */
   def suspend[A](thunk: => MResult[A]): MIO[A] = defer(Pure(MState.empty, thunk))
 
   def firstOf[A](head: MIO[A], tail: MIO[A]*): MIO[A] = tail.foldLeft(head)(_.orElse(_))
 
+  /** Direct-style block for `MIO`: inside `runSafe => …` you can extract the value of an `MIO[X]` as an `X` (via
+    * `runSafe(mio)`), while its errors and logs are still captured into the surrounding `MIO`.
+    *
+    * Together with [[MIO.flatMap]] this is the recommended way to reach a value that lives inside an `MIO` WITHOUT
+    * starting a nested run: pull the value out with `runSafe`, do your work, and let the result re-wrap into the one
+    * surrounding `MIO`. Do NOT open a nested [[hearth.MIOIntegrations.MioExprOps.runToExprOrFail]] run to reach into it
+    * — that would violate the single-top-level-run contract.
+    *
+    * Caution: like all of [[hearth.fp.DirectStyle]], this is not guaranteed stack-safe for arbitrary nesting — see the
+    * [[hearth.fp.DirectStyle]] class doc.
+    *
+    * @param runSafe
+    *   direct-style body; call `runSafe(mio)` to extract an `MIO[X]`'s value as an `X`
+    * @see
+    *   [[hearth.fp.DirectStyle]] for the underlying direct-style mechanism and its stack-safety caveat
+    * @see
+    *   [[MIO.flatMap]] for the combinator alternative to reach a value inside an `MIO`
+    * @see
+    *   the "DirectStyle" section of `docs/user-guide/micro-fp.md` (anchor `#directstyle`)
+    * @since 0.1.0
+    */
   def scoped[A](runSafe: DirectStyle.RunSafe[MIO] => A): MIO[A] = DirectStyleForMio.scoped(runSafe)
 
   /** Whether each Log.scoped should also benchmark the scope duration. */

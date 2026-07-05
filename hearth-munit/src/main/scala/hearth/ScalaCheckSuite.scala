@@ -10,16 +10,40 @@ import scala.collection.immutable.ListMap
 import scala.util.{Failure, Success, Try}
 import scala.language.implicitConversions
 
-/** Copy-pasted from
+/** ScalaCheck integration reparented onto [[hearth.Suite]] so properties can nest inside [[hearth.Suite#group]].
+  *
+  * Copy-pasted from
   * https://github.com/typelevel/munit-scalacheck/blob/main/src/main/scala/munit/scalacheck/ScalaCheckSuite.scala but
   * with a different parent - [[hearth.Suite]] instead of [[munit.FunSuite]], so it can be nested in
   * [[hearth.Suite#group]].
+  *
+  * @since 0.3.0
   */
 trait ScalaCheckSuite extends Suite {
 
+  /** Registers a ScalaCheck property as a test.
+    *
+    * @param name
+    *   the test name
+    * @param body
+    *   the property to check
+    * @param loc
+    *   source location for the failure message
+    * @since 0.3.0
+    */
   def property(name: String)(body: => Prop)(implicit loc: Location): Unit =
     property(new TestOptions(name, Set.empty, loc))(body)
 
+  /** Registers a ScalaCheck property as a test.
+    *
+    * @param options
+    *   the munit test options (name, tags, location)
+    * @param body
+    *   the property to check
+    * @param loc
+    *   source location for the failure message
+    * @since 0.3.0
+    */
   def property(options: TestOptions)(body: => Prop)(implicit loc: Location): Unit =
     test(options)(body)
 
@@ -121,6 +145,11 @@ trait ScalaCheckSuite extends Suite {
 
   type ArbitraryF[F[_], A] = Arbitrary[F[A]]
 
+  /** Type-directed equality assertion for property bodies - dispatches to `<==>` for [[hearth.data.Data]] and
+    * [[String]], to `.run` for `MEval`/`MIO`, and to `==>` otherwise.
+    *
+    * @since 0.3.0
+    */
   trait AssertEq[A] {
 
     def assertEq(a: A, b: A)(implicit loc: munit.Location): Unit
@@ -159,6 +188,16 @@ trait ScalaCheckSuite extends Suite {
 
   implicit class AssertEqOps[A](a: A) {
 
+    /** Asserts that `a` and `b` are equal via the in-scope [[AssertEq]].
+      *
+      * @param b
+      *   the value to compare against
+      * @param assertEq
+      *   the type-directed equality assertion
+      * @param loc
+      *   source location for the failure message
+      * @since 0.3.0
+      */
     def ===(b: A)(implicit assertEq: AssertEq[A], loc: munit.Location): Unit = assertEq.assertEq(a, b)
   }
 

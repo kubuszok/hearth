@@ -51,6 +51,15 @@ trait Methods { this: MacroCommons =>
     lazy val position: Option[Position] = asUntyped.position
 
     lazy val hasDefault: Boolean = asUntyped.hasDefault
+
+    /** The method that computes this parameter's default value, if it has one (`None` otherwise).
+      *
+      * The returned [[Method]] is a builder chain for the compiler-synthesized default-value method (e.g.
+      * `Foo.apply$default$2`). For a generic enclosing class its type arguments are re-applied here, so a default whose
+      * type mentions a class type parameter is resolved rather than left abstract.
+      *
+      * @since 0.4.0
+      */
     lazy val defaultValue: Option[Method] = asUntyped.default(untypedInstanceType).map { untyped =>
       val method = untyped.asTyped(using untypedInstanceType.asTyped[Any])
       method match {
@@ -145,7 +154,15 @@ trait Methods { this: MacroCommons =>
   /** Describes what one step of the method builder chain expects (typed, user-facing).
     *
     * Exposed on every [[Method]] via `expectations`. Users can pattern-match on this to classify methods by their chain
-    * shape (e.g. find all generic methods, all path-dependent methods, etc.).
+    * shape (e.g. find all generic methods, all path-dependent methods, etc.). The order of the steps mirrors the
+    * method's source clauses:
+    *   - `NeedsInstance` — the receiver of a non-static, non-constructor method,
+    *   - `NeedsTypes` — one type-parameter clause,
+    *   - `NeedsValues` — one value-parameter clause.
+    *
+    * Because Scala 3 allows parameter-clause interleaving (`def f[A](a: A)[B](b: B)`) while Scala 2 does not, the
+    * number and interleaving of `NeedsTypes`/`NeedsValues` steps can differ between platforms for the same logical
+    * method - do not hard-code a fixed step layout.
     *
     * @since 0.4.0
     */
@@ -159,12 +176,46 @@ trait Methods { this: MacroCommons =>
   /** Represents a method as a builder chain, where each variant partially applies one layer of arguments and returns
     * the next [[Method]] in the chain.
     *
-    * Pattern match to determine what the next step expects:
+    * A `Method` is NOT directly callable; it is a step in a builder chain that you advance one layer of arguments at a
+    * time until you reach the terminal [[Method.Result]], whose `build()` validates the accumulated arguments and
+    * produces the call expression:
+    *
+    * {{{
+    * OnInstance -> ApplyTypes -> ApplyValues -> Result.build(): Either[String, Expr[Returned]]
+    * }}}
+    *
+    * Do not assume a fixed shape: not every step is present (a nullary no-arg method may be a [[Method.Result]]
+    * immediately; a constructor has no [[Method.OnInstance]]; Scala 3 clause interleaving can produce several
+    * [[Method.ApplyTypes]]/[[Method.ApplyValues]] steps - see [[MethodExpectation]]). Pattern match to determine what
+    * the next step expects, calling that variant's `apply(...)` to obtain the next [[Method]]:
     *   - [[Method.OnInstance]] — needs an instance expression
     *   - [[Method.ApplyTypes]] — needs type arguments
     *   - [[Method.ApplyValues]] — needs value arguments
     *   - [[Method.Result]] — terminal, call `build()` to validate and produce the expression
     *
+    * Rather than driving the recursion by hand, prefer [[fold]] (or [[foldF]] for effectful callbacks), which walks the
+    * whole chain in one pass, asking you to supply each layer of arguments:
+    *
+    * {{{
+    * // Call `instance.methodName(args...)`, resolving each step of the chain in one pass:
+    * val result: Either[String, Expr_??] = method.fold(
+    *   onInstance = _  => instance.as_??,                 // supply the receiver
+    *   onTypes    = at => Map.empty,                      // supply type args (keyed by at.typeParams)
+    *   onValues   = av => av.parameters.flatten.map {     // supply value args by name
+    *     case (name, param) => name -> argFor(param)
+    *   }.toMap
+    * )
+    * result match {
+    *   case Right(expr) => // expr: Expr_?? of the method's return type
+    *   case Left(err)   => // application failed (missing/ill-typed args)
+    * }
+    * }}}
+    *
+    * Obtain `Method`s for a type via the discovery entry points [[Method.primaryConstructorOf]],
+    * [[Method.constructorsOf]] and [[Method.methodsOf]] (or the higher-level [[Class]] views).
+    *
+    * @see
+    *   [[fold]] and [[foldF]] for driving the chain
     * @since 0.4.0
     */
   sealed trait Method {
@@ -175,13 +226,42 @@ trait Methods { this: MacroCommons =>
     @ImportedCrossTypeImplicit
     implicit val Instance: Type[Instance]
 
+    /** Per-step description of what this method still needs applied; see [[MethodExpectation]].
+      *
+      * @since 0.4.0
+      */
     val expectations: List[MethodExpectation]
 
+    /** All value parameters of the whole method, across every clause.
+      *
+      * This is stable across the builder chain (it does not shrink as arguments are applied), so it is what you
+      * enumerate to build the full argument map. Contrast with [[parameters]], which only lists the parameters the
+      * CURRENT step still expects.
+      *
+      * @since 0.4.0
+      */
     def totalParameters: Parameters
+
+    /** The value parameters that the CURRENT step still expects.
+      *
+      * Empty on every step except a [[Method.ApplyValues]] step, where it holds exactly the parameters of the clause
+      * about to be applied. Use [[totalParameters]] when you need every parameter of the whole method regardless of the
+      * current chain position.
+      *
+      * @since 0.4.0
+      */
     def parameters: Parameters
 
+    /** The result type, when statically known (`None` until enough of the chain is applied to determine it).
+      *
+      * @since 0.4.0
+      */
     def knownReturning: Option[??]
 
+    /** Total number of value parameters across all clauses.
+      *
+      * @since 0.4.0
+      */
     final lazy val arity: Int = totalParameters.flatten.size
     final def isNAry(n: Int): Boolean = arity == n
     final lazy val isNullary: Boolean = isNAry(0)
@@ -214,6 +294,15 @@ trait Methods { this: MacroCommons =>
 
     final lazy val isConstructor: Boolean = asUntyped.isConstructor
 
+    /** Kind/origin predicates forwarding [[UntypedMethod]]; see that trait for the exact cross-platform contract.
+      *
+      * In particular [[isVal]] follows [[UntypedMethodMethods.isVal]], which also treats stable deferred (abstract)
+      * accessors and inherited constructor-`val` fields as vals.
+      *
+      * @see
+      *   [[UntypedMethodMethods.isVal]]
+      * @since 0.1.0
+      */
     final lazy val isVal: Boolean = asUntyped.isVal
     final lazy val isVar: Boolean = asUntyped.isVar
     final lazy val isLazy: Boolean = asUntyped.isLazy
@@ -225,24 +314,85 @@ trait Methods { this: MacroCommons =>
 
     final lazy val isFinal: Boolean = asUntyped.isFinal
     final lazy val isAbstract: Boolean = asUntyped.isAbstract
+
+    /** Whether this method overrides a member of a supertype; forwards [[UntypedMethodMethods.isOverride]].
+      *
+      * Cross-platform divergence: for `java.lang.Object` methods this is `true` on Scala 2 (they override members
+      * inherited from `Any`) but `false` on Scala 3 (`Object` is the root class). Cross-platform derivation code must
+      * not branch on this predicate for `Object` members.
+      *
+      * @see
+      *   [[UntypedMethodMethods.isOverride]]
+      * @since 0.1.0
+      */
     final lazy val isOverride: Boolean = asUntyped.isOverride
 
+    /** Whether this member is (unqualified) `private`; forwards [[UntypedMethodMethods.isPrivate]].
+      *
+      * Qualified visibility is normalized: `private[pkg]` yields `isPrivate == false` with
+      * `privateWithin == Some("pkg")` (and likewise `protected[pkg]` for [[isProtected]]/[[protectedWithin]]). To
+      * detect qualified-private members, check [[privateWithin]] rather than assuming `isPrivate` covers them.
+      *
+      * @see
+      *   [[UntypedMethodMethods.isPrivate]]
+      * @since 0.1.0
+      */
     final lazy val isPrivate: Boolean = asUntyped.isPrivate
     final lazy val isProtected: Boolean = asUntyped.isProtected
     final lazy val privateWithin: Option[String] = asUntyped.privateWithin
     final lazy val protectedWithin: Option[String] = asUntyped.protectedWithin
+
+    /** Whether this member is reachable under the given [[Accessible]] scope.
+      *
+      * @param scope
+      *   the accessibility scope to check against
+      * @return
+      *   `true` if the member is available in that scope
+      * @since 0.1.0
+      */
     final def isAvailable(scope: Accessible): Boolean = asUntyped.isAvailable(scope)
 
     final lazy val isConstructorArgument: Boolean = asUntyped.isConstructorArgument
+
+    /** Whether this method is a case-class field accessor.
+      *
+      * Singletons (case objects, parameterless Scala 3 enum cases) are NOT case-class fields - they are routed to
+      * [[SingletonValue]] instead.
+      *
+      * @see
+      *   [[UntypedMethodMethods.isCaseField]]
+      * @since 0.1.0
+      */
     final lazy val isCaseField: Boolean = asUntyped.isCaseField
 
+    /** Whether this method is a Scala accessor getter.
+      *
+      * Heuristic: a `val`/`var`/`lazy val` member ([[isVal]]/[[isVar]]/[[isLazy]]) that is not itself a setter. The
+      * companion [[isScalaSetter]] recognizes the compiler's `x_=` setter (a unary method whose name ends in `_=`), and
+      * [[isScalaAccessor]] is the union of the two.
+      *
+      * @since 0.4.0
+      */
     final lazy val isScalaGetter: Boolean = (isVal || isVar || isLazy) && !isScalaSetter
     final lazy val isScalaSetter: Boolean = (isUnary && name.endsWith("_="))
     final lazy val isScalaAccessor: Boolean = isScalaGetter || isScalaSetter
 
+    /** The field name behind a Scala accessor: the member name for a getter, or the name with the trailing `_=`
+      * stripped for a setter; `None` if this is not a Scala accessor.
+      *
+      * @since 0.4.0
+      */
     final lazy val scalaAccessorName: Option[String] =
       if (isScalaGetter) Some(name) else if (isScalaSetter) Some(name.dropRight(2)) else None
 
+    /** Whether this method is a JavaBean getter.
+      *
+      * JavaBean naming heuristic: a nullary instance method named `getX` returning a non-`Unit` type, or named `isX`
+      * returning `Boolean`. The companion [[isJavaSetter]] recognizes a unary instance `setX` method returning `Unit`,
+      * and [[isJavaAccessor]] is the union of the two.
+      *
+      * @since 0.4.0
+      */
     final lazy val isJavaGetter: Boolean =
       asUntyped.invocation == Invocation.OnInstance && isNullary &&
         knownReturning.exists { rt =>
@@ -258,6 +408,11 @@ trait Methods { this: MacroCommons =>
         }
     final lazy val isJavaAccessor: Boolean = isJavaGetter || isJavaSetter
 
+    /** The property name behind a JavaBean accessor: the `get`/`is`/`set` prefix is dropped and the remainder
+      * decapitalized (`getFooBar` -> `fooBar`); `None` if this is not a JavaBean accessor.
+      *
+      * @since 0.4.0
+      */
     final lazy val javaAccessorName: Option[String] =
       if (isJavaGetter) Some {
         val n = if (name.startsWith("is")) name.drop(2) else name.drop(3)
@@ -275,6 +430,25 @@ trait Methods { this: MacroCommons =>
 
     private[hearth] def appliedState: Method.AppliedState
 
+    /** Applies every step of the builder chain in one pass, calling the supplied callback for each instance/type/value
+      * clause, and returns the built expression or an error.
+      *
+      * This hides the manual `pattern match -> apply -> recurse -> Result.build()` recursion (see the [[Method]]
+      * overview for the worked example). Each callback is invoked once per matching step, in chain order; steps that a
+      * given method does not have are simply not visited.
+      *
+      * @param onInstance
+      *   supplies the receiver for a [[Method.OnInstance]] step
+      * @param onTypes
+      *   supplies the type arguments for a [[Method.ApplyTypes]] step (keyed by its `typeParams`)
+      * @param onValues
+      *   supplies the value arguments for a [[Method.ApplyValues]] step (keyed by parameter name)
+      * @return
+      *   the built call expression, or `Left` describing why application failed (missing/ill-typed args)
+      * @see
+      *   [[foldF]] for effectful callbacks
+      * @since 0.4.0
+      */
     final def fold(
         onInstance: Method.OnInstance => Expr_??,
         onTypes: Method.ApplyTypes => UntypedTypeArguments,
@@ -296,6 +470,23 @@ trait Methods { this: MacroCommons =>
       loop(this)
     }
 
+    /** Like [[fold]] but each callback is effectful in `F` (via [[hearth.fp.DirectStyle]]); short-circuits on the
+      * effect.
+      *
+      * @param onInstance
+      *   supplies (in `F`) the receiver for a [[Method.OnInstance]] step
+      * @param onTypes
+      *   supplies (in `F`) the type arguments for a [[Method.ApplyTypes]] step
+      * @param onValues
+      *   supplies (in `F`) the value arguments for a [[Method.ApplyValues]] step
+      * @tparam F
+      *   the effect type the callbacks run in
+      * @return
+      *   `F` of the built call expression, or `Left` describing why application failed
+      * @see
+      *   [[fold]] for the pure variant
+      * @since 0.4.0
+      */
     final def foldF[F[_]](
         onInstance: Method.OnInstance => F[Expr_??],
         onTypes: Method.ApplyTypes => F[UntypedTypeArguments],
@@ -391,10 +582,38 @@ trait Methods { this: MacroCommons =>
         hadKnownReturning: Boolean = false
     )
 
+    /** Returns the primary constructor of `A` as a builder chain, if any.
+      *
+      * The recommended entry point for constructing an `A`; see [[Method]] for how to drive the returned chain.
+      *
+      * @tparam A
+      *   the type whose primary constructor to resolve
+      * @return
+      *   the primary constructor as a [[Method]], or `None` if `A` has none
+      * @since 0.4.0
+      */
     def primaryConstructorOf[A: Type]: Option[Method] =
       UntypedType.fromTyped[A].primaryConstructor.map(_.asTyped[A])
+
+    /** Returns all constructors of `A`, each as a builder chain.
+      *
+      * @tparam A
+      *   the type whose constructors to resolve
+      * @return
+      *   every constructor of `A` as a [[Method]]
+      * @since 0.4.0
+      */
     def constructorsOf[A: Type]: List[Method] =
       UntypedType.fromTyped[A].constructors.map(_.asTyped[A])
+
+    /** Returns all methods (declared, inherited and synthetic) of `A`, each as a builder chain resolved against `A`.
+      *
+      * @tparam A
+      *   the instance type the methods are resolved against
+      * @return
+      *   every method visible on `A` as a [[Method]]
+      * @since 0.4.0
+      */
     def methodsOf[A: Type]: List[Method] =
       UntypedType.fromTyped[A].methods.map(_.asTyped[A])
 
@@ -509,7 +728,10 @@ trait Methods { this: MacroCommons =>
       buildFromStep(expectations, 0, None, Map.empty, Map.empty, initialState)
     }
 
-    /** Needs an instance expression. Call `apply(instance)` to advance the chain.
+    /** Needs an instance expression (the receiver of a non-static, non-constructor method).
+      *
+      * Call `apply(instance)` with an `Expr[Instance]` (or `applyUntyped` with an [[UntypedExpr]]) to supply the
+      * receiver and advance the chain; the [[Instance]] type member is the receiver's type.
       *
       * @since 0.4.0
       */
@@ -533,10 +755,18 @@ trait Methods { this: MacroCommons =>
       def applyUntyped(instance: UntypedExpr): Method = next(instance)
     }
     object OnInstance {
+
+      /** An [[OnInstance]] step whose receiver type is `A`.
+        *
+        * @since 0.4.0
+        */
       type Of[A] = OnInstance { type Instance = A }
     }
 
-    /** Needs type arguments. Call `apply(typeArgs)` to advance the chain.
+    /** Needs the type arguments of one type-parameter clause.
+      *
+      * The [[typeParams]] are the parameters this clause fills; call `apply(typeArgs)` with an [[UntypedTypeArguments]]
+      * map keyed by those parameters to advance the chain.
       *
       * @since 0.4.0
       */
@@ -559,7 +789,10 @@ trait Methods { this: MacroCommons =>
       def apply(typeArgs: UntypedTypeArguments): Method = next(typeArgs)
     }
 
-    /** Needs value arguments. Call `apply(arguments)` to advance the chain.
+    /** Needs the value arguments of one value-parameter clause.
+      *
+      * The [[parameters]] here are exactly the arguments this clause expects; call `apply(arguments)` with an
+      * [[Arguments]] map keyed by parameter name to advance the chain.
       *
       * @since 0.4.0
       */
@@ -582,7 +815,11 @@ trait Methods { this: MacroCommons =>
       def apply(arguments: Arguments): Method = next(UntypedArguments.fromTyped(arguments))
     }
 
-    /** Terminal step. All arguments have been accumulated. Call `build()` to validate and produce the expression.
+    /** Terminal step of the builder chain. All arguments have been accumulated; call [[build]] to validate them and
+      * produce the call expression.
+      *
+      * The [[Returned]] type member is the method's result type (possibly `Nothing` when it cannot be determined
+      * statically).
       *
       * @since 0.4.0
       */
@@ -603,21 +840,52 @@ trait Methods { this: MacroCommons =>
       implicit val Instance: Type[Instance] = instanceEvidence.Underlying
       def parameters: Parameters = List.empty
       def knownReturning: Option[??] = Some(Returned.as_??)
+
+      /** Validates all accumulated arguments and produces the call expression.
+        *
+        * @return
+        *   the built expression of type [[Returned]], or `Left` describing why validation/building failed
+        * @since 0.4.0
+        */
       def build(): Either[String, Expr[Returned]] =
         validateAndBuild().map(_.asTyped[Returned])
     }
     object Result {
+
+      /** A [[Result]] whose statically known result type is `A`.
+        *
+        * @since 0.4.0
+        */
       type Of[A] = Result[A]
     }
   }
 
-  /** Where do we need to access the method? (The use case, not the visibility). */
+  /** Where a class/method needs to be accessible from (the use case, not the member's own visibility).
+    *
+    * Passed as the `visibility` parameter to construction and enumeration APIs (e.g. [[CaseClass.construct]],
+    * [[CaseClass.copyMethod]], [[CaseClass.caseFieldValuesAt]]) to decide which members are usable. The three cases
+    * trade off safety against reach - see [[Everywhere]], [[AtCallSite]] and [[Anywhere]].
+    *
+    * @since 0.4.0
+    */
   sealed trait Accessible extends Product with Serializable
 
-  /** Class/Method is public */
+  /** Requires the class/method to be public (reachable from everywhere).
+    *
+    * The strictest scope: only members with no visibility restriction match.
+    *
+    * @since 0.4.0
+    */
   case object Everywhere extends Accessible
 
-  /** Class/Method might package private/protected modifier but we are in the same package */
+  /** Requires the class/method to be reachable at the macro-expansion point.
+    *
+    * A member may be `private[pkg]`/`protected` yet still match if the macro expands within a scope that can reach it.
+    * This is the safe default for generated code, since the emitted access (e.g. `instance.field`) has to compile at
+    * that point.
+    *
+    * @since 0.4.0
+    */
   case object AtCallSite extends Accessible
 
   /** No accessibility requirement - every class/method matches, regardless of its visibility.

@@ -8,6 +8,15 @@ package extensions
   * [[scala.jdk.javaapi.CollectionConverters.asScala]], and provides a [[scala.collection.Factory]] implementation.
   * Treats them as types without smart constructors.
   *
+  * @note
+  *   The code this provider emits calls `java.util.Map.entry(...)`, which requires '''JDK 9+''' at the consumer's
+  *   runtime; compile consuming code with a matching `-release` (e.g. `-release 11`). See issue #330 and the mkdocs
+  *   "JDK baseline of emitted code" section in docs/user-guide/standard-extensions.md.
+  * @note
+  *   `EnumMap` is detected '''symbolically''' (same type constructor as `java.util.EnumMap`), not via a macro-time
+  *   `Class.forName` - the latter missed enums defined in the same compilation run on Scala 3. Do not reintroduce the
+  *   `Class.forName` gate. See issue #323.
+  *
   * @since 0.3.0
   */
 final class IsCollectionProviderForJavaMap extends StandardMacroExtension { loader =>

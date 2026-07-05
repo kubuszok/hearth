@@ -11,6 +11,12 @@ package extensions
   * Note: This provider is sorted after [[IsCollectionProviderForJavaCollection]] alphabetically, so
   * [[java.util.Collection]] subtypes are handled by their own provider first.
   *
+  * @note
+  *   This provider matches '''only the exact''' `java.lang.Iterable[Item]`, deliberately declining proper subtypes
+  *   (e.g. `java.util.EnumSet`) so they fall through to a more specific provider. Its factory builds a
+  *   `java.util.ArrayList` and hands it back as `A`, which is sound only when `A` really is `java.lang.Iterable[Item]`;
+  *   upcasting that `ArrayList` to a subtype would fail. See issue #324.
+  *
   * @since 0.3.0
   */
 final class IsCollectionProviderForJavaIterable extends StandardMacroExtension { loader =>

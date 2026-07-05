@@ -18,9 +18,18 @@ package object effect {
       */
     object render {
 
+      /** Renders the logs as a tree under `rootScopeName`, keeping only entries whose level satisfies `filter`.
+        *
+        * @since 0.1.0
+        */
       def apply(rootScopeName: String)(filter: Log.Level => Boolean): String =
         Log.render(rootScopeName, logs, Log.Timestamp.empty, Log.Timestamp.empty)(filter)
 
+      /** Renders the logs as a tree under `rootScopeName` according to a [[LogRendering]] policy (this is the overload
+        * [[hearth.MIOIntegrations.MioExprOps.runToExprOrFail]] uses); [[DontRender]] yields [[scala.None]].
+        *
+        * @since 0.1.0
+        */
       def apply(rootScopeName: String, rendering: LogRendering): Option[String] = rendering match {
         case DontRender        => None
         case RenderFrom(level) => Some(render(rootScopeName)(_ >= level))
