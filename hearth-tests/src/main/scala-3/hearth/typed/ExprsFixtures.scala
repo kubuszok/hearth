@@ -110,6 +110,10 @@ object ExprsFixtures {
   inline def testValDefsCreateAndUse: Data = ${ testValDefsCreateAndUseImpl }
   private def testValDefsCreateAndUseImpl(using q: Quotes): Expr[Data] = new ExprsFixtures(q).testValDefsCreateAndUse
 
+  inline def testValDefsInsideQuotedLambda: Data = ${ testValDefsInsideQuotedLambdaImpl }
+  private def testValDefsInsideQuotedLambdaImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testValDefsInsideQuotedLambda
+
   inline def testValDefsVarInWhileLoop: Data = ${ testValDefsVarInWhileLoopImpl }
   private def testValDefsVarInWhileLoopImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testValDefsVarInWhileLoop

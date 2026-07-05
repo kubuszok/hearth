@@ -40,9 +40,18 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         * such a symbol with trees built by cross-quoted helpers (owned by the nested owner) aborts under
         * `-Xcheck-macros`: "Block contains definition with different owners". In the common, non-nested case
         * `CrossQuotes.ctx == quotes`, so this is exactly the entry splice owner and nothing changes.
+        *
+        * [hearth R2, 0.4.1] `CrossQuotes.ctx` follows Hearth's own nested splices (the #317 case, which we WANT) but
+        * ALSO tracks into native quoted lambdas — `Expr.quote { x => ... }` produces an `$anonfun` splice owner. Fresh
+        * symbols created there via `ValDefs` are placed by Hearth's control flow at the ENCLOSING splice level (not
+        * inside the quoted lambda), so owning them by `$anonfun` makes a `Block` mix `$anonfun`-owned and macro-owned
+        * defs → the same "different owners" abort (surfaced by kindlings' yaml-derivation). When the ctx owner is an
+        * anonymous function, fall back to the native `Symbol.spliceOwner`, which is the stable enclosing owner.
         */
-      private[Expr] def currentSpliceOwner: Symbol =
-        CrossQuotes.ctx[scala.quoted.Quotes].reflect.Symbol.spliceOwner.asInstanceOf[Symbol]
+      private[Expr] def currentSpliceOwner: Symbol = {
+        val ctxOwner = CrossQuotes.ctx[scala.quoted.Quotes].reflect.Symbol.spliceOwner.asInstanceOf[Symbol]
+        if ctxOwner.isAnonymousFunction then Symbol.spliceOwner else ctxOwner
+      }
 
       object freshTerm {
         // Workaround to contain @experimental from polluting the whole codebase
