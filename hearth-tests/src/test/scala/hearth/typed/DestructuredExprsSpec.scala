@@ -331,7 +331,9 @@ final class DestructuredExprsSpec extends MacroSuite {
 
       test("single-param lambda with ParamRef body") {
         testParseLambda((x: Int) => x) <==> Data.map(
-          "params" -> Data.list(Data.map("name" -> Data("x"), "type" -> Data("scala.Int"))),
+          "params" -> Data.list(
+            Data.map("name" -> Data("x"), "type" -> Data("scala.Int"), "declaredType" -> Data("scala.Int"))
+          ),
           "body" -> Data.map(
             "nodeType" -> Data("ParamRef"),
             "plainPrint" -> Data("x"),
@@ -343,7 +345,11 @@ final class DestructuredExprsSpec extends MacroSuite {
       test("single-param lambda with field access body") {
         testParseLambda((p: examples.parsed_exprs.Person) => p.name) <==> Data.map(
           "params" -> Data.list(
-            Data.map("name" -> Data("p"), "type" -> Data("hearth.examples.parsed_exprs.Person"))
+            Data.map(
+              "name" -> Data("p"),
+              "type" -> Data("hearth.examples.parsed_exprs.Person"),
+              "declaredType" -> Data("hearth.examples.parsed_exprs.Person")
+            )
           ),
           "body" -> Data.map(
             "nodeType" -> Data("MethodCall"),

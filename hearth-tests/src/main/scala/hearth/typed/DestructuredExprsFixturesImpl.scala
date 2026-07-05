@@ -42,7 +42,8 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
             "params" -> Data(info.params.map { p =>
               Data.map(
                 "name" -> Data(p.name),
-                "type" -> Data(p.tpe.plainPrint)
+                "type" -> Data(p.tpe.plainPrint),
+                "declaredType" -> Data(p.declaredTpe.plainPrint)
               )
             }),
             "body" -> renderNode(info.body)

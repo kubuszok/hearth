@@ -48,16 +48,29 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit]
 
-    /** Attaches an annotation to `expr` by binding it to a fresh, annotated `val`, producing the equivalent of
-      * `{ @annotation val fresh = expr; fresh }`.
+    /** Attaches the annotation `@Ann(arguments...)` to `expr` by binding it to a fresh, annotated `val`, producing the
+      * equivalent of `{ @Ann(arguments...) val fresh = expr; fresh }`.
       *
-      * `annotation` is the annotation INSTANCE expression (e.g. `Expr.quote(new scala.annotation.nowarn("msg"))` or
-      * `Expr.quote(new SuppressWarnings(Array("...")))`). Use this to wrap generated code in a user-supplied
-      * `@nowarn`/`@SuppressWarnings` (or any annotation), which is otherwise not expressible cross-platform.
+      * `Ann` is the annotation TYPE and `arguments` its constructor arguments (empty for a parameterless annotation).
+      * The annotation is built in annotation position, so this works uniformly for Scala annotations
+      * (`scala.annotation.nowarn`, with or without a message) and for JAVA annotations (`java.lang.SuppressWarnings`) —
+      * the latter cannot be instantiated in expression position (`new SuppressWarnings(...)` does not typecheck), which
+      * is why an annotation TYPE rather than an instance `Expr` is taken. Use this to wrap generated code in a
+      * user-configured `@nowarn`/`@SuppressWarnings` (or any annotation), which is otherwise not expressible
+      * cross-platform.
+      *
+      * {{{
+      * // @nowarn
+      * expr.annotated[scala.annotation.nowarn]()
+      * // @nowarn("msg")
+      * expr.annotated[scala.annotation.nowarn](Expr("msg").asUntyped)
+      * // @SuppressWarnings(Array("..."))
+      * expr.annotated[java.lang.SuppressWarnings](Expr.quote(scala.Array("...")).asUntyped)
+      * }}}
       *
       * @since 0.4.1
       */
-    def annotated[A: Type, Ann](expr: Expr[A], annotation: Expr[Ann]): Expr[A]
+    def annotated[A: Type, Ann: Type](expr: Expr[A], arguments: List[UntypedExpr]): Expr[A]
 
     def singletonOf[A: Type]: Option[Expr[A]]
 
@@ -183,7 +196,8 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       *
       * @since 0.4.1
       */
-    def annotated[Ann](annotation: Expr[Ann])(implicit A: Type[A]): Expr[A] = Expr.annotated(expr, annotation)
+    def annotated[Ann: Type](arguments: UntypedExpr*)(implicit A: Type[A]): Expr[A] =
+      Expr.annotated[A, Ann](expr, arguments.toList)
 
     /** Returns the type of this expression as seen by the compiler.
       *
@@ -1865,9 +1879,19 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
       /** A lambda parameter.
         *
+        * @param tpe
+        *   the parameter type as seen by the compiler — WIDENED on Scala 2 (the typer widens singleton parameter types,
+        *   so e.g. a Java-enum-value ascription `Color.Black.type` shows as `Color`).
+        * @param declaredTpe
+        *   the DECLARED / syntactic parameter type, with singletons preserved (from `tpt.original` on Scala 2); use
+        *   this to recover e.g. a selected Java-enum value via `Type.Ctor` matching. On Scala 3 the compiler already
+        *   retains the precise type, so `declaredTpe == tpe` there. See hearth#341.
+        *
         * @since 0.4.0
         */
-      final class Param private[hearth] (val name: String, val tpe: ??)
+      final class Param private[hearth] (val name: String, val tpe: ??, val declaredTpe: ??) {
+        private[hearth] def this(name: String, tpe: ??) = this(name, tpe, tpe)
+      }
 
       /** Reference to a lambda parameter in the body.
         *
