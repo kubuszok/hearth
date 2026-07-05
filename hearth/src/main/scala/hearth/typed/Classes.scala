@@ -151,7 +151,7 @@ trait Classes { this: MacroCommons =>
   /** Represents a named tuple (Scala 3.7+ only).
     *
     * It's a specialization of a [[Class]] that's aware that the type is a named tuple, providing access to its fields
-    * ([[fields]] maps each field name to its type) and a way to construct instances ([[construct]]).
+    * ([[fields]] maps each field name to its type) and a way to construct instances (`construct`).
     *
     * @since 0.3.0
     */
@@ -169,7 +169,7 @@ trait Classes { this: MacroCommons =>
     /** Builds an instance of this named tuple, resolving each field through `makeArgument`, in `F`.
       *
       * Returns `None` (without invoking `makeArgument`) when the primary constructor is not accessible under
-      * `visibility`. Unlike [[CaseClass.construct]] a successful field resolution cannot fail to construct: a named
+      * `visibility`. Unlike `CaseClass.construct` a successful field resolution cannot fail to construct: a named
       * tuple's constructor always applies, so an internal constructor failure is an invariant violation and throws an
       * `AssertionError`.
       *
@@ -328,7 +328,7 @@ trait Classes { this: MacroCommons =>
       * @return
       *   `F` of `Some(new A(...))`, or `F` of `None` if the constructor is inaccessible under `visibility`
       * @see
-      *   [[parConstruct]] for parallel field resolution
+      *   `parConstruct` for parallel field resolution
       * @since 0.1.0
       */
     def construct[F[_]: DirectStyle: Applicative](
@@ -341,7 +341,7 @@ trait Classes { this: MacroCommons =>
           primaryConstructor.totalParameters.flatten.toList.traverse(buildFieldResults(makeArgument))
         )
 
-    /** As the primary [[construct]] overload, but takes a plain `Parameter => F[Expr_??]` callback and uses the default
+    /** As the primary `construct` overload, but takes a plain `Parameter => F[Expr_??]` callback and uses the default
       * [[Everywhere]] visibility.
       *
       * @param makeArgument
@@ -355,8 +355,8 @@ trait Classes { this: MacroCommons =>
     def construct[F[_]: DirectStyle: Applicative](makeArgument: Parameter => F[Expr_??]): F[Option[Expr[A]]] =
       construct(CaseClass.ConstructField.apply[F](makeArgument))
 
-    /** As [[construct]], but resolves the constructor fields in parallel (`Parallel`) rather than sequentially, so
-      * their effects/errors are combined instead of short-circuiting on the first failure.
+    /** As `construct`, but resolves the constructor fields in parallel (`Parallel`) rather than sequentially, so their
+      * effects/errors are combined instead of short-circuiting on the first failure.
       *
       * @param makeArgument
       *   produces the `Expr` for one constructor parameter (see [[CaseClass.ConstructField]])
@@ -367,7 +367,7 @@ trait Classes { this: MacroCommons =>
       * @return
       *   `F` of `Some(new A(...))`, or `F` of `None` if the constructor is inaccessible under `visibility`
       * @see
-      *   [[construct]]
+      *   `construct`
       * @since 0.1.0
       */
     def parConstruct[F[_]: DirectStyle: Parallel](
@@ -380,7 +380,7 @@ trait Classes { this: MacroCommons =>
           primaryConstructor.totalParameters.flatten.toList.parTraverse(buildFieldResults(makeArgument))
         )
 
-    /** As the primary [[parConstruct]] overload, but takes a plain `Parameter => F[Expr_??]` callback and uses the
+    /** As the primary `parConstruct` overload, but takes a plain `Parameter => F[Expr_??]` callback and uses the
       * default [[Everywhere]] visibility.
       *
       * @since 0.1.0
@@ -500,7 +500,7 @@ trait Classes { this: MacroCommons =>
       }
 
     /** Callback producing the `Expr` for one constructor field, in `F`; the dependently-typed SAM consumed by
-      * [[CaseClass.construct]]/[[CaseClass.parConstruct]].
+      * `CaseClass.construct`/`CaseClass.parConstruct`.
       *
       * @since 0.1.0
       */
@@ -692,8 +692,8 @@ trait Classes { this: MacroCommons =>
     *
     * It's a specialization of a [[Class]] that's aware, that there is a default constructor and it's methods should
     * have Java Bean getters and setters ([[beanGetters]]/[[beanSetters]]). Construct instances with
-    * [[constructWithoutSetters]] (default constructor only) or [[constructWithSetters]] (default constructor plus
-    * setter calls).
+    * [[constructWithoutSetters]] (default constructor only) or `constructWithSetters` (default constructor plus setter
+    * calls).
     *
     * @since 0.1.0
     */
@@ -753,7 +753,7 @@ trait Classes { this: MacroCommons =>
           .map(_.close)
       }
 
-    /** As the primary [[constructWithSetters]] overload, but takes a plain `(String, Parameter) => F[Expr_??]` callback
+    /** As the primary `constructWithSetters` overload, but takes a plain `(String, Parameter) => F[Expr_??]` callback
       * and uses the default [[Everywhere]] visibility.
       *
       * @since 0.1.0
@@ -874,7 +874,7 @@ trait Classes { this: MacroCommons =>
 
   /** A reason an [[AnonymousInstance]] cannot be parsed or constructed; [[message]] renders the user-facing string
     * (surfaced through [[ClassViewResult.Incompatible]] on parse, or the `Left` errors of
-    * [[AnonymousInstance.construct]]).
+    * `AnonymousInstance.construct`).
     *
     * The cases are:
     *   - [[AnonymousInstanceError.TypeIsFinal]] / [[AnonymousInstanceError.TypeIsSealed]] /
@@ -932,7 +932,7 @@ trait Classes { this: MacroCommons =>
 
   /** How a parent method may be treated when building an [[AnonymousInstance]].
     *
-    * This drives [[AnonymousInstance.construct]]'s validation. The four cases are:
+    * This drives `AnonymousInstance.construct`'s validation. The four cases are:
     *   - [[MethodClassification.MustOverride]] — an abstract member with no inherited implementation; an override MUST
     *     be supplied (else [[AnonymousInstanceError.MissingRequiredOverride]]),
     *   - [[MethodClassification.MayOverride]] — a concrete member; providing an override is optional,
@@ -1005,7 +1005,7 @@ trait Classes { this: MacroCommons =>
   )
 
   /** Callback that produces an override's body from its [[OverrideContext]]; the value side of the
-    * `Map[UntypedMethod, OverrideBody]` passed to [[AnonymousInstance.construct]].
+    * `Map[UntypedMethod, OverrideBody]` passed to `AnonymousInstance.construct`.
     *
     * @since 0.4.0
     */
@@ -1020,8 +1020,8 @@ trait Classes { this: MacroCommons =>
     * Obtain one via [[AnonymousInstance.parse]] (or [[AnonymousInstance.parseWithMixins]] to add extra parents), which
     * returns a [[ClassViewResult]]. On [[ClassViewResult.Compatible]], inspect [[mustOverride]] / [[mayOverride]] /
     * [[cannotOverride]] / [[diamondConflicts]] (filtered views over [[classifiedMethods]] by [[MethodClassification]]),
-    * build a `Map[UntypedMethod, OverrideBody]` for the members you want to implement, and finally call [[construct]]
-    * to synthesize the instance.
+    * build a `Map[UntypedMethod, OverrideBody]` for the members you want to implement, and finally call `construct` to
+    * synthesize the instance.
     *
     * Example - implement every required (abstract) method of a trait and construct the instance:
     *
@@ -1061,7 +1061,7 @@ trait Classes { this: MacroCommons =>
   ) extends Class[A]()(using tpe0) {
 
     /** The [[classifiedMethods]] classified [[MethodClassification.MustOverride]]: abstract members that MUST be given
-      * an override for [[construct]] to succeed.
+      * an override for `construct` to succeed.
       *
       * @since 0.4.0
       */

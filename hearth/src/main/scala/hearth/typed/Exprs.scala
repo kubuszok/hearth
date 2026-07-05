@@ -198,7 +198,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     /** Evaluates an expression tree at macro-expansion time via reflection, returning the runtime value.
       *
       * `Right` holds the statically-computed value; `Left` holds the aggregated reasons the tree is NOT statically
-      * evaluable (a non-constant sub-tree, an unsupported type, etc.). This is the inverse of [[semiQuote]].
+      * evaluable (a non-constant sub-tree, an unsupported type, etc.). This is the inverse of `semiQuote`.
       *
       * Supported without overrides: primitives, `String`, `BigInt`/`BigDecimal`, `Data`, case classes (evaluated
       * field-by-field), enums / sealed traits (dispatched to the matching child at runtime), and singletons / case
@@ -215,7 +215,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       * @return
       *   `Right(value)` if statically evaluable, else `Left` with the aggregated reasons
       * @see
-      *   [[semiQuote]] for the inverse (value → `Expr`)
+      *   `semiQuote` for the inverse (value → `Expr`)
       * @see
       *   [[EvalOverride]] for the per-type override shape
       * @since 0.3.0
@@ -236,7 +236,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       */
     final def semiEval[A](expr: Expr[A]): Either[NonEmptyVector[String], A] = semiEval(expr, null)
 
-    /** Turns a runtime value into an expression tree at macro time — the inverse of [[semiEval]].
+    /** Turns a runtime value into an expression tree at macro time — the inverse of `semiEval`.
       *
       * `Right` holds the constructed `Expr`; `Left` holds a message when the value's type is not quotable.
       *
@@ -408,13 +408,13 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       */
     def tpe: Type[A] = Expr.typeOf(expr)
 
-    /** Evaluates this expression at macro time with no custom overrides — see [[ExprModule.semiEval]].
+    /** Evaluates this expression at macro time with no custom overrides — see `semiEval`.
       *
       * @since 0.3.0
       */
     def semiEval: Either[NonEmptyVector[String], A] = Expr.semiEval(expr)
 
-    /** Evaluates this expression at macro time with per-type overrides — see [[ExprModule.semiEval]].
+    /** Evaluates this expression at macro time with per-type overrides — see `semiEval`.
       *
       * @param overrides
       *   per-type evaluation dispatch, keyed by [[UntypedType]]
@@ -604,11 +604,11 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     implicit def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = Expr.SeqExprCodec[A]
   }
 
-  /** Per-type override for [[ExprModule.semiEval]]: `Some(f)` supplies custom macro-time evaluation for values of type
-    * `A`, dispatched by [[UntypedType]]; `None` falls through to the built-in reflection path.
+  /** Per-type override for `semiEval`: `Some(f)` supplies custom macro-time evaluation for values of type `A`,
+    * dispatched by [[UntypedType]]; `None` falls through to the built-in reflection path.
     *
     * @see
-    *   [[ExprModule.semiEval]]
+    *   `semiEval`
     * @see
     *   [[QuoteOverride]] for the inverse (value → `Expr`)
     * @since 0.3.0
@@ -631,11 +631,11 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     def none[A]: EvalOverride[A] = None
   }
 
-  /** Per-type override for [[ExprModule.semiQuote]]: `Some(f)` supplies custom macro-time quoting for values of type
-    * `A`, dispatched by [[UntypedType]]; `None` falls through to the built-in path.
+  /** Per-type override for `semiQuote`: `Some(f)` supplies custom macro-time quoting for values of type `A`, dispatched
+    * by [[UntypedType]]; `None` falls through to the built-in path.
     *
     * @see
-    *   [[ExprModule.semiQuote]]
+    *   `semiQuote`
     * @see
     *   [[EvalOverride]] for the inverse (`Expr` → value)
     * @since 0.3.0
