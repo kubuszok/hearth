@@ -145,13 +145,16 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = c.Expr[Unit](q"val _ = $expr; ()")
 
-    // [hearth#334] `{ @annotation val fresh = expr; fresh }`. Quasiquotes are not typed, so the annotation instance
-    // tree (`new Ann(args)`) must be `untypecheck`ed before it is spliced as a `val` modifier annotation (mixing typed
-    // and untyped trees crashes the compiler — the same reason annotation trees are untypechecked elsewhere).
-    override def annotated[A: Type, Ann](expr: Expr[A], annotation: Expr[Ann]): Expr[A] = {
+    // [hearth#334] `{ @Ann(arguments...) val fresh = expr; fresh }`. The annotation is built in annotation position as
+    // `new Ann(arguments...)` (which, unlike an expression-position `new`, is accepted for Java annotations like
+    // `@SuppressWarnings`). Quasiquotes are not typed, so the argument trees are `untypecheck`ed before splicing
+    // (mixing typed and untyped trees crashes the compiler — the same reason annotation trees are untypechecked
+    // elsewhere).
+    override def annotated[A: Type, Ann: Type](expr: Expr[A], arguments: List[UntypedExpr]): Expr[A] = {
       val name = c.internal.reificationSupport.freshTermName("annotated$macro$")
-      val annotationTree = c.untypecheck(annotation.tree.duplicate)
-      c.Expr[A](q"""@$annotationTree val $name = $expr
+      val argTrees = arguments.map(argument => c.untypecheck(argument.duplicate))
+      val annotation = q"new ${Type[Ann]}(..$argTrees)"
+      c.Expr[A](q"""@$annotation val $name = $expr
       $name""")
     }
 
@@ -3815,11 +3818,27 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       outerLambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param]
   ): DestructuredExpr = {
     val dstrParams = params.map { vd =>
-      val paramTpe =
-        if (vd.tpt != null && vd.tpt.tpe != null && vd.tpt.tpe != NoType) UntypedType.as_??(vd.tpt.tpe)
-        else if (vd.symbol != null && vd.symbol != NoSymbol) UntypedType.as_??(vd.symbol.typeSignature)
-        else Type.of[Any].as_??
-      new DestructuredExpr.Lambda.Param(vd.name.decodedName.toString, paramTpe)
+      val widenedTpe: c.Type =
+        if (vd.tpt != null && vd.tpt.tpe != null && vd.tpt.tpe != NoType) vd.tpt.tpe
+        else if (vd.symbol != null && vd.symbol != NoSymbol) vd.symbol.typeSignature
+        else definitions.AnyTpe
+      // [hearth#341] `tpt.tpe` is the typechecked (widened) type — Scala 2's typer widens a Java-enum-value singleton
+      // ascription (`Color.Black.type` -> `Color`), so the selected value is lost. The syntactic `tpt.original` keeps it
+      // as `SingletonTypeTree(Literal(const))`; rebuild the precise (un-widened) type from the constant so downstream
+      // can recover the enum value. Every other parameter keeps its (already-precise) widened type.
+      val declaredTpe: c.Type = vd.tpt match {
+        case tpt: TypeTree =>
+          tpt.original match {
+            case SingletonTypeTree(Literal(const)) => c.internal.constantType(const)
+            case _                                 => widenedTpe
+          }
+        case _ => widenedTpe
+      }
+      new DestructuredExpr.Lambda.Param(
+        vd.name.decodedName.toString,
+        UntypedType.as_??(widenedTpe),
+        UntypedType.as_??(declaredTpe)
+      )
     }
     val newLambdaParams = outerLambdaParams ++ params.zip(dstrParams).collect {
       case (vd, p) if vd.symbol != null && vd.symbol != NoSymbol => vd.symbol -> p

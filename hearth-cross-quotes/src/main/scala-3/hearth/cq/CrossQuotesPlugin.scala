@@ -872,8 +872,9 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          *   ...
          *   Type.Ctor22.Bounded.Impl[Nothing, U1, Nothing, U2, ..., Nothing, U22, HKT]
          */
-        case TypeApply(prefix @ Select(Select(Ident(tp), ctor), of), upper :+ hkt)
-            if tp.show == "Type" && isCtor(ctor.show) && of.show == "of" =>
+        // [hearth#344] `UpperBounded.of` is a 3-select (`Type.CtorN.UpperBounded.of`), not the 2-select `.of` above.
+        case TypeApply(Select(Select(Select(Ident(tp), ctor), upperBounded), of), upper :+ hkt)
+            if tp.show == "Type" && isCtor(ctor.show) && upperBounded.show == "UpperBounded" && of.show == "of" =>
           replaceTypeCtorOf(tree, ctor, hkt, upper.flatMap(u => List(minLower, u)))
 
         /* Replaces:
@@ -889,8 +890,9 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          *   ...
          *   Type.Ctor22.Bounded.Impl[L1, U1, L2, U2, ..., L22, U22, HKT]
          */
-        case TypeApply(prefix @ Select(Select(Ident(tp), ctor), of), bounded :+ hkt)
-            if tp.show == "Type" && isCtor(ctor.show) && of.show == "of" =>
+        // [hearth#344] `Bounded.of` is a 3-select (`Type.CtorN.Bounded.of`), not the 2-select `.of` above.
+        case TypeApply(Select(Select(Select(Ident(tp), ctor), boundedSel), of), bounded :+ hkt)
+            if tp.show == "Type" && isCtor(ctor.show) && boundedSel.show == "Bounded" && of.show == "of" =>
           replaceTypeCtorOf(tree, ctor, hkt, bounded)
 
         /* Replaces:

@@ -208,8 +208,18 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       * block. If [[fp.effect.MIO.MioTimeoutException]] is thrown during execution, it is caught and returned as
       * [[Left]].
       *
-      * Attempting to set a timeout when one is already active is an error — the global timeout is meant to be set once
-      * at the top level (e.g. in [[MioExprOps.runToExprOrFail]]).
+      * ==Contract==
+      *
+      * The MIO timeout is a SINGLE, global, top-level setting — like the error aggregation and the internal state
+      * threaded by an MIO run. `withMioTimeout` (and [[MioExprOps.runToExprOrFail]], which calls it) must be entered
+      * '''exactly once''', at the top level of a macro expansion. It is '''not''' re-entrant by design, and re-entering
+      * it is a contract violation (see the assertion below), not an implementation gap.
+      *
+      * To compose derivations that themselves produce `MIO` values (e.g. summoning a macro-derived implicit
+      * mid-derivation), stay INSIDE the one MIO program: extract values with `flatMap` (or `DirectStyle`), use them,
+      * and re-wrap the result in `MIO`. Do not open a second timeout / run. [[fp.effect.MIO.unsafe]]'s `runSync` and
+      * friends are internal escape hatches that set up no global state and do not thread nested state — use them at
+      * your own risk, and never nested.
       *
       * @since 0.3.0
       */
@@ -218,9 +228,13 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     )(thunk: => A): Either[fp.effect.MIO.MioTimeoutException, A] = {
       if (fp.effect.MIO.timeoutDeadlineNanos != Long.MaxValue)
         throw HearthAssertionError(
-          "MIO timeout is already set. " +
-            "The global timeout should only be set once at the top level (e.g. in runToExprOrFail). " +
-            "Nested timeouts are not supported.",
+          "MIO timeout is already set — you are re-entering `runToExprOrFail`/`withMioTimeout` while one is already " +
+            "running. This is a MISUSE of the API, not a bug: the MIO timeout (like error aggregation and the run's " +
+            "internal state) is a single, top-level setting and is deliberately NOT re-entrant. Call " +
+            "`runToExprOrFail` exactly once, at the top level of the expansion. To compose a derivation that yields an " +
+            "MIO (e.g. a summoned macro-derived implicit), extract it with `flatMap`/`DirectStyle` and re-wrap the " +
+            "result in MIO instead of starting a nested run. `MIO.unsafe.runSync` sets up no global state and does not " +
+            "thread nested state — it is internal and must not be nested either.",
           hearthVersion = HearthVersion.byHearthLibrary,
           scalaVersion = currentScalaVersion,
           platform = currentPlatform,

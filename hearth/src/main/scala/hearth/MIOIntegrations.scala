@@ -9,6 +9,20 @@ trait MIOIntegrations { this: MacroTypedCommons =>
 
     /** Expand the final result of the MIO, or fail with a message.
       *
+      * ==Contract: call once, at the top level==
+      *
+      * `runToExprOrFail` is the '''single entry point''' that runs an `MIO` program for a macro expansion: it installs
+      * the global timeout ([[Environment.withMioTimeout]]), configures benchmarking, aggregates errors/logs, and
+      * threads the run's internal state. It must therefore be called '''exactly once''', at the top level of the
+      * expansion — it is deliberately '''not''' re-entrant, and nesting it (directly, or indirectly by summoning a
+      * macro-derived implicit while an outer run is still on the stack) throws a [[HearthAssertionError]].
+      *
+      * To compose a derivation that itself yields an `MIO` (the usual "derive a nested instance" case), stay inside the
+      * one program: `flatMap` the inner `MIO` (or extract it with `DirectStyle`), use its value, and re-wrap the result
+      * in `MIO` — do not start a nested `runToExprOrFail`. [[fp.effect.MIO.unsafe]]'s `runSync` and friends are
+      * internal escape hatches that set up no global state and thread no nested state; use them at your own risk and
+      * never nested. Violating this is an API misuse, not a bug.
+      *
       * @since 0.1.0
       *
       * @param macroName

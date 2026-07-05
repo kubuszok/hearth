@@ -175,21 +175,43 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] =
       Block(List(expr.asTerm), Literal(UnitConstant())).asExprOf[Unit]
 
-    // [hearth#334] `{ @annotation val fresh = expr; fresh }`. The annotation is carried as an `AnnotatedType` on the
-    // fresh `val`'s type. `currentSpliceOwner`/`freshTerm` are the owner-following, `@experimental`-free helpers used
-    // by `ValDefs` (see the #317 note above); `changeOwner` reparents the bound expression onto the fresh symbol so
-    // `-Xcheck-macros` accepts the block.
-    override def annotated[A: Type, Ann](expr: Expr[A], annotation: Expr[Ann]): Expr[A] = {
-      // Cross-Quotes' `Expr.quote` wraps the annotation instance in `Inlined(...)`; `AnnotatedType` wants the bare
-      // constructor call (an `Inlined` annotation also crashes the source printer), so strip the wrappers.
-      def stripInlined(t: Term): Term = t match {
-        case Inlined(_, Nil, inner) => stripInlined(inner)
-        case other                  => other
+    // [hearth#334] `{ @Ann(arguments...) val fresh = expr; fresh }`. The annotation is built in annotation position via
+    // `quotes.reflect`'s `New` (which, unlike source-level `new`, works for Java annotations like `@SuppressWarnings`)
+    // and carried as an `AnnotatedType` on the fresh `val`'s type. `currentSpliceOwner`/`freshTerm` are the
+    // owner-following, `@experimental`-free helpers used by `ValDefs` (see the #317 note above); `changeOwner`
+    // reparents the bound expression onto the fresh symbol so `-Xcheck-macros` accepts the block.
+    override def annotated[A: Type, Ann: Type](expr: Expr[A], arguments: List[UntypedExpr]): Expr[A] = {
+      val annotationSymbol = TypeRepr.of[Ann].typeSymbol
+      def valueParams(ctor: Symbol): List[Symbol] = ctor.paramSymss.flatten.filterNot(_.isType)
+      // Pick the constructor that can accept the supplied arguments (required params <= args <= all params). `@nowarn`
+      // has a single `(value: String = "")` constructor, so parameterless `@nowarn` reuses it and fills the default.
+      val constructor = annotationSymbol.declarations
+        .filter(_.isClassConstructor)
+        .find { ctor =>
+          val params = valueParams(ctor)
+          val required = params.count(param => !param.flags.is(Flags.HasDefault))
+          arguments.sizeIs >= required && arguments.sizeIs <= params.size
+        }
+        .getOrElse(annotationSymbol.primaryConstructor)
+      // Fill any trailing default parameters (e.g. parameterless `@nowarn` -> the `value` default) from the companion's
+      // synthesized `<init>$default$N` getters.
+      val companion = annotationSymbol.companionModule
+      val fullArguments = valueParams(constructor).zipWithIndex.map { case (param, index) =>
+        arguments.lift(index).getOrElse {
+          companion.declaredMethod("$lessinit$greater$default$" + (index + 1)) match {
+            case default :: _ => Ref(companion).select(default)
+            case Nil          =>
+              report.errorAndAbort(
+                s"Cannot build annotation ${Type.prettyPrint[Ann]}: no argument for parameter `${param.name}` and no default found"
+              )
+          }
+        }
       }
+      val annotation = Apply(Select(New(TypeIdent(annotationSymbol)), constructor), fullArguments)
       val name = Symbol.newVal(
         platformSpecific.currentSpliceOwner,
         platformSpecific.freshTerm("annotated"),
-        AnnotatedType(TypeRepr.of[A], stripInlined(annotation.asTerm)),
+        AnnotatedType(TypeRepr.of[A], annotation),
         Flags.EmptyFlags,
         Symbol.noSymbol
       )

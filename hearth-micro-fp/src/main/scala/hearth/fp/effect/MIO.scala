@@ -226,6 +226,14 @@ sealed trait MIO[+A] { fa =>
     final def resultAsError(message: MResult[A] => String): MIO[A] = attemptFlatTap(r => Log.error(message(r)))
   }
 
+  /** Low-level escape hatches that run an `MIO` directly.
+    *
+    * These are '''internal''': `runSync` sets up NONE of the top-level machinery (timeout, error aggregation config,
+    * benchmarking) and threads NO state between nested runs. Prefer running an `MIO` through
+    * `hearth.MIOIntegrations.MioExprOps.runToExprOrFail` (the single, top-level entry point). Compose nested
+    * derivations with `flatMap`/`DirectStyle` inside one `MIO` rather than re-running here; using `unsafe` is at your
+    * own risk, and it must never be nested inside another run.
+    */
   object unsafe {
 
     final def runSync: (MState, MResult[A]) = MIO.run(fa)

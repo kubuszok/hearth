@@ -8,12 +8,16 @@ final private class AnnotatedExprFixtures(val c: blackbox.Context)
     extends MacroCommonsScala2
     with AnnotatedExprFixturesImpl {
 
-  def testAnnotatedRoundtripImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[A] = testAnnotatedRoundtrip[A](value)
-  def testAnnotatedRenderedImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[String] = testAnnotatedRendered[A](value)
+  def testNowarnImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[A] = testNowarn[A](value)
+  def testNowarnMsgImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[A] = testNowarnMsg[A](value)
+  def testSuppressWarningsImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[A] = testSuppressWarnings[A](value)
+  def testNowarnMsgRenderedImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[String] = testNowarnMsgRendered[A](value)
 }
 
 object AnnotatedExprFixtures {
 
-  def testAnnotatedRoundtrip[A](value: A): A = macro AnnotatedExprFixtures.testAnnotatedRoundtripImpl[A]
-  def testAnnotatedRendered[A](value: A): String = macro AnnotatedExprFixtures.testAnnotatedRenderedImpl[A]
+  def testNowarn[A](value: A): A = macro AnnotatedExprFixtures.testNowarnImpl[A]
+  def testNowarnMsg[A](value: A): A = macro AnnotatedExprFixtures.testNowarnMsgImpl[A]
+  def testSuppressWarnings[A](value: A): A = macro AnnotatedExprFixtures.testSuppressWarningsImpl[A]
+  def testNowarnMsgRendered[A](value: A): String = macro AnnotatedExprFixtures.testNowarnMsgRenderedImpl[A]
 }
