@@ -14,6 +14,7 @@ package object data {
     *   `hearth.Suite` `<==>` assertion
     * @see
     *   docs/user-guide/basic-utilities.md
+    *
     * @since 0.1.0
     */
   type Data = Data.Impl

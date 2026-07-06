@@ -7,7 +7,6 @@ import scala.reflect.{classTag, ClassTag}
 trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
 
   /** Platform-specific position representation (`c.universe.Position` in 2, `quotes.reflect.Position` in 3).
-    *
     * @since 0.1.0
     */
   type Position
@@ -45,7 +44,6 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     def column: Int = Position.column(position)
 
     /** Returns the original source text spanned by this [[Position]], if available.
-      *
       * @since 0.4.0
       */
     def sourceCode: Option[String] = Position.sourceCode(position)
@@ -98,16 +96,17 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       *
       * For parsed, structured access to these use [[typedSettings]] instead of reading the raw strings.
       *
-      * @return
-      *   the raw macro-settings strings
       * @see
       *   [[typedSettings]] for the parsed form
+      *
       * @since 0.1.0
+      *
+      * @return
+      *   the raw macro-settings strings
       */
     def XMacroSettings: List[String]
 
     /** Parses [[XMacroSettings]] into structured [[data.Data]] (or a [[scala.util.Left]] error message).
-      *
       * @since 0.1.0
       */
     final def typedSettings: Either[String, data.Data] = data.Data.parseList(XMacroSettings)
@@ -142,11 +141,13 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     /** Reports an error at the macro expansion point and aborts the expansion; this is the terminal reporter that
       * [[MioExprOps.runToExprOrFail]] calls to fail a macro.
       *
-      * @param msg
-      *   the error message to report
       * @see
       *   [[MioExprOps.runToExprOrFail]] which calls this to fail an expansion
+      *
       * @since 0.1.0
+      *
+      * @param msg
+      *   the error message to report
       */
     def reportErrorAndAbort(msg: String): Nothing
 
@@ -252,6 +253,13 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       * [[fp.effect.MIO.unsafe]]'s `runSync` and friends are internal escape hatches that set up no global state and do
       * not thread nested state — use them at your own risk, and never nested.
       *
+      * @see
+      *   [[MioExprOps.runToExprOrFail]] for the single, top-level entry point that calls this
+      * @see
+      *   [[fp.effect.MIO.unsafe]] for the internal, own-risk escape hatch that installs no timeout
+      *
+      * @since 0.3.0
+      *
       * @param timeout
       *   maximum wall-clock time the thunk may run before the deadline fires and the run is terminated
       * @param thunk
@@ -259,11 +267,6 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       * @return
       *   the thunk's result as [[Right]], or the [[fp.effect.MIO.MioTimeoutException]] as [[Left]] if the deadline
       *   fired
-      * @see
-      *   [[MioExprOps.runToExprOrFail]] for the single, top-level entry point that calls this
-      * @see
-      *   [[fp.effect.MIO.unsafe]] for the internal, own-risk escape hatch that installs no timeout
-      * @since 0.3.0
       */
     final def withMioTimeout[A](
         timeout: scala.concurrent.duration.FiniteDuration
@@ -326,7 +329,6 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     } yield value
 
     /** Loads all the macro extensions for the given extension type.
-      *
       * @since 0.1.0
       *
       * @tparam Extension
@@ -345,7 +347,6 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     }
 
     /** Loads all the macro extensions for the given extension type, excluding the ones with the given names.
-      *
       * @since 0.3.0
       *
       * @tparam Extension
@@ -368,7 +369,6 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     }
 
     /** Loads all the macro extensions for the given extension type, filtering by the given condition.
-      *
       * @since 0.3.0
       *
       * @tparam Extension
@@ -649,7 +649,6 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     ) extends Enclosure
 
     /** An enclosing `val`/`var`/`lazy val`.
-      *
       * @since 0.4.0
       */
     final case class Value(

@@ -31,10 +31,10 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
     * Hearth-internal [[hearthAssertionFailed]]/[[hearthRequirementFailed]] pair is different: it distinguishes a Hearth
     * bug that should be reported from a user misusing a Hearth API.
     *
+    * @since 0.1.0
+    *
     * @param message
     *   the message describing the unhandled path
-    *
-    * @since 0.1.0
     */
   final def assertionFailed(message: String): Nothing = throw new AssertionError(message)
 
@@ -43,10 +43,10 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
     * Intended to signal that there is an invalid path in macro that hasn't been properly handled, that should be
     * reported as an issue.
     *
-    * @since 0.1.0
-    *
     * @see
     *   [[HearthAssertionError]]
+    *
+    * @since 0.1.0
     */
   final private[hearth] def hearthAssertionFailed(description: String): Nothing = throw HearthAssertionError(
     description,
@@ -60,10 +60,10 @@ trait MacroCommons extends MacroUntypedCommons with MacroTypedCommons {
     *
     * Used to inform users that they are using Hearth in an invalid way, and should fix their code.
     *
-    * @since 0.2.0
-    *
     * @see
     *   [[HearthRequirementError]]
+    *
+    * @since 0.2.0
     */
   final private[hearth] def hearthRequirementFailed(description: String): Nothing = throw HearthRequirementError(
     description,

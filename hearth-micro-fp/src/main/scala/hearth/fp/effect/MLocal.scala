@@ -25,16 +25,15 @@ sealed trait MLocal[A] extends Product with Serializable {
   private[effect] val initial: A
 
   /** Reads the current value of this local as an `MIO[A]` within the surrounding [[MIO]] run.
-    *
     * @since 0.1.0
     */
   def get: MIO[A] = MIO.get(this)
 
   /** Writes `a` as the current value of this local, yielding `MIO[Unit]` within the surrounding [[MIO]] run.
+    * @since 0.1.0
     *
     * @param a
     *   the new value to store
-    * @since 0.1.0
     */
   def set(a: A): MIO[Unit] = MIO.set(this, a)
 }
@@ -58,6 +57,7 @@ object MLocal {
   }
 
   /** Creates a new [[MLocal]] value - each value, even if initialized the same way! - would be a separate instance.
+    * @since 0.1.0
     *
     * @param initial
     *   the initial value of the local variable, each indifidual [[MIO.unsafe.runSync]] would start from it
@@ -67,8 +67,6 @@ object MLocal {
     * @param join
     *   the function that is run after "fibers" are done (after [[MIO.parMap2]] or [[MIO.parTuple]]) to combine values
     *   from 2 different "fibers" back into a single value
-    *
-    * @since 0.1.0
     */
   def apply[A](initial: A)(fork: A => A)(join: (A, A) => A): MLocal[A] =
     new ForkJoinParallel(initial, fork, join)

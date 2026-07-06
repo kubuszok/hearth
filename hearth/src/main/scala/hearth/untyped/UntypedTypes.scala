@@ -53,11 +53,12 @@ trait UntypedTypes { this: MacroCommons =>
       * element has none) answer with `None` via [[toClassJvmBuiltInExtra]] instead of falling through to the assertion
       * (issue #333). The typed-layer counterpart is `Type.classOfType`.
       *
+      * @since 0.1.0
+      *
       * @param untyped
       *   the type whose runtime class is requested
       * @return
       *   the loaded `java.lang.Class`, or `None` when it cannot be resolved on the classpath
-      * @since 0.1.0
       */
     final def toClass(untyped: UntypedType): Option[java.lang.Class[?]] =
       if (isTypeSystemSpecial(untyped)) {
@@ -229,11 +230,13 @@ trait UntypedTypes { this: MacroCommons =>
       * this is computed via Java reflection to avoid the `TypeRepr#baseClasses` extension-method shadowing (issue
       * #328).
       *
-      * @param instanceTpe
-      *   the type whose direct supertypes are requested
       * @see
       *   [[baseClasses]]
+      *
       * @since 0.4.1
+      *
+      * @param instanceTpe
+      *   the type whose direct supertypes are requested
       */
     def parents(instanceTpe: UntypedType): List[UntypedType]
 
@@ -242,11 +245,13 @@ trait UntypedTypes { this: MacroCommons =>
       * Contrast [[parents]] (direct supertypes only). On Scala 3, code that also imports `quotes.reflect` should prefer
       * the `baseClassTypes` extension to sidestep the `TypeRepr#baseClasses` shadowing (issue #328).
       *
-      * @param instanceTpe
-      *   the type whose base classes are requested
       * @see
       *   [[parents]]
+      *
       * @since 0.4.1
+      *
+      * @param instanceTpe
+      *   the type whose base classes are requested
       */
     def baseClasses(instanceTpe: UntypedType): List[UntypedType]
 
@@ -281,6 +286,8 @@ trait UntypedTypes { this: MacroCommons =>
       * specifically need the untyped primitive: it adds validation, method classification and typed override bodies on
       * top of this.
       *
+      * @since 0.4.0
+      *
       * @param targetType
       *   the primary type to subclass (a class or trait)
       * @param parentTypes
@@ -293,7 +300,6 @@ trait UntypedTypes { this: MacroCommons =>
       *   the member overrides to emit in the anonymous class body
       * @return
       *   the synthesized instance expression, or `Left` with error messages when the input is invalid
-      * @since 0.4.0
       */
     def unsafeNewSubtype(
         targetType: UntypedType,
@@ -342,11 +348,13 @@ trait UntypedTypes { this: MacroCommons =>
       * leaf values (`case class`es, `case object`s, `enum` cases, enumeration values); stable singletons and
       * enumeration values are treated as leaves and not recursed into.
       *
-      * @param instanceTpe
-      *   the sealed / `enum` type to decompose
       * @see
       *   [[directChildren]]
+      *
       * @since 0.1.0
+      *
+      * @param instanceTpe
+      *   the sealed / `enum` type to decompose
       */
     final def exhaustiveChildren(instanceTpe: UntypedType): Option[NonEmptyMap[String, UntypedType]] = {
       val isEnum = instanceTpe.isEnumeration
@@ -376,7 +384,6 @@ trait UntypedTypes { this: MacroCommons =>
     }
 
     /** Strips type aliases, e.g. turns `type StringList = List[String]` into `List[String]`.
-      *
       * @since 0.4.0
       */
     def dealias(untyped: UntypedType): UntypedType
@@ -401,13 +408,14 @@ trait UntypedTypes { this: MacroCommons =>
       *
       * `args.size` should match the constructor's arity; a mismatch produces a malformed type with no error.
       *
+      * @since 0.4.0
+      *
       * @param untyped
       *   the type whose type constructor is used (dealiased; any existing arguments are dropped)
       * @param args
       *   the replacement type arguments
       * @return
       *   the reconstructed applied type
-      * @since 0.4.0
       */
     def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType
 

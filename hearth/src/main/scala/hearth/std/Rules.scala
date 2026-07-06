@@ -6,7 +6,6 @@ import hearth.fp.data.{NonEmptyList, NonEmptyMap, NonEmptyVector}
 import scala.collection.immutable.ListMap
 
 /** An utility which helps combining a sequence of rules into the rule application result.
-  *
   * @since 0.3.0
   */
 final class Rules[R <: Rule] private (rules: NonEmptyList[R]) {
@@ -20,12 +19,12 @@ final class Rules[R <: Rule] private (rules: NonEmptyList[R]) {
     * its result is returned as `Right`. If every rule [[Rule.Applicability.Yielded]], their reasons are aggregated by
     * rule into the `Left` of the [[Rules.ApplicationResult]].
     *
+    * @since 0.3.0
+    *
     * @param attempt
     *   how to run a single rule against the context, producing its [[Rule.Applicability]]
     * @return
     *   `Right(result)` from the first matching rule, or `Left` mapping each rule to why it yielded
-    *
-    * @since 0.3.0
     */
   def apply[A](attempt: R => Rule.Applicability[A]): ApplicationResult[R, A] =
     applyRules(rules.toList, Vector.empty)(attempt)
@@ -37,14 +36,14 @@ final class Rules[R <: Rule] private (rules: NonEmptyList[R]) {
     * Same first-match-wins/aggregate-reasons contract as the pure overload, except each `attempt` is run inside
     * [[hearth.fp.DirectStyle.scoped]] so the effect `F` can be evaluated in direct style while iterating the rules.
     *
+    * @since 0.3.0
+    *
     * @tparam F
     *   the effect wrapping each attempt, evaluated in direct style via its [[hearth.fp.DirectStyle]]
     * @param attempt
     *   how to run a single rule against the context, producing its [[Rule.Applicability]] inside `F`
     * @return
     *   `Right(result)` from the first matching rule, or `Left` mapping each rule to why it yielded, wrapped in `F`
-    *
-    * @since 0.3.0
     */
   def apply[F[_]: DirectStyle, A](attempt: R => F[Rule.Applicability[A]]): F[ApplicationResult[R, A]] =
     DirectStyle[F].scoped { runSafe =>
@@ -56,19 +55,16 @@ final class Rules[R <: Rule] private (rules: NonEmptyList[R]) {
 object Rules {
 
   /** Create a new [[Rules]] instance from the given rules.
-    *
     * @since 0.3.0
     */
   def apply[R <: Rule](head: R, tail: R*): Rules[R] = new Rules(NonEmptyList(head, tail.toList))
 
   /** Create a new [[Rules]] instance from the given rules.
-    *
     * @since 0.3.0
     */
   def from[R <: Rule](rules: NonEmptyList[R]): Rules[R] = new Rules(rules)
 
   /** Create a new [[Rules]] instance from the given rules.
-    *
     * @since 0.3.0
     */
   def from[R <: Rule](rules: NonEmptyVector[R]): Rules[R] = new Rules(rules.toNonEmptyList)

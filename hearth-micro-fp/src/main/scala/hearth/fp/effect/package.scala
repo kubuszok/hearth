@@ -6,20 +6,17 @@ import scala.math.Ordered.orderingToOrdered
 package object effect {
 
   /** Series of [[Log]]s.
-    *
     * @since 0.1.0
     */
   type Logs = Vector[Log]
   implicit final class LogsOps(logs: Logs) {
 
     /** Various ways of rendering [[Logs]] as a String.
-      *
       * @since 0.1.0
       */
     object render {
 
       /** Renders the logs as a tree under `rootScopeName`, keeping only entries whose level satisfies `filter`.
-        *
         * @since 0.1.0
         */
       def apply(rootScopeName: String)(filter: Log.Level => Boolean): String =
@@ -49,13 +46,14 @@ package object effect {
         * Requires benchmarked scopes (via `MIO.benchmarkScopes = true`). The output can be opened at
         * https://www.speedscope.app/.
         *
+        * @since 0.3.0
+        *
         * @param name
         *   profile name
         * @param macroStart
         *   reference timestamp from the start of macro expansion
         * @return
         *   Some(json) if there are benchmarked scopes, None otherwise
-        * @since 0.3.0
         */
       def speedscopeFlameGraph(name: String, macroStart: Log.Timestamp): Option[String] =
         FlameGraph.renderSpeedscope(name, logs, macroStart)
@@ -63,6 +61,8 @@ package object effect {
       /** Render as a speedscope-compatible JSON flame graph directly to an [[Appendable]].
         *
         * This avoids building the entire JSON in memory, which is important for large flame graphs.
+        *
+        * @since 0.3.0
         *
         * @param out
         *   the output to write to (e.g. Writer, StringBuilder)
@@ -72,7 +72,6 @@ package object effect {
         *   reference timestamp from the start of macro expansion
         * @return
         *   true if events were written, false otherwise
-        * @since 0.3.0
         */
       def speedscopeFlameGraphTo(out: java.lang.Appendable, name: String, macroStart: Log.Timestamp): Boolean =
         FlameGraph.renderSpeedscopeTo(out, name, logs, macroStart)
@@ -80,13 +79,11 @@ package object effect {
   }
 
   /** Macro errors.
-    *
     * @since 0.1.0
     */
   type MErrors = data.NonEmptyVector[Throwable]
 
   /** Eager results of a macro expansion.
-    *
     * @since 0.1.0
     */
   type MResult[+A] = Either[MErrors, A]

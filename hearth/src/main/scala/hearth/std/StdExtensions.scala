@@ -13,10 +13,10 @@ trait StdExtensions { this: MacroCommons =>
     * Provides common infrastructure: a mutable list of providers, `registerProvider`, abstract `parse`, concrete
     * `unapply` (for pattern matching) that delegates to `parse` and stores failure reasons in `lastUnapplyFailure`.
     *
+    * @since 0.3.0
+    *
     * @tparam Provided
     *   the type constructor that providers produce (e.g. `IsCollection`, `IsOption`)
-    *
-    * @since 0.3.0
     */
   trait ProvidedCompanion[Provided[_]] {
     protected val providers: scala.collection.mutable.ListBuffer[Provider] =
@@ -148,12 +148,12 @@ trait StdExtensions { this: MacroCommons =>
     * It should make it possible to handle most common cases, while also allowing the library's creators to e.g. handle
     * Validated[E, A] or other result types.
     *
+    * @since 0.3.0
+    *
     * @tparam Input
     *   the type of the input
     * @tparam Output
     *   the type of the output
-    *
-    * @since 0.3.0
     */
   trait CtorLikeOf[Input, Output] {
 
@@ -366,12 +366,12 @@ trait StdExtensions { this: MacroCommons =>
     *   - make it possible to extend the support for custom collections coming from other libraries just by providing a
     *     std extension for macro, that would be loaded from the classpath
     *
+    * @since 0.3.0
+    *
     * @tparam CollA
     *   the type of the collection with applied item type
     * @tparam Item
     *   the type of the item
-    *
-    * @since 0.3.0
     */
   trait IsCollectionOf[CollA, Item] {
 
@@ -385,12 +385,12 @@ trait StdExtensions { this: MacroCommons =>
       * by index) should '''override''' this - the only contract is that `f` is applied to each element exactly once, in
       * iteration order, and its resulting `Expr[Unit]` bodies are spliced without allocating a closure per element.
       *
+      * @since 0.3.0
+      *
       * @param value
       *   the collection expression to traverse
       * @param f
       *   builds the per-element body from an element expression
-      *
-      * @since 0.3.0
       */
     def foreach(value: Expr[CollA])(f: Expr[Item] => Expr[Unit]): Expr[Unit] = {
       val iterableExpr = asIterable(value)
@@ -435,16 +435,14 @@ trait StdExtensions { this: MacroCommons =>
   }
 
   /** An alias indicating the type is a collection of some item type, but the exact item type is an existential type.
+    * @since 0.3.0
     *
     * @tparam A
     *   the type of the collection
-    *
-    * @since 0.3.0
     */
   type IsCollection[A] = Existential[IsCollectionOf[A, *]]
 
   /** Shape companion recognising collection-shaped types; register a [[Provider]] here to teach it a custom collection.
-    *
     * @since 0.3.0
     */
   object IsCollection extends ProvidedCompanion[IsCollection] {
@@ -463,12 +461,12 @@ trait StdExtensions { this: MacroCommons =>
     *   - make it possible to extend the support for custom maps coming from other libraries just by providing a std
     *     extension for macro, that would be loaded from the classpath
     *
+    * @since 0.3.0
+    *
     * @tparam MapKV
     *   the type of the map with applied key and value type
     * @tparam Pair
     *   the type of the pair of key and value
-    *
-    * @since 0.3.0
     */
   trait IsMapOf[MapKV, Pair] extends IsCollectionOf[MapKV, Pair] {
 
@@ -490,10 +488,10 @@ trait StdExtensions { this: MacroCommons =>
   /** An alias indicating the type is a map of some key and value types, but the exact key and value types are an
     * existential type.
     *
+    * @since 0.3.0
+    *
     * @tparam A
     *   the type of the map
-    *
-    * @since 0.3.0
     */
   type IsMap[A] = Existential[IsMapOf[A, *]]
 
@@ -539,12 +537,12 @@ trait StdExtensions { this: MacroCommons =>
     *   - make it possible to extend the support for custom options coming from other libraries just by providing a std
     *     extension for macro, that would be loaded from the classpath
     *
+    * @since 0.3.0
+    *
     * @tparam OptionA
     *   the type of the option with applied item type
     * @tparam Item
     *   the type of the item
-    *
-    * @since 0.3.0
     */
   trait IsOptionOf[OptionA, Item] {
 
@@ -560,16 +558,14 @@ trait StdExtensions { this: MacroCommons =>
   }
 
   /** An alias indicating the type is an option of some item type, but the exact item type is an existential type.
+    * @since 0.3.0
     *
     * @tparam A
     *   the type of the option
-    *
-    * @since 0.3.0
     */
   type IsOption[A] = Existential[IsOptionOf[A, *]]
 
   /** Shape companion recognising option-shaped types; register a [[Provider]] here to teach it a custom option.
-    *
     * @since 0.3.0
     */
   object IsOption extends ProvidedCompanion[IsOption] {
@@ -588,14 +584,14 @@ trait StdExtensions { this: MacroCommons =>
     *   - make it possible to extend the support for custom eithers coming from other libraries just by providing a std
     *     extension for macro, that would be loaded from the classpath
     *
+    * @since 0.3.0
+    *
     * @tparam EitherLR
     *   the type of the either with applied left and right type
     * @tparam LeftValue
     *   the type of the left value
     * @tparam RightValue
     *   the type of the right value
-    *
-    * @since 0.3.0
     */
   trait IsEitherOf[EitherLR, LeftValue, RightValue] {
 
@@ -613,11 +609,10 @@ trait StdExtensions { this: MacroCommons =>
   }
 
   /** Specialization for Existential type for IsEitherOf that provides the left and right types as existential types.
+    * @since 0.3.0
     *
     * @tparam EitherLR
     *   the type of the either with applied left and right type
-    *
-    * @since 0.3.0
     */
   trait IsEither[EitherLR] {
 
@@ -633,7 +628,6 @@ trait StdExtensions { this: MacroCommons =>
   }
 
   /** Shape companion recognising either-shaped types; register a [[Provider]] here to teach it a custom either.
-    *
     * @since 0.3.0
     */
   object IsEither extends ProvidedCompanion[IsEither] {
@@ -652,12 +646,12 @@ trait StdExtensions { this: MacroCommons =>
     *   - make it possible to extend the support for new type libraries coming from other libraries just by providing a
     *     std extension for macro, that would be loaded from the classpath
     *
+    * @since 0.3.0
+    *
     * @tparam Outer
     *   the type of the value type
     * @tparam Inner
     *   the type of the inner type
-    *
-    * @since 0.3.0
     */
   trait IsValueTypeOf[Outer, Inner] {
 
@@ -669,16 +663,14 @@ trait StdExtensions { this: MacroCommons =>
   }
 
   /** An alias indicating the type is a value type of some inner type, but the exact inner type is an existential type.
+    * @since 0.3.0
     *
     * @tparam A
     *   the type of the value type
-    *
-    * @since 0.3.0
     */
   type IsValueType[A] = Existential[IsValueTypeOf[A, *]]
 
   /** Shape companion recognising value/wrapper types; register a [[Provider]] here to teach it a custom value type.
-    *
     * @since 0.3.0
     */
   object IsValueType extends ProvidedCompanion[IsValueType] {
@@ -691,7 +683,6 @@ trait StdExtensions { this: MacroCommons =>
   implicit final class EnvironmentStdExtensionsOps(private val environment: Environment.type) {
 
     /** Loads all standard extensions.
-      *
       * @since 0.3.0
       */
     def loadStandardExtensions(): ExtensionLoadingResult[StandardMacroExtension] =

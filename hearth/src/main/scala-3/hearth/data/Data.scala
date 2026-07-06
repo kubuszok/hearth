@@ -13,6 +13,7 @@ package data
   *   `hearth.Suite` `<==>` assertion
   * @see
   *   docs/user-guide/basic-utilities.md
+  *
   * @since 0.1.0
   */
 type Data = Data.Impl
@@ -21,13 +22,11 @@ object Data extends DataCommons { self =>
   opaque type Impl = Null | Int | Long | Float | Double | Boolean | String | List[?] | Map[?, ?]
 
   /** Empty/absent [[Data]] (renders as `null`).
-    *
     * @since 0.1.0
     */
   override def apply(): Data = null
 
   /** Wraps a primitive, `List[Data]` or `Map[String, Data]` as [[Data]].
-    *
     * @since 0.1.0
     */
   override def apply(value: Int): Data = value
@@ -42,7 +41,6 @@ object Data extends DataCommons { self =>
   implicit final class DataOps(private val data: Data) extends AnyVal {
 
     /** Pattern-matches the 9 possible [[Data]] shapes, applying the matching handler.
-      *
       * @since 0.1.0
       */
     def fold[A](
@@ -95,14 +93,14 @@ object Data extends DataCommons { self =>
     /** Structural diff of this [[Data]] against an `expected` one; an empty [[Diff]] means they are equal. Backs the
       * `<==>` assertion.
       *
+      * @since 0.1.0
+      *
       * @param expected
       *   the value to compare against
-      * @since 0.1.0
       */
     def diff(expected: Data): Diff = self.diff(expected = expected, actual = data)
 
     /** Pretty, multi-line rendering of this [[Data]].
-      *
       * @since 0.1.0
       */
     def render: String = self.render(data)

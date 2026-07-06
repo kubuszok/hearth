@@ -111,6 +111,7 @@ import hearth.fp.data.NonEmptyVector
   *
   * @see
   *   [[hearth.MIOIntegrations.MioExprOps.runToExprOrFail]] for the single, top-level entry point that runs an `MIO`
+  *
   * @since 0.1.0
   */
 sealed trait MIO[+A] { fa =>
@@ -124,13 +125,14 @@ sealed trait MIO[+A] { fa =>
     * to. It also catches [[scala.util.control.NonFatal]] thrown while evaluating `onSuccess`/`onFailure`, turning it
     * into an [[MErrors]] failure (logged via [[Log]]).
     *
+    * @since 0.1.0
+    *
     * @param onSuccess
     *   continuation applied to the success value
     * @param onFailure
     *   continuation applied to the accumulated [[MErrors]]
     * @return
     *   the `MIO[B]` produced by whichever branch ran
-    * @since 0.1.0
     */
   final def redeemWith[B](onSuccess: A => MIO[B])(onFailure: MErrors => MIO[B]): MIO[B] = :+ { (state, result) =>
     (try
@@ -165,11 +167,13 @@ sealed trait MIO[+A] { fa =>
     * inside the one program — `flatMap` the inner `MIO`, use its value, and return a new `MIO`. For the direct-style
     * alternative, see [[MIO.scoped]].
     *
-    * @param f
-    *   continuation producing the next `MIO` from this one's success value
     * @see
     *   [[MIO.scoped]] for the direct-style alternative to reach a value inside an `MIO`
+    *
     * @since 0.1.0
+    *
+    * @param f
+    *   continuation producing the next `MIO` from this one's success value
     */
   final def flatMap[B](f: A => MIO[B]): MIO[B] = redeemWith(f)(fail(_))
   final def flatten[B](implicit ev: A <:< MIO[B]): MIO[B] = flatMap(ev)
@@ -208,11 +212,12 @@ sealed trait MIO[+A] { fa =>
     * If `fb` also fails, the two error vectors are '''aggregated''' (`e1 ++ e2`) rather than replaced — so the failure
     * reported by `orElse` carries the errors of both attempts, not just the last one.
     *
+    * @since 0.1.0
+    *
     * @param fb
     *   the fallback `MIO` to run if this one fails
     * @return
     *   this `MIO`'s success, or `fb`'s result, or a failure aggregating both error vectors
-    * @since 0.1.0
     */
   final def orElse[A1 >: A](fb: => MIO[A1]): MIO[A1] = redeemWith[A1](pure) { e1 =>
     fb.redeemWith(pure)(e2 => fail(e1 ++ e2))
@@ -228,13 +233,15 @@ sealed trait MIO[+A] { fa =>
     * handling: if BOTH branches fail, their error vectors are aggregated (`e1 ++ e2`), whereas `map2` short-circuits on
     * the first failure.
     *
+    * @see
+    *   the class-doc note on the "parallel" semantics and [[MLocal]] for the fork/join reconciliation
+    *
+    * @since 0.1.0
+    *
     * @param fb
     *   the second `MIO`, run from the same forked state as this one
     * @param f
     *   combines the two success values
-    * @see
-    *   the class-doc note on the "parallel" semantics and [[MLocal]] for the fork/join reconciliation
-    * @since 0.1.0
     */
   final def parMap2[B, C](fb: => MIO[B])(f: (A, B) => C): MIO[C] =
     MIO.void :+ { (previousState, _) =>
@@ -271,30 +278,27 @@ sealed trait MIO[+A] { fa =>
     *
     * @see
     *   [[Log]] for the journal these entries are appended to
+    *
     * @since 0.1.0
     */
   object log {
 
     /** Logs `message` at info level and passes this value through unchanged.
-      *
       * @since 0.1.0
       */
     final def info(message: => String): MIO[A] = valueAsInfo(_ => message)
 
     /** Logs `message` at warn level and passes this value through unchanged.
-      *
       * @since 0.1.0
       */
     final def warn(message: => String): MIO[A] = valueAsWarn(_ => message)
 
     /** Logs `message` at error level and passes this value through unchanged.
-      *
       * @since 0.1.0
       */
     final def error(message: => String): MIO[A] = valueAsError(_ => message)
 
     /** Logs an info/warn/error message derived from this success value, passing the value through unchanged.
-      *
       * @since 0.1.0
       */
     final def valueAsInfo(message: A => String): MIO[A] = flatTap(a => Log.info(message(a)))
@@ -302,7 +306,6 @@ sealed trait MIO[+A] { fa =>
     final def valueAsError(message: A => String): MIO[A] = flatTap(a => Log.error(message(a)))
 
     /** Logs an info/warn/error message derived from the accumulated [[MErrors]], then re-fails with them.
-      *
       * @since 0.1.0
       */
     final def errorsAsInfo(message: MErrors => String): MIO[A] = handleErrorWith(e => Log.info(message(e)) >> fail(e))
@@ -310,7 +313,6 @@ sealed trait MIO[+A] { fa =>
     final def errorsAsError(message: MErrors => String): MIO[A] = handleErrorWith(e => Log.error(message(e)) >> fail(e))
 
     /** Logs an info/warn/error message derived from the [[MResult]] (success or failure), passing the result through.
-      *
       * @since 0.1.0
       */
     final def resultAsInfo(message: MResult[A] => String): MIO[A] = attemptFlatTap(r => Log.info(message(r)))
@@ -330,6 +332,7 @@ sealed trait MIO[+A] { fa =>
     *
     * @see
     *   [[hearth.MIOIntegrations.MioExprOps.runToExprOrFail]] for the entry point that installs the global machinery
+    *
     * @since 0.1.0
     */
   object unsafe {
@@ -346,19 +349,16 @@ sealed trait MIO[+A] { fa =>
 object MIO {
 
   /** Lifts an already-computed value into a successful `MIO`.
-    *
     * @since 0.1.0
     */
   def pure[A](a: A): MIO[A] = lift(MResult.pure(a))
 
   /** Creates a failed `MIO` from one or more errors (aggregated into an [[MErrors]]).
-    *
     * @since 0.1.0
     */
   def fail[A](head: Throwable, tail: Throwable*): MIO[A] = lift(MResult.fail(head, tail*))
 
   /** Creates a failed `MIO` from an already-built [[MErrors]] vector.
-    *
     * @since 0.1.0
     */
   def fail[A](errs: MErrors): MIO[A] = lift(MResult.fail(errs))
@@ -369,17 +369,18 @@ object MIO {
     * [[scala.util.control.NonFatal]] thrown by `thunk` is caught and turned into a failure; [[MioTimeoutException]] is
     * deliberately re-thrown so a timeout is not swallowed.
     *
+    * @since 0.1.0
+    *
     * @param thunk
     *   the by-name computation to suspend
-    * @since 0.1.0
     */
   def apply[A](thunk: => A): MIO[A] = defer(pure(thunk))
 
   /** Lazily suspends a thunk that itself produces an `MIO`, deferring its evaluation until the program runs.
+    * @since 0.1.0
     *
     * @param thunk
     *   the by-name `MIO`-producing computation to suspend
-    * @since 0.1.0
     */
   def defer[A](thunk: => MIO[A]): MIO[A] = Impure(
     MState.empty,
@@ -395,10 +396,10 @@ object MIO {
   )
 
   /** Lazily lifts an eager [[MResult]] (success or failure) into an `MIO`.
+    * @since 0.1.0
     *
     * @param thunk
     *   the by-name [[MResult]] to suspend
-    * @since 0.1.0
     */
   def suspend[A](thunk: => MResult[A]): MIO[A] = defer(Pure(MState.empty, thunk))
 
@@ -415,15 +416,17 @@ object MIO {
     * Caution: like all of [[hearth.fp.DirectStyle]], this is not guaranteed stack-safe for arbitrary nesting — see the
     * [[hearth.fp.DirectStyle]] class doc.
     *
-    * @param runSafe
-    *   direct-style body; call `runSafe(mio)` to extract an `MIO[X]`'s value as an `X`
     * @see
     *   [[hearth.fp.DirectStyle]] for the underlying direct-style mechanism and its stack-safety caveat
     * @see
     *   [[MIO.flatMap]] for the combinator alternative to reach a value inside an `MIO`
     * @see
     *   the "DirectStyle" section of `docs/user-guide/micro-fp.md` (anchor `#directstyle`)
+    *
     * @since 0.1.0
+    *
+    * @param runSafe
+    *   direct-style body; call `runSafe(mio)` to extract an `MIO[X]`'s value as an `X`
     */
   def scoped[A](runSafe: DirectStyle.RunSafe[MIO] => A): MIO[A] = DirectStyleForMio.scoped(runSafe)
 

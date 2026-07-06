@@ -6,7 +6,6 @@ import scala.collection.immutable.ListMap
 trait Methods { this: MacroCommons =>
 
   /** Represents a type parameter with resolved bounds.
-    *
     * @since 0.4.0
     */
   final class TypeParameter(
@@ -18,7 +17,6 @@ trait Methods { this: MacroCommons =>
   }
 
   /** Type parameters grouped as they appear in the method signature.
-    *
     * @since 0.4.0
     */
   type TypeParameters = List[List[TypeParameter]]
@@ -102,7 +100,6 @@ trait Methods { this: MacroCommons =>
     def annotationsOfType[Ann: Type]: List[Expr[Ann]] = Annotations.filterOfType[Ann](annotations)
 
     /** Whether this parameter has at least one annotation whose type is a subtype of `Ann`.
-      *
       * @since 0.4.0
       */
     def hasAnnotationOfType[Ann: Type]: Boolean = annotations.exists(_.Underlying <:< Type[Ann])
@@ -216,6 +213,7 @@ trait Methods { this: MacroCommons =>
     *
     * @see
     *   [[fold]] and [[foldF]] for driving the chain
+    *
     * @since 0.4.0
     */
   sealed trait Method {
@@ -227,7 +225,6 @@ trait Methods { this: MacroCommons =>
     implicit val Instance: Type[Instance]
 
     /** Per-step description of what this method still needs applied; see [[MethodExpectation]].
-      *
       * @since 0.4.0
       */
     val expectations: List[MethodExpectation]
@@ -253,13 +250,11 @@ trait Methods { this: MacroCommons =>
     def parameters: Parameters
 
     /** The result type, when statically known (`None` until enough of the chain is applied to determine it).
-      *
       * @since 0.4.0
       */
     def knownReturning: Option[??]
 
     /** Total number of value parameters across all clauses.
-      *
       * @since 0.4.0
       */
     final lazy val arity: Int = totalParameters.flatten.size
@@ -287,7 +282,6 @@ trait Methods { this: MacroCommons =>
     final def annotationsOfType[Ann: Type]: List[Expr[Ann]] = Annotations.filterOfType[Ann](annotations)
 
     /** Whether this method has at least one annotation whose type is a subtype of `Ann`.
-      *
       * @since 0.4.0
       */
     final def hasAnnotationOfType[Ann: Type]: Boolean = annotations.exists(_.Underlying <:< Type[Ann])
@@ -301,6 +295,7 @@ trait Methods { this: MacroCommons =>
       *
       * @see
       *   [[UntypedMethodMethods.isVal]]
+      *
       * @since 0.1.0
       */
     final lazy val isVal: Boolean = asUntyped.isVal
@@ -323,6 +318,7 @@ trait Methods { this: MacroCommons =>
       *
       * @see
       *   [[UntypedMethodMethods.isOverride]]
+      *
       * @since 0.1.0
       */
     final lazy val isOverride: Boolean = asUntyped.isOverride
@@ -335,6 +331,7 @@ trait Methods { this: MacroCommons =>
       *
       * @see
       *   [[UntypedMethodMethods.isPrivate]]
+      *
       * @since 0.1.0
       */
     final lazy val isPrivate: Boolean = asUntyped.isPrivate
@@ -343,12 +340,12 @@ trait Methods { this: MacroCommons =>
     final lazy val protectedWithin: Option[String] = asUntyped.protectedWithin
 
     /** Whether this member is reachable under the given [[Accessible]] scope.
+      * @since 0.1.0
       *
       * @param scope
       *   the accessibility scope to check against
       * @return
       *   `true` if the member is available in that scope
-      * @since 0.1.0
       */
     final def isAvailable(scope: Accessible): Boolean = asUntyped.isAvailable(scope)
 
@@ -361,6 +358,7 @@ trait Methods { this: MacroCommons =>
       *
       * @see
       *   [[UntypedMethodMethods.isCaseField]]
+      *
       * @since 0.1.0
       */
     final lazy val isCaseField: Boolean = asUntyped.isCaseField
@@ -437,6 +435,11 @@ trait Methods { this: MacroCommons =>
       * overview for the worked example). Each callback is invoked once per matching step, in chain order; steps that a
       * given method does not have are simply not visited.
       *
+      * @see
+      *   [[foldF]] for effectful callbacks
+      *
+      * @since 0.4.0
+      *
       * @param onInstance
       *   supplies the receiver for a [[Method.OnInstance]] step
       * @param onTypes
@@ -445,9 +448,6 @@ trait Methods { this: MacroCommons =>
       *   supplies the value arguments for a [[Method.ApplyValues]] step (keyed by parameter name)
       * @return
       *   the built call expression, or `Left` describing why application failed (missing/ill-typed args)
-      * @see
-      *   [[foldF]] for effectful callbacks
-      * @since 0.4.0
       */
     final def fold(
         onInstance: Method.OnInstance => Expr_??,
@@ -473,19 +473,21 @@ trait Methods { this: MacroCommons =>
     /** Like [[fold]] but each callback is effectful in `F` (via [[hearth.fp.DirectStyle]]); short-circuits on the
       * effect.
       *
+      * @see
+      *   [[fold]] for the pure variant
+      *
+      * @since 0.4.0
+      *
+      * @tparam F
+      *   the effect type the callbacks run in
       * @param onInstance
       *   supplies (in `F`) the receiver for a [[Method.OnInstance]] step
       * @param onTypes
       *   supplies (in `F`) the type arguments for a [[Method.ApplyTypes]] step
       * @param onValues
       *   supplies (in `F`) the value arguments for a [[Method.ApplyValues]] step
-      * @tparam F
-      *   the effect type the callbacks run in
       * @return
       *   `F` of the built call expression, or `Left` describing why application failed
-      * @see
-      *   [[fold]] for the pure variant
-      * @since 0.4.0
       */
     final def foldF[F[_]](
         onInstance: Method.OnInstance => F[Expr_??],
@@ -586,33 +588,34 @@ trait Methods { this: MacroCommons =>
       *
       * The recommended entry point for constructing an `A`; see [[Method]] for how to drive the returned chain.
       *
+      * @since 0.4.0
+      *
       * @tparam A
       *   the type whose primary constructor to resolve
       * @return
       *   the primary constructor as a [[Method]], or `None` if `A` has none
-      * @since 0.4.0
       */
     def primaryConstructorOf[A: Type]: Option[Method] =
       UntypedType.fromTyped[A].primaryConstructor.map(_.asTyped[A])
 
     /** Returns all constructors of `A`, each as a builder chain.
+      * @since 0.4.0
       *
       * @tparam A
       *   the type whose constructors to resolve
       * @return
       *   every constructor of `A` as a [[Method]]
-      * @since 0.4.0
       */
     def constructorsOf[A: Type]: List[Method] =
       UntypedType.fromTyped[A].constructors.map(_.asTyped[A])
 
     /** Returns all methods (declared, inherited and synthetic) of `A`, each as a builder chain resolved against `A`.
+      * @since 0.4.0
       *
       * @tparam A
       *   the instance type the methods are resolved against
       * @return
       *   every method visible on `A` as a [[Method]]
-      * @since 0.4.0
       */
     def methodsOf[A: Type]: List[Method] =
       UntypedType.fromTyped[A].methods.map(_.asTyped[A])
@@ -757,7 +760,6 @@ trait Methods { this: MacroCommons =>
     object OnInstance {
 
       /** An [[OnInstance]] step whose receiver type is `A`.
-        *
         * @since 0.4.0
         */
       type Of[A] = OnInstance { type Instance = A }
@@ -842,10 +844,10 @@ trait Methods { this: MacroCommons =>
       def knownReturning: Option[??] = Some(Returned.as_??)
 
       /** Validates all accumulated arguments and produces the call expression.
+        * @since 0.4.0
         *
         * @return
         *   the built expression of type [[Returned]], or `Left` describing why validation/building failed
-        * @since 0.4.0
         */
       def build(): Either[String, Expr[Returned]] =
         validateAndBuild().map(_.asTyped[Returned])
@@ -853,7 +855,6 @@ trait Methods { this: MacroCommons =>
     object Result {
 
       /** A [[Result]] whose statically known result type is `A`.
-        *
         * @since 0.4.0
         */
       type Of[A] = Result[A]

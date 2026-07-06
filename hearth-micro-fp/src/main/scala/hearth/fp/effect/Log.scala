@@ -25,6 +25,7 @@ object Log {
     *
     * @see
     *   [[LogRendering]] for how the levels are filtered when rendered
+    *
     * @since 0.1.0
     */
   def info(message: => String): MIO[Unit] = MIO.log(Entry(Level.Info, () => message, parentScopeId = 0))
@@ -36,6 +37,7 @@ object Log {
     *
     * @see
     *   [[LogRendering]] for how the levels are filtered when rendered
+    *
     * @since 0.1.0
     */
   def warn(message: => String): MIO[Unit] = MIO.log(Entry(Level.Warn, () => message, parentScopeId = 0))
@@ -47,18 +49,17 @@ object Log {
     *
     * @see
     *   [[LogRendering]] for how the levels are filtered when rendered
+    *
     * @since 0.1.0
     */
   def error(message: => String): MIO[Unit] = MIO.log(Entry(Level.Error, () => message, parentScopeId = 0))
 
   /** Creates a new scope with a given name. All logs created inside the scope nested under it.
-    *
     * @since 0.1.0
     */
   def namedScope[A](name: String)(io: MIO[A]): MIO[A] = MIO.nameLogsScope(name, io)
 
   /** Logging levels - corresponds with reporting levels available in macro reporters.
-    *
     * @since 0.1.0
     */
   sealed abstract class Level(private val value: Int) extends Product with Serializable {
@@ -78,10 +79,10 @@ object Log {
   }
 
   /** Single log entry, with lazily computed message (messages can be expensive, and usually we don't display logs).
+    * @since 0.1.0
     *
     * @param parentScopeId
     *   the scope this entry belongs to (0 = root)
-    * @since 0.1.0
     */
   final case class Entry(level: Level, message: () => String, parentScopeId: Int) extends Log {
 
@@ -89,6 +90,7 @@ object Log {
   }
 
   /** A named scope marker in the flat log list. Entries belonging to this scope have `parentScopeId == scopeId`.
+    * @since 0.1.0
     *
     * @param scopeId
     *   globally unique ID for this scope
@@ -96,7 +98,6 @@ object Log {
     *   the scope this scope is nested inside (0 = root)
     * @param end
     *   [[Timestamp.empty]] until the scope is closed
-    * @since 0.1.0
     */
   final case class Scope(name: String, scopeId: Int, parentScopeId: Int, start: Timestamp, end: Timestamp) extends Log {
 
@@ -111,13 +112,11 @@ object Log {
   private val scopeIdCounter = new java.util.concurrent.atomic.AtomicInteger(0)
 
   /** Generate a new globally unique scope ID.
-    *
     * @since 0.3.0
     */
   private[effect] def nextScopeId(): Int = scopeIdCounter.incrementAndGet()
 
   /** Reset the scope ID counter. Called at the start of each macro expansion.
-    *
     * @since 0.3.0
     */
   def resetScopeIds(): Unit = scopeIdCounter.set(0)

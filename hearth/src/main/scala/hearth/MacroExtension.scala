@@ -26,13 +26,13 @@ import scala.reflect.{classTag, ClassTag}
   * own `MacroExtension[YourEngine]` subtype so the loaded extension receives your engine's context instead of a fixed
   * shape. See the mkdocs docs/user-guide/standard-extensions.md guide.
   *
+  * @see
+  *   [[Environments.loadMacroExtensions]]
+  *
   * @since 0.1.0
   *
   * @tparam Macro
   *   the type of the macro to extend
-  *
-  * @see
-  *   [[Environments.loadMacroExtensions]]
   */
 abstract class MacroExtension[Macro: ClassTag] extends PartialFunction[Any, Unit] {
   private val Macro = classTag[Macro].runtimeClass.asInstanceOf[Class[Macro]]
@@ -58,10 +58,10 @@ abstract class MacroExtension[Macro: ClassTag] extends PartialFunction[Any, Unit
     * and '''order-independent''' with respect to other extensions. When one extension genuinely must run before
     * another, express that through [[priority]] rather than relying on discovery order.
     *
+    * @since 0.1.0
+    *
     * @param ctx
     *   the macro context to mutate
-    *
-    * @since 0.1.0
     */
   def extend(ctx: Macro): Unit
 }

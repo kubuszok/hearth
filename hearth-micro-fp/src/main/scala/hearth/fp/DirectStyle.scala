@@ -79,7 +79,6 @@ object DirectStyle {
   type ScopeOwner[F[_]] <: Any
 
   /** Instance useful if we want to use [[DirectStyle]] without any effect.
-    *
     * @since 0.1.0
     */
   implicit def DirectStyleForId: DirectStyle[Id] = new DirectStyle[Id] {
@@ -88,7 +87,6 @@ object DirectStyle {
   }
 
   /** Allows using [[DirectStyle]] with [[scala.Either]].
-    *
     * @since 0.1.0
     */
   implicit def DirectStyleForEither[Errors]: DirectStyle[Either[Errors, *]] = new DirectStyle[Either[Errors, *]] {
@@ -108,7 +106,6 @@ object DirectStyle {
   }
 
   /** Allows using [[DirectStyle]] with [[scala.Option]].
-    *
     * @since 0.1.0
     */
   implicit lazy val DirectStyleForOption: DirectStyle[Option] = new DirectStyle[Option] {
@@ -128,7 +125,6 @@ object DirectStyle {
   }
 
   /** Allows using [[DirectStyle]] with [[scala.util.Try]].
-    *
     * @since 0.1.0
     */
   implicit lazy val DirectStyleForTry: DirectStyle[Try] = new DirectStyle[Try] {

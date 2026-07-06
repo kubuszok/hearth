@@ -12,9 +12,9 @@ package std
   * needing N inner types, recursion, or a total/partial split, define an engine-aware [[MacroExtension]] instead. See
   * the mechanism-choosing guidance on [[MacroExtension]] and the mkdocs docs/user-guide/standard-extensions.md guide.
   *
-  * @since 0.3.0
-  *
   * @see
   *   [[MacroExtension]]
+  *
+  * @since 0.3.0
   */
 trait StandardMacroExtension extends MacroExtension[MacroCommons & StdExtensions]
