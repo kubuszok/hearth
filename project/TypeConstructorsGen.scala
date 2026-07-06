@@ -104,9 +104,11 @@ object TypeConstructorsGen {
         |
         |      /** Summons the `CtorK1` for a kind-`(* -> *) -> *` constructor (FunctorK-style).
         |        *
-        |        * @return a `CtorK1[HKT]`
         |        * @see the `CtorK1` trait
+        |        *
         |        * @since 0.4.0
+        |        *
+        |        * @return a `CtorK1[HKT]`
         |        */
         |      @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")
         |      def of[HKT[_[_]]]: CtorK1[HKT] = sys.error("Install cross-quotes-plugin to use this method")
@@ -203,9 +205,11 @@ object TypeConstructorsGen {
     sb ++= s"        * supported; type aliases that reorder/rename params and kind-projector syntax are not (Scala 2\n"
     sb ++= s"        * limitation).\n"
     sb ++= s"        *\n"
-    sb ++= s"        * @return a `$cn[HKT]`\n"
     sb ++= s"        * @see docs/user-guide/cross-quotes.md\n"
+    sb ++= s"        *\n"
     sb ++= s"        * @since 0.1.0\n"
+    sb ++= s"        *\n"
+    sb ++= s"        * @return a `$cn[HKT]`\n"
     sb ++= s"        */\n"
     sb ++= s"""      @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")\n"""
     sb ++= s"""      def of[HKT[${ArityGen.simpleHktSlots(n)}]]: $cn[HKT] = sys.error("Install cross-quotes-plugin to use this method")\n"""
@@ -251,6 +255,7 @@ object TypeConstructorsGen {
     sb ++= s"          * hearth#344). Bounds let `apply`/`unapply` respect `<:`/`>:` constraints on `HKT`.\n"
     sb ++= s"          *\n"
     sb ++= s"          * @see `Type.$cn.of`\n"
+    sb ++= s"          *\n"
     sb ++= s"          * @since 0.4.0\n"
     sb ++= s"          */\n"
     sb ++= s"""        @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")\n"""
@@ -500,6 +505,7 @@ object TypeConstructorsGen {
     sb ++= s"          * hearth#344). Bounds let `apply`/`unapply` respect `<:` constraints on `HKT`.\n"
     sb ++= s"          *\n"
     sb ++= s"          * @see `Type.${ArityGen.ctorName(n)}.of`\n"
+    sb ++= s"          *\n"
     sb ++= s"          * @since 0.4.0\n"
     sb ++= s"          */\n"
     sb ++= s"""        @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")\n"""
@@ -564,9 +570,11 @@ object TypeConstructorsGen {
         |
         |      /** Summons the `CtorK1` for a kind-`(* -> *) -> *` constructor (FunctorK-style).
         |        *
-        |        * @return a `CtorK1[HKT]`
         |        * @see the `CtorK1` trait
+        |        *
         |        * @since 0.4.0
+        |        *
+        |        * @return a `CtorK1[HKT]`
         |        */
         |      def of[HKT[_[_]]]: CtorK1[HKT] = macro CrossQuotesMacros.typeCtorK1Impl[HKT]
         |
@@ -611,9 +619,11 @@ object TypeConstructorsGen {
     sb ++= s"        * supported; type aliases that reorder/rename params and kind-projector syntax are not (Scala 2\n"
     sb ++= s"        * limitation).\n"
     sb ++= s"        *\n"
-    sb ++= s"        * @return a `$cn[HKT]`\n"
     sb ++= s"        * @see docs/user-guide/cross-quotes.md\n"
+    sb ++= s"        *\n"
     sb ++= s"        * @since 0.1.0\n"
+    sb ++= s"        *\n"
+    sb ++= s"        * @return a `$cn[HKT]`\n"
     sb ++= s"        */\n"
     sb ++= s"      def of[HKT[${ArityGen.simpleHktSlots(n)}]]: $cn[HKT] = macro CrossQuotesMacros.typeCtor${n}Impl[${ArityGen.nothingAnyPairs(n)}, HKT]\n"
     sb ++= s"\n"
@@ -679,6 +689,7 @@ object TypeConstructorsGen {
     sb ++= s"          * hearth#344). Bounds let `apply`/`unapply` respect `<:`/`>:` constraints on `HKT`.\n"
     sb ++= s"          *\n"
     sb ++= s"          * @see `Type.$cn.of`\n"
+    sb ++= s"          *\n"
     sb ++= s"          * @since 0.4.0\n"
     sb ++= s"          */\n"
     sb ++= s"        def of[${ArityGen.boundsPairs(n)}, HKT[${ArityGen.hktSlots(n)}]]: Bounded[${boundsAndHkt(n)}] = macro CrossQuotesMacros.typeCtor${n}Impl[${allBoundsExplicit(n)}, HKT]\n"
@@ -796,6 +807,7 @@ object TypeConstructorsGen {
     sb ++= s"          * hearth#344). Bounds let `apply`/`unapply` respect `<:` constraints on `HKT`.\n"
     sb ++= s"          *\n"
     sb ++= s"          * @see `Type.${ArityGen.ctorName(n)}.of`\n"
+    sb ++= s"          *\n"
     sb ++= s"          * @since 0.4.0\n"
     sb ++= s"          */\n"
     sb ++= s"        def of[$ubParams, HKT[$ubHkt]]: UpperBounded[$ubParams, HKT] = macro CrossQuotesMacros.typeCtor${n}Impl[$macroNothingUpper, HKT]\n"
