@@ -31,7 +31,7 @@ private[typed] trait TypesCrossQuotes { this: Types =>
       *     (hearth#316); remedy: hoist them to '''non-implicit''' lazies.
       *
       * @see
-      *   docs/user-guide/cross-quotes.md
+      *   https://scala-hearth.readthedocs.io/en/stable/cross-quotes/
       *
       * @since 0.1.0
       *

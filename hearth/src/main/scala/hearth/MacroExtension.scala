@@ -24,7 +24,7 @@ import scala.reflect.{classTag, ClassTag}
   * `IsValueType` expose a '''single''' inner type and `IsMap`/`IsEither` exactly two; they cannot model "two inners
   * plus an outer", recursive derivation, or a total/partial split. When your extension point needs those, define your
   * own `MacroExtension[YourEngine]` subtype so the loaded extension receives your engine's context instead of a fixed
-  * shape. See the mkdocs docs/user-guide/standard-extensions.md guide.
+  * shape. See the https://scala-hearth.readthedocs.io/en/stable/standard-extensions/ guide.
   *
   * @see
   *   [[Environments.loadMacroExtensions]]

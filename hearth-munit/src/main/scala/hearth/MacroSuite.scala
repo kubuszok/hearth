@@ -10,7 +10,7 @@ package hearth
   *   - `compileErrors("code").arePresent()` - asserting that the error message is not empty
   *
   * @see
-  *   docs/contributing/guidelines-for-tests.md
+  *   https://github.com/kubuszok/hearth/blob/master/docs/contributing/guidelines-for-tests.md
   *
   * @since 0.3.0
   */

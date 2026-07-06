@@ -11,7 +11,7 @@ package extensions
   * @note
   *   The code this provider emits calls `java.util.Map.entry(...)`, which requires '''JDK 9+''' at the consumer's
   *   runtime; compile consuming code with a matching `-release` (e.g. `-release 11`). See issue #330 and the mkdocs
-  *   "JDK baseline of emitted code" section in docs/user-guide/standard-extensions.md.
+  *   "JDK baseline of emitted code" section in https://scala-hearth.readthedocs.io/en/stable/standard-extensions/.
   * @note
   *   `EnumMap` is detected '''symbolically''' (same type constructor as `java.util.EnumMap`), not via a macro-time
   *   `Class.forName` - the latter missed enums defined in the same compilation run on Scala 3. Do not reintroduce the
