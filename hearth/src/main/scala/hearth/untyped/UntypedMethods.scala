@@ -221,7 +221,30 @@ trait UntypedMethods { this: MacroCommons =>
       */
     def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod]
     def constructors(instanceTpe: UntypedType): List[UntypedMethod]
+
+    /** All of `instanceTpe`'s methods in a STABLE, deterministic, cross-platform-consistent order: constructor
+      * arguments first (by their position in the primary constructor), then declared methods by source [[Position]],
+      * then inherited/synthetic methods by name (see [[sortMethods]]).
+      *
+      * Establishing that order resolves each declared method's [[Position]], which is comparatively expensive (it is
+      * what shows up as `positionOf` in profiles). '''Prefer the cheaper [[unsortedMethods]] unless you actually rely
+      * on the ordering''' (e.g. presenting members to a user, or emitting them in a reproducible sequence).
+      * `methods == sortMethods(unsortedMethods(instanceTpe))`.
+      *
+      * @since 0.1.0
+      */
     def methods(instanceTpe: UntypedType): List[UntypedMethod]
+
+    /** All of `instanceTpe`'s methods in raw discovery order, WITHOUT the [[sortMethods]] pass.
+      *
+      * Cheaper than [[methods]] - it does not resolve method [[Position]]s - but the order is unspecified and may
+      * differ across platforms and compiler versions. '''Recommended''' whenever the result is only searched or
+      * filtered by name (`find`/`collectFirst`/`filter`/`exists`/membership) rather than consumed as a deterministic
+      * sequence.
+      *
+      * @since 0.4.1
+      */
+    def unsortedMethods(instanceTpe: UntypedType): List[UntypedMethod]
 
     def defaultValue(instanceTpe: UntypedType)(param: UntypedParameter): Option[UntypedMethod]
 
@@ -240,20 +263,42 @@ trait UntypedMethods { this: MacroCommons =>
       * non-constructor-argument methods, ordered by source position. Then inherited/synthetic methods, ordered by name
       * using [[hearth.fp.NaturalLanguageOrdering]] (which handles _1, _2, ..., _10, _11 correctly).
       */
-    final protected def sortMethods(methods: List[UntypedMethod]): List[UntypedMethod] = {
-      val (ctorArgs, rest) = methods.partition(_.isConstructorArgument)
-      val sortedCtorArgs = ctorArgs.sortBy(_.constructorArgumentIndex.getOrElse(Int.MaxValue))
+    final protected def sortMethods(methods: List[UntypedMethod]): List[UntypedMethod] =
+      sortMethodsBy(methods)(identity)
 
-      val (declared, others) = rest.partitionMap { method =>
-        method.position match {
-          case Some(position) if method.isDeclared => Left(position -> method)
-          case _                                   => Right(method)
-        }
+    /** [[sortMethods]] generalized over any element type that can produce an [[UntypedMethod]] key.
+      *
+      * Because the sort key of each element is computed purely from that element (its ctor-arg index, declaration
+      * position, or name), `sortMethodsBy(xs.filter(p)) == sortMethodsBy(xs).filter(p)` - so a caller that wants only
+      * some methods (e.g. `caseFields`, `beanGetters`, `method(name)`) can filter FIRST and sort the small subset
+      * instead of sorting the whole member list. Pass a `.view.filter(...)` to avoid materializing the intermediate.
+      *
+      * `toUntyped` is invoked exactly ONCE per element (its key is captured up front), so it is safe to pass a typed
+      * `_.asUntyped`. `position` is still resolved only for declared methods (the expensive `positionOf`).
+      *
+      * @since 0.4.1
+      */
+    final private[hearth] def sortMethodsBy[M](methods: IterableOnce[M])(toUntyped: M => UntypedMethod): List[M] = {
+      import scala.collection.mutable.ListBuffer
+      val ctorArgs = ListBuffer.empty[(Int, M)]
+      val declared = ListBuffer.empty[(Position, M)]
+      val others = ListBuffer.empty[(String, M)]
+      methods.iterator.foreach { m =>
+        val u = toUntyped(m)
+        if (u.isConstructorArgument) ctorArgs += ((u.constructorArgumentIndex.getOrElse(Int.MaxValue), m))
+        else if (u.isDeclared)
+          u.position match {
+            case Some(position) => declared += ((position, m))
+            case None           => others += ((u.name, m))
+          }
+        else others += ((u.name, m))
       }
-      val sortedDeclared = declared.sortBy(_._1).map(_._2)
-      val sortedOthers = others.sortBy(_.name)(hearth.fp.NaturalLanguageOrdering.caseInsensitive)
 
-      sortedCtorArgs ++ sortedDeclared ++ sortedOthers
+      val result = ListBuffer.empty[M]
+      ctorArgs.sortBy(_._1).foreach { case (_, m) => result += m }
+      declared.sortBy(_._1).foreach { case (_, m) => result += m }
+      others.sortBy(_._1)(hearth.fp.NaturalLanguageOrdering.caseInsensitive).foreach { case (_, m) => result += m }
+      result.toList
     }
 
     // Defaults methods' positions are 1-indexed. They are named `methodName$default$indexOfParameter`.

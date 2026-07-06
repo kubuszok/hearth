@@ -24,7 +24,7 @@ final class IsValueTypeProviderForJavaLong extends StandardMacroExtension { load
 
       private lazy val valueOfMethod: Option[Method] = {
         implicit val jLong: Type[java.lang.Long] = JLong
-        Method.methodsOf[java.lang.Long].collectFirst {
+        Method.unsortedMethodsOf[java.lang.Long].collectFirst {
           case m
               if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Long } =>
@@ -33,7 +33,7 @@ final class IsValueTypeProviderForJavaLong extends StandardMacroExtension { load
       }
 
       @scala.annotation.nowarn
-      private val isValueType: IsValueType[java.lang.Long] = {
+      private lazy val isValueType: IsValueType[java.lang.Long] = {
         implicit val long: Type[Long] = Long
         implicit val jLong: Type[java.lang.Long] = JLong
         Existential[IsValueTypeOf[java.lang.Long, *], Long](new IsValueTypeOf[java.lang.Long, Long] {

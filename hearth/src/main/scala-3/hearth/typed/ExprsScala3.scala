@@ -299,7 +299,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           case Typed(inner, _) =>
             evalWithLocals(inner, locals, overrides)
 
-          case TypeApply(Select(qualifier, name), typeArgs) if name == "isInstanceOf" && typeArgs.size == 1 =>
+          case TypeApply(Select(qualifier, name), typeArgs) if name == "isInstanceOf" && typeArgs.sizeIs == 1 =>
             evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
               runtimeClassOf(typeArgs.head.tpe) match {
                 case Some(clazz) => Right(clazz.isInstance(receiver))
@@ -895,7 +895,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         val byArity = candidates.filter(_.getParameterCount == args.size)
         val exactMatch =
           if byArity.isEmpty then None
-          else if byArity.size == 1 then Some((byArity.head, adaptArgs(byArity.head, args)))
+          else if byArity.sizeIs == 1 then Some((byArity.head, adaptArgs(byArity.head, args)))
           else {
             val matching = byArity.filter { exec =>
               val paramTypes = exec.getParameterTypes
@@ -6351,7 +6351,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     val qualTpe = qualTpeAny.asInstanceOf[TypeRepr]
     val methodSym = methodSymAny.asInstanceOf[Symbol]
     val instanceTpe: UntypedType = qualTpe.widen
-    val methods = UntypedMethod.methods(instanceTpe)
+    val methods = UntypedMethod.unsortedMethods(instanceTpe) // order-independent: `.find` by symbol identity
     methods
       .find(_.symbol == methodSym)
       .map(_.asTyped(using UntypedType.toTyped[Any](instanceTpe)))

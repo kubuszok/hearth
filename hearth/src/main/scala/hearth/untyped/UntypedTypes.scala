@@ -524,7 +524,14 @@ trait UntypedTypes { this: MacroCommons =>
 
     def primaryConstructor: Option[UntypedMethod] = UntypedMethod.primaryConstructor(untyped)
     def constructors: List[UntypedMethod] = UntypedMethod.constructors(untyped)
+
+    /** Methods in stable, deterministic order - see [[UntypedMethod.methods]]. Costlier than [[unsortedMethods]]. */
     def methods: List[UntypedMethod] = UntypedMethod.methods(untyped)
+
+    /** Methods in raw discovery order (cheaper - no position sort) - see [[UntypedMethod.unsortedMethods]]. Recommended
+      * when only searching/filtering by name.
+      */
+    def unsortedMethods: List[UntypedMethod] = UntypedMethod.unsortedMethods(untyped)
 
     def companionObject: Option[(UntypedType, UntypedExpr)] = UntypedType.companionObject(untyped)
 

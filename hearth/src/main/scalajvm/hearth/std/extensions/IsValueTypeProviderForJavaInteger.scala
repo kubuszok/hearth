@@ -24,7 +24,7 @@ final class IsValueTypeProviderForJavaInteger extends StandardMacroExtension { l
 
       private lazy val valueOfMethod: Option[Method] = {
         implicit val jInteger: Type[java.lang.Integer] = JInteger
-        Method.methodsOf[java.lang.Integer].collectFirst {
+        Method.unsortedMethodsOf[java.lang.Integer].collectFirst {
           case m
               if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Int } =>
@@ -33,7 +33,7 @@ final class IsValueTypeProviderForJavaInteger extends StandardMacroExtension { l
       }
 
       @scala.annotation.nowarn
-      private val isValueType: IsValueType[java.lang.Integer] = {
+      private lazy val isValueType: IsValueType[java.lang.Integer] = {
         implicit val int: Type[Int] = Int
         implicit val jInteger: Type[java.lang.Integer] = JInteger
         Existential[IsValueTypeOf[java.lang.Integer, *], Int](new IsValueTypeOf[java.lang.Integer, Int] {

@@ -134,6 +134,25 @@ trait StdExtensions { this: MacroCommons =>
         case None      => ProviderResult.skipped(companionName, "No providers registered")
       }
     }
+
+    // Memoizes the (expensive) provider scan by the queried type, so re-parsing the same type within one macro
+    // expansion runs the providers at most once. The provenance that `firstMatch` records as a side effect is
+    // stored alongside the result and replayed on every call (hit or miss), so `lastMatchProvenance` stays correct.
+    private type CachedFirstMatch[A] = (ProviderResult[Provided[A]], Option[ProviderProvenance])
+    private lazy val firstMatchCache = new Type.Cache[CachedFirstMatch]
+
+    /** [[firstMatch]] memoized by the queried type; use in `parse` instead of `firstMatch` to avoid re-scanning
+      * providers for a type already seen in this expansion. Reproduces `firstMatch`'s [[lastMatchProvenance]] side
+      * effect on a cache hit.
+      */
+    final protected def firstMatchCached[A: Type](companionName: String): ProviderResult[Provided[A]] = {
+      val (result, provenance) = firstMatchCache.getOrPut(Type[A]) {
+        val r = firstMatch[A](companionName)
+        (r, lastMatchProvenanceValue)
+      }
+      lastMatchProvenanceValue = provenance
+      result
+    }
   }
 
   /** Represents a possible smart constructor for the given input and output types.
@@ -451,7 +470,7 @@ trait StdExtensions { this: MacroCommons =>
 
     override def parse[A: Type]: ProviderResult[IsCollection[A]] = if (isBottomType[A])
       ProviderResult.skipped("IsCollection", bottomTypeSkipReason)
-    else firstMatch[A]("IsCollection")
+    else firstMatchCached[A]("IsCollection")
   }
 
   /** Proof that the type is a map of the given key and value types.
@@ -576,7 +595,7 @@ trait StdExtensions { this: MacroCommons =>
 
     override def parse[A: Type]: ProviderResult[IsOption[A]] = if (isBottomType[A])
       ProviderResult.skipped("IsOption", bottomTypeSkipReason)
-    else firstMatch[A]("IsOption")
+    else firstMatchCached[A]("IsOption")
   }
 
   /** Proof that the type is an either of the given left and right types.
@@ -640,7 +659,7 @@ trait StdExtensions { this: MacroCommons =>
 
     override def parse[A: Type]: ProviderResult[IsEither[A]] = if (isBottomType[A])
       ProviderResult.skipped("IsEither", bottomTypeSkipReason)
-    else firstMatch[A]("IsEither")
+    else firstMatchCached[A]("IsEither")
   }
 
   /** Proof that the type is a value type of the given inner type.
@@ -685,7 +704,7 @@ trait StdExtensions { this: MacroCommons =>
 
     override def parse[A: Type]: ProviderResult[IsValueType[A]] = if (isBottomType[A])
       ProviderResult.skipped("IsValueType", bottomTypeSkipReason)
-    else firstMatch[A]("IsValueType")
+    else firstMatchCached[A]("IsValueType")
   }
 
   implicit final class EnvironmentStdExtensionsOps(private val environment: Environment.type) {

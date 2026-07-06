@@ -61,7 +61,7 @@ final class IsCollectionProviderForJavaOptional extends StandardMacroExtension {
               (builder: Expr[scala.collection.mutable.Builder[Item, List[Item]]]) =>
                 Expr.quote {
                   val list = Expr.splice(builder).result()
-                  if (list.size <= 1)
+                  if (list.lengthIs <= 1)
                     Right(
                       Expr.splice(
                         Expr

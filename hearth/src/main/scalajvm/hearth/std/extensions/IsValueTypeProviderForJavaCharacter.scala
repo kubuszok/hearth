@@ -24,7 +24,7 @@ final class IsValueTypeProviderForJavaCharacter extends StandardMacroExtension {
 
       private lazy val valueOfMethod: Option[Method] = {
         implicit val jCharacter: Type[java.lang.Character] = JCharacter
-        Method.methodsOf[java.lang.Character].collectFirst {
+        Method.unsortedMethodsOf[java.lang.Character].collectFirst {
           case m
               if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Char } =>
@@ -33,7 +33,7 @@ final class IsValueTypeProviderForJavaCharacter extends StandardMacroExtension {
       }
 
       @scala.annotation.nowarn
-      private val isValueType: IsValueType[java.lang.Character] = {
+      private lazy val isValueType: IsValueType[java.lang.Character] = {
         implicit val char: Type[Char] = Char
         implicit val jCharacter: Type[java.lang.Character] = JCharacter
         Existential[IsValueTypeOf[java.lang.Character, *], Char](new IsValueTypeOf[java.lang.Character, Char] {

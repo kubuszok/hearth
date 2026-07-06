@@ -24,7 +24,7 @@ final class IsValueTypeProviderForJavaDouble extends StandardMacroExtension { lo
 
       private lazy val valueOfMethod: Option[Method] = {
         implicit val jDouble: Type[java.lang.Double] = JDouble
-        Method.methodsOf[java.lang.Double].collectFirst {
+        Method.unsortedMethodsOf[java.lang.Double].collectFirst {
           case m
               if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Double } =>
@@ -33,7 +33,7 @@ final class IsValueTypeProviderForJavaDouble extends StandardMacroExtension { lo
       }
 
       @scala.annotation.nowarn
-      private val isValueType: IsValueType[java.lang.Double] = {
+      private lazy val isValueType: IsValueType[java.lang.Double] = {
         implicit val double: Type[Double] = Double
         implicit val jDouble: Type[java.lang.Double] = JDouble
         Existential[IsValueTypeOf[java.lang.Double, *], Double](new IsValueTypeOf[java.lang.Double, Double] {

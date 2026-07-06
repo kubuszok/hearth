@@ -397,7 +397,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         case TypeRef(_, _, _root_.scala.List(g)) =>
           _root_.scala.Some(g.asInstanceOf[UntypedType])
         case _ =>
-          if (A0.typeConstructor == HKT && A0.typeArgs.size == 1) {
+          if (A0.typeConstructor == HKT && A0.typeArgs.sizeIs == 1) {
             val _root_.scala.Seq(g) = A0.typeArgs
             _root_.scala.Some(g.asInstanceOf[UntypedType])
           }
@@ -445,7 +445,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         case TypeRef(_, _, _root_.scala.List(g)) =>
           _root_.scala.Some(g.asInstanceOf[UntypedType])
         case _ =>
-          if (A0.typeConstructor == HKT && A0.typeArgs.size == 1) {
+          if (A0.typeConstructor == HKT && A0.typeArgs.sizeIs == 1) {
             val _root_.scala.Seq(g) = A0.typeArgs
             _root_.scala.Some(g.asInstanceOf[UntypedType])
           }

@@ -592,7 +592,10 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         .flatMap(parseCtorOption)
     override def constructors(instanceTpe: UntypedType): List[UntypedMethod] =
       instanceTpe.decls.filter(_.isConstructor).flatMap(parseCtorOption).toList
-    override def methods(instanceTpe: UntypedType): List[UntypedMethod] = {
+    override def methods(instanceTpe: UntypedType): List[UntypedMethod] =
+      sortMethods(unsortedMethods(instanceTpe))
+
+    override def unsortedMethods(instanceTpe: UntypedType): List[UntypedMethod] = {
       // Defined in the type or its parent, or synthetic
       val classMembers = instanceTpe.members
       // Defined exatcly in the type
@@ -607,7 +610,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
           val allMembers = classMembers ++ companionMembers
           val allDeclared = classDeclared ++ companionDeclared
-          val moduleBySymbol = companionMembers.toList.map(_ -> companionRef).toMap[Symbol, UntypedExpr]
+          val moduleBySymbol = companionMembers.iterator.map(_ -> companionRef).toMap[Symbol, UntypedExpr]
           (allMembers, allDeclared, moduleBySymbol)
         }
         .getOrElse((classMembers, classDeclared, Map.empty[Symbol, UntypedExpr]))
@@ -620,32 +623,30 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         (argument, idx) <- primaryConstructor.asMethod.paramLists.flatten.zipWithIndex
       } yield symbolName(argument) -> idx).toMap
 
-      sortMethods(
-        members
-          .filterNot(_.isConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
-          .filterNot { s =>
-            val name = symbolName(s)
-            // val/vars create both term and method symbols - one of them is redundant, but we have to allow terms to not lose ctor arguments.
-            // We can recognize extra term symbols by checking if the name ends with " " (for term) or not (for method).
-            name.endsWith(" ") ||
-            // Default parameters are methods, but we don't want them
-            name.contains("$default$") ||
-            // Class static initializer is a method, but we don't want it
-            name == "<clinit>"
-          }
-          .flatMap { s =>
-            val fieldNames = Set(symbolName(s), symbolName(s) + "_=")
-            val module = moduleBySymbol.get(s)
-            parseOption(
-              isDeclared = declared(s) && !methodsConsideredSynthetic(s),
-              isConstructorArgument = (constructorArguments.keySet & fieldNames).nonEmpty,
-              constructorArgumentIndex = fieldNames.flatMap(constructorArguments.get).headOption,
-              isCaseField = s.isMethod && s.asMethod.isCaseAccessor,
-              module = module
-            )(s)
-          }
-          .toList
-      )
+      members
+        .filterNot(_.isConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
+        .filterNot { s =>
+          val name = symbolName(s)
+          // val/vars create both term and method symbols - one of them is redundant, but we have to allow terms to not lose ctor arguments.
+          // We can recognize extra term symbols by checking if the name ends with " " (for term) or not (for method).
+          name.endsWith(" ") ||
+          // Default parameters are methods, but we don't want them
+          name.contains("$default$") ||
+          // Class static initializer is a method, but we don't want it
+          name == "<clinit>"
+        }
+        .flatMap { s =>
+          val fieldNames = Set(symbolName(s), symbolName(s) + "_=")
+          val module = moduleBySymbol.get(s)
+          parseOption(
+            isDeclared = declared(s) && !methodsConsideredSynthetic(s),
+            isConstructorArgument = (constructorArguments.keySet & fieldNames).nonEmpty,
+            constructorArgumentIndex = fieldNames.flatMap(constructorArguments.get).headOption,
+            isCaseField = s.isMethod && s.asMethod.isCaseAccessor,
+            module = module
+          )(s)
+        }
+        .toList
     }
 
     override def defaultValue(instanceTpe: UntypedType)(param: UntypedParameter): Option[UntypedMethod] = if (

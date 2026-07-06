@@ -618,17 +618,32 @@ trait Methods { this: MacroCommons =>
     def constructorsOf[A: Type]: List[Method] =
       UntypedType.fromTyped[A].constructors.map(_.asTyped[A])
 
-    /** Returns all methods (declared, inherited and synthetic) of `A`, each as a builder chain resolved against `A`.
+    /** Returns all methods (declared, inherited and synthetic) of `A`, each as a builder chain resolved against `A`, in
+      * a STABLE, deterministic order (see [[UntypedMethod.methods]]).
+      *
+      * The ordering is comparatively expensive (it resolves each declared method's source position). '''Prefer
+      * [[unsortedMethodsOf]] unless you rely on the order''' - most callers only search by name.
       *
       * @since 0.4.0
       *
       * @tparam A
       *   the instance type the methods are resolved against
       * @return
-      *   every method visible on `A` as a [[Method]]
+      *   every method visible on `A` as a [[Method]], in deterministic order
       */
     def methodsOf[A: Type]: List[Method] =
       UntypedType.fromTyped[A].methods.map(_.asTyped[A])
+
+    /** Like [[methodsOf]] but in raw discovery order, WITHOUT the expensive position-resolving sort (see
+      * [[UntypedMethod.unsortedMethods]]).
+      *
+      * Cheaper than [[methodsOf]]; the order is unspecified. '''Recommended''' whenever the result is only searched or
+      * filtered by name (`find`/`collectFirst`/`filter`/`exists`) rather than consumed as a deterministic sequence.
+      *
+      * @since 0.4.1
+      */
+    def unsortedMethodsOf[A: Type]: List[Method] =
+      UntypedType.fromTyped[A].unsortedMethods.map(_.asTyped[A])
 
     private[hearth] def buildChain(
         asUntyped: UntypedMethod,

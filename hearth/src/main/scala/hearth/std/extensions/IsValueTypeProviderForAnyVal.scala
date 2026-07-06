@@ -43,7 +43,7 @@ final class IsValueTypeProviderForAnyVal extends StandardMacroExtension { loader
             ctor.isAvailable(AtCallSite) && ctor.parameters.flatten.sizeIs == 1
           }
           (name, argument) <- ctor.parameters.flatten.headOption
-          ctorArgumentMethods = tpe.methods.filter { method =>
+          ctorArgumentMethods = tpe.unsortedMethods.filter { method =>
             method.isConstructorArgument
           }
           if ctorArgumentMethods.sizeIs == 1

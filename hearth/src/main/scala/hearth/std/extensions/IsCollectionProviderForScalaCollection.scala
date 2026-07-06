@@ -39,9 +39,10 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           override def build: CtorLikeOf[scala.collection.mutable.Builder[Item, CtorResult], A] = {
             implicit val builderType: Type[scala.collection.mutable.Builder[Item, CtorResult]] =
               Builder[Item, CtorResult]
-            val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Item, CtorResult]].collectFirst {
-              case m: Method.OnInstance if m.name == "result" && m.isNullary => m
-            }
+            val resultMethod =
+              Method.unsortedMethodsOf[scala.collection.mutable.Builder[Item, CtorResult]].collectFirst {
+                case m: Method.OnInstance if m.name == "result" && m.isNullary => m
+              }
             CtorLikeOf.PlainValue(
               buildExpr,
               resultMethod
@@ -67,9 +68,10 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
           override def build: CtorLikeOf[scala.collection.mutable.Builder[Pair, CtorResult], A] = {
             implicit val builderType: Type[scala.collection.mutable.Builder[Pair, CtorResult]] =
               Builder[Pair, CtorResult]
-            val resultMethod = Method.methodsOf[scala.collection.mutable.Builder[Pair, CtorResult]].collectFirst {
-              case m: Method.OnInstance if m.name == "result" && m.isNullary => m
-            }
+            val resultMethod =
+              Method.unsortedMethodsOf[scala.collection.mutable.Builder[Pair, CtorResult]].collectFirst {
+                case m: Method.OnInstance if m.name == "result" && m.isNullary => m
+              }
             CtorLikeOf.PlainValue(
               buildExpr,
               resultMethod

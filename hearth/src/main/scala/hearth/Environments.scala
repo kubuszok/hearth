@@ -296,6 +296,23 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
         fp.effect.MIO.timeoutDeadlineNanos = Long.MaxValue
     }
 
+    /** Runs `thunk` with MIO logging turned into no-ops: while active, `Log.info`/`warn`/`error` and `Log.namedScope`
+      * record nothing, avoiding the per-entry and per-scope allocations.
+      *
+      * UNSAFE and opt-in: any log rendering during `thunk` will be empty, so only use it when the logs are guaranteed
+      * to be discarded. [[hearth.MIOIntegrations.MioExprOps.runToExprOrFail]] enables it automatically when every
+      * rendering knob is `DontRender` (and neither error-failing nor benchmarking is on). The flag is saved and
+      * restored, so nesting is safe.
+      *
+      * @since 0.4.1
+      */
+    final def withMioLoggingDisabled[A](thunk: => A): A = {
+      val previous = fp.effect.MIO.disableLogging
+      fp.effect.MIO.disableLogging = true
+      try thunk
+      finally fp.effect.MIO.disableLogging = previous
+    }
+
     /** Sets up MIO to use benchmark scopes based on the hearth.mioBenchmarkScopes setting.
       *
       * It would add to MIO logging output the duration for each scope execution if enabled by

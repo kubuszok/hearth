@@ -24,7 +24,7 @@ final class IsValueTypeProviderForJavaByte extends StandardMacroExtension { load
 
       private lazy val valueOfMethod: Option[Method] = {
         implicit val jByte: Type[java.lang.Byte] = JByte
-        Method.methodsOf[java.lang.Byte].collectFirst {
+        Method.unsortedMethodsOf[java.lang.Byte].collectFirst {
           case m
               if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Byte } =>
@@ -33,7 +33,7 @@ final class IsValueTypeProviderForJavaByte extends StandardMacroExtension { load
       }
 
       @scala.annotation.nowarn
-      private val isValueType: IsValueType[java.lang.Byte] = {
+      private lazy val isValueType: IsValueType[java.lang.Byte] = {
         implicit val byte: Type[Byte] = Byte
         implicit val jByte: Type[java.lang.Byte] = JByte
         Existential[IsValueTypeOf[java.lang.Byte, *], Byte](new IsValueTypeOf[java.lang.Byte, Byte] {

@@ -24,7 +24,7 @@ final class IsValueTypeProviderForJavaFloat extends StandardMacroExtension { loa
 
       private lazy val valueOfMethod: Option[Method] = {
         implicit val jFloat: Type[java.lang.Float] = JFloat
-        Method.methodsOf[java.lang.Float].collectFirst {
+        Method.unsortedMethodsOf[java.lang.Float].collectFirst {
           case m
               if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Float } =>
@@ -33,7 +33,7 @@ final class IsValueTypeProviderForJavaFloat extends StandardMacroExtension { loa
       }
 
       @scala.annotation.nowarn
-      private val isValueType: IsValueType[java.lang.Float] = {
+      private lazy val isValueType: IsValueType[java.lang.Float] = {
         implicit val float: Type[Float] = Float
         implicit val jFloat: Type[java.lang.Float] = JFloat
         Existential[IsValueTypeOf[java.lang.Float, *], Float](new IsValueTypeOf[java.lang.Float, Float] {

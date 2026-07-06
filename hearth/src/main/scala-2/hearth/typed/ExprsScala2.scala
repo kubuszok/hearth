@@ -244,7 +244,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
             evalWithLocals(inner, locals, overrides)
 
           case TypeApply(Select(qualifier, name), typeArgs)
-              if name.decodedName.toString == "isInstanceOf" && typeArgs.size == 1 =>
+              if name.decodedName.toString == "isInstanceOf" && typeArgs.sizeIs == 1 =>
             evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
               runtimeClassOf(typeArgs.head.tpe) match {
                 case Some(clazz) => Right(clazz.isInstance(receiver))
@@ -663,7 +663,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         val byArity = candidates.filter(_.getParameterCount == args.size)
         val exactMatch =
           if (byArity.isEmpty) None
-          else if (byArity.size == 1) Some((byArity.head, args))
+          else if (byArity.sizeIs == 1) Some((byArity.head, args))
           else {
             val matching = byArity.filter { exec =>
               val paramTypes = exec.getParameterTypes
@@ -3804,7 +3804,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
   private def dstrResolveMethod(qualTpe: c.Type, methodSym: Symbol): Option[Method] = {
     val instanceTpe: UntypedType = qualTpe.widen
-    val methods = UntypedMethod.methods(instanceTpe)
+    val methods = UntypedMethod.unsortedMethods(instanceTpe) // order-independent: `.find` by symbol identity
     val termSym = if (methodSym.isMethod) methodSym.asMethod else methodSym.asTerm
     methods
       .find(_.symbol == termSym)

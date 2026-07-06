@@ -64,8 +64,14 @@ trait MIOIntegrations { this: MacroTypedCommons =>
         renderFailure: (String, fp.data.NonEmptyVector[Throwable]) => String
     ): Expr[A] = Environment.handleMioTerminationException {
       Environment.configureMioBenchmarking()
+      // When nothing will ever be rendered (all knobs DontRender, no error-failing, no benchmarking/flame graph),
+      // the whole log tree is discarded — so skip building it and make logging a no-op to save allocations.
+      val loggingFullyDiscarded =
+        infoRendering == DontRender && warnRendering == DontRender && errorRendering == DontRender &&
+          !failOnErrorLog && !fp.effect.MIO.benchmarkScopes
       Environment.withMioTimeout(timeout) {
-        io.unsafe.runSync
+        if (loggingFullyDiscarded) Environment.withMioLoggingDisabled(io.unsafe.runSync)
+        else io.unsafe.runSync
       } match {
         case Right((state, result)) =>
           val flameGraphError = writeFlameGraphIfConfigured(macroName, state)
@@ -93,7 +99,7 @@ trait MIOIntegrations { this: MacroTypedCommons =>
               def warnLogs = state.logs.render(macroName, warnRendering)
               def errorLogs = state.logs.render(macroName, errorRendering)
 
-              val logs = infoLogs.orElse(warnLogs).orElse(errorLogs).filter(_.trim.count(_ == '\n') > 0)
+              val logs = infoLogs.orElse(warnLogs).orElse(errorLogs).filter(_.trim.contains('\n'))
               val msg = logs.map(renderFailure(_, errors)).getOrElse(renderFailure("", errors))
 
               def fallbackMessage =
@@ -107,7 +113,7 @@ trait MIOIntegrations { this: MacroTypedCommons =>
           val flameGraphError = writeFlameGraphIfConfigured(macroName, timeoutEx.capturedState)
           val renderedLogs = timeoutEx.capturedState.logs
             .render(macroName, warnRendering)
-            .filter(_.trim.count(_ == '\n') > 0)
+            .filter(_.trim.contains('\n'))
           val timeoutMsg = s"Macro '$macroName' timed out after ${timeout.toMillis}ms"
           val fullMsg = Vector(Some(timeoutMsg), renderedLogs, flameGraphError).flatten.mkString("\n")
           Environment.reportErrorAndAbort(fullMsg)
