@@ -289,6 +289,7 @@ trait MIOIntegrations { this: MacroTypedCommons =>
   implicit final class ExtensionLoadingResultMioOps[Extension: ClassTag](result: => ExtensionLoadingResult[Extension]) {
 
     /** Lazyly evaluate the result of the extension loading, and return a MIO that will log the result.
+      *
       * @since 0.3.0
       *
       * @param allowFailures

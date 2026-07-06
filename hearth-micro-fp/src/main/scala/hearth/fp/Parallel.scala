@@ -14,6 +14,7 @@ package fp
 trait Parallel[F[_]] extends Applicative[F] {
 
   /** Like [[Applicative.map2]] but evaluates both sides even when one fails, so errors can be aggregated.
+    *
     * @since 0.1.0
     *
     * @param fa

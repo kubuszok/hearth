@@ -22,6 +22,7 @@ import scala.language.implicitConversions
 trait ScalaCheckSuite extends Suite {
 
   /** Registers a ScalaCheck property as a test.
+    *
     * @since 0.3.0
     *
     * @param name
@@ -35,6 +36,7 @@ trait ScalaCheckSuite extends Suite {
     property(new TestOptions(name, Set.empty, loc))(body)
 
   /** Registers a ScalaCheck property as a test.
+    *
     * @since 0.3.0
     *
     * @param options
@@ -189,6 +191,7 @@ trait ScalaCheckSuite extends Suite {
   implicit class AssertEqOps[A](a: A) {
 
     /** Asserts that `a` and `b` are equal via the in-scope [[AssertEq]].
+      *
       * @since 0.3.0
       *
       * @param b

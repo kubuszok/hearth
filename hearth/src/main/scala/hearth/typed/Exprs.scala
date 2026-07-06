@@ -398,11 +398,13 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     def prettyPrint: String = Expr.prettyPrint(expr)
 
     /** Uncolored dump of the raw compiler AST (tree structure, not source) — see [[ExprModule.plainAST]].
+      *
       * @since 0.1.0
       */
     def plainAST: String = Expr.plainAST(expr)
 
     /** ANSI-colored dump of the raw compiler AST (tree structure, not source) — see [[ExprModule.prettyAST]].
+      *
       * @since 0.1.0
       */
     def prettyAST: String = Expr.prettyAST(expr)
@@ -411,6 +413,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     def suppressUnused(implicit A: Type[A]): Expr[Unit] = Expr.suppressUnused(expr)
 
     /** Attaches an annotation to this expression — see [[ExprModule.annotated]].
+      *
       * @since 0.4.1
       */
     def annotated[Ann: Type](arguments: UntypedExpr*)(implicit A: Type[A]): Expr[A] =
@@ -425,11 +428,13 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     def tpe: Type[A] = Expr.typeOf(expr)
 
     /** Evaluates this expression at macro time with no custom overrides — see `semiEval`.
+      *
       * @since 0.3.0
       */
     def semiEval: Either[NonEmptyVector[String], A] = Expr.semiEval(expr)
 
     /** Evaluates this expression at macro time with per-type overrides — see `semiEval`.
+      *
       * @since 0.3.0
       *
       * @param overrides
@@ -441,6 +446,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     def asUntyped: UntypedExpr = UntypedExpr.fromTyped(expr)
 
     /** Returns the [[Position]] of this expression's underlying tree, if available.
+      *
       * @since 0.4.0
       */
     def position: Option[Position] = UntypedExpr.position(UntypedExpr.fromTyped(expr))
@@ -491,11 +497,13 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     def prettyPrint: String = Expr.prettyPrint(expr.value)
 
     /** Uncolored dump of the raw compiler AST (tree structure, not source) — see [[ExprModule.plainAST]].
+      *
       * @since 0.1.0
       */
     def plainAST: String = Expr.plainAST(expr.value)
 
     /** ANSI-colored dump of the raw compiler AST (tree structure, not source) — see [[ExprModule.prettyAST]].
+      *
       * @since 0.1.0
       */
     def prettyAST: String = Expr.prettyAST(expr.value)
@@ -630,6 +638,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
   object EvalOverride {
 
     /** Wraps a macro-time evaluation function as an override.
+      *
       * @since 0.3.0
       *
       * @param f
@@ -638,6 +647,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     def apply[A](f: Expr[A] => Either[String, A]): EvalOverride[A] = Some(f)
 
     /** No override — fall through to the built-in reflection path.
+      *
       * @since 0.3.0
       */
     def none[A]: EvalOverride[A] = None
@@ -657,6 +667,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
   object QuoteOverride {
 
     /** Wraps a macro-time quoting function as an override.
+      *
       * @since 0.3.0
       *
       * @param f
@@ -665,6 +676,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     def apply[A](f: A => Either[String, Expr[A]]): QuoteOverride[A] = Some(f)
 
     /** No override — fall through to the built-in path.
+      *
       * @since 0.3.0
       */
     def none[A]: QuoteOverride[A] = None
@@ -854,6 +866,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
   }
 
   /** To avoid name clashes, we need to generate them. This enum provides various strategies to generate fresh names.
+    *
     * @since 0.1.0
     */
   sealed trait FreshName extends Product with Serializable
@@ -863,6 +876,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     final case class FromPrefix(prefix: String) extends FreshName
 
     /** Allows passing String instead of `FreshName.FromPrefix(value)`.
+      *
       * @since 0.1.0
       */
     implicit def stringToFreshName(prefix: String): FreshName = FromPrefix(prefix)
@@ -2092,6 +2106,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     final def parse[A: Type](expr: Expr[A]): DestructuredExpr = destructureExpr(UntypedExpr.fromTyped(expr))
 
     /** Parse an untyped expression into a [[DestructuredExpr]].
+      *
       * @since 0.4.0
       */
     final def parseUntyped(expr: UntypedExpr): DestructuredExpr = destructureExpr(expr)
@@ -2139,6 +2154,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     }
 
     /** Extract lambda parameters and body from an expression.
+      *
       * @since 0.4.0
       */
     final def extractLambda[A: Type](expr: Expr[A]): Either[String, LambdaInfo] = {
@@ -2180,27 +2196,32 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     object MethodCall {
 
       /** One step of an applied method call, mapping to [[Method]] builder chain steps.
+        *
         * @since 0.4.0
         */
       sealed trait Applied
 
       /** Instance expression (receiver). Maps to [[Method.OnInstance]].
+        *
         * @since 0.4.0
         */
       final class AppliedInstance private[hearth] (val value: DestructuredExpr) extends Applied
 
       /** Type arguments. Maps to [[Method.ApplyTypes]].
+        *
         * @since 0.4.0
         */
       final class AppliedTypes private[hearth] (val typeArgs: List[??]) extends Applied
 
       /** Value arguments for one parameter clause. Maps to [[Method.ApplyValues]].
+        *
         * @since 0.4.0
         */
       final class AppliedValues private[hearth] (val args: List[DestructuredExpr]) extends Applied
     }
 
     /** A lambda expression: `(params) => body`.
+      *
       * @since 0.4.0
       */
     final class Lambda private[hearth] (
@@ -2218,6 +2239,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     object Lambda {
 
       /** A lambda parameter.
+        *
         * @since 0.4.0
         *
         * @param tpe
@@ -2233,6 +2255,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       }
 
       /** Reference to a lambda parameter in the body.
+        *
         * @since 0.4.0
         */
       final class ParamRef private[hearth] (
@@ -2246,6 +2269,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     }
 
     /** A literal constant: `42`, `"hello"`, `true`, `null`, `()`, etc.
+      *
       * @since 0.4.0
       */
     final class Literal private[hearth] (
@@ -2266,6 +2290,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     }
 
     /** A singleton/module reference: `None`, `Nil`, companion objects.
+      *
       * @since 0.4.0
       */
     final class Singleton private[hearth] (
@@ -2278,6 +2303,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     }
 
     /** A block: `{ stmt1; stmt2; ...; result }`.
+      *
       * @since 0.4.0
       */
     final class Block private[hearth] (
@@ -2319,6 +2345,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     }
 
     /** A sub-expression that could not be destructured into a semantic node.
+      *
       * @since 0.4.0
       */
     final class NonDestructurable private[hearth] (
@@ -2334,6 +2361,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
   protected def destructureExpr(expr: UntypedExpr): DestructuredExpr
 
   /** A single step in a field access path, resolved against the [[Method]] API.
+    *
     * @since 0.4.0
     */
   final class FieldPathSegment(
@@ -2344,6 +2372,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
   )
 
   /** A parsed field access path extracted from a lambda like `_.a.b.c`.
+    *
     * @since 0.4.0
     */
   final class FieldPath(
@@ -2361,6 +2390,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
   }
 
   /** Decomposed lambda information: parameters and body.
+    *
     * @since 0.4.0
     */
   final class LambdaInfo(

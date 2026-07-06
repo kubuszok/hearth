@@ -10,6 +10,7 @@ package fp
 trait Applicative[F[_]] extends Functor[F] {
 
   /** Lifts a pure value into `F` (no effect / success).
+    *
     * @since 0.1.0
     *
     * @param a

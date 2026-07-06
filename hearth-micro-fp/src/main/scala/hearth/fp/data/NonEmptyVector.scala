@@ -6,6 +6,7 @@ import fp.instances.*
 import fp.syntax.*
 
 /** Non-empty vector.
+  *
   * @since 0.1.0
   */
 final case class NonEmptyVector[+A](head: A, tail: Vector[A]) {
@@ -36,6 +37,7 @@ final case class NonEmptyVector[+A](head: A, tail: Vector[A]) {
 object NonEmptyVector {
 
   /** Builds a non-empty vector from a required head and optional further elements.
+    *
     * @since 0.1.0
     *
     * @param a
@@ -46,6 +48,7 @@ object NonEmptyVector {
   def apply[A](a: A, as: A*): NonEmptyVector[A] = NonEmptyVector(a, as.toVector)
 
   /** `Some` iff the vector is non-empty, else `None`.
+    *
     * @since 0.1.0
     *
     * @param vector
@@ -57,6 +60,7 @@ object NonEmptyVector {
   }
 
   /** Single-element non-empty vector.
+    *
     * @since 0.1.0
     *
     * @param a

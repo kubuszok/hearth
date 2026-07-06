@@ -6,17 +6,20 @@ import scala.math.Ordered.orderingToOrdered
 package object effect {
 
   /** Series of [[Log]]s.
+    *
     * @since 0.1.0
     */
   type Logs = Vector[Log]
   implicit final class LogsOps(logs: Logs) {
 
     /** Various ways of rendering [[Logs]] as a String.
+      *
       * @since 0.1.0
       */
     object render {
 
       /** Renders the logs as a tree under `rootScopeName`, keeping only entries whose level satisfies `filter`.
+        *
         * @since 0.1.0
         */
       def apply(rootScopeName: String)(filter: Log.Level => Boolean): String =
@@ -79,11 +82,13 @@ package object effect {
   }
 
   /** Macro errors.
+    *
     * @since 0.1.0
     */
   type MErrors = data.NonEmptyVector[Throwable]
 
   /** Eager results of a macro expansion.
+    *
     * @since 0.1.0
     */
   type MResult[+A] = Either[MErrors, A]

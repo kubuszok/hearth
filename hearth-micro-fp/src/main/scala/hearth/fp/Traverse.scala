@@ -9,6 +9,7 @@ package fp
 trait Traverse[F[_]] extends Functor[F] {
 
   /** Applies `f` to each element and combines the results via [[Applicative]] (sequential, fail-fast).
+    *
     * @since 0.1.0
     *
     * @param fa
@@ -19,6 +20,7 @@ trait Traverse[F[_]] extends Functor[F] {
   def traverse[G[_]: Applicative, A, B](fa: F[A])(f: A => G[B]): G[F[B]]
 
   /** Applies `f` to each element and combines the results via [[Parallel]], accumulating errors.
+    *
     * @see
     *   [[traverse]] for the sequential, fail-fast variant
     *

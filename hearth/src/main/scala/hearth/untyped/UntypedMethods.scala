@@ -45,11 +45,13 @@ trait UntypedMethods { this: MacroCommons =>
   }
 
   /** Type parameters grouped as they appear in the method signature (e.g. `[A, B][C]` → `List(List(A, B), List(C))`).
+    *
     * @since 0.4.0
     */
   type UntypedTypeParameters = List[List[UntypedTypeParameter]]
 
   /** Map from type parameters to their resolved types, used when applying type arguments.
+    *
     * @since 0.4.0
     */
   type UntypedTypeArguments = Map[UntypedTypeParameter, ??]
@@ -200,6 +202,7 @@ trait UntypedMethods { this: MacroCommons =>
   protected def adaptVarargArgument(expr: UntypedExpr): UntypedExpr
 
   /** Platform-specific method representation (`c.universe.MethodSymbol` in 2, `quotes.reflect.Symbol` in 3).
+    *
     * @since 0.1.0
     */
   type UntypedMethod <: UntypedMethodMethods
@@ -349,6 +352,7 @@ trait UntypedMethods { this: MacroCommons =>
     def isDeclared: Boolean
 
     /** Whether this member was synthesized by the compiler (e.g. an accessor or `copy`/`apply` helper).
+      *
       * @since 0.1.0
       */
     def isSynthetic: Boolean
@@ -388,6 +392,7 @@ trait UntypedMethods { this: MacroCommons =>
     def isProtected: Boolean
 
     /** The enclosing package/type name of a qualified-private member (`private[pkg]` -> `Some("pkg")`), else `None`.
+      *
       * @see
       *   [[isPrivate]] for the normalization contract
       *
@@ -406,6 +411,7 @@ trait UntypedMethods { this: MacroCommons =>
     def protectedWithin: Option[String]
 
     /** Whether this member is reachable under the given [[Accessible]] scope.
+      *
       * @since 0.1.0
       *
       * @param scope

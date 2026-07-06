@@ -115,16 +115,19 @@ object JDKVersion extends JDKVersionsCompanionCompat {
 final case class ScalaVersion(major: Int, minor: Int, patch: Int) {
 
   /** True iff this version resolves to Scala 2.13.
+    *
     * @since 0.1.0
     */
   def isScala2_13: Boolean = toLanguageVersion == LanguageVersion.Scala2_13
 
   /** True iff this version resolves to Scala 3.
+    *
     * @since 0.1.0
     */
   def isScala3: Boolean = toLanguageVersion == LanguageVersion.Scala3
 
   /** Coarsens this exact version to a [[LanguageVersion]]; throws on an unsupported major version.
+    *
     * @since 0.1.0
     */
   def toLanguageVersion: LanguageVersion = this match {
@@ -219,11 +222,13 @@ object ScalaVersion extends ScalaVersionsCompanionCompat {
 sealed trait LanguageVersion extends Product with Serializable {
 
   /** True iff this is Scala 2.13 - the predicate macro authors call for cross-version branching.
+    *
     * @since 0.1.0
     */
   final def isScala2_13: Boolean = this == LanguageVersion.Scala2_13
 
   /** True iff this is Scala 3 - the predicate macro authors call for cross-version branching.
+    *
     * @since 0.1.0
     */
   final def isScala3: Boolean = this == LanguageVersion.Scala3
@@ -244,11 +249,13 @@ sealed trait LanguageVersion extends Product with Serializable {
 object LanguageVersion extends LanguageVersionCompanionCompat {
 
   /** Scala 2.13.
+    *
     * @since 0.1.0
     */
   case object Scala2_13 extends LanguageVersion
 
   /** Scala 3.
+    *
     * @since 0.1.0
     */
   case object Scala3 extends LanguageVersion
@@ -260,6 +267,7 @@ object LanguageVersion extends LanguageVersionCompanionCompat {
 }
 
 /** Which platform we are currently compiling for.
+  *
   * @since 0.1.0
   */
 sealed trait Platform extends Product with Serializable {
@@ -275,6 +283,7 @@ sealed trait Platform extends Product with Serializable {
 }
 
 /** Which platform we are currently compiling for.
+  *
   * @since 0.1.0
   */
 object Platform extends PlatformCompanionCompat {

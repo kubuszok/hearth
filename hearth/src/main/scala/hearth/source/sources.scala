@@ -38,11 +38,13 @@ final case class Text[T](value: T, source: String) {
 object Text extends TextCompanion
 
 /** The current location in the source code.
+  *
   * @since 0.1.0
   */
 final case class Location(file: File, line: Line) {
 
   /** Just the file name (last path segment) of [[file]].
+    *
     * @since 0.1.0
     */
   def fileName: FileName = FileName.wrap(file.split("/").last)
@@ -52,6 +54,7 @@ final case class Location(file: File, line: Line) {
 object Location {
 
   /** Materializes the call-site [[Location]] from the implicit [[File]] and [[Line]].
+    *
     * @since 0.1.0
     *
     * @param file

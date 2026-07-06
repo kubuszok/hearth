@@ -384,6 +384,7 @@ trait UntypedTypes { this: MacroCommons =>
     }
 
     /** Strips type aliases, e.g. turns `type StringList = List[String]` into `List[String]`.
+      *
       * @since 0.4.0
       */
     def dealias(untyped: UntypedType): UntypedType

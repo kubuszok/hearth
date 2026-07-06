@@ -21,16 +21,19 @@ trait Rule {
 object Rule {
 
   /** Signals the rule applied and produced `result`; [[Rules]] stops here and returns it.
+    *
     * @since 0.3.0
     */
   def matched[A](result: A): Applicability[A] = Applicability.Matched(result)
 
   /** Signals the rule did not apply, carrying `reasons` so [[Rules]] can move on and aggregate them.
+    *
     * @since 0.3.0
     */
   def yielded(reasons: String*): Applicability[Nothing] = Applicability.Yielded(reasons.toVector)
 
   /** The result of applying a rule to a context.
+    *
     * @since 0.3.0
     */
   sealed trait Applicability[+A] extends Product with Serializable

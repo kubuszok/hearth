@@ -76,11 +76,13 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def runtimePlainPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String]
 
     /** Like [[runtimePlainPrint]] but the non-overridden parts use ANSI-colored output (like [[prettyPrint]]).
+      *
       * @since 0.3.0
       */
     def runtimePrettyPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String]
 
     /** Like [[runtimePlainPrint]] but the non-overridden parts use short names (like [[shortName]]).
+      *
       * @since 0.3.0
       */
     def runtimeShortPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String]
@@ -245,6 +247,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       Annotations.filterOfType[Ann](typeAnnotations[A])
 
     /** Whether type `A` has at least one annotation whose type is a subtype of `Ann`.
+      *
       * @since 0.4.0
       */
     final def hasAnnotationOfType[A: Type, Ann: Type]: Boolean = annotations[A].exists(_.Underlying <:< Type[Ann])
@@ -1141,6 +1144,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
   }
 
   /** Generalizes over the idea of conversion between singleton/literal type values and their type representation.
+    *
     * @since 0.1.0
     */
   trait TypeCodec[U] {

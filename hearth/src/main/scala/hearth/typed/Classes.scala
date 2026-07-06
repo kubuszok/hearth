@@ -84,6 +84,7 @@ trait Classes { this: MacroCommons =>
   }
 
   /** Result of parsing a type into a class view.
+    *
     * @since 0.3.0
     */
   sealed trait ClassViewResult[+V] extends Product with Serializable {
@@ -93,6 +94,7 @@ trait Classes { this: MacroCommons =>
   object ClassViewResult {
 
     /** The type is compatible with the requested class view.
+      *
       * @since 0.3.0
       */
     final case class Compatible[V](value: V) extends ClassViewResult[V] {
@@ -101,6 +103,7 @@ trait Classes { this: MacroCommons =>
     }
 
     /** The type is incompatible with the requested class view.
+      *
       * @since 0.3.0
       */
     final case class Incompatible(reason: String) extends ClassViewResult[Nothing] {
@@ -137,6 +140,7 @@ trait Classes { this: MacroCommons =>
       Expr.singletonOf[A](using tpe).map(new SingletonValue(tpe, _))
 
     /** Parses a type as a [[SingletonValue]].
+      *
       * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[SingletonValue[A]] =
@@ -220,6 +224,7 @@ trait Classes { this: MacroCommons =>
       else None
 
     /** Parses a type as a [[NamedTuple]].
+      *
       * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[NamedTuple[A]] =
@@ -248,17 +253,20 @@ trait Classes { this: MacroCommons =>
   ) extends Class[A]()(using tpe0) {
 
     /** The primary constructor.
+      *
       * @since 0.1.0
       */
     val primaryConstructor: Method = primaryConstructor0
 
     /** All constructors other than the [[primaryConstructor]] (auxiliary constructors).
+      *
       * @since 0.1.0
       */
     lazy val nonPrimaryConstructors: List[Method] =
       constructors.filter(_ != primaryConstructor)
 
     /** The case fields of this class: the methods for which [[Method.isCaseField]] holds.
+      *
       * @since 0.1.0
       */
     lazy val caseFields: List[Method] = methods.filter(_.isCaseField)
@@ -483,6 +491,7 @@ trait Classes { this: MacroCommons =>
       else None
 
     /** Parses a type as a [[CaseClass]].
+      *
       * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[CaseClass[A]] =
@@ -671,6 +680,7 @@ trait Classes { this: MacroCommons =>
       else None
 
     /** Parses a type as an [[Enum]].
+      *
       * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[Enum[A]] =
@@ -709,6 +719,7 @@ trait Classes { this: MacroCommons =>
     lazy val beanSetters: List[Method] = methods.filter(_.isJavaSetter)
 
     /** Builds `new A()` via the default constructor, applying no setters.
+      *
       * @since 0.1.0
       *
       * @param visibility
@@ -836,6 +847,7 @@ trait Classes { this: MacroCommons =>
       else None
 
     /** Parses a type as a [[JavaBean]].
+      *
       * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[JavaBean[A]] =
