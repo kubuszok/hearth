@@ -1016,6 +1016,58 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     }
     final def ModuleCodec[ModuleSingleton <: Singleton]: TypeCodec[ModuleSingleton] =
       ModuleCodecImpl.asInstanceOf[TypeCodec[ModuleSingleton]]
+
+    /** A mutable, macro-expansion-scoped memo keyed by `Type`, storing one `F[Result]` per distinct type.
+      *
+      * Intended for caching the results of expensive per-type computations (class-view parsing, std-extension provider
+      * scans, etc.) so they run at most once per type within a single macro expansion.
+      *
+      * Keys are compared with [[=:=]] (semantic type equality), '''not''' `==`: a `Type[A]` has no value-based
+      * `equals`, so on Scala 3 `==` is reference identity and would miss almost every hit. `=:=` results are themselves
+      * memoized on Scala 3, so repeated lookups stay cheap. A miss simply recomputes, so a stale, partial, or leaky
+      * cache can never yield a wrong result — only less speed-up.
+      *
+      * Not thread-safe; a macro expansion is single-threaded.
+      *
+      * @since 0.4.1
+      */
+    final class Cache[F[_]] {
+      private val impl = scala.collection.mutable.ListBuffer.empty[Cache.Entry[F]]
+
+      /** Returns the cached `F[Result]` for a type `=:=` `key`, or `None`. */
+      def get[Result](key: Type[Result]): Option[F[Result]] =
+        impl.collectFirst { case e if e.key =:= key => e.value.asInstanceOf[F[Result]] }
+
+      /** Stores `value` under `key`. Does not deduplicate — call [[getOrPut]] to avoid recomputation. */
+      def put[Result](key: Type[Result], value: F[Result]): Unit = {
+        impl += Cache.Entry[F, Result](key, value)
+        ()
+      }
+
+      /** Returns the cached `F[Result]` for a type `=:=` `key`, computing and storing `value` on a miss. */
+      def getOrPut[Result](key: Type[Result])(value: => F[Result]): F[Result] =
+        get(key).getOrElse {
+          val result = value
+          put(key, result)
+          result
+        }
+    }
+    object Cache {
+
+      /** A single `(key, value)` entry, hiding the concrete `Result` type behind an abstract type member. */
+      sealed trait Entry[F[_]] {
+        type Result
+        def key: Type[Result]
+        def value: F[Result]
+      }
+      object Entry {
+        def apply[F[_], R](k: Type[R], v: F[R]): Entry[F] = new Entry[F] {
+          type Result = R
+          val key: Type[R] = k
+          val value: F[R] = v
+        }
+      }
+    }
   }
 
   implicit final class TypeMethods[A](private val tpe: Type[A]) {
@@ -1042,8 +1094,17 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def constructors: List[Method { type Instance = A }] =
       Method.constructorsOf(using tpe).map(_.asInstanceOf[Method { type Instance = A }])
 
+    /** All methods of `A` in a stable, deterministic order - see [[Method.methodsOf]]. Costlier than
+      * [[unsortedMethods]]; prefer that unless you rely on ordering.
+      */
     def methods: List[Method { type Instance = A }] =
       Method.methodsOf(using tpe).map(_.asInstanceOf[Method { type Instance = A }])
+
+    /** All methods of `A` in raw discovery order, without the expensive position-resolving sort - see
+      * [[Method.unsortedMethodsOf]]. Recommended when the result is only searched/filtered by name.
+      */
+    def unsortedMethods: List[Method { type Instance = A }] =
+      Method.unsortedMethodsOf(using tpe).map(_.asInstanceOf[Method { type Instance = A }])
 
     def companionObject: Option[Expr_??] = Type.companionObject(using tpe)
 

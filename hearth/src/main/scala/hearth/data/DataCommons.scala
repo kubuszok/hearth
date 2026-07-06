@@ -78,7 +78,7 @@ private[data] trait DataCommons {
         if (nested.isEmpty) {
           // No nested values -> there should be exactly one leaf
           if (leafs.isEmpty) Left(List(s"$key: no value"))
-          else if (leafs.size == 1) parseString(leafs.head).map(data => key -> data).left.map(e => List(s"$key: $e"))
+          else if (leafs.sizeIs == 1) parseString(leafs.head).map(data => key -> data).left.map(e => List(s"$key: $e"))
           else Left(List(s"$key: multiple values: ${leafs.mkString(", ")}"))
         } else {
           // There are nested values -> there should be no leafs

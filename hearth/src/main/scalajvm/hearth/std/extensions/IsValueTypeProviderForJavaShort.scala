@@ -24,7 +24,7 @@ final class IsValueTypeProviderForJavaShort extends StandardMacroExtension { loa
 
       private lazy val valueOfMethod: Option[Method] = {
         implicit val jShort: Type[java.lang.Short] = JShort
-        Method.methodsOf[java.lang.Short].collectFirst {
+        Method.unsortedMethodsOf[java.lang.Short].collectFirst {
           case m
               if m.name == "valueOf" && m.isUnary && !m.isInstanceOf[Method.OnInstance] &&
                 m.parameters.flatten.headOption.exists { case (_, p) => p.tpe.Underlying <:< Short } =>
@@ -33,7 +33,7 @@ final class IsValueTypeProviderForJavaShort extends StandardMacroExtension { loa
       }
 
       @scala.annotation.nowarn
-      private val isValueType: IsValueType[java.lang.Short] = {
+      private lazy val isValueType: IsValueType[java.lang.Short] = {
         implicit val short: Type[Short] = Short
         implicit val jShort: Type[java.lang.Short] = JShort
         Existential[IsValueTypeOf[java.lang.Short, *], Short](new IsValueTypeOf[java.lang.Short, Short] {

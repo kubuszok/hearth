@@ -10,7 +10,7 @@ private[typename] trait TypeNameMacros { this: MacroCommons =>
     Type
       .of[TypeName.type]
       .asUntyped
-      .methods
+      .unsortedMethods // order-independent: name-selected ignore-set for implicit summoning
       .collect { case method if method.name == "derived" => method }
       .toSeq
 

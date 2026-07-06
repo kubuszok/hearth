@@ -343,7 +343,40 @@ val mimaSettings = Seq(
     // #334: `annotated` added to the NESTED trait `Exprs#ExprModule`. That trait is part of the MacroCommons cake and
     // is implemented ONLY by Hearth's own `Expr` object (in ExprsScala2/ExprsScala3), so the interface and its
     // implementation are always evicted together - no user has a standalone `ExprModule` implementation to break.
-    exclude[ReversedMissingMethodProblem]("hearth.typed.Exprs#ExprModule.annotated")
+    exclude[ReversedMissingMethodProblem]("hearth.typed.Exprs#ExprModule.annotated"),
+    // Perf: `ClassViewResult.Incompatible` changed from a `case class` to a plain class so its `reason` (an
+    // expensive `Type.prettyPrint`, discarded by most callers) can be computed lazily. The former binary surface is
+    // preserved as far as shims can reach: `apply(String)`, the primary constructor `this(String)`, and
+    // `copy(String)` / `copy$default$1()` are all reintroduced as `private[ClassViewResult]` members, which Scala
+    // emits as PUBLIC bytecode (so 0.4.0-compiled callers still link) while hiding them from new source (so new call
+    // sites resolve to the lazy `apply(=> String)` and `reason` stays lazy). Those therefore need NO filter.
+    //
+    // What remains below is STRUCTURAL - a plain class simply cannot carry it, and no shim can restore it without
+    // either undoing the laziness or making it a `case class` again:
+    //   * `unapply` returns `Some` instead of `Option`, so `case Incompatible(reason)` stays irrefutable and sealed
+    //     matches stay exhaustive (returning `Option` would emit non-exhaustiveness warnings in downstream `-Werror`
+    //     builds - a worse regression than this filter). Return-type overloading cannot provide both.
+    //   * the companion loses its `AbstractFunction1[String, Incompatible]` parent (restoring it would force a PUBLIC
+    //     `apply(String)`, reintroducing the overload ambiguity the shim exists to avoid).
+    //   * Scala 3 `Mirror.Sum` (+`ordinal`) on `ClassViewResult` and `Mirror.Product` (`_1`, `fromProduct`) on
+    //     `Incompatible` - case-class/Mirror machinery a plain class does not generate.
+    // `ClassViewResult` is an internal parsing-result type that ONLY Hearth constructs; no user builds one via the
+    // synthesized `Function1`/`Mirror`, so none of the below is user-observable.
+    exclude[MissingTypesProblem]("hearth.typed.Classes$ClassViewResult$Incompatible$"),
+    exclude[IncompatibleResultTypeProblem]("hearth.typed.Classes#ClassViewResult#Incompatible.unapply"),
+    exclude[MissingTypesProblem]("hearth.typed.Classes$ClassViewResult$"),
+    exclude[DirectMissingMethodProblem]("hearth.typed.Classes#ClassViewResult.ordinal"),
+    exclude[DirectMissingMethodProblem]("hearth.typed.Classes#ClassViewResult#Incompatible._1"),
+    exclude[DirectMissingMethodProblem]("hearth.typed.Classes#ClassViewResult#Incompatible.fromProduct"),
+    // Perf: `Type.Cache` (a type-keyed memo) added to the NESTED trait `Types#TypeModule`, which is part of the
+    // MacroCommons cake and implemented ONLY by Hearth's own platform `Type` object (TypesScala2/TypesScala3), so
+    // interface and implementation are always evicted together - no user has a standalone `TypeModule` to break.
+    exclude[ReversedMissingMethodProblem]("hearth.typed.Types#TypeModule.Cache"),
+    // Perf: `unsortedMethods` (methods without the expensive position-resolving `sortMethods` pass) added to the
+    // NESTED trait `UntypedMethods#UntypedMethodModule`, part of the MacroCommons cake and implemented ONLY by
+    // Hearth's own platform `UntypedMethod` object (UntypedMethodsScala2/Scala3) - interface and implementation are
+    // always evicted together, so no user has a standalone implementation to break.
+    exclude[ReversedMissingMethodProblem]("hearth.untyped.UntypedMethods#UntypedMethodModule.unsortedMethods")
   )
 )
 

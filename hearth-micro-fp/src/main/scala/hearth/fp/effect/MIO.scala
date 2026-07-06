@@ -444,6 +444,17 @@ object MIO {
   /** Whether each Log.scoped should also benchmark the scope duration. */
   var benchmarkScopes: Boolean = false
 
+  /** When `true`, [[log]] and [[nameLogsScope]] become no-ops, skipping the per-entry / per-scope allocations.
+    *
+    * UNSAFE: while set, no `Log` entries or scopes are recorded, so any later log rendering is empty. Only enable when
+    * all logs are guaranteed to be discarded. Set (save/restore) via
+    * [[hearth.Environments.EnvironmentModule.withMioLoggingDisabled]], which `runToExprOrFail` turns on automatically
+    * when every rendering knob is `DontRender`.
+    *
+    * @since 0.4.1
+    */
+  var disableLogging: Boolean = false
+
   /** Reference timestamp captured at the start of macro expansion. Used to convert absolute nanoTime values to
     * relative-to-start values for flame graph rendering.
     */
@@ -495,20 +506,23 @@ object MIO {
 
   // --------------------------------------------- Log delegates to these ---------------------------------------------
 
-  private[effect] def log(log: => Log): MIO[Unit] = void :+ ((s, r) => Pure(s.log(log), r))
+  private[effect] def log(log: => Log): MIO[Unit] =
+    if (disableLogging) void else void :+ ((s, r) => Pure(s.log(log), r))
   private[effect] def nameLogsScope[A](name: String, io: MIO[A]): MIO[A] =
-    void :+ { (s, _) =>
-      val start = if (benchmarkScopes) Log.Timestamp.now else Log.Timestamp.empty
-      val (s1, scopeId) = s.openScope(name, start)
-      _openScopes = OpenScope(name, scopeId, start) :: _openScopes
-      Pure(s1, Right(scopeId))
-    } flatMap { scopeId =>
-      io :+ { (s, r) =>
-        _openScopes = if (_openScopes.nonEmpty) _openScopes.tail else Nil
-        val end = if (benchmarkScopes) Log.Timestamp.now else Log.Timestamp.empty
-        Pure(s.closeScope(scopeId, end), r)
+    if (disableLogging) io
+    else
+      void :+ { (s, _) =>
+        val start = if (benchmarkScopes) Log.Timestamp.now else Log.Timestamp.empty
+        val (s1, scopeId) = s.openScope(name, start)
+        _openScopes = OpenScope(name, scopeId, start) :: _openScopes
+        Pure(s1, Right(scopeId))
+      } flatMap { scopeId =>
+        io :+ { (s, r) =>
+          _openScopes = if (_openScopes.nonEmpty) _openScopes.tail else Nil
+          val end = if (benchmarkScopes) Log.Timestamp.now else Log.Timestamp.empty
+          Pure(s.closeScope(scopeId, end), r)
+        }
       }
-    }
 
   /** Allows the [[run]] loop to sync its accumulated state with [[DirectStyle]]'s `ongoingStates`, so that nested
     * `runSafe` calls see up-to-date state and their changes are propagated back into the run loop.

@@ -902,7 +902,10 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
                 )
             )
       }
-    override def methods(instanceTpe: UntypedType): List[UntypedMethod] = {
+    override def methods(instanceTpe: UntypedType): List[UntypedMethod] =
+      sortMethods(unsortedMethods(instanceTpe))
+
+    override def unsortedMethods(instanceTpe: UntypedType): List[UntypedMethod] = {
       val symbol = instanceTpe.typeSymbol
       // `fieldMembers` only returns the type's OWN fields, so `val` fields inherited from parent CLASSES (e.g. the
       // constructor vals of an abstract parent) are neither methods nor own fields and would vanish entirely. Walk the
@@ -947,7 +950,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
           val allMembers = classMembers ++ companionMembers
           val allDeclared = classDeclared ++ companionDeclared
-          val moduleBySymbol = companionMembers.toList.map(_ -> companionRef).toMap[Symbol, UntypedExpr]
+          val moduleBySymbol = companionMembers.iterator.map(_ -> companionRef).toMap[Symbol, UntypedExpr]
           (allMembers, allDeclared, moduleBySymbol)
         }
         .getOrElse((classMembers, classDeclared, Map.empty[Symbol, UntypedExpr]))
@@ -962,31 +965,29 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         if !field.isNoSymbol
       } yield field.name).toSet
 
-      sortMethods(
-        members
-          .filterNot(_.isNoSymbol)
-          .filterNot(_.isClassConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
-          .filterNot { s =>
-            val name = s.name
-            (name == "apply" && s.flags
-              .is(Flags.Synthetic)) || // Generated apply methods that just forward the arguments to the constructor
-            name.contains("$default$") || // Default parameters are methods, but we don't want them
-            name == "<clinit>" // Class static initializer is a method, but we don't want it
-          }
-          .filterNot(excludedMethods)
-          .flatMap { s =>
-            val isSetter = s.name.endsWith("_=")
-            val fieldName = if isSetter then s.name.dropRight(2) else s.name
-            val module = moduleBySymbol.get(s)
-            UntypedMethod.parseOption(
-              isDeclared = declared(s) && !methodsConsideredSynthetic(s),
-              isConstructorArgument = constructorArguments.contains(fieldName) && !isSetter,
-              constructorArgumentIndex = if isSetter then None else constructorArguments.get(fieldName),
-              isCaseField = caseFields(fieldName) && !isSetter,
-              module = module
-            )(s)
-          }
-      )
+      members
+        .filterNot(_.isNoSymbol)
+        .filterNot(_.isClassConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
+        .filterNot { s =>
+          val name = s.name
+          (name == "apply" && s.flags
+            .is(Flags.Synthetic)) || // Generated apply methods that just forward the arguments to the constructor
+          name.contains("$default$") || // Default parameters are methods, but we don't want them
+          name == "<clinit>" // Class static initializer is a method, but we don't want it
+        }
+        .filterNot(excludedMethods)
+        .flatMap { s =>
+          val isSetter = s.name.endsWith("_=")
+          val fieldName = if isSetter then s.name.dropRight(2) else s.name
+          val module = moduleBySymbol.get(s)
+          UntypedMethod.parseOption(
+            isDeclared = declared(s) && !methodsConsideredSynthetic(s),
+            isConstructorArgument = constructorArguments.contains(fieldName) && !isSetter,
+            constructorArgumentIndex = if isSetter then None else constructorArguments.get(fieldName),
+            isCaseField = caseFields(fieldName) && !isSetter,
+            module = module
+          )(s)
+        }
     }
 
     override def defaultValue(instanceTpe: UntypedType)(param: UntypedParameter): Option[UntypedMethod] =

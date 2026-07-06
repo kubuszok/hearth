@@ -43,7 +43,23 @@ trait Classes { this: MacroCommons =>
 
     final lazy val constructors: List[Method] = tpe.constructors
     final lazy val methods: List[Method] = tpe.methods
-    final def method(name: String): List[Method] = methods.filter(_.name == name)
+
+    /** Like [[methods]] but WITHOUT the position-resolving sort - cheaper; use when order does not matter. See
+      * [[Type.unsortedMethods]].
+      */
+    final lazy val unsortedMethods: List[Method] = tpe.unsortedMethods
+
+    /** All overloads named `name`, in the same deterministic order as [[methods]] but computed by sorting only the
+      * matching subset rather than the whole member list.
+      */
+    final def method(name: String): List[Method] = sortedMethodsMatching(_.name == name)
+
+    /** Filters [[unsortedMethods]] and sorts only the (small) matching subset - an identical result to
+      * `methods.filter(p)` but without sorting every member. The `.view` avoids materializing the filtered list before
+      * it is sorted.
+      */
+    final protected def sortedMethodsMatching(p: Method => Boolean): List[Method] =
+      UntypedMethod.sortMethodsBy(unsortedMethods.view.filter(p))(_.asUntyped)
 
     final def asSingleton: Option[SingletonValue[A]] = SingletonValue.unapply(tpe)
     final def asNamedTuple: Option[NamedTuple[A]] = NamedTuple.unapply(tpe)
@@ -104,11 +120,70 @@ trait Classes { this: MacroCommons =>
 
     /** The type is incompatible with the requested class view.
       *
+      * `reason` is evaluated lazily: it is usually built by pretty-printing a type (expensive), yet most callers only
+      * look at `toOption` / `toEither.isRight` and discard it. Formerly a `case class` with an eager `reason`; now a
+      * plain class computing it on first access. The former surface (value equality, `toString`, `Product` access,
+      * `Incompatible(reason)` construction and extraction) is preserved — only the TASTy `case` flag is gone.
+      *
       * @since 0.3.0
       */
-    final case class Incompatible(reason: String) extends ClassViewResult[Nothing] {
+    final class Incompatible private (reasonThunk: () => String) extends ClassViewResult[Nothing] {
+
+      // Binary-compatibility shim for the former `case class`'s public primary constructor `this(String)`. Like the
+      // companion `apply(String)` shim below, `private[ClassViewResult]` is emitted as a PUBLIC `<init>(String)`, so
+      // `new Incompatible(reason)` in code compiled against 0.4.0 still links, while new source cannot see it. Remove
+      // on the next major release.
+      @deprecated(
+        "binary-compatibility shim for the former case class; use ClassViewResult.Incompatible(=> String)",
+        "0.4.1"
+      )
+      private[ClassViewResult] def this(reason: String) = this(() => reason)
+
+      lazy val reason: String = reasonThunk()
       def toOption: Option[Nothing] = None
       def toEither: Either[String, Nothing] = Left(reason)
+
+      override def toString: String = s"Incompatible($reason)"
+      override def equals(other: Any): Boolean = other match {
+        case that: Incompatible => that.canEqual(this) && reason == that.reason
+        case _                  => false
+      }
+      override def hashCode: Int = reason.hashCode
+      override def canEqual(that: Any): Boolean = that.isInstanceOf[Incompatible]
+      override def productArity: Int = 1
+      override def productElement(n: Int): Any =
+        if (n == 0) reason else throw new IndexOutOfBoundsException(n.toString)
+      override def productPrefix: String = "Incompatible"
+
+      // Binary-compatibility shims for the former `case class`'s synthesized `copy` / `copy$default$1` (instance
+      // methods). `private[ClassViewResult]` => public bytecode for 0.4.0-compiled callers, hidden from new source.
+      @deprecated(
+        "binary-compatibility shim for the former case class; use ClassViewResult.Incompatible(=> String)",
+        "0.4.1"
+      )
+      private[ClassViewResult] def copy(reason: String): Incompatible = new Incompatible(() => reason)
+      @deprecated("binary-compatibility shim for the former case class", "0.4.1")
+      private[ClassViewResult] def copy$default$1(): String = reason
+    }
+    object Incompatible {
+
+      /** Builds an [[Incompatible]] whose `reason` is computed lazily on first access. */
+      def apply(reason: => String): Incompatible = new Incompatible(() => reason)
+
+      /** Binary-compatibility shim for the former `case class`'s synthesized `apply(String)`.
+        *
+        * Kept so code compiled against 0.4.0 (which linked against `apply(java.lang.String)`) still links. It is
+        * `private[ClassViewResult]`, which Scala emits as a '''public''' bytecode method (satisfying old callers) while
+        * hiding it from all new source: new call sites therefore resolve `Incompatible(...)` to the lazy
+        * `apply(=> String)` above with no overload ambiguity, and the `reason` stays lazily evaluated. Remove on the
+        * next major release.
+        */
+      @deprecated("binary-compatibility shim for the former case class; use apply(=> String)", "0.4.1")
+      private[ClassViewResult] def apply(reason: String): Incompatible = new Incompatible(() => reason)
+
+      // Returns `Some` (not `Option`) so the pattern `case Incompatible(reason)` stays irrefutable and sealed
+      // `ClassViewResult` matches remain exhaustive, exactly as with the former `case class`.
+      def unapply(incompatible: Incompatible): Some[String] = Some(incompatible.reason)
     }
   }
 
@@ -136,8 +211,12 @@ trait Classes { this: MacroCommons =>
   }
   object SingletonValue {
 
+    private type Result[A] = Option[SingletonValue[A]]
+    private lazy val unapplyCache = new Type.Cache[Result]
     def unapply[A](tpe: Type[A]): Option[SingletonValue[A]] =
-      Expr.singletonOf[A](using tpe).map(new SingletonValue(tpe, _))
+      unapplyCache.getOrPut(tpe) {
+        Expr.singletonOf[A](using tpe).map(new SingletonValue(tpe, _))
+      }
 
     /** Parses a type as a [[SingletonValue]].
       *
@@ -219,9 +298,13 @@ trait Classes { this: MacroCommons =>
   }
   object NamedTuple {
 
+    private type Result[A] = Option[NamedTuple[A]]
+    private lazy val unapplyCache = new Type.Cache[Result]
     def unapply[A](tpe: Type[A]): Option[NamedTuple[A]] =
-      if (tpe.isNamedTuple) tpe.primaryConstructor.map(new NamedTuple(tpe, _))
-      else None
+      unapplyCache.getOrPut(tpe) {
+        if (tpe.isNamedTuple) tpe.primaryConstructor.map(new NamedTuple(tpe, _))
+        else None
+      }
 
     /** Parses a type as a [[NamedTuple]].
       *
@@ -269,7 +352,7 @@ trait Classes { this: MacroCommons =>
       *
       * @since 0.1.0
       */
-    lazy val caseFields: List[Method] = methods.filter(_.isCaseField)
+    lazy val caseFields: List[Method] = sortedMethodsMatching(_.isCaseField)
 
     /** The canonical, compiler-synthesized `copy` method, if one exists.
       *
@@ -299,7 +382,8 @@ trait Classes { this: MacroCommons =>
 
     private lazy val canonicalCopyMethod: Option[Method.OnInstance.Of[A]] = {
       val constructorShape = primaryConstructor.asUntyped.parameters.map(_.keys.toList)
-      methods.collectFirst {
+      // order-independent: unique `copy` matching the primary-constructor shape
+      Method.unsortedMethodsOf[A].collectFirst {
         case oi: Method.OnInstance
             if oi.name == "copy" && oi.asUntyped.parameters.map(_.keys.toList) == constructorShape =>
           oi.asInstanceOf[Method.OnInstance.Of[A]]
@@ -486,9 +570,13 @@ trait Classes { this: MacroCommons =>
       case _                                    => name
     }
 
+    private type Result[A] = Option[CaseClass[A]]
+    private lazy val unapplyCache = new Type.Cache[Result]
     def unapply[A](tpe: Type[A]): Option[CaseClass[A]] =
-      if (tpe.isCaseClass) tpe.primaryConstructor.map(new CaseClass(tpe, _))
-      else None
+      unapplyCache.getOrPut(tpe) {
+        if (tpe.isCaseClass) tpe.primaryConstructor.map(new CaseClass(tpe, _))
+        else None
+      }
 
     /** Parses a type as a [[CaseClass]].
       *
@@ -673,11 +761,15 @@ trait Classes { this: MacroCommons =>
   }
   object Enum {
 
+    private type Result[A] = Option[Enum[A]]
+    private lazy val unapplyCache = new Type.Cache[Result]
     def unapply[A](tpe: Type[A]): Option[Enum[A]] =
-      if (tpe.isSealed) tpe.directChildren.map(children => new Enum(tpe, children))
-      else if (tpe.isEnumeration) tpe.directChildren.map(children => new Enum(tpe, children))
-      else if (tpe.isUnionType) tpe.directChildren.map(children => new Enum(tpe, children))
-      else None
+      unapplyCache.getOrPut(tpe) {
+        if (tpe.isSealed) tpe.directChildren.map(children => new Enum(tpe, children))
+        else if (tpe.isEnumeration) tpe.directChildren.map(children => new Enum(tpe, children))
+        else if (tpe.isUnionType) tpe.directChildren.map(children => new Enum(tpe, children))
+        else None
+      }
 
     /** Parses a type as an [[Enum]].
       *
@@ -715,8 +807,8 @@ trait Classes { this: MacroCommons =>
       val defaultConstructor: Method
   ) extends Class[A]()(using tpe0) {
 
-    lazy val beanGetters: List[Method] = methods.filter(_.isJavaGetter)
-    lazy val beanSetters: List[Method] = methods.filter(_.isJavaSetter)
+    lazy val beanGetters: List[Method] = sortedMethodsMatching(_.isJavaGetter)
+    lazy val beanSetters: List[Method] = sortedMethodsMatching(_.isJavaSetter)
 
     /** Builds `new A()` via the default constructor, applying no setters.
       *
@@ -842,9 +934,13 @@ trait Classes { this: MacroCommons =>
   }
   object JavaBean {
 
+    private type Result[A] = Option[JavaBean[A]]
+    private lazy val unapplyCache = new Type.Cache[Result]
     def unapply[A](tpe: Type[A]): Option[JavaBean[A]] =
-      if (tpe.isJavaBean) tpe.defaultConstructor.map(new JavaBean(tpe, _))
-      else None
+      unapplyCache.getOrPut(tpe) {
+        if (tpe.isJavaBean) tpe.defaultConstructor.map(new JavaBean(tpe, _))
+        else None
+      }
 
     /** Parses a type as a [[JavaBean]].
       *
@@ -1273,7 +1369,7 @@ trait Classes { this: MacroCommons =>
         val classParents = allParentTypes.filter(p => !p.asUntyped.isTrait)
         val traitParentsList = allParentTypes.filter(p => p.asUntyped.isTrait)
 
-        if (classParents.size > 1)
+        if (classParents.sizeIs > 1)
           ClassViewResult.Incompatible(AnonymousInstanceError.MultipleClassParents(classParents).message)
         else {
           val classParentValidation: Either[String, Option[(??, List[Method])]] = classParents.headOption match {
@@ -1305,7 +1401,8 @@ trait Classes { this: MacroCommons =>
 
     private def classifyMethods[A: Type](parentTypes: List[??]): List[ClassifiedMethod] = {
       val allMethods: List[(Method, ??)] = parentTypes.flatMap { parentType =>
-        val methods = UntypedMethod.methods(parentType.asUntyped).map(_.asTyped[A])
+        // order-independent: the result is grouped by (name, signature) and finally sorted below
+        val methods = UntypedMethod.unsortedMethods(parentType.asUntyped).map(_.asTyped[A])
         methods
           .filterNot(_.isConstructor)
           .filterNot(_.isSynthetic)
@@ -1340,7 +1437,7 @@ trait Classes { this: MacroCommons =>
             }
           } else {
             val concreteImpls = methodsWithParent.filterNot(_._1.isAbstract)
-            if (concreteImpls.size > 1 && hasDistinctDeclaredImpls(concreteImpls)) {
+            if (concreteImpls.sizeIs > 1 && hasDistinctDeclaredImpls(concreteImpls)) {
               List(ClassifiedMethod(method, MethodClassification.DiamondConflict, declaredIn))
             } else {
               List(ClassifiedMethod(method, MethodClassification.MayOverride, declaredIn))
@@ -1358,14 +1455,10 @@ trait Classes { this: MacroCommons =>
 
     private def hasDistinctDeclaredImpls(impls: List[(Method, ??)]): Boolean = {
       val declared = impls.filter(_._1.isDeclared)
-      if (declared.size > 1) {
+      if (declared.sizeIs > 1) {
         val distinctSources = declared.map(_._2).distinctBy(_.asUntyped.plainPrint)
-        distinctSources.size > 1
-      } else if (declared.isEmpty) {
-        false
-      } else {
-        false
-      }
+        distinctSources.sizeIs > 1
+      } else false
     }
   }
 }

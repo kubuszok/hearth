@@ -1238,7 +1238,7 @@ trait ShowCodePrettyScala2 {
                   val dealiased = tpe.dealias
                   val naiveAttempt = dealiased.toString.takeWhile(_ != '[') // does not work for e.g. primitive types
                   def typeSymbolAttempt = dealiased.typeSymbol.fullName // does not work for e.g. path-dependent types
-                  val fullName = if (naiveAttempt.exists(_ == '.')) naiveAttempt else typeSymbolAttempt
+                  val fullName = if (naiveAttempt.contains('.')) naiveAttempt else typeSymbolAttempt
                   highlightTypeDef(fullName) + tpeArgs
               }
             print(helper(tpe)) // TODO: is this even printed?
