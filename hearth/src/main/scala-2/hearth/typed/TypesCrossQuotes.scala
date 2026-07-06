@@ -34,13 +34,15 @@ trait TypesCrossQuotes { this: Types =>
       *   - Sibling `implicit lazy val Type` givens that mutually force each other can deadlock on Scala 3 cross-quotes
       *     (hearth#316); remedy: hoist them to '''non-implicit''' lazies.
       *
+      * @see
+      *   docs/user-guide/cross-quotes.md
+      *
+      * @since 0.1.0
+      *
       * @tparam A
       *   the (statically-known) type to materialize
       * @return
       *   a `Type[A]` usable in both quotation and reflection APIs
-      * @see
-      *   docs/user-guide/cross-quotes.md
-      * @since 0.1.0
       */
     @scala.annotation.compileTimeOnly("Should have been expanded by the hearth-cross-quotes macros")
     def of[A]: Type[A] = macro CrossQuotesMacros.typeOfImpl[A]

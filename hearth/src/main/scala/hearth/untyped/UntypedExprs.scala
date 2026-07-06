@@ -51,7 +51,6 @@ trait UntypedExprs { this: MacroCommons =>
     def as_?? : Expr_?? = UntypedExpr.as_??(untyped)
 
     /** Returns the [[Position]] of this expression's underlying tree, if available.
-      *
       * @since 0.4.0
       */
     def position: Option[Position] = UntypedExpr.position(untyped)

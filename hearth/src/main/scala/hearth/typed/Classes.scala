@@ -34,9 +34,10 @@ trait Classes { this: MacroCommons =>
     * [[asSingleton]]/[[asNamedTuple]]/[[asCaseClass]]/[[asEnum]]/[[asJavaBean]] narrow to a more specific view (each
     * `Some` only when `A` fits that shape). [[Class.apply]] picks the most specific view automatically.
     *
+    * @since 0.1.0
+    *
     * @param tpe
     *   the type this class view describes
-    * @since 0.1.0
     */
   class Class[A]()(implicit val tpe: Type[A]) {
 
@@ -83,7 +84,6 @@ trait Classes { this: MacroCommons =>
   }
 
   /** Result of parsing a type into a class view.
-    *
     * @since 0.3.0
     */
   sealed trait ClassViewResult[+V] extends Product with Serializable {
@@ -93,7 +93,6 @@ trait Classes { this: MacroCommons =>
   object ClassViewResult {
 
     /** The type is compatible with the requested class view.
-      *
       * @since 0.3.0
       */
     final case class Compatible[V](value: V) extends ClassViewResult[V] {
@@ -102,7 +101,6 @@ trait Classes { this: MacroCommons =>
     }
 
     /** The type is incompatible with the requested class view.
-      *
       * @since 0.3.0
       */
     final case class Incompatible(reason: String) extends ClassViewResult[Nothing] {
@@ -116,9 +114,10 @@ trait Classes { this: MacroCommons =>
     *
     * [[singletonExpr]] is the compile-time reference to the type's unique inhabitant.
     *
+    * @since 0.3.0
+    *
     * @param singletonExpr
     *   the expression referencing the unique value of `A`
-    * @since 0.3.0
     */
   final class SingletonValue[A] private (
       tpe0: Type[A],
@@ -138,7 +137,6 @@ trait Classes { this: MacroCommons =>
       Expr.singletonOf[A](using tpe).map(new SingletonValue(tpe, _))
 
     /** Parses a type as a [[SingletonValue]].
-      *
       * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[SingletonValue[A]] =
@@ -173,15 +171,16 @@ trait Classes { this: MacroCommons =>
       * tuple's constructor always applies, so an internal constructor failure is an invariant violation and throws an
       * `AssertionError`.
       *
+      * @since 0.3.0
+      *
+      * @tparam F
+      *   the effect the field resolution runs in
       * @param makeArgument
       *   produces the `Expr` for one field (see [[CaseClass.ConstructField]])
       * @param visibility
       *   the accessibility required of the constructor (default [[Everywhere]])
-      * @tparam F
-      *   the effect the field resolution runs in
       * @return
       *   `F` of `Some(instance)`, or `F` of `None` if the constructor is inaccessible under `visibility`
-      * @since 0.3.0
       */
     def construct[F[_]: DirectStyle: Applicative](
         makeArgument: CaseClass.ConstructField[F],
@@ -221,7 +220,6 @@ trait Classes { this: MacroCommons =>
       else None
 
     /** Parses a type as a [[NamedTuple]].
-      *
       * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[NamedTuple[A]] =
@@ -250,20 +248,17 @@ trait Classes { this: MacroCommons =>
   ) extends Class[A]()(using tpe0) {
 
     /** The primary constructor.
-      *
       * @since 0.1.0
       */
     val primaryConstructor: Method = primaryConstructor0
 
     /** All constructors other than the [[primaryConstructor]] (auxiliary constructors).
-      *
       * @since 0.1.0
       */
     lazy val nonPrimaryConstructors: List[Method] =
       constructors.filter(_ != primaryConstructor)
 
     /** The case fields of this class: the methods for which [[Method.isCaseField]] holds.
-      *
       * @since 0.1.0
       */
     lazy val caseFields: List[Method] = methods.filter(_.isCaseField)
@@ -319,17 +314,19 @@ trait Classes { this: MacroCommons =>
       * }
       * }}}
       *
+      * @see
+      *   `parConstruct` for parallel field resolution
+      *
+      * @since 0.1.0
+      *
+      * @tparam F
+      *   the effect the field resolution runs in
       * @param makeArgument
       *   produces the `Expr` for one constructor parameter (see [[CaseClass.ConstructField]])
       * @param visibility
       *   the accessibility required of the constructor (default [[Everywhere]]); `None` if not reachable
-      * @tparam F
-      *   the effect the field resolution runs in
       * @return
       *   `F` of `Some(new A(...))`, or `F` of `None` if the constructor is inaccessible under `visibility`
-      * @see
-      *   `parConstruct` for parallel field resolution
-      * @since 0.1.0
       */
     def construct[F[_]: DirectStyle: Applicative](
         makeArgument: CaseClass.ConstructField[F],
@@ -344,13 +341,14 @@ trait Classes { this: MacroCommons =>
     /** As the primary `construct` overload, but takes a plain `Parameter => F[Expr_??]` callback and uses the default
       * [[Everywhere]] visibility.
       *
-      * @param makeArgument
-      *   produces the `Expr` for one constructor parameter
+      * @since 0.1.0
+      *
       * @tparam F
       *   the effect the field resolution runs in
+      * @param makeArgument
+      *   produces the `Expr` for one constructor parameter
       * @return
       *   `F` of `Some(new A(...))`, or `F` of `None` if the public constructor is inaccessible
-      * @since 0.1.0
       */
     def construct[F[_]: DirectStyle: Applicative](makeArgument: Parameter => F[Expr_??]): F[Option[Expr[A]]] =
       construct(CaseClass.ConstructField.apply[F](makeArgument))
@@ -358,17 +356,19 @@ trait Classes { this: MacroCommons =>
     /** As `construct`, but resolves the constructor fields in parallel (`Parallel`) rather than sequentially, so their
       * effects/errors are combined instead of short-circuiting on the first failure.
       *
+      * @see
+      *   `construct`
+      *
+      * @since 0.1.0
+      *
+      * @tparam F
+      *   the effect the field resolution runs in
       * @param makeArgument
       *   produces the `Expr` for one constructor parameter (see [[CaseClass.ConstructField]])
       * @param visibility
       *   the accessibility required of the constructor (default [[Everywhere]])
-      * @tparam F
-      *   the effect the field resolution runs in
       * @return
       *   `F` of `Some(new A(...))`, or `F` of `None` if the constructor is inaccessible under `visibility`
-      * @see
-      *   `construct`
-      * @since 0.1.0
       */
     def parConstruct[F[_]: DirectStyle: Parallel](
         makeArgument: CaseClass.ConstructField[F],
@@ -421,13 +421,14 @@ trait Classes { this: MacroCommons =>
       * generates for it; the returned map is keyed by the declared field name (`b`) on both platforms, and visibility
       * filtering follows the declared field's visibility on both platforms as well.
       *
+      * @since 0.1.0
+      *
       * @param instance
       *   the instance whose case-field values to read
       * @param visibility
       *   which fields to include, by accessibility (default [[AtCallSite]])
       * @return
       *   an ordered map from declared field name to the `Expr` reading that field off `instance`
-      * @since 0.1.0
       */
     def caseFieldValuesAt(
         instance: Expr[A],
@@ -482,7 +483,6 @@ trait Classes { this: MacroCommons =>
       else None
 
     /** Parses a type as a [[CaseClass]].
-      *
       * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[CaseClass[A]] =
@@ -535,9 +535,10 @@ trait Classes { this: MacroCommons =>
     * [[directChildren]] are the immediate subtypes and [[exhaustiveChildren]] the recursively-flattened leaf subtypes;
     * [[matchOn]]/[[parMatchOn]] build an exhaustive `match` over them.
     *
+    * @since 0.1.0
+    *
     * @param directChildren
     *   the immediate known subtypes, keyed by name
-    * @since 0.1.0
     */
   final class Enum[A] private (
       tpe0: Type[A],
@@ -594,19 +595,21 @@ trait Classes { this: MacroCommons =>
       * overlapping union-type members from dispatching to the wrong branch (value/identity matches first, then TypeTest
       * extractors, then runtime class tests).
       *
-      * @param value
-      *   the scrutinee to match on
-      * @param handle
-      *   produces the branch expression for one child subtype
+      * @see
+      *   [[parMatchOn]]
+      *
+      * @since 0.1.0
+      *
       * @tparam F
       *   the effect the branch generation runs in
       * @tparam B
       *   the result type of the match
+      * @param value
+      *   the scrutinee to match on
+      * @param handle
+      *   produces the branch expression for one child subtype
       * @return
       *   `F` of `Some(match expression)`, or `F` of `None` if there are no children
-      * @see
-      *   [[parMatchOn]]
-      * @since 0.1.0
       */
     def matchOn[F[_]: DirectStyle: Applicative, B: Type](
         value: Expr[A]
@@ -631,6 +634,7 @@ trait Classes { this: MacroCommons =>
       *
       * @see
       *   [[matchOn]]
+      *
       * @since 0.1.0
       */
     def parMatchOn[F[_]: DirectStyle: Parallel, B: Type](
@@ -667,7 +671,6 @@ trait Classes { this: MacroCommons =>
       else None
 
     /** Parses a type as an [[Enum]].
-      *
       * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[Enum[A]] =
@@ -706,12 +709,12 @@ trait Classes { this: MacroCommons =>
     lazy val beanSetters: List[Method] = methods.filter(_.isJavaSetter)
 
     /** Builds `new A()` via the default constructor, applying no setters.
+      * @since 0.1.0
       *
       * @param visibility
       *   the accessibility required of the default constructor (default [[Everywhere]])
       * @return
       *   `Some(new A())`, or `None` if the default constructor is not accessible under `visibility`
-      * @since 0.1.0
       */
     def constructWithoutSetters(visibility: Accessible = Everywhere): Option[Expr[A]] =
       if (!defaultConstructor.isAvailable(visibility)) Option.empty[Expr[A]]
@@ -728,15 +731,16 @@ trait Classes { this: MacroCommons =>
       *
       * Returns `None` when the default constructor is not accessible under `visibility`.
       *
+      * @since 0.1.0
+      *
+      * @tparam F
+      *   the effect the setter-value resolution runs in
       * @param setField
       *   produces the `Expr` to pass to one setter (see [[JavaBean.SetField]])
       * @param visibility
       *   the accessibility required of the default constructor (default [[Everywhere]])
-      * @tparam F
-      *   the effect the setter-value resolution runs in
       * @return
       *   `F` of `Some(bean)`, or `F` of `None` if the default constructor is inaccessible under `visibility`
-      * @since 0.1.0
       */
     def constructWithSetters[F[_]: DirectStyle: Applicative](
         setField: JavaBean.SetField[F],
@@ -832,7 +836,6 @@ trait Classes { this: MacroCommons =>
       else None
 
     /** Parses a type as a [[JavaBean]].
-      *
       * @since 0.3.0
       */
     def parse[A: Type]: ClassViewResult[JavaBean[A]] =
@@ -963,13 +966,14 @@ trait Classes { this: MacroCommons =>
     * unit that [[AnonymousInstance.classifiedMethods]] and its filtered views ([[AnonymousInstance.mustOverride]] etc.)
     * are built from.
     *
+    * @since 0.4.0
+    *
     * @param method
     *   the parent method
     * @param classification
     *   how it may be treated when building the anonymous instance
     * @param declaredIn
     *   the parent type the method was declared in
-    * @since 0.4.0
     */
   final case class ClassifiedMethod(
       method: Method,
@@ -1041,17 +1045,19 @@ trait Classes { this: MacroCommons =>
     * }
     * }}}
     *
+    * @see
+    *   [[OverrideContext]] for the fluent `this.type` (`returnsThisType`) override gate
+    *
+    * @since 0.4.0
+    *
+    * @tparam A
+    *   the base type being anonymously instantiated
     * @param classParent
     *   the single class parent (if any) paired with its accessible constructors
     * @param traitParents
     *   the trait parents to mix in
     * @param classifiedMethods
     *   every parent method paired with its [[MethodClassification]]
-    * @tparam A
-    *   the base type being anonymously instantiated
-    * @see
-    *   [[OverrideContext]] for the fluent `this.type` (`returnsThisType`) override gate
-    * @since 0.4.0
     */
   final class AnonymousInstance[A] private (
       tpe0: Type[A],
@@ -1104,6 +1110,11 @@ trait Classes { this: MacroCommons =>
       * Override bodies receive an [[OverrideContext]]; note its `returnsThisType` gate for fluent (`this.type`)
       * methods.
       *
+      * @see
+      *   [[OverrideContext]]
+      *
+      * @since 0.4.0
+      *
       * @param constructor
       *   the chosen parent constructor, or `None` for a pure-trait instance
       * @param constructorArgs
@@ -1112,9 +1123,6 @@ trait Classes { this: MacroCommons =>
       *   the override bodies, keyed by the parent [[UntypedMethod]] they implement
       * @return
       *   `Right` of the constructed `Expr[A]`, or `Left` of all validation errors
-      * @see
-      *   [[OverrideContext]]
-      * @since 0.4.0
       */
     def construct(
         constructor: Option[Method],
@@ -1214,11 +1222,12 @@ trait Classes { this: MacroCommons =>
       * [[AnonymousInstanceError.TypeIsFinal]] / [[AnonymousInstanceError.TypeIsSealed]] /
       * [[AnonymousInstanceError.TypeInaccessible]]).
       *
+      * @since 0.4.0
+      *
       * @tparam A
       *   the base type to instantiate anonymously
       * @return
       *   a [[ClassViewResult]] wrapping the [[AnonymousInstance]] or the reason it is incompatible
-      * @since 0.4.0
       */
     def parse[A: Type]: ClassViewResult[AnonymousInstance[A]] =
       parseWithMixins[A](Nil)
@@ -1229,13 +1238,14 @@ trait Classes { this: MacroCommons =>
       * [[AnonymousInstanceError.MultipleClassParents]]); a class parent must have an accessible constructor (else
       * [[AnonymousInstanceError.ConstructorInaccessible]]).
       *
-      * @param mixins
-      *   additional parent types to mix in alongside `A`
+      * @since 0.4.0
+      *
       * @tparam A
       *   the primary base type to instantiate anonymously
+      * @param mixins
+      *   additional parent types to mix in alongside `A`
       * @return
       *   a [[ClassViewResult]] wrapping the [[AnonymousInstance]] or the reason it is incompatible
-      * @since 0.4.0
       */
     def parseWithMixins[A: Type](mixins: List[??]): ClassViewResult[AnonymousInstance[A]] = {
       val tpe = Type[A]

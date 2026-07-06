@@ -11,6 +11,7 @@ package hearth
   *
   * @see
   *   docs/contributing/guidelines-for-tests.md
+  *
   * @since 0.3.0
   */
 trait MacroSuite extends Suite {
@@ -18,10 +19,10 @@ trait MacroSuite extends Suite {
   implicit class CompileErrorsCheck(private val msg: String) {
 
     /** Asserts the (color-stripped) error message contains all `msgs` in order (gaps between them are allowed).
+      * @since 0.3.0
       *
       * @param msgs
       *   the expected snippets, in the order they should appear
-      * @since 0.3.0
       */
     def check(msgs: String*): Unit = {
       val msgNoColors = msg.stripANSI
@@ -40,10 +41,10 @@ trait MacroSuite extends Suite {
     }
 
     /** Asserts that none of `msgs` appear in the (color-stripped) error message.
+      * @since 0.3.0
       *
       * @param msgs
       *   the snippets that must be absent
-      * @since 0.3.0
       */
     def checkNot(msgs: String*): Unit = {
       val msgNoColors = msg.stripANSI
@@ -59,7 +60,6 @@ trait MacroSuite extends Suite {
     }
 
     /** Asserts that the error message is non-empty (i.e. compilation actually failed).
-      *
       * @since 0.3.0
       */
     def arePresent(): Unit = Predef.assert(msg.nonEmpty, "Expected compilation errors")

@@ -19,6 +19,7 @@ import munit.{Location, TestOptions}
   *
   * @see
   *   docs/contributing/guidelines-for-tests.md
+  *
   * @since 0.3.0
   */
 trait Suite extends munit.BaseFunSuite { self =>
@@ -31,11 +32,12 @@ trait Suite extends munit.BaseFunSuite { self =>
     *
     * Groups may be nested; each level prepends its name to the prefix.
     *
+    * @since 0.3.0
+    *
     * @param name
     *   group label prepended to contained test names
     * @param body
     *   block that registers the grouped tests
-    * @since 0.3.0
     */
   def group(name: String)(body: => Any): Unit = {
     val oldPrefix = prefix
@@ -105,13 +107,15 @@ trait Suite extends munit.BaseFunSuite { self =>
       * The preferred way to assert macro results in Hearth: compare whole [[Data]] structures (e.g.
       * `result <==> Data.map("f" -> Data(1))`) so failures show a field-by-field diff instead of an opaque `!=`.
       *
+      * @see
+      *   docs/contributing/guidelines-for-tests.md
+      *
+      * @since 0.3.0
+      *
       * @param expected
       *   the expected [[Data]]
       * @param loc
       *   source location for the failure message
-      * @see
-      *   docs/contributing/guidelines-for-tests.md
-      * @since 0.3.0
       */
     def <==>(expected: Data)(implicit loc: Location): Unit = {
       val diff = actual.diff(expected)
@@ -128,12 +132,12 @@ trait Suite extends munit.BaseFunSuite { self =>
   implicit class ExpectedMsgAssert(actual: String) {
 
     /** Line-by-line comparison of two [[String]]s (ANSI-insensitive), reporting the differing lines.
+      * @since 0.3.0
       *
       * @param expected
       *   the expected string
       * @param loc
       *   source location for the failure message
-      * @since 0.3.0
       */
     def <==>(expected: String)(implicit loc: Location): Unit = {
       val diff = actual.split("\n").zipAll(expected.split("\n"), "", "").flatMap { case (l, r) =>

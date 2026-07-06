@@ -30,6 +30,7 @@ trait MIOIntegrations { this: MacroTypedCommons =>
       *   [[fp.effect.MIO.unsafe]] for the internal, own-risk escape hatch that sets up none of the above
       * @see
       *   the "Running `MIO`" section of `docs/user-guide/micro-fp.md` (anchor `#running-mio`)
+      *
       * @since 0.3.0
       *
       * @param macroName
@@ -167,13 +168,15 @@ trait MIOIntegrations { this: MacroTypedCommons =>
       * Pairs with [[buildCachedWith]] (which forward-declares internally): use this directly when you need the
       * declaration visible before you start building the body.
       *
+      * @see
+      *   [[buildCachedWith]] for the combined declare-then-build operation
+      *
+      * @since 0.3.0
+      *
       * @param key
       *   cache key (identifies the val being declared)
       * @param builder
       *   the [[ValDefBuilder]] describing the val's signature
-      * @see
-      *   [[buildCachedWith]] for the combined declare-then-build operation
-      * @since 0.3.0
       */
     def forwardDeclare[Signature, Returned, Value](
         key: String,
@@ -193,15 +196,17 @@ trait MIOIntegrations { this: MacroTypedCommons =>
       * '''Throws''' [[HearthRequirementError]] if `key` was already built — callers must check first with one of the
       * `getNAry` methods (e.g. [[get0Ary]]) before building.
       *
+      * @see
+      *   [[forwardDeclare]] for the forward-declaration step done here internally
+      *
+      * @since 0.3.0
+      *
       * @param key
       *   cache key (identifies the val being built)
       * @param builder
       *   the [[ValDefBuilder]] describing the val's signature
       * @param f
       *   produces the val's body expression from the builder's value; may itself add cache entries as a side effect
-      * @see
-      *   [[forwardDeclare]] for the forward-declaration step done here internally
-      * @since 0.3.0
       */
     def buildCachedWith[Signature, Returned, Value](
         key: String,
@@ -284,7 +289,6 @@ trait MIOIntegrations { this: MacroTypedCommons =>
   implicit final class ExtensionLoadingResultMioOps[Extension: ClassTag](result: => ExtensionLoadingResult[Extension]) {
 
     /** Lazyly evaluate the result of the extension loading, and return a MIO that will log the result.
-      *
       * @since 0.3.0
       *
       * @param allowFailures

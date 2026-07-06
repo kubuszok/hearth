@@ -15,15 +15,14 @@ import hearth.fp.data.NonEmptyMap
   *     but errored while building). Create single-entry skips with [[ProviderResult.skipped]] /
   *     [[ProviderResult.failed]].
   *
+  * @since 0.3.0
+  *
   * @tparam A
   *   the type of the matched value
-  *
-  * @since 0.3.0
   */
 sealed trait ProviderResult[+A] extends Product with Serializable {
 
   /** `Some(value)` on [[ProviderResult.Matched]], `None` on [[ProviderResult.Skipped]] (discarding the reasons).
-    *
     * @since 0.3.0
     */
   def toOption: Option[A] = this match {
@@ -32,7 +31,6 @@ sealed trait ProviderResult[+A] extends Product with Serializable {
   }
 
   /** Transforms the matched value; a [[ProviderResult.Skipped]] is returned unchanged (its reasons are preserved).
-    *
     * @since 0.3.0
     */
   def map[B](f: A => B): ProviderResult[B] = this match {
@@ -41,7 +39,6 @@ sealed trait ProviderResult[+A] extends Product with Serializable {
   }
 
   /** Chains another provider result off the matched value; a [[ProviderResult.Skipped]] short-circuits unchanged.
-    *
     * @since 0.3.0
     */
   def flatMap[B](f: A => ProviderResult[B]): ProviderResult[B] = this match {

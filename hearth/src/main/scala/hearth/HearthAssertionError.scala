@@ -10,6 +10,11 @@ package hearth
   * issue, do not change your own code), whereas `HearthRequirementError` signals a '''user misused a Hearth API''' (fix
   * your code). Both extend [[AssertionError]], though catching either is discouraged.
   *
+  * @see
+  *   [[MacroCommons.hearthAssertionFailed]]
+  * @see
+  *   [[HearthRequirementError]]
+  *
   * @since 0.1.0
   *
   * @param description
@@ -22,11 +27,6 @@ package hearth
   *   the platform (JVM/Scala.js/Scala Native) the macro ran under
   * @param jdkVersion
   *   the JDK version the macro ran under
-  *
-  * @see
-  *   [[MacroCommons.hearthAssertionFailed]]
-  * @see
-  *   [[HearthRequirementError]]
   */
 final case class HearthAssertionError(
     description: String,

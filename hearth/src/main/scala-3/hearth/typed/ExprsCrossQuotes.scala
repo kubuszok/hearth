@@ -40,17 +40,19 @@ private[typed] trait ExprsCrossQuotes { this: Exprs =>
       * local context automatically. In particular you never call `passQuotes` / `withQuotes` inside `Expr.quote` —
       * those are only for hand-written native `'{ }` / `${ }`.
       *
+      * @see
+      *   [[splice]]
+      * @see
+      *   docs/user-guide/cross-quotes.md
+      *
+      * @since 0.1.0
+      *
       * @tparam A
       *   the static type of the resulting `Expr`
       * @param expr
       *   the code to quote; '''by-name''', and the body is rewritten at compile time rather than evaluated at runtime
       * @return
       *   an `Expr[A]` — the AST of `expr`, valid only within the macro expansion
-      * @see
-      *   [[splice]]
-      * @see
-      *   docs/user-guide/cross-quotes.md
-      * @since 0.1.0
       */
     @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")
     final def quote[A](expr: => A): Expr[A] = sys.error("Install cross-quotes-plugin to use this method")
@@ -64,6 +66,13 @@ private[typed] trait ExprsCrossQuotes { this: Exprs =>
       * contract on [[quote]]. On Scala 3 the `Expr` should be produced lazily (`def` / `lazy val` / lazy `MIO`) so it
       * is materialized at the splice site under the current `Quotes` (see [[quote]]).
       *
+      * @see
+      *   [[quote]]
+      * @see
+      *   docs/user-guide/cross-quotes.md
+      *
+      * @since 0.1.0
+      *
       * @tparam A
       *   the static type of the spliced `Expr`
       * @param expr
@@ -71,11 +80,6 @@ private[typed] trait ExprsCrossQuotes { this: Exprs =>
       *   ownership contract there)
       * @return
       *   the spliced value, as seen by the surrounding quoted code (never materialized at runtime)
-      * @see
-      *   [[quote]]
-      * @see
-      *   docs/user-guide/cross-quotes.md
-      * @since 0.1.0
       */
     @scala.annotation.compileTimeOnly("Install cross-quotes-plugin to use this method")
     final def splice[A](expr: Expr[A]): A = sys.error("Install cross-quotes-plugin to use this method")

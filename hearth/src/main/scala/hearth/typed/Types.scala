@@ -76,13 +76,11 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def runtimePlainPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String]
 
     /** Like [[runtimePlainPrint]] but the non-overridden parts use ANSI-colored output (like [[prettyPrint]]).
-      *
       * @since 0.3.0
       */
     def runtimePrettyPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String]
 
     /** Like [[runtimePlainPrint]] but the non-overridden parts use short names (like [[shortName]]).
-      *
       * @since 0.3.0
       */
     def runtimeShortPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String]
@@ -102,11 +100,13 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       * splicing `classOf[EnumSet[?]]` fails with "takes type parameters" (issue #321), so prefer the raw constructor's
       * class over a parameterised one.
       *
-      * @return
-      *   the loaded `java.lang.Class[A]`, or `None` when the type is not resolvable on the classpath
       * @see
       *   [[getRuntimeClass]] for the same lookup as an extension method on `Type[A]`
+      *
       * @since 0.1.0
+      *
+      * @return
+      *   the loaded `java.lang.Class[A]`, or `None` when the type is not resolvable on the classpath
       */
     final def classOfType[A: Type]: Option[java.lang.Class[A]] =
       UntypedType.toClass(UntypedType.fromTyped[A]).map(_.asInstanceOf[java.lang.Class[A]])
@@ -191,6 +191,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       *
       * @see
       *   [[directChildren]] for a single level, [[directChildrenList]] for the ambiguity-preserving list form
+      *
       * @since 0.1.0
       */
     final def exhaustiveChildren[A: Type]: Option[NonEmptyMap[String, ??<:[A]]] =
@@ -244,7 +245,6 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       Annotations.filterOfType[Ann](typeAnnotations[A])
 
     /** Whether type `A` has at least one annotation whose type is a subtype of `Ann`.
-      *
       * @since 0.4.0
       */
     final def hasAnnotationOfType[A: Type, Ann: Type]: Boolean = annotations[A].exists(_.Underlying <:< Type[Ann])
@@ -388,6 +388,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       *
       * @see
       *   [[isJavaEnum]], [[isSealed]]
+      *
       * @since 0.1.0
       */
     final def isEnumeration[A: Type]: Boolean = UntypedType.fromTyped[A].isEnumeration
@@ -415,6 +416,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       *
       * @see
       *   [[isObject]], [[isCaseVal]]
+      *
       * @since 0.1.0
       */
     final def isVal[A: Type]: Boolean = UntypedType.fromTyped[A].isVal
@@ -429,6 +431,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       *
       * @see
       *   [[isCaseObject]], [[isCaseClass]]
+      *
       * @since 0.4.0
       */
     final def isCaseVal[A: Type]: Boolean = UntypedType.fromTyped[A].isCaseVal
@@ -441,11 +444,13 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       * On Scala 3 this is computed via Java reflection to avoid the `TypeRepr#baseClasses` extension-method shadowing
       * that would otherwise capture the call (issue #328).
       *
-      * @return
-      *   the direct supertypes of `A`, each as an existential `??`
       * @see
       *   [[baseClasses]]
+      *
       * @since 0.4.1
+      *
+      * @return
+      *   the direct supertypes of `A`, each as an existential `??`
       */
     final def parents[A: Type]: List[??] = UntypedType.fromTyped[A].parents.map(_.as_??)
 
@@ -455,11 +460,13 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       * `quotes.reflect` should prefer the `UntypedType#baseClassTypes` extension to sidestep the `TypeRepr#baseClasses`
       * shadowing (issue #328).
       *
-      * @return
-      *   every base class of `A` (including `A`), each as an existential `??`
       * @see
       *   [[parents]]
+      *
       * @since 0.4.1
+      *
+      * @return
+      *   every base class of `A` (including `A`), each as an existential `??`
       */
     final def baseClasses[A: Type]: List[??] = UntypedType.fromTyped[A].baseClasses.map(_.as_??)
 
@@ -1134,7 +1141,6 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
   }
 
   /** Generalizes over the idea of conversion between singleton/literal type values and their type representation.
-    *
     * @since 0.1.0
     */
   trait TypeCodec[U] {

@@ -11,6 +11,11 @@ package hearth
   * Note the naming: this class is `HearthRequirementError`, but the file is `HearthRequirementFailed.scala` and the
   * thrower is [[MacroCommons.hearthRequirementFailed]] - the same concept under three names.
   *
+  * @see
+  *   [[MacroCommons.hearthRequirementFailed]]
+  * @see
+  *   [[HearthAssertionError]]
+  *
   * @since 0.2.0
   *
   * @param description
@@ -23,11 +28,6 @@ package hearth
   *   the platform (JVM/Scala.js/Scala Native) the macro ran under
   * @param jdkVersion
   *   the JDK version the macro ran under
-  *
-  * @see
-  *   [[MacroCommons.hearthRequirementFailed]]
-  * @see
-  *   [[HearthAssertionError]]
   */
 final case class HearthRequirementError(
     description: String,

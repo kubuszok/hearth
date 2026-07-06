@@ -22,6 +22,7 @@ import scala.language.implicitConversions
 trait ScalaCheckSuite extends Suite {
 
   /** Registers a ScalaCheck property as a test.
+    * @since 0.3.0
     *
     * @param name
     *   the test name
@@ -29,12 +30,12 @@ trait ScalaCheckSuite extends Suite {
     *   the property to check
     * @param loc
     *   source location for the failure message
-    * @since 0.3.0
     */
   def property(name: String)(body: => Prop)(implicit loc: Location): Unit =
     property(new TestOptions(name, Set.empty, loc))(body)
 
   /** Registers a ScalaCheck property as a test.
+    * @since 0.3.0
     *
     * @param options
     *   the munit test options (name, tags, location)
@@ -42,7 +43,6 @@ trait ScalaCheckSuite extends Suite {
     *   the property to check
     * @param loc
     *   source location for the failure message
-    * @since 0.3.0
     */
   def property(options: TestOptions)(body: => Prop)(implicit loc: Location): Unit =
     test(options)(body)
@@ -189,6 +189,7 @@ trait ScalaCheckSuite extends Suite {
   implicit class AssertEqOps[A](a: A) {
 
     /** Asserts that `a` and `b` are equal via the in-scope [[AssertEq]].
+      * @since 0.3.0
       *
       * @param b
       *   the value to compare against
@@ -196,7 +197,6 @@ trait ScalaCheckSuite extends Suite {
       *   the type-directed equality assertion
       * @param loc
       *   source location for the failure message
-      * @since 0.3.0
       */
     def ===(b: A)(implicit assertEq: AssertEq[A], loc: munit.Location): Unit = assertEq.assertEq(a, b)
   }

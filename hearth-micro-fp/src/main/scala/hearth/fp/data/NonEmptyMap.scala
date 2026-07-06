@@ -9,11 +9,12 @@ import scala.collection.immutable.ListMap
   * Unlike an ordered collection, keys are unique: adding a pair whose key already exists upserts that entry rather than
   * duplicating the key, and `map`/`flatMap` can therefore *shrink* the map when the key mapping collides.
   *
+  * @since 0.1.0
+  *
   * @tparam K
   *   key type
   * @tparam V
   *   value type
-  * @since 0.1.0
   */
 final case class NonEmptyMap[K, +V](head: (K, V), tail: ListMap[K, V]) {
 

@@ -10,10 +10,10 @@ package fp
 trait Applicative[F[_]] extends Functor[F] {
 
   /** Lifts a pure value into `F` (no effect / success).
+    * @since 0.1.0
     *
     * @param a
     *   the value to lift
-    * @since 0.1.0
     */
   def pure[A](a: A): F[A]
 
@@ -22,13 +22,14 @@ trait Applicative[F[_]] extends Functor[F] {
     * `fb` is by-name so it is not evaluated when `fa` already short-circuits (e.g. a `Left`/failure), keeping the first
     * error.
     *
+    * @since 0.1.0
+    *
     * @param fa
     *   the first value
     * @param fb
     *   the second value, evaluated only if `fa` did not short-circuit
     * @param f
     *   combines the two results
-    * @since 0.1.0
     */
   def map2[A, B, C](fa: F[A], fb: => F[B])(f: (A, B) => C): F[C]
 

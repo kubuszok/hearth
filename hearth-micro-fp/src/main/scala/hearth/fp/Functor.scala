@@ -2,18 +2,17 @@ package hearth
 package fp
 
 /** Things that can be mapped over.
-  *
   * @since 0.1.0
   */
 trait Functor[F[_]] {
 
   /** Transforms the value(s) inside `F` with `f`, preserving the `F` structure.
+    * @since 0.1.0
     *
     * @param fa
     *   the value to map over
     * @param f
     *   the transformation applied to each `A`
-    * @since 0.1.0
     */
   def map[A, B](fa: F[A])(f: A => B): F[B]
 }

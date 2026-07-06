@@ -14,6 +14,7 @@ package fp
 trait Parallel[F[_]] extends Applicative[F] {
 
   /** Like [[Applicative.map2]] but evaluates both sides even when one fails, so errors can be aggregated.
+    * @since 0.1.0
     *
     * @param fa
     *   the first value
@@ -21,7 +22,6 @@ trait Parallel[F[_]] extends Applicative[F] {
     *   the second value, evaluated even if `fa` failed
     * @param f
     *   combines the two results
-    * @since 0.1.0
     */
   def parMap2[A, B, C](fa: F[A], fb: => F[B])(f: (A, B) => C): F[C]
 }
