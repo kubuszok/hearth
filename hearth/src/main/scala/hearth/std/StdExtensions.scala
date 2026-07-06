@@ -435,6 +435,7 @@ trait StdExtensions { this: MacroCommons =>
   }
 
   /** An alias indicating the type is a collection of some item type, but the exact item type is an existential type.
+    *
     * @since 0.3.0
     *
     * @tparam A
@@ -443,6 +444,7 @@ trait StdExtensions { this: MacroCommons =>
   type IsCollection[A] = Existential[IsCollectionOf[A, *]]
 
   /** Shape companion recognising collection-shaped types; register a [[Provider]] here to teach it a custom collection.
+    *
     * @since 0.3.0
     */
   object IsCollection extends ProvidedCompanion[IsCollection] {
@@ -558,6 +560,7 @@ trait StdExtensions { this: MacroCommons =>
   }
 
   /** An alias indicating the type is an option of some item type, but the exact item type is an existential type.
+    *
     * @since 0.3.0
     *
     * @tparam A
@@ -566,6 +569,7 @@ trait StdExtensions { this: MacroCommons =>
   type IsOption[A] = Existential[IsOptionOf[A, *]]
 
   /** Shape companion recognising option-shaped types; register a [[Provider]] here to teach it a custom option.
+    *
     * @since 0.3.0
     */
   object IsOption extends ProvidedCompanion[IsOption] {
@@ -609,6 +613,7 @@ trait StdExtensions { this: MacroCommons =>
   }
 
   /** Specialization for Existential type for IsEitherOf that provides the left and right types as existential types.
+    *
     * @since 0.3.0
     *
     * @tparam EitherLR
@@ -628,6 +633,7 @@ trait StdExtensions { this: MacroCommons =>
   }
 
   /** Shape companion recognising either-shaped types; register a [[Provider]] here to teach it a custom either.
+    *
     * @since 0.3.0
     */
   object IsEither extends ProvidedCompanion[IsEither] {
@@ -663,6 +669,7 @@ trait StdExtensions { this: MacroCommons =>
   }
 
   /** An alias indicating the type is a value type of some inner type, but the exact inner type is an existential type.
+    *
     * @since 0.3.0
     *
     * @tparam A
@@ -671,6 +678,7 @@ trait StdExtensions { this: MacroCommons =>
   type IsValueType[A] = Existential[IsValueTypeOf[A, *]]
 
   /** Shape companion recognising value/wrapper types; register a [[Provider]] here to teach it a custom value type.
+    *
     * @since 0.3.0
     */
   object IsValueType extends ProvidedCompanion[IsValueType] {
@@ -683,6 +691,7 @@ trait StdExtensions { this: MacroCommons =>
   implicit final class EnvironmentStdExtensionsOps(private val environment: Environment.type) {
 
     /** Loads all standard extensions.
+      *
       * @since 0.3.0
       */
     def loadStandardExtensions(): ExtensionLoadingResult[StandardMacroExtension] =

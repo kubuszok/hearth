@@ -7,6 +7,7 @@ import scala.reflect.{classTag, ClassTag}
 trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
 
   /** Platform-specific position representation (`c.universe.Position` in 2, `quotes.reflect.Position` in 3).
+    *
     * @since 0.1.0
     */
   type Position
@@ -44,6 +45,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     def column: Int = Position.column(position)
 
     /** Returns the original source text spanned by this [[Position]], if available.
+      *
       * @since 0.4.0
       */
     def sourceCode: Option[String] = Position.sourceCode(position)
@@ -107,6 +109,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     def XMacroSettings: List[String]
 
     /** Parses [[XMacroSettings]] into structured [[data.Data]] (or a [[scala.util.Left]] error message).
+      *
       * @since 0.1.0
       */
     final def typedSettings: Either[String, data.Data] = data.Data.parseList(XMacroSettings)
@@ -329,6 +332,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     } yield value
 
     /** Loads all the macro extensions for the given extension type.
+      *
       * @since 0.1.0
       *
       * @tparam Extension
@@ -347,6 +351,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     }
 
     /** Loads all the macro extensions for the given extension type, excluding the ones with the given names.
+      *
       * @since 0.3.0
       *
       * @tparam Extension
@@ -369,6 +374,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     }
 
     /** Loads all the macro extensions for the given extension type, filtering by the given condition.
+      *
       * @since 0.3.0
       *
       * @tparam Extension
@@ -649,6 +655,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     ) extends Enclosure
 
     /** An enclosing `val`/`var`/`lazy val`.
+      *
       * @since 0.4.0
       */
     final case class Value(

@@ -6,11 +6,13 @@ object Data extends DataCommons { self =>
   type Impl // null | Int | Long | Float | Double | Boolean | String | List[Data] | Map[String, Data]
 
   /** Empty/absent [[Data]] (renders as `null`).
+    *
     * @since 0.1.0
     */
   override def apply(): Data = null.asInstanceOf[Data]
 
   /** Wraps a primitive, `List[Data]` or `Map[String, Data]` as [[Data]].
+    *
     * @since 0.1.0
     */
   override def apply(value: Int): Data = value.asInstanceOf[Data]
@@ -25,6 +27,7 @@ object Data extends DataCommons { self =>
   implicit final class DataOps(private val data: Data) extends AnyVal {
 
     /** Pattern-matches the 9 possible [[Data]] shapes, applying the matching handler.
+      *
       * @since 0.1.0
       */
     def fold[A](
@@ -85,6 +88,7 @@ object Data extends DataCommons { self =>
     def diff(expected: Data): Diff = self.diff(expected = expected, actual = data)
 
     /** Pretty, multi-line rendering of this [[Data]].
+      *
       * @since 0.1.0
       */
     def render: String = self.render(data)

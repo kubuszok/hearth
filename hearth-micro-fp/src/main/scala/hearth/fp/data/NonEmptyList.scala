@@ -6,6 +6,7 @@ import fp.instances.*
 import fp.syntax.*
 
 /** Non-empty list.
+  *
   * @since 0.1.0
   */
 final case class NonEmptyList[+A](head: A, tail: List[A]) {
@@ -36,6 +37,7 @@ final case class NonEmptyList[+A](head: A, tail: List[A]) {
 object NonEmptyList {
 
   /** Builds a non-empty list from a required head and optional further elements.
+    *
     * @since 0.1.0
     *
     * @param a
@@ -46,6 +48,7 @@ object NonEmptyList {
   def apply[A](a: A, as: A*): NonEmptyList[A] = NonEmptyList(a, as.toList)
 
   /** `Some` iff the list is non-empty, else `None`.
+    *
     * @since 0.1.0
     *
     * @param list
@@ -57,6 +60,7 @@ object NonEmptyList {
   }
 
   /** Single-element non-empty list.
+    *
     * @since 0.1.0
     *
     * @param a

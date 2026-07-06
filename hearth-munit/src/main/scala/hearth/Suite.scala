@@ -132,6 +132,7 @@ trait Suite extends munit.BaseFunSuite { self =>
   implicit class ExpectedMsgAssert(actual: String) {
 
     /** Line-by-line comparison of two [[String]]s (ANSI-insensitive), reporting the differing lines.
+      *
       * @since 0.3.0
       *
       * @param expected

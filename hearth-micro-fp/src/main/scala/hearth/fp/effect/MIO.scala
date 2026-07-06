@@ -284,21 +284,25 @@ sealed trait MIO[+A] { fa =>
   object log {
 
     /** Logs `message` at info level and passes this value through unchanged.
+      *
       * @since 0.1.0
       */
     final def info(message: => String): MIO[A] = valueAsInfo(_ => message)
 
     /** Logs `message` at warn level and passes this value through unchanged.
+      *
       * @since 0.1.0
       */
     final def warn(message: => String): MIO[A] = valueAsWarn(_ => message)
 
     /** Logs `message` at error level and passes this value through unchanged.
+      *
       * @since 0.1.0
       */
     final def error(message: => String): MIO[A] = valueAsError(_ => message)
 
     /** Logs an info/warn/error message derived from this success value, passing the value through unchanged.
+      *
       * @since 0.1.0
       */
     final def valueAsInfo(message: A => String): MIO[A] = flatTap(a => Log.info(message(a)))
@@ -306,6 +310,7 @@ sealed trait MIO[+A] { fa =>
     final def valueAsError(message: A => String): MIO[A] = flatTap(a => Log.error(message(a)))
 
     /** Logs an info/warn/error message derived from the accumulated [[MErrors]], then re-fails with them.
+      *
       * @since 0.1.0
       */
     final def errorsAsInfo(message: MErrors => String): MIO[A] = handleErrorWith(e => Log.info(message(e)) >> fail(e))
@@ -313,6 +318,7 @@ sealed trait MIO[+A] { fa =>
     final def errorsAsError(message: MErrors => String): MIO[A] = handleErrorWith(e => Log.error(message(e)) >> fail(e))
 
     /** Logs an info/warn/error message derived from the [[MResult]] (success or failure), passing the result through.
+      *
       * @since 0.1.0
       */
     final def resultAsInfo(message: MResult[A] => String): MIO[A] = attemptFlatTap(r => Log.info(message(r)))
@@ -349,16 +355,19 @@ sealed trait MIO[+A] { fa =>
 object MIO {
 
   /** Lifts an already-computed value into a successful `MIO`.
+    *
     * @since 0.1.0
     */
   def pure[A](a: A): MIO[A] = lift(MResult.pure(a))
 
   /** Creates a failed `MIO` from one or more errors (aggregated into an [[MErrors]]).
+    *
     * @since 0.1.0
     */
   def fail[A](head: Throwable, tail: Throwable*): MIO[A] = lift(MResult.fail(head, tail*))
 
   /** Creates a failed `MIO` from an already-built [[MErrors]] vector.
+    *
     * @since 0.1.0
     */
   def fail[A](errs: MErrors): MIO[A] = lift(MResult.fail(errs))
@@ -377,6 +386,7 @@ object MIO {
   def apply[A](thunk: => A): MIO[A] = defer(pure(thunk))
 
   /** Lazily suspends a thunk that itself produces an `MIO`, deferring its evaluation until the program runs.
+    *
     * @since 0.1.0
     *
     * @param thunk
@@ -396,6 +406,7 @@ object MIO {
   )
 
   /** Lazily lifts an eager [[MResult]] (success or failure) into an `MIO`.
+    *
     * @since 0.1.0
     *
     * @param thunk

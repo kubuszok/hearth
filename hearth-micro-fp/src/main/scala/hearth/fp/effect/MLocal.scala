@@ -25,11 +25,13 @@ sealed trait MLocal[A] extends Product with Serializable {
   private[effect] val initial: A
 
   /** Reads the current value of this local as an `MIO[A]` within the surrounding [[MIO]] run.
+    *
     * @since 0.1.0
     */
   def get: MIO[A] = MIO.get(this)
 
   /** Writes `a` as the current value of this local, yielding `MIO[Unit]` within the surrounding [[MIO]] run.
+    *
     * @since 0.1.0
     *
     * @param a
@@ -57,6 +59,7 @@ object MLocal {
   }
 
   /** Creates a new [[MLocal]] value - each value, even if initialized the same way! - would be a separate instance.
+    *
     * @since 0.1.0
     *
     * @param initial

@@ -6,6 +6,7 @@ import hearth.fp.data.{NonEmptyList, NonEmptyMap, NonEmptyVector}
 import scala.collection.immutable.ListMap
 
 /** An utility which helps combining a sequence of rules into the rule application result.
+  *
   * @since 0.3.0
   */
 final class Rules[R <: Rule] private (rules: NonEmptyList[R]) {
@@ -55,16 +56,19 @@ final class Rules[R <: Rule] private (rules: NonEmptyList[R]) {
 object Rules {
 
   /** Create a new [[Rules]] instance from the given rules.
+    *
     * @since 0.3.0
     */
   def apply[R <: Rule](head: R, tail: R*): Rules[R] = new Rules(NonEmptyList(head, tail.toList))
 
   /** Create a new [[Rules]] instance from the given rules.
+    *
     * @since 0.3.0
     */
   def from[R <: Rule](rules: NonEmptyList[R]): Rules[R] = new Rules(rules)
 
   /** Create a new [[Rules]] instance from the given rules.
+    *
     * @since 0.3.0
     */
   def from[R <: Rule](rules: NonEmptyVector[R]): Rules[R] = new Rules(rules.toNonEmptyList)

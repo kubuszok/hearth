@@ -2,11 +2,13 @@ package hearth
 package fp
 
 /** Things that can be mapped over.
+  *
   * @since 0.1.0
   */
 trait Functor[F[_]] {
 
   /** Transforms the value(s) inside `F` with `f`, preserving the `F` structure.
+    *
     * @since 0.1.0
     *
     * @param fa

@@ -54,6 +54,7 @@ object SyntaxHighlight {
   val AnnotationColor = Console.MAGENTA
 
   /** ANSI-colored strategy - used by `prettyPrint`.
+    *
     * @since 0.2.0
     */
   object ANSI extends SyntaxHighlight {
@@ -69,6 +70,7 @@ object SyntaxHighlight {
   }
 
   /** No-op (empty-string) strategy - passing it yields the uncolored `plainPrint` form.
+    *
     * @see
     *   [[ANSI]]
     *

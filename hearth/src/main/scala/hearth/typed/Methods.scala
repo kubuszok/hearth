@@ -6,6 +6,7 @@ import scala.collection.immutable.ListMap
 trait Methods { this: MacroCommons =>
 
   /** Represents a type parameter with resolved bounds.
+    *
     * @since 0.4.0
     */
   final class TypeParameter(
@@ -17,6 +18,7 @@ trait Methods { this: MacroCommons =>
   }
 
   /** Type parameters grouped as they appear in the method signature.
+    *
     * @since 0.4.0
     */
   type TypeParameters = List[List[TypeParameter]]
@@ -100,6 +102,7 @@ trait Methods { this: MacroCommons =>
     def annotationsOfType[Ann: Type]: List[Expr[Ann]] = Annotations.filterOfType[Ann](annotations)
 
     /** Whether this parameter has at least one annotation whose type is a subtype of `Ann`.
+      *
       * @since 0.4.0
       */
     def hasAnnotationOfType[Ann: Type]: Boolean = annotations.exists(_.Underlying <:< Type[Ann])
@@ -225,6 +228,7 @@ trait Methods { this: MacroCommons =>
     implicit val Instance: Type[Instance]
 
     /** Per-step description of what this method still needs applied; see [[MethodExpectation]].
+      *
       * @since 0.4.0
       */
     val expectations: List[MethodExpectation]
@@ -250,11 +254,13 @@ trait Methods { this: MacroCommons =>
     def parameters: Parameters
 
     /** The result type, when statically known (`None` until enough of the chain is applied to determine it).
+      *
       * @since 0.4.0
       */
     def knownReturning: Option[??]
 
     /** Total number of value parameters across all clauses.
+      *
       * @since 0.4.0
       */
     final lazy val arity: Int = totalParameters.flatten.size
@@ -282,6 +288,7 @@ trait Methods { this: MacroCommons =>
     final def annotationsOfType[Ann: Type]: List[Expr[Ann]] = Annotations.filterOfType[Ann](annotations)
 
     /** Whether this method has at least one annotation whose type is a subtype of `Ann`.
+      *
       * @since 0.4.0
       */
     final def hasAnnotationOfType[Ann: Type]: Boolean = annotations.exists(_.Underlying <:< Type[Ann])
@@ -340,6 +347,7 @@ trait Methods { this: MacroCommons =>
     final lazy val protectedWithin: Option[String] = asUntyped.protectedWithin
 
     /** Whether this member is reachable under the given [[Accessible]] scope.
+      *
       * @since 0.1.0
       *
       * @param scope
@@ -599,6 +607,7 @@ trait Methods { this: MacroCommons =>
       UntypedType.fromTyped[A].primaryConstructor.map(_.asTyped[A])
 
     /** Returns all constructors of `A`, each as a builder chain.
+      *
       * @since 0.4.0
       *
       * @tparam A
@@ -610,6 +619,7 @@ trait Methods { this: MacroCommons =>
       UntypedType.fromTyped[A].constructors.map(_.asTyped[A])
 
     /** Returns all methods (declared, inherited and synthetic) of `A`, each as a builder chain resolved against `A`.
+      *
       * @since 0.4.0
       *
       * @tparam A
@@ -760,6 +770,7 @@ trait Methods { this: MacroCommons =>
     object OnInstance {
 
       /** An [[OnInstance]] step whose receiver type is `A`.
+        *
         * @since 0.4.0
         */
       type Of[A] = OnInstance { type Instance = A }
@@ -844,6 +855,7 @@ trait Methods { this: MacroCommons =>
       def knownReturning: Option[??] = Some(Returned.as_??)
 
       /** Validates all accumulated arguments and produces the call expression.
+        *
         * @since 0.4.0
         *
         * @return
@@ -855,6 +867,7 @@ trait Methods { this: MacroCommons =>
     object Result {
 
       /** A [[Result]] whose statically known result type is `A`.
+        *
         * @since 0.4.0
         */
       type Of[A] = Result[A]
