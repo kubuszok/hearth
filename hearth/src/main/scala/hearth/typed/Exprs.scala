@@ -39,7 +39,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       * companion method to stay safe.
       *
       * @see
-      *   [[unapply]] for the inverse (unlift), and plain-text `docs/user-guide/cross-quotes.md`
+      *   [[unapply]] for the inverse (unlift), and https://scala-hearth.readthedocs.io/en/stable/cross-quotes/
       *
       * @since 0.1.0
       *
@@ -83,7 +83,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       * @see
       *   [[TypeModule.plainPrint]] for the analogous Type-side renderer
       * @see
-      *   plain-text `docs/user-guide/better-printers.md`
+      *   https://scala-hearth.readthedocs.io/en/stable/better-printers/
       *
       * @since 0.1.0
       *
@@ -543,7 +543,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     *
     * '''Pitfall:''' when lifting enum / constant values, cross-quotes may reify a constant by its simple name, which
     * can resolve to the wrong symbol in the expansion scope — reference such values through a fully-qualified path or a
-    * companion method (see plain-text `docs/user-guide/cross-quotes.md`).
+    * companion method (see https://scala-hearth.readthedocs.io/en/stable/cross-quotes/).
     *
     * @see
     *   [[https://docs.scala-lang.org/overviews/quasiquotes/lifting.html]] for Scala 2 underlying concept

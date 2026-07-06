@@ -43,7 +43,7 @@ private[typed] trait ExprsCrossQuotes { this: Exprs =>
       * @see
       *   [[splice]]
       * @see
-      *   docs/user-guide/cross-quotes.md
+      *   https://scala-hearth.readthedocs.io/en/stable/cross-quotes/
       *
       * @since 0.1.0
       *
@@ -69,7 +69,7 @@ private[typed] trait ExprsCrossQuotes { this: Exprs =>
       * @see
       *   [[quote]]
       * @see
-      *   docs/user-guide/cross-quotes.md
+      *   https://scala-hearth.readthedocs.io/en/stable/cross-quotes/
       *
       * @since 0.1.0
       *

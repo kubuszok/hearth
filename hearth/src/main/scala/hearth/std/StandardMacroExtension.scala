@@ -10,7 +10,8 @@ package std
   * (e.g. add `IsCollection` support for a third-party collection). It is bounded by the fixed-arity shapes -
   * `IsCollection`/`IsOption`/`IsValueType` expose a single inner type, `IsMap`/`IsEither` exactly two - so for anything
   * needing N inner types, recursion, or a total/partial split, define an engine-aware [[MacroExtension]] instead. See
-  * the mechanism-choosing guidance on [[MacroExtension]] and the mkdocs docs/user-guide/standard-extensions.md guide.
+  * the mechanism-choosing guidance on [[MacroExtension]] and the
+  * https://scala-hearth.readthedocs.io/en/stable/standard-extensions/ guide.
   *
   * @see
   *   [[MacroExtension]]

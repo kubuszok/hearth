@@ -432,7 +432,7 @@ object MIO {
     * @see
     *   [[MIO.flatMap]] for the combinator alternative to reach a value inside an `MIO`
     * @see
-    *   the "DirectStyle" section of `docs/user-guide/micro-fp.md` (anchor `#directstyle`)
+    *   the "DirectStyle" section of https://scala-hearth.readthedocs.io/en/stable/micro-fp/#directstyle
     *
     * @since 0.1.0
     *

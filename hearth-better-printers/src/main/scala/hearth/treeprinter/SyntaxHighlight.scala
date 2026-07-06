@@ -14,7 +14,7 @@ package treeprinter
   * @see
   *   the printing-trio contract on `Type`/`Expr`/`Method` (`prettyPrint`/`plainPrint`)
   * @see
-  *   docs/user-guide/better-printers.md
+  *   https://scala-hearth.readthedocs.io/en/stable/better-printers/
   *
   * @since 0.2.0
   */

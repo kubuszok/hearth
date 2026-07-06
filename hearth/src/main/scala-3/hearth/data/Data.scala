@@ -12,7 +12,7 @@ package data
   * @see
   *   `hearth.Suite` `<==>` assertion
   * @see
-  *   docs/user-guide/basic-utilities.md
+  *   https://scala-hearth.readthedocs.io/en/stable/basic-utilities/
   *
   * @since 0.1.0
   */

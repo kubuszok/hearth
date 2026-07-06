@@ -29,7 +29,7 @@ trait MIOIntegrations { this: MacroTypedCommons =>
       * @see
       *   [[fp.effect.MIO.unsafe]] for the internal, own-risk escape hatch that sets up none of the above
       * @see
-      *   the "Running `MIO`" section of `docs/user-guide/micro-fp.md` (anchor `#running-mio`)
+      *   the "Running `MIO`" section of https://scala-hearth.readthedocs.io/en/stable/micro-fp/#running-mio
       *
       * @since 0.3.0
       *

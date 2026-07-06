@@ -18,7 +18,7 @@ import munit.{Location, TestOptions}
   *     showing an error with a [[Diff]] if they aren't equal
   *
   * @see
-  *   docs/contributing/guidelines-for-tests.md
+  *   https://github.com/kubuszok/hearth/blob/master/docs/contributing/guidelines-for-tests.md
   *
   * @since 0.3.0
   */
@@ -108,7 +108,7 @@ trait Suite extends munit.BaseFunSuite { self =>
       * `result <==> Data.map("f" -> Data(1))`) so failures show a field-by-field diff instead of an opaque `!=`.
       *
       * @see
-      *   docs/contributing/guidelines-for-tests.md
+      *   https://github.com/kubuszok/hearth/blob/master/docs/contributing/guidelines-for-tests.md
       *
       * @since 0.3.0
       *
