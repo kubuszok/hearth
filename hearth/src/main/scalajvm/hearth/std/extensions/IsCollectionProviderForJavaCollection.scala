@@ -130,9 +130,16 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
                       // Bypass EnumSet.noneOf type bound (E <: Enum[E]) via reflection:
                       // Scala 2 cannot infer E for the static method call due to
                       // F-bounded polymorphism + Class invariance.
+                      //
+                      // Resolve the reflective classes via `Class.forName` STRINGS rather than
+                      // `classOf[java.util.EnumSet[?]]` / `classOf[java.lang.Class[?]]` wildcard literals: those print
+                      // RAW (`classOf[java.util.EnumSet]`) after a downstream `c.untypecheck` + re-typecheck on Scala 2
+                      // and fail with "class EnumSet takes type parameters". `Class.forName` strings survive re-typecheck
+                      // unchanged. See issue #321.
                       val cls: java.lang.Class[?] = Expr.splice(enumClassExpr)
-                      classOf[java.util.EnumSet[?]]
-                        .getMethod("noneOf", classOf[java.lang.Class[?]])
+                      java.lang.Class
+                        .forName("java.util.EnumSet")
+                        .getMethod("noneOf", java.lang.Class.forName("java.lang.Class"))
                         .invoke(null, cls)
                         .asInstanceOf[java.util.EnumSet[?]]
                     }
