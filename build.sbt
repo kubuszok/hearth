@@ -329,6 +329,16 @@ val mimaSettings = Seq(
   // Example of an allowed exclusion (a member added to a NESTED trait/object that MiMa would otherwise flag):
   //   exclude[ReversedMissingMethodProblem]("hearth.typed.SomeTrait#SomeNestedTrait.newHelper")
   mimaBinaryIssueFilters ++= Seq(
+    // Perf: `ProviderResult.skipped` and the nested `ProvidedCompanion#Provider.skipped` helper take the reason
+    // BY-NAME (`=> String`) so a declining provider no longer eagerly builds its skip message - which routinely calls
+    // the expensive `Type#prettyPrint`. Skip reasons are write-mostly (a matching provider discards every earlier skip;
+    // the aggregated reasons are read only to diagnose a total failure), so deferring saves dozens of type renders per
+    // field across the shape companions with no observable behaviour change. The erased signature goes String ->
+    // Function0; `Provider` is a nested trait implemented ONLY by Hearth's own std companions (always evicted with the
+    // interface) and every `StandardMacroExtension` provider is recompiled against its Hearth version, so no standalone
+    // caller can break at link time.
+    exclude[IncompatibleMethTypeProblem]("hearth.std.ProviderResult.skipped"),
+    exclude[DirectMissingMethodProblem]("hearth.std.StdExtensions#ProvidedCompanion#Provider.skipped"),
     // #329: `lastMatchProvenance` provider-provenance state added to the NESTED trait `StdExtensions#ProvidedCompanion`.
     // That trait is part of the MacroCommons cake and is implemented ONLY by Hearth's own std companion objects
     // (IsCollection/IsOption/IsEither/IsValueType/CtorLikes), which live in the same trait - so the interface and its

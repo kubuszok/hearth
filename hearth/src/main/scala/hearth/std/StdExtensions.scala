@@ -27,7 +27,7 @@ trait StdExtensions { this: MacroCommons =>
       *
       * @since 0.3.0
       */
-    var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, String]] = _
+    var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, () => String]] = _
 
     /** A single registered provider: given a `Type[A]`, decides whether it recognises `A` and, if so, produces the
       * `Provided[A]` proof.
@@ -48,7 +48,7 @@ trait StdExtensions { this: MacroCommons =>
       def name: String
       def parse[A](tpe: Type[A]): ProviderResult[Provided[A]]
 
-      final protected def skipped(reason: String): ProviderResult[Nothing] =
+      final protected def skipped(reason: => String): ProviderResult[Nothing] =
         ProviderResult.skipped(name, reason)
       final protected def failed(error: Throwable): ProviderResult[Nothing] =
         ProviderResult.failed(name, error)
@@ -118,7 +118,7 @@ trait StdExtensions { this: MacroCommons =>
       */
     final protected def firstMatch[A: Type](companionName: String): ProviderResult[Provided[A]] = {
       lastMatchProvenanceValue = None
-      var skippedReasons = ListMap.empty[String, Either[Throwable, String]]
+      var skippedReasons = ListMap.empty[String, Either[Throwable, () => String]]
       val it = providers.iterator
       while (it.hasNext) {
         val provider = it.next()
@@ -291,7 +291,7 @@ trait StdExtensions { this: MacroCommons =>
       ProviderResult.skipped("CtorLikes", bottomTypeSkipReason)
     else {
       var matched: Option[CtorLikes[A]] = None
-      var skippedReasons = ListMap.empty[String, Either[Throwable, String]]
+      var skippedReasons = ListMap.empty[String, Either[Throwable, () => String]]
       providers.foreach { provider =>
         provider.parse(Type[A]) match {
           case ProviderResult.Matched(value) =>
@@ -344,8 +344,9 @@ trait StdExtensions { this: MacroCommons =>
         if (Type[Output] <:< Type[Result]) Type[Output].constructors
         else Nil
 
-      // Non-instance methods from the type (for case objects, etc.)
-      val noInstanceMethods: List[Method] = Type[Output].methods.filter {
+      // Non-instance methods from the type (for case objects, etc.). Order does not matter here (we collect the ones
+      // usable as smart constructors), so use the cheaper unsorted variant that skips source-position resolution.
+      val noInstanceMethods: List[Method] = Type[Output].unsortedMethods.filter {
         case _: Method.OnInstance => false
         case _                    => true
       }
@@ -523,7 +524,7 @@ trait StdExtensions { this: MacroCommons =>
     */
   object IsMap {
 
-    var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, String]] = _
+    var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, () => String]] = _
 
     /** Provenance of the provider behind the most recent successful match - mirrors
       * [[IsCollection.lastMatchProvenance]] since `IsMap` decodes through the collection providers. See issue #329.
