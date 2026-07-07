@@ -68,11 +68,21 @@ final case class ProviderProvenance(providerName: String, providerClassName: Str
 
 object ProviderResult {
   final case class Matched[A](value: A) extends ProviderResult[A]
-  final case class Skipped(reasons: NonEmptyMap[String, Either[Throwable, String]]) extends ProviderResult[Nothing]
 
-  /** Helper to create a single-entry Skipped with a string reason. */
-  def skipped(providerName: String, reason: String): Skipped =
-    Skipped(NonEmptyMap.one(providerName -> Right(reason)))
+  /** Skip reasons are stored '''lazily''' (`() => String`): a declining provider's reason is only materialised if
+    * something actually reads it, which normally never happens (a matching provider discards every earlier skip, and
+    * the aggregated reasons are consulted only to diagnose a total failure). Providers routinely build reasons with
+    * `Type#prettyPrint`, an expensive compile-time type rendering; keeping the thunk unforced saves that work on the
+    * hot path (dozens of renders per field across the shape companions). See the compile-time perf notes.
+    */
+  final case class Skipped(reasons: NonEmptyMap[String, Either[Throwable, () => String]])
+      extends ProviderResult[Nothing]
+
+  /** Helper to create a single-entry Skipped with a (lazily evaluated) string reason. The `reason` is by-name so an
+    * expensive message (e.g. one that calls `prettyPrint`) is not built unless the reason is actually read.
+    */
+  def skipped(providerName: String, reason: => String): Skipped =
+    Skipped(NonEmptyMap.one(providerName -> Right(() => reason)))
 
   /** Helper to create a single-entry Skipped with a throwable. */
   def failed(providerName: String, error: Throwable): Skipped =
