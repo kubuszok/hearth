@@ -580,6 +580,15 @@ trait Methods { this: MacroCommons =>
   }
   object Method {
 
+    // Memoize the (per-expansion) untyped->typed conversion of a type's whole method list by the queried type. Resolving
+    // a typed `Method` (`UntypedMethod.asTyped`) resolves the full signature (parameter types, substitutions,
+    // expectations) and is not cheap; a caller that looks methods up per field (e.g. one getter per product field)
+    // otherwise re-converts EVERY method on every call - O(fields x methods) per type. Keyed by `=:=` via Type.Cache
+    // (per-expansion lifetime); a miss only recomputes, so a stale/partial cache can never yield a wrong result.
+    private type CachedMethods[A] = List[Method]
+    private lazy val methodsOfCache = new Type.Cache[CachedMethods]
+    private lazy val unsortedMethodsOfCache = new Type.Cache[CachedMethods]
+
     sealed private[hearth] trait AppliedStep extends Product with Serializable
     private[hearth] object AppliedStep {
       final case class Instance(expr: UntypedExpr) extends AppliedStep
@@ -632,7 +641,7 @@ trait Methods { this: MacroCommons =>
       *   every method visible on `A` as a [[Method]], in deterministic order
       */
     def methodsOf[A: Type]: List[Method] =
-      UntypedType.fromTyped[A].methods.map(_.asTyped[A])
+      methodsOfCache.getOrPut(Type[A])(UntypedType.fromTyped[A].methods.map(_.asTyped[A]))
 
     /** Like [[methodsOf]] but in raw discovery order, WITHOUT the expensive position-resolving sort (see
       * [[UntypedMethod.unsortedMethods]]).
@@ -643,7 +652,7 @@ trait Methods { this: MacroCommons =>
       * @since 0.4.1
       */
     def unsortedMethodsOf[A: Type]: List[Method] =
-      UntypedType.fromTyped[A].unsortedMethods.map(_.asTyped[A])
+      unsortedMethodsOfCache.getOrPut(Type[A])(UntypedType.fromTyped[A].unsortedMethods.map(_.asTyped[A]))
 
     private[hearth] def buildChain(
         asUntyped: UntypedMethod,
