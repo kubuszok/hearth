@@ -41,6 +41,10 @@ final class IsOptionProviderForScalaOption extends StandardMacroExtension { load
             fromOption(Expr.quote(Expr.splice(toOption(option)).orElse(Expr.splice(toOption(default)))))
         })
 
+      // Cheap sound negative gate: everything this provider can match is <: Option[Any] (Option is covariant).
+      private lazy val OptionAny = Type.of[scala.Option[Any]]
+      override def mightMatch[A](tpe: Type[A]): Boolean = tpe <:< OptionAny
+
       @scala.annotation.nowarn
       override def parse[A](tpe: Type[A]): ProviderResult[IsOption[A]] = tpe match {
         case Some(_) => skipped("Some[_] cannot be empty")

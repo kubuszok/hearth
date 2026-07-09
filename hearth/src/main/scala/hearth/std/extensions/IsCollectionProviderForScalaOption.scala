@@ -62,6 +62,10 @@ final class IsCollectionProviderForScalaOption extends StandardMacroExtension { 
         })
       }
 
+      // Cheap sound negative gate: everything this provider can match is <: Option[Any] (Option is covariant).
+      private lazy val OptionAny = Type.of[scala.Option[Any]]
+      override def mightMatch[A](tpe: Type[A]): Boolean = tpe <:< OptionAny
+
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case Some(_)                                                 => skipped("Some[_] cannot be empty")
         case Option(item) if !(item.Underlying =:= Type.of[Nothing]) =>

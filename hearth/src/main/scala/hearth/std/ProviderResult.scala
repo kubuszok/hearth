@@ -87,4 +87,11 @@ object ProviderResult {
   /** Helper to create a single-entry Skipped with a throwable. */
   def failed(providerName: String, error: Throwable): Skipped =
     Skipped(NonEmptyMap.one(providerName -> Left(error)))
+
+  /** Shared constant reason recorded when a provider's cheap `mightMatch` pre-filter rejected the type, so the
+    * aggregated diagnostics still name every provider (instead of a misleading "No providers registered"). A single
+    * shared instance — the thunk is constant, so no per-skip allocation beyond the map entry.
+    */
+  private[hearth] val preFilteredReason: Either[Throwable, () => String] =
+    Right(() => "pre-filtered by mightMatch: the provider cannot match this type")
 }

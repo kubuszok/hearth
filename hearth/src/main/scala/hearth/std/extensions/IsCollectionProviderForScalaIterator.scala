@@ -58,6 +58,10 @@ final class IsCollectionProviderForScalaIterator extends StandardMacroExtension 
             )
         })
 
+      // Cheap sound negative gate: everything this provider can match is <: Iterator[Any] (Iterator is covariant).
+      private lazy val IteratorAny = Type.of[scala.collection.Iterator[Any]]
+      override def mightMatch[A](tpe: Type[A]): Boolean = tpe <:< IteratorAny
+
       @scala.annotation.nowarn
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case Iterator(item) =>

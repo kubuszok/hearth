@@ -80,6 +80,12 @@ final class IsCollectionProviderForJavaOptional extends StandardMacroExtension {
         })
       }
 
+      // Cheap sound negative gate: everything this provider can match is a java.util.Optional (checked via base classes -
+      // a head-symbol compare, far cheaper than the quote-pattern match).
+      private lazy val OptionalCtorUntyped = Optional.asUntyped
+      override def mightMatch[A](tpe: Type[A]): Boolean =
+        tpe.asUntyped.baseClasses.exists(_.sameTypeConstructorAs(OptionalCtorUntyped))
+
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case Optional(item) =>
           import item.Underlying as Item

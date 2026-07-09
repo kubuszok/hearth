@@ -164,6 +164,12 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
         })
       }
 
+      // Cheap sound negative gate: everything this provider can match is a java.util.Collection. the check is done via base classes:
+      // T <: Collection[x] for some x implies Collection is among T's base classes (head-symbol compare, cheap).
+      private lazy val CollectionCtorUntyped = juCollection.asUntyped
+      override def mightMatch[A](tpe: Type[A]): Boolean =
+        tpe.asUntyped.baseClasses.exists(_.sameTypeConstructorAs(CollectionCtorUntyped))
+
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = {
         def isCollectionOf[Coll[I] <: java.util.Collection[I], Item: Type, Coll2[I] <: Coll[I]](
             coll: Type.Ctor1[Coll],
