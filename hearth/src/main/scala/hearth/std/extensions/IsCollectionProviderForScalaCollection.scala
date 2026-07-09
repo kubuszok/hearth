@@ -89,6 +89,11 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
             Expr.quote((Expr.splice(key), Expr.splice(value))).asInstanceOf[Expr[Pair]]
         })
 
+      // Cheap sound negative gate: everything this provider can match is <: Iterable[Any] (Iterable is covariant),
+      // so a cached `<:<` check skips the expensive quote-pattern match for non-collections.
+      private lazy val IterableAny = Type.of[Iterable[Any]]
+      override def mightMatch[A](tpe: Type[A]): Boolean = tpe <:< IterableAny
+
       @scala.annotation.nowarn
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         // Scala collections are Iterables with Factories, we're start by finding the item type...

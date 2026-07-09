@@ -82,6 +82,10 @@ final class IsEitherProviderForScalaEither extends StandardMacroExtension { load
         }
       }
 
+      // Cheap sound negative gate: everything this provider can match is <: Either[Any, Any] (Either is covariant).
+      private lazy val EitherAny = Type.of[scala.Either[Any, Any]]
+      override def mightMatch[A](tpe: Type[A]): Boolean = tpe <:< EitherAny
+
       @scala.annotation.nowarn
       override def parse[A](tpe: Type[A]): ProviderResult[IsEither[A]] = tpe match {
         case Either(left, right) =>

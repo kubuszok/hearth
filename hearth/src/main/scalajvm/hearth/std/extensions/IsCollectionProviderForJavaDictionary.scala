@@ -188,6 +188,12 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
         )(using Tuple2(using String, String))
       }
 
+      // Cheap sound negative gate: everything this provider can match is a java.util.Dictionary (checked via base
+      // classes - a head-symbol compare, far cheaper than the quote-pattern match).
+      private lazy val DictionaryCtorUntyped = juDictionary.asUntyped
+      override def mightMatch[A](tpe: Type[A]): Boolean =
+        tpe.asUntyped.baseClasses.exists(_.sameTypeConstructorAs(DictionaryCtorUntyped))
+
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = {
         def isDictionaryOf[Dict0[K, V] <: java.util.Dictionary[K, V], Key, Value, Dict1[K, V] <: Dict0[K, V]](
             dict: Type.Ctor2[Dict0], // just for type inference

@@ -50,6 +50,9 @@ final class IsCollectionProviderForString extends StandardMacroExtension { loade
             )
         })(using Char)
 
+      // Cheap sound negative gate: the provider matches only =:= String, and =:= implies <:<.
+      override def mightMatch[A](tpe: Type[A]): Boolean = tpe <:< StringType
+
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case _ if tpe =:= StringType => ProviderResult.Matched(isString(tpe))
         case _                       => skipped(s"${tpe.prettyPrint} is not =:= String")

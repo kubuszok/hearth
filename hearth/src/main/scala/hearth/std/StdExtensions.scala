@@ -48,6 +48,19 @@ trait StdExtensions { this: MacroCommons =>
       def name: String
       def parse[A](tpe: Type[A]): ProviderResult[Provided[A]]
 
+      /** Cheap, '''sound''' negative pre-filter. Return `false` only when this provider provably '''cannot''' match
+        * `tpe`, so [[parse]] (which typically runs a `'[HKT[a]]` type-constructor match) can be skipped. Default `true`
+        * (always attempt). An override MUST be a genuine necessary condition — returning `false` for a type the
+        * provider could actually build silently drops support for it. Sound cheap checks: `tpe <:< Bound` for a
+        * '''covariant''' `Bound` (a subtype of `Bound[X]` is always a subtype of `Bound[Any]`), or
+        * `sameTypeConstructorAs` for an exact/invariant constructor. See the compile-time perf notes: the shape
+        * companions scan ~15 providers per field, so a cheap reject that avoids the full match on the common negative
+        * case is the main provider-scan lever.
+        *
+        * @since 0.4.1
+        */
+      def mightMatch[A](tpe: Type[A]): Boolean = true
+
       final protected def skipped(reason: => String): ProviderResult[Nothing] =
         ProviderResult.skipped(name, reason)
       final protected def failed(error: Throwable): ProviderResult[Nothing] =
@@ -122,12 +135,16 @@ trait StdExtensions { this: MacroCommons =>
       val it = providers.iterator
       while (it.hasNext) {
         val provider = it.next()
-        provider.parse(Type[A]) match {
-          case matched: ProviderResult.Matched[Provided[A] @unchecked] =>
-            recordMatch(provider)
-            return matched
-          case ProviderResult.Skipped(reasons) => skippedReasons ++= reasons.iterator
-        }
+        // Cheap sound negative pre-filter: skip the full (quote-pattern) parse when the provider provably cannot
+        // match. The constant reason keeps the aggregated diagnostics honest if every provider declines.
+        if (provider.mightMatch(Type[A])) {
+          provider.parse(Type[A]) match {
+            case matched: ProviderResult.Matched[Provided[A] @unchecked] =>
+              recordMatch(provider)
+              return matched
+            case ProviderResult.Skipped(reasons) => skippedReasons ++= reasons.iterator
+          }
+        } else skippedReasons += (provider.name -> ProviderResult.preFilteredReason)
       }
       NonEmptyMap.fromListMap(skippedReasons) match {
         case Some(nem) => ProviderResult.Skipped(nem)
@@ -293,15 +310,17 @@ trait StdExtensions { this: MacroCommons =>
       var matched: Option[CtorLikes[A]] = None
       var skippedReasons = ListMap.empty[String, Either[Throwable, () => String]]
       providers.foreach { provider =>
-        provider.parse(Type[A]) match {
-          case ProviderResult.Matched(value) =>
-            matched = matched match {
-              case Some(existing) => Some(existing ++ value)
-              case None           => Some(value)
-            }
-          case ProviderResult.Skipped(reasons) =>
-            skippedReasons ++= reasons.iterator
-        }
+        if (provider.mightMatch(Type[A])) {
+          provider.parse(Type[A]) match {
+            case ProviderResult.Matched(value) =>
+              matched = matched match {
+                case Some(existing) => Some(existing ++ value)
+                case None           => Some(value)
+              }
+            case ProviderResult.Skipped(reasons) =>
+              skippedReasons ++= reasons.iterator
+          }
+        } else skippedReasons += (provider.name -> ProviderResult.preFilteredReason)
       }
       matched match {
         case Some(ctorLikes) => ProviderResult.Matched(ctorLikes)

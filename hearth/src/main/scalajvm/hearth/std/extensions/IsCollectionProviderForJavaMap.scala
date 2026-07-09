@@ -184,6 +184,12 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
         })
       }
 
+      // Cheap sound negative gate: everything this provider can match is a java.util.Map (invariant, so gate on the
+      // wildcard bound).
+      private lazy val MapCtorUntyped = juMap.asUntyped
+      override def mightMatch[A](tpe: Type[A]): Boolean =
+        tpe.asUntyped.baseClasses.exists(_.sameTypeConstructorAs(MapCtorUntyped))
+
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = {
         def isMapOf[Map0[K, V] <: java.util.Map[K, V], Key: Type, Value: Type, Map1[K, V] <: Map0[K, V]](
             map: Type.Ctor2[Map0],

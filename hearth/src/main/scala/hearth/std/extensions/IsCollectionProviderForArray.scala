@@ -57,6 +57,12 @@ final class IsCollectionProviderForArray extends StandardMacroExtension { loader
             CtorLikeOf.PlainValue(buildExpr, None)
         })
 
+      // Cheap sound negative gate: T can only match if Array is among T's base classes (covers Array[X] itself and
+      // abstract types bounded by an Array); head-symbol compares are far cheaper than the quote-pattern match.
+      private lazy val ArrayCtorUntyped = Array.asUntyped
+      override def mightMatch[A](tpe: Type[A]): Boolean =
+        tpe.asUntyped.baseClasses.exists(_.sameTypeConstructorAs(ArrayCtorUntyped))
+
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         // All Arrays can be converted to Iterable...
         case Array(item) =>

@@ -73,6 +73,12 @@ final class IsCollectionProviderForJavaIterator extends StandardMacroExtension {
           }
         })
 
+      // Cheap sound negative gate: everything this provider can match is a java.util.Iterator (checked via base classes -
+      // a head-symbol compare, far cheaper than the quote-pattern match).
+      private lazy val IteratorCtorUntyped = Iterator.asUntyped
+      override def mightMatch[A](tpe: Type[A]): Boolean =
+        tpe.asUntyped.baseClasses.exists(_.sameTypeConstructorAs(IteratorCtorUntyped))
+
       @scala.annotation.nowarn
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         // All Java iterators can be converted to Iterable.

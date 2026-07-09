@@ -74,6 +74,9 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension { l
           }
         })(using Int)
 
+      // Cheap sound negative gate: the provider matches only =:= java.util.BitSet, and =:= implies <:<.
+      override def mightMatch[A](tpe: Type[A]): Boolean = tpe <:< juBitSet
+
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case _ if tpe =:= juBitSet => ProviderResult.Matched(isBitSet(tpe))
         case _                     => skipped(s"${tpe.prettyPrint} is not =:= java.util.BitSet")

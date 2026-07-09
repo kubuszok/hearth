@@ -134,6 +134,13 @@ final class IsOptionProviderForJavaOptional extends StandardMacroExtension { loa
             })
         })(using Double)
 
+      // Cheap sound negative gate: this provider matches Optional[_] (checked via base classes) plus the three
+      // primitive specializations, which are NOT subtypes of Optional and must be admitted explicitly.
+      private lazy val OptionalCtorUntyped = Optional.asUntyped
+      override def mightMatch[A](tpe: Type[A]): Boolean =
+        tpe.asUntyped.baseClasses.exists(_.sameTypeConstructorAs(OptionalCtorUntyped)) ||
+          tpe <:< juOptionalInt || tpe <:< juOptionalLong || tpe <:< juOptionalDouble
+
       @scala.annotation.nowarn
       override def parse[A](tpe: Type[A]): ProviderResult[IsOption[A]] = tpe match {
         case _ if tpe =:= juOptionalInt =>

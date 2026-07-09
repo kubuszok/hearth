@@ -70,6 +70,10 @@ final class IsEitherProviderForScalaTry extends StandardMacroExtension { loader 
         }
       }
 
+      // Cheap sound negative gate: everything this provider can match is <: Try[Any] (Try is covariant).
+      private lazy val TryAny = Type.of[scala.util.Try[Any]]
+      override def mightMatch[A](tpe: Type[A]): Boolean = tpe <:< TryAny
+
       @scala.annotation.nowarn
       override def parse[A](tpe: Type[A]): ProviderResult[IsEither[A]] = tpe match {
         case Try(item) =>

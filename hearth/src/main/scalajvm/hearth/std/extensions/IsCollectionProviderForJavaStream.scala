@@ -240,6 +240,13 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
           }
         })(using Double)
 
+      // Cheap sound negative gate: everything this provider can match (Stream, IntStream, LongStream, DoubleStream)
+      // is a java.util.stream.BaseStream (invariant, so gate on the wildcard bound).
+      private lazy val StreamCtorUntyped = juStream.asUntyped
+      override def mightMatch[A](tpe: Type[A]): Boolean =
+        tpe.asUntyped.baseClasses.exists(_.sameTypeConstructorAs(StreamCtorUntyped)) ||
+          tpe <:< juIntStream || tpe <:< juLongStream || tpe <:< juDoubleStream
+
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case _ if tpe =:= juIntStream =>
           implicit val A: Type[A] = tpe
