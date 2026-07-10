@@ -34,7 +34,7 @@ final class CtorLikeProviderForEitherIterableThrowableOrValue extends StandardMa
           })
         ) match {
           case Some(ctors) => ProviderResult.Matched(ctors)
-          case None        => skipped(s"no Either[Iterable[Throwable], A] constructors found for ${tpe.prettyPrint}")
+          case None => skippedLazily(s"no Either[Iterable[Throwable], A] constructors found for ${tpe.prettyPrint}")
         }
       }
     })

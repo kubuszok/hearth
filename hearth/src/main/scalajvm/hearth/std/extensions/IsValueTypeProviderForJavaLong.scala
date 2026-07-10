@@ -51,7 +51,7 @@ final class IsValueTypeProviderForJavaLong extends StandardMacroExtension { load
 
       override def parse[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
         if (tpe <:< JLong) ProviderResult.Matched(isValueType.asInstanceOf[IsValueType[A]])
-        else skipped(s"${tpe.prettyPrint} is not <: java.lang.Long")
+        else skippedLazily(s"${tpe.prettyPrint} is not <: java.lang.Long")
     })
   }
 }

@@ -79,7 +79,7 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension { l
 
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
         case _ if tpe =:= juBitSet => ProviderResult.Matched(isBitSet(tpe))
-        case _                     => skipped(s"${tpe.prettyPrint} is not =:= java.util.BitSet")
+        case _                     => skippedLazily(s"${tpe.prettyPrint} is not =:= java.util.BitSet")
       }
     })
   }

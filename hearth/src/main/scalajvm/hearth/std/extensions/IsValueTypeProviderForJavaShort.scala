@@ -52,7 +52,7 @@ final class IsValueTypeProviderForJavaShort extends StandardMacroExtension { loa
 
       override def parse[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
         if (tpe <:< JShort) ProviderResult.Matched(isValueType.asInstanceOf[IsValueType[A]])
-        else skipped(s"${tpe.prettyPrint} is not <: java.lang.Short")
+        else skippedLazily(s"${tpe.prettyPrint} is not <: java.lang.Short")
     })
   }
 }

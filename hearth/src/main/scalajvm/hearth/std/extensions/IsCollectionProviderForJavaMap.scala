@@ -285,9 +285,10 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
 
             (classHierarchy orElse interfaceHierarchy) match {
               case Some(result) => ProviderResult.Matched(result)
-              case None => skipped(s"${tpe.prettyPrint} is <: java.util.Map[_, _] but no matching concrete type found")
+              case None         =>
+                skippedLazily(s"${tpe.prettyPrint} is <: java.util.Map[_, _] but no matching concrete type found")
             }
-          case _ => skipped(s"${tpe.prettyPrint} is not <: java.util.Map[_, _]")
+          case _ => skippedLazily(s"${tpe.prettyPrint} is not <: java.util.Map[_, _]")
         }
       }
     })

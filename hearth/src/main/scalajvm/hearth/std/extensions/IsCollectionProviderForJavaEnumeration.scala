@@ -89,7 +89,7 @@ final class IsCollectionProviderForJavaEnumeration extends StandardMacroExtensio
           ProviderResult.Matched(isCollection[A, Item](A, _.upcast[java.util.Enumeration[Item]], _.upcast[A]))
 
         // Other types are not Java enumerations - if they should be supported, another extension can take care of it.
-        case _ => skipped(s"${tpe.prettyPrint} is not <: java.util.Enumeration[_]")
+        case _ => skippedLazily(s"${tpe.prettyPrint} is not <: java.util.Enumeration[_]")
       }
     })
   }

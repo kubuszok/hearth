@@ -61,8 +61,20 @@ trait StdExtensions { this: MacroCommons =>
         */
       def mightMatch[A](tpe: Type[A]): Boolean = true
 
-      final protected def skipped(reason: => String): ProviderResult[Nothing] =
-        ProviderResult.skipped(name, reason)
+      /** Skips with a lazily-built reason: `reason` is only evaluated if the diagnostics are actually rendered. Prefer
+        * this over [[skipped]] whenever the message is expensive (e.g. involves `Type#prettyPrint`).
+        *
+        * (A separate name because Scala forbids overloading on by-name-ness alone, and [[skipped]] must keep its
+        * strict-`String` bytecode signature: provider extensions compiled against hearth <= 0.4.0 call it.)
+        *
+        * @since 0.4.1
+        */
+      final protected def skippedLazily(reason: => String): ProviderResult[Nothing] =
+        ProviderResult.skippedLazily(name, reason)
+
+      /** Skips with an eagerly-built reason - see [[skippedLazily]] for the preferred lazy variant. */
+      final protected def skipped(reason: String): ProviderResult[Nothing] =
+        skippedLazily(reason)
       final protected def failed(error: Throwable): ProviderResult[Nothing] =
         ProviderResult.failed(name, error)
     }
@@ -148,7 +160,7 @@ trait StdExtensions { this: MacroCommons =>
       }
       NonEmptyMap.fromListMap(skippedReasons) match {
         case Some(nem) => ProviderResult.Skipped(nem)
-        case None      => ProviderResult.skipped(companionName, "No providers registered")
+        case None      => ProviderResult.skippedLazily(companionName, "No providers registered")
       }
     }
 
@@ -305,7 +317,7 @@ trait StdExtensions { this: MacroCommons =>
   object CtorLikes extends ProvidedCompanion[CtorLikes] {
 
     override def parse[A: Type]: ProviderResult[CtorLikes[A]] = if (isBottomType[A])
-      ProviderResult.skipped("CtorLikes", bottomTypeSkipReason)
+      ProviderResult.skippedLazily("CtorLikes", bottomTypeSkipReason)
     else {
       var matched: Option[CtorLikes[A]] = None
       var skippedReasons = ListMap.empty[String, Either[Throwable, () => String]]
@@ -327,7 +339,7 @@ trait StdExtensions { this: MacroCommons =>
         case None            =>
           NonEmptyMap.fromListMap(skippedReasons) match {
             case Some(nem) => ProviderResult.Skipped(nem)
-            case None      => ProviderResult.skipped("CtorLikes", "No providers registered")
+            case None      => ProviderResult.skippedLazily("CtorLikes", "No providers registered")
           }
       }
     }
@@ -489,7 +501,7 @@ trait StdExtensions { this: MacroCommons =>
   object IsCollection extends ProvidedCompanion[IsCollection] {
 
     override def parse[A: Type]: ProviderResult[IsCollection[A]] = if (isBottomType[A])
-      ProviderResult.skipped("IsCollection", bottomTypeSkipReason)
+      ProviderResult.skippedLazily("IsCollection", bottomTypeSkipReason)
     else firstMatchCached[A]("IsCollection")
   }
 
@@ -555,7 +567,7 @@ trait StdExtensions { this: MacroCommons =>
         case ProviderResult.Matched(isCollection) if isCollection.value.asMap.isDefined =>
           ProviderResult.Matched(isCollection.asInstanceOf[IsMap[A]])
         case ProviderResult.Matched(_) =>
-          ProviderResult.skipped("IsMap", s"${Type[A].prettyPrint} is a collection but not a Map")
+          ProviderResult.skippedLazily("IsMap", s"${Type[A].prettyPrint} is a collection but not a Map")
         case s: ProviderResult.Skipped => s
       }
 
@@ -614,7 +626,7 @@ trait StdExtensions { this: MacroCommons =>
   object IsOption extends ProvidedCompanion[IsOption] {
 
     override def parse[A: Type]: ProviderResult[IsOption[A]] = if (isBottomType[A])
-      ProviderResult.skipped("IsOption", bottomTypeSkipReason)
+      ProviderResult.skippedLazily("IsOption", bottomTypeSkipReason)
     else firstMatchCached[A]("IsOption")
   }
 
@@ -678,7 +690,7 @@ trait StdExtensions { this: MacroCommons =>
   object IsEither extends ProvidedCompanion[IsEither] {
 
     override def parse[A: Type]: ProviderResult[IsEither[A]] = if (isBottomType[A])
-      ProviderResult.skipped("IsEither", bottomTypeSkipReason)
+      ProviderResult.skippedLazily("IsEither", bottomTypeSkipReason)
     else firstMatchCached[A]("IsEither")
   }
 
@@ -723,7 +735,7 @@ trait StdExtensions { this: MacroCommons =>
   object IsValueType extends ProvidedCompanion[IsValueType] {
 
     override def parse[A: Type]: ProviderResult[IsValueType[A]] = if (isBottomType[A])
-      ProviderResult.skipped("IsValueType", bottomTypeSkipReason)
+      ProviderResult.skippedLazily("IsValueType", bottomTypeSkipReason)
     else firstMatchCached[A]("IsValueType")
   }
 

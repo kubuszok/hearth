@@ -289,9 +289,9 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
             (classHierarchy orElse interfaceHierarchy) match {
               case Some(result) => ProviderResult.Matched(result)
               case None         =>
-                skipped(s"${tpe.prettyPrint} is <: java.util.Collection[_] but no matching concrete type found")
+                skippedLazily(s"${tpe.prettyPrint} is <: java.util.Collection[_] but no matching concrete type found")
             }
-          case _ => skipped(s"${tpe.prettyPrint} is not <: java.util.Collection[_]")
+          case _ => skippedLazily(s"${tpe.prettyPrint} is not <: java.util.Collection[_]")
         }
       }
     })

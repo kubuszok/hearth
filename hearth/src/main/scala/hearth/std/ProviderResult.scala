@@ -78,11 +78,22 @@ object ProviderResult {
   final case class Skipped(reasons: NonEmptyMap[String, Either[Throwable, () => String]])
       extends ProviderResult[Nothing]
 
-  /** Helper to create a single-entry Skipped with a (lazily evaluated) string reason. The `reason` is by-name so an
+  /** Helper to create a single-entry Skipped with a lazily evaluated string reason. The `reason` is by-name so an
     * expensive message (e.g. one that calls `prettyPrint`) is not built unless the reason is actually read.
+    *
+    * (A separate name because Scala forbids overloading on by-name-ness alone, and [[skipped]] must keep its
+    * strict-`String` bytecode signature: provider extensions compiled against hearth <= 0.4.0 call it.)
+    *
+    * @since 0.4.1
     */
-  def skipped(providerName: String, reason: => String): Skipped =
+  def skippedLazily(providerName: String, reason: => String): Skipped =
     Skipped(NonEmptyMap.one(providerName -> Right(() => reason)))
+
+  /** Helper to create a single-entry Skipped with an eagerly-built string reason - see [[skippedLazily]] for the
+    * preferred lazy variant.
+    */
+  def skipped(providerName: String, reason: String): Skipped =
+    skippedLazily(providerName, reason)
 
   /** Helper to create a single-entry Skipped with a throwable. */
   def failed(providerName: String, error: Throwable): Skipped =

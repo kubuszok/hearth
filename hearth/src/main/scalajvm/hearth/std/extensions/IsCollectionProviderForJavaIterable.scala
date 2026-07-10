@@ -93,10 +93,10 @@ final class IsCollectionProviderForJavaIterable extends StandardMacroExtension {
           if (Type[A] =:= IterableItem)
             ProviderResult.Matched(isIterable[A, Item](A, _.upcast[java.lang.Iterable[Item]], _.upcast[A]))
           else
-            skipped(
+            skippedLazily(
               s"${tpe.prettyPrint} is a proper subtype of java.lang.Iterable[_]; only exact java.lang.Iterable is handled here"
             )
-        case _ => skipped(s"${tpe.prettyPrint} is not <: java.lang.Iterable[_]")
+        case _ => skippedLazily(s"${tpe.prettyPrint} is not <: java.lang.Iterable[_]")
       }
     })
   }

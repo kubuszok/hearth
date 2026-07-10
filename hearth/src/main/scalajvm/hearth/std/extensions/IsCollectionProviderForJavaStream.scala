@@ -257,7 +257,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
                 isIntStream[A](A, _.upcast[java.util.stream.IntStream], accumulatorFactoryInfoExpr)
               )
             case None =>
-              skipped(s"${tpe.prettyPrint} is IntStream but AccumulatorFactoryInfo not found")
+              skippedLazily(s"${tpe.prettyPrint} is IntStream but AccumulatorFactoryInfo not found")
           }
         case _ if tpe =:= juLongStream =>
           implicit val A: Type[A] = tpe
@@ -268,7 +268,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
                 isLongStream[A](A, _.upcast[java.util.stream.LongStream], accumulatorFactoryInfoExpr)
               )
             case None =>
-              skipped(s"${tpe.prettyPrint} is LongStream but AccumulatorFactoryInfo not found")
+              skippedLazily(s"${tpe.prettyPrint} is LongStream but AccumulatorFactoryInfo not found")
           }
         case _ if tpe =:= juDoubleStream =>
           implicit val A: Type[A] = tpe
@@ -279,7 +279,7 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
                 isDoubleStream[A](A, _.upcast[java.util.stream.DoubleStream], accumulatorFactoryInfoExpr)
               )
             case None =>
-              skipped(s"${tpe.prettyPrint} is DoubleStream but AccumulatorFactoryInfo not found")
+              skippedLazily(s"${tpe.prettyPrint} is DoubleStream but AccumulatorFactoryInfo not found")
           }
         case juStream(item) =>
           import item.Underlying as Item
@@ -293,9 +293,9 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
                 isStream[A, Item](A, _.upcast[java.util.stream.Stream[Item]], accumulatorFactoryInfoExpr)
               )
             case None =>
-              skipped(s"${tpe.prettyPrint} is Stream[${Item.prettyPrint}] but AccumulatorFactoryInfo not found")
+              skippedLazily(s"${tpe.prettyPrint} is Stream[${Item.prettyPrint}] but AccumulatorFactoryInfo not found")
           }
-        case _ => skipped(s"${tpe.prettyPrint} is not a java.util.stream type")
+        case _ => skippedLazily(s"${tpe.prettyPrint} is not a java.util.stream type")
       }
     })
   }

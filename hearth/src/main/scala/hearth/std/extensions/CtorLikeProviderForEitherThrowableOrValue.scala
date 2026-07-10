@@ -34,7 +34,7 @@ final class CtorLikeProviderForEitherThrowableOrValue extends StandardMacroExten
           })
         ) match {
           case Some(ctors) => ProviderResult.Matched(ctors)
-          case None        => skipped(s"no Either[Throwable, A] constructors found for ${tpe.prettyPrint}")
+          case None        => skippedLazily(s"no Either[Throwable, A] constructors found for ${tpe.prettyPrint}")
         }
       }
     })

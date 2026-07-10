@@ -119,11 +119,11 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
                   ProviderResult.Matched(isCollection(A, factoryExpr, buildExpr))
               }
             case None =>
-              skipped(s"${tpe.prettyPrint} is <: Iterable[${Item.prettyPrint}] but Factory not found")
+              skippedLazily(s"${tpe.prettyPrint} is <: Iterable[${Item.prettyPrint}] but Factory not found")
           }
 
         // Other types are not (Scala built-in) collections - if they should be supported, another extension can take care of it.
-        case _ => skipped(s"${tpe.prettyPrint} is not <: Iterable[_]")
+        case _ => skippedLazily(s"${tpe.prettyPrint} is not <: Iterable[_]")
       }
     })
   }

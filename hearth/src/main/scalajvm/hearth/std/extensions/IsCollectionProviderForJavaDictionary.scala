@@ -243,9 +243,9 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
               }
             } match {
               case Some(result) => ProviderResult.Matched(result)
-              case None         => skipped(s"${tpe.prettyPrint} is <: java.util.Dictionary[_, _] but no matching concrete type found")
+              case None         => skippedLazily(s"${tpe.prettyPrint} is <: java.util.Dictionary[_, _] but no matching concrete type found")
             }
-          case _ => skipped(s"${tpe.prettyPrint} is not <: java.util.Dictionary[_, _]")
+          case _ => skippedLazily(s"${tpe.prettyPrint} is not <: java.util.Dictionary[_, _]")
         }
         // format: on
       }
