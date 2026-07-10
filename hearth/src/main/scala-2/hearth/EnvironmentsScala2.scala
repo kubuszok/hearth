@@ -208,5 +208,10 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
   object CrossQuotes extends CrossQuotesModule {
 
     override def ctx[CastAs]: CastAs = c.asInstanceOf[CastAs]
+
+    // Scala 2 has a single macro Context: there is no splice scoping, so pinning the entry context is a no-op.
+    override private[hearth] def withMacroEntryContext[A](thunk: => A): A = thunk
+
+    override private[hearth] def macroEntryContextKey: AnyRef = c
   }
 }

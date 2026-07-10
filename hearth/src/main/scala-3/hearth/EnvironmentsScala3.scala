@@ -209,5 +209,9 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
     override protected def macroEntryCtx: scala.quoted.Quotes = quotes
 
     override def ctx[CastAs]: CastAs = currentCtx.asInstanceOf[CastAs]
+
+    override private[hearth] def withMacroEntryContext[A](thunk: => A): A = withMacroEntryCtx(thunk)
+
+    override private[hearth] def macroEntryContextKey: AnyRef = macroEntryCtx
   }
 }

@@ -164,4 +164,8 @@ object TypesFixtures {
   inline def testCtorK1FromDiscoveredParts[A]: Data = ${ testCtorK1FromDiscoveredPartsImpl[A] }
   private def testCtorK1FromDiscoveredPartsImpl[A: Type](using q: Quotes): Expr[Data] =
     new TypesFixtures(q).testCtorK1FromDiscoveredParts[A]
+
+  inline def testLazyTypeScopeSafety: Data = ${ testLazyTypeScopeSafetyImpl }
+  private def testLazyTypeScopeSafetyImpl(using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testLazyTypeScopeSafety
 }

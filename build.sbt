@@ -386,7 +386,18 @@ val mimaSettings = Seq(
     // trait `UntypedTypes#UntypedTypeModule`, part of the MacroCommons cake and implemented ONLY by Hearth's own
     // platform `UntypedType` objects (UntypedTypesScala2/Scala3) - interface and implementation are always evicted
     // together, so no user has a standalone implementation to break. `private[hearth]` besides.
-    exclude[ReversedMissingMethodProblem]("hearth.untyped.UntypedTypes#UntypedTypeModule.cacheBucketKey")
+    exclude[ReversedMissingMethodProblem]("hearth.untyped.UntypedTypes#UntypedTypeModule.cacheBucketKey"),
+    // Type.Lazy support: `withMacroEntryContext`/`macroEntryContextKey` added to the NESTED trait
+    // `Environments#CrossQuotesModule`, implemented ONLY by Hearth's own platform `CrossQuotes` objects
+    // (EnvironmentsScala2/Scala3) - interface and implementations are always evicted together, so no user has a
+    // standalone implementation to break. `private[hearth]` besides.
+    exclude[ReversedMissingMethodProblem]("hearth.Environments#CrossQuotesModule.withMacroEntryContext"),
+    exclude[ReversedMissingMethodProblem]("hearth.Environments#CrossQuotesModule.macroEntryContextKey"),
+    // Type.Lazy: the accessor of the NEW nested `object Lazy` inside `Types#TypeModule` (a Scala-2 trait-nested-module
+    // artifact). TypeModule is part of the MacroCommons cake and implemented ONLY by Hearth's own platform `Type`
+    // objects - interface and implementations are always evicted together, so no user has a standalone implementation
+    // to break.
+    exclude[ReversedMissingMethodProblem]("hearth.typed.Types#TypeModule.Lazy")
   )
 )
 
