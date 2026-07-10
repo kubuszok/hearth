@@ -105,22 +105,23 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
   object UntypedParameters extends UntypedParametersModule {
 
-    override def toTyped[Instance: Type](untyped: UntypedParameters): Parameters = {
-      lazy val instanceTpe = UntypedType.fromTyped[Instance]
+    override def toTyped[Instance: Type](untyped: UntypedParameters): Parameters =
+      toTypedWith[Instance](
+        untyped,
+        // If params are empty, `.head` would throw... unless we don't use it (the thunk is forced per-param only).
+        () => resolveTypesByParamName(UntypedType.fromTyped[Instance], untyped.head.head._2.method)
+      )
 
-      // Synthetic NamedTuple parameters carry their types directly — no symbol-based resolution needed.
-      val isSyntheticNamedTuple = untyped.exists(_.exists(_._2.isInstanceOf[SyntheticNamedTupleParameter]))
-      if isSyntheticNamedTuple then return untyped.map { params =>
-        params.map { case (paramName, param) =>
-          val synParam = param.asInstanceOf[SyntheticNamedTupleParameter]
-          paramName -> Parameter(asUntyped = param, untypedInstanceType = instanceTpe, tpe = synParam.fieldType.as_??)
-        }
-      }
-
-      lazy val method = untyped.head.head._2.method // If params are empty it would throw... unless we don't use it.
-
+    /** Resolves the parameter-name -> parameter-type map for ALL value clauses of `method` as seen from `instanceTpe`.
+      * Since the map covers every clause, `UntypedMethod.toTyped` computes it ONCE and shares it between the per-clause
+      * expectations and `totalParameters` (previously it was recomputed for each).
+      */
+    private[hearth] def resolveTypesByParamName(
+        instanceTpe: UntypedType,
+        method: UntypedMethod
+    ): Map[String, TypeRepr] = {
       // Constructor methods still have to have their type parameters manually applied, even if we know the exact type of their class.
-      lazy val appliedIfNecessary = {
+      val appliedIfNecessary = {
         val raw =
           if instanceTpe.typeArgs.isEmpty && method.symbol.isClassConstructor then safeMemberType(
             instanceTpe,
@@ -135,38 +136,54 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         }
         else raw
       }
-      lazy val typesByParamName = {
-        def collectAllParamTypes(tpe: TypeRepr): Map[String, TypeRepr] = tpe match {
-          case MethodType(names, types, res) => names.zip(types).toMap ++ collectAllParamTypes(res)
-          case PolyType(_, _, res)           => collectAllParamTypes(res)
-          case _                             => Map.empty
-        }
-        def applyTypeAliases(params: Map[String, TypeRepr], aliases: Map[TypeRepr, TypeRepr]): Map[String, TypeRepr] =
-          if aliases.isEmpty then params
-          else params.view.mapValues(tpe => aliases.getOrElse(tpe, tpe)).toMap
+      def collectAllParamTypes(tpe: TypeRepr): Map[String, TypeRepr] = tpe match {
+        case MethodType(names, types, res) => names.zip(types).toMap ++ collectAllParamTypes(res)
+        case PolyType(_, _, res)           => collectAllParamTypes(res)
+        case _                             => Map.empty
+      }
+      def applyTypeAliases(params: Map[String, TypeRepr], aliases: Map[TypeRepr, TypeRepr]): Map[String, TypeRepr] =
+        if aliases.isEmpty then params
+        else params.view.mapValues(tpe => aliases.getOrElse(tpe, tpe)).toMap
 
-        appliedIfNecessary match {
-          case mt: MethodType =>
-            collectAllParamTypes(mt)
-          case PolyType(_, _, inner) =>
-            val rawParams = collectAllParamTypes(inner)
-            inner match {
-              case MethodType(_, _, AppliedType(_, typeRefs)) =>
-                applyTypeAliases(rawParams, typeRefs.zip(instanceTpe.typeArgs).toMap)
-              case _ => rawParams
-            }
-          case AppliedType(inner, typeRefs) =>
-            val rawParams = collectAllParamTypes(inner)
-            applyTypeAliases(rawParams, typeRefs.zip(instanceTpe.typeArgs).toMap)
-          // $COVERAGE-OFF$
-          case out =>
-            val methodName = if method.isConstructor then "Constructor" else s"Method ${method.name}"
-            val typeName = instanceTpe.prettyPrint
-            val outTypeName = out.prettyPrint
-            hearthAssertionFailed(s"$methodName of $typeName has unrecognized/unsupported format of type: $outTypeName")
-          // $COVERAGE-ON$
+      appliedIfNecessary match {
+        case mt: MethodType =>
+          collectAllParamTypes(mt)
+        case PolyType(_, _, inner) =>
+          val rawParams = collectAllParamTypes(inner)
+          inner match {
+            case MethodType(_, _, AppliedType(_, typeRefs)) =>
+              applyTypeAliases(rawParams, typeRefs.zip(instanceTpe.typeArgs).toMap)
+            case _ => rawParams
+          }
+        case AppliedType(inner, typeRefs) =>
+          val rawParams = collectAllParamTypes(inner)
+          applyTypeAliases(rawParams, typeRefs.zip(instanceTpe.typeArgs).toMap)
+        // $COVERAGE-OFF$
+        case out =>
+          val methodName = if method.isConstructor then "Constructor" else s"Method ${method.name}"
+          val typeName = instanceTpe.prettyPrint
+          val outTypeName = out.prettyPrint
+          hearthAssertionFailed(s"$methodName of $typeName has unrecognized/unsupported format of type: $outTypeName")
+        // $COVERAGE-ON$
+      }
+    }
+
+    private[hearth] def toTypedWith[Instance: Type](
+        untyped: UntypedParameters,
+        typesByParamName0: () => Map[String, TypeRepr]
+    ): Parameters = {
+      lazy val instanceTpe = UntypedType.fromTyped[Instance]
+
+      // Synthetic NamedTuple parameters carry their types directly — no symbol-based resolution needed.
+      val isSyntheticNamedTuple = untyped.exists(_.exists(_._2.isInstanceOf[SyntheticNamedTupleParameter]))
+      if isSyntheticNamedTuple then return untyped.map { params =>
+        params.map { case (paramName, param) =>
+          val synParam = param.asInstanceOf[SyntheticNamedTupleParameter]
+          paramName -> Parameter(asUntyped = param, untypedInstanceType = instanceTpe, tpe = synParam.fieldType.as_??)
         }
       }
+
+      lazy val typesByParamName = typesByParamName0()
 
       untyped.map { params =>
         params.flatMap { case (paramName, untyped) =>
@@ -766,6 +783,10 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
       val untypedExpectations = untyped.methodExpectations(instanceTpe)
 
+      // The map covers ALL value clauses, so resolve it once and share it between the per-clause expectations and
+      // `totalParameters` below (it used to be recomputed for each of them).
+      lazy val sharedTypesByParamName = UntypedParameters.resolveTypesByParamName(instanceTpe, untyped)
+
       // [hearth#331] A value/implicit clause that FOLLOWS a type-parameter clause references the method's own type
       // parameters (`(implicit ev: Sync[F])`). `up.asTyped[Instance]` cannot resolve those against `Instance` (it
       // conflates method and class type parameters and can even crash), so historically the clause was dropped to
@@ -822,7 +843,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
             }))
           case UntypedMethodExpectation.NeedsValues(up) =>
             if seenTypeParams then MethodExpectation.NeedsValues(resolveTypeParamClauseValues(up, typeArgs))
-            else MethodExpectation.NeedsValues(up.asTyped[Instance])
+            else
+              MethodExpectation.NeedsValues(UntypedParameters.toTypedWith[Instance](up, () => sharedTypesByParamName))
         }
       }
 
@@ -831,22 +853,25 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       val hasUnresolvedTypeParams = untyped.hasTypeParameters && !untyped.isConstructor
       val totalParams: Parameters =
         if hasUnresolvedTypeParams then List.empty
-        else untyped.parameters.asTyped[Instance]
+        else UntypedParameters.toTypedWith[Instance](untyped.parameters, () => sharedTypesByParamName)
 
-      val returnType: Option[??] =
-        if hasUnresolvedTypeParams then None
-        else if untyped.symbol.isNoSymbol then Some(instanceTpe.as_??)
-        else if untyped.isConstructor then Some(instanceTpe.as_??)
-        else {
-          def finalResultType(tpe: TypeRepr): TypeRepr = tpe match {
-            case mt: MethodType => finalResultType(mt.resType)
-            case pt: PolyType   => finalResultType(pt.resType)
-            case other          => other
-          }
-          val memberType = safeMemberType(instanceTpe, untyped.symbol).widenByName
-          // E.g. the case-field accessor of a vararg parameter would otherwise return `scala.<repeated>[A]`.
-          Some(normalizeRepeatedParamType(finalResultType(memberType)).as_??)
+      // Option-ness is decided by cheap flags; the expensive `safeMemberType` resolution inside `Some` is deferred
+      // (memoized via the local lazy val) until someone actually asks the chain for `knownReturning`.
+      lazy val resolvedReturnType: ?? = {
+        def finalResultType(tpe: TypeRepr): TypeRepr = tpe match {
+          case mt: MethodType => finalResultType(mt.resType)
+          case pt: PolyType   => finalResultType(pt.resType)
+          case other          => other
         }
+        val memberType = safeMemberType(instanceTpe, untyped.symbol).widenByName
+        // E.g. the case-field accessor of a vararg parameter would otherwise return `scala.<repeated>[A]`.
+        normalizeRepeatedParamType(finalResultType(memberType)).as_??
+      }
+      val returnType: Option[() => ??] =
+        if hasUnresolvedTypeParams then None
+        else if untyped.symbol.isNoSymbol then Some(() => instanceTpe.as_??)
+        else if untyped.isConstructor then Some(() => instanceTpe.as_??)
+        else Some(() => resolvedReturnType)
 
       val buildExpr: (Option[UntypedExpr], UntypedTypeArguments, UntypedArguments) => Either[String, UntypedExpr] =
         (instance, typeArgs, args) => Right(untyped.unsafeApplyWithTypes(instanceTpe)(typeArgs, instance, args))

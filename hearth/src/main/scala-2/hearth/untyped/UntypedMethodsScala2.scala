@@ -59,36 +59,53 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
   object UntypedParameters extends UntypedParametersModule {
 
-    override def toTyped[Instance: Type](untyped: UntypedParameters): Parameters = {
-      val instanceTpe = UntypedType.fromTyped[Instance]
-      lazy val method = untyped.head.head._2.method // If params are empty it would throw... unless we don't use it.
+    override def toTyped[Instance: Type](untyped: UntypedParameters): Parameters =
+      toTypedWith[Instance](
+        untyped,
+        // If params are empty, `.head` would throw... unless we don't use it (the thunk is forced per-param only).
+        () => resolveTypesByParamName(UntypedType.fromTyped[Instance], untyped.head.head._2.method)
+      )
 
-      lazy val typesByParamName = {
-        val rawSig = method.symbol.asMethod.typeSignatureIn(instanceTpe)
-        val sig = rawSig match {
-          case ExistentialType(_, underlying) => underlying
-          case other                          => other
-        }
-        val firstListSize = sig.paramLists.headOption.map(_.size).getOrElse(0)
-        sig.paramLists.flatten.zipWithIndex.map { case (param, idx) =>
-          val rawType = param.typeSignatureIn(instanceTpe)
-          val resolvedType =
-            if (idx < firstListSize) rawType
-            else {
-              val asMethodType = rawType.asInstanceOf[scala.reflect.internal.Types#Type]
-              asMethodType match {
-                case imt: scala.reflect.internal.Types#MethodType =>
-                  val paramIdx = imt.params.indexWhere(_.decodedName.toString.trim == symbolName(param))
-                  if (paramIdx >= 0) {
-                    val internalParams = imt.asInstanceOf[scala.reflect.internal.SymbolTable#MethodType].paramTypes
-                    internalParams(paramIdx).asInstanceOf[c.universe.Type]
-                  } else rawType
-                case _ => rawType
-              }
-            }
-          symbolName(param) -> resolvedType
-        }.toMap
+    /** Resolves the parameter-name -> parameter-type map for ALL value clauses of `method` as seen from `instanceTpe`.
+      * Since the map covers every clause, `UntypedMethod.toTyped` computes it ONCE and shares it between the per-clause
+      * expectations and `totalParameters` (previously it was recomputed for each).
+      */
+    private[hearth] def resolveTypesByParamName(
+        instanceTpe: UntypedType,
+        method: UntypedMethod
+    ): Map[String, c.universe.Type] = {
+      val rawSig = method.symbol.asMethod.typeSignatureIn(instanceTpe)
+      val sig = rawSig match {
+        case ExistentialType(_, underlying) => underlying
+        case other                          => other
       }
+      val firstListSize = sig.paramLists.headOption.map(_.size).getOrElse(0)
+      sig.paramLists.flatten.zipWithIndex.map { case (param, idx) =>
+        val rawType = param.typeSignatureIn(instanceTpe)
+        val resolvedType =
+          if (idx < firstListSize) rawType
+          else {
+            val asMethodType = rawType.asInstanceOf[scala.reflect.internal.Types#Type]
+            asMethodType match {
+              case imt: scala.reflect.internal.Types#MethodType =>
+                val paramIdx = imt.params.indexWhere(_.decodedName.toString.trim == symbolName(param))
+                if (paramIdx >= 0) {
+                  val internalParams = imt.asInstanceOf[scala.reflect.internal.SymbolTable#MethodType].paramTypes
+                  internalParams(paramIdx).asInstanceOf[c.universe.Type]
+                } else rawType
+              case _ => rawType
+            }
+          }
+        symbolName(param) -> resolvedType
+      }.toMap
+    }
+
+    private[hearth] def toTypedWith[Instance: Type](
+        untyped: UntypedParameters,
+        typesByParamName0: () => Map[String, c.universe.Type]
+    ): Parameters = {
+      val instanceTpe = UntypedType.fromTyped[Instance]
+      lazy val typesByParamName = typesByParamName0()
 
       untyped.map { params =>
         params.flatMap { case (paramName, untyped) =>
@@ -496,6 +513,10 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
       val untypedExpectations = untyped.methodExpectations(instanceTpe)
 
+      // The map covers ALL value clauses, so resolve it once and share it between the per-clause expectations and
+      // `totalParameters` below (it used to be recomputed for each of them).
+      lazy val sharedTypesByParamName = UntypedParameters.resolveTypesByParamName(instanceTpe, untyped)
+
       // [hearth#331] A value/implicit clause that FOLLOWS a type-parameter clause references the method's own type
       // parameters (`(implicit ev: Sync[F])`); resolving it against `Instance` conflates method and class type
       // parameters, so it used to be dropped to `List.empty`. Instead read the parameter types straight from the
@@ -545,7 +566,8 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
             }))
           case UntypedMethodExpectation.NeedsValues(up) =>
             if (seenTypeParams) MethodExpectation.NeedsValues(resolveTypeParamClauseValues(up, typeArgs))
-            else MethodExpectation.NeedsValues(up.asTyped[Instance])
+            else
+              MethodExpectation.NeedsValues(UntypedParameters.toTypedWith[Instance](up, () => sharedTypesByParamName))
         }
       }
       val typedExpectations: List[MethodExpectation] = resolveExpectations(Map.empty)
@@ -553,20 +575,23 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       val hasUnresolvedTypeParams = untyped.hasTypeParameters && !untyped.isConstructor
       val totalParams: Parameters =
         if (hasUnresolvedTypeParams) List.empty
-        else untyped.parameters.asTyped[Instance]
+        else UntypedParameters.toTypedWith[Instance](untyped.parameters, () => sharedTypesByParamName)
 
-      val returnType: Option[??] =
-        if (hasUnresolvedTypeParams) None
-        else if (untyped.isConstructor) Some(instanceTpe.as_??)
-        else {
-          val rawSig = untyped.symbol.typeSignatureIn(instanceTpe)
-          val sig = rawSig match {
-            case ExistentialType(_, underlying) => underlying
-            case other                          => other
-          }
-          // E.g. the case-field accessor of a vararg parameter would otherwise return `scala.<repeated>[A]`.
-          Some(normalizeRepeatedParamType(sig.finalResultType.dealias).as_??)
+      // Option-ness is decided by cheap flags; the expensive `typeSignatureIn` resolution inside `Some` is deferred
+      // (memoized via the local lazy val) until someone actually asks the chain for `knownReturning`.
+      lazy val resolvedReturnType: ?? = {
+        val rawSig = untyped.symbol.typeSignatureIn(instanceTpe)
+        val sig = rawSig match {
+          case ExistentialType(_, underlying) => underlying
+          case other                          => other
         }
+        // E.g. the case-field accessor of a vararg parameter would otherwise return `scala.<repeated>[A]`.
+        normalizeRepeatedParamType(sig.finalResultType.dealias).as_??
+      }
+      val returnType: Option[() => ??] =
+        if (hasUnresolvedTypeParams) None
+        else if (untyped.isConstructor) Some(() => instanceTpe.as_??)
+        else Some(() => resolvedReturnType)
 
       val buildExpr: (Option[UntypedExpr], UntypedTypeArguments, UntypedArguments) => Either[String, UntypedExpr] =
         (instance, typeArgs, args) => Right(untyped.unsafeApplyWithTypes(instanceTpe)(typeArgs, instance, args))
