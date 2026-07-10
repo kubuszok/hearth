@@ -1100,37 +1100,34 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       Symbol.requiredClass("scala.reflect.Enum")
     )
 
+    // The filter sets below all derive from java.lang.Object's members; the walk is done once (lazily - module init
+    // runs on every macro expansion) and shared, instead of once per set.
+    private lazy val objectClassSymbol = TypeRepr.of[java.lang.Object].typeSymbol
+    private lazy val objectMethodMembers = objectClassSymbol.methodMembers
+
     // These methods are only available on Scala 3, and we want to align behavior with Scala 2.
     // For now we just exclude them, but in the future we might want to implement them in Scala 2.
-    private lazy val excludedMethods = TypeRepr
-      .of[java.lang.Object]
-      .typeSymbol
-      .methodMembers
-      .filter { symbol =>
-        // Both "asInstanceOf" and "isInstanceOf" exist on both Scala 2 and 3, so I am not sure why we ALSO have these on Scala 3.
-        symbol.name == "$asInstanceOf$" || symbol.name == "$isInstanceOf$"
-      }
-      .toSet
+    private lazy val excludedMethods = objectMethodMembers.filter { symbol =>
+      // Both "asInstanceOf" and "isInstanceOf" exist on both Scala 2 and 3, so I am not sure why we ALSO have these on Scala 3.
+      symbol.name == "$asInstanceOf$" || symbol.name == "$isInstanceOf$"
+    }.toSet
 
     // We check if something is inherited by comparing declared methods with all methods of the type. But some methods are
     // ensured to exist, even when they do not appear in the source code, and they should not be considered "inherited".
     private lazy val declaredByJvmOrScala = Map {
-      val objectSymbol = TypeRepr.of[java.lang.Object].typeSymbol
       val objectExceptionNames = Set("toString", "equals", "hashCode")
-      objectSymbol -> objectSymbol.methodMembers.filter(symbol => objectExceptionNames(symbol.name)).toSet
+      objectClassSymbol -> objectMethodMembers.filter(symbol => objectExceptionNames(symbol.name)).toSet
     }.withDefaultValue(Set.empty)
 
     // For these symbol.isSynthetic flag is false, but we want to consider them synthetic.
-    private val methodsConsideredSynthetic = {
+    private lazy val methodsConsideredSynthetic = {
       val names = Set("asInstanceOf", "isInstanceOf", "getClass", "synchronized", "==", "!=", "eq", "ne", "##")
-      TypeRepr.of[Object].typeSymbol.methodMembers.filter(symbol => names(symbol.name)).toSet
+      objectMethodMembers.filter(symbol => names(symbol.name)).toSet
     }
 
     // We do not want to include methods and fields from java.lang.Object in the companion object.
     // Because the companion class has them and we don't want to mix them when listing methods for companion class.
-    private val methodsSkippedInCompanion = {
-      val sym = TypeRepr.of[java.lang.Object].typeSymbol
-      (sym.methodMembers ++ sym.fieldMembers).toSet
-    }
+    private lazy val methodsSkippedInCompanion =
+      (objectMethodMembers ++ objectClassSymbol.fieldMembers).toSet
   }
 }
