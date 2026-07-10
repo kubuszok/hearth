@@ -432,6 +432,24 @@ object TypeConstructorsGen {
       sb ++= s"          }\n"
     }
 
+    // Cached head symbol for the unapply fast path (Symbol identity is stable across nested splices of one expansion).
+    sb ++= s"          private lazy val fastPathHktSymbol: AnyRef = {\n"
+    sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
+    sb ++= s"            val symbol = quotes.reflect.TypeRepr.of[HKT].typeSymbol\n"
+    sb ++= s"            if (symbol.isNoSymbol) null else symbol\n"
+    sb ++= s"          }\n"
+    // Whether HKT's head is a proper class/trait: only then is `HKT in baseClasses(A)` a NECESSARY condition of
+    // `A <:< HKT[args]`, enabling the cheap negative arm of the fast path (opaque/abstract heads skip it).
+    sb ++= s"          private lazy val fastPathHktIsClass: Boolean = {\n"
+    sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
+    sb ++= s"            fastPathHktSymbol != null && fastPathHktSymbol.asInstanceOf[quotes.reflect.Symbol].isClassDef\n"
+    sb ++= s"          }\n"
+    // Bottom types conform to everything, so the base-classes negative must never fire for them.
+    sb ++= s"          private lazy val fastPathBottomSymbols: (AnyRef, AnyRef) = {\n"
+    sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
+    sb ++= s"            (quotes.reflect.TypeRepr.of[Nothing].typeSymbol, quotes.reflect.TypeRepr.of[Null].typeSymbol)\n"
+    sb ++= s"          }\n"
+
     // asUntyped
     sb ++= s"          def asUntyped: UntypedType = {\n"
     sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
@@ -452,6 +470,42 @@ object TypeConstructorsGen {
     // unapply
     sb ++= s"          def unapply[A](A: Type[A]): Option[${boundsTuple(n)}] = {\n"
     sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
+
+    // Fast path (perf): when the scrutinee's dealiased head symbol IS the constructor's, the type is HKT applied to
+    // the dealiased type's own arguments - extract them directly instead of running the (much costlier) QuoteMatcher.
+    // Wildcard arguments (TypeBounds, see #307) and everything else falls through to the full quote-pattern match,
+    // which stays the source of truth for subtype-conformance matching (e.g. Vector[Int] against Seq).
+    val fastPathArgs = (0 until n).map(i => s"arg$i").mkString(", ")
+    val fastPathGuard = (0 until n).map(i => s"!fastPathIsWildcard(arg$i)").mkString(" && ")
+    val fastPathSome = (0 until n)
+      .map { i =>
+        val idx = i + 1
+        s"arg$i.asType.asInstanceOf[Type[${ArityGen.lower(idx)}]].as_<:??<:[${ArityGen.lower(idx)}, ${ArityGen.upper(idx)}]"
+      }
+      .mkString(", ")
+    sb ++= s"            {\n"
+    sb ++= s"              import quotes.reflect.*\n"
+    sb ++= s"              def fastPathIsWildcard(t: TypeRepr): Boolean = t match {\n"
+    sb ++= s"                case TypeBounds(_, _) => true\n"
+    sb ++= s"                case _ => false\n"
+    sb ++= s"              }\n"
+    sb ++= s"              if (fastPathHktSymbol != null) {\n"
+    sb ++= s"                val aRepr = TypeRepr.of[A](using A.asInstanceOf[scala.quoted.Type[A]]).dealias\n"
+    sb ++= s"                if (aRepr.typeSymbol == fastPathHktSymbol) aRepr match {\n"
+    sb ++= s"                  case AppliedType(_, List($fastPathArgs)) if $fastPathGuard =>\n"
+    sb ++= s"                    return Some(($fastPathSome))\n"
+    sb ++= s"                  case _ => ()\n"
+    sb ++= s"                }\n"
+    sb ++= s"                else if (fastPathHktIsClass) {\n"
+    sb ++= s"                  // Cheap negative: for a class-headed, non-bottom scrutinee, A <:< HKT[args] requires HKT among\n"
+    sb ++= s"                  // A's base classes - skip the QuoteMatcher. Abstract/intersection/bottom heads keep the full match.\n"
+    sb ++= s"                  val aSym = aRepr.typeSymbol\n"
+    sb ++= s"                  if (aSym.isClassDef && aSym != fastPathBottomSymbols._1 && aSym != fastPathBottomSymbols._2 &&\n"
+    sb ++= s"                    !UntypedType.baseClasses(aRepr.asInstanceOf[UntypedType]).exists(bc => bc.asInstanceOf[TypeRepr].typeSymbol == fastPathHktSymbol))\n"
+    sb ++= s"                    return None\n"
+    sb ++= s"                }\n"
+    sb ++= s"              }\n"
+    sb ++= s"            }\n"
 
     if (n == 1) {
       // Ctor1: IArray workaround
