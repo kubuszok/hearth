@@ -938,10 +938,15 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       // `baseClasses` is ordered subclass-first) and never shadowing an own member. Scala 2's `.members` already sees
       // them. See issue #327. `UntypedType.baseClasses` is used explicitly to avoid the extension-shadowing footgun.
       // [hearth#327] The genuine PUBLIC accessors inherited from parent CLASSES (candidates, closest class first).
+      // `fieldMembers` computes member denotations, which is expensive, so skip the base classes that cannot
+      // contribute: the type itself (its fields are already in `ownMembers` and would be deduplicated by `seenNames`
+      // below) and the universal parents, which declare no public fields.
       val inheritedPublicFieldCandidates = UntypedType
         .baseClasses(instanceTpe)
         .iterator
-        .flatMap(_.typeSymbol.fieldMembers)
+        .map(_.typeSymbol)
+        .filterNot(bc => bc == symbol || fieldlessUniversalParents(bc))
+        .flatMap(_.fieldMembers)
         .filter(f => !f.isNoSymbol && !f.flags.is(Flags.Private) && !f.flags.is(Flags.Synthetic))
         .toList
       val inheritedPublicFieldNames = inheritedPublicFieldCandidates.iterator.map(_.name).toSet
@@ -1081,6 +1086,19 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     // ------------------------------------------------- Special cases handling -------------------------------------------------
     // When behavior between Scala 2 and 3 is different, and it makes sense to align them, we have to decide which behavior is
     // "saner" and which one needs adjustment. Below are methods used to adjust behavior on Scala 3 side.
+
+    // [hearth#327] Universal parents that appear in almost every type's `baseClasses` but declare no public fields,
+    // so the inherited-public-field walk in `unsortedMethods` can skip their (expensive) `fieldMembers` call.
+    private lazy val fieldlessUniversalParents: Set[Symbol] = Set(
+      defn.ObjectClass,
+      defn.AnyClass,
+      defn.AnyValClass,
+      Symbol.requiredClass("scala.Matchable"),
+      Symbol.requiredClass("scala.Product"),
+      Symbol.requiredClass("scala.Equals"),
+      Symbol.requiredClass("java.io.Serializable"),
+      Symbol.requiredClass("scala.reflect.Enum")
+    )
 
     // These methods are only available on Scala 3, and we want to align behavior with Scala 2.
     // For now we just exclude them, but in the future we might want to implement them in Scala 2.

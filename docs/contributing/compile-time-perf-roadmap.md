@@ -117,6 +117,28 @@ product), ~24 of ~25 methods have their full signature resolved and thrown away.
 
 **Expected:** a large cut of the 12.6% for search-by-name callers.
 
+**Landed 2026-07-10 (commit `53abbfda`) — partial, measured NEUTRAL on the dense load.** What
+landed: the parameter-map dedup (A1: `resolveTypesByParamName` computed once per `toTyped` and
+shared between per-clause expectations and `totalParameters`, both platforms), the `returnType`
+deferral (A2: `buildChain` takes `Option[() => ??]`, chain nodes force `knownReturning` lazily,
+memoized per conversion; erased signatures unchanged so no MiMa filters), and the
+`isJavaGetter`/`isJavaSetter` reorder (name prefix checked before forcing `knownReturning`).
+perf7 profiling: method-conversion inclusive 7.4% → 7.6%, param-map build 1.5% → 1.5% — flat
+within noise, because on this load the typed conversion was already amortized by the #347 caches
+and the *listing* dominates (see below). The changes still matter for callers that list rarely and
+convert much (and for Chimney's `methodGetter` after it adopts `unsortedMethodsNamed`), but they
+are not where the dense-load samples are. `Parameter.tpe` laziness (the shape-coupled part) was NOT
+attempted — after perf7 it is deprioritized: the samples say the cost is in listing, not in
+`Parameter` construction.
+
+**perf7's real finding — the UNTYPED listing is the elephant (18.4% inclusive).**
+`methodsOf`-related samples split into `TypeMethods.unsortedMethods` 8.1%, `Method.methodsOf` 7.1%,
+direct untyped `UntypedMethod.unsortedMethods` 2.7%; inside, the top self-frames are the
+[hearth#327] inherited-field walk (`baseClasses.flatMap(_.typeSymbol.fieldMembers)` — 4.2% alone,
+leafing in dotty denotations), `unsortedMethods` itself 2.2%, `safeMemberType` 1.2%,
+`sortMethodsBy` 1.1% (sorted `methods` still reached from Chimney). Fixes landed right after (see
+Part E).
+
 ---
 
 ## Part B — `Type.Ctor` traversal heuristics (faster provider/type dispatch)
@@ -256,6 +278,27 @@ Measured: `Ctor.Bounded.unapply` 9.5% → 3.7%, QuoteMatcher 2.4% → 1.2%, Chim
 10.7% → 7.6% (zero Chimney changes), macro share 22.9% → **20.8%** (27.2% baseline). Also verified:
 true `Type.Cache` overhead after bucketing is 0.1% leaf; `resolveImplicitScopeConfig`'s big
 inclusive number is a red herring (it hosts the whole derivation as a continuation).
+
+## Part E — cheaper UNTYPED method listing (perf7's finding)
+
+The dense-load profile after Part A showed the cost moved from *converting* methods to *listing*
+them: 18.4% of macro inclusive under `methodsOf`-ish entry points, with the untyped
+`UntypedMethod.unsortedMethods` symbol walk as the real payer. Two fixes:
+
+1. **Share the untyped listing across the typed caches.** `methodsOf`, `unsortedMethodsOf` and
+   `unsortedMethodsNamed` each memoized their own *result* but each independently re-ran
+   `UntypedType.fromTyped[A].unsortedMethods` on first touch — a type reached through two entry
+   points walked its members twice. Now a private `untypedMethodsOf[A]` (its own `Type.Cache`)
+   feeds all three; `methodsOf` sorts the shared list via `sortMethodsBy`.
+2. **Gate the [hearth#327] inherited-field walk (Scala 3).** It called `fieldMembers` on EVERY base
+   class (4.2% of macro by itself). The type's own symbol (fields already in `ownMembers`) and the
+   universal field-less parents (`Object`, `Any`, `AnyVal`, `Matchable`, `Product`, `Equals`,
+   `java.io.Serializable`, `scala.reflect.Enum`) are skipped before `fieldMembers` is computed.
+
+Still open in this area: the remaining per-member cost is dotty's own `methodMembers`/denotation
+computation (unavoidable once per type) and `sortMethodsBy`+`positionOf` under the *sorted*
+`methods`, which is reached from Chimney — the Chimney-side fix is switching those callers to
+`unsortedMethods*` (already planned as the `methodGetter` adoption).
 
 ## Sequencing & measurement
 
