@@ -81,7 +81,7 @@ final class IsEitherProviderForScalaTry extends StandardMacroExtension { loader 
           implicit val A: Type[A] = tpe
           implicit val TryItem: Type[Try[Item]] = Try[Item]
           ProviderResult.Matched(isTry[A, Item](_.upcast[Try[Item]], _.upcast[A]))
-        case _ => skipped(s"${tpe.prettyPrint} is not Try[_]")
+        case _ => skippedLazily(s"${tpe.prettyPrint} is not Try[_]")
       }
     })
   }

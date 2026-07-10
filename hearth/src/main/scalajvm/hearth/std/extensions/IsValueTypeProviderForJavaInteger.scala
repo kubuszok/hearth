@@ -52,7 +52,7 @@ final class IsValueTypeProviderForJavaInteger extends StandardMacroExtension { l
 
       override def parse[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
         if (tpe <:< JInteger) ProviderResult.Matched(isValueType.asInstanceOf[IsValueType[A]])
-        else skipped(s"${tpe.prettyPrint} is not <: java.lang.Integer")
+        else skippedLazily(s"${tpe.prettyPrint} is not <: java.lang.Integer")
     })
   }
 }

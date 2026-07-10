@@ -78,8 +78,10 @@ final class IsValueTypeProviderForOpaque extends StandardMacroExtension { loader
       override def name: String = loader.getClass.getName
 
       override def parse[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
-        if !tpe.isOpaqueType then skipped(s"${tpe.prettyPrint} is not an opaque type")
-        else if tpe.isIArray then skipped(s"${tpe.prettyPrint} is IArray (handled by IsCollectionProviderForIArray)")
+        if !tpe.isOpaqueType then skippedLazily(s"${tpe.prettyPrint} is not an opaque type")
+        else if tpe.isIArray then skippedLazily(
+          s"${tpe.prettyPrint} is IArray (handled by IsCollectionProviderForIArray)"
+        )
         else {
           implicit val A: Type[A] = tpe
           val repr: UntypedType = UntypedType.fromTyped[A]
@@ -112,7 +114,7 @@ final class IsValueTypeProviderForOpaque extends StandardMacroExtension { loader
                 })
               )
             case None =>
-              skipped(s"${tpe.prettyPrint} is an opaque type but no suitable constructor found")
+              skippedLazily(s"${tpe.prettyPrint} is an opaque type but no suitable constructor found")
           }
         }
     })

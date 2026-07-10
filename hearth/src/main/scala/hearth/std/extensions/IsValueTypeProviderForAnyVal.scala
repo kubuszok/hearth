@@ -83,9 +83,10 @@ final class IsValueTypeProviderForAnyVal extends StandardMacroExtension { loader
         }
         result match {
           case Some(value) => ProviderResult.Matched(value)
-          case None => skipped(s"${tpe.prettyPrint} is <: AnyVal but no suitable single-param public constructor found")
+          case None        =>
+            skippedLazily(s"${tpe.prettyPrint} is <: AnyVal but no suitable single-param public constructor found")
         }
-      } else skipped(s"${tpe.prettyPrint} is not <: AnyVal")
+      } else skippedLazily(s"${tpe.prettyPrint} is not <: AnyVal")
     })
   }
 }

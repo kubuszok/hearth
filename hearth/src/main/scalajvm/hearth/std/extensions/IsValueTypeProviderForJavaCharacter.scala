@@ -52,7 +52,7 @@ final class IsValueTypeProviderForJavaCharacter extends StandardMacroExtension {
 
       override def parse[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
         if (tpe <:< JCharacter) ProviderResult.Matched(isValueType.asInstanceOf[IsValueType[A]])
-        else skipped(s"${tpe.prettyPrint} is not <: java.lang.Character")
+        else skippedLazily(s"${tpe.prettyPrint} is not <: java.lang.Character")
     })
   }
 }

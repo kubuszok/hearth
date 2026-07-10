@@ -34,7 +34,7 @@ final class CtorLikeProviderForEitherStringOrValue extends StandardMacroExtensio
           })
         ) match {
           case Some(ctors) => ProviderResult.Matched(ctors)
-          case None        => skipped(s"no Either[String, A] constructors found for ${tpe.prettyPrint}")
+          case None        => skippedLazily(s"no Either[String, A] constructors found for ${tpe.prettyPrint}")
         }
       }
     })

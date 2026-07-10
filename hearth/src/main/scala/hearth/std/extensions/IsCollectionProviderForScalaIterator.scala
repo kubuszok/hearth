@@ -69,7 +69,7 @@ final class IsCollectionProviderForScalaIterator extends StandardMacroExtension 
           implicit val A: Type[A] = tpe
           implicit val IteratorItem: Type[scala.collection.Iterator[Item]] = Iterator[Item]
           ProviderResult.Matched(isIterator[A, Item](tpe, _.upcast[scala.collection.Iterator[Item]], _.upcast[A]))
-        case _ => skipped(s"${tpe.prettyPrint} is not Iterator[_]")
+        case _ => skippedLazily(s"${tpe.prettyPrint} is not Iterator[_]")
       }
     })
   }

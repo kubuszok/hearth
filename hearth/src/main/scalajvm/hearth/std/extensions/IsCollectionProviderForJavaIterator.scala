@@ -89,7 +89,7 @@ final class IsCollectionProviderForJavaIterator extends StandardMacroExtension {
           ProviderResult.Matched(isCollection[A, Item](A, _.upcast[java.util.Iterator[Item]], _.upcast[A]))
 
         // Other types are not Java iterators - if they should be supported, another extension can take care of it.
-        case _ => skipped(s"${tpe.prettyPrint} is not <: java.util.Iterator[_]")
+        case _ => skippedLazily(s"${tpe.prettyPrint} is not <: java.util.Iterator[_]")
       }
     })
   }

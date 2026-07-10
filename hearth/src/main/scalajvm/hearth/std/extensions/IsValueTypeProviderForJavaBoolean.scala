@@ -52,7 +52,7 @@ final class IsValueTypeProviderForJavaBoolean extends StandardMacroExtension { l
 
       override def parse[A](tpe: Type[A]): ProviderResult[IsValueType[A]] =
         if (tpe <:< JBoolean) ProviderResult.Matched(isValueType.asInstanceOf[IsValueType[A]])
-        else skipped(s"${tpe.prettyPrint} is not <: java.lang.Boolean")
+        else skippedLazily(s"${tpe.prettyPrint} is not <: java.lang.Boolean")
     })
   }
 }

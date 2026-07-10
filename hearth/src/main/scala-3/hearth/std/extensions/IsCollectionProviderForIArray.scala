@@ -154,11 +154,11 @@ final class IsCollectionProviderForIArray extends StandardMacroExtension { loade
               }
               ProviderResult.Matched(isCollection(A, toIterable, factoryExpr, buildExpr))
             case None =>
-              skipped(s"${tpe.prettyPrint} is IArray[${Item.prettyPrint}] but ClassTag not found")
+              skippedLazily(s"${tpe.prettyPrint} is IArray[${Item.prettyPrint}] but ClassTag not found")
           }
 
         // Other types are not (Scala built-in) collections - if they should be supported, another extension can take care of it.
-        case _ => skipped(s"${tpe.prettyPrint} is not IArray[_]")
+        case _ => skippedLazily(s"${tpe.prettyPrint} is not IArray[_]")
       }
     })
   }

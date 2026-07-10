@@ -32,7 +32,7 @@ final class CtorLikeProviderForPlainValue extends StandardMacroExtension { loade
           })
         ) match {
           case Some(ctors) => ProviderResult.Matched(ctors)
-          case None        => skipped(s"no plain value constructors found for ${tpe.prettyPrint}")
+          case None        => skippedLazily(s"no plain value constructors found for ${tpe.prettyPrint}")
         }
       }
     })

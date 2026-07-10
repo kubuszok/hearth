@@ -96,7 +96,7 @@ final class IsEitherProviderForScalaEither extends StandardMacroExtension { load
           ProviderResult.Matched(
             isEither[A, LeftValue, RightValue](_.upcast[Either[LeftValue, RightValue]], _.upcast[A])
           )
-        case _ => skipped(s"${tpe.prettyPrint} is not Either[_, _]")
+        case _ => skippedLazily(s"${tpe.prettyPrint} is not Either[_, _]")
       }
     })
   }
