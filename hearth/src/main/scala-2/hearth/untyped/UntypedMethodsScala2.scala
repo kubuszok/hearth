@@ -746,15 +746,19 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     // When behavior between Scala 2 and 3 is different, and it makes sense to align them, we have to decide which behavior is
     // "saner" and which one needs adjustment. Below are methods used to adjust behavior on Scala 2 side.
 
+    // Both filter sets below derive from java.lang.Object's members; the walk is done once (lazily - module init
+    // runs on every macro expansion) and shared, instead of once per set.
+    private lazy val objectMembers = c.weakTypeOf[java.lang.Object].members.toList
+
     // For these symbol.isSynthetic flag is false, but we want to consider them synthetic.
-    private val methodsConsideredSynthetic = {
+    private lazy val methodsConsideredSynthetic = {
       val names = Set("asInstanceOf", "isInstanceOf", "getClass", "synchronized", "==", "!=", "eq", "ne", "##")
-      c.weakTypeOf[Object].members.filter(symbol => names(symbolName(symbol))).toSet
+      objectMembers.filter(symbol => names(symbolName(symbol))).toSet
     }
 
     // We do not want to include methods and fields from java.lang.Object in the companion object.
     // Because the companion class has them and we don't want to mix them when listing methods for companion class.
-    private val methodsSkippedInCompanion =
-      c.weakTypeOf[java.lang.Object].members.toSet
+    private lazy val methodsSkippedInCompanion: Set[Symbol] =
+      objectMembers.toSet
   }
 }

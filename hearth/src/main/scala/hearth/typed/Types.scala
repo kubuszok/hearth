@@ -262,7 +262,9 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       *
       * @since 0.1.0
       */
-    final val primitiveTypes: List[??] = List(
+    // `lazy` (also below): materializing these `Type.of` lists on module init costs every macro expansion for lists
+    // that most expansions never read.
+    final lazy val primitiveTypes: List[??] = List(
       Type.of[Boolean].as_??,
       Type.of[Byte].as_??,
       Type.of[Short].as_??,
@@ -294,7 +296,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       *
       * @since 0.1.0
       */
-    final val jvmBuiltInTypes: List[??] = primitiveTypes ++ List(
+    final lazy val jvmBuiltInTypes: List[??] = primitiveTypes ++ List(
       Type.of[String].as_??,
       Type.of[Unit].as_??,
       Type.of[java.lang.Class[?]].as_??
@@ -312,7 +314,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     final def isJvmBuiltIn[A: Type]: Boolean = UntypedType.fromTyped[A].isJvmBuiltIn
     final def isInJavaLangPackage[A: Type]: Boolean = UntypedType.fromTyped[A].isInJavaLangPackage
 
-    final val typeSystemSpecialTypes: List[??] = List(
+    final lazy val typeSystemSpecialTypes: List[??] = List(
       Type.of[Any].as_??,
       Type.of[AnyRef].as_??,
       Type.of[AnyVal].as_??,
