@@ -540,6 +540,12 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     override def sameTypeConstructorAs(a: UntypedType, b: UntypedType): Boolean =
       a.dealias.typeConstructor.typeSymbol == b.dealias.typeConstructor.typeSymbol
 
+    private val noSymbolCacheBucket = new AnyRef
+    override private[hearth] def cacheBucketKey(untyped: UntypedType): AnyRef = {
+      val symbol = untyped.dealias.typeSymbol
+      if (symbol == c.universe.NoSymbol) noSymbolCacheBucket else symbol
+    }
+
     override def annotations(untyped: UntypedType): List[UntypedExpr] =
       untyped.typeSymbol.annotations.map(ann => c.untypecheck(ann.tree))
     override def annotationTypes(untyped: UntypedType): List[UntypedType] =

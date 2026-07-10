@@ -198,6 +198,46 @@ cost.
 
 ---
 
+## Part C — `Type.Cache`: bucketing + Cross-Quotes scoping (DONE) and Chimney adoption
+
+**Analysis answers (2026-07-10):**
+
+1. *"Do we always need to initialize all methods/parameters when looking for some?"* — No, and the
+   split is: **`UntypedMethod` construction is cheap** (wraps a `Symbol` + flags; `typeParameters`
+   already lazy) — the untyped enumeration costs one members walk (+ the #327 baseClasses sweep on
+   Scala 3). The expensive step is **`toTyped`** (parameters resolved twice + `returnType`, see Part
+   A findings). So a by-name lookup should filter at the UNTYPED level (symbol-name compare is
+   free) and convert only matches. DONE: `Method.unsortedMethodsNamed[A](name): List[Method]` +
+   `Type[A].unsortedMethodsNamed(name)`, cached per `(type, name)` (a `Type.Cache` holding the
+   untyped list + a mutable `Map[String, List[Method]]`). Switched internally: `canonicalCopyMethod`
+   ("copy") and the 8 collection providers' Builder-"result" lookups. REMAINING: the 8
+   `IsValueTypeProviderForJava*` box lookups ("valueOf"/"xxxValue" — lazily forced, low value) and
+   the big consumer, Chimney's `methodGetter`/`setterCandidates` (a Chimney PR after release —
+   those never convert the ~24 non-matching methods of a type only queried by name).
+
+2. *"Can `Type.Cache` be bucketed by something cheap?"* — Yes, DONE: entries are hash-bucketed by
+   the **dealiased type symbol** (`UntypedTypeModule.cacheBucketKey`; `NoSymbol` → shared sentinel),
+   so the `=:=` scan only runs against same-symbol candidates. This is sound because it mirrors
+   `isSameAs`'s fast negative (differing non-NoSymbol dealiased symbols ⟹ not `=:=`) AND because a
+   cache miss merely recomputes — bucketing can never produce a wrong hit, only (for exotic
+   NoSymbol-vs-symbol pairs) a harmless miss. Further discriminators (arity, flags packed into an
+   Int) can be added to the key later, but symbol identity already scatters near-uniformly.
+
+3. *"Chimney should use Hearth's `Type.Cache`"* — **it could not, until now**: Chimney's `TypeCache`
+   (MacroCommonsCompat.scala) is NOT a plain reimplementation — it partitions entries by
+   `cacheScopeToken` (the ACTIVE `Quotes` per `Expr.splice` on Scala 3) because cached values embed
+   materialized `Expr`s, and handing an `Expr` across splice scopes trips `-Xcheck-macros`
+   ScopeException (bites when one expansion evaluates several splices, e.g. Iso/Codec). Hearth's
+   `Type.Cache` lacked this — which also means Hearth's own `firstMatchCache` (std provider views
+   close over `factoryExpr`s) and `methodsOfCache` carried the same LATENT hazard. Now DONE:
+   `Type.Cache` partitions by `CrossQuotes.ctx` (the active `Quotes` on Scala 3; the constant
+   blackbox `Context` on Scala 2), fixing the hazard and making it a superset of Chimney's cache.
+   **Remaining (Chimney PR, after a Hearth release/snapshot):** replace the 8 `new TypeCache[...]`
+   sites (`TotallyBuildIterables`, `PartiallyBuildIterables`, `OptionalValues`, `SealedHierarchies`,
+   `Total/PartialOuterTransformers`, …) with `Type.Cache` (`cache(key)(value)` →
+   `cache.getOrPut(key)(value)`), then delete `TypeCache` + `cacheScopeToken` from
+   `MacroCommonsCompat`.
+
 ## Sequencing & measurement
 
 Biggest-bang order when credits/time are tight:

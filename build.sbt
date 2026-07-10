@@ -386,7 +386,12 @@ val mimaSettings = Seq(
     // NESTED trait `UntypedMethods#UntypedMethodModule`, part of the MacroCommons cake and implemented ONLY by
     // Hearth's own platform `UntypedMethod` object (UntypedMethodsScala2/Scala3) - interface and implementation are
     // always evicted together, so no user has a standalone implementation to break.
-    exclude[ReversedMissingMethodProblem]("hearth.untyped.UntypedMethods#UntypedMethodModule.unsortedMethods")
+    exclude[ReversedMissingMethodProblem]("hearth.untyped.UntypedMethods#UntypedMethodModule.unsortedMethods"),
+    // Perf: `cacheBucketKey` (cheap Type.Cache bucket discriminator - dealiased type symbol) added to the NESTED
+    // trait `UntypedTypes#UntypedTypeModule`, part of the MacroCommons cake and implemented ONLY by Hearth's own
+    // platform `UntypedType` objects (UntypedTypesScala2/Scala3) - interface and implementation are always evicted
+    // together, so no user has a standalone implementation to break. `private[hearth]` besides.
+    exclude[ReversedMissingMethodProblem]("hearth.untyped.UntypedTypes#UntypedTypeModule.cacheBucketKey")
   )
 )
 

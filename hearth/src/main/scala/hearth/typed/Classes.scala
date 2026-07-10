@@ -382,10 +382,10 @@ trait Classes { this: MacroCommons =>
 
     private lazy val canonicalCopyMethod: Option[Method.OnInstance.Of[A]] = {
       val constructorShape = primaryConstructor.asUntyped.parameters.map(_.keys.toList)
-      // order-independent: unique `copy` matching the primary-constructor shape
-      Method.unsortedMethodsOf[A].collectFirst {
-        case oi: Method.OnInstance
-            if oi.name == "copy" && oi.asUntyped.parameters.map(_.keys.toList) == constructorShape =>
+      // order-independent: unique `copy` matching the primary-constructor shape; the by-name lookup converts only
+      // the `copy` overloads instead of every method of A
+      Method.unsortedMethodsNamed[A]("copy").collectFirst {
+        case oi: Method.OnInstance if oi.asUntyped.parameters.map(_.keys.toList) == constructorShape =>
           oi.asInstanceOf[Method.OnInstance.Of[A]]
       }
     }

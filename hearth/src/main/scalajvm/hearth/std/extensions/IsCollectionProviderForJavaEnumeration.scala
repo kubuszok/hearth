@@ -62,8 +62,8 @@ final class IsCollectionProviderForJavaEnumeration extends StandardMacroExtensio
             implicit val builderType: Type[scala.collection.mutable.Builder[Item, CtorResult]] =
               Builder[Item, CtorResult]
             val resultMethod =
-              Method.unsortedMethodsOf[scala.collection.mutable.Builder[Item, CtorResult]].collectFirst {
-                case m: Method.OnInstance if m.name == "result" && m.isNullary => m
+              Method.unsortedMethodsNamed[scala.collection.mutable.Builder[Item, CtorResult]]("result").collectFirst {
+                case m: Method.OnInstance if m.isNullary => m
               }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Item, CtorResult]]) =>

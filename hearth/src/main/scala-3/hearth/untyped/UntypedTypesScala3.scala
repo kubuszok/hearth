@@ -1005,6 +1005,12 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def sameTypeConstructorAs(a: UntypedType, b: UntypedType): Boolean =
       typeConstructor(a).typeSymbol == typeConstructor(b).typeSymbol
 
+    private val noSymbolCacheBucket = new AnyRef
+    override private[hearth] def cacheBucketKey(untyped: UntypedType): AnyRef = {
+      val symbol = untyped.dealias.typeSymbol
+      if symbol.isNoSymbol then noSymbolCacheBucket else symbol
+    }
+
     override def annotations(untyped: UntypedType): List[UntypedExpr] =
       untyped.typeSymbol.annotations.map(repositionAnnotation)
     override def annotationTypes(untyped: UntypedType): List[UntypedType] =

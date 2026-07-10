@@ -64,8 +64,8 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension { l
             implicit val builderType: Type[scala.collection.mutable.Builder[Int, CtorResult]] =
               Builder[Int, CtorResult]
             val resultMethod =
-              Method.unsortedMethodsOf[scala.collection.mutable.Builder[Int, CtorResult]].collectFirst {
-                case m: Method.OnInstance if m.name == "result" && m.isNullary => m
+              Method.unsortedMethodsNamed[scala.collection.mutable.Builder[Int, CtorResult]]("result").collectFirst {
+                case m: Method.OnInstance if m.isNullary => m
               }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Int, CtorResult]]) => Expr.quote(Expr.splice(expr).result()),

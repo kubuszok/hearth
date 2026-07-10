@@ -90,8 +90,8 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
             implicit val builderType: Type[scala.collection.mutable.Builder[Pair, CtorResult]] =
               Builder[Pair, CtorResult]
             val resultMethod =
-              Method.unsortedMethodsOf[scala.collection.mutable.Builder[Pair, CtorResult]].collectFirst {
-                case m: Method.OnInstance if m.name == "result" && m.isNullary => m
+              Method.unsortedMethodsNamed[scala.collection.mutable.Builder[Pair, CtorResult]]("result").collectFirst {
+                case m: Method.OnInstance if m.isNullary => m
               }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Pair, CtorResult]]) =>

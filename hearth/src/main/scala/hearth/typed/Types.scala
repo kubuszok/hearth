@@ -1023,24 +1023,44 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       * scans, etc.) so they run at most once per type within a single macro expansion.
       *
       * Keys are compared with [[=:=]] (semantic type equality), '''not''' `==`: a `Type[A]` has no value-based
-      * `equals`, so on Scala 3 `==` is reference identity and would miss almost every hit. `=:=` results are themselves
-      * memoized on Scala 3, so repeated lookups stay cheap. A miss simply recomputes, so a stale, partial, or leaky
-      * cache can never yield a wrong result — only less speed-up.
+      * `equals`, so on Scala 3 `==` is reference identity and would miss almost every hit. A miss simply recomputes, so
+      * a stale, partial, or leaky cache can never yield a wrong result — only less speed-up.
+      *
+      * Lookups are not a linear scan: entries are hash-bucketed by a cheap discriminator (the dealiased type's symbol,
+      * see [[hearth.untyped.UntypedTypes# UntypedTypeModule.cacheBucketKey]]), so the `=:=` comparison only runs
+      * against the few same-symbol candidates. This mirrors `isSameAs`'s fast negative (differing dealiased symbols ⟹
+      * not `=:=`), so bucketing can only turn an exotic would-be hit into a harmless miss.
+      *
+      * Entries are additionally partitioned by the active Cross-Quotes scope (`CrossQuotes.ctx` — the ACTIVE `Quotes`
+      * on Scala 3, a constant on Scala 2): cached values routinely embed materialized `Expr`s (std provider views,
+      * summoned implicits), and an `Expr` created during one `Expr.splice` evaluation must not be handed out during
+      * another (`-Xcheck-macros` aborts with a ScopeException). Within one scope memoization is unaffected; a new scope
+      * recomputes instead of leaking foreign-scope trees.
       *
       * Not thread-safe; a macro expansion is single-threaded.
       *
       * @since 0.4.1
       */
     final class Cache[F[_]] {
-      private val impl = scala.collection.mutable.ListBuffer.empty[Cache.Entry[F]]
+      // (cross-quotes scope token, cheap bucket key) -> entries checked with =:=.
+      private val impl =
+        new java.util.HashMap[(AnyRef, AnyRef), scala.collection.mutable.ListBuffer[Cache.Entry[F]]]
+
+      private def bucketKey[Result](key: Type[Result]): (AnyRef, AnyRef) =
+        (CrossQuotes.ctx[AnyRef], UntypedType.cacheBucketKey(UntypedType.fromTyped(using key)))
 
       /** Returns the cached `F[Result]` for a type `=:=` `key`, or `None`. */
-      def get[Result](key: Type[Result]): Option[F[Result]] =
-        impl.collectFirst { case e if e.key =:= key => e.value.asInstanceOf[F[Result]] }
+      def get[Result](key: Type[Result]): Option[F[Result]] = {
+        val bucket = impl.get(bucketKey(key))
+        if (bucket == null) None
+        else bucket.collectFirst { case e if e.key =:= key => e.value.asInstanceOf[F[Result]] }
+      }
 
       /** Stores `value` under `key`. Does not deduplicate — call [[getOrPut]] to avoid recomputation. */
       def put[Result](key: Type[Result], value: F[Result]): Unit = {
-        impl += Cache.Entry[F, Result](key, value)
+        val bucket =
+          impl.computeIfAbsent(bucketKey(key), _ => scala.collection.mutable.ListBuffer.empty[Cache.Entry[F]])
+        bucket += Cache.Entry[F, Result](key, value)
         ()
       }
 
@@ -1105,6 +1125,10 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       */
     def unsortedMethods: List[Method { type Instance = A }] =
       Method.unsortedMethodsOf(using tpe).map(_.asInstanceOf[Method { type Instance = A }])
+
+    /** Only the methods named `name`, converting just the matches - see [[Method.unsortedMethodsNamed]]. */
+    def unsortedMethodsNamed(name: String): List[Method { type Instance = A }] =
+      Method.unsortedMethodsNamed(name)(using tpe).map(_.asInstanceOf[Method { type Instance = A }])
 
     def companionObject: Option[Expr_??] = Type.companionObject(using tpe)
 
