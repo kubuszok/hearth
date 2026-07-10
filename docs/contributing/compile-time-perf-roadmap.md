@@ -348,6 +348,19 @@ conversion ~7%, Chimney `Configurations` ~8% (Chimney-side), `summonImplicit` ~6
 meaningful cuts need the *Chimney-side* adoptions (methodGetter → `unsortedMethodsNamed`,
 `TypeCache` → `Type.Cache`) after a Hearth release/snapshot carrying PR #347.
 
+## Runtime verification (2026-07-10) — the generated code is not slower
+
+The compile-time work above must not cost runtime: the full Chimney JMH suite (identical benchmark
+sources) was run against the last pre-Hearth macro-commons commit on the same JVM. Result: **0
+regressions, 8 significant improvements** (`BasicLarge` 1.31×, `BasicSimple` 1.22×,
+`eitherTransformChimney` 1.25×, ...), rest within error bars — after fixing the ONE real regression
+the sweep found (chimney#906): the Hearth-migration `foreach`+builder collection encoding had lost
+`Iterator.to(factory)`'s `knownSize` pre-allocation, putting `Array` targets at 0.55× (builder
+regrowth + an extra `result()` copy). Fixed with a `sizeHint` plus routing Array sources through the
+mapped-iterator encoding (0.99× — statistical parity; non-array sources keep foreach+builder, which
+measures faster for them). Lesson for Hearth-based codegen: collection-building encodings must
+preserve size hints, and `javap` on a benchmark class shows the whole derivation — cheap to audit.
+
 ## Sequencing & measurement
 
 Biggest-bang order when credits/time are tight:
