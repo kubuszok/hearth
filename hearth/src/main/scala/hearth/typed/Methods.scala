@@ -654,6 +654,27 @@ trait Methods { this: MacroCommons =>
     def unsortedMethodsOf[A: Type]: List[Method] =
       unsortedMethodsOfCache.getOrPut(Type[A])(UntypedType.fromTyped[A].unsortedMethods.map(_.asTyped[A]))
 
+    /** Only the methods of `A` named `name`, in raw discovery order — semantically
+      * `unsortedMethodsOf[A].filter(_.name == name)`, but the name filter runs on the UNTYPED methods (a cheap symbol
+      * name compare), so only the matching methods pay the expensive typed conversion (parameter and return type
+      * resolution). Prefer this over [[methodsOf]]/[[unsortedMethodsOf]] + `filter`/`find` when looking methods up by
+      * name (e.g. resolving one getter per field): a type with ~25 methods then converts ~1 instead of all.
+      *
+      * The untyped method list and each name's converted methods are memoized per type within the expansion.
+      *
+      * @since 0.4.1
+      */
+    def unsortedMethodsNamed[A: Type](name: String): List[Method] = {
+      val lookup = namedLookupCache.getOrPut(Type[A])(new NamedLookup(UntypedType.fromTyped[A].unsortedMethods))
+      lookup.byName.getOrElseUpdate(name, lookup.untyped.iterator.filter(_.name == name).map(_.asTyped[A]).toList)
+    }
+
+    final private class NamedLookup(val untyped: List[UntypedMethod]) {
+      val byName = scala.collection.mutable.Map.empty[String, List[Method]]
+    }
+    private type NamedLookupFor[A] = NamedLookup
+    private lazy val namedLookupCache = new Type.Cache[NamedLookupFor]
+
     private[hearth] def buildChain(
         asUntyped: UntypedMethod,
         untypedInstanceType: UntypedType,

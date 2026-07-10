@@ -74,8 +74,8 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
             implicit val builderType: Type[scala.collection.mutable.Builder[Item, CtorResult]] =
               Builder[Item, CtorResult]
             val resultMethod =
-              Method.unsortedMethodsOf[scala.collection.mutable.Builder[Item, CtorResult]].collectFirst {
-                case m: Method.OnInstance if m.name == "result" && m.isNullary => m
+              Method.unsortedMethodsNamed[scala.collection.mutable.Builder[Item, CtorResult]]("result").collectFirst {
+                case m: Method.OnInstance if m.isNullary => m
               }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Item, CtorResult]]) =>
@@ -126,8 +126,8 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
             implicit val builderType: Type[scala.collection.mutable.Builder[Int, CtorResult]] =
               Builder[Int, CtorResult]
             val resultMethod =
-              Method.unsortedMethodsOf[scala.collection.mutable.Builder[Int, CtorResult]].collectFirst {
-                case m: Method.OnInstance if m.name == "result" && m.isNullary => m
+              Method.unsortedMethodsNamed[scala.collection.mutable.Builder[Int, CtorResult]]("result").collectFirst {
+                case m: Method.OnInstance if m.isNullary => m
               }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Int, CtorResult]]) => Expr.quote(Expr.splice(expr).result()),
@@ -177,8 +177,8 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
             implicit val builderType: Type[scala.collection.mutable.Builder[Long, CtorResult]] =
               Builder[Long, CtorResult]
             val resultMethod =
-              Method.unsortedMethodsOf[scala.collection.mutable.Builder[Long, CtorResult]].collectFirst {
-                case m: Method.OnInstance if m.name == "result" && m.isNullary => m
+              Method.unsortedMethodsNamed[scala.collection.mutable.Builder[Long, CtorResult]]("result").collectFirst {
+                case m: Method.OnInstance if m.isNullary => m
               }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Long, CtorResult]]) =>
@@ -229,8 +229,8 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
             implicit val builderType: Type[scala.collection.mutable.Builder[Double, CtorResult]] =
               Builder[Double, CtorResult]
             val resultMethod =
-              Method.unsortedMethodsOf[scala.collection.mutable.Builder[Double, CtorResult]].collectFirst {
-                case m: Method.OnInstance if m.name == "result" && m.isNullary => m
+              Method.unsortedMethodsNamed[scala.collection.mutable.Builder[Double, CtorResult]]("result").collectFirst {
+                case m: Method.OnInstance if m.isNullary => m
               }
             CtorLikeOf.PlainValue(
               (expr: Expr[scala.collection.mutable.Builder[Double, CtorResult]]) =>

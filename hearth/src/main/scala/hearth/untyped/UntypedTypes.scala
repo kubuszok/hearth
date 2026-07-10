@@ -431,6 +431,17 @@ trait UntypedTypes { this: MacroCommons =>
       */
     def sameTypeConstructorAs(a: UntypedType, b: UntypedType): Boolean
 
+    /** Cheap bucket discriminator for [[hearth.typed.Types# TypeModule.Cache]]: the dealiased type's symbol, or a
+      * shared sentinel when the type has no meaningful symbol (refinements etc.).
+      *
+      * Contract mirrors [[isSameAs]]'s fast negative: two types whose dealiased symbols BOTH exist and differ are never
+      * `=:=`, so keying cache buckets by this value can only turn an exotic would-be hit into a miss (which merely
+      * recomputes), never group-away a genuine hit into a wrong result.
+      *
+      * @since 0.4.1
+      */
+    private[hearth] def cacheBucketKey(untyped: UntypedType): AnyRef
+
     def annotations(untyped: UntypedType): List[UntypedExpr]
     def annotationTypes(untyped: UntypedType): List[UntypedType]
 
