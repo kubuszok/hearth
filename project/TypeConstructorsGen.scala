@@ -445,9 +445,11 @@ object TypeConstructorsGen {
     sb ++= s"            fastPathHktSymbol != null && fastPathHktSymbol.asInstanceOf[quotes.reflect.Symbol].isClassDef\n"
     sb ++= s"          }\n"
     // Bottom types conform to everything, so the base-classes negative must never fire for them.
+    // `defn` classes, NOT `TypeRepr.of[Nothing]`: the latter unpickles a quoted type literal (measurable per
+    // Ctor instance per expansion), the former is a free reference to a preloaded symbol.
     sb ++= s"          private lazy val fastPathBottomSymbols: (AnyRef, AnyRef) = {\n"
     sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
-    sb ++= s"            (quotes.reflect.TypeRepr.of[Nothing].typeSymbol, quotes.reflect.TypeRepr.of[Null].typeSymbol)\n"
+    sb ++= s"            (quotes.reflect.defn.NothingClass, quotes.reflect.defn.NullClass)\n"
     sb ++= s"          }\n"
 
     // asUntyped
@@ -464,6 +466,17 @@ object TypeConstructorsGen {
       val name = p(i)
       sb ++= s"            given scala.quoted.Type[$name] = Type[$name].asInstanceOf[scala.quoted.Type[$name]]\n"
     }
+    // Fast path (perf): for a class/trait-headed constructor, `TypeRepr.of[HKT].appliedTo(args)` builds the exact
+    // same type as the quoted literal below without unpickling a pickled quote on every call (the tag reads are
+    // free). Alias/lambda heads keep the quote so the literal's surface form (e.g. the alias name) is preserved.
+    val applyFastArgs = (0 until n).map(i => s"quotes.reflect.TypeRepr.of[${p(i)}]").mkString(", ")
+    sb ++= s"            if (fastPathHktIsClass) {\n"
+    sb ++= s"              return quotes.reflect.TypeRepr\n"
+    sb ++= s"                .of[HKT]\n"
+    sb ++= s"                .appliedTo(List($applyFastArgs))\n"
+    sb ++= s"                .asType\n"
+    sb ++= s"                .asInstanceOf[Type[HKT[${allParams(n)}]]]\n"
+    sb ++= s"            }\n"
     sb ++= s"            scala.quoted.Type.of[HKT[${allParams(n)}]].asInstanceOf[Type[HKT[${allParams(n)}]]]\n"
     sb ++= s"          }\n"
 

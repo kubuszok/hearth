@@ -8,6 +8,13 @@ import scala.collection.immutable.ListMap
 
 trait StdExtensions { this: MacroCommons =>
 
+  // Cached across all shape companions of one cake: on Scala 3 each `Type.of[X]` call unpickles a quoted type
+  // literal, and `isBottomType` used to pay two of them per `parse` call. Cake-level (not on the nested
+  // `ProvidedCompanion` trait) so that trait's compiled interface stays untouched - see the note above
+  // `bottomTypeSkipReason` / issue #319.
+  private lazy val stdExtensionsCachedNullType: Type[Null] = Type.of[Null]
+  private lazy val stdExtensionsCachedNothingType: Type[Nothing] = Type.of[Nothing]
+
   /** Base trait for companion objects that aggregate results from registered providers.
     *
     * Provides common infrastructure: a mutable list of providers, `registerProvider`, abstract `parse`, concrete
@@ -119,7 +126,7 @@ trait StdExtensions { this: MacroCommons =>
       * @since 0.3.0
       */
     final protected def isBottomType[A: Type]: Boolean =
-      Type[A] <:< Type.of[Null] || Type[A] <:< Type.of[Nothing]
+      Type[A] <:< stdExtensionsCachedNullType || Type[A] <:< stdExtensionsCachedNothingType
     // A `def` (not a `val`): a new trait `val`/`var` adds an abstract accessor to the compiled interface, breaking
     // binary compatibility; a `final def` compiles to a provided default method and does not. See issue #319.
     final protected def bottomTypeSkipReason: String =
