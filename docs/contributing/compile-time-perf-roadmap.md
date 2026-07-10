@@ -305,6 +305,30 @@ computation (unavoidable once per type) and `sortMethodsBy`+`positionOf` under t
 `methods`, which is reached from Chimney — the Chimney-side fix is switching those callers to
 `unsortedMethods*` (already planned as the `methodGetter` adoption).
 
+## Part F — per-expansion module-init tax (DONE, commit `56977622`)
+
+Module objects are re-instantiated on every macro expansion, so eager work in module bodies is a
+per-expansion tax that the per-type caches cannot amortize. perf8's remainder analysis found ~3%:
+`TypeModule.$init$` (eagerly materializing ~16 `Type.of` for `primitiveTypes` /
+`jvmBuiltInTypes` / `typeSystemSpecialTypes`) at 1.8%, and `UntypedMethod$.<init>` (four separate
+`java.lang.Object` member walks for the filter sets, two eager) at 1.3%. Fixed by making the lists
+lazy and sharing one lazy Object-member walk. **Measured (perf9): both → 0.0%**; every other
+category flat.
+
+Also sized and rejected in the same pass: `Expr.annotated` 1.8% is inherent (`changeOwner` must
+walk the wrapped tree for `-Xcheck-macros` correctness — driven by Chimney's
+`prependSuppressUnused` call pattern, not by Hearth); the provider scan post-gate is ~11.6-12.9%
+but almost entirely *genuine* `parse` bodies of MATCHING providers (mightMatch itself 2.9%,
+results memoized by `firstMatchCached`) — the B2 head-symbol index would mostly re-order work that
+already short-circuits, so it is deprioritized; `summonImplicit` ~6-6.5% is dotty's search, driven
+by Chimney's summoning policy.
+
+**Where this leaves the Hearth-side floor on the dense load:** listing ~18% (mostly dotty
+`methodMembers` denotations, first-touch per type), scan ~12% (genuine matching parses),
+conversion ~7%, Chimney `Configurations` ~8% (Chimney-side), `summonImplicit` ~6%. Further
+meaningful cuts need the *Chimney-side* adoptions (methodGetter → `unsortedMethodsNamed`,
+`TypeCache` → `Type.Cache`) after a Hearth release/snapshot carrying PR #347.
+
 ## Sequencing & measurement
 
 Biggest-bang order when credits/time are tight:
