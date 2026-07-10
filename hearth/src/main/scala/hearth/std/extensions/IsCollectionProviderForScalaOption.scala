@@ -39,6 +39,10 @@ final class IsCollectionProviderForScalaOption extends StandardMacroExtension { 
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
             Expr.splice(toOption(value)).toList
           }
+          // `scala.Some` fully qualified: the provider shadows `Some` with its `Type.Ctor1.of[scala.Some]` above.
+          override def sizeHintForBuilder(value: Expr[A]): Option[Expr[Int]] = scala.Some(Expr.quote {
+            if (Expr.splice(toOption(value)).isDefined) 1 else 0
+          })
           // CtorResult is List[Item] so the smart constructor can validate element count.
           override type CtorResult = List[Item]
           implicit override val CtorResult: Type[CtorResult] = listItemType

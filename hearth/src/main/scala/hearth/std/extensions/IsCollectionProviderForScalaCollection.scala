@@ -31,6 +31,10 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
           // We're just upcasting the collection to Iterable, to avoid things like type constructor extraction from generic F[A].
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = value.asInstanceOf[Expr[Iterable[Item]]]
+          // knownSize is O(1) and safe on multi-pass collections; -1 at runtime (e.g. List) means unknown.
+          override def sizeHintForBuilder(value: Expr[A]): Option[Expr[Int]] = Some(Expr.quote {
+            Expr.splice(value.asInstanceOf[Expr[Iterable[Item]]]).knownSize
+          })
           // Standard scala collections have no smart constructors, so we just return the collection itself.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
@@ -60,6 +64,10 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
         Existential[IsCollectionOf[A, *], Pair](new IsMapOf[A, Pair] {
           // We're just upcasting the collection to Iterable, to avoid things like type constructor extraction from generic F[A].
           override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] = value.asInstanceOf[Expr[Iterable[Pair]]]
+          // knownSize is O(1) and safe on multi-pass collections; -1 at runtime means unknown.
+          override def sizeHintForBuilder(value: Expr[A]): Option[Expr[Int]] = Some(Expr.quote {
+            Expr.splice(value.asInstanceOf[Expr[Iterable[Pair]]]).knownSize
+          })
           // Standard scala collections have no smart constructors, so we just return the collection itself.
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A

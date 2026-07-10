@@ -34,6 +34,9 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension { l
               else Some(currentValue, bitSet.nextSetBit(currentValue + 1))
             }
           }
+          override def sizeHintForBuilder(value: Expr[A]): Option[Expr[Int]] = Some(Expr.quote {
+            Expr.splice(value).asInstanceOf[java.util.BitSet].cardinality()
+          })
           override def foreach(value: Expr[A])(f: Expr[Int] => Expr[Unit]): Expr[Unit] = Expr.quote {
             val bitSet = Expr.splice(value).asInstanceOf[java.util.BitSet]
             var i = bitSet.nextSetBit(0)

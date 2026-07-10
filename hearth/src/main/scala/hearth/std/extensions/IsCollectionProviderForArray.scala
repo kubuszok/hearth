@@ -40,6 +40,9 @@ final class IsCollectionProviderForArray extends StandardMacroExtension { loader
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
           // We will use Array as the collection type, we need to adjust how we convert the collection to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = toIterableExpr(value)
+          override def sizeHintForBuilder(value: Expr[A]): Option[Expr[Int]] = Some(Expr.quote {
+            Expr.splice(value).asInstanceOf[Array[Item]].length
+          })
           override def foreach(value: Expr[A])(f: Expr[Item] => Expr[Unit]): Expr[Unit] = Expr.quote {
             val arr = Expr.splice(value).asInstanceOf[Array[Item]]
             var i = 0

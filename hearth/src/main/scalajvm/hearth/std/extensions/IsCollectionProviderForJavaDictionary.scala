@@ -48,6 +48,9 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
               .map(key => (key, dict.get(key)))
               .to(Iterable)
           }
+          override def sizeHintForBuilder(value: Expr[A]): Option[Expr[Int]] = Some(Expr.quote {
+            Expr.splice(value).asInstanceOf[java.util.Dictionary[Key, Value]].size()
+          })
           override def foreach(value: Expr[A])(f: Expr[Pair] => Expr[Unit]): Expr[Unit] = Expr.quote {
             val dict: java.util.Dictionary[Key, Value] =
               Expr.splice(value).asInstanceOf[java.util.Dictionary[Key, Value]]
@@ -140,6 +143,9 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
             // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the dictionary to Iterable.
             override def asIterable(value: Expr[java.util.Properties]): Expr[Iterable[(String, String)]] =
               asScalaExpr(value)
+            override def sizeHintForBuilder(value: Expr[java.util.Properties]): Option[Expr[Int]] = Some(Expr.quote {
+              Expr.splice(value).size()
+            })
             override def foreach(value: Expr[java.util.Properties])(
                 f: Expr[(String, String)] => Expr[Unit]
             ): Expr[Unit] = Expr.quote {
