@@ -35,7 +35,13 @@ compile, old design as 1.0×):
 | pre-optimization (Hearth as-migrated) | ~3.0× | ~2.0× |
 | after the optimizations so far | ~1.7× | ~1.5× |
 | **after PR #347 (perf9, measured 2026-07-10)** | **1.30×** | **1.27×** |
+| **shipped state (#347+#349+#350 + chimney#905, 2026-07-10)** | **1.22×** | **~1.3×** (flat) |
 | goal | → 1.0× | → 1.0× |
+
+Shipped-state row: premig 115s/74s vs merged `2.0.0-development` @ `0.4.0-45-g8dcd069-SNAPSHOT`
+140s/98s, best of 3. The #350 quote-tax and Part E/F cuts are Scala-3-side (pickled quotes and the
+inherited-field walk do not exist on Scala 2), so the Scala 2 number staying flat is expected — its
+remaining gap is a separate investigation.
 
 The 2026-07-10 measurement: `chimney` module `clean` + `Test/compile`, best of 3 (spread was ±3s —
 tight), sbt-reported compile seconds, `CI=true` (no scalafmt), Temurin 25 — premig (macro-commons,
