@@ -645,7 +645,7 @@ trait Methods { this: MacroCommons =>
       *   every method visible on `A` as a [[Method]], in deterministic order
       */
     def methodsOf[A: Type]: List[Method] =
-      methodsOfCache.getOrPut(Type[A])(UntypedType.fromTyped[A].methods.map(_.asTyped[A]))
+      methodsOfCache.getOrPut(Type[A])(UntypedMethod.sortMethodsBy(untypedMethodsOf[A])(identity).map(_.asTyped[A]))
 
     /** Like [[methodsOf]] but in raw discovery order, WITHOUT the expensive position-resolving sort (see
       * [[UntypedMethod.unsortedMethods]]).
@@ -656,7 +656,7 @@ trait Methods { this: MacroCommons =>
       * @since 0.4.1
       */
     def unsortedMethodsOf[A: Type]: List[Method] =
-      unsortedMethodsOfCache.getOrPut(Type[A])(UntypedType.fromTyped[A].unsortedMethods.map(_.asTyped[A]))
+      unsortedMethodsOfCache.getOrPut(Type[A])(untypedMethodsOf[A].map(_.asTyped[A]))
 
     /** Only the methods of `A` named `name`, in raw discovery order — semantically
       * `unsortedMethodsOf[A].filter(_.name == name)`, but the name filter runs on the UNTYPED methods (a cheap symbol
@@ -669,9 +669,17 @@ trait Methods { this: MacroCommons =>
       * @since 0.4.1
       */
     def unsortedMethodsNamed[A: Type](name: String): List[Method] = {
-      val lookup = namedLookupCache.getOrPut(Type[A])(new NamedLookup(UntypedType.fromTyped[A].unsortedMethods))
+      val lookup = namedLookupCache.getOrPut(Type[A])(new NamedLookup(untypedMethodsOf[A]))
       lookup.byName.getOrElseUpdate(name, lookup.untyped.iterator.filter(_.name == name).map(_.asTyped[A]).toList)
     }
+
+    // The raw (unsorted) UNTYPED listing is the shared input of methodsOf/unsortedMethodsOf/unsortedMethodsNamed;
+    // memoizing it separately means a type listed through more than one of those entry points walks its symbol
+    // members only once per expansion.
+    private type UntypedMethodsFor[A] = List[UntypedMethod]
+    private lazy val untypedMethodsOfCache = new Type.Cache[UntypedMethodsFor]
+    private def untypedMethodsOf[A: Type]: List[UntypedMethod] =
+      untypedMethodsOfCache.getOrPut(Type[A])(UntypedType.fromTyped[A].unsortedMethods)
 
     final private class NamedLookup(val untyped: List[UntypedMethod]) {
       val byName = scala.collection.mutable.Map.empty[String, List[Method]]
