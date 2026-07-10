@@ -28,6 +28,9 @@ final class IsCollectionProviderForString extends StandardMacroExtension { loade
           override def asIterable(value: Expr[A]): Expr[Iterable[Char]] = Expr.quote {
             new scala.collection.immutable.WrappedString(Expr.splice(value).asInstanceOf[String])
           }
+          override def sizeHintForBuilder(value: Expr[A]): Option[Expr[Int]] = Some(Expr.quote {
+            Expr.splice(value).asInstanceOf[String].length
+          })
           override type CtorResult = A
           implicit override val CtorResult: Type[CtorResult] = A
           override def factory: Expr[scala.collection.Factory[Char, CtorResult]] = Expr.quote {

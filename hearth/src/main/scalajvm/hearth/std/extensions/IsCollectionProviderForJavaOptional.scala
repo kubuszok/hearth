@@ -40,6 +40,9 @@ final class IsCollectionProviderForJavaOptional extends StandardMacroExtension {
             val opt = Expr.splice(toOptional(value))
             if (opt.isPresent) List(opt.get()) else Nil
           }
+          override def sizeHintForBuilder(value: Expr[A]): Option[Expr[Int]] = Some(Expr.quote {
+            if (Expr.splice(toOptional(value)).isPresent) 1 else 0
+          })
           override def foreach(value: Expr[A])(f: Expr[Item] => Expr[Unit]): Expr[Unit] = Expr.quote {
             val opt = Expr.splice(toOptional(value))
             if (opt.isPresent) {

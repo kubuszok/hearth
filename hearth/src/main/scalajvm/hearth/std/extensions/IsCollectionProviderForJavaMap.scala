@@ -71,6 +71,9 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
               )
               .to(Iterable)
           }
+          override def sizeHintForBuilder(value: Expr[A]): Option[Expr[Int]] = Some(Expr.quote {
+            Expr.splice(value).asInstanceOf[java.util.Map[Key0, Value0]].size()
+          })
           override def foreach(value: Expr[A])(f: Expr[Pair] => Expr[Unit]): Expr[Unit] = Expr.quote {
             val it = Expr.splice(value).asInstanceOf[java.util.Map[Key0, Value0]].entrySet().iterator()
             while (it.hasNext()) {
@@ -137,6 +140,9 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
           override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] = Expr.quote {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(value).entrySet().iterator()).to(Iterable)
           }
+          override def sizeHintForBuilder(value: Expr[A]): Option[Expr[Int]] = Some(Expr.quote {
+            Expr.splice(value).size()
+          })
           override def foreach(value: Expr[A])(f: Expr[Pair] => Expr[Unit]): Expr[Unit] = Expr.quote {
             val it = Expr.splice(value).entrySet().iterator()
             while (it.hasNext()) {

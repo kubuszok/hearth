@@ -475,6 +475,28 @@ trait StdExtensions { this: MacroCommons =>
       }
     }
 
+    /** Emits an expression computing the collection's size for pre-allocating a builder (`Builder.sizeHint`), or `None`
+      * when no SAFE size expression exists.
+      *
+      * The contract: the returned expression must be cheap (O(1)-ish) and, critically, '''must not traverse or consume
+      * the collection''' - a single-pass source (an iterator, an enumeration, a Java stream) must return `None` (the
+      * default), because any size probe next to the actual traversal would consume it. The expression may evaluate to a
+      * negative value at runtime when the size is unknown (e.g. `knownSize` of a `List`); callers are expected to guard
+      * with `if (size >= 0)` before calling `sizeHint`.
+      *
+      * Consumers building a target collection element-by-element should use this to avoid builder regrowth: an
+      * un-hinted `ArrayBuilder`, for instance, regrows log(n) times and pays one more array copy in `result()`.
+      *
+      * @since 0.4.1
+      *
+      * @param value
+      *   the collection expression to (safely) measure
+      * @return
+      *   `Some` of an `Expr[Int]` evaluating to the size (or a negative value for unknown-at-runtime), `None` when no
+      *   safe size expression exists (single-pass sources)
+      */
+    def sizeHintForBuilder(value: Expr[CollA]): Option[Expr[Int]] = None
+
     /** If this collection is actually a map, returns its map proof (whose `Pair` is this `Item`); `None` for a plain
       * collection. Lets a caller that already holds an `IsCollectionOf` discover map-ness without a second
       * `IsCollection.parse` and without an erasure-unsound `isInstanceOf[IsMapOf[?, ?]]`.
