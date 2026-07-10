@@ -1043,6 +1043,54 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       *
       * @since 0.4.1
       */
+    /** A lazily-computed [[Type]] that is SAFE to keep in per-expansion helper objects.
+      *
+      * A plain `lazy val tpe: Type[A] = Type.of[A]` is NOT: its first touch can happen inside an `Expr.splice` (which,
+      * on Scala 3, evaluates under a fresh nested `Quotes`), tying the `Type` - and every expr later built from it - to
+      * that splice's scope; reusing it from a sibling or outer splice then aborts under `-Xcheck-macros` with
+      * "Expression created in a splice was used outside of that splice". Eager `val`s dodge this only by accident of
+      * WHEN the enclosing object initializes - and pay the full materialization cost (a pickled-quote unpickling per
+      * `Type.of` on Scala 3) on every macro expansion, used or not.
+      *
+      * `Type.Lazy` computes its thunk with the MACRO-ENTRY context pinned, so the result is scoped exactly like an
+      * eagerly-initialized `val` (valid throughout the whole expansion, inside any splice), while the cost is only paid
+      * if the type is actually used. The computed value is memoized per macro expansion (re-computed if the holder
+      * outlives the expansion, e.g. when kept in a global object).
+      *
+      * Usage - replace an eager helper `val`:
+      * {{{
+      * val StringType: Type[String]      = Type.of[String]        // eager: costs every expansion
+      * val StringType: Type.Lazy[String] = Type.Lazy(Type.of[String]) // deferred: costs only when used
+      * }}}
+      * Use-sites stay unchanged - a `Type.Lazy[A]` converts to `Type[A]` implicitly (see `lazyTypeToType`).
+      *
+      * Not thread-safe; a macro expansion is single-threaded.
+      *
+      * @since 0.4.1
+      */
+    final class Lazy[A] private[Types] (compute: () => Type[A]) {
+      private var cachedFor: AnyRef = null
+      private var cached: Type[A] = null.asInstanceOf[Type[A]]
+
+      def value: Type[A] = {
+        val key = CrossQuotes.macroEntryContextKey
+        if ((cached == null) || (cachedFor ne key)) {
+          cached = CrossQuotes.withMacroEntryContext(compute())
+          cachedFor = key
+        }
+        cached
+      }
+    }
+    object Lazy {
+
+      /** Creates a [[Lazy]] - `compute` is by-name and will run (at most once per expansion) with the macro-entry
+        * context pinned.
+        *
+        * @since 0.4.1
+        */
+      def apply[A](compute: => Type[A]): Lazy[A] = new Lazy(() => compute)
+    }
+
     final class Cache[F[_]] {
       // (cross-quotes scope token, cheap bucket key) -> entries checked with =:=.
       private val impl =
@@ -1091,6 +1139,14 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       }
     }
   }
+
+  /** Unwraps a [[Type.Lazy]] wherever a [[Type]] is expected, so converting an eager helper `val` to `Type.Lazy`
+    * requires no use-site changes (implicit `Type` positions still need the value assigned to an `implicit val`,
+    * exactly as with the eager form).
+    *
+    * @since 0.4.1
+    */
+  implicit final def lazyTypeToType[A](lazyType: Type.Lazy[A]): Type[A] = lazyType.value
 
   implicit final class TypeMethods[A](private val tpe: Type[A]) {
 

@@ -53,6 +53,8 @@ final private class TypesFixtures(val c: blackbox.Context) extends MacroCommonsS
   def testDecomposeSummonNameImpl[A: c.WeakTypeTag]: c.Expr[String] = testDecomposeSummonName[A]
 
   def testCtorK1FromDiscoveredPartsImpl[A: c.WeakTypeTag]: c.Expr[Data] = testCtorK1FromDiscoveredParts[A]
+
+  def testLazyTypeScopeSafetyImpl: c.Expr[Data] = testLazyTypeScopeSafety
 }
 
 object TypesFixtures {
@@ -100,4 +102,6 @@ object TypesFixtures {
   def testDecomposeSummonName[A]: String = macro TypesFixtures.testDecomposeSummonNameImpl[A]
 
   def testCtorK1FromDiscoveredParts[A]: Data = macro TypesFixtures.testCtorK1FromDiscoveredPartsImpl[A]
+
+  def testLazyTypeScopeSafety: Data = macro TypesFixtures.testLazyTypeScopeSafetyImpl
 }

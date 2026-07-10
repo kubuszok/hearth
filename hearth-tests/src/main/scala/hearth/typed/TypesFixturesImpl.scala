@@ -777,6 +777,30 @@ trait TypesFixturesImpl { this: MacroCommons =>
     }
   }
 
+  // Type.Lazy: the deferred type must behave like an eagerly-initialized one even when its FIRST touch happens
+  // inside an `Expr.splice` (a fresh nested Quotes on Scala 3) and it is then reused OUTSIDE that splice - the
+  // pattern that breaks a plain `lazy val` with "Expression created in a splice was used outside of that splice".
+  def testLazyTypeScopeSafety: Expr[Data] = {
+    val lazyString: Type.Lazy[String] = Type.Lazy(Type.of[String])
+
+    // First touch INSIDE a splice (nested ctx on Scala 3):
+    val innerExpr: Expr[String] = Expr.quote {
+      Expr.splice {
+        Expr(lazyString.value.plainPrint)
+      } + "!"
+    }
+
+    // Reuse OUTSIDE that splice (entry ctx), via the implicit conversion:
+    val outerName: String = (lazyString: Type[String]).plainPrint
+
+    Expr.quote {
+      Data.map(
+        "inner" -> Data(Expr.splice(innerExpr)),
+        "outer" -> Data(Expr.splice(Expr(outerName)))
+      )
+    }
+  }
+
   // types using in fixtures
 
   private val aStringType = Type.of["a"]

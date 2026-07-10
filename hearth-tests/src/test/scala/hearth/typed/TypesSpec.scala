@@ -1921,6 +1921,18 @@ final class TypesSpec extends MacroSuite {
       }
     }
 
+    group("type Type.Lazy") {
+
+      test("Type.Lazy first touched inside an Expr.splice stays usable outside that splice") {
+        import TypesFixtures.testLazyTypeScopeSafety
+
+        testLazyTypeScopeSafety <==> Data.map(
+          "inner" -> Data("java.lang.String!"),
+          "outer" -> Data("java.lang.String")
+        )
+      }
+    }
+
     group("type TypeCodec") {
 
       test(

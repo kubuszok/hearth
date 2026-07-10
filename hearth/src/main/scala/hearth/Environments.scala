@@ -584,6 +584,24 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
 
     /** `scala.reflect.macros.blackbox.Context` on Scala 2, `scala.quoted.Quotes` on Scala 3. */
     def ctx[CastAs]: CastAs
+
+    /** Runs `thunk` with the MACRO-ENTRY (outermost) context pinned as the active Cross-Quotes context.
+      *
+      * On Scala 3 each `Expr.splice` evaluates its body under a fresh nested `Quotes`; a `Type`/`Expr` created there is
+      * tied to that splice's scope and must not escape it (`-Xcheck-macros` aborts with "Expression created in a splice
+      * was used outside of that splice"). Values created under the ENTRY context, by contrast, are valid throughout the
+      * whole expansion - this is what makes lazily-initialized shared state (see [[Type.Lazy]]) safe regardless of
+      * which splice touches it first. On Scala 2 there is no context scoping and this is just `thunk`.
+      *
+      * @since 0.4.1
+      */
+    private[hearth] def withMacroEntryContext[A](thunk: => A): A
+
+    /** Identity of the macro-entry context, for caches that must not leak values between expansions.
+      *
+      * @since 0.4.1
+      */
+    private[hearth] def macroEntryContextKey: AnyRef
   }
 
   // Lexical-scope (enclosure) inspection for the current macro expansion.
