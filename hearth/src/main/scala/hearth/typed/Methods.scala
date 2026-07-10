@@ -399,18 +399,22 @@ trait Methods { this: MacroCommons =>
       *
       * @since 0.4.0
       */
-    final lazy val isJavaGetter: Boolean =
-      asUntyped.invocation == Invocation.OnInstance && isNullary &&
-        knownReturning.exists { rt =>
-          import rt.Underlying as R
-          (name.startsWith("get") && name.length > 3 && !(R <:< Type.of[Unit])) ||
-          (name.startsWith("is") && name.length > 2 && (R <:< Type.of[Boolean]))
-        }
+    final lazy val isJavaGetter: Boolean = {
+      // Name checks are hoisted before `knownReturning` so that the (deferred) return type is only resolved for
+      // methods that actually look like accessors.
+      lazy val getLike = name.startsWith("get") && name.length > 3
+      lazy val isLike = name.startsWith("is") && name.length > 2
+      asUntyped.invocation == Invocation.OnInstance && isNullary && (getLike || isLike) &&
+      knownReturning.exists { rt =>
+        import rt.Underlying as R
+        (getLike && !(R <:< Type.of[Unit])) || (isLike && (R <:< Type.of[Boolean]))
+      }
+    }
     final lazy val isJavaSetter: Boolean =
-      asUntyped.invocation == Invocation.OnInstance && isUnary &&
+      asUntyped.invocation == Invocation.OnInstance && isUnary && name.startsWith("set") && name.length > 3 &&
         knownReturning.exists { rt =>
           import rt.Underlying as R
-          name.startsWith("set") && name.length > 3 && (R <:< Type.of[Unit])
+          R <:< Type.of[Unit]
         }
     final lazy val isJavaAccessor: Boolean = isJavaGetter || isJavaSetter
 
@@ -681,7 +685,10 @@ trait Methods { this: MacroCommons =>
         instanceEvidence: ??,
         expectations: List[MethodExpectation],
         totalParameters: Parameters,
-        returnType: Option[??],
+        // Thunked so that converting a method does not pay for resolving its return type (memberType + widening);
+        // only chain steps that are actually asked for `knownReturning` (or the terminal `Result`) force it. The
+        // platform should memoize the thunk (close over a `lazy val`) so multiple steps share one resolution.
+        returnType: Option[() => ??],
         buildExpr: (Option[UntypedExpr], UntypedTypeArguments, UntypedArguments) => Either[String, UntypedExpr],
         pathDepResolvers: Map[Int, UntypedArguments => Parameters],
         // [hearth#331] Given ALL type arguments applied so far, re-resolve the (still-static) expectations so that a
@@ -701,7 +708,7 @@ trait Methods { this: MacroCommons =>
           appliedState: AppliedState
       ): Method =
         if (stepIndex >= expectations.length) {
-          val effectiveReturnType = returnType.orElse {
+          val effectiveReturnType = returnType.map(_.apply()).orElse {
             if (accTypeArgs.nonEmpty)
               buildExpr(accInstance, accTypeArgs, accArgs).toOption
                 .map(expr => UntypedExpr.as_??(expr).Underlying.as_??)
@@ -798,7 +805,7 @@ trait Methods { this: MacroCommons =>
         val untypedInstanceType: UntypedType,
         val expectations: List[MethodExpectation],
         val totalParameters: Parameters,
-        private[Methods] val knownReturning0: Option[??],
+        private[Methods] val knownReturning0: Option[() => ??],
         private val next: UntypedExpr => Method
     )(
         private[Methods] val instanceEvidence: ??,
@@ -808,7 +815,7 @@ trait Methods { this: MacroCommons =>
       @ImportedCrossTypeImplicit
       implicit val Instance: Type[Instance] = instanceEvidence.Underlying
       def parameters: Parameters = List.empty
-      def knownReturning: Option[??] = knownReturning0
+      lazy val knownReturning: Option[??] = knownReturning0.map(_.apply())
       def apply(instance: Expr[Instance]): Method = next(instance.asUntyped)
       def applyUntyped(instance: UntypedExpr): Method = next(instance)
     }
@@ -859,7 +866,7 @@ trait Methods { this: MacroCommons =>
         val untypedInstanceType: UntypedType,
         val expectations: List[MethodExpectation],
         val totalParameters: Parameters,
-        private[Methods] val knownReturning0: Option[??],
+        private[Methods] val knownReturning0: Option[() => ??],
         override val parameters: Parameters,
         private val next: UntypedArguments => Method
     )(
@@ -869,7 +876,7 @@ trait Methods { this: MacroCommons =>
       type Instance = instanceEvidence.Underlying
       @ImportedCrossTypeImplicit
       implicit val Instance: Type[Instance] = instanceEvidence.Underlying
-      def knownReturning: Option[??] = knownReturning0
+      lazy val knownReturning: Option[??] = knownReturning0.map(_.apply())
       def apply(arguments: Arguments): Method = next(UntypedArguments.fromTyped(arguments))
     }
 
