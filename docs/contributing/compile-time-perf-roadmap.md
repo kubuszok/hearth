@@ -34,7 +34,15 @@ compile, old design as 1.0×):
 |---|---|---|
 | pre-optimization (Hearth as-migrated) | ~3.0× | ~2.0× |
 | after the optimizations so far | ~1.7× | ~1.5× |
+| **after PR #347 (perf9, measured 2026-07-10)** | **1.30×** | **1.27×** |
 | goal | → 1.0× | → 1.0× |
+
+The 2026-07-10 measurement: `chimney` module `clean` + `Test/compile`, best of 3 (spread was ±3s —
+tight), sbt-reported compile seconds, `CI=true` (no scalafmt), Temurin 25 — premig (macro-commons,
+Scala 3.7.3) 117s/77s vs current pinned to `0.4.1-perf9-SNAPSHOT` (Scala 3.8.4) 152s/98s.
+Confounds overstating the ratio *against* Hearth: current commit has ~3% more test lines and ~26%
+more main-module lines (non-macro DSL growth) than premig; plus the Scala 3 minor-version delta.
+The macro-attributable ratio is therefore somewhat below the raw 1.30×/1.27×.
 
 Still too much, but the right direction. This ratio — not the profiler sample fractions — is what
 each roadmap item is ultimately judged against, so it needs a **repeatable measurement harness**:
