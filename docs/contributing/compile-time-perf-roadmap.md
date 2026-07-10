@@ -295,6 +295,11 @@ them: 18.4% of macro inclusive under `methodsOf`-ish entry points, with the unty
    universal field-less parents (`Object`, `Any`, `AnyVal`, `Matchable`, `Product`, `Equals`,
    `java.io.Serializable`, `scala.reflect.Enum`) are skipped before `fieldMembers` is computed.
 
+**Measured (perf8, commit `0d91be0f`):** macro share 22.4% → **18.9%** (new low; 27.2% baseline,
+perf6 was 20.8%), inherited-field walk 4.3% → 0.1% (raw `fieldMembers` frames 380 → 223 — the
+remainder is the legitimate own-class + companion calls), method conversion 7.6% → 6.6%. The
+listing block is now 17.4% inclusive with the untyped walk at 9.0%.
+
 Still open in this area: the remaining per-member cost is dotty's own `methodMembers`/denotation
 computation (unavoidable once per type) and `sortMethodsBy`+`positionOf` under the *sorted*
 `methods`, which is reached from Chimney — the Chimney-side fix is switching those callers to
