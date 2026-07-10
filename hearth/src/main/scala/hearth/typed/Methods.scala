@@ -673,6 +673,24 @@ trait Methods { this: MacroCommons =>
       lookup.byName.getOrElseUpdate(name, lookup.untyped.iterator.filter(_.name == name).map(_.asTyped[A]).toList)
     }
 
+    /** Sorts methods into the same STABLE order as [[methodsOf]] (constructor arguments by ctor position, then declared
+      * methods by source position, then inherited/synthetic by natural-language name order).
+      *
+      * The sort key of each method is computed purely from that method, so `sort(xs.filter(p)) == sort(xs).filter(p)` —
+      * the intended pattern is to FILTER the cheap [[unsortedMethodsOf]] listing first and sort only the small subset
+      * that survived, paying the expensive position resolution per kept method instead of per listed method.
+      *
+      * @since 0.4.1
+      */
+    def sort[M <: Method](methods: List[M]): List[M] = sortBy(methods)(m => m)
+
+    /** [[sort]] generalized over any element that can produce a [[Method]] key (e.g. name-method pairs).
+      *
+      * @since 0.4.1
+      */
+    def sortBy[M](methods: List[M])(toMethod: M => Method): List[M] =
+      UntypedMethod.sortMethodsBy(methods)(m => toMethod(m).asUntyped)
+
     // The raw (unsorted) UNTYPED listing is the shared input of methodsOf/unsortedMethodsOf/unsortedMethodsNamed;
     // memoizing it separately means a type listed through more than one of those entry points walks its symbol
     // members only once per expansion.
