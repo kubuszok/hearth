@@ -238,6 +238,25 @@ cost.
    `cache.getOrPut(key)(value)`), then delete `TypeCache` + `cacheScopeToken` from
    `MacroCommonsCompat`.
 
+## Part D — `Ctor.Bounded.unapply` fast paths (DONE, 2026-07-10)
+
+perf4 profiling showed `Ctor.Bounded.unapply` still at 9.5% of macro and Chimney's `Configurations`
+flag-chain parsing (Ctor2/Ctor3 matches per flag node) at 10.7% — the QuoteMatcher `'[HKT[a]]`
+pattern being the costly primitive behind both. Two fast paths in the generated unapply (Scala 3;
+QuoteMatcher remains the source of truth for everything else):
+
+1. **Positive:** dealiased head symbol == constructor's → extract the dealiased type's own
+   arguments directly; wildcard args (`TypeBounds`, #307) fall back to the quote match.
+2. **Negative:** class-headed, non-bottom scrutinee whose head differs → `A <:< HKT[args]` requires
+   `HKT ∈ baseClasses(A)`; if absent, `None` without the QuoteMatcher. Guards: HKT head must be a
+   proper class (opaque/abstract skip), scrutinee head must be a class (abstract/intersection keep
+   the full match), never for `Nothing`/`Null` (#319).
+
+Measured: `Ctor.Bounded.unapply` 9.5% → 3.7%, QuoteMatcher 2.4% → 1.2%, Chimney Configurations
+10.7% → 7.6% (zero Chimney changes), macro share 22.9% → **20.8%** (27.2% baseline). Also verified:
+true `Type.Cache` overhead after bucketing is 0.1% leaf; `resolveImplicitScopeConfig`'s big
+inclusive number is a red herring (it hosts the whole derivation as a continuation).
+
 ## Sequencing & measurement
 
 Biggest-bang order when credits/time are tight:
