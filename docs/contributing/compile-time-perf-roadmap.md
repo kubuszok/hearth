@@ -262,11 +262,16 @@ cost.
    close over `factoryExpr`s) and `methodsOfCache` carried the same LATENT hazard. Now DONE:
    `Type.Cache` partitions by `CrossQuotes.ctx` (the active `Quotes` on Scala 3; the constant
    blackbox `Context` on Scala 2), fixing the hazard and making it a superset of Chimney's cache.
-   **Remaining (Chimney PR, after a Hearth release/snapshot):** replace the 8 `new TypeCache[...]`
-   sites (`TotallyBuildIterables`, `PartiallyBuildIterables`, `OptionalValues`, `SealedHierarchies`,
-   `Total/PartialOuterTransformers`, …) with `Type.Cache` (`cache(key)(value)` →
-   `cache.getOrPut(key)(value)`), then delete `TypeCache` + `cacheScopeToken` from
-   `MacroCommonsCompat`.
+   **DONE on the Chimney side (branch `perf/adopt-hearth-type-cache`, commit `0921fbe9`,
+   2026-07-10):** all 11 `new TypeCache[...]` sites replaced with `Type.Cache` + `getOrPut`;
+   `TypeCache` and `cacheScopeToken` (incl. the Scala 3 `PlatformBridge` override) deleted. In the
+   same commit `methodGetters`/`setterCandidatesOf` switched to `unsortedMethods` + the new public
+   `Method.sort` on the FILTERED subset (hearth commit `6d4c746f`) — raw unsorted order broke 4
+   JavaBean specs because setter order is user-observable (generated call order + error messages),
+   which is exactly why `Method.sort` exists. Measured on the dense load: old linear-scan
+   `TypeCache` frames 28.1% → 0%, `sortMethodsBy` 1.8% → 0.9%; the bucketed cache's O(1) lookup
+   replaces a per-lookup linear `=:=` scan (pays off with many distinct types). Chimney tests
+   green (1118 + 980). Awaiting: hearth #347 merge → CI master snapshot → re-pin → push + PR.
 
 ## Part D — `Ctor.Bounded.unapply` fast paths (DONE, 2026-07-10)
 
