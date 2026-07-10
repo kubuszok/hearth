@@ -2602,6 +2602,33 @@ final class MethodsSpec extends MacroSuite {
         )
       )
     }
+
+    test("type-position CASE CLASS annotations with arguments are exposed (#348)") {
+      import MethodsFixtures.testTypeAnnotations
+
+      testTypeAnnotations[examples.methods.WithCaseClassTypeAnnotation] <==> Data.map(
+        "own" -> Data.list(),
+        "fields" -> Data.list(
+          Data.map("name" -> Data("name"), "typeAnnotations" -> Data.list(Data("ExampleCaseClassAnnotation"))),
+          Data.map("name" -> Data("age"), "typeAnnotations" -> Data.list())
+        )
+      )
+    }
+
+    test("type-position annotations on SAME-COMPILATION-RUN types are exposed (#348)") {
+      import MethodsFixtures.testTypeAnnotations
+
+      testTypeAnnotations[LocalWithCaseClassTypeAnnotation] <==> Data.map(
+        "own" -> Data.list(),
+        "fields" -> Data.list(
+          Data.map(
+            "name" -> Data("name"),
+            "typeAnnotations" -> Data.list(Data("hearth.typed.LocalCaseClassAnnotation"))
+          ),
+          Data.map("name" -> Data("age"), "typeAnnotations" -> Data.list())
+        )
+      )
+    }
   }
 
   group("methods: parameter annotations") {
@@ -2897,3 +2924,13 @@ final class MethodsSpec extends MacroSuite {
     }
   }
 }
+
+// Issue #348 same-compilation-run reproduction: the annotation AND the annotated class are defined in the SAME
+// compilation unit that expands the macro (unlike `hearth.examples.methods.*`, which is pre-compiled in another
+// module and reaches the macro through unpickling).
+case class LocalCaseClassAnnotation(name: String) extends scala.annotation.StaticAnnotation
+
+case class LocalWithCaseClassTypeAnnotation(
+    name: String @LocalCaseClassAnnotation("anonymize"),
+    age: Int
+)

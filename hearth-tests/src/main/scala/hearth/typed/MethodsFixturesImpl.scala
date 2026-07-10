@@ -899,6 +899,8 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     def annNames(anns: List[Expr_??]): Data = Data.list(anns.map { ann =>
       if (ann.Underlying =:= Type.of[hearth.examples.methods.ExampleAnnotation2]) Data("ExampleAnnotation2")
       else if (ann.Underlying =:= Type.of[hearth.examples.methods.ExampleAnnotation]) Data("ExampleAnnotation")
+      else if (ann.Underlying =:= Type.of[hearth.examples.methods.ExampleCaseClassAnnotation])
+        Data("ExampleCaseClassAnnotation")
       else Data(ann.Underlying.plainPrint)
     }*)
 

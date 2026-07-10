@@ -15,6 +15,15 @@ case class WithTypeAnnotations(
     nickname: String @ExampleAnnotation2(42) @ExampleAnnotation
 )
 
+// A CASE CLASS annotation with a String argument - issue #348's exact shape (`name: String @Action("anonymize")`).
+case class ExampleCaseClassAnnotation(name: String) extends scala.annotation.StaticAnnotation
+
+// Reproduction of issue #348: typeAnnotations came back empty for this shape.
+case class WithCaseClassTypeAnnotation(
+    name: String @ExampleCaseClassAnnotation("anonymize"),
+    age: Int
+)
+
 @ChildAnnotation
 class WithChildAnnotation {
 
