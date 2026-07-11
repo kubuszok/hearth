@@ -138,7 +138,9 @@ sealed trait MIO[+A] { fa =>
     (try
       result.fold(onFailure, onSuccess)
     catch {
-      case NonFatal(e) => fail(e).log.error(s"Caught exception ${e.getMessage}")
+      // A deadline timeout must escape error handling (it is not a recoverable failure) - mirror `defer`.
+      case e: MioTimeoutException => throw e
+      case NonFatal(e)            => fail(e).log.error(s"Caught exception ${e.getMessage}")
     }) match {
       case Pure(state2, fb)      => Pure(state ++ state2, fb)
       case Impure(state2, fb, q) => Impure(state ++ state2, fb, q)
@@ -260,6 +262,8 @@ sealed trait MIO[+A] { fa =>
             }
             Pure(stateC, resultC)
           } catch {
+            // A deadline timeout must escape MIO's error-aggregation (it is not a recoverable failure) - mirror `defer`.
+            case e: MioTimeoutException => throw e
             case NonFatal(e) => Pure(stateC, Left(NonEmptyVector.one(e))).log.error(s"Caught exception ${e.getMessage}")
           }
         }
@@ -712,8 +716,11 @@ object MIO {
     * Captures the full [[MState]] (with scope nesting reconstructed from [[_openScopes]]) so that flame graphs can
     * still be rendered from the partial execution.
     *
-    * Extends [[InterruptedException]] so it is NOT caught by [[scala.util.control.NonFatal]] — this prevents MIO's own
-    * `redeemWith`/`handleErrorWith` from swallowing the timeout.
+    * A deadline timeout must not be turned into a recoverable failure. It cannot extend `InterruptedException` (the way
+    * [[MioTerminationException]] does) because that type is entangled with the thread-interrupt/termination mechanism
+    * ([[TerminationObserver.isTerminated]] reads `Thread.interrupted()`), so instead every internal
+    * `catch scala.util.control.NonFatal` in MIO (`defer`, `redeemWith`, `parMap2`) rethrows this exception explicitly
+    * before the `NonFatal` case, letting it propagate out of the run.
     *
     * @since 0.3.0
     */

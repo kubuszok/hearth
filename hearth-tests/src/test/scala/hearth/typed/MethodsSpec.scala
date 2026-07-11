@@ -57,6 +57,23 @@ final class MethodsSpec extends MacroSuite {
     }
   }
 
+  group("regression: JavaBean accessor capitalization") {
+
+    // The JavaBeans convention requires an UPPER-CASE character after the `get`/`is`/`set` prefix. `getters`/`island`/
+    // `settle` merely start with a prefix (lowercase char after it) and must NOT be classified as accessors - otherwise
+    // `javaAccessorName` yields garbage ("ters"/"land"/"tle"). `getName`/`isActive`/`setValue` are genuine accessors.
+    test("`get*`/`is*`/`set*` are accessors only with an upper-case char after the prefix") {
+      MethodsFixtures.testJavaAccessorNames[examples.methods.ExampleBeanLikeNames] <==> Data.map(
+        "getName" -> Data("name"),
+        "getters" -> Data("<none>"),
+        "isActive" -> Data("active"),
+        "island" -> Data("<none>"),
+        "setValue" -> Data("value"),
+        "settle" -> Data("<none>")
+      )
+    }
+  }
+
   group("typed.Methods") {
 
     group("type Method") {

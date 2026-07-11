@@ -401,9 +401,11 @@ trait Methods { this: MacroCommons =>
       */
     final lazy val isJavaGetter: Boolean = {
       // Name checks are hoisted before `knownReturning` so that the (deferred) return type is only resolved for
-      // methods that actually look like accessors.
-      lazy val getLike = name.startsWith("get") && name.length > 3
-      lazy val isLike = name.startsWith("is") && name.length > 2
+      // methods that actually look like accessors. The JavaBeans convention requires an UPPER-CASE character right
+      // after the `get`/`is` prefix (`getName`, not `getters`; `isActive`, not `island`), otherwise the "property"
+      // name would be a fragment of a plain word.
+      lazy val getLike = name.startsWith("get") && name.length > 3 && name.charAt(3).isUpper
+      lazy val isLike = name.startsWith("is") && name.length > 2 && name.charAt(2).isUpper
       asUntyped.invocation == Invocation.OnInstance && isNullary && (getLike || isLike) &&
       knownReturning.exists { rt =>
         import rt.Underlying as R
@@ -412,6 +414,7 @@ trait Methods { this: MacroCommons =>
     }
     final lazy val isJavaSetter: Boolean =
       asUntyped.invocation == Invocation.OnInstance && isUnary && name.startsWith("set") && name.length > 3 &&
+        name.charAt(3).isUpper && // JavaBeans convention: `setValue`, not `settle`
         knownReturning.exists { rt =>
           import rt.Underlying as R
           R <:< Type.of[Unit]
