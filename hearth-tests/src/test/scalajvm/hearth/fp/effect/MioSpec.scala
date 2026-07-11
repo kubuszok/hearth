@@ -524,6 +524,20 @@ final class MioSpec extends ScalaCheckSuite with Laws {
       }
     }
 
+    test("a timeout raised while running a redeemWith continuation must not be swallowed") {
+      // Unlike the run-loop timeouts below, here the timeout fires INSIDE the onSuccess continuation (a nested run
+      // under an already-expired deadline) - exactly where redeemWith's `catch NonFatal` would otherwise turn it into
+      // a recoverable failure and silently drop the timeout. It must propagate out instead.
+      val mio = MIO.void.redeemWith { _ =>
+        val _ = withTimeout(1)(infiniteLoop.unsafe.runSync) // throws MioTimeoutException while this continuation runs
+        MIO.pure("unreachable")
+      }(_ => MIO.pure("recovered"))
+
+      intercept[MIO.MioTimeoutException] {
+        mio.unsafe.runSync
+      }
+    }
+
     test("should capture MState with logs when timeout fires") {
       val mio = Log.info("before loop") >> infiniteLoop
 

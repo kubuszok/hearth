@@ -26,6 +26,20 @@ trait MethodsFixturesImpl { this: MacroCommons =>
   def testExposesNameAndAge[A: Type]: Expr[Data] =
     Expr(Data(Method.unsortedMethodsNamed[A]("name").nonEmpty && Method.unsortedMethodsNamed[A]("age").nonEmpty))
 
+  // Classifies every `get*`/`is*`/`set*`-named method of `A` as its JavaBean accessor property name, or "<none>" when
+  // it is NOT a JavaBean accessor. Exercises the capitalization rule: `getters`/`island`/`settle` merely start with a
+  // prefix but have no upper-case char after it, so they must NOT be accessors.
+  def testJavaAccessorNames[A: Type]: Expr[Data] =
+    Expr(
+      Data.map(
+        Type[A].methods.view
+          .filter(_.isDeclared) // skip inherited members like Object#getClass (a legitimate getter)
+          .filter(m => m.name.startsWith("get") || m.name.startsWith("is") || m.name.startsWith("set"))
+          .map(m => m.name -> Data(m.javaAccessorName.getOrElse("<none>")))
+          .toSeq*
+      )
+    )
+
   def testMethodsExtraction[A: Type](excluding: VarArgs[String]): Expr[Data] = {
     val excluded = excluding.toIterable.map {
       case Expr(excluding) => excluding

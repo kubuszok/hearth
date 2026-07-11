@@ -134,12 +134,16 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
     testFoldAnonymousInstanceMethod[A](instance, methodName)
 
   def testExposesNameAndAgeImpl[A: c.WeakTypeTag]: c.Expr[Data] = testExposesNameAndAge[A]
+
+  def testJavaAccessorNamesImpl[A: c.WeakTypeTag]: c.Expr[Data] = testJavaAccessorNames[A]
 }
 
 object MethodsFixtures {
 
   // Chimney #673
   def testExposesNameAndAge[A]: Data = macro MethodsFixtures.testExposesNameAndAgeImpl[A]
+
+  def testJavaAccessorNames[A]: Data = macro MethodsFixtures.testJavaAccessorNamesImpl[A]
 
   def testFoldSubstitutesTypeArgs: Data = macro MethodsFixtures.testFoldSubstitutesTypeArgsImpl
 

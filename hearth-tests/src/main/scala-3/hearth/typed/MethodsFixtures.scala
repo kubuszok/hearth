@@ -14,6 +14,10 @@ object MethodsFixtures {
   private def testExposesNameAndAgeImpl[A: Type](using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testExposesNameAndAge[A]
 
+  inline def testJavaAccessorNames[A]: Data = ${ testJavaAccessorNamesImpl[A] }
+  private def testJavaAccessorNamesImpl[A: Type](using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testJavaAccessorNames[A]
+
   // [hearth#331]
   inline def testFoldSubstitutesTypeArgs: Data = ${ testFoldSubstitutesTypeArgsImpl }
   private def testFoldSubstitutesTypeArgsImpl(using q: Quotes): Expr[Data] =

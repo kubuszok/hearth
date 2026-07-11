@@ -145,3 +145,15 @@ class IdStatusEntity(id: Long, status: String) extends AbstractIdStatusEntity(id
 // `unsortedMethods`/`methodsOf` reads no members and DROPS `name` (from HasName) and `age` (from HasAge).
 trait ExampleHasName { def name: String }
 trait ExampleHasAge { def age: Int }
+
+// JavaBean accessor heuristic must require an UPPER-CASE character after the `get`/`is`/`set` prefix (the JavaBeans
+// convention). `getters`/`island`/`settle` merely start with a prefix and must NOT be treated as accessors, whereas
+// `getName`/`isActive`/`setValue` are genuine accessors.
+class ExampleBeanLikeNames {
+  def getName: String = "x"
+  def getters: String = "x" // NOT a getter: lowercase 't' after `get`
+  def isActive: Boolean = true
+  def island: Boolean = true // NOT a getter: lowercase 'l' after `is`
+  def setValue(v: Int): Unit = { val _ = v }
+  def settle(v: Int): Unit = { val _ = v } // NOT a setter: lowercase 't' after `set`
+}
