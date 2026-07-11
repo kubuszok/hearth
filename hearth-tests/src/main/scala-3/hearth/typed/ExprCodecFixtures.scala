@@ -15,6 +15,10 @@ object ExprCodecFixtures {
   private def testExprCodecRoundTripImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprCodecFixtures(q).testExprCodecRoundTrip[A](expr)
 
+  inline def testSemiQuoteReLift[A](inline expr: A): Data = ${ testSemiQuoteReLiftImpl[A]('expr) }
+  private def testSemiQuoteReLiftImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new ExprCodecFixtures(q).testSemiQuoteReLift[A](expr)
+
   inline def testSemiQuotePrimitives: Data = ${ testSemiQuotePrimitivesImpl }
   private def testSemiQuotePrimitivesImpl(using q: Quotes): Expr[Data] =
     new ExprCodecFixtures(q).testSemiQuotePrimitives

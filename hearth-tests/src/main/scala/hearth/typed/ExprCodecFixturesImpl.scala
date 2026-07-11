@@ -207,6 +207,19 @@ trait ExprCodecFixturesImpl { this: MacroCommons =>
 
   // -- ExprCodec.derived round-trip --
 
+  // Decodes the literal `expr` to a value (semiEval), then re-quotes it with `semiQuote` and reports whether that
+  // succeeded. Exercises the `semiQuoteEnum` runtime-class dispatch: e.g. `List` decomposes as the sealed `:: | Nil`,
+  // whose `::` child has the JVM-encoded simple name `$colon$colon` - so simple-name dispatch would fail to re-lift it.
+  def testSemiQuoteReLift[A: Type](expr: Expr[A]): Expr[Data] =
+    Expr(Expr.semiEval[A](expr) match {
+      case Right(value) =>
+        Expr.semiQuote[A](value) match {
+          case Right(_)  => Data(s"reLifted: $value")
+          case Left(err) => Data(s"<reLift failed: ${removeAnsiColors(err)}>")
+        }
+      case Left(errs) => Data(s"<decode failed: ${errs.toVector.mkString(", ")}>")
+    })
+
   def testExprCodecRoundTrip[A: Type](expr: Expr[A]): Expr[Data] = {
     val codec: ExprCodec[A] = ExprCodec.derived[A]
     codec.fromExpr(expr) match {
