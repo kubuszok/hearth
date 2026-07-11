@@ -13,6 +13,21 @@ import hearth.data.Data
   */
 final class ExprsScala3Spec extends MacroSuite {
 
+  group("regression: enum-case dispatch (Chimney #625)") {
+
+    // Reproduces the Hearth bug behind Chimney #625 (surfacing dotty scala/scala3#20350): `matchOn` on
+    // LOWERCASE parameterless enum cases miscompiles - every case collapses to the first (`team`/`school`
+    // -> `solo`). FAILS today; will pass once Hearth's enum-val match pattern switches from
+    // `Bind(name, Ref(sym))` to the guard form `case x if x == Ref(sym)` (already used by the EqValue fallback).
+    test("matchOn dispatches lowercase parameterless enum cases to the correct target") {
+      import ExprsFixtures.testEnumDispatch
+      import examples.{LowerEnum1, LowerEnum2}
+      assertEquals(testEnumDispatch[LowerEnum1, LowerEnum2](LowerEnum1.solo).toString, "solo")
+      assertEquals(testEnumDispatch[LowerEnum1, LowerEnum2](LowerEnum1.team).toString, "team")
+      assertEquals(testEnumDispatch[LowerEnum1, LowerEnum2](LowerEnum1.school).toString, "school")
+    }
+  }
+
   group("trait typed.Exprs (Scala 3, passQuotes/withQuotes)") {
 
     group("type LambdaBuilder scope issue") {

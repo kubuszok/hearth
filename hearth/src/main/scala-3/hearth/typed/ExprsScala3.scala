@@ -1534,10 +1534,16 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             )
 
             val sym = TypeRepr.of[Matched].typeSymbol
-            if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(Flags.StableRealizable)) then
-            // Scala 3's enums' parameterless cases are vals with type erased, so we have to match them by value
-            // case arg @ Enum.Value => ...
-            CaseDef(Bind(name, Ref(sym)), None, body)
+            if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(Flags.StableRealizable))
+            then
+            // Match a parameterless enum case by a SINGLETON TYPE TEST: `case arg : value.type`, which dotty compiles
+            // to a reference-equality check (`arg eq value`). This dispatches BY VALUE (so it works even though the
+            // case's declared type is erased) while avoiding both traps of a plain `case arg @ value` pattern: the
+            // value reference sits in TYPE position, so a lowercase enum case is never reinterpreted as a catch-all
+            // variable pattern (scala/scala3#20350, Chimney #625), and matching is by `eq` (not a checkcast), so it
+            // never fails on other members of a union scrutinee. `Singleton(Ref(sym))` builds the `value.type` tree.
+            // case arg : Enum.Value.type => ...
+            CaseDef(Bind(name, Typed(Wildcard(), Singleton(Ref(sym)))), None, body)
             // case arg : Enum.Value => ...
             else CaseDef(Bind(name, Typed(Wildcard(), TypeTree.of[Matched])), None, body)
 
@@ -1583,17 +1589,17 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 val sym = TypeRepr.of[ValueType].typeSymbol
                 val termSym = TypeRepr.of[ValueType].termSymbol
                 if sym.flags.is(Flags.Module) then CaseDef(Bind(name, Ref(sym.companionModule)), None, body)
+                // A parameterless enum case: match by a SINGLETON TYPE TEST (`case name: value.type`, i.e. `name eq
+                // value`) so a lowercase case is not misread as a variable pattern (scala/scala3#20350, Chimney #625)
+                // and no checkcast is inserted on other members of a union scrutinee. See the same shape in `TypeMatch`.
                 else if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(
                   Flags.StableRealizable
-                )) then CaseDef(Bind(name, Ref(sym)), None, body)
+                ))
+                then CaseDef(Bind(name, Typed(Wildcard(), Singleton(Ref(sym)))), None, body)
                 else if !termSym.isNoSymbol then CaseDef(Bind(name, valueTerm), None, body)
                 else {
                   val eqMethod = TypeRepr.of[Any].typeSymbol.methodMember("==").head
-                  CaseDef(
-                    Bind(name, Wildcard()),
-                    Some(Apply(Select(Ref(name), eqMethod), List(valueTerm))),
-                    body
-                  )
+                  CaseDef(Bind(name, Wildcard()), Some(Apply(Select(Ref(name), eqMethod), List(valueTerm))), body)
                 }
             }
         }

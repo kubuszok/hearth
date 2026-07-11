@@ -21,6 +21,11 @@ trait MethodsFixturesImpl { this: MacroCommons =>
   private def renderConstructor(constructor: Method): Data =
     renderParameters(constructor.totalParameters)
 
+  // Chimney #673: does Hearth expose `name` and `age` on an intersection type `A & B`?
+  // (Currently `false` for an intersection because `unsortedMethods` finds no `typeSymbol`.)
+  def testExposesNameAndAge[A: Type]: Expr[Data] =
+    Expr(Data(Method.unsortedMethodsNamed[A]("name").nonEmpty && Method.unsortedMethodsNamed[A]("age").nonEmpty))
+
   def testMethodsExtraction[A: Type](excluding: VarArgs[String]): Expr[Data] = {
     val excluded = excluding.toIterable.map {
       case Expr(excluding) => excluding

@@ -139,6 +139,21 @@ trait ExprsFixturesImpl { this: MacroCommons =>
 
   // MatchCase methods
 
+  // Chimney #625: mimics an enum->enum derivation - for each source case, `typeMatch` on it and return
+  // the same-named target enum singleton. With LOWERCASE parameterless cases the generated match
+  // miscompiles (every case collapses to the first) via `Bind(name, Ref(sym))`.
+  def testEnumDispatch[From: Type, To: Type](from: Expr[From]): Expr[To] = {
+    val toChildren = Type[To].exhaustiveChildren.get.toNonEmptyList.toList.toMap
+    from.matchOn(Type[From].exhaustiveChildren.get.toNonEmptyList.map { case (name, fromChild) =>
+      import fromChild.Underlying as FromChild
+      val toChild = toChildren(name)
+      import toChild.Underlying as ToChild
+      MatchCase.typeMatch[FromChild](FreshName.FromType).map { _ =>
+        Expr.singletonOf[ToChild].get.upcast[To]
+      }
+    })
+  }
+
   def testMatchCaseTypeMatch[A: Type](expr: Expr[A]): Expr[Data] = {
     implicit val dataType: Type[Data] = DataType
 

@@ -45,6 +45,18 @@ final class MethodsSpec extends MacroSuite {
     else
       Data(s"Some(hearth-tests/src/main/scala/hearth/examples/methods.scala:$line:$column)")
 
+  group("regression: intersection types (Chimney #673)") {
+
+    // Reproduces the Hearth bug behind Chimney #673: `unsortedMethods`/`methodsOf` reads members only
+    // from `instanceTpe.typeSymbol`, which is `NoSymbol` for an intersection `A & B` (an `AndType`), so
+    // the accessors declared by the parts (`name`, `age`) are dropped. FAILS today (returns `false`);
+    // will pass once `unsortedMethods`/`baseClasses` gain an `AndType` branch (like `parents` already has).
+    test("methods of `A & B` include the members of both parts") {
+      MethodsFixtures.testExposesNameAndAge[examples.methods.ExampleHasName & examples.methods.ExampleHasAge] <==>
+        Data(true)
+    }
+  }
+
   group("typed.Methods") {
 
     group("type Method") {

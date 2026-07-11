@@ -140,3 +140,8 @@ class WithRestrictedVar {
 abstract class StatusEntity(val status: String)
 abstract class AbstractIdStatusEntity(val id: Long, status: String) extends StatusEntity(status)
 class IdStatusEntity(id: Long, status: String) extends AbstractIdStatusEntity(id, status)
+
+// Chimney #673: an intersection type `A & B` (an `AndType`) has `NoSymbol` as its `typeSymbol`, so
+// `unsortedMethods`/`methodsOf` reads no members and DROPS `name` (from HasName) and `age` (from HasAge).
+trait ExampleHasName { def name: String }
+trait ExampleHasAge { def age: Int }
