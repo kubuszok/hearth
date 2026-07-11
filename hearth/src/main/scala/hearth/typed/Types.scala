@@ -122,26 +122,32 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       */
     final def possibleClassesOfType[A: Type]: Array[String] = {
       val plain = plainPrint[A].takeWhile(_ != '[')
-      // When we see ".type", don't call isObject (avoids cyclic dependency in Scala 3). Produce candidates for both:
-      // Scala object ("foo.Bar.type" -> "foo.Bar$") and Java enum/singleton ("java.lang.Thread.State.type" -> "java.lang.Thread.State").
-      val names = if (plain.endsWith(".type")) {
-        val base = plain.dropRight(".type".length)
-        def iter(n: String): Array[String] =
-          scala.collection.Iterator
-            .iterate(n)(_.reverse.replaceFirst("[.]", "\\$").reverse)
-            .take(n.count(_ == '.') + 1)
-            .toArray
-            .reverse
-        (iter(base + '$') ++ iter(base)).distinct
-      } else {
-        val name = plain
+      def iter(n: String): Array[String] =
         scala.collection.Iterator
-          .iterate(name)(_.reverse.replaceFirst("[.]", "\\$").reverse)
-          .take(name.count(_ == '.') + 1)
+          .iterate(n)(_.reverse.replaceFirst("[.]", "\\$").reverse)
+          .take(n.count(_ == '.') + 1)
           .toArray
           .reverse
+      // JVM-encode the simple name (the segment after the last '.') so a symbolic name like `::` becomes
+      // `$colon$colon` and resolves via `Class.forName` (a decoded `scala.collection.immutable.::` never would).
+      // `NameTransformer.encode` is the identity for ordinary alphanumeric names, so this only ADDS candidates for
+      // symbolic types and never changes resolution for anything already handled.
+      def encodeSimpleName(fqn: String): String = {
+        val idx = fqn.lastIndexOf('.')
+        if (idx < 0) scala.reflect.NameTransformer.encode(fqn)
+        else fqn.substring(0, idx + 1) + scala.reflect.NameTransformer.encode(fqn.substring(idx + 1))
       }
-      names
+      // Decoded candidates first (existing behaviour), then the symbol-encoded ones as an additive fallback.
+      def candidatesOf(base: String): Array[String] = {
+        val encoded = encodeSimpleName(base)
+        if (encoded == base) iter(base) else iter(base) ++ iter(encoded)
+      }
+      // When we see ".type", don't call isObject (avoids cyclic dependency in Scala 3). Produce candidates for both:
+      // Scala object ("foo.Bar.type" -> "foo.Bar$") and Java enum/singleton ("java.lang.Thread.State.type" -> "java.lang.Thread.State").
+      if (plain.endsWith(".type")) {
+        val base = plain.dropRight(".type".length)
+        (candidatesOf(base + '$') ++ candidatesOf(base)).distinct
+      } else candidatesOf(plain).distinct
     }
 
     final def position[A: Type]: Option[Position] = UntypedType.fromTyped[A].position
