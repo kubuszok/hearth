@@ -283,7 +283,9 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       paramss
         .map(inner =>
           ListMap.from(inner.map { param =>
-            symbolName(param.asTerm) -> UntypedParameter.parse(this, param.asTerm, indices(param)).toOption.get
+            symbolName(param.asTerm) -> UntypedParameter
+              .parse(this, param.asTerm, indices(param))
+              .fold(hearthAssertionFailed(_), identity)
           })
         )
     }

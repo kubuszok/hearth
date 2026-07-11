@@ -409,9 +409,15 @@ trait UntypedMethods { this: MacroCommons =>
 
     /** Whether this method overrides a member of a supertype.
       *
-      * Cross-platform divergence: for `java.lang.Object` methods this is `true` on Scala 2 (they override members
-      * inherited from `Any`) but `false` on Scala 3 (`Object` is the root class). Cross-platform derivation code must
-      * not branch on this predicate for `Object` members.
+      * '''Cross-platform divergence (semantic vs syntactic).''' Scala 2 computes this '''semantically'''
+      * (`symbol.overrides.nonEmpty`), while Scala 3 computes it '''syntactically''' (`Flags.Override`). They therefore
+      * disagree in two cases:
+      *   - `java.lang.Object` methods: `true` on Scala 2 (they override members inherited from `Any`), `false` on Scala
+      *     3 (`Object` is the root class);
+      *   - a concrete method that implements an abstract member '''without''' writing the `override` keyword (which is
+      *     legal Scala): `true` on Scala 2 (it does override), `false` on Scala 3 (no `override` modifier present).
+      *
+      * Cross-platform derivation code must not branch on this predicate where either case can occur.
       *
       * @since 0.1.0
       */

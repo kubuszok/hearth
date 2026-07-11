@@ -403,7 +403,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       paramss
         .map(inner =>
           ListMap.from(inner.map { param =>
-            param.name -> UntypedParameter.parse(this, param, indices(param)).toOption.get
+            param.name -> UntypedParameter.parse(this, param, indices(param)).fold(hearthAssertionFailed(_), identity)
           })
         )
     }
