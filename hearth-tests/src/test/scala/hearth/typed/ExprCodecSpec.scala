@@ -89,13 +89,18 @@ final class ExprCodecSpec extends MacroSuite {
         )
       }
 
-      // Regression: `semiQuoteEnum` must dispatch on the value's RUNTIME CLASS, not `getClass.getSimpleName`. `List`
-      // decomposes as the sealed `:: | Nil`, and `::`'s JVM-encoded simple name is `$colon$colon` (not `::`), so
-      // simple-name dispatch failed to re-lift a non-empty list ("No child for $colon$colon").
-      test("List re-lifts through its sealed `:: | Nil` decomposition (encoded child name)") {
-        import ExprCodecFixtures.testSemiQuoteReLift
-        testSemiQuoteReLift[List[Int]](List(1, 2, 3)) <==> Data("reLifted: List(1, 2, 3)")
-      }
+    }
+
+    group("collections route to built-in codecs") {
+      import ExprCodecFixtures.testSemiQuoteReLift
+
+      // Regression: `lookupBuiltInExprCodec` only special-cased `Seq`, so these fell into the sealed cascade and failed.
+      // (`Set`/`Map` are also routed for the quote side, but not asserted here: `semiEval` cannot yet decode a `Set`
+      // (Scala 2) or `Map` literal - a separate limitation - so a full round-trip via this fixture is not observable.)
+      test("List")(testSemiQuoteReLift[List[Int]](List(1, 2, 3)) <==> Data("reLifted: List(1, 2, 3)"))
+      test("Vector")(testSemiQuoteReLift[Vector[Int]](Vector(1, 2, 3)) <==> Data("reLifted: Vector(1, 2, 3)"))
+      test("Option")(testSemiQuoteReLift[Option[Int]](Some(42)) <==> Data("reLifted: Some(42)"))
+      test("Either")(testSemiQuoteReLift[Either[String, Int]](Right(1)) <==> Data("reLifted: Right(1)"))
     }
 
     group("case class with Data field") {

@@ -371,7 +371,7 @@ The `Method` API has a layered architecture with platform-specific untyped code 
 
 ### semiEval / semiQuote / EvalOverride / QuoteOverride
 
-**`semiEval`** evaluates expression trees at macro time via reflection. Returns `Either[String, A]`.
+**`semiEval`** evaluates expression trees at macro time via reflection. Returns `Either[NonEmptyVector[String], A]` (aggregated errors).
 
 - `Expr.semiEval[A](expr)` — no overrides, evaluates using built-in reflection
 - `Expr.semiEval[A](expr, overrides)` — custom evaluation dispatch by `UntypedType`

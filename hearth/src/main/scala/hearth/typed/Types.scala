@@ -1019,30 +1019,6 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     final def ModuleCodec[ModuleSingleton <: Singleton]: TypeCodec[ModuleSingleton] =
       ModuleCodecImpl.asInstanceOf[TypeCodec[ModuleSingleton]]
 
-    /** A mutable, macro-expansion-scoped memo keyed by `Type`, storing one `F[Result]` per distinct type.
-      *
-      * Intended for caching the results of expensive per-type computations (class-view parsing, std-extension provider
-      * scans, etc.) so they run at most once per type within a single macro expansion.
-      *
-      * Keys are compared with [[=:=]] (semantic type equality), '''not''' `==`: a `Type[A]` has no value-based
-      * `equals`, so on Scala 3 `==` is reference identity and would miss almost every hit. A miss simply recomputes, so
-      * a stale, partial, or leaky cache can never yield a wrong result — only less speed-up.
-      *
-      * Lookups are not a linear scan: entries are hash-bucketed by a cheap discriminator (the dealiased type's symbol,
-      * see [[hearth.untyped.UntypedTypes# UntypedTypeModule.cacheBucketKey]]), so the `=:=` comparison only runs
-      * against the few same-symbol candidates. This mirrors `isSameAs`'s fast negative (differing dealiased symbols ⟹
-      * not `=:=`), so bucketing can only turn an exotic would-be hit into a harmless miss.
-      *
-      * Entries are additionally partitioned by the active Cross-Quotes scope (`CrossQuotes.ctx` — the ACTIVE `Quotes`
-      * on Scala 3, a constant on Scala 2): cached values routinely embed materialized `Expr`s (std provider views,
-      * summoned implicits), and an `Expr` created during one `Expr.splice` evaluation must not be handed out during
-      * another (`-Xcheck-macros` aborts with a ScopeException). Within one scope memoization is unaffected; a new scope
-      * recomputes instead of leaking foreign-scope trees.
-      *
-      * Not thread-safe; a macro expansion is single-threaded.
-      *
-      * @since 0.4.1
-      */
     /** A lazily-computed [[Type]] that is SAFE to keep in per-expansion helper objects.
       *
       * A plain `lazy val tpe: Type[A] = Type.of[A]` is NOT: its first touch can happen inside an `Expr.splice` (which,
@@ -1091,6 +1067,30 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       def apply[A](compute: => Type[A]): Lazy[A] = new Lazy(() => compute)
     }
 
+    /** A mutable, macro-expansion-scoped memo keyed by `Type`, storing one `F[Result]` per distinct type.
+      *
+      * Intended for caching the results of expensive per-type computations (class-view parsing, std-extension provider
+      * scans, etc.) so they run at most once per type within a single macro expansion.
+      *
+      * Keys are compared with [[=:=]] (semantic type equality), '''not''' `==`: a `Type[A]` has no value-based
+      * `equals`, so on Scala 3 `==` is reference identity and would miss almost every hit. A miss simply recomputes, so
+      * a stale, partial, or leaky cache can never yield a wrong result — only less speed-up.
+      *
+      * Lookups are not a linear scan: entries are hash-bucketed by a cheap discriminator (the dealiased type's symbol,
+      * see [[hearth.untyped.UntypedTypes# UntypedTypeModule.cacheBucketKey]]), so the `=:=` comparison only runs
+      * against the few same-symbol candidates. This mirrors `isSameAs`'s fast negative (differing dealiased symbols ⟹
+      * not `=:=`), so bucketing can only turn an exotic would-be hit into a harmless miss.
+      *
+      * Entries are additionally partitioned by the active Cross-Quotes scope (`CrossQuotes.ctx` — the ACTIVE `Quotes`
+      * on Scala 3, a constant on Scala 2): cached values routinely embed materialized `Expr`s (std provider views,
+      * summoned implicits), and an `Expr` created during one `Expr.splice` evaluation must not be handed out during
+      * another (`-Xcheck-macros` aborts with a ScopeException). Within one scope memoization is unaffected; a new scope
+      * recomputes instead of leaking foreign-scope trees.
+      *
+      * Not thread-safe; a macro expansion is single-threaded.
+      *
+      * @since 0.4.1
+      */
     final class Cache[F[_]] {
       // (cross-quotes scope token, cheap bucket key) -> entries checked with =:=.
       private val impl =

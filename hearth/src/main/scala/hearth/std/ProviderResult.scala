@@ -11,9 +11,10 @@ import hearth.fp.data.NonEmptyMap
   * A result is one of two shapes:
   *   - [[ProviderResult.Matched]]`(value)` - a provider recognised the type and produced its proof;
   *   - [[ProviderResult.Skipped]]`(reasons)` - every provider declined, carrying a per-provider reason map whose values
-  *     are either a `String` (the provider deliberately declined) or a `Throwable` (the provider recognised the shape
-  *     but errored while building). Create single-entry skips with [[ProviderResult.skipped]] /
-  *     [[ProviderResult.failed]].
+  *     are `Either[Throwable, () => String]`: a `Throwable` (the provider recognised the shape but errored while
+  *     building) or a lazy `() => String` thunk (the provider deliberately declined; the message is computed only if it
+  *     is ever rendered - see [[ProviderResult.skippedLazily]]). Create single-entry skips with
+  *     [[ProviderResult.skipped]] / [[ProviderResult.skippedLazily]] / [[ProviderResult.failed]].
   *
   * @since 0.3.0
   *

@@ -243,6 +243,18 @@ trait ExprCodecDerivation { this: MacroCommons =>
         import elem.Underlying as E
         implicit val e: ExprCodec[E] = ec.asInstanceOf[ExprCodec[E]]
         Expr.OptionExprCodec[E].asInstanceOf[ExprCodec[Any]]
+      }).orElse(collectionCodec2[F, Map](mapTypeCtor) { (k, v, kc, vc) =>
+        import k.Underlying as K
+        import v.Underlying as V
+        implicit val kec: ExprCodec[K] = kc.asInstanceOf[ExprCodec[K]]
+        implicit val vec: ExprCodec[V] = vc.asInstanceOf[ExprCodec[V]]
+        Expr.MapExprCodec[K, V].asInstanceOf[ExprCodec[Any]]
+      }).orElse(collectionCodec2[F, Either](eitherTypeCtor) { (l, r, lc, rc) =>
+        import l.Underlying as L
+        import r.Underlying as R
+        implicit val lec: ExprCodec[L] = lc.asInstanceOf[ExprCodec[L]]
+        implicit val rec: ExprCodec[R] = rc.asInstanceOf[ExprCodec[R]]
+        Expr.EitherExprCodec[L, R].asInstanceOf[ExprCodec[Any]]
       })
 
   /** Builds a built-in `ExprCodec` for a unary collection `C[E]` when `F =:= C[E]` and `E` itself has a built-in codec
@@ -257,9 +269,26 @@ trait ExprCodecDerivation { this: MacroCommons =>
       else None
     }
 
+  /** [[collectionCodec1]] for a binary constructor `C[A, B]` (e.g. `Map`, `Either`). */
+  private def collectionCodec2[F: Type, C[_, _]](ctor: Type.Ctor2[C])(
+      build: (??, ??, ExprCodec[Any], ExprCodec[Any]) => ExprCodec[Any]
+  ): Option[ExprCodec[Any]] =
+    ctor.unapply(Type[F]).flatMap { case (a, b) =>
+      import a.Underlying as A
+      import b.Underlying as B
+      if (Type[F] =:= ctor[A, B])
+        for {
+          ac <- lookupBuiltInExprCodec[A]
+          bc <- lookupBuiltInExprCodec[B]
+        } yield build(a, b, ac, bc)
+      else None
+    }
+
   private lazy val seqTypeCtor: Type.Ctor1[Seq] = Type.Ctor1.of[Seq]
   private lazy val listTypeCtor: Type.Ctor1[List] = Type.Ctor1.of[List]
   private lazy val vectorTypeCtor: Type.Ctor1[Vector] = Type.Ctor1.of[Vector]
   private lazy val setTypeCtor: Type.Ctor1[Set] = Type.Ctor1.of[Set]
   private lazy val optionTypeCtor: Type.Ctor1[Option] = Type.Ctor1.of[Option]
+  private lazy val mapTypeCtor: Type.Ctor2[Map] = Type.Ctor2.of[Map]
+  private lazy val eitherTypeCtor: Type.Ctor2[Either] = Type.Ctor2.of[Either]
 }
