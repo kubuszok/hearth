@@ -45,6 +45,9 @@ final private class ClassesFixtures(val c: blackbox.Context) extends MacroCommon
   def testDependentEnumDiagnosticImpl[A: c.WeakTypeTag]: c.Expr[String] =
     testDependentEnumDiagnostic[A]
 
+  def testEnumParseDiagnosticImpl[A: c.WeakTypeTag]: c.Expr[String] =
+    testEnumParseDiagnostic[A]
+
   def testCaseClassDefaultValuesImpl[A: c.WeakTypeTag]: c.Expr[String] =
     testCaseClassDefaultValues[A]
 
@@ -106,6 +109,9 @@ object ClassesFixtures {
 
   def testDependentEnumDiagnostic[A]: String =
     macro ClassesFixtures.testDependentEnumDiagnosticImpl[A]
+
+  def testEnumParseDiagnostic[A]: String =
+    macro ClassesFixtures.testEnumParseDiagnosticImpl[A]
 
   def testCaseClassDefaultValues[A]: String =
     macro ClassesFixtures.testCaseClassDefaultValuesImpl[A]
