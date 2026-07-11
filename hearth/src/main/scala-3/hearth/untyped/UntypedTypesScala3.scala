@@ -381,8 +381,17 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       }
 
     override def baseClasses(instanceTpe: UntypedType): List[UntypedType] =
-      if instanceTpe.typeSymbol.isNoSymbol then Nil
-      else typeReprBaseClasses(instanceTpe).map(bc => instanceTpe.baseType(bc))
+      instanceTpe.dealias match {
+        // An intersection `A & B` has `NoSymbol` as its `typeSymbol`, so `typeReprBaseClasses` would return Nil and drop
+        // every ancestor of both parts. Union the base classes of the parts, deduplicating by symbol (Chimney #673,
+        // mirrors the `AndType` branch in `parents`).
+        case AndType(left, right) =>
+          val seen = scala.collection.mutable.Set.empty[Symbol]
+          (baseClasses(left) ++ baseClasses(right)).filter(bc => seen.add(bc.typeSymbol))
+        case _ =>
+          if instanceTpe.typeSymbol.isNoSymbol then Nil
+          else typeReprBaseClasses(instanceTpe).map(bc => instanceTpe.baseType(bc))
+      }
 
     private object experimentalReflect {
       private val symbolObj = Symbol.getClass

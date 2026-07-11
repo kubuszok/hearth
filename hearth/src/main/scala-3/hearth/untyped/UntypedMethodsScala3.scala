@@ -930,7 +930,19 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def methods(instanceTpe: UntypedType): List[UntypedMethod] =
       sortMethods(unsortedMethods(instanceTpe))
 
-    override def unsortedMethods(instanceTpe: UntypedType): List[UntypedMethod] = {
+    override def unsortedMethods(instanceTpe: UntypedType): List[UntypedMethod] = instanceTpe match {
+      // An intersection `A & B` (an `AndType`) has `NoSymbol` as its `typeSymbol`, so the single-symbol member walk in
+      // `unsortedMethodsOfSingleSymbol` reads nothing and the accessors declared by the parts (`name`, `age`, ...)
+      // vanish entirely (Chimney #673). A value of `A & B` exposes the members of BOTH parts, so union them,
+      // deduplicating members shared via a common parent (e.g. `Object`'s methods) by their underlying symbol. Mirrors
+      // the `AndType` branch already in `parents`/`baseClasses`.
+      case AndType(left, right) =>
+        val seen = scala.collection.mutable.Set.empty[Symbol]
+        (unsortedMethods(left) ++ unsortedMethods(right)).filter(m => seen.add(m.symbol))
+      case _ => unsortedMethodsOfSingleSymbol(instanceTpe)
+    }
+
+    private def unsortedMethodsOfSingleSymbol(instanceTpe: UntypedType): List[UntypedMethod] = {
       val symbol = instanceTpe.typeSymbol
       // `fieldMembers` only returns the type's OWN fields, so `val` fields inherited from parent CLASSES (e.g. the
       // constructor vals of an abstract parent) are neither methods nor own fields and would vanish entirely. Walk the

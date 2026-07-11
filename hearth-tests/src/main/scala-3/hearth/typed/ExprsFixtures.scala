@@ -47,6 +47,11 @@ object ExprsFixtures {
   private def testExprUpcastingImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testExprUpcasting[A, B](expr)
 
+  // Chimney #625
+  inline def testEnumDispatch[From, To](inline from: From): To = ${ testEnumDispatchImpl[From, To]('from) }
+  private def testEnumDispatchImpl[From: Type, To: Type](from: Expr[From])(using q: Quotes): Expr[To] =
+    new ExprsFixtures(q).testEnumDispatch[From, To](from)
+
   inline def testSuppressUnused[A](inline expr: A): Unit = ${ testSuppressUnusedImpl[A]('expr) }
   private def testSuppressUnusedImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Unit] =
     new ExprsFixtures(q).testSuppressUnused[A](expr)
