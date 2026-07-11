@@ -130,12 +130,23 @@ trait UntypedTypes { this: MacroCommons =>
       *
       * @since 0.1.0
       */
+    // The built-in type lists are constant, but their UNTYPED forms were re-lowered (`fromTyped`) on every call of the
+    // predicates below - 8-13 conversions per query, and these run per field in derivation loops. Lower them once per
+    // expansion (module objects re-instantiate per expansion, so these lazy vals are effectively expansion-scoped, like
+    // the std-extension cached bottom types).
+    private lazy val primitiveUntypedTypes: List[UntypedType] =
+      Type.primitiveTypes.map(tpe => fromTyped(using tpe.Underlying))
+    private lazy val unitUntypedType: UntypedType = fromTyped(using Type.of[Unit])
+    private lazy val jvmBuiltInUntypedTypes: List[UntypedType] =
+      Type.jvmBuiltInTypes.map(tpe => fromTyped(using tpe.Underlying))
+    private lazy val typeSystemSpecialUntypedTypes: List[UntypedType] =
+      Type.typeSystemSpecialTypes.map(tpe => fromTyped(using tpe.Underlying))
+
     final def isPrimitive(instanceTpe: UntypedType): Boolean =
       // `Unit` is not in `primitiveTypes` (it does not box to `java.lang.Object` the way the 8 value types do), but
       // scalac's `Symbol.isPrimitive`/`isPrimitiveValueClass` counts it, so for parity we count it here too. Otherwise
       // a `!isPrimitive && isClass && !isAbstract` classifier treats `Unit` as an instantiable POJO. See issue #310.
-      Type.primitiveTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying)) ||
-        instanceTpe <:< fromTyped(using Type.of[Unit])
+      primitiveUntypedTypes.exists(instanceTpe <:< _) || (instanceTpe <:< unitUntypedType)
     final def isArray(instanceTpe: UntypedType): Boolean =
       ArrayCtor.unapply(toTyped[Any](instanceTpe)).isDefined
     def isIArray(instanceTpe: UntypedType): Boolean = false
@@ -151,11 +162,10 @@ trait UntypedTypes { this: MacroCommons =>
       * @since 0.1.0
       */
     final def isJvmBuiltIn(instanceTpe: UntypedType): Boolean =
-      Type.jvmBuiltInTypes.exists(tpe => instanceTpe <:< fromTyped(using tpe.Underlying)) || isArray(
-        instanceTpe
-      ) || isIArray(instanceTpe) || isInJavaLangPackage(instanceTpe)
+      jvmBuiltInUntypedTypes.exists(instanceTpe <:< _) || isArray(instanceTpe) || isIArray(instanceTpe) ||
+        isInJavaLangPackage(instanceTpe)
     final def isTypeSystemSpecial(instanceTpe: UntypedType): Boolean =
-      Type.typeSystemSpecialTypes.exists(tpe => instanceTpe =:= fromTyped(using tpe.Underlying))
+      typeSystemSpecialUntypedTypes.exists(instanceTpe =:= _)
 
     def isInJavaLangPackage(instanceTpe: UntypedType): Boolean
     def isOpaqueType(instanceTpe: UntypedType): Boolean

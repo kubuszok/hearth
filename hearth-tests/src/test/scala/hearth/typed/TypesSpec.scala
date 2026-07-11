@@ -288,6 +288,16 @@ final class TypesSpec extends MacroSuite {
           }
         }
 
+        test("for a symbolic (JVM-encoded) class name") {
+          // Regression: `possibleClassesOfType` derived candidates from the (decoded) printed name, so a symbolic name
+          // like `::` produced `scala.collection.immutable.::` which `Class.forName` never resolves. It now also emits
+          // the JVM-encoded candidate `scala.collection.immutable.$colon$colon`. (JVM-only: the assertion compares the
+          // macro-time class - always resolved on the compiler's JVM - against the JVM runtime class.)
+          if (Platform.byHearth.isJvm) {
+            testClassOfType[::[Int]] <==> Data.map("Type.classOfType" -> Data(classOf[::[Int]].toString))
+          }
+        }
+
         test("for type-system-special types") {
           testClassOfType[Any] <==> Data.map("Type.classOfType" -> Data(classOf[Any].toString))
           testClassOfType[AnyRef] <==> Data.map("Type.classOfType" -> Data(classOf[AnyRef].toString))
