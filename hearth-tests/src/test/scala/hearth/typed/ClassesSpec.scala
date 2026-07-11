@@ -198,6 +198,23 @@ final class ClassesSpec extends MacroSuite {
       }
     }
 
+    group("directChildren ordering") {
+      import ClassesFixtures.testEnumParseDiagnostic
+
+      // Regression: a sealed hierarchy's children must come back in DECLARATION order, deterministically, on both
+      // platforms. On Scala 3 the earlier implementation sorted the synthetic module-CLASS symbols by source position,
+      // but those synthetic symbols frequently lack a position during macro expansion, which intermittently collapsed
+      // the whole list onto an alphabetical name fallback - declaration order on a "warm" build, alphabetical on a
+      // "cold"/from-TASTy one, for the SAME sources. `TrafficLight`'s children are ordered so that declaration order
+      // (`Red, Yellow, Green`) differs from alphabetical (`Green, Red, Yellow`); an accidental alphabetical sort would
+      // therefore fail this assertion. `TrafficLight` lives in the test sources (same compilation unit as this spec),
+      // mirroring the real-world hierarchy that first surfaced the flake.
+      test("sealed trait children preserve declaration order (not alphabetical)") {
+        testEnumParseDiagnostic[ClassesSpec.TrafficLight] <==>
+          "parsed with children: Red, Yellow, Green"
+      }
+    }
+
     test("CaseClass[A].{construct and parConstruct} should construct an instance of the case class") {
       import ClassesFixtures.testCaseClassConstructAndParConstruct
 
@@ -482,5 +499,20 @@ final class ClassesSpec extends MacroSuite {
       code(hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitObject) <==>
         "sequential: subtype name: hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type, expr: ExampleSealedTraitObject, parallel: subtype name: hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type, expr: ExampleSealedTraitObject"
     }
+  }
+}
+
+object ClassesSpec {
+
+  /** Witness for the `directChildren ordering` regression: the children are declared in an order (`Red, Yellow, Green`)
+    * that differs from their alphabetical order (`Green, Red, Yellow`), so the test can tell declaration order apart
+    * from an accidental alphabetical sort. Defined in the test sources (same compilation unit as the spec) so both
+    * Scala 2 and Scala 3 resolve it identically.
+    */
+  sealed trait TrafficLight
+  object TrafficLight {
+    case object Red extends TrafficLight
+    case object Yellow extends TrafficLight
+    case object Green extends TrafficLight
   }
 }

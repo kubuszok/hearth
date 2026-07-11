@@ -781,10 +781,22 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           else if sym.flags.is(Flags.Module) then sym.typeRef.typeSymbol.moduleClass
           else sym
 
-        // calling .distinct here as `children` returns duplicates for multiply-inherited types
-        instanceTpe.typeSymbol.children
+        // Sort the ORIGINAL child symbols, THEN map them through `handleSymbols` - the previous code did the reverse
+        // (`.map(handleSymbols).sorted`), which is what made the order flaky.
+        //
+        // `symbolOrdering` orders by source position first, and falls back to the (deterministic) alphabetical name
+        // only when a position is absent - the intended behaviour, because incremental compilation drops positions and
+        // the name is then the one stable key available. The bug was purely about WHICH symbol we sorted: for a
+        // `case object`, `handleSymbols` returns the synthetic module CLASS, whose source position is frequently absent
+        // (and unreliably completed) during macro expansion, so `symbolOrdering` fell through to the name fallback and
+        // the result flipped between declaration order ("warm" build) and alphabetical order ("cold" build) for the
+        // SAME sources. The ORIGINAL child symbol (the user-written `case object`'s module val / the case class) carries
+        // a real source position for a same-compilation-unit hierarchy, so sorting it directly restores stable
+        // declaration order there while keeping the exact position-then-name semantics everywhere else. We deliberately
+        // do NOT rely on the `children` list order itself (it is not a documented declaration-order guarantee across
+        // Scala versions / incremental compilation), only on the per-symbol position/name keys.
+        instanceTpe.typeSymbol.children.sorted // by `symbolOrdering`: original child position, then alphabetical name when the position is absent
           .map(handleSymbols)
-          .sorted
           .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
       }
       else if isUnionType(instanceTpe) then unionMemberDispatch(instanceTpe).flatMap { dispatch =>
