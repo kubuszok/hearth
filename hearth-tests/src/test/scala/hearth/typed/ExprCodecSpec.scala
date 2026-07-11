@@ -88,6 +88,14 @@ final class ExprCodecSpec extends MacroSuite {
           )
         )
       }
+
+      // Regression: `semiQuoteEnum` must dispatch on the value's RUNTIME CLASS, not `getClass.getSimpleName`. `List`
+      // decomposes as the sealed `:: | Nil`, and `::`'s JVM-encoded simple name is `$colon$colon` (not `::`), so
+      // simple-name dispatch failed to re-lift a non-empty list ("No child for $colon$colon").
+      test("List re-lifts through its sealed `:: | Nil` decomposition (encoded child name)") {
+        import ExprCodecFixtures.testSemiQuoteReLift
+        testSemiQuoteReLift[List[Int]](List(1, 2, 3)) <==> Data("reLifted: List(1, 2, 3)")
+      }
     }
 
     group("case class with Data field") {

@@ -11,6 +11,9 @@ final private class ExprCodecFixtures(val c: blackbox.Context) extends MacroComm
   def testExprCodecRoundTripImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
     testExprCodecRoundTrip[A](expr)
 
+  def testSemiQuoteReLiftImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testSemiQuoteReLift[A](expr)
+
   def testSemiQuotePrimitivesImpl: c.Expr[Data] = testSemiQuotePrimitives
 
   def testSemiQuoteCaseClassImpl: c.Expr[Data] = testSemiQuoteCaseClass
@@ -38,6 +41,9 @@ object ExprCodecFixtures {
 
   def testExprCodecRoundTrip[A](expr: A): Data =
     macro ExprCodecFixtures.testExprCodecRoundTripImpl[A]
+
+  def testSemiQuoteReLift[A](expr: A): Data =
+    macro ExprCodecFixtures.testSemiQuoteReLiftImpl[A]
 
   def testSemiQuotePrimitives: Data = macro ExprCodecFixtures.testSemiQuotePrimitivesImpl
 

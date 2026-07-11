@@ -76,16 +76,22 @@ trait ExprCodecDerivation { this: MacroCommons =>
       value: A,
       en: Enum[A],
       overrides: UntypedType => Existential[QuoteOverride]
-  ): Either[String, Expr[A]] = {
-    val className = value.getClass.getSimpleName.stripSuffix("$")
-    en.directChildren
-      .collectFirst {
-        case (name, childType) if name == className =>
-          import childType.Underlying as C
-          semiQuoteInternal[C](value.asInstanceOf[C], overrides).map(_.upcast[A])
+  ): Either[String, Expr[A]] =
+    // Dispatch on the value's RUNTIME CLASS, not on `getClass.getSimpleName` matched against the child's key: the
+    // simple name is JVM-encoded (`$colon$colon` for `::`, so `List` would never dispatch) and same-simple-name
+    // children in different scopes collide (#309). `isInstance` selects the (unique, since children are disjoint)
+    // child whose type the value belongs to; nested sealed hierarchies recurse through `semiQuoteInternal`.
+    en.directChildren.iterator
+      .flatMap { case (_, childType) =>
+        import childType.Underlying as C
+        if (Type.classOfType[C].exists(_.isInstance(value)))
+          Iterator.single(semiQuoteInternal[C](value.asInstanceOf[C], overrides).map(_.upcast[A]))
+        else Iterator.empty
       }
-      .getOrElse(Left(s"No child for $className in ${Type.prettyPrint[A]}"))
-  }
+      .nextOption()
+      .getOrElse(
+        Left(s"No child of ${Type.prettyPrint[A]} matches runtime class ${value.getClass.getName}")
+      )
 
   // -- ExprCodec.derived --
 
@@ -213,17 +219,47 @@ trait ExprCodecDerivation { this: MacroCommons =>
     else if (Type[F] =:= Type.of[BigDecimal]) Some(Expr.BigDecimalExprCodec.asInstanceOf[ExprCodec[Any]])
     else if (Type[F] =:= Type.of[hearth.data.Data]) Some(Expr.DataExprCodec.asInstanceOf[ExprCodec[Any]])
     else
-      // Vararg case-class fields/parameters are normalized to scala.collection.immutable.Seq[A], so Seq of
-      // built-in-codec elements has to be supported for vararg case classes to round-trip.
-      seqTypeCtor.unapply(Type[F]).flatMap { elem =>
+      // Route the built-in collection codecs so that `Seq`/`List`/`Vector`/`Set`/`Option`/`Map`/`Either` of
+      // built-in-codec elements round-trip directly through `semiQuote`/`ExprCodec.derived` - otherwise they fall into
+      // the sealed-hierarchy cascade (`List` is `:: | Nil`) whose child `::` has the JVM-encoded name `$colon$colon`
+      // that `Type.classOfType` cannot currently resolve. (`Seq` also covers the vararg-normalized case-class fields.)
+      collectionCodec1[F, Seq](seqTypeCtor) { (elem, ec) =>
         import elem.Underlying as E
-        if (Type[F] =:= seqTypeCtor[E])
-          lookupBuiltInExprCodec[E].map { elemCodec =>
-            implicit val elemExprCodec: ExprCodec[E] = elemCodec.asInstanceOf[ExprCodec[E]]
-            Expr.SeqExprCodec[E].asInstanceOf[ExprCodec[Any]]
-          }
-        else None
-      }
+        implicit val e: ExprCodec[E] = ec.asInstanceOf[ExprCodec[E]]
+        Expr.SeqExprCodec[E].asInstanceOf[ExprCodec[Any]]
+      }.orElse(collectionCodec1[F, List](listTypeCtor) { (elem, ec) =>
+        import elem.Underlying as E
+        implicit val e: ExprCodec[E] = ec.asInstanceOf[ExprCodec[E]]
+        Expr.ListExprCodec[E].asInstanceOf[ExprCodec[Any]]
+      }).orElse(collectionCodec1[F, Vector](vectorTypeCtor) { (elem, ec) =>
+        import elem.Underlying as E
+        implicit val e: ExprCodec[E] = ec.asInstanceOf[ExprCodec[E]]
+        Expr.VectorExprCodec[E].asInstanceOf[ExprCodec[Any]]
+      }).orElse(collectionCodec1[F, Set](setTypeCtor) { (elem, ec) =>
+        import elem.Underlying as E
+        implicit val e: ExprCodec[E] = ec.asInstanceOf[ExprCodec[E]]
+        Expr.SetExprCodec[E].asInstanceOf[ExprCodec[Any]]
+      }).orElse(collectionCodec1[F, Option](optionTypeCtor) { (elem, ec) =>
+        import elem.Underlying as E
+        implicit val e: ExprCodec[E] = ec.asInstanceOf[ExprCodec[E]]
+        Expr.OptionExprCodec[E].asInstanceOf[ExprCodec[Any]]
+      })
+
+  /** Builds a built-in `ExprCodec` for a unary collection `C[E]` when `F =:= C[E]` and `E` itself has a built-in codec
+    * (recursively). `build` receives the element type-carrier and its (erased) codec and produces the collection codec.
+    */
+  private def collectionCodec1[F: Type, C[_]](ctor: Type.Ctor1[C])(
+      build: (??, ExprCodec[Any]) => ExprCodec[Any]
+  ): Option[ExprCodec[Any]] =
+    ctor.unapply(Type[F]).flatMap { elem =>
+      import elem.Underlying as E
+      if (Type[F] =:= ctor[E]) lookupBuiltInExprCodec[E].map(elemCodec => build(elem, elemCodec))
+      else None
+    }
 
   private lazy val seqTypeCtor: Type.Ctor1[Seq] = Type.Ctor1.of[Seq]
+  private lazy val listTypeCtor: Type.Ctor1[List] = Type.Ctor1.of[List]
+  private lazy val vectorTypeCtor: Type.Ctor1[Vector] = Type.Ctor1.of[Vector]
+  private lazy val setTypeCtor: Type.Ctor1[Set] = Type.Ctor1.of[Set]
+  private lazy val optionTypeCtor: Type.Ctor1[Option] = Type.Ctor1.of[Option]
 }
