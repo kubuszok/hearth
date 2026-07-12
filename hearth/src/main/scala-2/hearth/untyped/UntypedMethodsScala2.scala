@@ -278,7 +278,21 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     }
 
     override lazy val parameters: UntypedParameters = {
-      val paramss = if (symbol.isMethod) symbol.asMethod.paramLists else Nil
+      val paramss =
+        try if (symbol.isMethod) symbol.asMethod.paramLists else Nil
+        catch {
+          // [Chimney scalalandio/chimney#899] Forcing a member's parameter lists completes its full signature. For a
+          // value/getter whose type is still being inferred (`val foo = someMacro[A]` with no explicit type), completing
+          // that signature re-enters the member's own still-running completer and scala-reflect throws a CyclicReference.
+          // A getter provably takes no value parameters, so we can safely report `Nil` (exactly what a completed
+          // getter would return) WITHOUT forcing the cyclic signature - reading `isGetter` does not complete it. The
+          // member stays listable; its still-unknown return type surfaces as `knownReturning == None` (see
+          // `Method.knownReturning`) instead of throwing. Non-getter members genuinely cannot be shaped without the
+          // signature, so their cycle propagates (the compiler then reports "recursive value ... needs type").
+          case e: Throwable
+              if e.getClass.getName.endsWith("CyclicReference") && symbol.isMethod && symbol.asMethod.isGetter =>
+            Nil
+        }
       val indices = paramss.flatten.zipWithIndex.toMap
       paramss
         .map(inner =>

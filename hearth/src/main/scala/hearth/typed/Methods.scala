@@ -596,6 +596,20 @@ trait Methods { this: MacroCommons =>
     private lazy val methodsOfCache = new Type.Cache[CachedMethods]
     private lazy val unsortedMethodsOfCache = new Type.Cache[CachedMethods]
 
+    /** Forces the (deferred) return type of a method chain step. [Chimney scalalandio/chimney#899] Resolving the result
+      * type completes the underlying member's signature; for a value/getter whose type is still being inferred (`val
+      * foo = someMacro[A]` with no explicit type annotation) that completion re-enters the member's own running
+      * completer and scala-reflect (or dotty) throws a `CyclicReference`. There is no answer to give - the type
+      * genuinely is not available yet - so the honest result is `None` ("return type not statically known here"),
+      * exactly what this `Option` already means for an unresolved type parameter. The caller then decides what to do
+      * with a member of unknown type, rather than a raw compiler-internal exception leaking out of a listing call.
+      * Matched by simple name so both `scala.reflect.internal.Symbols$CyclicReference` and
+      * `dotty.tools.dotc.core.CyclicReference` are covered without a hard dependency on either.
+      */
+    private[Methods] def forceKnownReturning(knownReturning0: Option[() => ??]): Option[??] =
+      try knownReturning0.map(_.apply())
+      catch { case e: Throwable if e.getClass.getName.endsWith("CyclicReference") => None }
+
     sealed private[hearth] trait AppliedStep extends Product with Serializable
     private[hearth] object AppliedStep {
       final case class Instance(expr: UntypedExpr) extends AppliedStep
@@ -844,7 +858,7 @@ trait Methods { this: MacroCommons =>
       @ImportedCrossTypeImplicit
       implicit val Instance: Type[Instance] = instanceEvidence.Underlying
       def parameters: Parameters = List.empty
-      lazy val knownReturning: Option[??] = knownReturning0.map(_.apply())
+      lazy val knownReturning: Option[??] = Method.forceKnownReturning(knownReturning0)
       def apply(instance: Expr[Instance]): Method = next(instance.asUntyped)
       def applyUntyped(instance: UntypedExpr): Method = next(instance)
     }
@@ -905,7 +919,7 @@ trait Methods { this: MacroCommons =>
       type Instance = instanceEvidence.Underlying
       @ImportedCrossTypeImplicit
       implicit val Instance: Type[Instance] = instanceEvidence.Underlying
-      lazy val knownReturning: Option[??] = knownReturning0.map(_.apply())
+      lazy val knownReturning: Option[??] = Method.forceKnownReturning(knownReturning0)
       def apply(arguments: Arguments): Method = next(UntypedArguments.fromTyped(arguments))
     }
 

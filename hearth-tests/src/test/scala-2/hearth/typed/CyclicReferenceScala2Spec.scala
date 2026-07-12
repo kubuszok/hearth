@@ -1,52 +1,64 @@
 package hearth
 package typed
 
-/** Scala-2-only reproduction of the mechanism behind Chimney #899
-  * (`case class A() { val foo = this.transformInto[B] }` failing to compile).
+/** Scala-2-only reproduction of the mechanism behind Chimney #899 (`case class A() { val foo = this.transformInto[B]
+  * }`) and of Hearth's fix for it.
   *
-  * `Type[A].unsortedMethods` (and forcing member return types) is safe on its own, but when it runs inside an
-  * implicit search that fires while an enclosing `val` of `A` is still being inferred, completing `A`'s member
-  * list re-enters that `val`'s running completer. In a normal file compile that surfaces as
-  * `scala.reflect.internal.Symbols$CyclicReference: illegal cyclic reference involving value foo` (see the real
-  * Chimney control and the standalone harness hearth-repros/repro-899); under the toolbox used by
-  * `compileErrors` the typer's earlier guard fires first and reports `recursive value foo needs type`. Both are
-  * the same root cause.
+  * `Type[A].unsortedMethods` (and forcing member return types) is safe on its own, but when it runs inside an implicit
+  * search that fires while an enclosing `val` of `A` is still being inferred, completing `A`'s member signatures
+  * re-enters that `val`'s running completer and scala-reflect signals a `CyclicReference`. BEFORE the fix that raw
+  * internal exception leaked out of the listing call and the compile failed with `recursive value foo needs type`.
+  * AFTER the fix Hearth represents the un-completable member honestly — a getter stays listable with no parameters and
+  * its unknown return type surfaces as `knownReturning == None` — so the reflecting materializer completes and the
+  * whole thing compiles, no exception, no signature change.
   *
   * [[CyclicTC]] plays Chimney's `Transformer[A, B]`: its materializer reflects on the source. [[PlainTC]] is an
-  * identical type class whose materializer does NOT reflect — the control proving the reflection is what turns
-  * the `val` recursive. See [[CyclicReferenceFixtures]].
+  * identical type class whose materializer does NOT reflect — the control proving the reflection is what turns the
+  * `val` recursive. See [[CyclicReferenceFixtures]].
   */
 final class CyclicReferenceScala2Spec extends MacroSuite {
 
   group("regression: reflecting an enclosing mid-inference member (Chimney #899)") {
 
-    test("reflecting `A` from an implicit search makes an inferred `val` of `A` fail as recursive/cyclic") {
-      compileErrors(
-        """
-        import hearth.typed.CyclicConvertSyntax._
-        case class A() { val foo = this.cyclicConvertInto[B] }
-        case class B()
-        """
-      ).check("recursive value foo needs type")
+    test("a reflecting materializer no longer breaks an inferred `val` of the reflected type") {
+      import hearth.typed.CyclicConvertSyntax.*
+      case class B()
+      // No explicit type on `foo`, yet the reflecting `cyclicConvertInto` materializer compiles: Hearth yields
+      // `knownReturning == None` for the mid-inference member instead of leaking a CyclicReference. Before the fix
+      // this failed with `recursive value foo needs type`.
+      case class A() { val foo = this.cyclicConvertInto[B] }
+      A().foo ==> null
     }
 
-    test("control: the SAME shape with a non-reflecting materializer compiles (reflection is the cause)") {
-      import hearth.typed.CyclicConvertSyntax._
+    test("control: the SAME shape with a non-reflecting materializer compiles (reflection was the trigger)") {
+      import hearth.typed.CyclicConvertSyntax.*
       case class B()
       case class A() { val foo = this.plainConvertInto[B] } // no explicit type, yet compiles - no reflection
       A().foo ==> null
     }
 
-    test("workaround: giving the enclosing member an explicit type avoids the cycle (documented for #899)") {
-      import hearth.typed.CyclicConvertSyntax._
+    test("an explicit type on the enclosing member also compiles (the pre-fix workaround still works)") {
+      import hearth.typed.CyclicConvertSyntax.*
       case class B()
       case class A() { val foo: B = this.cyclicConvertInto[B] } // explicit type -> no re-entry, compiles
       A().foo ==> null
     }
 
-    // NOTE (verified empirically): Hearth CANNOT rescue the inferred-`val` case. The compiler's namer detects the
-    // recursive `val` and reports `recursive value foo needs type` BEFORE Hearth ever forces the member's return type,
-    // so no Hearth-level `try/catch` around the reflection (`unsortedMethods`/`knownReturning`) is ever reached - a
-    // catch there does not fire. The user-facing remedy is the explicit type annotation above.
+    test("on a FULLY-TYPED type, getters still resolve their return type (the fix only yields None on a real cycle)") {
+      // `knownReturning == None` must be specific to the mid-inference cycle: on a completed type every getter's
+      // return type is still resolvable (`Some`). If the fix over-reported None this would contain `:None`.
+      val report = CyclicReferenceFixtures.knownReturningReport[FullyTypedForReturning]
+      // Fields/getters and other concrete members resolve their return type.
+      report.contains("name:Some") ==> true
+      report.contains("age:Some") ==> true
+      report.contains("copy:Some") ==> true
+      report.contains("toString:Some") ==> true
+      // The only `None`s are the generic Object members whose type parameter is unresolved (pre-existing behavior,
+      // `Methods.scala` — `hasUnresolvedTypeParams`), NOT anything the #899 fix touched.
+      report.split(",").filter(_.endsWith(":None")).map(_.takeWhile(_ != ':')).sorted.toList ==>
+        List("asInstanceOf", "isInstanceOf", "synchronized")
+    }
   }
 }
+
+final case class FullyTypedForReturning(name: String, age: Int)
