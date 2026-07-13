@@ -25,7 +25,10 @@ The current version has all planned features, beside bugfixes no further changes
 
 Please, take a look at [Roadmap](https://github.com/kubuszok/hearth/issues/10) for more information about what is already done.
 
-See [Kindlings](https://github.com/kubuszok/kindlings), [Pipez](https://github.com/kubuszok/pipez) and [Refined-compat](https://github.com/kubuszok/refined-compat)
+See [Chimney](https://github.com/scalalandio/chimney),
+[Kindlings](https://github.com/kubuszok/kindlings),
+[Pipez](https://github.com/kubuszok/pipez)
+and [Refined-compat](https://github.com/kubuszok/refined-compat)
 for examples how Hearth can be used to implement a macro-powered library.
 
 ## Contribution
