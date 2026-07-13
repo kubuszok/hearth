@@ -280,7 +280,7 @@ val publishSettings = Seq(
 )
 
 // The last released version we check binary compatibility against. Bump this on every release.
-val mimaPreviousVersion = "0.4.0"
+val mimaPreviousVersion = "0.4.1"
 
 val mimaSettings = Seq(
   mimaPreviousArtifacts := {
