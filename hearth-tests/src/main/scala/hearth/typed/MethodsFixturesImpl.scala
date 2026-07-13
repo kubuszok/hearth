@@ -937,6 +937,28 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     )
   }
 
+  // Issue #348: type-position annotations must ALSO survive the caseFields / knownReturning path (each case-field
+  // GETTER's return type), not only the primaryConstructor.totalParameters path exercised by testTypeAnnotations.
+  def testTypeAnnotationsViaKnownReturning[A: Type]: Expr[Data] = {
+    def annNames(anns: List[Expr_??]): Data = Data.list(anns.map { ann =>
+      if (ann.Underlying =:= Type.of[hearth.examples.methods.ExampleAnnotation2]) Data("ExampleAnnotation2")
+      else if (ann.Underlying =:= Type.of[hearth.examples.methods.ExampleAnnotation]) Data("ExampleAnnotation")
+      else Data(ann.Underlying.plainPrint)
+    }*)
+
+    val fields = CaseClass.parse[A].toOption.toList.flatMap(_.caseFields).flatMap { method =>
+      method.knownReturning.map { rt =>
+        import rt.Underlying as FieldTpe
+        Data.map(
+          "name" -> Data(method.name),
+          "typeAnnotations" -> annNames(Type.typeAnnotations[FieldTpe])
+        )
+      }
+    }
+
+    Expr(Data.list(fields*))
+  }
+
   private def renderParameterAnnotations(parameters: Parameters): Data = {
     val rendered = parameters.flatten.map { case (paramName, param) =>
       val annotations = param.annotations.flatMap { ann =>

@@ -208,6 +208,10 @@ object MethodsFixtures {
   private def testTypeAnnotationsImpl[A: Type](using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testTypeAnnotations[A]
 
+  inline def testTypeAnnotationsViaKnownReturning[A]: Data = ${ testTypeAnnotationsViaKnownReturningImpl[A] }
+  private def testTypeAnnotationsViaKnownReturningImpl[A: Type](using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testTypeAnnotationsViaKnownReturning[A]
+
   inline def testParameterAnnotations[A](inline methodName: String): Data = ${
     testParameterAnnotationsImpl[A]('methodName)
   }

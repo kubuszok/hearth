@@ -103,6 +103,9 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
   def testTypeAnnotationsImpl[A: c.WeakTypeTag]: c.Expr[Data] =
     testTypeAnnotations[A]
 
+  def testTypeAnnotationsViaKnownReturningImpl[A: c.WeakTypeTag]: c.Expr[Data] =
+    testTypeAnnotationsViaKnownReturning[A]
+
   def testParameterAnnotationsImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
     testParameterAnnotations[A](methodName)
 
@@ -220,6 +223,9 @@ object MethodsFixtures {
 
   def testTypeAnnotations[A]: Data =
     macro MethodsFixtures.testTypeAnnotationsImpl[A]
+
+  def testTypeAnnotationsViaKnownReturning[A]: Data =
+    macro MethodsFixtures.testTypeAnnotationsViaKnownReturningImpl[A]
 
   def testParameterAnnotations[A](methodName: String): Data =
     macro MethodsFixtures.testParameterAnnotationsImpl[A]

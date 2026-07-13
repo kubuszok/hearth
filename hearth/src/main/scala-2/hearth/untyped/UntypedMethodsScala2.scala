@@ -601,8 +601,19 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
           case ExistentialType(_, underlying) => underlying
           case other                          => other
         }
+        // `typeSignatureIn` (as-seen-from applied to the whole NullaryMethodType) DROPS type-position annotations
+        // (`AnnotatedType`, e.g. `String @Ann` on a case-field getter) from the result on Scala 2.13 - see
+        // [hearth#348], where they survive the constructor-parameter path but not this getter/`knownReturning` one.
+        // The raw `typeSignature` keeps them, so recover the annotations from ITS result type and re-apply
+        // `asSeenFrom` to the underlying (preserving prefix/type-param substitution); non-annotated results keep the
+        // instantiated signature's result unchanged.
+        val resultType = untyped.symbol.typeSignature.finalResultType match {
+          case AnnotatedType(annots, underlying) =>
+            internal.annotatedType(annots, underlying.asSeenFrom(instanceTpe, untyped.symbol.owner))
+          case _ => sig.finalResultType
+        }
         // E.g. the case-field accessor of a vararg parameter would otherwise return `scala.<repeated>[A]`.
-        normalizeRepeatedParamType(sig.finalResultType.dealias).as_??
+        normalizeRepeatedParamType(resultType.dealias).as_??
       }
       val returnType: Option[() => ??] =
         if (hasUnresolvedTypeParams) None

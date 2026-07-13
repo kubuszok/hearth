@@ -2631,6 +2631,20 @@ final class MethodsSpec extends MacroSuite {
         )
       )
     }
+
+    test("type-position annotations survive the caseFields / knownReturning path (#348)") {
+      import MethodsFixtures.testTypeAnnotationsViaKnownReturning
+
+      testTypeAnnotationsViaKnownReturning[examples.methods.WithTypeAnnotations] <==> Data.list(
+        Data.map("name" -> Data("name"), "typeAnnotations" -> Data.list(Data("ExampleAnnotation"))),
+        Data.map("name" -> Data("age"), "typeAnnotations" -> Data.list()),
+        Data.map(
+          "name" -> Data("nickname"),
+          "typeAnnotations" -> Data.list(Data("ExampleAnnotation"), Data("ExampleAnnotation2"))
+        )
+      )
+    }
+
   }
 
   group("methods: parameter annotations") {
