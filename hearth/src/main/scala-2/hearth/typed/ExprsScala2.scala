@@ -229,6 +229,14 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           case Literal(Constant(value)) =>
             Right(value)
 
+          // A `scala.ValueOf[A]` is fully determined by its type argument `A`: for a literal singleton
+          // `A` the value is `A`'s constant, for an object singleton it is the module. The synthesized
+          // `ValueOf` given is not always reducible by the reflective evaluator below, so reconstruct it
+          // from the type instead. This makes `valueOf[A]` / `implicitly[ValueOf[A]].value` evaluate at
+          // compile time.
+          case t if valueOfValue(t.tpe).isDefined =>
+            Right(new scala.ValueOf(valueOfValue(t.tpe).get))
+
           case Function(params, body) =>
             evalLambda(params, body, locals, overrides)
 
@@ -382,6 +390,31 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           .collectFirst { case ModuleSingleton(value) => value }
           .toRight(NonEmptyVector.one(s"Cannot resolve module: $name"))
       }
+
+      private lazy val valueOfSymbol = c.typeOf[scala.ValueOf[Any]].typeSymbol
+
+      /** The value witnessed by a `scala.ValueOf[A]` type, derived from `A`: the constant of a literal singleton type,
+        * or the instance of an object singleton type. `None` when `tpe` is not a `ValueOf`, or its argument is neither
+        * (so evaluation falls through to the generic handling).
+        */
+      private def valueOfValue(tpe: c.Type): Option[Any] =
+        if (tpe == null || tpe =:= NoType) None
+        else {
+          val base = tpe.baseType(valueOfSymbol)
+          if (base == NoType || base.typeArgs.isEmpty) None
+          else
+            base.typeArgs.head.dealias match {
+              case ConstantType(Constant(value)) => Some(value)
+              case arg                           =>
+                val termSym = arg.termSymbol
+                val moduleSym =
+                  if (termSym != NoSymbol && termSym.isModule) termSym
+                  else arg.typeSymbol
+                if (moduleSym != NoSymbol && (moduleSym.isModule || moduleSym.isModuleClass))
+                  resolveModule(moduleSym).toOption
+                else None
+            }
+        }
 
       private def moduleCandidates(fullName: String): Array[String] = {
         val withDollar = if (fullName.endsWith("$")) fullName else fullName + "$"
