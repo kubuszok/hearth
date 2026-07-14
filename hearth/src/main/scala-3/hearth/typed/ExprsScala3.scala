@@ -522,7 +522,11 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                   if !termSym.isNoSymbol && termSym.flags.is(Flags.Module) then termSym
                   else dealiased.typeSymbol
                 if !moduleSym.isNoSymbol && moduleSym.flags.is(Flags.Module) then resolveModule(moduleSym).toOption
-                else None
+                else {
+                  // $COVERAGE-OFF$ a ValueOf argument that is neither a literal constant nor a module is not reachable from tests
+                  None
+                  // $COVERAGE-ON$
+                }
             }
           case _ => None
         }

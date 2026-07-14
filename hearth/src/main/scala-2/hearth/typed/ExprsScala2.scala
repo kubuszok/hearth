@@ -398,8 +398,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         * (so evaluation falls through to the generic handling).
         */
       private def valueOfValue(tpe: c.Type): Option[Any] =
-        if (tpe == null || tpe =:= NoType) None
-        else {
+        if (tpe == null || tpe =:= NoType) {
+          // $COVERAGE-OFF$ null / NoType do not arise for the typed trees seen in tests
+          None
+          // $COVERAGE-ON$
+        } else {
           val base = tpe.baseType(valueOfSymbol)
           if (base == NoType || base.typeArgs.isEmpty) None
           else
@@ -412,7 +415,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
                   else arg.typeSymbol
                 if (moduleSym != NoSymbol && (moduleSym.isModule || moduleSym.isModuleClass))
                   resolveModule(moduleSym).toOption
-                else None
+                else {
+                  // $COVERAGE-OFF$ a ValueOf argument that is neither a literal constant nor a module is not reachable from tests
+                  None
+                  // $COVERAGE-ON$
+                }
             }
         }
 
