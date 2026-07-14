@@ -278,6 +278,14 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           case Inlined(_, _, inner) =>
             evalWithLocals(inner, locals, overrides)
 
+          // A `scala.ValueOf[A]` is fully determined by its type argument `A`: for a literal singleton
+          // `A` the value is `A`'s constant, for an object singleton it is the module. The synthesized
+          // `ValueOf` given is not always reducible by the reflective evaluator below (e.g. it yields an
+          // opaque `ValueOf` whose `.value` getter does not reduce), so reconstruct it from the type
+          // instead. This makes `valueOf[A]` / `summon[ValueOf[A]].value` evaluate at compile time.
+          case t if valueOfValue(t.tpe).isDefined =>
+            Right(new scala.ValueOf(valueOfValue(t.tpe).get))
+
           case Block(List(ddef: DefDef), closure: Closure) =>
             evalLambda(ddef, locals, overrides)
 
@@ -496,6 +504,28 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           .collectFirst { case ModuleSingleton(value) => value }
           .toRight(NonEmptyVector.one(s"Cannot resolve module: $name"))
       }
+
+      private val valueOfSymbol = TypeRepr.of[scala.ValueOf[Any]].typeSymbol
+
+      /** The value witnessed by a `scala.ValueOf[A]` type, derived from `A`: the constant of a literal singleton type,
+        * or the instance of an object singleton type. `None` when `tpe` is not a `ValueOf`, or its argument is neither
+        * (so evaluation falls through to the generic handling).
+        */
+      private def valueOfValue(tpe: TypeRepr): Option[Any] =
+        tpe.baseType(valueOfSymbol) match {
+          case AppliedType(_, List(arg)) =>
+            arg.dealias match {
+              case ConstantType(constant) => Some(extractConstant(constant))
+              case dealiased              =>
+                val termSym = dealiased.termSymbol
+                val moduleSym =
+                  if !termSym.isNoSymbol && termSym.flags.is(Flags.Module) then termSym
+                  else dealiased.typeSymbol
+                if !moduleSym.isNoSymbol && moduleSym.flags.is(Flags.Module) then resolveModule(moduleSym).toOption
+                else None
+            }
+          case _ => None
+        }
 
       private def resolveModuleForInheritedMethod(sym: Symbol): Result = {
         val owner = sym.owner

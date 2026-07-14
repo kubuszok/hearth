@@ -180,6 +180,30 @@ final class ExprsSpec extends MacroSuite {
           )
         }
 
+        test("should evaluate ValueOf of a literal Int singleton") {
+          testSemiEval(implicitly[ValueOf[3]].value) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("3"),
+            "class" -> Data("java.lang.Integer")
+          )
+        }
+
+        test("should evaluate ValueOf of a literal String singleton") {
+          testSemiEval(implicitly[ValueOf["hi"]].value) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("hi"),
+            "class" -> Data("java.lang.String")
+          )
+        }
+
+        test("should evaluate ValueOf of an object singleton") {
+          testSemiEval(implicitly[ValueOf[None.type]].value) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("None"),
+            "class" -> Data("scala.None$")
+          )
+        }
+
         test("should evaluate companion apply: Some(42)") {
           testSemiEval(Some(42)) <==> Data.map(
             "status" -> Data("success"),
