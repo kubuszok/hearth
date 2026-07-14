@@ -283,8 +283,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           // `ValueOf` given is not always reducible by the reflective evaluator below (e.g. it yields an
           // opaque `ValueOf` whose `.value` getter does not reduce), so reconstruct it from the type
           // instead. This makes `valueOf[A]` / `summon[ValueOf[A]].value` evaluate at compile time.
-          case t if valueOfValue(t.tpe).isDefined =>
-            Right(new scala.ValueOf(valueOfValue(t.tpe).get))
+          case ValueOfExpr(value) =>
+            Right(new scala.ValueOf(value))
 
           case Block(List(ddef: DefDef), closure: Closure) =>
             evalLambda(ddef, locals, overrides)
@@ -526,6 +526,11 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             }
           case _ => None
         }
+
+      /** Matches a term whose type is a reducible `scala.ValueOf[A]`, yielding the witnessed value. */
+      private object ValueOfExpr {
+        def unapply(term: Term): Option[Any] = valueOfValue(term.tpe)
+      }
 
       private def resolveModuleForInheritedMethod(sym: Symbol): Result = {
         val owner = sym.owner
