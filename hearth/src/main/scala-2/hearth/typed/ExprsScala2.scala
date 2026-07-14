@@ -234,8 +234,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           // `ValueOf` given is not always reducible by the reflective evaluator below, so reconstruct it
           // from the type instead. This makes `valueOf[A]` / `implicitly[ValueOf[A]].value` evaluate at
           // compile time.
-          case t if valueOfValue(t.tpe).isDefined =>
-            Right(new scala.ValueOf(valueOfValue(t.tpe).get))
+          case ValueOfExpr(value) =>
+            Right(new scala.ValueOf(value))
 
           case Function(params, body) =>
             evalLambda(params, body, locals, overrides)
@@ -415,6 +415,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
                 else None
             }
         }
+
+      /** Matches a tree whose type is a reducible `scala.ValueOf[A]`, yielding the witnessed value. */
+      private object ValueOfExpr {
+        def unapply(tree: Tree): Option[Any] = valueOfValue(tree.tpe)
+      }
 
       private def moduleCandidates(fullName: String): Array[String] = {
         val withDollar = if (fullName.endsWith("$")) fullName else fullName + "$"
