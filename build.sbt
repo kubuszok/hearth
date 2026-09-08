@@ -26,7 +26,7 @@ val versions = new {
   val kindProjector = "0.13.4"
   val munit = "1.3.6"
   val scalacheck = "1.20.0"
-  val scalaXml = "2.4.0"
+  val scalaXml = "2.5.0"
 }
 
 // Scala 3 is the default axis (no suffix in project IDs). Scala 2.13 gets the "2" suffix.
