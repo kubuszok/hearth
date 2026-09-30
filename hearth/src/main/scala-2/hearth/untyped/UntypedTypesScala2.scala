@@ -74,7 +74,8 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
         sEta.finalResultType.substituteTypes(
           sEta.baseType(instanceTpe.typeSymbol).typeArgs.map(_.typeSymbol),
-          instanceTpe.typeArgs
+          // dealiased: an alias' type arguments need not line up with the parent's type parameters, Chimney #960
+          instanceTpe.dealias.typeArgs
         )
       }
 

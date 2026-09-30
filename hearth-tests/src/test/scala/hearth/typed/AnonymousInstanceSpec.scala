@@ -306,6 +306,18 @@ final class AnonymousInstanceSpec extends MacroSuite {
           testAnonymousInstanceConstruct[examples.anonymous_instances.GenericParent[Int]] <==> "success"
         }
 
+        test("generic abstract class with constructor args through type aliases (Chimney #960)") {
+          testAnonymousInstanceConstruct[examples.anonymous_instances.GenericAbstractClassWithArgs.Partial[Int]] <==>
+            "success"
+          testAnonymousInstanceConstruct[
+            examples.anonymous_instances.GenericAbstractClassWithArgs.Reordered[Int, Any]
+          ] <==>
+            "success"
+          testAnonymousInstanceConstruct[
+            examples.anonymous_instances.GenericAbstractClassWithArgs.ReorderedPartial[Int]
+          ] <==> "success"
+        }
+
         test("abstract class with default constructor args") {
           testAnonymousInstanceConstruct[examples.anonymous_instances.AbstractClassWithDefaults] <==> "success"
         }

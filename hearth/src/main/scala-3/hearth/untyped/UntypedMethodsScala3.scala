@@ -99,6 +99,14 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       else Left(s"Expected param Symbol, got $symbol")
   }
 
+  /** Type arguments of `tpe` as seen by its class' type parameters.
+    *
+    * A type alias can take different type arguments than the class it aliases (`type U[A] = P[Any, Nothing, A]`,
+    * `type Swapped[A, B] = GenericClass[B, A]`, `type Fixed = P[Any, Nothing, String]`), so `tpe.typeArgs` cannot be
+    * zipped with or applied to the class' (constructor's) type parameters before dealiasing. See Chimney #960.
+    */
+  private[hearth] def classTypeArgs(tpe: TypeRepr): List[TypeRepr] = tpe.dealias.typeArgs
+
   private[hearth] def safeMemberType(tpe: TypeRepr, symbol: Symbol): TypeRepr =
     try tpe.memberType(symbol)
     catch { case _: AssertionError => symbol.owner.typeRef.memberType(symbol) }
@@ -120,14 +128,15 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         instanceTpe: UntypedType,
         method: UntypedMethod
     ): Map[String, TypeRepr] = {
+      val instanceTypeArgs = classTypeArgs(instanceTpe)
       // Constructor methods still have to have their type parameters manually applied, even if we know the exact type of their class.
       val appliedIfNecessary = {
         val raw =
-          if instanceTpe.typeArgs.isEmpty && method.symbol.isClassConstructor then safeMemberType(
+          if instanceTypeArgs.isEmpty && method.symbol.isClassConstructor then safeMemberType(
             instanceTpe,
             method.symbol
           )
-          else safeMemberType(instanceTpe, method.symbol).appliedTo(instanceTpe.typeArgs)
+          else safeMemberType(instanceTpe, method.symbol).appliedTo(instanceTypeArgs)
         // Extension methods have a receiver parameter as the first value parameter list in their type,
         // which was already dropped from `parameters` — skip it here too to keep names aligned.
         if method.symbol.flags.is(Flags.ExtensionMethod) then raw match {
@@ -152,12 +161,12 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           val rawParams = collectAllParamTypes(inner)
           inner match {
             case MethodType(_, _, AppliedType(_, typeRefs)) =>
-              applyTypeAliases(rawParams, typeRefs.zip(instanceTpe.typeArgs).toMap)
+              applyTypeAliases(rawParams, typeRefs.zip(instanceTypeArgs).toMap)
             case _ => rawParams
           }
         case AppliedType(inner, typeRefs) =>
           val rawParams = collectAllParamTypes(inner)
-          applyTypeAliases(rawParams, typeRefs.zip(instanceTpe.typeArgs).toMap)
+          applyTypeAliases(rawParams, typeRefs.zip(instanceTypeArgs).toMap)
         // $COVERAGE-OFF$
         case out =>
           val methodName = if method.isConstructor then "Constructor" else s"Method ${method.name}"
@@ -234,7 +243,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           // new A
           val select = New(TypeTree.of[Instance]).select(symbol)
           // new A[B1, B2, ...] vs new A
-          val tree = if instanceTpe.typeArgs.nonEmpty then select.appliedToTypes(instanceTpe.typeArgs) else select
+          val instanceTypeArgs = classTypeArgs(instanceTpe)
+          val tree = if instanceTypeArgs.nonEmpty then select.appliedToTypes(instanceTypeArgs) else select
           // new A... or new A() or new A(b1, b2), ...
           tree.appliedToArgss(adaptedArguments)
         case Invocation.OnInstance =>
@@ -274,7 +284,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           val select = New(TypeTree.of[Instance]).select(symbol)
           val tree =
             if typeArgTypes.nonEmpty then select.appliedToTypes(typeArgTypes)
-            else if instanceTpe.typeArgs.nonEmpty then select.appliedToTypes(instanceTpe.typeArgs)
+            else if classTypeArgs(instanceTpe).nonEmpty then select.appliedToTypes(classTypeArgs(instanceTpe))
             else select
           tree.appliedToArgss(adaptedArguments)
         case Invocation.OnInstance =>
@@ -451,7 +461,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       }
       val rawMemberType = safeMemberType(instanceTpe, symbol).widenByName
       val memberType =
-        if isConstructor && instanceTpe.typeArgs.nonEmpty then rawMemberType.appliedTo(instanceTpe.typeArgs)
+        if isConstructor && classTypeArgs(instanceTpe).nonEmpty then rawMemberType.appliedTo(classTypeArgs(instanceTpe))
         else rawMemberType
       def typePrint(t: TypeRepr): String = {
         val raw = t match {

@@ -99,6 +99,64 @@ final class MethodsSpec extends MacroSuite {
           )
         }
 
+        test("for type alias with fewer type parameters than the aliased class (Chimney #960)") {
+          testConstructorsExtraction[examples.methods.PhantomParams.Partial[String]] <==> Data.map(
+            "primaryConstructor" -> Data("(a: scala.Int, b: java.lang.String)"),
+            "defaultConstructor" -> Data("<no default constructor>"),
+            "constructors" -> Data.list(Data("(a: scala.Int, b: java.lang.String)"))
+          )
+        }
+
+        test("for type alias with no type parameters of a generic class (Chimney #960)") {
+          testConstructorsExtraction[examples.methods.PhantomParams.Fixed] <==> Data.map(
+            "primaryConstructor" -> Data("(a: scala.Int, b: java.lang.String)"),
+            "defaultConstructor" -> Data("<no default constructor>"),
+            "constructors" -> Data.list(Data("(a: scala.Int, b: java.lang.String)"))
+          )
+        }
+
+        test("for type alias reordering type parameters of the aliased class (Chimney #960)") {
+          testConstructorsExtraction[examples.methods.GenericClassAliases.Swapped[Int, String]] <==> Data.map(
+            "primaryConstructor" -> Data("(a: java.lang.String, b: scala.Int)"),
+            "defaultConstructor" -> Data("<no default constructor>"),
+            "constructors" -> Data.list(Data("(a: java.lang.String, b: scala.Int)"))
+          )
+        }
+
+        test("for chains of type aliases renaming, reordering and fixing type parameters (Chimney #960)") {
+          testConstructorsExtraction[examples.methods.PhantomParams.PartialOfPartial[String]] <==> Data.map(
+            "primaryConstructor" -> Data("(a: scala.Int, b: java.lang.String)"),
+            "defaultConstructor" -> Data("<no default constructor>"),
+            "constructors" -> Data.list(Data("(a: scala.Int, b: java.lang.String)"))
+          )
+          testConstructorsExtraction[examples.methods.PhantomParams.ReorderedAgain[String, Nothing]] <==> Data.map(
+            "primaryConstructor" -> Data("(a: scala.Int, b: java.lang.String)"),
+            "defaultConstructor" -> Data("<no default constructor>"),
+            "constructors" -> Data.list(Data("(a: scala.Int, b: java.lang.String)"))
+          )
+          testConstructorsExtraction[examples.methods.PhantomParams.FixedThroughChain] <==> Data.map(
+            "primaryConstructor" -> Data("(a: scala.Int, b: java.lang.String)"),
+            "defaultConstructor" -> Data("<no default constructor>"),
+            "constructors" -> Data.list(Data("(a: scala.Int, b: java.lang.String)"))
+          )
+          testConstructorsExtraction[examples.methods.GenericClassAliases.SwappedTwice[Int, String]] <==> Data.map(
+            "primaryConstructor" -> Data("(a: scala.Int, b: java.lang.String)"),
+            "defaultConstructor" -> Data("<no default constructor>"),
+            "constructors" -> Data.list(Data("(a: scala.Int, b: java.lang.String)"))
+          )
+          testConstructorsExtraction[examples.methods.GenericClassAliases.SwappedPartial[Int]] <==> Data.map(
+            "primaryConstructor" -> Data("(a: java.lang.String, b: scala.Int)"),
+            "defaultConstructor" -> Data("<no default constructor>"),
+            "constructors" -> Data.list(Data("(a: java.lang.String, b: scala.Int)"))
+          )
+          testConstructorsExtraction[examples.methods.GenericClassAliases.SwappedTwiceSwapped[Int, String]] <==> Data
+            .map(
+              "primaryConstructor" -> Data("(a: java.lang.String, b: scala.Int)"),
+              "defaultConstructor" -> Data("<no default constructor>"),
+              "constructors" -> Data.list(Data("(a: java.lang.String, b: scala.Int)"))
+            )
+        }
+
         test("for companion object") {
           testConstructorsExtraction[examples.methods.WithCompanion.type] <==> Data.map(
             "primaryConstructor" -> Data("()"),
@@ -2447,6 +2505,17 @@ final class MethodsSpec extends MacroSuite {
         val str = result.asString.get
         assert(!str.startsWith("FAILED"), s"Constructor should succeed: $str")
         assert(str.contains("SimpleConstructor"), s"Result should be a SimpleConstructor: $str")
+      }
+
+      test("construct PhantomParams through a type alias with mismatched type parameters via fold (Chimney #960)") {
+        MethodsFixtures.testCallConstructorViaFold[examples.methods.PhantomParams.Partial[String]](1) <==>
+          Data("PhantomParams(1, test)")
+        MethodsFixtures.testCallConstructorViaFold[examples.methods.PhantomParams.Fixed](1) <==>
+          Data("PhantomParams(1, test)")
+        MethodsFixtures.testCallConstructorViaFold[examples.methods.PhantomParams.PartialOfPartial[String]](1) <==>
+          Data("PhantomParams(1, test)")
+        MethodsFixtures.testCallConstructorViaFold[examples.methods.PhantomParams.FixedThroughChain](1) <==>
+          Data("PhantomParams(1, test)")
       }
 
       test("construct DefaultConstructor(1) with defaults via fold") {

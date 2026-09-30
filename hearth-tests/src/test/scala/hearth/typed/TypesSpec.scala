@@ -790,6 +790,52 @@ final class TypesSpec extends MacroSuite {
               )
             )
           )
+          // Chimney #960: alias with fewer/reordered type arguments than the sealed trait
+          testChildren[examples.enums.ExampleSealedTraitPhantom.Partial[Int]] <==> Data.map(
+            "Type.directChildren" -> Data.map(
+              "ExampleSealedTraitPhantomClass" -> Data(
+                "hearth.examples.enums.ExampleSealedTraitPhantom.ExampleSealedTraitPhantomClass[scala.Int, scala.Any]"
+              ),
+              "ExampleSealedTraitPhantomObject" -> Data(
+                "hearth.examples.enums.ExampleSealedTraitPhantom.ExampleSealedTraitPhantomObject.type"
+              )
+            ),
+            "Type.exhaustiveChildren" -> Data.map(
+              "ExampleSealedTraitPhantomClass" -> Data(
+                "hearth.examples.enums.ExampleSealedTraitPhantom.ExampleSealedTraitPhantomClass[scala.Int, scala.Any]"
+              )
+            )
+          )
+          testChildren[examples.enums.ExampleSealedTraitPhantom.Reordered[Int, Any]] <==> Data.map(
+            "Type.directChildren" -> Data.map(
+              "ExampleSealedTraitPhantomClass" -> Data(
+                "hearth.examples.enums.ExampleSealedTraitPhantom.ExampleSealedTraitPhantomClass[scala.Int, scala.Any]"
+              ),
+              "ExampleSealedTraitPhantomObject" -> Data(
+                "hearth.examples.enums.ExampleSealedTraitPhantom.ExampleSealedTraitPhantomObject.type"
+              )
+            ),
+            "Type.exhaustiveChildren" -> Data.map(
+              "ExampleSealedTraitPhantomClass" -> Data(
+                "hearth.examples.enums.ExampleSealedTraitPhantom.ExampleSealedTraitPhantomClass[scala.Int, scala.Any]"
+              )
+            )
+          )
+          testChildren[examples.enums.ExampleSealedTraitPhantom.ReorderedPartial[Int]] <==> Data.map(
+            "Type.directChildren" -> Data.map(
+              "ExampleSealedTraitPhantomClass" -> Data(
+                "hearth.examples.enums.ExampleSealedTraitPhantom.ExampleSealedTraitPhantomClass[scala.Int, scala.Any]"
+              ),
+              "ExampleSealedTraitPhantomObject" -> Data(
+                "hearth.examples.enums.ExampleSealedTraitPhantom.ExampleSealedTraitPhantomObject.type"
+              )
+            ),
+            "Type.exhaustiveChildren" -> Data.map(
+              "ExampleSealedTraitPhantomClass" -> Data(
+                "hearth.examples.enums.ExampleSealedTraitPhantom.ExampleSealedTraitPhantomClass[scala.Int, scala.Any]"
+              )
+            )
+          )
           testChildren[examples.enums.ExampleSealedTraitGADT[Unit]] <==> Data.map(
             "Type.directChildren" -> Data.map(
               "ExampleSealedTraitWithTypeParamClass" -> Data(

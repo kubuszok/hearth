@@ -118,3 +118,27 @@ class WithVarargs {
 class WithVarargsCtor(val xs: String*) {
   override def toString(): String = s"WithVarargsCtor(${xs.mkString(",")})"
 }
+
+// Chimney #960: a type alias whose type arguments do not line up with the aliased class' type parameters
+// (different arity, fixed arguments, reordered arguments).
+final class PhantomParams[R, E, A](val a: Int, val b: String) {
+  override def toString(): String = s"PhantomParams($a, $b)"
+}
+object PhantomParams {
+  type Partial[A] = PhantomParams[Any, Nothing, A]
+  type Fixed = PhantomParams[Any, Nothing, String]
+  // chained aliases: renamed, reordered, partially fixed type parameters
+  type PartialOfPartial[B] = Partial[B]
+  type Reordered[X, Y, Z] = PhantomParams[Z, X, Y]
+  type ReorderedAgain[P, Q] = Reordered[Q, P, Any]
+  type FixedThroughChain = ReorderedAgain[String, Nothing]
+}
+object GenericClassAliases {
+  type Swapped[A, B] = GenericClass[B, A]
+  // swapping twice restores the original order
+  type SwappedTwice[X, Y] = Swapped[Y, X]
+  // swapped, then partially fixed
+  type SwappedPartial[C] = Swapped[C, String]
+  // swapped, then renamed and swapped again through another alias
+  type SwappedTwiceSwapped[L, R] = SwappedTwice[R, L]
+}

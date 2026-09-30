@@ -25,13 +25,17 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         subtype.primaryConstructor.paramSymss match {
           // subtype takes type parameters
           case typeParamSymbols :: _ if typeParamSymbols.exists(_.isType) =>
+            // An alias' symbol and type arguments need not line up with the parent's type parameters
+            // (`type U[A] = Parent[Any, A]`, possibly chained, renamed or reordered), so we use the dealiased type.
+            // See Chimney #960.
+            val parentTpe = instanceTpe.dealias
             // we have to figure how subtypes type params map to parent type params
             val appliedTypeByParam: Map[String, TypeRepr] =
               subtype.typeRef
-                .baseType(instanceTpe.typeSymbol)
+                .baseType(parentTpe.typeSymbol)
                 .typeArgs
                 .map(_.typeSymbol.name)
-                .zip(instanceTpe.typeArgs)
+                .zip(parentTpe.typeArgs)
                 .toMap
             // TODO: some better error message if child has an extra type param that doesn't come from the parent
             val typeParamReprs: List[TypeRepr] = typeParamSymbols.map(_.name).map(appliedTypeByParam)
@@ -609,7 +613,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           val ctor = New(TypeTree.of(using classParent.asType.asInstanceOf[scala.quoted.Type[Any]]))
             .select(ctorSymbol)
           val applied =
-            if classParent.typeArgs.nonEmpty then ctor.appliedToTypes(classParent.typeArgs) else ctor
+            if classParent.dealias.typeArgs.nonEmpty then ctor.appliedToTypes(classParent.dealias.typeArgs) else ctor
           applied.appliedToArgss(constructorArgs)
         } else {
           val ctor = New(TypeTree.of(using classParent.asType.asInstanceOf[scala.quoted.Type[Any]]))
@@ -804,7 +808,10 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         // declaration order there while keeping the exact position-then-name semantics everywhere else. We deliberately
         // do NOT rely on the `children` list order itself (it is not a documented declaration-order guarantee across
         // Scala versions / incremental compilation), only on the per-symbol position/name keys.
-        instanceTpe.typeSymbol.children.sorted // by `symbolOrdering`: original child position, then alphabetical name when the position is absent
+        // `classificationSymbol` rather than `typeSymbol`: for an alias (`type U[A] = Sealed[Any, A]`) the latter is the
+        // alias' symbol, which has no children (Chimney #960).
+        // Sorted by `symbolOrdering`: original child position, then alphabetical name when the position is absent.
+        classificationSymbol(instanceTpe).children.sorted
           .map(handleSymbols)
           .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
       }

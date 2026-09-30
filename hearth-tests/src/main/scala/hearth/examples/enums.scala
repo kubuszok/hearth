@@ -47,6 +47,19 @@ object ExampleSealedTraitGADT {
   case object ExampleSealedTraitWithTypeParamObject extends ExampleSealedTraitGADT[Unit]
 }
 
+// Chimney #960: a type alias whose type arguments do not line up with the sealed trait's type parameters.
+sealed trait ExampleSealedTraitPhantom[R, A]
+object ExampleSealedTraitPhantom {
+  // type parameters deliberately in a different order than the parent's
+  case class ExampleSealedTraitPhantomClass[A, R](a: A) extends ExampleSealedTraitPhantom[R, A]
+  case object ExampleSealedTraitPhantomObject extends ExampleSealedTraitPhantom[Any, Nothing]
+
+  type Partial[A] = ExampleSealedTraitPhantom[Any, A]
+  // chained, renamed and reordered aliases
+  type Reordered[B, C] = ExampleSealedTraitPhantom[C, B]
+  type ReorderedPartial[D] = Reordered[D, Any]
+}
+
 sealed trait ScopeVisibility
 object ScopeVisibility {
   case object Public extends ScopeVisibility

@@ -29,6 +29,16 @@ abstract class AbstractClassWithArgs(val x: Int, val y: String) {
   def abstractMethod: Int
 }
 
+// Chimney #960: parent referred to through (chained, renaming, reordering) aliases with mismatched type parameters
+abstract class GenericAbstractClassWithArgs[R, A](val x: Int, val y: String) {
+  def abstractMethod: Int
+}
+object GenericAbstractClassWithArgs {
+  type Partial[A] = GenericAbstractClassWithArgs[Any, A]
+  type Reordered[B, C] = GenericAbstractClassWithArgs[C, B]
+  type ReorderedPartial[D] = Reordered[D, Any]
+}
+
 abstract class AbstractClassMultipleCtors(val x: Int) {
   @scala.annotation.nowarn
   def this(x: Int, y: String) = this(x)
