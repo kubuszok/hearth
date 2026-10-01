@@ -196,6 +196,15 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       */
     def annotated[A: Type, Ann: Type](expr: Expr[A], arguments: List[UntypedExpr]): Expr[A]
 
+    /** Platform hook of [[DestructuredExpr.findReferences]]: walks the WHOLE `tree` (including sub-trees that
+      * destructuring left as [[DestructuredExpr.NonDestructurable]]) and returns every identifier whose symbol is a key
+      * of `bindingsBySymbol`, in tree order, paired with its position.
+      */
+    private[hearth] def destructuredReferences(
+        tree: UntypedExpr,
+        bindingsBySymbol: Map[Any, DestructuredExpr.Binding]
+    ): List[DestructuredExpr.Reference]
+
     def singletonOf[A: Type]: Option[Expr[A]]
 
     /** Returns the type of an expression as seen by the compiler.
@@ -2022,6 +2031,13 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     * leaf becomes [[DestructuredExpr.NonDestructurable]]. Compiler noise (Scala 3 `Inlined` wrappers, etc.) is stripped
     * automatically.
     *
+    * '''Block-shaped DSLs.''' Local `val`s of a [[DestructuredExpr.Block]] become [[DestructuredExpr.ValDefinition]]s
+    * and references to them [[DestructuredExpr.LocalReference]]s sharing the same [[DestructuredExpr.LocalBinding]]
+    * instance (likewise [[DestructuredExpr.Lambda.Param]] and [[DestructuredExpr.Lambda.ParamRef]]), so uses can be
+    * linked to declarations by identity. `import`s and other local definitions have their own nodes.
+    * [[DestructuredExpr.findReferences]] finds references to bindings anywhere in the underlying tree, and
+    * [[DestructuredExpr.MethodCall.receiver]] reads `implicit class` and `extension` methods alike.
+    *
     * '''Recovering a singleton / enum value (the `Type.Ctor` idiom).''' To pull a singleton or (Java/Scala) enum value
     * back out of a destructured expression, collect the [[DestructuredExpr.Singleton]] nodes (its `name` is the module
     * path) or match a node's `tpe` against a `Type.Ctor` extractor. Beware: on Scala 2 the typer WIDENS singleton
@@ -2057,11 +2073,49 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     def plainPrint: String
 
+    /** Position of the source tree this node was parsed from, if the compiler kept one.
+      *
+      * Use it to report errors at the offending sub-expression (e.g. `Environment.reportErrorAndAbort(msg, pos)`)
+      * instead of at the whole macro call.
+      *
+      * @since 0.4.3
+      */
+    def position: Option[Position] = UntypedExpr.position(toUntypedExpr)
+
+    /** Every reference to one of `bindings` anywhere inside this expression, in source order.
+      *
+      * Unlike [[collect]] (which follows the semantic [[children]] and stops at [[DestructuredExpr.NonDestructurable]]
+      * leaves), this walks the '''complete''' underlying compiler tree - so references nested in pattern matches,
+      * `if`s, `try`s, local `def`s, etc. are found too. Matching is by symbol identity, never by name: shadowing
+      * declarations with the same name are not reported.
+      *
+      * Typical uses: rejecting references to DSL-only bindings inside user-supplied functions, or finding which lambda
+      * parameters are actually used ([[DestructuredExpr.Lambda.unusedParams]]).
+      *
+      * @since 0.4.3
+      */
+    final def findReferences(bindings: Iterable[DestructuredExpr.Binding]): List[DestructuredExpr.Reference] = {
+      val bySymbol = bindings.iterator.collect {
+        case binding if binding.bindingSymbol != null => binding.bindingSymbol -> binding
+      }.toMap
+      if (bySymbol.isEmpty) Nil else Expr.destructuredReferences(toUntypedExpr, bySymbol)
+    }
+
+    /** Whether `binding` is referenced anywhere inside this expression - see [[findReferences]].
+      *
+      * @since 0.4.3
+      */
+    final def references(binding: DestructuredExpr.Binding): Boolean = findReferences(List(binding)).nonEmpty
+
     final def children: List[DestructuredExpr] = this match {
       case _: DestructuredExpr.Literal           => Nil
       case _: DestructuredExpr.Singleton         => Nil
       case _: DestructuredExpr.NonDestructurable => Nil
       case _: DestructuredExpr.Lambda.ParamRef   => Nil
+      case _: DestructuredExpr.LocalReference    => Nil
+      case _: DestructuredExpr.LocalDefinition   => Nil
+      case imp: DestructuredExpr.Import          => List(imp.qualifier)
+      case vd: DestructuredExpr.ValDefinition    => List(vd.rhs)
       case mc: DestructuredExpr.MethodCall       =>
         mc.applied.flatMap {
           case ai: DestructuredExpr.MethodCall.AppliedInstance => List(ai.value)
@@ -2088,10 +2142,10 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     /** Parse a typed expression into a [[DestructuredExpr]].
       *
       * Start here, then either pattern-match on the node types (`MethodCall`, `Lambda`, `Singleton`, `Literal`,
-      * `Block`, `Varargs`, `NonDestructurable`) or use the `extract*` helpers ([[extractFieldPath]],
-      * [[extractLambda]]). To recover a singleton / enum value, collect [[Singleton]] nodes or `Type.Ctor`-match a
-      * node's `tpe` — see the [[DestructuredExpr]] trait doc for the worked idiom (and the `declaredTpe` caveat on
-      * Scala 2).
+      * `Block`, `ValDefinition`, `LocalReference`, `Import`, `LocalDefinition`, `Varargs`, `NonDestructurable`) or use
+      * the `extract*` helpers ([[extractFieldPath]], [[extractLambda]]). To recover a singleton / enum value, collect
+      * [[Singleton]] nodes or `Type.Ctor`-match a node's `tpe` — see the [[DestructuredExpr]] trait doc for the worked
+      * idiom (and the `declaredTpe` caveat on Scala 2).
       *
       * @see
       *   [[DestructuredExpr]] for the node types and the singleton/enum-extraction example
@@ -2167,6 +2221,86 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       }
     }
 
+    /** Skips the wrappers that Scala 3 puts around a context-function argument (`Ctx ?=> A => B`) so that the "real"
+      * lambda underneath can be inspected - a no-op for anything else (and on Scala 2, which has no context functions).
+      *
+      * Depending on how the argument was passed, the compiler may produce:
+      *   - a contextual lambda `(ctx: Ctx) ?=> (a => ...)` - [[Lambda.isContextual]], or
+      *   - a block binding the resolved `given` to a synthetic val, `{ val contextual$1 = summon[Ctx]; (a => ...) }` -
+      *     a [[Block]] whose statements are only [[ValDefinition]]s of implicit/synthetic bindings.
+      *
+      * Both are peeled, repeatedly. References to the skipped contextual parameters/bindings may remain in the body
+      * (e.g. as implicit evidence arguments of DSL marker methods).
+      *
+      * @since 0.4.3
+      */
+    final def skipContextualWrappers(expr: DestructuredExpr): DestructuredExpr = expr match {
+      case lambda: Lambda if lambda.isContextual => skipContextualWrappers(lambda.body)
+      case block: Block if block.statements.forall {
+            case vd: ValDefinition => vd.binding.isImplicit || vd.binding.isSynthetic
+            case _                 => false
+          } =>
+        skipContextualWrappers(block.result)
+      case other => other
+    }
+
+    // --- Bindings ---
+
+    /** A named binding introduced by the destructured code: a lambda parameter ([[Lambda.Param]]) or a local
+      * `val`/`var`/`lazy val` ([[LocalBinding]]).
+      *
+      * Bindings have '''identity''': the very same instance is shared by the definition and by every reference to it
+      * ([[Lambda.ParamRef]], [[LocalReference]]), so compare them with `eq` - never by name (names can be shadowed).
+      *
+      * @since 0.4.3
+      */
+    sealed trait Binding {
+      def name: String
+      def tpe: ??
+      private[hearth] def bindingSymbol: Any
+    }
+
+    /** A local `val`/`var`/`lazy val` (or a parameter of an enclosing method, when [[isExternal]]).
+      *
+      * @since 0.4.3
+      *
+      * @param name
+      *   the source name of the binding
+      * @param tpe
+      *   the declared (or inferred) type of the binding
+      * @param isMutable
+      *   whether it is a `var`
+      * @param isLazy
+      *   whether it is a `lazy val`
+      * @param isImplicit
+      *   whether it is an `implicit val` / `given` (including the synthetic `contextual$N` vals Scala 3 introduces when
+      *   it resolves a context function's parameter)
+      * @param isSynthetic
+      *   whether the compiler generated it
+      * @param isExternal
+      *   `true` when the binding is defined OUTSIDE of the destructured expression (a local val or a parameter of the
+      *   method enclosing the macro call): there is no [[ValDefinition]] for it, only [[LocalReference]]s
+      * @param position
+      *   position of the definition
+      */
+    final class LocalBinding private[hearth] (
+        val name: String,
+        val tpe: ??,
+        val isMutable: Boolean,
+        val isLazy: Boolean,
+        val isImplicit: Boolean,
+        val isSynthetic: Boolean,
+        val isExternal: Boolean,
+        val position: Option[Position],
+        private[hearth] val bindingSymbol: Any
+    ) extends Binding
+
+    /** A reference to a [[Binding]] found by [[DestructuredExpr.findReferences]].
+      *
+      * @since 0.4.3
+      */
+    final class Reference private[hearth] (val binding: Binding, val position: Option[Position])
+
     // --- Node types ---
 
     /** A resolved method/field call with its applied arguments.
@@ -2192,6 +2326,28 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
         }
         s"${method.name}${parts.mkString}"
       }
+
+      /** The value this method was called on, as written in the source, normalized across platforms.
+        *
+        * Usually this is just the [[MethodCall.AppliedInstance]]. However, a method added by an implicit class or an
+        * implicit conversion (`x.method` desugared to `Wrapper(x).method`) has the conversion call as its instance;
+        * then the conversion's argument (`x`) is returned. On Scala 3 extension methods already have their receiver in
+        * the instance slot, so `implicit class` (both versions) and `extension` (Scala 3) DSLs can be read with the
+        * same code.
+        *
+        * `None` for calls without a receiver (e.g. constructors, methods imported from a module).
+        *
+        * @since 0.4.3
+        */
+      def receiver: Option[DestructuredExpr] =
+        applied.collectFirst { case ai: MethodCall.AppliedInstance => ai.value }.map {
+          case wrapper: MethodCall if wrapper.method.isImplicit =>
+            wrapper.applied
+              .collectFirst { case av: MethodCall.AppliedValues => av.args }
+              .collect { case List(single) => single }
+              .getOrElse(wrapper)
+          case direct => direct
+        }
     }
     object MethodCall {
 
@@ -2228,12 +2384,39 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
         val tpe: ??,
         val params: List[Lambda.Param],
         val body: DestructuredExpr,
-        private[hearth] val rebuild: () => UntypedExpr
+        private[hearth] val rebuild: () => UntypedExpr,
+        contextual: Boolean
     ) extends DestructuredExpr {
+      private[hearth] def this(
+          tpe: ??,
+          params: List[Lambda.Param],
+          body: DestructuredExpr,
+          rebuild: () => UntypedExpr
+      ) = this(tpe, params, body, rebuild, false)
+
+      /** Whether this is a context function literal (`(ctx: Ctx) ?=> body`, Scala 3 only).
+        *
+        * @see
+        *   [[DestructuredExpr.skipContextualWrappers]]
+        *
+        * @since 0.4.3
+        */
+      def isContextual: Boolean = contextual
+
+      /** Parameters that are not referenced anywhere in the body (see [[DestructuredExpr.findReferences]]).
+        *
+        * @since 0.4.3
+        */
+      def unusedParams: List[Lambda.Param] = {
+        val used = body.findReferences(params).map(_.binding)
+        params.filterNot(param => used.exists(_ eq param))
+      }
+
       def toUntypedExpr: UntypedExpr = rebuild()
       def plainPrint: String = {
         val ps = params.map(p => s"${p.name}: ${p.tpe.plainPrint}").mkString(", ")
-        s"($ps) => ${body.plainPrint}"
+        val arrow = if (contextual) "?=>" else "=>"
+        s"($ps) $arrow ${body.plainPrint}"
       }
     }
     object Lambda {
@@ -2250,8 +2433,14 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
         *   this to recover e.g. a selected Java-enum value via `Type.Ctor` matching. On Scala 3 the compiler already
         *   retains the precise type, so `declaredTpe == tpe` there. See hearth#341.
         */
-      final class Param private[hearth] (val name: String, val tpe: ??, val declaredTpe: ??) {
-        private[hearth] def this(name: String, tpe: ??) = this(name, tpe, tpe)
+      final class Param private[hearth] (
+          val name: String,
+          val tpe: ??,
+          val declaredTpe: ??,
+          private[hearth] val bindingSymbol: Any
+      ) extends Binding {
+        private[hearth] def this(name: String, tpe: ??, declaredTpe: ??) = this(name, tpe, declaredTpe, null)
+        private[hearth] def this(name: String, tpe: ??) = this(name, tpe, tpe, null)
       }
 
       /** Reference to a lambda parameter in the body.
@@ -2317,6 +2506,94 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
         val stmts = (statements.map(_.plainPrint) :+ result.plainPrint).mkString("; ")
         s"{ $stmts }"
       }
+    }
+
+    /** A local `val`/`var`/`lazy val` definition - a statement of a [[Block]]: `val name = rhs`.
+      *
+      * Every [[LocalReference]] to it shares the same [[binding]] instance. [[tpe]] is `Unit` (it is a statement), the
+      * defined value's type is `binding.tpe`. [[toUntypedExpr]] returns `{ val name = rhs; () }`, since a definition is
+      * not a standalone expression.
+      *
+      * @since 0.4.3
+      */
+    final class ValDefinition private[hearth] (
+        val tpe: ??,
+        val binding: LocalBinding,
+        val rhs: DestructuredExpr,
+        private[hearth] val rebuild: () => UntypedExpr
+    ) extends DestructuredExpr {
+      def toUntypedExpr: UntypedExpr = rebuild()
+      override def position: Option[Position] = binding.position
+      def plainPrint: String = {
+        val keyword = if (binding.isMutable) "var" else if (binding.isLazy) "lazy val" else "val"
+        s"$keyword ${binding.name} = ${rhs.plainPrint}"
+      }
+    }
+
+    /** A reference to a local `val`/`var`/`lazy val`: either one defined by a [[ValDefinition]] in the destructured
+      * expression (the same [[binding]] instance), or one defined outside of it (`binding.isExternal`).
+      *
+      * @since 0.4.3
+      */
+    final class LocalReference private[hearth] (
+        val tpe: ??,
+        val binding: LocalBinding,
+        private[hearth] val rebuild: () => UntypedExpr
+    ) extends DestructuredExpr {
+      def toUntypedExpr: UntypedExpr = rebuild()
+      def plainPrint: String = binding.name
+    }
+
+    /** An `import qualifier.{selectors}` statement of a [[Block]].
+      *
+      * The compiler has already resolved the names an import brings into scope (identifiers come out of destructuring
+      * as resolved [[MethodCall]]s/[[Singleton]]s), so this node only describes the statement. [[toUntypedExpr]]
+      * returns `{ import ...; () }`.
+      *
+      * @since 0.4.3
+      *
+      * @param qualifier
+      *   the imported-from expression (e.g. a [[Lambda.ParamRef]] for `g => { import g._; ... }`)
+      * @param selectors
+      *   normalized to the same spelling on both Scala versions: `"*"` for a wildcard (`_` / `*`), `"name"`,
+      *   `"name => renamed"`, `"name => _"` (hidden), `"given"` (Scala 3 given selector)
+      */
+    final class Import private[hearth] (
+        val tpe: ??,
+        val qualifier: DestructuredExpr,
+        val selectors: List[String],
+        private[hearth] val rebuild: () => UntypedExpr,
+        pos: Option[Position]
+    ) extends DestructuredExpr {
+      def toUntypedExpr: UntypedExpr = rebuild()
+      override def position: Option[Position] = pos
+      def plainPrint: String = selectors match {
+        case List(single) if !single.contains(" ") => s"import ${qualifier.plainPrint}.$single"
+        case _                                     => s"import ${qualifier.plainPrint}.{${selectors.mkString(", ")}}"
+      }
+    }
+
+    /** A local definition other than a `val`/`var` - a statement of a [[Block]] that DSLs usually want to reject at its
+      * own position (with a precise message) rather than treat as an arbitrary expression. [[toUntypedExpr]] returns
+      * `{ definition; () }`.
+      *
+      * @since 0.4.3
+      *
+      * @param kind
+      *   one of `"def"`, `"class"`, `"trait"`, `"object"`, `"type"`
+      * @param name
+      *   the defined name
+      */
+    final class LocalDefinition private[hearth] (
+        val tpe: ??,
+        val kind: String,
+        val name: String,
+        private[hearth] val rebuild: () => UntypedExpr,
+        pos: Option[Position]
+    ) extends DestructuredExpr {
+      def toUntypedExpr: UntypedExpr = rebuild()
+      override def position: Option[Position] = pos
+      def plainPrint: String = s"$kind $name"
     }
 
     /** A vararg (repeated) argument slot filled with individual elements: `method(a, b, c)` where the parameter is

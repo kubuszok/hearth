@@ -378,14 +378,20 @@ The `Method` API has a layered architecture with platform-specific untyped code 
 `DestructuredExpr` is inlined into the `Exprs` / `ExprsScala2` / `ExprsScala3` traits (not a separate trait). It provides semantic expression decomposition where method calls are resolved against Hearth's `Method` API.
 
 **Shared code** (end of `Exprs.scala`):
-- `DestructuredExpr` sealed trait with 7 node types: `MethodCall`, `Lambda`, `Lambda.ParamRef`, `Literal`, `Singleton`, `Block`, `NonDestructurable`
-- `MethodCall.Applied` sealed trait: `AppliedInstance`, `AppliedTypes`, `AppliedValues`
+- `DestructuredExpr` sealed trait with node types: `MethodCall`, `Lambda`, `Lambda.ParamRef`, `Literal`, `Singleton`, `Block`, `Varargs`, `ValDefinition`, `LocalReference`, `Import`, `LocalDefinition`, `NonDestructurable`
+- `MethodCall.Applied` sealed trait: `AppliedInstance`, `AppliedTypes`, `AppliedValues`; `MethodCall.receiver` sees through implicit-class/implicit-conversion wrappers (Scala 2 `Ops(x).m` and Scala 3 extension `m(x)` both give `x`)
+- Bindings with identity: `Binding` (sealed) = `Lambda.Param` | `LocalBinding`; a definition and all its references share the same instance (compare with `eq`). `LocalBinding.isExternal` = defined outside the parsed tree (pre-registered by `dstrExternalBindings`)
+- `findReferences(bindings)` / `references(binding)` / `Lambda.unusedParams` walk the COMPLETE raw tree (also inside `NonDestructurable`) by symbol identity, via the `private[hearth]` hook `Expr.destructuredReferences` (on the nested `ExprModule`, NOT a top-level `Exprs` member - binary compat)
+- `skipContextualWrappers` peels Scala 3 contextual lambdas (`Lambda.isContextual`) and blocks binding only implicit/synthetic vals
+- `position: Option[Position]` on every node
 - `FieldPath`, `FieldPathSegment`, `LambdaInfo` convenience types
 - `DestructuredExpr.parse`, `parseUntyped`, `extractFieldPath`, `extractLambda`
 - `protected def destructureExpr` — abstract platform hook
 
 **Platform-specific parsing** (end of `ExprsScala3.scala` / `ExprsScala2.scala`):
-- `dstrImpl` — recursive tree walker that resolves `Method` by symbol equality (`method.symbol == tree.symbol`)
+- `dstrImpl` — recursive tree walker that resolves `Method` by symbol equality (`method.symbol == tree.symbol`); its `Map[Symbol, Binding]` environment holds lambda params, block vals (`dstrWithBlockBindings`) and external locals
+- `dstrStatements` — block statements: `ValDef` → `ValDefinition`, `Import` → `Import` (selectors normalized: `*`, `a => b`, `a => _`, `given`), `DefDef`/`ClassDef`/`TypeDef`/module → `LocalDefinition`
+- Scala 3: `Inlined` with non-empty bindings is kept as a `Block`; `Typed` ascriptions are stripped (as on Scala 2)
 - `dstrFlattenCall` — peels `Apply`/`TypeApply` chains to extract core term + call steps
 - `dstrTryConstructor` (Scala 2) / inline case in `dstrTryMethodCall` (Scala 3) — handles `Select(New(tpt), <init>)` constructor calls, resolving via `UntypedMethod.constructors`. On Scala 2, runs before the `coreSym` guard since `c.untypecheck` may strip symbols
 - `dstrTryMethodCall` — resolves the method from `UntypedMethod.methods(qualifierType)`
@@ -397,9 +403,9 @@ The `Method` API has a layered architecture with platform-specific untyped code 
 - `hearth-tests/src/main/scala/hearth/typed/DestructuredExprsFixturesImpl.scala` — shared fixtures
 - `hearth-tests/src/main/scala-2/hearth/typed/DestructuredExprsFixtures.scala` — Scala 2 macro bridges
 - `hearth-tests/src/main/scala-3/hearth/typed/DestructuredExprsFixtures.scala` — Scala 3 macro bridges
-- `hearth-tests/src/test/scala/hearth/typed/DestructuredExprsSpec.scala` — cross-platform tests (19 tests)
-- `hearth-tests/src/test/scala-3/hearth/typed/DestructuredExprsScala3Spec.scala` — Scala 3-only context function tests (2 tests)
-- `hearth-tests/src/main/scala/hearth/examples/parsed_exprs.scala` — test data + DSL extensions (implicit class)
+- `hearth-tests/src/test/scala/hearth/typed/DestructuredExprsSpec.scala` — cross-platform tests (incl. bindings, references, receivers)
+- `hearth-tests/src/test/scala-3/hearth/typed/DestructuredExprsScala3Spec.scala` — Scala 3-only context function / extension tests
+- `hearth-tests/src/main/scala/hearth/examples/parsed_exprs.scala` — test data + DSL extensions (implicit class) + `grammar_dsl` (block-shaped DSL)
 - `hearth-tests/src/main/scala-3/hearth/examples/parsed_exprs-s3.scala` — Scala 3-only context function DSL extensions
 
 ### semiEval / semiQuote / EvalOverride / QuoteOverride

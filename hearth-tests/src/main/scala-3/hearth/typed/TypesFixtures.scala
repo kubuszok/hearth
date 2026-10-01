@@ -7,6 +7,27 @@ import scala.quoted.*
 
 final private class TypesFixtures(q: Quotes) extends MacroCommonsScala3(using q), TypesFixturesImpl {
 
+  /** hearth#384: `Type.CtorN.fromUntyped` has to match an ordinary alias of a type application (also of an opaque type)
+    * just like the dealiased type - without unwrapping the opaque type itself.
+    */
+  def testCtorFromUntypedOnAliases[A: Type]: Expr[Data] = {
+    given quotes: scala.quoted.Quotes = CrossQuotes.ctx
+    import quotes.reflect.TypeRepr
+    import hearth.examples.opaqueunderlying.{Refined, Wrapper}
+    val refined = Type.Ctor2.fromUntyped[Refined](TypeRepr.of[Refined].asInstanceOf[UntypedType])
+    val wrapper = Type.Ctor1.fromUntyped[Wrapper](TypeRepr.of[Wrapper].asInstanceOf[UntypedType])
+    val list = Type.Ctor1.fromUntyped[List](TypeRepr.of[List].asInstanceOf[UntypedType])
+    Expr(
+      Data.map(
+        "Refined" -> Data(refined.unapply(Type[A]).fold("<no match>") { case (a, c) =>
+          s"${a.plainPrint}, ${c.plainPrint}"
+        }),
+        "Wrapper" -> Data(wrapper.unapply(Type[A]).fold("<no match>")(_.plainPrint)),
+        "List" -> Data(list.unapply(Type[A]).fold("<no match>")(_.plainPrint))
+      )
+    )
+  }
+
   @scala.annotation.nowarn
   def testTupleXXLCodec: Expr[Data] = {
     def oneWay[A: TypeCodec](value: A): Data = {
@@ -133,6 +154,10 @@ object TypesFixtures {
   inline def testUnionMembers[A]: Data = ${ testUnionMembersImpl[A] }
   private def testUnionMembersImpl[A: Type](using q: Quotes): Expr[Data] =
     new TypesFixtures(q).testUnionMembers[A]
+
+  inline def testCtorFromUntypedOnAliases[A]: Data = ${ testCtorFromUntypedOnAliasesImpl[A] }
+  private def testCtorFromUntypedOnAliasesImpl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testCtorFromUntypedOnAliases[A]
 
   inline def testOpaqueUnderlyingType[A]: Data = ${ testOpaqueUnderlyingTypeImpl[A] }
   private def testOpaqueUnderlyingTypeImpl[A: Type](using q: Quotes): Expr[Data] =

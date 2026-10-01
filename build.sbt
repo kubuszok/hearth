@@ -338,6 +338,10 @@ val mimaSettings = Seq(
     // is implemented ONLY by Hearth's own `Expr` object (in ExprsScala2/ExprsScala3), so the interface and its
     // implementation are always evicted together - no user has a standalone `ExprModule` implementation to break.
     exclude[ReversedMissingMethodProblem]("hearth.typed.Exprs#ExprModule.annotated"),
+    // #384 follow-up (DestructuredExpr bindings): `destructuredReferences` - the platform hook behind
+    // `DestructuredExpr.findReferences` - added to the NESTED trait `Exprs#ExprModule`, `private[hearth]` and
+    // implemented ONLY by Hearth's own `Expr` object (in ExprsScala2/ExprsScala3), same reasoning as `annotated` above.
+    exclude[ReversedMissingMethodProblem]("hearth.typed.Exprs#ExprModule.destructuredReferences"),
     // Perf: `ClassViewResult.Incompatible` changed from a `case class` to a plain class so its `reason` (an
     // expensive `Type.prettyPrint`, discarded by most callers) can be computed lazily. The former binary surface is
     // preserved as far as shims can reach: `apply(String)`, the primary constructor `this(String)`, and

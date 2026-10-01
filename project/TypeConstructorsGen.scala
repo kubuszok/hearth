@@ -126,8 +126,8 @@ object TypeConstructorsGen {
         |        def unapply[A](A: Type[A]): Option[UntypedType] = {
         |          given quotes: scala.quoted.Quotes = CrossQuotes.ctx
         |          import quotes.reflect.*
-        |          val aRepr = TypeRepr.of[A](using A.asInstanceOf[scala.quoted.Type[A]])
-        |          aRepr match {
+        |          val rawRepr = TypeRepr.of[A](using A.asInstanceOf[scala.quoted.Type[A]])
+        |          def matchRepr(aRepr: TypeRepr): Option[UntypedType] = aRepr match {
         |            case AppliedType(ctor, List(g)) if ctor =:= hktRepr.asInstanceOf[TypeRepr] =>
         |              Some(g.asInstanceOf[UntypedType])
         |            case _ =>
@@ -136,6 +136,12 @@ object TypeConstructorsGen {
         |                  Some(g.asInstanceOf[UntypedType])
         |                case _ => None
         |              }
+        |          }
+        |          // [hearth#384] an ordinary alias (`type X = HKT[...]`) has no outer `AppliedType` shape - retry on the
+        |          // dealiased type (opaque types are kept by `dealias`, so opaque boundaries are preserved).
+        |          matchRepr(rawRepr).orElse {
+        |            val dealiased = rawRepr.dealias
+        |            if (dealiased == rawRepr) None else matchRepr(dealiased)
         |          }
         |        }
         |      }
@@ -154,9 +160,9 @@ object TypeConstructorsGen {
         |        def unapply[A](A: Type[A]): Option[UntypedType] = {
         |          given quotes: scala.quoted.Quotes = CrossQuotes.ctx
         |          import quotes.reflect.*
-        |          val aRepr = TypeRepr.of[A](using A.asInstanceOf[scala.quoted.Type[A]])
+        |          val rawRepr = TypeRepr.of[A](using A.asInstanceOf[scala.quoted.Type[A]])
         |          val hktRepr = TypeRepr.of[HKT]
-        |          aRepr match {
+        |          def matchRepr(aRepr: TypeRepr): Option[UntypedType] = aRepr match {
         |            case AppliedType(ctor, List(g)) if ctor =:= hktRepr =>
         |              Some(g.asInstanceOf[UntypedType])
         |            case _ =>
@@ -165,6 +171,11 @@ object TypeConstructorsGen {
         |                  Some(g.asInstanceOf[UntypedType])
         |                case _ => None
         |              }
+        |          }
+        |          // [hearth#384] see `FromUntypedImpl.unapply`
+        |          matchRepr(rawRepr).orElse {
+        |            val dealiased = rawRepr.dealias
+        |            if (dealiased == rawRepr) None else matchRepr(dealiased)
         |          }
         |        }
         |      }
@@ -389,13 +400,13 @@ object TypeConstructorsGen {
     sb ++= s"          def unapply[A](A: Type[A]): Option[${boundsTuple(n)}] = {\n"
     sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
     sb ++= s"            import quotes.reflect.*\n"
-    sb ++= s"            val aRepr = TypeRepr.of[A](using A.asInstanceOf[scala.quoted.Type[A]])\n"
+    sb ++= s"            val rawRepr = TypeRepr.of[A](using A.asInstanceOf[scala.quoted.Type[A]])\n"
     val matchVars = (0 until n).map(lp).mkString(", ")
     val someArgs = (0 until n).map { i =>
       val idx = i + 1
       s"${lp(i)}.asType.asInstanceOf[Type[${ArityGen.lower(idx)}]].as_<:??<:[${ArityGen.lower(idx)}, ${ArityGen.upper(idx)}]"
     }.mkString(", ")
-    sb ++= s"            aRepr match {\n"
+    sb ++= s"            def matchRepr(aRepr: TypeRepr): Option[${boundsTuple(n)}] = aRepr match {\n"
     sb ++= s"              case AppliedType(ctor, List($matchVars)) if ctor =:= hktRepr.asInstanceOf[TypeRepr] =>\n"
     val someWrapped = if (n == 1) s"Some($someArgs)" else s"Some(($someArgs))"
     sb ++= s"                $someWrapped\n"
@@ -405,6 +416,13 @@ object TypeConstructorsGen {
     sb ++= s"                    $someWrapped\n"
     sb ++= s"                  case _ => None\n"
     sb ++= s"                }\n"
+    sb ++= s"            }\n"
+    // [hearth#384] an ordinary alias (`type X = HKT[...]`, e.g. Iron's `type AtLeastTwo = List[Int] :| MinLength[2]`)
+    // has no outer `AppliedType` shape and its `baseType` does not recover an opaque application - retry on the
+    // dealiased type. `dealias` keeps opaque types, so opaque boundaries are preserved.
+    sb ++= s"            matchRepr(rawRepr).orElse {\n"
+    sb ++= s"              val dealiased = rawRepr.dealias\n"
+    sb ++= s"              if (dealiased == rawRepr) None else matchRepr(dealiased)\n"
     sb ++= s"            }\n"
     sb ++= s"          }\n"
     sb ++= s"        }\n"

@@ -159,6 +159,143 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** Renders local bindings (val definitions, references, lambda params) with identity-based ids: the same id means the
+    * very same `Binding` instance (`eq`), so the test can verify definition/use linking and shadowing.
+    */
+  def testParseBindings[A: Type](expr: Expr[A]): Expr[Data] = {
+    val ids = scala.collection.mutable.ListBuffer.empty[DestructuredExpr.Binding]
+    def idOf(binding: DestructuredExpr.Binding): Data = {
+      val existing = ids.indexWhere(_ eq binding)
+      if (existing >= 0) Data(existing)
+      else {
+        ids += binding
+        Data(ids.size - 1)
+      }
+    }
+    def render(node: DestructuredExpr): Data = node match {
+      case vd: DestructuredExpr.ValDefinition =>
+        val b = vd.binding
+        Data.map(
+          "node" -> Data("ValDefinition"),
+          "binding" -> idOf(b),
+          "name" -> Data(b.name),
+          "type" -> Data(b.tpe.plainPrint),
+          "flags" -> Data(
+            List(
+              "mutable" -> b.isMutable,
+              "lazy" -> b.isLazy,
+              "implicit" -> b.isImplicit,
+              "external" -> b.isExternal
+            ).collect { case (flag, true) => Data(flag) }
+          ),
+          "hasPosition" -> Data(vd.position.isDefined),
+          "rhs" -> render(vd.rhs)
+        )
+      case ref: DestructuredExpr.LocalReference =>
+        Data.map(
+          "node" -> Data("LocalReference"),
+          "binding" -> idOf(ref.binding),
+          "name" -> Data(ref.binding.name),
+          "external" -> Data(ref.binding.isExternal)
+        )
+      case ref: DestructuredExpr.Lambda.ParamRef =>
+        Data.map("node" -> Data("ParamRef"), "binding" -> idOf(ref.param), "name" -> Data(ref.param.name))
+      case imp: DestructuredExpr.Import =>
+        Data.map(
+          "node" -> Data("Import"),
+          "qualifier" -> render(imp.qualifier),
+          "selectors" -> Data(imp.selectors.map(Data(_)))
+        )
+      case ld: DestructuredExpr.LocalDefinition =>
+        Data.map("node" -> Data("LocalDefinition"), "kind" -> Data(ld.kind), "name" -> Data(ld.name))
+      case b: DestructuredExpr.Block =>
+        Data.map(
+          "node" -> Data("Block"),
+          "statements" -> Data(b.statements.map(render)),
+          "result" -> render(b.result)
+        )
+      case lam: DestructuredExpr.Lambda =>
+        Data.map(
+          "node" -> Data("Lambda"),
+          "params" -> Data(lam.params.map(p => Data.map("binding" -> idOf(p), "name" -> Data(p.name)))),
+          "body" -> render(lam.body)
+        )
+      case mc: DestructuredExpr.MethodCall =>
+        Data.map(
+          "node" -> Data("MethodCall"),
+          "name" -> Data(mc.method.name),
+          "receiver" -> mc.receiver.fold(Data("<none>"))(render),
+          "args" -> Data(mc.applied.collect { case av: DestructuredExpr.MethodCall.AppliedValues =>
+            av.args.map(render)
+          }.flatten)
+        )
+      case lit: DestructuredExpr.Literal => Data.map("node" -> Data("Literal"), "value" -> Data(lit.plainPrint))
+      case other                         => Data.map("node" -> Data("Other"), "plainPrint" -> Data(other.plainPrint))
+    }
+    Expr(render(DestructuredExpr.parse(expr)))
+  }
+
+  /** Reports, for a lambda: its unused parameters and how many references each parameter and each block-local val has
+    * anywhere in the body - including inside sub-trees that are `NonDestructurable` (pattern matches, etc.).
+    */
+  def testFindReferences[A: Type](expr: Expr[A]): Expr[Data] =
+    DestructuredExpr.parse(expr) match {
+      case lam: DestructuredExpr.Lambda =>
+        val locals = lam.body.collect { case vd: DestructuredExpr.ValDefinition => vd.binding }
+        val bindings: List[DestructuredExpr.Binding] = lam.params ++ locals
+        val references = lam.body.findReferences(bindings)
+        Expr(
+          Data.map(
+            "unusedParams" -> Data(lam.unusedParams.map(p => Data(p.name))),
+            "referenceCounts" -> Data.map(bindings.map { binding =>
+              binding.name -> Data(references.count(_.binding eq binding))
+            }*),
+            "allReferencesHavePositions" -> Data(references.forall(_.position.isDefined))
+          )
+        )
+      case other => Expr(Data.map("error" -> Data(s"Expected a lambda, got ${other.plainPrint}")))
+    }
+
+  /** Skips contextual wrappers and reports what is left. */
+  def testSkipContextualWrappers[A: Type](expr: Expr[A]): Expr[Data] = {
+    val parsed = DestructuredExpr.parse(expr)
+    def describe(node: DestructuredExpr): Data = node match {
+      case lam: DestructuredExpr.Lambda =>
+        Data.map(
+          "node" -> Data("Lambda"),
+          "contextual" -> Data(lam.isContextual),
+          // contextual parameters usually have compiler-generated (unstable) names
+          "params" -> Data(lam.params.map(p => Data(if (lam.isContextual) "<contextual>" else p.name)))
+        )
+      case other => Data.map("node" -> Data(other.getClass.getSimpleName))
+    }
+    Expr(
+      Data.map(
+        "parsed" -> describe(parsed),
+        "skipped" -> describe(DestructuredExpr.skipContextualWrappers(parsed))
+      )
+    )
+  }
+
+  /** Follows `MethodCall.receiver` from a lambda body down to the lambda parameter, returning method names root ->
+    * leaf. The same code reads `implicit class` (Scala 2 and 3) and `extension` (Scala 3) DSL methods.
+    */
+  def testReceiverChain[A: Type](expr: Expr[A]): Expr[Data] = {
+    def walk(node: DestructuredExpr, acc: List[Data]): Data = node match {
+      case _: DestructuredExpr.Lambda.ParamRef => Data(acc)
+      case mc: DestructuredExpr.MethodCall     =>
+        mc.receiver match {
+          case Some(receiver) => walk(receiver, Data(mc.method.name) :: acc)
+          case None           => Data.map("error" -> Data(s"no receiver for ${mc.plainPrint}"))
+        }
+      case other => Data.map("error" -> Data(s"unexpected ${other.plainPrint}"))
+    }
+    DestructuredExpr.extractLambda(expr) match {
+      case Right(info) => Expr(walk(info.body, Nil))
+      case Left(error) => Expr(Data.map("error" -> Data(error)))
+    }
+  }
+
   private def renderNode(parsed: DestructuredExpr): Data = {
     val nodeType = parsed match {
       case _: DestructuredExpr.MethodCall        => "MethodCall"
@@ -168,6 +305,10 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
       case _: DestructuredExpr.Singleton         => "Singleton"
       case _: DestructuredExpr.Block             => "Block"
       case _: DestructuredExpr.Varargs           => "Varargs"
+      case _: DestructuredExpr.ValDefinition     => "ValDefinition"
+      case _: DestructuredExpr.LocalReference    => "LocalReference"
+      case _: DestructuredExpr.Import            => "Import"
+      case _: DestructuredExpr.LocalDefinition   => "LocalDefinition"
       case _: DestructuredExpr.NonDestructurable => "NonDestructurable"
     }
     val extra: List[(String, Data)] = parsed match {
@@ -224,6 +365,14 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
         "type" -> Data(va.tpe.plainPrint),
         "elements" -> Data(va.elements.map(renderDetailed))
       )
+    case vd: DestructuredExpr.ValDefinition =>
+      Data.map("nodeType" -> Data("ValDefinition"), "name" -> Data(vd.binding.name), "rhs" -> renderDetailed(vd.rhs))
+    case ref: DestructuredExpr.LocalReference =>
+      Data.map("nodeType" -> Data("LocalReference"), "name" -> Data(ref.binding.name))
+    case imp: DestructuredExpr.Import =>
+      Data.map("nodeType" -> Data("Import"), "plainPrint" -> Data(imp.plainPrint))
+    case ld: DestructuredExpr.LocalDefinition =>
+      Data.map("nodeType" -> Data("LocalDefinition"), "kind" -> Data(ld.kind), "name" -> Data(ld.name))
     case nd: DestructuredExpr.NonDestructurable =>
       Data.map("nodeType" -> Data("NonDestructurable"), "description" -> Data(nd.description))
   }

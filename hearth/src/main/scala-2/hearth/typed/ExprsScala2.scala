@@ -145,6 +145,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] = c.Expr[Unit](q"val _ = $expr; ()")
 
+    override private[hearth] def destructuredReferences(
+        tree: UntypedExpr,
+        bindingsBySymbol: Map[Any, DestructuredExpr.Binding]
+    ): List[DestructuredExpr.Reference] = dstrFindReferences(tree, bindingsBySymbol)
+
     // [hearth#334] `{ @Ann(arguments...) val fresh = expr; fresh }`. The annotation is built in annotation position as
     // `new Ann(arguments...)` (which, unlike an expression-position `new`, is accepted for Java annotations like
     // `@SuppressWarnings`). Quasiquotes are not typed, so the argument trees are `untypecheck`ed before splicing
@@ -3675,7 +3680,162 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
   // --- Expression destructuring ---
 
   override protected def destructureExpr(expr: UntypedExpr): DestructuredExpr =
-    dstrImpl(expr, Map.empty)
+    dstrImpl(expr, dstrExternalBindings(expr))
+
+  /** Local values referenced by `tree` but defined outside of it (locals/parameters of the enclosing method).
+    *
+    * They are registered upfront - one `LocalBinding` per symbol - so that every `LocalReference` to the same external
+    * value shares the binding instance, exactly like references to bindings defined inside the tree.
+    */
+  private def dstrExternalBindings(tree: Tree): Map[Symbol, DestructuredExpr.Binding] = {
+    val defined = scala.collection.mutable.Set.empty[Symbol]
+    val referenced = scala.collection.mutable.LinkedHashMap.empty[Symbol, Ident]
+    tree.foreach {
+      case vd: ValDef if dstrHasSymbol(vd)                => defined += vd.symbol
+      case ident: Ident if dstrIsLocalValue(ident.symbol) => referenced.getOrElseUpdate(ident.symbol, ident)
+      case _                                              => ()
+    }
+    referenced.iterator.collect {
+      case (sym, ident) if !defined(sym) =>
+        val tpe = if (ident.tpe != null && ident.tpe != NoType) ident.tpe.widen else sym.typeSignature
+        val position = sym.pos match {
+          case NoPosition => None
+          case pos        => Some(pos)
+        }
+        sym -> (dstrLocalBinding(sym, tpe, position, isExternal = true): DestructuredExpr.Binding)
+    }.toMap
+  }
+
+  private def dstrUnitTpe: ?? = UntypedType.as_??(definitions.UnitTpe)
+
+  private def dstrPosOf(tree: Tree): Option[Position] = Option(tree.pos).filter(_ != NoPosition)
+
+  /** A statement (definition/import) is not a standalone expression - wrap it as `{ statement; () }`. */
+  private def dstrStatementAsTerm(stat: Tree): Tree = Block(List(stat), Literal(Constant(())))
+
+  private def dstrHasSymbol(tree: Tree): Boolean = tree.symbol != null && tree.symbol != NoSymbol
+
+  private def dstrLocalBinding(
+      sym: Symbol,
+      tpe: c.Type,
+      position: Option[Position],
+      isExternal: Boolean
+  ): DestructuredExpr.LocalBinding = {
+    val term = sym.asTerm
+    new DestructuredExpr.LocalBinding(
+      name = sym.name.decodedName.toString.trim,
+      tpe = UntypedType.as_??(tpe),
+      isMutable = term.isVar,
+      isLazy = term.isLazy,
+      isImplicit = sym.isImplicit,
+      isSynthetic = sym.isSynthetic,
+      isExternal = isExternal,
+      position = position,
+      bindingSymbol = sym
+    )
+  }
+
+  /** Whether `sym` is a value local to a method/block (a local val/var/lazy val or a method parameter) - as opposed to
+    * a member of a class/object (those are resolved as `MethodCall`s/`Singleton`s).
+    */
+  private def dstrIsLocalValue(sym: Symbol): Boolean =
+    sym != null && sym != NoSymbol && sym.isTerm && !sym.isMethod && !sym.isModule && {
+      val owner = sym.owner
+      owner != null && owner != NoSymbol && owner.isTerm
+    }
+
+  private def dstrIsModuleDef(tree: Tree): Boolean = tree match {
+    case _: ModuleDef => true
+    case vd: ValDef   => dstrHasSymbol(vd) && vd.symbol.isModule
+    case _            => false
+  }
+
+  private def dstrStatements(
+      stats: List[Tree],
+      bindings: Map[Symbol, DestructuredExpr.Binding]
+  ): List[DestructuredExpr] =
+    stats.map {
+      case md: ModuleDef =>
+        new DestructuredExpr.LocalDefinition(
+          dstrUnitTpe,
+          "object",
+          md.name.decodedName.toString,
+          () => dstrStatementAsTerm(md),
+          dstrPosOf(md)
+        )
+      case vd: ValDef if dstrHasSymbol(vd) && bindings.contains(vd.symbol) =>
+        val binding = bindings(vd.symbol).asInstanceOf[DestructuredExpr.LocalBinding]
+        new DestructuredExpr.ValDefinition(
+          dstrUnitTpe,
+          binding,
+          dstrImpl(vd.rhs, bindings),
+          () => dstrStatementAsTerm(vd)
+        )
+      case imp: Import =>
+        val selectors = imp.selectors.map { sel =>
+          val name = sel.name.decodedName.toString
+          if (sel.name == termNames.WILDCARD) "*"
+          else if (sel.rename == termNames.WILDCARD) s"$name => _"
+          else if (sel.rename != null && sel.rename != sel.name) s"$name => ${sel.rename.decodedName.toString}"
+          else name
+        }
+        new DestructuredExpr.Import(
+          dstrUnitTpe,
+          dstrImpl(imp.expr, bindings),
+          selectors,
+          () => dstrStatementAsTerm(imp),
+          dstrPosOf(imp)
+        )
+      case dd: DefDef =>
+        new DestructuredExpr.LocalDefinition(
+          dstrUnitTpe,
+          "def",
+          dd.name.decodedName.toString,
+          () => dstrStatementAsTerm(dd),
+          dstrPosOf(dd)
+        )
+      case cd: ClassDef =>
+        new DestructuredExpr.LocalDefinition(
+          dstrUnitTpe,
+          if (cd.mods.hasFlag(Flag.TRAIT)) "trait" else "class",
+          cd.name.decodedName.toString,
+          () => dstrStatementAsTerm(cd),
+          dstrPosOf(cd)
+        )
+      case td: TypeDef =>
+        new DestructuredExpr.LocalDefinition(
+          dstrUnitTpe,
+          "type",
+          td.name.decodedName.toString,
+          () => dstrStatementAsTerm(td),
+          dstrPosOf(td)
+        )
+      case other => dstrImpl(other, bindings)
+    }
+
+  /** Registers the `val`s defined by `stats` (their scope is the rest of the block, and they have unique symbols). */
+  private def dstrWithBlockBindings(
+      stats: List[Tree],
+      bindings: Map[Symbol, DestructuredExpr.Binding]
+  ): Map[Symbol, DestructuredExpr.Binding] =
+    bindings ++ stats.collect {
+      case vd: ValDef if dstrHasSymbol(vd) && !dstrIsModuleDef(vd) =>
+        val tpe = if (vd.tpt.tpe != null && vd.tpt.tpe != NoType) vd.tpt.tpe else vd.symbol.typeSignature
+        vd.symbol -> (dstrLocalBinding(vd.symbol, tpe, dstrPosOf(vd), isExternal = false): DestructuredExpr.Binding)
+    }
+
+  private[hearth] def dstrFindReferences(
+      tree: Tree,
+      bindingsBySymbol: Map[Any, DestructuredExpr.Binding]
+  ): List[DestructuredExpr.Reference] = {
+    val found = List.newBuilder[DestructuredExpr.Reference]
+    tree.foreach {
+      case ident: Ident if dstrHasSymbol(ident) && bindingsBySymbol.contains(ident.symbol) =>
+        found += new DestructuredExpr.Reference(bindingsBySymbol(ident.symbol), dstrPosOf(ident))
+      case _ => ()
+    }
+    found.result()
+  }
 
   sealed private trait DstrCallStep
   final private case class DstrTypeStep(targs: List[Tree]) extends DstrCallStep
@@ -3685,7 +3845,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     if (tree.tpe != null && tree.tpe != NoType) UntypedType.as_??(tree.tpe.widen)
     else Type.of[Any].as_??
 
-  private def dstrImpl(tree: Tree, lambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param]): DestructuredExpr =
+  private def dstrImpl(tree: Tree, lambdaParams: Map[Symbol, DestructuredExpr.Binding]): DestructuredExpr =
     tree match {
       case Typed(inner, _) => dstrImpl(inner, lambdaParams)
 
@@ -3696,15 +3856,21 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         dstrLambda(params, body, tree, lambdaParams)
 
       case Block(stats, result) =>
+        val blockBindings = dstrWithBlockBindings(stats, lambdaParams)
         new DestructuredExpr.Block(
           dstrTpeOf(tree),
-          stats.map(dstrImpl(_, lambdaParams)),
-          dstrImpl(result, lambdaParams),
+          dstrStatements(stats, blockBindings),
+          dstrImpl(result, blockBindings),
           () => tree
         )
 
       case Ident(_) if tree.symbol != null && tree.symbol != NoSymbol && lambdaParams.contains(tree.symbol) =>
-        new DestructuredExpr.Lambda.ParamRef(dstrTpeOf(tree), lambdaParams(tree.symbol), () => tree)
+        lambdaParams(tree.symbol) match {
+          case param: DestructuredExpr.Lambda.Param =>
+            new DestructuredExpr.Lambda.ParamRef(dstrTpeOf(tree), param, () => tree)
+          case local: DestructuredExpr.LocalBinding =>
+            new DestructuredExpr.LocalReference(dstrTpeOf(tree), local, () => tree)
+        }
 
       case Ident(name)
           if tree.symbol != null && tree.symbol != NoSymbol &&
@@ -3721,7 +3887,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       core: Tree,
       steps: List[DstrCallStep],
       tree: Tree,
-      lambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param]
+      lambdaParams: Map[Symbol, DestructuredExpr.Binding]
   ): Option[DestructuredExpr.MethodCall] = core match {
     case Select(New(tpt), termNames.CONSTRUCTOR) =>
       val ctorTpe = tpt.tpe
@@ -3749,7 +3915,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
   private def dstrTryMethodCall(
       tree: Tree,
-      lambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param]
+      lambdaParams: Map[Symbol, DestructuredExpr.Binding]
   ): Option[DestructuredExpr.MethodCall] = {
     val (core, steps) = dstrFlattenCall(tree)
 
@@ -3796,7 +3962,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
   private def dstrBuildAppliedSteps(
       steps: List[DstrCallStep],
-      lambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param],
+      lambdaParams: Map[Symbol, DestructuredExpr.Binding],
       applied: scala.collection.mutable.Builder[DestructuredExpr.MethodCall.Applied, List[
         DestructuredExpr.MethodCall.Applied
       ]],
@@ -3825,7 +3991,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
   private def dstrValueArgs(
       args: List[Tree],
       clause: Option[List[Parameter]],
-      lambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param]
+      lambdaParams: Map[Symbol, DestructuredExpr.Binding]
   ): List[DestructuredExpr] = clause match {
     case Some(params) if params.lastOption.exists(_.isVararg) && !dstrIsSpreadCall(args, params.size) =>
       val (regular, repeated) = args.splitAt(params.size - 1)
@@ -3860,7 +4026,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       params: List[ValDef],
       body: Tree,
       originalTree: Tree,
-      outerLambdaParams: Map[Symbol, DestructuredExpr.Lambda.Param]
+      outerLambdaParams: Map[Symbol, DestructuredExpr.Binding]
   ): DestructuredExpr = {
     val dstrParams = params.map { vd =>
       val widenedTpe: c.Type =
@@ -3882,7 +4048,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       new DestructuredExpr.Lambda.Param(
         vd.name.decodedName.toString,
         UntypedType.as_??(widenedTpe),
-        UntypedType.as_??(declaredTpe)
+        UntypedType.as_??(declaredTpe),
+        if (vd.symbol != null && vd.symbol != NoSymbol) vd.symbol else null
       )
     }
     val newLambdaParams = outerLambdaParams ++ params.zip(dstrParams).collect {

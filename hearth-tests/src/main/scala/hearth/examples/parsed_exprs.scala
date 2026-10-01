@@ -35,3 +35,26 @@ object dsl {
     def some: A = throw new NotImplementedError
   }
 }
+
+/** A block-shaped DSL in the style of a parser generator:
+  * `g => { import g._; val x = nonTerminal[Int]; x ::= ...; x }`. Reading it requires local `val` definitions,
+  * references to them, and `import` statements.
+  */
+object grammar_dsl {
+
+  final class Sym[A]
+
+  final class Dsl {
+    def nonTerminal[A]: Sym[A] = new Sym[A]
+    def terminal(pattern: String): Sym[String] = { val _ = pattern; new Sym[String] }
+
+    implicit class SymOps[A](val sym: Sym[A]) {
+      def ::=(alternative: Any): Unit = { val _ = (sym, alternative); () }
+    }
+  }
+}
+
+trait Ctx
+object Ctx {
+  val instance: Ctx = new Ctx {}
+}

@@ -30,6 +30,18 @@ final private class DestructuredExprsFixtures(val c: blackbox.Context)
 
   def testMarkerPathImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
     testMarkerPath[A](expr)
+
+  def testParseBindingsImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testParseBindings[A](expr)
+
+  def testFindReferencesImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testFindReferences[A](expr)
+
+  def testSkipContextualWrappersImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testSkipContextualWrappers[A](expr)
+
+  def testReceiverChainImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testReceiverChain[A](expr)
 }
 
 object DestructuredExprsFixtures {
@@ -47,4 +59,12 @@ object DestructuredExprsFixtures {
   def testParseDetailed[A](expr: A): Data = macro DestructuredExprsFixtures.testParseDetailedImpl[A]
 
   def testMarkerPath[A](expr: A): Data = macro DestructuredExprsFixtures.testMarkerPathImpl[A]
+
+  def testParseBindings[A](expr: A): Data = macro DestructuredExprsFixtures.testParseBindingsImpl[A]
+
+  def testFindReferences[A](expr: A): Data = macro DestructuredExprsFixtures.testFindReferencesImpl[A]
+
+  def testSkipContextualWrappers[A](expr: A): Data = macro DestructuredExprsFixtures.testSkipContextualWrappersImpl[A]
+
+  def testReceiverChain[A](expr: A): Data = macro DestructuredExprsFixtures.testReceiverChainImpl[A]
 }

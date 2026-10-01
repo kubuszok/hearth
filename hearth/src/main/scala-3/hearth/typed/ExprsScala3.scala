@@ -184,6 +184,11 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     override def suppressUnused[A: Type](expr: Expr[A]): Expr[Unit] =
       Block(List(expr.asTerm), Literal(UnitConstant())).asExprOf[Unit]
 
+    override private[hearth] def destructuredReferences(
+        tree: UntypedExpr,
+        bindingsBySymbol: Map[Any, DestructuredExpr.Binding]
+    ): List[DestructuredExpr.Reference] = dstrFindReferences(tree, bindingsBySymbol)
+
     // [hearth#334] `{ @Ann(arguments...) val fresh = expr; fresh }`. The annotation is built in annotation position via
     // `quotes.reflect`'s `New` (which, unlike source-level `new`, works for Java annotations like `@SuppressWarnings`)
     // and carried as an `AnnotatedType` on the fresh `val`'s type. `currentSpliceOwner`/`freshTerm` are the
@@ -6152,9 +6157,192 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
   // --- Expression destructuring ---
 
-  override protected def destructureExpr(expr: UntypedExpr): DestructuredExpr = {
+  override protected def destructureExpr(expr: UntypedExpr): DestructuredExpr =
+    dstrImpl(expr, dstrExternalBindings(expr))
+
+  /** Local values referenced by `tree` but defined outside of it (locals/parameters of the enclosing method).
+    *
+    * They are registered upfront - one `LocalBinding` per symbol - so that every `LocalReference` to the same external
+    * value shares the binding instance, exactly like references to bindings defined inside the tree.
+    */
+  private def dstrExternalBindings(treeAny: Any): Map[Any, DestructuredExpr.Binding] = {
     import quotes.reflect.*
-    dstrImpl(expr, Map.empty)
+    val defined = scala.collection.mutable.Set.empty[Any]
+    val referenced = scala.collection.mutable.LinkedHashMap.empty[Any, Any]
+    val accumulator = new TreeAccumulator[Unit] {
+      def foldTree(acc: Unit, tree: Tree)(owner: Symbol): Unit = {
+        tree match {
+          case vd: ValDef                                     => defined += vd.symbol
+          case ident: Ident if dstrIsLocalValue(ident.symbol) =>
+            referenced.getOrElseUpdate(ident.symbol, ident.tpe.widen)
+          case _ => ()
+        }
+        foldOverTree(acc, tree)(owner)
+      }
+    }
+    accumulator.foldTree((), treeAny.asInstanceOf[Tree])(Symbol.spliceOwner)
+    referenced.iterator.collect {
+      case (sym, tpe) if !defined(sym) =>
+        sym -> (dstrLocalBinding(sym, tpe, isExternal = true): DestructuredExpr.Binding)
+    }.toMap
+  }
+
+  private def dstrUnitTpe: ?? = {
+    import quotes.reflect.*
+    UntypedType.as_??(TypeRepr.of[Unit])
+  }
+
+  private def dstrPosOf(treeAny: Any): Option[Position] = {
+    import quotes.reflect.*
+    scala.util.Try(treeAny.asInstanceOf[Tree].pos).toOption
+  }
+
+  /** A statement (definition/import) cannot be a standalone `Term` - wrap it as `{ statement; () }`. */
+  private def dstrStatementAsTerm(statAny: Any): UntypedExpr = {
+    import quotes.reflect.*
+    Block(List(statAny.asInstanceOf[Statement]), Literal(UnitConstant()))
+  }
+
+  private def dstrLocalBinding(symAny: Any, tpeAny: Any, isExternal: Boolean): DestructuredExpr.LocalBinding = {
+    import quotes.reflect.*
+    val sym = symAny.asInstanceOf[Symbol]
+    val flags = sym.flags
+    new DestructuredExpr.LocalBinding(
+      name = sym.name,
+      tpe = UntypedType.as_??(tpeAny.asInstanceOf[TypeRepr]),
+      isMutable = flags.is(Flags.Mutable),
+      isLazy = flags.is(Flags.Lazy),
+      isImplicit = flags.is(Flags.Given) || flags.is(Flags.Implicit),
+      isSynthetic = flags.is(Flags.Synthetic),
+      isExternal = isExternal,
+      position = sym.pos,
+      bindingSymbol = sym
+    )
+  }
+
+  /** Whether `sym` is a value local to a method/block (a local val/var/lazy val or a method parameter) - as opposed to
+    * a member of a class/object (those are resolved as `MethodCall`s/`Singleton`s).
+    */
+  private def dstrIsLocalValue(symAny: Any): Boolean = {
+    import quotes.reflect.*
+    val sym = symAny.asInstanceOf[Symbol]
+    !sym.isNoSymbol && sym.isTerm && sym.isValDef && !sym.flags.is(Flags.Module) && {
+      val owner = sym.maybeOwner
+      !owner.isNoSymbol && owner.isTerm
+    }
+  }
+
+  private def dstrStatements(
+      statsAny: List[Any],
+      bindings: Map[Any, DestructuredExpr.Binding]
+  ): List[DestructuredExpr] = {
+    import quotes.reflect.*
+    statsAny.map(_.asInstanceOf[Statement]).flatMap {
+      // `object Foo` is encoded as a module val + a module class: report it once (as the val)
+      case cd: ClassDef if cd.symbol.flags.is(Flags.Module) => Nil
+      case vd: ValDef if vd.symbol.flags.is(Flags.Module)   =>
+        List(
+          new DestructuredExpr.LocalDefinition(
+            dstrUnitTpe,
+            "object",
+            vd.name,
+            () => dstrStatementAsTerm(vd),
+            dstrPosOf(vd)
+          )
+        )
+      case vd: ValDef =>
+        val binding = bindings(vd.symbol).asInstanceOf[DestructuredExpr.LocalBinding]
+        val rhs = vd.rhs match {
+          case Some(rhsTerm) => dstrImpl(rhsTerm, bindings)
+          case None          =>
+            new DestructuredExpr.NonDestructurable(
+              binding.tpe,
+              dstrStatementAsTerm(vd),
+              "<val with no right-hand side>"
+            )
+        }
+        List(new DestructuredExpr.ValDefinition(dstrUnitTpe, binding, rhs, () => dstrStatementAsTerm(vd)))
+      case imp: Import =>
+        val selectors = imp.selectors.map {
+          case SimpleSelector(name) if name == "_" => "*"
+          case SimpleSelector(name)                => name
+          case RenameSelector(from, to)            => s"$from => $to"
+          case OmitSelector(name)                  => s"$name => _"
+          case GivenSelector(_)                    => "given"
+        }
+        List(
+          new DestructuredExpr.Import(
+            dstrUnitTpe,
+            dstrImpl(imp.expr, bindings),
+            selectors,
+            () => dstrStatementAsTerm(imp),
+            dstrPosOf(imp)
+          )
+        )
+      case dd: DefDef =>
+        List(
+          new DestructuredExpr.LocalDefinition(
+            dstrUnitTpe,
+            "def",
+            dd.name,
+            () => dstrStatementAsTerm(dd),
+            dstrPosOf(dd)
+          )
+        )
+      case cd: ClassDef =>
+        val kind = if cd.symbol.flags.is(Flags.Trait) then "trait" else "class"
+        List(
+          new DestructuredExpr.LocalDefinition(dstrUnitTpe, kind, cd.name, () => dstrStatementAsTerm(cd), dstrPosOf(cd))
+        )
+      case td: TypeDef =>
+        List(
+          new DestructuredExpr.LocalDefinition(
+            dstrUnitTpe,
+            "type",
+            td.name,
+            () => dstrStatementAsTerm(td),
+            dstrPosOf(td)
+          )
+        )
+      case term: Term => List(dstrImpl(term, bindings))
+      case other      =>
+        List(
+          new DestructuredExpr.NonDestructurable(
+            dstrUnitTpe,
+            dstrStatementAsTerm(other),
+            other.show(using Printer.TreeShortCode)
+          )
+        )
+    }
+  }
+
+  /** Registers the `val`s defined by `stats` (their scope is the rest of the block, and they have unique symbols). */
+  private def dstrWithBlockBindings(
+      statsAny: List[Any],
+      bindings: Map[Any, DestructuredExpr.Binding]
+  ): Map[Any, DestructuredExpr.Binding] = {
+    import quotes.reflect.*
+    bindings ++ statsAny.map(_.asInstanceOf[Statement]).collect {
+      case vd: ValDef if !vd.symbol.flags.is(Flags.Module) =>
+        (vd.symbol: Any) -> (dstrLocalBinding(vd.symbol, vd.tpt.tpe, isExternal = false): DestructuredExpr.Binding)
+    }
+  }
+
+  private def dstrBlock(
+      statsAny: List[Any],
+      resultAny: Any,
+      originalTermAny: Any,
+      bindings: Map[Any, DestructuredExpr.Binding]
+  ): DestructuredExpr = {
+    import quotes.reflect.*
+    val originalTerm = originalTermAny.asInstanceOf[Term]
+    val blockBindings = dstrWithBlockBindings(statsAny, bindings)
+    new DestructuredExpr.Block(
+      dstrTpeOf(originalTerm),
+      dstrStatements(statsAny, blockBindings),
+      dstrImpl(resultAny, blockBindings),
+      () => originalTerm
+    )
   }
 
   private def dstrTpeOf(termAny: Any): ?? = {
@@ -6166,12 +6354,15 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
   final private case class DstrTypeStep(targs: List[Any]) extends DstrCallStep
   final private case class DstrValueStep(args: List[Any]) extends DstrCallStep
 
-  private def dstrImpl(termAny: Any, lambdaParams: Map[Any, DestructuredExpr.Lambda.Param]): DestructuredExpr = {
+  private def dstrImpl(termAny: Any, lambdaParams: Map[Any, DestructuredExpr.Binding]): DestructuredExpr = {
     import quotes.reflect.*
     val term = termAny.asInstanceOf[Term]
     term match {
-      case Inlined(_, _, inner) => dstrImpl(inner, lambdaParams)
-      case Block(Nil, inner)    => dstrImpl(inner, lambdaParams)
+      case Inlined(_, Nil, inner) => dstrImpl(inner, lambdaParams)
+      // inline bindings (proxies of inline method arguments) are kept: their scope is the inlined body
+      case Inlined(_, inlineBindings, inner)                 => dstrBlock(inlineBindings, inner, term, lambdaParams)
+      case Block(Nil, inner)                                 => dstrImpl(inner, lambdaParams)
+      case Typed(inner, tpt) if !dstrIsRepeatedParamTpt(tpt) => dstrImpl(inner, lambdaParams)
 
       case Literal(constant) =>
         new DestructuredExpr.Literal(dstrTpeOf(term), dstrExtractConstant(constant), () => term)
@@ -6180,15 +6371,15 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         dstrLambda(ddef, term, lambdaParams)
 
       case Block(stats, result) =>
-        new DestructuredExpr.Block(
-          dstrTpeOf(term),
-          stats.map(s => dstrImpl(s, lambdaParams)),
-          dstrImpl(result, lambdaParams),
-          () => term
-        )
+        dstrBlock(stats, result, term, lambdaParams)
 
       case Ident(_) if lambdaParams.contains(term.symbol) =>
-        new DestructuredExpr.Lambda.ParamRef(dstrTpeOf(term), lambdaParams(term.symbol), () => term)
+        lambdaParams(term.symbol) match {
+          case param: DestructuredExpr.Lambda.Param =>
+            new DestructuredExpr.Lambda.ParamRef(dstrTpeOf(term), param, () => term)
+          case local: DestructuredExpr.LocalBinding =>
+            new DestructuredExpr.LocalReference(dstrTpeOf(term), local, () => term)
+        }
 
       case Ident(name) if term.symbol.flags.is(Flags.Module) =>
         new DestructuredExpr.Singleton(dstrTpeOf(term), name, () => term)
@@ -6206,7 +6397,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
   private def dstrTryMethodCall(
       termAny: Any,
-      lambdaParams: Map[Any, DestructuredExpr.Lambda.Param]
+      lambdaParams: Map[Any, DestructuredExpr.Binding]
   ): Option[DestructuredExpr.MethodCall] = {
     import quotes.reflect.*
     val term = termAny.asInstanceOf[Term]
@@ -6323,7 +6514,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
   private def dstrBuildAppliedSteps(
       steps: List[DstrCallStep],
-      lambdaParams: Map[Any, DestructuredExpr.Lambda.Param],
+      lambdaParams: Map[Any, DestructuredExpr.Binding],
       applied: scala.collection.mutable.Builder[DestructuredExpr.MethodCall.Applied, List[
         DestructuredExpr.MethodCall.Applied
       ]]
@@ -6347,7 +6538,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     * [[DestructuredExpr.Varargs]] slot. A spread sequence (`m(seq*)`) arrives as `Typed(seq, <repeated tpt>)` and is
     * unwrapped to the destructured sequence expression itself - matching what Scala 2 produces for `m(seq: _*)`.
     */
-  private def dstrArg(argAny: Any, lambdaParams: Map[Any, DestructuredExpr.Lambda.Param]): DestructuredExpr = {
+  private def dstrArg(argAny: Any, lambdaParams: Map[Any, DestructuredExpr.Binding]): DestructuredExpr = {
     import quotes.reflect.*
     argAny.asInstanceOf[Term] match {
       case Repeated(elems, elemTpt)                         => dstrVarargs(elems, elemTpt, lambdaParams)
@@ -6369,7 +6560,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
   private def dstrVarargs(
       elemsAny: List[Any],
       elemTptAny: Any,
-      lambdaParams: Map[Any, DestructuredExpr.Lambda.Param]
+      lambdaParams: Map[Any, DestructuredExpr.Binding]
   ): DestructuredExpr = {
     import quotes.reflect.*
     val elems = elemsAny.map(_.asInstanceOf[Term])
@@ -6405,15 +6596,17 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
   private def dstrLambda(
       ddefAny: Any,
       originalTermAny: Any,
-      outerLambdaParams: Map[Any, DestructuredExpr.Lambda.Param]
+      outerLambdaParams: Map[Any, DestructuredExpr.Binding]
   ): DestructuredExpr = {
     import quotes.reflect.*
     val ddef = ddefAny.asInstanceOf[DefDef]
     val originalTerm = originalTermAny.asInstanceOf[Term]
     val allVds = ddef.paramss.flatMap(_.params).collect { case vd: ValDef => vd }
     val params = allVds.map { vd =>
-      new DestructuredExpr.Lambda.Param(vd.name, UntypedType.as_??(vd.tpt.tpe))
+      val tpe = UntypedType.as_??(vd.tpt.tpe)
+      new DestructuredExpr.Lambda.Param(vd.name, tpe, tpe, vd.symbol)
     }
+    val isContextual = ddef.termParamss.headOption.exists(clause => clause.isGiven || clause.isImplicit)
     val newLambdaParams = outerLambdaParams ++ allVds.zip(params).map { case (vd, p) => (vd.symbol: Any) -> p }
     val body = ddef.rhs match {
       case Some(bodyTerm) => dstrImpl(bodyTerm, newLambdaParams)
@@ -6424,7 +6617,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           "<lambda with no body>"
         )
     }
-    new DestructuredExpr.Lambda(dstrTpeOf(originalTerm), params, body, () => originalTerm)
+    new DestructuredExpr.Lambda(dstrTpeOf(originalTerm), params, body, () => originalTerm, isContextual)
   }
 
   private def dstrExtractConstant(constantAny: Any): Any = {
@@ -6442,6 +6635,23 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       case NullConstant()     => null
       case _: ClassOfConstant => null
     }
+  }
+
+  private[hearth] def dstrFindReferences(
+      treeAny: Any,
+      bindingsBySymbol: Map[Any, DestructuredExpr.Binding]
+  ): List[DestructuredExpr.Reference] = {
+    import quotes.reflect.*
+    val found = List.newBuilder[DestructuredExpr.Reference]
+    val accumulator = new TreeAccumulator[Unit] {
+      def foldTree(acc: Unit, tree: Tree)(owner: Symbol): Unit = tree match {
+        case ident: Ident if bindingsBySymbol.contains(ident.symbol) =>
+          found += new DestructuredExpr.Reference(bindingsBySymbol(ident.symbol), dstrPosOf(ident))
+        case _ => foldOverTree(acc, tree)(owner)
+      }
+    }
+    accumulator.foldTree((), treeAny.asInstanceOf[Tree])(Symbol.spliceOwner)
+    found.result()
   }
 
   override protected def trySummonExprCodec[F: Type](): Option[ExprCodec[F]] = {

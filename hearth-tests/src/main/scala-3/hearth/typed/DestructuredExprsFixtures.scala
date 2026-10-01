@@ -37,6 +37,31 @@ object DestructuredExprsFixtures {
   private def testParseDetailedImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new DestructuredExprsFixtures(q).testParseDetailed[A](expr)
 
+  inline def testParseBindings[A](inline expr: A): Data = ${ testParseBindingsImpl[A]('expr) }
+  private def testParseBindingsImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new DestructuredExprsFixtures(q).testParseBindings[A](expr)
+
+  inline def testFindReferences[A](inline expr: A): Data = ${ testFindReferencesImpl[A]('expr) }
+  private def testFindReferencesImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new DestructuredExprsFixtures(q).testFindReferences[A](expr)
+
+  inline def testSkipContextualWrappers[A](inline expr: A): Data = ${ testSkipContextualWrappersImpl[A]('expr) }
+  private def testSkipContextualWrappersImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new DestructuredExprsFixtures(q).testSkipContextualWrappers[A](expr)
+
+  /** The argument is passed to a context-function-typed parameter, so the compiler wraps it in a contextual lambda. */
+  inline def testSkipContextualWrappersOfSelector(
+      inline selector: hearth.examples.parsed_exprs.Ctx ?=> hearth.examples.parsed_exprs.Person => String
+  ): Data = ${ testSkipContextualWrappersOfSelectorImpl('selector) }
+  private def testSkipContextualWrappersOfSelectorImpl(
+      selector: Expr[hearth.examples.parsed_exprs.Ctx ?=> hearth.examples.parsed_exprs.Person => String]
+  )(using q: Quotes): Expr[Data] =
+    new DestructuredExprsFixtures(q).testSkipContextualWrappers(selector)
+
+  inline def testReceiverChain[A](inline expr: A): Data = ${ testReceiverChainImpl[A]('expr) }
+  private def testReceiverChainImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new DestructuredExprsFixtures(q).testReceiverChain[A](expr)
+
   inline def testMarkerPath[A](inline expr: A): Data = ${ testMarkerPathImpl[A]('expr) }
   private def testMarkerPathImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new DestructuredExprsFixtures(q).testMarkerPath[A](expr)

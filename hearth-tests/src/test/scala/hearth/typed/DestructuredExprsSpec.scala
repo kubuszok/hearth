@@ -448,5 +448,313 @@ final class DestructuredExprsSpec extends MacroSuite {
           Data.list(Data("name"))
       }
     }
+
+    group("local bindings: val definitions, references, imports, local definitions") {
+      import DestructuredExprsFixtures.testParseBindings
+      import examples.parsed_exprs.grammar_dsl.*
+
+      def paramRef(id: Int, name: String): Data =
+        Data.map("node" -> Data("ParamRef"), "binding" -> Data(id), "name" -> Data(name))
+      def localRef(id: Int, name: String, external: Boolean = false): Data =
+        Data.map(
+          "node" -> Data("LocalReference"),
+          "binding" -> Data(id),
+          "name" -> Data(name),
+          "external" -> Data(external)
+        )
+      def literal(value: String): Data = Data.map("node" -> Data("Literal"), "value" -> Data(value))
+
+      test("a block-shaped DSL: imports, vals and references linked by identity") {
+        testParseBindings { (g: Dsl) =>
+          import g.*
+          val expr = nonTerminal[Int]
+          val num = terminal("[0-9]+")
+          expr ::= num
+          expr
+        } <==> Data.map(
+          "node" -> Data("Lambda"),
+          "params" -> Data.list(Data.map("binding" -> Data(0), "name" -> Data("g"))),
+          "body" -> Data.map(
+            "node" -> Data("Block"),
+            "statements" -> Data.list(
+              Data.map("node" -> Data("Import"), "qualifier" -> paramRef(0, "g"), "selectors" -> Data.list(Data("*"))),
+              Data.map(
+                "node" -> Data("ValDefinition"),
+                "binding" -> Data(1),
+                "name" -> Data("expr"),
+                "type" -> Data("hearth.examples.parsed_exprs.grammar_dsl.Sym[scala.Int]"),
+                "flags" -> Data.list(),
+                "hasPosition" -> Data(true),
+                "rhs" -> Data.map(
+                  "node" -> Data("MethodCall"),
+                  "name" -> Data("nonTerminal"),
+                  "receiver" -> paramRef(0, "g"),
+                  "args" -> Data.list()
+                )
+              ),
+              Data.map(
+                "node" -> Data("ValDefinition"),
+                "binding" -> Data(2),
+                "name" -> Data("num"),
+                "type" -> Data("hearth.examples.parsed_exprs.grammar_dsl.Sym[java.lang.String]"),
+                "flags" -> Data.list(),
+                "hasPosition" -> Data(true),
+                "rhs" -> Data.map(
+                  "node" -> Data("MethodCall"),
+                  "name" -> Data("terminal"),
+                  "receiver" -> paramRef(0, "g"),
+                  "args" -> Data.list(literal("\"[0-9]+\""))
+                )
+              ),
+              // `expr ::= num` is `g.SymOps(expr).::=(num)`: `receiver` sees through the implicit class
+              Data.map(
+                "node" -> Data("MethodCall"),
+                "name" -> Data("::="),
+                "receiver" -> localRef(1, "expr"),
+                "args" -> Data.list(localRef(2, "num"))
+              )
+            ),
+            "result" -> localRef(1, "expr")
+          )
+        )
+      }
+
+      test("shadowed names are different bindings") {
+        testParseBindings {
+          val a = 1
+          val b = {
+            val a = 2
+            a
+          }
+          a + b
+        } <==> Data.map(
+          "node" -> Data("Block"),
+          "statements" -> Data.list(
+            Data.map(
+              "node" -> Data("ValDefinition"),
+              "binding" -> Data(0),
+              "name" -> Data("a"),
+              "type" -> Data("scala.Int"),
+              "flags" -> Data.list(),
+              "hasPosition" -> Data(true),
+              "rhs" -> literal("1")
+            ),
+            Data.map(
+              "node" -> Data("ValDefinition"),
+              "binding" -> Data(1),
+              "name" -> Data("b"),
+              "type" -> Data("scala.Int"),
+              "flags" -> Data.list(),
+              "hasPosition" -> Data(true),
+              "rhs" -> Data.map(
+                "node" -> Data("Block"),
+                "statements" -> Data.list(
+                  Data.map(
+                    "node" -> Data("ValDefinition"),
+                    "binding" -> Data(2),
+                    "name" -> Data("a"),
+                    "type" -> Data("scala.Int"),
+                    "flags" -> Data.list(),
+                    "hasPosition" -> Data(true),
+                    "rhs" -> literal("2")
+                  )
+                ),
+                "result" -> localRef(2, "a")
+              )
+            )
+          ),
+          "result" -> Data.map(
+            "node" -> Data("MethodCall"),
+            "name" -> Data("+"),
+            "receiver" -> localRef(0, "a"),
+            "args" -> Data.list(localRef(1, "b"))
+          )
+        )
+      }
+
+      test("var, lazy val and implicit val flags") {
+        testParseBindings {
+          var counter = 0
+          lazy val cached = counter + 1
+          implicit val label: String = "x"
+          counter = cached
+          counter + label.length
+        } <==> Data.map(
+          "node" -> Data("Block"),
+          "statements" -> Data.list(
+            Data.map(
+              "node" -> Data("ValDefinition"),
+              "binding" -> Data(0),
+              "name" -> Data("counter"),
+              "type" -> Data("scala.Int"),
+              "flags" -> Data.list(Data("mutable")),
+              "hasPosition" -> Data(true),
+              "rhs" -> literal("0")
+            ),
+            Data.map(
+              "node" -> Data("ValDefinition"),
+              "binding" -> Data(1),
+              "name" -> Data("cached"),
+              "type" -> Data("scala.Int"),
+              "flags" -> Data.list(Data("lazy")),
+              "hasPosition" -> Data(true),
+              "rhs" -> Data.map(
+                "node" -> Data("MethodCall"),
+                "name" -> Data("+"),
+                "receiver" -> localRef(0, "counter"),
+                "args" -> Data.list(literal("1"))
+              )
+            ),
+            Data.map(
+              "node" -> Data("ValDefinition"),
+              "binding" -> Data(2),
+              "name" -> Data("label"),
+              "type" -> Data("java.lang.String"),
+              "flags" -> Data.list(Data("implicit")),
+              "hasPosition" -> Data(true),
+              "rhs" -> literal("\"x\"")
+            ),
+            // assignments are not destructured (yet)
+            Data.map("node" -> Data("Other"), "plainPrint" -> Data("<non-destructurable: counter = cached>"))
+          ),
+          "result" -> Data.map(
+            "node" -> Data("MethodCall"),
+            "name" -> Data("+"),
+            "receiver" -> localRef(0, "counter"),
+            "args" -> Data.list(
+              Data.map(
+                "node" -> Data("MethodCall"),
+                "name" -> Data("length"),
+                "receiver" -> localRef(2, "label"),
+                "args" -> Data.list()
+              )
+            )
+          )
+        )
+      }
+
+      test("references to locals defined outside of the expression are external") {
+        val offset = 10
+        val _ = offset // Scala 2 does not see the use inside the (already expanded) macro argument
+        testParseBindings((x: Int) => x + offset) <==> Data.map(
+          "node" -> Data("Lambda"),
+          "params" -> Data.list(Data.map("binding" -> Data(0), "name" -> Data("x"))),
+          "body" -> Data.map(
+            "node" -> Data("MethodCall"),
+            "name" -> Data("+"),
+            "receiver" -> paramRef(0, "x"),
+            "args" -> Data.list(localRef(1, "offset", external = true))
+          )
+        )
+      }
+
+      test("local defs, classes, objects and type aliases are LocalDefinitions") {
+        // the local definitions are deliberately unused
+        @scala.annotation.nowarn
+        def result = testParseBindings {
+          def helper(i: Int): Int = i
+          class Local
+          object LocalObject
+          type Alias = Int
+          val value: Alias = 1
+          value
+        }
+        result <==> Data.map(
+          "node" -> Data("Block"),
+          "statements" -> Data.list(
+            Data.map("node" -> Data("LocalDefinition"), "kind" -> Data("def"), "name" -> Data("helper")),
+            Data.map("node" -> Data("LocalDefinition"), "kind" -> Data("class"), "name" -> Data("Local")),
+            Data.map("node" -> Data("LocalDefinition"), "kind" -> Data("object"), "name" -> Data("LocalObject")),
+            Data.map("node" -> Data("LocalDefinition"), "kind" -> Data("type"), "name" -> Data("Alias")),
+            Data.map(
+              "node" -> Data("ValDefinition"),
+              "binding" -> Data(0),
+              "name" -> Data("value"),
+              "type" -> Data("scala.Int"),
+              "flags" -> Data.list(),
+              "hasPosition" -> Data(true),
+              "rhs" -> literal("1")
+            )
+          ),
+          "result" -> localRef(0, "value")
+        )
+      }
+    }
+
+    group("findReferences / Lambda.unusedParams") {
+      import DestructuredExprsFixtures.testFindReferences
+
+      test("finds references inside sub-trees that are not destructurable (pattern matches)") {
+        // `b` is deliberately unused
+        @scala.annotation.nowarn("msg=unused explicit parameter")
+        def result = testFindReferences { (a: Int, b: Int, c: Int) =>
+          val d = a
+          (a, d) match {
+            case (1, x) => x + c
+            case _      => 0
+          }
+        }
+        result <==> Data.map(
+          "unusedParams" -> Data.list(Data("b")),
+          "referenceCounts" -> Data.map(
+            "a" -> Data(2),
+            "b" -> Data(0),
+            "c" -> Data(1),
+            "d" -> Data(1)
+          ),
+          "allReferencesHavePositions" -> Data(true)
+        )
+      }
+
+      test("matches by identity, not by name (a shadowing nested lambda parameter)") {
+        // the outer `a` is deliberately unused
+        @scala.annotation.nowarn("msg=unused explicit parameter")
+        def result = testFindReferences { (a: Int) =>
+          val f = (a: Int) => a + 1
+          f(2)
+        }
+        result <==> Data.map(
+          "unusedParams" -> Data.list(Data("a")),
+          "referenceCounts" -> Data.map("a" -> Data(0), "f" -> Data(1)),
+          "allReferencesHavePositions" -> Data(true)
+        )
+      }
+    }
+
+    group("skipContextualWrappers") {
+      import DestructuredExprsFixtures.testSkipContextualWrappers
+
+      test("skips a block that only binds an implicit value") {
+        testSkipContextualWrappers {
+          implicit val ctx: examples.parsed_exprs.Ctx = examples.parsed_exprs.Ctx.instance
+          (p: examples.parsed_exprs.Person) => p.name + implicitly[examples.parsed_exprs.Ctx].toString
+        } <==> Data.map(
+          "parsed" -> Data.map("node" -> Data("Block")),
+          "skipped" -> Data.map("node" -> Data("Lambda"), "contextual" -> Data(false), "params" -> Data.list(Data("p")))
+        )
+      }
+
+      test("is a no-op for a plain lambda") {
+        testSkipContextualWrappers((p: examples.parsed_exprs.Person) => p.name) <==> Data.map(
+          "parsed" -> Data.map("node" -> Data("Lambda"), "contextual" -> Data(false), "params" -> Data.list(Data("p"))),
+          "skipped" -> Data.map("node" -> Data("Lambda"), "contextual" -> Data(false), "params" -> Data.list(Data("p")))
+        )
+      }
+    }
+
+    group("MethodCall.receiver") {
+      import DestructuredExprsFixtures.testReceiverChain
+      import examples.parsed_exprs.dsl.*
+
+      test("sees through implicit-class wrappers") {
+        testReceiverChain((c: examples.parsed_exprs.Container) => c.items.each.length) <==> Data.list(
+          Data("items"),
+          Data("each"),
+          Data("length")
+        )
+        testReceiverChain((h: examples.parsed_exprs.AnimalHolder) => h.animal.when[examples.parsed_exprs.Dog].name) <==>
+          Data.list(Data("animal"), Data("when"), Data("name"))
+      }
+    }
   }
 }

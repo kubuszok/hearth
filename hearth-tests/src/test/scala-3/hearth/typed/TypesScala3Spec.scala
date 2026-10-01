@@ -738,6 +738,53 @@ final class TypesScala3Spec extends MacroSuite {
         }
       }
 
+      group("methods: Type.CtorN.fromUntyped on aliases of (opaque) type applications (hearth#384)") {
+        import TypesFixtures.testCtorFromUntypedOnAliases
+        import examples.opaqueunderlying.*
+
+        test("for the type application itself") {
+          testCtorFromUntypedOnAliases[Refined[List[Int], "nonEmpty"]] <==> Data.map(
+            "Refined" -> Data("scala.collection.immutable.List[scala.Int], \"nonEmpty\""),
+            "Wrapper" -> Data("<no match>"),
+            "List" -> Data("<no match>")
+          )
+        }
+
+        test("for an alias of an opaque type application") {
+          testCtorFromUntypedOnAliases[RefinedList] <==> Data.map(
+            "Refined" -> Data("scala.collection.immutable.List[scala.Int], \"nonEmpty\""),
+            "Wrapper" -> Data("<no match>"),
+            "List" -> Data("<no match>")
+          )
+          testCtorFromUntypedOnAliases[WrapperOfInt] <==> Data.map(
+            "Refined" -> Data("<no match>"),
+            "Wrapper" -> Data("scala.Int"),
+            "List" -> Data("<no match>")
+          )
+        }
+
+        test("for an alias of an alias, and aliases in type arguments") {
+          testCtorFromUntypedOnAliases[AliasOfRefinedList] <==> Data.map(
+            "Refined" -> Data("scala.collection.immutable.List[scala.Int], \"nonEmpty\""),
+            "Wrapper" -> Data("<no match>"),
+            "List" -> Data("<no match>")
+          )
+          testCtorFromUntypedOnAliases[RefinedListAliasInArgs] <==> Data.map(
+            "Refined" -> Data("scala.collection.immutable.List[scala.Int], \"nonEmpty\""),
+            "Wrapper" -> Data("<no match>"),
+            "List" -> Data("<no match>")
+          )
+        }
+
+        test("for an alias of a class type application") {
+          testCtorFromUntypedOnAliases[IntList] <==> Data.map(
+            "Refined" -> Data("<no match>"),
+            "Wrapper" -> Data("<no match>"),
+            "List" -> Data("scala.Int")
+          )
+        }
+      }
+
       group("methods: Type.{opaqueUnderlyingType} expected behavior") {
         import TypesFixtures.testOpaqueUnderlyingType
 

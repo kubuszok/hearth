@@ -2691,8 +2691,9 @@ val parsed: DestructuredExpr = DestructuredExpr.parseUntyped(t) // from UntypedE
 ```
 
 Parsing is total and maximal: every sub-expression is recursively destructured. Only the smallest unresolvable
-leaf becomes `NonDestructurable`. Compiler noise (Scala 3 `Inlined` wrappers, Scala 2 `Typed` wrappers) is stripped
-automatically. Constructor calls (`new Foo(args)`) are parsed as `MethodCall` with the constructor as the method.
+leaf becomes `NonDestructurable`. Compiler noise (Scala 3 `Inlined` wrappers, `Typed` ascriptions) is stripped
+automatically - except for the bindings an `Inlined` wrapper introduces, which are kept as a `Block` (their scope is the
+inlined body). Constructor calls (`new Foo(args)`) are parsed as `MethodCall` with the constructor as the method.
 
 ### Node Types
 
@@ -2704,10 +2705,15 @@ automatically. Constructor calls (`new Foo(args)`) are parsed as `MethodCall` wi
 | `Literal`              | A constant value: `42`, `"hello"`, `true`, `null`       | `value: Any`                                                    |
 | `Singleton`            | A module/companion reference: `None`, `Nil`             | `name: String`                                                  |
 | `Block`                | A block: `{ stmt1; stmt2; result }`                     | `statements: List[DestructuredExpr]`, `result: DestructuredExpr`|
+| `ValDefinition`        | A `val`/`var`/`lazy val` statement of a block           | `binding: LocalBinding`, `rhs: DestructuredExpr`                |
+| `LocalReference`       | Reference to a local `val`/`var`/`lazy val`             | `binding: LocalBinding`                                         |
+| `Import`               | An `import` statement of a block                        | `qualifier: DestructuredExpr`, `selectors: List[String]`        |
+| `LocalDefinition`      | A local `def`/`class`/`trait`/`object`/`type` statement | `kind: String`, `name: String`                                  |
+| `Varargs`              | Individual elements passed to a vararg parameter        | `elements: List[DestructuredExpr]`                              |
 | `NonDestructurable`    | Smallest unresolvable sub-expression                    | `raw: UntypedExpr`, `description: String`                       |
 
-Every node carries `tpe: ??` (existential type) and `toUntypedExpr: UntypedExpr` for reconstruction of the
-original tree.
+Every node carries `tpe: ??` (existential type), `toUntypedExpr: UntypedExpr` for reconstruction of the
+original tree, and `position: Option[Position]` for reporting errors at the offending sub-expression.
 
 ### `MethodCall` and `Applied`
 
@@ -2750,6 +2756,74 @@ MethodCall(method=<each>, applied=[
 
 Scala 3 context function extensions (`extension ... (using Evidence) { def eachCF }`) are also handled — the
 receiver is extracted from the first argument of the extension method call.
+
+The same DSL is often written with an `implicit class` (Scala 2 and 3) and with `extension` methods (Scala 3), and
+those desugar differently: `x.each` is `EachOps(x).each` for an implicit class. `MethodCall.receiver` normalizes
+both - it returns `x` in either case - so the DSL can be read with one piece of code:
+
+```scala
+def path(node: DestructuredExpr): List[String] = node match {
+  case mc: DestructuredExpr.MethodCall => mc.receiver.fold(List.empty[String])(path) :+ mc.method.name
+  case _                               => Nil
+}
+```
+
+### Context Functions
+
+When a DSL takes a context function (`inline selector: Ctx ?=> A => B`), Scala 3 wraps the user's lambda in a
+contextual lambda (`Lambda.isContextual`) or in a block binding the resolved `given` to a synthetic `val`.
+`DestructuredExpr.skipContextualWrappers(node)` peels both (and is a no-op for anything else, including all of
+Scala 2), leaving the lambda the user actually wrote.
+
+### Block-shaped DSLs: Local Bindings
+
+DSLs such as parser generators read a whole block of declarations:
+
+```scala
+grammar { g =>
+  import g.*
+  val expr = nonTerminal[Int]
+  val num = terminal("[0-9]+")
+  expr ::= num
+  expr
+}
+```
+
+Inside a `Block`, `val`s become `ValDefinition`s, references to them become `LocalReference`s, and `import`s become
+`Import`s (the compiler has already resolved the imported names, so `nonTerminal[Int]` is a `MethodCall` on `g`).
+Bindings have **identity**: a `ValDefinition` and every `LocalReference` to it share the same `LocalBinding`
+instance (likewise a `Lambda.Param` and its `ParamRef`s), so a DSL can associate uses with declarations by `eq` -
+never by name, which could be shadowed:
+
+```scala
+val nonTerminals = block.statements.collect {
+  case vd: DestructuredExpr.ValDefinition if isNonTerminalDeclaration(vd.rhs) => vd.binding
+}
+block.result match {
+  case ref: DestructuredExpr.LocalReference if nonTerminals.exists(_ eq ref.binding) => // the start symbol
+  case other => Environment.reportErrorAndAbort("expected a non-terminal", other.position.get)
+}
+```
+
+A reference to a local value defined *outside* of the parsed expression (e.g. a local `val` of the method calling the
+macro) is a `LocalReference` whose `binding.isExternal` is `true`. Local `def`s, classes, objects and type aliases
+become `LocalDefinition`s, so a DSL can reject them at their own position.
+
+### Finding References
+
+`collect` follows the semantic `children` and stops at `NonDestructurable` leaves. To answer "is this binding used
+anywhere in this user-provided function?" use `findReferences`, which walks the *complete* compiler tree (pattern
+matches, `if`s, `try`s, nested lambdas...) and matches by symbol identity:
+
+```scala
+// reject references to DSL-only bindings inside a user-supplied action
+action.findReferences(grammarBindings).headOption.foreach { ref =>
+  Environment.reportErrorAndAbort(s"${ref.binding.name} cannot be used here", ref.position.get)
+}
+
+// parameters the body never uses (e.g. to skip computing their arguments)
+lambda.unusedParams
+```
 
 ### Convenience Extractors
 

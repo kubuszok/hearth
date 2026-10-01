@@ -25,5 +25,23 @@ final class DestructuredExprsScala3Spec extends MacroSuite {
         "appliedKinds" -> Data.list(Data("Instance"), Data("Types"), Data("Types"))
       )
     }
+
+    test("MethodCall.receiver reads extension methods with the same code as implicit classes") {
+      import DestructuredExprsFixtures.testReceiverChain
+      testReceiverChain((c: examples.parsed_exprs.Container) => c.items.eachCF.length) <==> Data.list(
+        Data("items"),
+        Data("eachCF"),
+        Data("length")
+      )
+    }
+
+    test("skipContextualWrappers peels the contextual lambda of a context-function argument") {
+      import DestructuredExprsFixtures.testSkipContextualWrappersOfSelector
+      testSkipContextualWrappersOfSelector(_.name) <==> Data.map(
+        "parsed" -> Data
+          .map("node" -> Data("Lambda"), "contextual" -> Data(true), "params" -> Data.list(Data("<contextual>"))),
+        "skipped" -> Data.map("node" -> Data("Lambda"), "contextual" -> Data(false), "params" -> Data.list(Data("_$1")))
+      )
+    }
   }
 }
