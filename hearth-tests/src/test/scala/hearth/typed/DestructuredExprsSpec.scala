@@ -24,6 +24,13 @@ final class DestructuredExprsSpec extends MacroSuite {
         )
       }
 
+      test("literal Unit") {
+        testParseDetailed(()) <==> Data.map(
+          "nodeType" -> Data("Literal"),
+          "value" -> Data("()")
+        )
+      }
+
       test("literal Boolean") {
         testParseDetailed(true) <==> Data.map(
           "nodeType" -> Data("Literal"),

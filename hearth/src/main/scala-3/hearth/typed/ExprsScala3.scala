@@ -6633,6 +6633,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       case CharConstant(v)    => v
       case StringConstant(v)  => v
       case NullConstant()     => null
+      case UnitConstant()     => ()
       case _: ClassOfConstant => null
     }
   }
