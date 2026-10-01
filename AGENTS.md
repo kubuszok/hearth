@@ -380,7 +380,7 @@ The `Method` API has a layered architecture with platform-specific untyped code 
 **Shared code** (end of `Exprs.scala`):
 - `DestructuredExpr` sealed trait with node types: `MethodCall`, `Lambda`, `Lambda.ParamRef`, `Literal`, `Singleton`, `Block`, `Varargs`, `ValDefinition`, `LocalReference`, `Import`, `LocalDefinition`, `NonDestructurable`
 - `MethodCall.Applied` sealed trait: `AppliedInstance`, `AppliedTypes`, `AppliedValues`; `MethodCall.receiver` sees through implicit-class/implicit-conversion wrappers (Scala 2 `Ops(x).m` and Scala 3 extension `m(x)` both give `x`)
-- Bindings with identity: `Binding` (sealed) = `Lambda.Param` | `LocalBinding`; a definition and all its references share the same instance (compare with `eq`). `LocalBinding.isExternal` = defined outside the parsed tree (pre-registered by `dstrExternalBindings`)
+- Bindings with identity: `Binding` (deliberately NOT sealed - a sealed parent of the nested `Lambda.Param` breaks downstream Scaladoc with a CyclicReference) = `Lambda.Param` | `LocalBinding`; a definition and all its references share the same instance (compare with `eq`). `LocalBinding.isExternal` = defined outside the parsed tree (pre-registered by `dstrExternalBindings`)
 - `findReferences(bindings)` / `references(binding)` / `Lambda.unusedParams` walk the COMPLETE raw tree (also inside `NonDestructurable`) by symbol identity, via the `private[hearth]` hook `Expr.destructuredReferences` (on the nested `ExprModule`, NOT a top-level `Exprs` member - binary compat)
 - `skipContextualWrappers` peels Scala 3 contextual lambdas (`Lambda.isContextual`) and blocks binding only implicit/synthetic vals
 - `position: Option[Position]` on every node
