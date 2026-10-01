@@ -6604,7 +6604,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     val allVds = ddef.paramss.flatMap(_.params).collect { case vd: ValDef => vd }
     val params = allVds.map { vd =>
       val tpe = UntypedType.as_??(vd.tpt.tpe)
-      new DestructuredExpr.Lambda.Param(vd.name, tpe, tpe, vd.symbol)
+      val param = new DestructuredExpr.Lambda.Param(vd.name, tpe, tpe)
+      param.bindingSymbol = vd.symbol
+      param
     }
     val isContextual = ddef.termParamss.headOption.exists(clause => clause.isGiven || clause.isImplicit)
     val newLambdaParams = outerLambdaParams ++ allVds.zip(params).map { case (vd, p) => (vd.symbol: Any) -> p }
@@ -6617,7 +6619,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           "<lambda with no body>"
         )
     }
-    new DestructuredExpr.Lambda(dstrTpeOf(originalTerm), params, body, () => originalTerm, isContextual)
+    val lambda = new DestructuredExpr.Lambda(dstrTpeOf(originalTerm), params, body, () => originalTerm)
+    lambda.contextual = isContextual
+    lambda
   }
 
   private def dstrExtractConstant(constantAny: Any): Any = {

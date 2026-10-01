@@ -4049,12 +4049,13 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           }
         case _ => widenedTpe
       }
-      new DestructuredExpr.Lambda.Param(
+      val param = new DestructuredExpr.Lambda.Param(
         vd.name.decodedName.toString,
         UntypedType.as_??(widenedTpe),
-        UntypedType.as_??(declaredTpe),
-        if (vd.symbol != null && vd.symbol != NoSymbol) vd.symbol else null
+        UntypedType.as_??(declaredTpe)
       )
+      if (vd.symbol != null && vd.symbol != NoSymbol) param.bindingSymbol = vd.symbol
+      param
     }
     val newLambdaParams = outerLambdaParams ++ params.zip(dstrParams).collect {
       case (vd, p) if vd.symbol != null && vd.symbol != NoSymbol => vd.symbol -> p

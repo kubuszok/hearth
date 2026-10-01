@@ -2254,7 +2254,10 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
       *
       * @since 0.4.3
       */
-    sealed trait Binding {
+    // Not `sealed`: a sealed parent whose child (`Lambda.Param`) is nested in a sibling's companion makes Scaladoc of
+    // downstream projects fail with a CyclicReference when reading this TASTy (Param -> object Lambda -> class Lambda ->
+    // Param). Only Hearth can implement it anyway (`bindingSymbol` is `private[hearth]`).
+    trait Binding {
       def name: String
       def tpe: ??
       private[hearth] def bindingSymbol: Any
@@ -2384,15 +2387,11 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
         val tpe: ??,
         val params: List[Lambda.Param],
         val body: DestructuredExpr,
-        private[hearth] val rebuild: () => UntypedExpr,
-        contextual: Boolean
+        private[hearth] val rebuild: () => UntypedExpr
     ) extends DestructuredExpr {
-      private[hearth] def this(
-          tpe: ??,
-          params: List[Lambda.Param],
-          body: DestructuredExpr,
-          rebuild: () => UntypedExpr
-      ) = this(tpe, params, body, rebuild, false)
+
+      // Set by the platform parser right after construction (kept out of the constructor, which stays unchanged).
+      private[hearth] var contextual: Boolean = false
 
       /** Whether this is a context function literal (`(ctx: Ctx) ?=> body`, Scala 3 only).
         *
@@ -2433,14 +2432,11 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
         *   this to recover e.g. a selected Java-enum value via `Type.Ctor` matching. On Scala 3 the compiler already
         *   retains the precise type, so `declaredTpe == tpe` there. See hearth#341.
         */
-      final class Param private[hearth] (
-          val name: String,
-          val tpe: ??,
-          val declaredTpe: ??,
-          private[hearth] val bindingSymbol: Any
-      ) extends Binding {
-        private[hearth] def this(name: String, tpe: ??, declaredTpe: ??) = this(name, tpe, declaredTpe, null)
-        private[hearth] def this(name: String, tpe: ??) = this(name, tpe, tpe, null)
+      final class Param private[hearth] (val name: String, val tpe: ??, val declaredTpe: ??) extends Binding {
+        private[hearth] def this(name: String, tpe: ??) = this(name, tpe, tpe)
+
+        // Set by the platform parser right after construction (kept out of the constructor, which stays unchanged).
+        private[hearth] var bindingSymbol: Any = null
       }
 
       /** Reference to a lambda parameter in the body.
