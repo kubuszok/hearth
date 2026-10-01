@@ -261,6 +261,22 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
   def testPlainPrints[A: Type](expr: Expr[A]): Expr[Data] =
     Expr(Data(DestructuredExpr.parse(expr).collect { case node => Data(node.plainPrint) }))
 
+  /** For each statement of a block: its `plainPrint`, whether it has a position, and whether `toUntypedExpr` rebuilds
+    * it as a `Unit`-typed expression (`{ statement; () }`), as documented for statement nodes.
+    */
+  def testStatements[A: Type](expr: Expr[A]): Expr[Data] = DestructuredExpr.parse(expr) match {
+    case block: DestructuredExpr.Block =>
+      Expr(Data(block.statements.map { statement =>
+        val rebuilt = UntypedExpr.as_??(statement.toUntypedExpr)
+        Data.map(
+          "plainPrint" -> Data(statement.plainPrint),
+          "hasPosition" -> Data(statement.position.isDefined),
+          "rebuiltAsUnit" -> Data(rebuilt.Underlying =:= Type.of[Unit])
+        )
+      }))
+    case other => Expr(Data.map("error" -> Data(s"Expected a block, got ${other.plainPrint}")))
+  }
+
   /** Skips contextual wrappers and reports what is left. */
   def testSkipContextualWrappers[A: Type](expr: Expr[A]): Expr[Data] = {
     val parsed = DestructuredExpr.parse(expr)

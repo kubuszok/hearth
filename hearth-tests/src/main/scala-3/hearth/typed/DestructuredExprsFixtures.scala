@@ -62,6 +62,10 @@ object DestructuredExprsFixtures {
   private def testPlainPrintsImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new DestructuredExprsFixtures(q).testPlainPrints[A](expr)
 
+  inline def testStatements[A](inline expr: A): Data = ${ testStatementsImpl[A]('expr) }
+  private def testStatementsImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new DestructuredExprsFixtures(q).testStatements[A](expr)
+
   inline def testReceiverChain[A](inline expr: A): Data = ${ testReceiverChainImpl[A]('expr) }
   private def testReceiverChainImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new DestructuredExprsFixtures(q).testReceiverChain[A](expr)

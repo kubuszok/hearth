@@ -3711,7 +3711,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
   private def dstrPosOf(tree: Tree): Option[Position] = Option(tree.pos).filter(_ != NoPosition)
 
   /** A statement (definition/import) is not a standalone expression - wrap it as `{ statement; () }`. */
-  private def dstrStatementAsTerm(stat: Tree): Tree = Block(List(stat), Literal(Constant(())))
+  private def dstrStatementAsTerm(stat: Tree): Tree =
+    c.internal.setType(
+      Block(List(stat), c.internal.setType(Literal(Constant(())), definitions.UnitTpe)),
+      definitions.UnitTpe
+    )
 
   private def dstrHasSymbol(tree: Tree): Boolean = tree.symbol != null && tree.symbol != NoSymbol
 

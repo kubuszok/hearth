@@ -722,6 +722,33 @@ final class DestructuredExprsSpec extends MacroSuite {
       }
     }
 
+    group("statement nodes") {
+      import DestructuredExprsFixtures.testStatements
+
+      def statement(plainPrint: String): Data =
+        Data.map("plainPrint" -> Data(plainPrint), "hasPosition" -> Data(true), "rebuiltAsUnit" -> Data(true))
+
+      test("have positions and are rebuilt as Unit-typed expressions; import selectors are normalized") {
+        // the local definitions and imports are deliberately unused
+        @scala.annotation.nowarn
+        def result = testStatements {
+          import scala.collection.{mutable as m, immutable as _, Seq}
+          val value = 1
+          def helper: Int = value
+          class Local
+          type Alias = Int
+          value
+        }
+        result <==> Data.list(
+          statement("import collectionscala.{mutable => m, immutable => _, Seq}"),
+          statement("val value = 1"),
+          statement("def helper"),
+          statement("class Local"),
+          statement("type Alias")
+        )
+      }
+    }
+
     group("findReferences / Lambda.unusedParams") {
       import DestructuredExprsFixtures.testFindReferences
 

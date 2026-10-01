@@ -88,5 +88,28 @@ final class DestructuredExprsScala3Spec extends MacroSuite {
         )
       )
     }
+
+    test("plainPrint marks contextual lambdas and given import selectors") {
+      import DestructuredExprsFixtures.{testParseGeneral, testStatements}
+      testParseGeneral((c: examples.parsed_exprs.Ctx) ?=> c.toString) <==> Data.map(
+        "nodeType" -> Data("Lambda"),
+        "plainPrint" -> Data("(c: hearth.examples.parsed_exprs.Ctx) ?=> toStringc()")
+      )
+      // the import is deliberately unused
+      @scala.annotation.nowarn
+      def result = testStatements {
+        import scala.math.Ordering.Implicits.given
+        val value = 1
+        value
+      }
+      result <==> Data.list(
+        Data.map(
+          "plainPrint" -> Data("import ImplicitsOrderingmathscala.given"),
+          "hasPosition" -> Data(true),
+          "rebuiltAsUnit" -> Data(true)
+        ),
+        Data.map("plainPrint" -> Data("val value = 1"), "hasPosition" -> Data(true), "rebuiltAsUnit" -> Data(true))
+      )
+    }
   }
 }
