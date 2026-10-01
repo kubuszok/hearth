@@ -42,6 +42,9 @@ final private class DestructuredExprsFixtures(val c: blackbox.Context)
 
   def testReceiverChainImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
     testReceiverChain[A](expr)
+
+  def testPlainPrintsImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testPlainPrints[A](expr)
 }
 
 object DestructuredExprsFixtures {
@@ -67,4 +70,6 @@ object DestructuredExprsFixtures {
   def testSkipContextualWrappers[A](expr: A): Data = macro DestructuredExprsFixtures.testSkipContextualWrappersImpl[A]
 
   def testReceiverChain[A](expr: A): Data = macro DestructuredExprsFixtures.testReceiverChainImpl[A]
+
+  def testPlainPrints[A](expr: A): Data = macro DestructuredExprsFixtures.testPlainPrintsImpl[A]
 }

@@ -250,11 +250,16 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
             "referenceCounts" -> Data.map(bindings.map { binding =>
               binding.name -> Data(references.count(_.binding eq binding))
             }*),
-            "allReferencesHavePositions" -> Data(references.forall(_.position.isDefined))
+            "allReferencesHavePositions" -> Data(references.forall(_.position.isDefined)),
+            "firstParamReferenced" -> Data(lam.body.references(lam.params.head))
           )
         )
       case other => Expr(Data.map("error" -> Data(s"Expected a lambda, got ${other.plainPrint}")))
     }
+
+  /** `plainPrint` of every node of the parsed tree (in `collect` order). */
+  def testPlainPrints[A: Type](expr: Expr[A]): Expr[Data] =
+    Expr(Data(DestructuredExpr.parse(expr).collect { case node => Data(node.plainPrint) }))
 
   /** Skips contextual wrappers and reports what is left. */
   def testSkipContextualWrappers[A: Type](expr: Expr[A]): Expr[Data] = {

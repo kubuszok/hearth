@@ -36,6 +36,7 @@ object dsl {
   }
 }
 
+// $COVERAGE-OFF$ analyzed by macros at compile time, never run
 /** A block-shaped DSL in the style of a parser generator:
   * `g => { import g._; val x = nonTerminal[Int]; x ::= ...; x }`. Reading it requires local `val` definitions,
   * references to them, and `import` statements.
@@ -58,3 +59,4 @@ trait Ctx
 object Ctx {
   val instance: Ctx = new Ctx {}
 }
+// $COVERAGE-ON$

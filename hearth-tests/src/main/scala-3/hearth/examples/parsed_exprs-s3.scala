@@ -12,3 +12,9 @@ object dslContextFunctions {
     def whenCF[B <: A]: B = throw new NotImplementedError
   }
 }
+
+object inlining {
+
+  /** A non-inline parameter of an inline method is bound to a proxy `val` in the inlined call's bindings. */
+  inline def twice(x: Int): Int = x + x
+}

@@ -661,6 +661,7 @@ final class DestructuredExprsSpec extends MacroSuite {
         def result = testParseBindings {
           def helper(i: Int): Int = i
           class Local
+          trait LocalTrait
           object LocalObject
           type Alias = Int
           val value: Alias = 1
@@ -671,6 +672,7 @@ final class DestructuredExprsSpec extends MacroSuite {
           "statements" -> Data.list(
             Data.map("node" -> Data("LocalDefinition"), "kind" -> Data("def"), "name" -> Data("helper")),
             Data.map("node" -> Data("LocalDefinition"), "kind" -> Data("class"), "name" -> Data("Local")),
+            Data.map("node" -> Data("LocalDefinition"), "kind" -> Data("trait"), "name" -> Data("LocalTrait")),
             Data.map("node" -> Data("LocalDefinition"), "kind" -> Data("object"), "name" -> Data("LocalObject")),
             Data.map("node" -> Data("LocalDefinition"), "kind" -> Data("type"), "name" -> Data("Alias")),
             Data.map(
@@ -684,6 +686,38 @@ final class DestructuredExprsSpec extends MacroSuite {
             )
           ),
           "result" -> localRef(0, "value")
+        )
+      }
+    }
+
+    group("plainPrint of statements") {
+      import DestructuredExprsFixtures.testPlainPrints
+
+      test("vals, vars, lazy vals, renaming imports and local definitions") {
+        // the local definitions are deliberately unused
+        @scala.annotation.nowarn
+        def result = testPlainPrints {
+          import scala.collection.mutable as m
+          var counter = 0
+          lazy val cached = counter
+          def helper: Int = cached
+          counter = helper
+          counter
+        }
+        result <==> Data.list(
+          Data(
+            "{ import collectionscala.{mutable => m}; var counter = 0; lazy val cached = counter; def helper; <non-destructurable: counter = helper>; counter }"
+          ),
+          Data("import collectionscala.{mutable => m}"),
+          Data("collectionscala"),
+          Data("scala"),
+          Data("var counter = 0"),
+          Data("0"),
+          Data("lazy val cached = counter"),
+          Data("counter"),
+          Data("def helper"),
+          Data("<non-destructurable: counter = helper>"),
+          Data("counter")
         )
       }
     }
@@ -709,7 +743,8 @@ final class DestructuredExprsSpec extends MacroSuite {
             "c" -> Data(1),
             "d" -> Data(1)
           ),
-          "allReferencesHavePositions" -> Data(true)
+          "allReferencesHavePositions" -> Data(true),
+          "firstParamReferenced" -> Data(true)
         )
       }
 
@@ -723,7 +758,8 @@ final class DestructuredExprsSpec extends MacroSuite {
         result <==> Data.map(
           "unusedParams" -> Data.list(Data("a")),
           "referenceCounts" -> Data.map("a" -> Data(0), "f" -> Data(1)),
-          "allReferencesHavePositions" -> Data(true)
+          "allReferencesHavePositions" -> Data(true),
+          "firstParamReferenced" -> Data(false)
         )
       }
     }

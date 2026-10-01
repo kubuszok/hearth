@@ -43,5 +43,50 @@ final class DestructuredExprsScala3Spec extends MacroSuite {
         "skipped" -> Data.map("node" -> Data("Lambda"), "contextual" -> Data(false), "params" -> Data.list(Data("_$1")))
       )
     }
+
+    test("bindings of an inlined call are kept as a Block") {
+      import DestructuredExprsFixtures.testParseBindings
+      val proxy = Data.map(
+        "node" -> Data("LocalReference"),
+        "binding" -> Data(0),
+        "name" -> Data("x$proxy1"),
+        "external" -> Data(false)
+      )
+      testParseBindings(examples.parsed_exprs.inlining.twice(scala.util.Random.nextInt())) <==> Data.map(
+        "node" -> Data("Block"),
+        "statements" -> Data.list(
+          Data.map(
+            "node" -> Data("ValDefinition"),
+            "binding" -> Data(0),
+            "name" -> Data("x$proxy1"),
+            "type" -> Data("scala.Int"),
+            "flags" -> Data.list(),
+            "hasPosition" -> Data(true),
+            "rhs" -> Data.map(
+              "node" -> Data("MethodCall"),
+              "name" -> Data("nextInt"),
+              "receiver" -> Data.map(
+                "node" -> Data("MethodCall"),
+                "name" -> Data("Random"),
+                "receiver" -> Data.map(
+                  "node" -> Data("MethodCall"),
+                  "name" -> Data("util"),
+                  "receiver" -> Data.map("node" -> Data("Other"), "plainPrint" -> Data("scala")),
+                  "args" -> Data.list()
+                ),
+                "args" -> Data.list()
+              ),
+              "args" -> Data.list()
+            )
+          )
+        ),
+        "result" -> Data.map(
+          "node" -> Data("MethodCall"),
+          "name" -> Data("+"),
+          "receiver" -> proxy,
+          "args" -> Data.list(proxy)
+        )
+      )
+    }
   }
 }

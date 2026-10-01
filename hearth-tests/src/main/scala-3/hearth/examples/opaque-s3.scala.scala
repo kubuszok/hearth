@@ -41,6 +41,7 @@ object opaqueunderlying {
   /** Plain (non-opaque) alias to an opaque type - should resolve to the opaque's underlying type (`Long`). */
   type AliasToOpaque = opaqueid.OpaqueId
 
+  // $COVERAGE-OFF$ analyzed by macros at compile time, never run
   /** Iron-style refinement (`A :| C`): a 2-parameter opaque type, used below through ordinary aliases (hearth#384). */
   opaque type Refined[A, C] = A
   object Refined { def apply[A, C](a: A): Refined[A, C] = a }
@@ -50,6 +51,7 @@ object opaqueunderlying {
   type RefinedListAliasInArgs = Refined[IntList, "nonEmpty"]
   type AliasOfRefinedList = RefinedList
   type WrapperOfInt = Wrapper[Int]
+  // $COVERAGE-ON$
 }
 
 /** Example opaque type with only [[CtorLikeOf.PlainValue]] smart constructor. */
