@@ -1,6 +1,8 @@
 package hearth
 package treeprinter
 
+import scala.util.control.NonFatal
+
 trait ShowCodePrettyFixturesImpl { this: MacroCommons =>
 
   def testExprPrettyPrint[A: Type](expr: Expr[A]): Expr[String] =
@@ -24,7 +26,7 @@ trait ShowCodePrettyFixturesImpl { this: MacroCommons =>
   private def asExprOrError(onError: String)(thunk: => String): Expr[String] = try
     Expr(thunk)
   catch {
-    case e: Throwable =>
+    case NonFatal(e) =>
       val msg = e.getMessage()
       val stackTrace = e.getStackTrace
         .map(st => s"  ${st.getClassName}.${st.getMethodName} at ${st.getFileName}:${st.getLineNumber}")
