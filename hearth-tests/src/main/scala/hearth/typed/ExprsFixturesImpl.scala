@@ -6,6 +6,8 @@ import hearth.fp.effect.MIO
 import hearth.fp.instances.*
 import hearth.fp.syntax.*
 
+import scala.util.control.NonFatal
+
 /** Fixtures for testing [[ExprsSpec]]. */
 trait ExprsFixturesImpl { this: MacroCommons =>
 
@@ -2406,7 +2408,7 @@ trait ExprsFixturesImpl { this: MacroCommons =>
       )
     )
   } catch {
-    case e: Throwable =>
+    case NonFatal(e) =>
       e.printStackTrace()
       Environment.reportErrorAndAbort(e.getMessage)
   }
@@ -2427,7 +2429,7 @@ trait ExprsFixturesImpl { this: MacroCommons =>
       )
     )
   } catch {
-    case e: Throwable =>
+    case NonFatal(e) =>
       e.printStackTrace()
       Environment.reportErrorAndAbort(e.getMessage)
   }
