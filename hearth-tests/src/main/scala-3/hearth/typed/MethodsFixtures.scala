@@ -35,6 +35,12 @@ object MethodsFixtures {
   private def testMethodsExtractionImpl[A: Type](excluding: Expr[Seq[String]])(using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testMethodsExtraction[A](excluding)
 
+  inline def testMethodAvailability[A](inline methodName: String): Data = ${
+    testMethodAvailabilityImpl[A]('methodName)
+  }
+  private def testMethodAvailabilityImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testMethodAvailability[A](methodName)
+
   inline def testMethodDefaults[A](inline methodName: String): Data = ${
     testMethodDefaultsImpl[A]('methodName)
   }

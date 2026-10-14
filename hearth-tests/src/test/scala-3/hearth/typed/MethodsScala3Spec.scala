@@ -3,6 +3,14 @@ package typed
 
 import hearth.data.Data
 
+/** Chimney #962: an opaque type expanded within its defining scope, where it is transparent. */
+object OpaqueTypeScope {
+  opaque type ScopedName = String
+  object ScopedName {
+    def toLowerCaseAvailability: Data = MethodsFixtures.testMethodAvailability[ScopedName]("toLowerCase")
+  }
+}
+
 /** Macro implementation is in [[MethodsFixturesImpl]] */
 final class MethodsScala3Spec extends MacroSuite {
 
@@ -30,6 +38,34 @@ final class MethodsScala3Spec extends MacroSuite {
       }
 
       group(
+        "opaque types: representation's members are listed, but only available where the opaque type is transparent"
+      ) {
+        import MethodsFixtures.testMethodAvailability
+        val available = Data.map("Everywhere" -> Data(true), "AtCallSite" -> Data(true), "Anywhere" -> Data(true))
+        val unavailable = Data.map("Everywhere" -> Data(false), "AtCallSite" -> Data(false), "Anywhere" -> Data(true))
+
+        test("for opaque type without a bound, the representation's members are unavailable (Chimney #962)") {
+          testMethodAvailability[examples.unions.OpaqueName]("toLowerCase") <==> unavailable
+          testMethodAvailability[examples.unions.OpaqueName]("length") <==> unavailable
+        }
+
+        test("for opaque type without a bound, the members of Any stay available") {
+          testMethodAvailability[examples.unions.OpaqueName]("toString") <==> available
+          testMethodAvailability[examples.unions.OpaqueName]("hashCode") <==> available
+          testMethodAvailability[examples.unions.OpaqueName]("equals") <==> available
+        }
+
+        test("for opaque type bounded by its representation, the members of the bound are available") {
+          testMethodAvailability[examples.unions.BoundedOpaqueName]("toLowerCase") <==> available
+          testMethodAvailability[examples.unions.BoundedOpaqueName]("length") <==> available
+        }
+
+        test("within the opaque type's defining scope, the representation's members are available") {
+          OpaqueTypeScope.ScopedName.toLowerCaseAvailability <==> available
+        }
+      }
+
+      group(
         "constructors: Method.{primaryConstructorOf[A], defaultConstructorOf[A], constructorsOf[A]}, returns preprocessed constructors"
       ) {
         import MethodsFixtures.testConstructorsExtraction
@@ -39,6 +75,15 @@ final class MethodsScala3Spec extends MacroSuite {
             "primaryConstructor" -> Data("(_1: scala.Int, _2: java.lang.String)"),
             "defaultConstructor" -> Data("<no default constructor>"),
             "constructors" -> Data.list(Data("(_1: scala.Int, _2: java.lang.String)"))
+          )
+        }
+
+        test("for opaque type over a class with constructors (Chimney #962)") {
+          // the underlying java.lang.String's constructors must not leak through the opaque type
+          testConstructorsExtraction[examples.unions.OpaqueName] <==> Data.map(
+            "primaryConstructor" -> Data("<no primary constructor>"),
+            "defaultConstructor" -> Data("<no default constructor>"),
+            "constructors" -> Data.list()
           )
         }
 

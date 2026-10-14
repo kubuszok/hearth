@@ -8,7 +8,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
   import quotes.*, quotes.reflect.*
 
-  import UntypedType.platformSpecific.{positionOf, repositionAnnotation, symbolAvailable}
+  import UntypedType.platformSpecific.{positionOf, repositionAnnotation, symbolAvailable, typeReprBaseClasses}
 
   // Repeated (vararg) parameters appear in two shapes on Scala 3:
   //   - `scala.<repeated>[A]` (an `AppliedType` of `defn.RepeatedParamClass`) in method signatures,
@@ -746,6 +746,30 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     }
   }
 
+  /** A member of an opaque type's representation which is not reachable through the opaque type's upper bound -
+    * callable only within `transparentWithin` (the opaque type's owner), where the opaque type is seen as its
+    * representation.
+    */
+  final private class OpaqueRepresentationMethod(method: UntypedMethod, transparentWithin: Symbol)
+      extends UntypedMethod(
+        symbol = method.symbol,
+        invocation = method.invocation,
+        isDeclared = method.isDeclared,
+        isConstructorArgument = method.isConstructorArgument,
+        constructorArgumentIndex = method.constructorArgumentIndex,
+        isCaseField = method.isCaseField
+      ) {
+
+    private def isCalledWithinDefiningScope: Boolean =
+      Iterator.iterate(Symbol.spliceOwner)(_.owner).takeWhile(!_.isNoSymbol).contains(transparentWithin)
+
+    override def isAvailable(scope: Accessible): Boolean = scope match {
+      case Everywhere => false
+      case AtCallSite => isCalledWithinDefiningScope && super.isAvailable(AtCallSite)
+      case Anywhere   => true
+    }
+  }
+
   object UntypedMethod extends UntypedMethodModule {
 
     private def parse(
@@ -922,7 +946,11 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def constructors(instanceTpe: UntypedType): List[UntypedMethod] =
       namedTupleComponents(instanceTpe) match {
         case Some((names, types)) => List(new SyntheticNamedTupleConstructor(names, types))
-        case None                 =>
+        // Outside of its defining scope an opaque type has no constructors, but its symbol's `declarations` are those of
+        // the underlying class (`opaque type Name = String` would report all `java.lang.String` constructors, which
+        // `CtorLikes` would then use to emit an uncompilable `new Name(...)`). See Chimney #962.
+        case None if UntypedType.isOpaqueType(instanceTpe) => Nil
+        case None                                          =>
           instanceTpe.dealias.typeSymbol.declarations // dealias for `export`-created aliases, see issue #315
             .filterNot(_.isNoSymbol)
             .filter(_.isClassConstructor)
@@ -949,7 +977,31 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       case AndType(left, right) =>
         val seen = scala.collection.mutable.Set.empty[Symbol]
         (unsortedMethods(left) ++ unsortedMethods(right)).filter(m => seen.add(m.symbol))
+      case _ if UntypedType.isOpaqueType(instanceTpe) =>
+        gateOpaqueRepresentationMembers(instanceTpe, unsortedMethodsOfSingleSymbol(instanceTpe))
       case _ => unsortedMethodsOfSingleSymbol(instanceTpe)
+    }
+
+    // Outside of its defining scope an opaque type is NOT its representation: on `opaque type Name = String` one cannot
+    // call `name.toLowerCase` - only the members of its declared upper bound (`opaque type Name <: String = String`
+    // exposes all of `String`'s members, `opaque type Name = String` only `Any`'s). Yet the opaque type's symbol reports
+    // the representation's members. We keep listing them (they ARE callable within the defining scope), but members not
+    // reachable through the bound become available only at call sites within the opaque type's owner (where the opaque
+    // type is transparent) - so `isAvailable(Everywhere)`/`isAvailable(AtCallSite)` filter them out. See Chimney #962.
+    private def gateOpaqueRepresentationMembers(
+        instanceTpe: UntypedType,
+        members: List[UntypedMethod]
+    ): List[UntypedMethod] = {
+      // Seen from outside the defining scope, the base classes of an opaque type are those of its upper bound.
+      val boundClasses = typeReprBaseClasses(instanceTpe).toSet
+      def reachableThroughBound(symbol: Symbol): Boolean =
+        boundClasses(symbol.owner) || symbol.allOverriddenSymbols.exists(overridden => boundClasses(overridden.owner))
+      val transparentWithin = instanceTpe.dealias.typeSymbol.owner
+      members.map {
+        case method if method.invocation == Invocation.OnInstance && !reachableThroughBound(method.symbol) =>
+          new OpaqueRepresentationMethod(method, transparentWithin)
+        case method => method
+      }
     }
 
     private def unsortedMethodsOfSingleSymbol(instanceTpe: UntypedType): List[UntypedMethod] = {

@@ -144,6 +144,25 @@ final class StdExtensionsScala3Spec extends MacroSuite {
         )
       }
 
+      test("for opaque type over a class with constructors (Chimney #962)") {
+        import hearth.examples.unions.OpaqueName
+        // the underlying String's constructors must not be used to (uncompilably) construct the opaque type
+        testIsValueType(OpaqueName("x")) <==> Data.map(
+          "unwrapping" -> Data("unwrapped: x"),
+          "wrapping" -> Data("test")
+        )
+      }
+
+      test("re-wrapping an opaque type yields the opaque type, not its representation (Chimney #962)") {
+        import hearth.examples.unions.{OpaqueId, OpaqueName}
+        val expected = Data.map(
+          "rewrappedIsValueType" -> Data(true),
+          "rewrappedIsInner" -> Data(false)
+        )
+        StdExtensionsFixtures.testIsValueTypeRewrapType(OpaqueId(1L)) <==> expected
+        StdExtensionsFixtures.testIsValueTypeRewrapType(OpaqueName("x")) <==> expected
+      }
+
       test("for IArray (should not be treated as value type)") {
         testIsValueType(IArray(1, 2, 3)) <==> Data("<no value type>")
       }
@@ -203,6 +222,18 @@ final class StdExtensionsScala3Spec extends MacroSuite {
         assert(
           containsCtor(result, "EitherIterableThrowableOrValue", "validateAll"),
           s"Expected EitherIterableThrowableOrValue ctor with 'validateAll', got: ${result.render}"
+        )
+      }
+
+      test(
+        "opaque type over a class with constructors only exposes its companion's smart constructors (Chimney #962)"
+      ) {
+        import hearth.examples.unions.OpaqueName
+        val result = testCtorLikes[OpaqueName]
+        // the underlying java.lang.String's constructors must not be reported for the opaque type
+        assert(
+          result.get("count").contains(Data("1")) && containsCtor(result, "PlainValue", "apply"),
+          s"Expected only the PlainValue ctor 'apply', got: ${result.render}"
         )
       }
 

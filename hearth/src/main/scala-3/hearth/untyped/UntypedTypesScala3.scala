@@ -722,8 +722,23 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
             // So... if you have `object Foo`, the `Foo` is a `Term` and have a `Symbol` (via `.companionModule`),
             // while its type is `Foo.type` and it has another `Symbol` (via `.moduleClass`).
             // We need to use 2 of them in different places, so we have to pass a tuple.
-            (subtypeTypeOf(untyped, module.moduleClass), Ref(module))
+            (subtypeTypeOf(untyped, module.moduleClass), companionRef(untyped, module, isOpaque))
           }
+      }
+
+    // `Ref(module)` refers to the module through its owner's `this` (e.g. `types$package.this.Foo`). For an opaque type's
+    // companion that is the path as seen from INSIDE the opaque's defining scope, where the opaque type is transparent,
+    // so the results of the companion's methods (`Foo.apply(1)`) would be typed with the dealiased representation
+    // (`Int`) rather than the opaque type (`Foo`), failing e.g. `Option.apply[Foo](x: Foo | Null)` on Scala 3.8+.
+    // Select the module from the opaque type's own (external) prefix instead. See Chimney #962.
+    private def companionRef(untyped: UntypedType, module: Symbol, isOpaque: Boolean): UntypedExpr =
+      untyped.dealias match {
+        case tr: TypeRef if isOpaque =>
+          tr.qualifier match {
+            case prefix: TermRef => Ref.term(TermRef(prefix, module.name))
+            case _               => Ref(module)
+          }
+        case _ => Ref(module)
       }
 
     override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =

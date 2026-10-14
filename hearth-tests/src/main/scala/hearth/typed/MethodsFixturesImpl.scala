@@ -53,6 +53,21 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     Expr(renderMethods(filtered))
   }
 
+  // Chimney #962: whether the (first listed) method of the given name is available in each scope.
+  def testMethodAvailability[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
+    case Expr(name) =>
+      Expr(Type[A].methods.find(_.name == name) match {
+        case Some(method) =>
+          Data.map(
+            "Everywhere" -> Data(method.isAvailable(Everywhere)),
+            "AtCallSite" -> Data(method.isAvailable(AtCallSite)),
+            "Anywhere" -> Data(method.isAvailable(Anywhere))
+          )
+        case None => Data("<not listed>")
+      })
+    case _ => Environment.reportErrorAndAbort("Method name must be a literal")
+  }
+
   def testMethodDefaults[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
     case Expr(name) =>
       val methods = Type[A].methods.filter(_.name == name)

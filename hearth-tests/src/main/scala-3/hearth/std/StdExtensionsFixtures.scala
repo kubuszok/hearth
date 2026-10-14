@@ -30,6 +30,10 @@ object StdExtensionsFixtures {
   private def testIsValueTypeImpl[A: Type](value: Expr[A])(using q: Quotes): Expr[Data] =
     new StdExtensionsFixtures(q).testIsValueType[A](value)
 
+  inline def testIsValueTypeRewrapType[A](inline value: A): Data = ${ testIsValueTypeRewrapTypeImpl[A]('value) }
+  private def testIsValueTypeRewrapTypeImpl[A: Type](value: Expr[A])(using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testIsValueTypeRewrapType[A](value)
+
   inline def testIsCollectionForeach[A](inline value: A): Data = ${ testIsCollectionForeachImpl[A]('value) }
   private def testIsCollectionForeachImpl[A: Type](value: Expr[A])(using q: Quotes): Expr[Data] =
     new StdExtensionsFixtures(q).testIsCollectionForeach[A](value)

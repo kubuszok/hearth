@@ -11,6 +11,9 @@ object unions {
   opaque type OpaqueName = String
   object OpaqueName { def apply(v: String): OpaqueName = v }
 
+  opaque type BoundedOpaqueName <: String = String
+  object BoundedOpaqueName { def apply(v: String): BoundedOpaqueName = v }
+
   object Marker
 
   // --- Disjoint (should return Some from directChildren) ---

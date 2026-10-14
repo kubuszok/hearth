@@ -299,6 +299,26 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
     case _ => Expr(Data("<no value type>"))
   }
 
+  // Chimney #962: re-wrapping an unwrapped value must produce an expression typed as the value type itself - for an
+  // opaque type it must NOT be seen as its underlying representation (which would happen if the companion was
+  // referenced through a path from inside the opaque type's defining scope).
+  def testIsValueTypeRewrapType[A: Type](value: Expr[A]): Expr[Data] = Type[A] match {
+    case IsValueType(isValueType) =>
+      import isValueType.Underlying as Inner
+      isValueType.value.wrap match {
+        case CtorLikeOf.PlainValue(ctor, _) =>
+          val rewrapped = Expr.typeOf(ctor(isValueType.value.unwrap(value)))
+          Expr(
+            Data.map(
+              "rewrappedIsValueType" -> Data(rewrapped =:= Type[A]),
+              "rewrappedIsInner" -> Data(rewrapped <:< Type[Inner])
+            )
+          )
+        case _ => Expr(Data("<not a plain value type>"))
+      }
+    case _ => Expr(Data("<no value type>"))
+  }
+
   private def handleSmartConstructor[Input: Type, Output: Type](
       build: CtorLikeOf[Input, Output]
   )(onValid: Expr[Output] => Expr[Data]): Expr[Input] => Expr[Data] = build match {
