@@ -501,6 +501,10 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
           dd.name.show
       }.toSet
 
+      /** Statements whose given candidates are visible only to the statements AFTER them (in a block). */
+      private def isScopedFromItsPosition(stat: untpd.Tree): Boolean =
+        stat.isInstanceOf[untpd.ValDef] || stat.isInstanceOf[untpd.Import]
+
       private def blockGivenCandidates(trees: List[untpd.Tree]): List[untpd.ValDef] = trees.collect {
         // Handle imports with @ImportedCrossTypeImplicit (e.g. Underlying, Result, etc.)
         // Uses makeGivenFromUntyped which works for both Type[X] and Type.CtorN[X] values
@@ -970,19 +974,17 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
         case block: Block =>
           val oldGivenCandidates = givenCandidates
           try {
-            // Imports and (implicit) defs can legally be forward-referenced from earlier statements in a block,
-            // so their candidates are visible to every expansion in the block.
-            givenCandidates = oldGivenCandidates ++ blockGivenCandidates(
-              block.stats.filterNot(_.isInstanceOf[untpd.ValDef])
-            )
+            // (Implicit) defs can legally be forward-referenced from earlier statements in a block, so their
+            // candidates are visible to every expansion in the block.
+            givenCandidates = oldGivenCandidates ++ blockGivenCandidates(block.stats.filterNot(isScopedFromItsPosition))
             // [hearth#285] Candidates from implicit vals become visible only AFTER their defining statement —
             // injecting them into earlier expansions would generate an illegal forward reference to the val.
+            // The same holds for imports: an imported name is in scope only AFTER the import, so the
+            // `given casted$D` of an `import x.Underlying as D` must not be injected into an earlier `Type.of`.
             val newStats = block.stats.map { stat =>
               val transformed = transform(stat)
-              stat match {
-                case vd: untpd.ValDef => givenCandidates = givenCandidates ++ blockGivenCandidates(vd :: Nil)
-                case _                => ()
-              }
+              if isScopedFromItsPosition(stat) then givenCandidates =
+                givenCandidates ++ blockGivenCandidates(stat :: Nil)
               transformed
             }
             val newExpr = transform(block.expr)
@@ -998,7 +1000,9 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          *   given casted$name: scala.quoted.Type[A] = Type[A].asInstanceOf[scala.quoted.Type[A]]
          */
         case tpl: Template =>
-          val newGivenCandidates = blockGivenCandidates(tpl.body)
+          // Members are visible in the whole class body, but an import only from its position onwards - so imports'
+          // candidates are added only after the import statement (as in `case block: Block`).
+          val newGivenCandidates = blockGivenCandidates(tpl.body.filterNot(_.isInstanceOf[untpd.Import]))
           val oldGivenCandidates = givenCandidates
           val oldEnclosingTemplateTypeDefNames = enclosingTemplateTypeDefNames
           try {
@@ -1006,7 +1010,17 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
             // [hearth#316] Record this template's mutually-visible implicit Type members so that each one's RHS can
             // exclude its siblings (avoiding the mutual lazy-val init deadlock). Templates nest, so accumulate.
             enclosingTemplateTypeDefNames = oldEnclosingTemplateTypeDefNames ++ templateTypeDefNames(tpl.body)
-            super.transform(tpl)
+            val constr = transformSub(tpl.constr)
+            val parents = transform(tpl.parents)
+            val derived = transform(tpl.derived)
+            val self = transformSub(tpl.self)
+            val body = tpl.body.map { stat =>
+              val transformed = transform(stat)
+              if stat.isInstanceOf[untpd.Import] then givenCandidates =
+                givenCandidates ++ blockGivenCandidates(stat :: Nil)
+              transformed
+            }
+            cpy.Template(tpl)(constr = constr, parents = parents, derived = derived, self = self, body = body)
           } finally {
             givenCandidates = oldGivenCandidates
             enclosingTemplateTypeDefNames = oldEnclosingTemplateTypeDefNames
