@@ -148,7 +148,9 @@ object CrossQuotesMacrosGen {
     sb ++= s"""      val ctxVal = q${tq}private val $$ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]${tq}\n"""
     sb ++= s"""      val convertDef = q${tq}private implicit def $$convertProvidedTypesForCrossQuotes[$$typeInner](implicit $$termInner: Type[$$typeInner]): $$ctx.WeakTypeTag[$$typeInner] = $$termInner.asInstanceOf[$$ctx.WeakTypeTag[$$typeInner]]${tq}\n"""
     sb ++= s"""      val ctxImport = q${tq}import $$ctx.universe.{ TypeRef, TypeRefTag, ExistentialType, ExistentialTypeTag }${tq}\n"""
-    sb ++= s"""      val hktVal = q${tq}private val HKT = $$ctx.weakTypeTag[Type.$cn.Stub[$stubTypeArgs, $$HKT]].tpe.typeArgs.last${tq}\n"""
+    val anys = Seq.fill(n)("Any").mkString(", ")
+    sb ++= s"""      val hktExpr = hktTypeExpr(ctx, HKT, q${tq}$$ctx.weakTypeTag[Type.$cn.Stub[$stubTypeArgs, $$HKT]].tpe.typeArgs.last${tq}, "$cn", "$anys")\n"""
+    sb ++= s"""      val hktVal = q${tq}private val HKT = $$hktExpr${tq}\n"""
     sb ++= s"      List(ctxVal, convertDef, ctxImport, hktVal)\n"
     sb ++= s"    }\n"
     sb ++= s"\n"

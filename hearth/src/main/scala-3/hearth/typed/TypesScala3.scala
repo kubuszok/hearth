@@ -52,11 +52,15 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
     // `SyncLike[[A >: Nothing <: Any] => SomeF[A]]`), while Scala 2 prints `SyncLike[SomeF]` - so we eta-reduce too.
     private def dealiasAll(tpe: TypeRepr): TypeRepr =
       tpe match {
-        case AppliedType(tycon, args) => AppliedType(dealiasAll(tycon), args.map(dealiasAll(_)))
-        case OrType(left, right)      => OrType(dealiasAll(left), dealiasAll(right))
-        case AndType(left, right)     => AndType(dealiasAll(left), dealiasAll(right))
-        case tl: TypeLambda           => etaReduced(tl).fold(tpe)(dealiasAll)
-        case _                        => tpe.dealias
+        // An applied ALIAS constructor (e.g. `type FixedFront[A] = Arity2[Unit, A]`, as applied by `Type.Ctor1.apply`) is
+        // expanded as a whole - dealiasing only its constructor would leave an unreduced `([A] =>> ...)[Int]`.
+        case AppliedType(tycon, args) =>
+          val dealiased = tpe.dealias
+          if dealiased != tpe then dealiasAll(dealiased) else AppliedType(dealiasAll(tycon), args.map(dealiasAll(_)))
+        case OrType(left, right)  => OrType(dealiasAll(left), dealiasAll(right))
+        case AndType(left, right) => AndType(dealiasAll(left), dealiasAll(right))
+        case tl: TypeLambda       => etaReduced(tl).fold(tpe)(dealiasAll)
+        case _                    => tpe.dealias
       }
 
     // `[A1, ..., An] =>> F[A1, ..., An]` -> `F`, only for a PURE eta-expansion: unbounded parameters, applied in order

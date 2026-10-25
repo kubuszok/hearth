@@ -2183,6 +2183,29 @@ final class TypesSpec extends MacroSuite {
       }
     }
 
+    group("Type.Ctor1.of / Type.CtorK1.of on the macro's own type parameter") {
+      import TypesFixtures.{testCtor1OfOwnTypeParameter, testCtor2OfOwnTypeParameter, testCtorK1OfOwnTypeParameter}
+
+      // On Scala 2 the bridges take an implicit `WeakTypeTag[F[Any]]` (a macro cannot take a `WeakTypeTag[F[_]]`), whose
+      // type constructor `Type.CtorN.of[F]` uses - on Scala 3 they take a `Type[F]`.
+
+      test("Type.Ctor1.of[F] is the constructor the macro was called with") {
+        testCtor1OfOwnTypeParameter[List] <==> "scala.collection.immutable.List[scala.Int]"
+        testCtor1OfOwnTypeParameter[examples.kinds.Box] <==> "hearth.examples.kinds.Box[scala.Int]"
+        testCtor2OfOwnTypeParameter[Either] <==> "scala.util.Either[scala.Int, java.lang.String]"
+      }
+
+      test("an alias constructor keeps its own arity (it is not dealiased to the aliased constructor)") {
+        testCtor1OfOwnTypeParameter[examples.kinds.Alias.FixedFront1] <==>
+          "hearth.examples.kinds.Arity2[scala.Unit, scala.Int]"
+      }
+
+      test("Type.CtorK1.of[Alg] is the constructor the macro was called with") {
+        testCtorK1OfOwnTypeParameter[examples.kinds.HigherKinded1] <==>
+          "hearth.examples.kinds.HigherKinded1[scala.Option]"
+      }
+    }
+
     group("type Type.Lazy") {
 
       test("Type.Lazy first touched inside an Expr.splice stays usable outside that splice") {

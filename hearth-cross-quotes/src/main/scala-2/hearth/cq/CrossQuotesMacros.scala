@@ -165,18 +165,21 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
   import c.universe.{Expr as _, *}
 
   protected def reportIssue(throwable: Throwable): Nothing =
-    c.abort(
-      c.enclosingPosition,
-      s"""Unexpected error ${throwable.getClass.getName} at ${c.enclosingPosition.source.path}:${c.enclosingPosition.line}:${c.enclosingPosition.column}:
-         |
-         |${indent(throwable.getMessage)}
-         |
-         |from:
-         |${throwable.getStackTrace.map(item => s"  at: $item").mkString("\n")}
-         |
-         |Please, report an issue at https://github.com/kubuszok/hearth/issues
-         |""".stripMargin
-    )
+    // a deliberate `c.abort` (an actionable error, e.g. from `hktTypeExpr`) is passed through as-is
+    if (throwable.getClass.getName == "scala.reflect.macros.runtime.AbortMacroException") throw throwable
+    else
+      c.abort(
+        c.enclosingPosition,
+        s"""Unexpected error ${throwable.getClass.getName} at ${c.enclosingPosition.source.path}:${c.enclosingPosition.line}:${c.enclosingPosition.column}:
+           |
+           |${indent(throwable.getMessage)}
+           |
+           |from:
+           |${throwable.getStackTrace.map(item => s"  at: $item").mkString("\n")}
+           |
+           |Please, report an issue at https://github.com/kubuszok/hearth/issues
+           |""".stripMargin
+      )
 
   private val loggingEnabled = CrossQuotesSettings.parseLoggingSettingsForScala2(c.settings)(
     scala.util.Try(c.enclosingPosition.source.file.file).toOption,
@@ -220,6 +223,53 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
   protected def indent(text: String): String =
     text.split("\n").map(line => s"  $line").mkString("\n")
+
+  /** The expression of the type constructor `hkt` for `Type.CtorN.of[hkt]` / `Type.CtorK1.of[hkt]`.
+    *
+    * Normally it is read off a `weakTypeTag` of a stub applied to `hkt` (`stubBased`). But when `hkt` is a type
+    * parameter of an enclosing method (`def impl[F[_]]` - the entry point of a derivation macro), that tag would
+    * capture the abstract `F` itself, not the constructor the macro was called with. Scala 2 macros cannot take a
+    * `WeakTypeTag[F[_]]`, so they take an implicit `c.WeakTypeTag[F[Any]]` (or `Type[F[Any]]`) instead: if the method
+    * has one, its type constructor is used; otherwise the expansion fails with an error explaining the alternatives.
+    *
+    * @param example
+    *   type arguments of `hkt` to suggest in the error message (e.g. `Any` or `Option`)
+    */
+  protected def hktTypeExpr(
+      ctx: TermName,
+      hkt: Type,
+      stubBased: => c.Tree,
+      ctorName: String,
+      example: String
+  ): c.Tree = {
+    val hktSym = hkt.typeSymbol
+    if (!(hktSym.isType && hktSym.asType.isParameter && hktSym.owner.isMethod)) stubBased
+    else {
+      val method = hktSym.owner.asMethod
+      def isTagOfAppliedHkt(param: Symbol): Boolean = param.isImplicit && (param.typeSignature.dealias match {
+        case TypeRef(_, tagSym, List(applied)) if tagSym.name.decodedName.toString == "WeakTypeTag" =>
+          // by name: in the method's body `F` is a skolem of the type parameter, a different symbol than in its signature
+          applied.typeConstructor.typeSymbol.name == hktSym.name
+        case _ => false
+      })
+      method.paramLists.flatten.find(isTagOfAppliedHkt) match {
+        case Some(tag) =>
+          q"${Ident(tag.name.toTermName)}.asInstanceOf[$ctx.WeakTypeTag[_]].tpe.typeConstructor"
+        case None =>
+          val f = hktSym.name.decodedName.toString
+          val m = method.name.decodedName.toString
+          c.abort(
+            c.enclosingPosition,
+            s"""Type.$ctorName.of[$f]: `$f` is a type parameter of `$m`, so the type constructor it stands for is unknown here.
+               |  - in a Scala 2 macro: a macro method cannot take a `WeakTypeTag[$f[_]]`, but it can take an implicit
+               |    `c.WeakTypeTag[$f[$example]]` (or `Type[$f[$example]]`) parameter - add one to `$m` and it will be used here,
+               |  - or build it from an untyped representation: `Type.$ctorName.fromUntyped[$f](...)`,
+               |  - or, in code shared between Scala 2 and Scala 3, take it as a parameter (`implicit $f: Type.$ctorName[$f]`)
+               |    instead of calling `Type.$ctorName.of[$f]`.""".stripMargin
+          )
+      }
+    }
+  }
 
   protected def suppressWarnings(result: c.Tree): c.Tree =
     q"""
@@ -381,7 +431,9 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
     val ctxVal = q"""private val $ctx = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]"""
     val ctxImport = q"""import $ctx.universe.{ TypeRef, TypeRefTag }"""
-    val hktVal = q"""private val HKT = $ctx.weakTypeTag[Type.CtorK1.Stub[$HKT]].tpe.typeArgs.last"""
+    val hktExpr =
+      hktTypeExpr(ctx, HKT, q"""$ctx.weakTypeTag[Type.CtorK1.Stub[$HKT]].tpe.typeArgs.last""", "CtorK1", "Option")
+    val hktVal = q"""private val HKT = $hktExpr"""
 
     val applyDef = q"""
     def apply[$G[_]](implicit GCtor: Type.Ctor1[$G]): Type[Type.CtorK1.Apply[$HKT, $G]] =

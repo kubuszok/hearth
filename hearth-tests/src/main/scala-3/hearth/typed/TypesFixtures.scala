@@ -7,6 +7,15 @@ import scala.quoted.*
 
 final private class TypesFixtures(q: Quotes) extends MacroCommonsScala3(using q), TypesFixturesImpl {
 
+  // `Type.Ctor*.of` is rewritten by the cross-quotes plugin inside the macro bundle (here), from the macro's own type
+  // parameter - as derivation entry points do.
+  def ctor1OfOwnTypeParameter[F[_]: scala.quoted.Type]: Expr[String] = testCtor1OfOwnTypeParameter[F](Type.Ctor1.of[F])
+  def ctor2OfOwnTypeParameter[F[_, _]: scala.quoted.Type]: Expr[String] =
+    testCtor2OfOwnTypeParameter[F](Type.Ctor2.of[F])
+  @scala.annotation.nowarn("msg=unused local definition") // left behind by the plugin's `CtorK1.of` expansion
+  def ctorK1OfOwnTypeParameter[Alg[_[_]]: scala.quoted.Type]: Expr[String] =
+    testCtorK1OfOwnTypeParameter[Alg](Type.CtorK1.of[Alg])
+
   /** hearth#384: `Type.CtorN.fromUntyped` has to match an ordinary alias of a type application (also of an opaque type)
     * just like the dealiased type - without unwrapping the opaque type itself.
     */
@@ -209,6 +218,18 @@ object TypesFixtures {
 
   inline def testFunctionType[A]: Data = ${ testFunctionTypeImpl[A] }
   private def testFunctionTypeImpl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testFunctionType[A]
+
+  inline def testCtor1OfOwnTypeParameter[F[_]]: String = ${ testCtor1OfOwnTypeParameterImpl[F] }
+  private def testCtor1OfOwnTypeParameterImpl[F[_]: Type](using q: Quotes): Expr[String] =
+    new TypesFixtures(q).ctor1OfOwnTypeParameter[F]
+
+  inline def testCtor2OfOwnTypeParameter[F[_, _]]: String = ${ testCtor2OfOwnTypeParameterImpl[F] }
+  private def testCtor2OfOwnTypeParameterImpl[F[_, _]: Type](using q: Quotes): Expr[String] =
+    new TypesFixtures(q).ctor2OfOwnTypeParameter[F]
+
+  inline def testCtorK1OfOwnTypeParameter[Alg[_[_]]]: String = ${ testCtorK1OfOwnTypeParameterImpl[Alg] }
+  private def testCtorK1OfOwnTypeParameterImpl[Alg[_[_]]: Type](using q: Quotes): Expr[String] =
+    new TypesFixtures(q).ctorK1OfOwnTypeParameter[Alg]
 
   inline def testLazyTypeScopeSafety: Data = ${ testLazyTypeScopeSafetyImpl }
   private def testLazyTypeScopeSafetyImpl(using q: Quotes): Expr[Data] =

@@ -869,6 +869,21 @@ trait TypesFixturesImpl { this: MacroCommons =>
     )
   }
 
+  /** Applies a `Type.Ctor1` / `Type.CtorK1` that the platform bridge built with `.of` from the macro's OWN type
+    * parameter (`F` / `Alg`), as derivation entry points (`Functor.derived[F]`, `FunctorK.derived[Alg]`) do.
+    */
+  def testCtor1OfOwnTypeParameter[F[_]](ctor: Type.Ctor1[F]): Expr[String] = {
+    implicit val IntType: Type[Int] = intType
+    Expr(ctor.apply[Int].plainPrint)
+  }
+  def testCtor2OfOwnTypeParameter[F[_, _]](ctor: Type.Ctor2[F]): Expr[String] = {
+    implicit val IntType: Type[Int] = intType
+    implicit val StringType: Type[String] = stringType
+    Expr(ctor.apply[Int, String].plainPrint)
+  }
+  def testCtorK1OfOwnTypeParameter[Alg[_[_]]](ctor: Type.CtorK1[Alg]): Expr[String] =
+    Expr(ctor.apply[Option](using Type.Ctor1.of[Option]).plainPrint)
+
   // Type.Lazy: the deferred type must behave like an eagerly-initialized one even when its FIRST touch happens
   // inside an `Expr.splice` (a fresh nested Quotes on Scala 3) and it is then reused OUTSIDE that splice - the
   // pattern that breaks a plain `lazy val` with "Expression created in a splice was used outside of that splice".
