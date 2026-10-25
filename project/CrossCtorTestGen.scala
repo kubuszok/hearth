@@ -619,12 +619,14 @@ object CrossCtorTestGen {
     sb ++= "}\n\n"
     sb ++= "/** `VarianceN` has alternating contravariant/covariant parameters (`-A, +B, -C, ...`); `VarianceNSub` is a class\n"
     sb ++= "  * that only EXTENDS `VarianceN[Int, ...]` (it is not headed by `VarianceN`), so `CtorN.unapply` must read the\n"
-    sb ++= "  * arguments off its base type instead of solving the (contravariant) ones to `Nothing`.\n"
+    sb ++= "  * arguments off its base type instead of solving the (contravariant) ones to `Nothing`. `varianceN` are stable\n"
+    sb ++= "  * references (their singleton types must be widened first, for the same reason).\n"
     sb ++= "  */\n"
     sb ++= "object CtorVariance {\n"
     for (n <- 1 to maxArity) {
       sb ++= s"  trait ${varianceName(n)}[${varianceParams(n)}]\n"
       sb ++= s"  class ${varianceName(n)}Sub extends ${varianceName(n)}[${ints(n)}]\n"
+      sb ++= s"  val variance$n: ${varianceName(n)}[${ints(n)}] = new ${varianceName(n)}Sub\n"
     }
     sb ++= "}\n"
     sb.toString
@@ -644,7 +646,8 @@ object CrossCtorTestGen {
     }
     val sb = new StringBuilder
     sb ++= "  /** Test: `Type.CtorN.of[F].unapply` / `fromUntyped(...).unapply` on a class that only EXTENDS `F[...]` (with\n"
-    sb ++= "    * contravariant and covariant parameters) returns its real type arguments, for all arities.\n"
+    sb ++= "    * contravariant and covariant parameters), or on a singleton type of such a value, returns its real type\n"
+    sb ++= "    * arguments, for all arities.\n"
     sb ++= "    */\n"
     sb ++= "  def testCtorUnapplyOnSubtypes: Expr[Data] = {\n"
     sb ++= "    import CtorVariance.*\n"
@@ -655,7 +658,8 @@ object CrossCtorTestGen {
       val sub = s"Type.of[${t}Sub]"
       Seq(
         s"""        "ctor$n.of" -> ${printed(s"Type.Ctor$n.of[$t].unapply($sub)", n)}""",
-        s"""        "ctor$n.fromUntyped" -> ${printed(s"Type.Ctor$n.fromUntyped[$t](Type.Ctor$n.of[$t].asUntyped).unapply($sub)", n)}"""
+        s"""        "ctor$n.fromUntyped" -> ${printed(s"Type.Ctor$n.fromUntyped[$t](Type.Ctor$n.of[$t].asUntyped).unapply($sub)", n)}""",
+        s"""        "ctor$n.of on singleton" -> ${printed(s"Type.Ctor$n.of[$t].unapply(Type.of[variance$n.type])", n)}"""
       )
     }
     sb ++= entries.mkString(",\n")
@@ -1673,7 +1677,11 @@ object CrossCtorTestGen {
     sb ++= "        CrossCtorInjectionFixtures.testCtorUnapplyOnSubtypes <==> Data.map(\n"
     val entries = (1 to maxArity).flatMap { n =>
       val ints = Seq.fill(n)("Data(\"scala.Int\")").mkString("Data.list(", ", ", ")")
-      Seq(s"""          "ctor$n.of" -> $ints""", s"""          "ctor$n.fromUntyped" -> $ints""")
+      Seq(
+        s"""          "ctor$n.of" -> $ints""",
+        s"""          "ctor$n.fromUntyped" -> $ints""",
+        s"""          "ctor$n.of on singleton" -> $ints"""
+      )
     }
     sb ++= entries.mkString(",\n")
     sb ++= "\n        )\n"

@@ -521,7 +521,12 @@ object TypeConstructorsGen {
     sb ++= s"                case _ => false\n"
     sb ++= s"              }\n"
     sb ++= s"              if (fastPathHktSymbol != null) {\n"
-    sb ++= s"                val aRepr = TypeRepr.of[A](using A.asInstanceOf[scala.quoted.Type[A]]).dealias\n"
+    // Singleton types (`x.type` where `val x: HKT[...]`) are widened first: otherwise they skip both arms below and
+    // the QuoteMatcher solves contravariant parameters to `Nothing`.
+    sb ++= s"                val aRepr = {\n"
+    sb ++= s"                  val raw = TypeRepr.of[A](using A.asInstanceOf[scala.quoted.Type[A]]).dealias\n"
+    sb ++= s"                  if (raw.isSingleton) raw.widen.dealias else raw\n"
+    sb ++= s"                }\n"
     sb ++= s"                if (aRepr.typeSymbol == fastPathHktSymbol) aRepr match {\n"
     sb ++= s"                  case AppliedType(_, List($fastPathArgs)) if $fastPathGuard =>\n"
     sb ++= s"                    return Some(($fastPathSome))\n"
