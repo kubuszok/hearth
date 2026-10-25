@@ -92,6 +92,8 @@ object CrossCtorTestGen {
     sb ++= "\n"
     sb ++= genTestCtorsOnSingleton(maxArity)
     sb ++= "\n"
+    sb ++= genTestCtorUnapplyOnSubtypes(maxArity)
+    sb ++= "\n"
     sb ++= fileFooter
     sb.toString
   }
@@ -614,7 +616,52 @@ object CrossCtorTestGen {
       }
       sb ++= s"  val ${singletonVal(n)}: $tpe = $value\n"
     }
+    sb ++= "}\n\n"
+    sb ++= "/** `VarianceN` has alternating contravariant/covariant parameters (`-A, +B, -C, ...`); `VarianceNSub` is a class\n"
+    sb ++= "  * that only EXTENDS `VarianceN[Int, ...]` (it is not headed by `VarianceN`), so `CtorN.unapply` must read the\n"
+    sb ++= "  * arguments off its base type instead of solving the (contravariant) ones to `Nothing`.\n"
+    sb ++= "  */\n"
+    sb ++= "object CtorVariance {\n"
+    for (n <- 1 to maxArity) {
+      sb ++= s"  trait ${varianceName(n)}[${varianceParams(n)}]\n"
+      sb ++= s"  class ${varianceName(n)}Sub extends ${varianceName(n)}[${ints(n)}]\n"
+    }
     sb ++= "}\n"
+    sb.toString
+  }
+
+  private def varianceName(n: Int): String = s"Variance$n"
+
+  private def varianceParams(n: Int): String =
+    ArityGen.params(n).zipWithIndex.map { case (p, i) => if (i % 2 == 0) s"-$p" else s"+$p" }.mkString(", ")
+
+  private def genTestCtorUnapplyOnSubtypes(maxArity: Int): String = {
+    def printed(call: String, n: Int): String = {
+      val vars = (1 to n).map(i => s"a$i")
+      val list = vars.map(v => s"Data($v.plainPrint)").mkString("Data.list(", ", ", ")")
+      val mapped = if (n == 1) s"$call.map(a1 => $list)" else s"$call.map { case (${vars.mkString(", ")}) => $list }"
+      s"""$mapped.getOrElse(Data("<none>"))"""
+    }
+    val sb = new StringBuilder
+    sb ++= "  /** Test: `Type.CtorN.of[F].unapply` / `fromUntyped(...).unapply` on a class that only EXTENDS `F[...]` (with\n"
+    sb ++= "    * contravariant and covariant parameters) returns its real type arguments, for all arities.\n"
+    sb ++= "    */\n"
+    sb ++= "  def testCtorUnapplyOnSubtypes: Expr[Data] = {\n"
+    sb ++= "    import CtorVariance.*\n"
+    sb ++= "    Expr(\n"
+    sb ++= "      Data.map(\n"
+    val entries = (1 to maxArity).flatMap { n =>
+      val t = varianceName(n)
+      val sub = s"Type.of[${t}Sub]"
+      Seq(
+        s"""        "ctor$n.of" -> ${printed(s"Type.Ctor$n.of[$t].unapply($sub)", n)}""",
+        s"""        "ctor$n.fromUntyped" -> ${printed(s"Type.Ctor$n.fromUntyped[$t](Type.Ctor$n.of[$t].asUntyped).unapply($sub)", n)}"""
+      )
+    }
+    sb ++= entries.mkString(",\n")
+    sb ++= "\n      )\n"
+    sb ++= "    )\n"
+    sb ++= "  }\n"
     sb.toString
   }
 
@@ -795,6 +842,7 @@ object CrossCtorTestGen {
 
     // Singleton types
     sb ++= "  def testCtorsOnSingletonImpl[A: c.WeakTypeTag]: c.Expr[Data] = testCtorsOnSingleton[A]\n\n"
+    sb ++= "  def testCtorUnapplyOnSubtypesImpl: c.Expr[Data] = testCtorUnapplyOnSubtypes\n\n"
 
     sb ++= "}\n\n"
 
@@ -863,6 +911,7 @@ object CrossCtorTestGen {
 
     // Singleton types
     sb ++= "  def testCtorsOnSingleton[A]: Data = macro CrossCtorInjectionFixtures.testCtorsOnSingletonImpl[A]\n\n"
+    sb ++= "  def testCtorUnapplyOnSubtypes: Data = macro CrossCtorInjectionFixtures.testCtorUnapplyOnSubtypesImpl\n\n"
 
     sb ++= "}\n"
     sb.toString
@@ -1056,6 +1105,7 @@ object CrossCtorTestGen {
     sb ++= "  inline def testCtorsOnSingleton[A]: Data = ${ testCtorsOnSingletonImpl[A] }\n"
     sb ++= "  private def testCtorsOnSingletonImpl[A: Type](using q: Quotes): Expr[Data] =\n"
     sb ++= "    new CrossCtorInjectionFixtures(q).testCtorsOnSingleton[A]\n\n"
+    sb ++= genScala3InlineSplice("testCtorUnapplyOnSubtypes")
 
     sb ++= "}\n"
     sb.toString
@@ -1205,6 +1255,10 @@ object CrossCtorTestGen {
 
     // Group 11: testCtorsOnSingleton
     sb ++= genSpecCtorsOnSingleton(maxArity)
+    sb ++= "\n"
+
+    // Group 12: testCtorUnapplyOnSubtypes
+    sb ++= genSpecCtorUnapplyOnSubtypes(maxArity)
     sb ++= "\n"
 
     // Group 11: testTypeOfWithCtorNContextBound
@@ -1623,6 +1677,22 @@ object CrossCtorTestGen {
       case _ => Seq.fill(n)("scala.Int").mkString(", ")
     }
     s"$fqn[$args]"
+  }
+
+  private def genSpecCtorUnapplyOnSubtypes(maxArity: Int): String = {
+    val sb = new StringBuilder
+    sb ++= "    group(\"for subtypes of a constructor with contravariant/covariant parameters\") {\n\n"
+    sb ++= "      test(\"CtorN.of and CtorN.fromUntyped unapply return the real type arguments for all arities\") {\n"
+    sb ++= "        CrossCtorInjectionFixtures.testCtorUnapplyOnSubtypes <==> Data.map(\n"
+    val entries = (1 to maxArity).flatMap { n =>
+      val ints = Seq.fill(n)("Data(\"scala.Int\")").mkString("Data.list(", ", ", ")")
+      Seq(s"""          "ctor$n.of" -> $ints""", s"""          "ctor$n.fromUntyped" -> $ints""")
+    }
+    sb ++= entries.mkString(",\n")
+    sb ++= "\n        )\n"
+    sb ++= "      }\n"
+    sb ++= "    }\n"
+    sb.toString
   }
 
   private def genSpecCtorsOnSingleton(maxArity: Int): String = {
