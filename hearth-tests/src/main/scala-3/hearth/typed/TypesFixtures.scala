@@ -190,6 +190,23 @@ object TypesFixtures {
   private def testCtorK1FromDiscoveredPartsImpl[A: Type](using q: Quotes): Expr[Data] =
     new TypesFixtures(q).testCtorK1FromDiscoveredParts[A]
 
+  inline def testTypeConstructorPrimitives[A]: Data = ${ testTypeConstructorPrimitivesImpl[A] }
+  private def testTypeConstructorPrimitivesImpl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testTypeConstructorPrimitives[A]
+
+  inline def testTypeConstructorPrimitivesOfExpr[A](inline expr: A): Data =
+    ${ testTypeConstructorPrimitivesOfExprImpl[A]('expr) }
+  private def testTypeConstructorPrimitivesOfExprImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testTypeConstructorPrimitivesOfExpr[A](expr)
+
+  inline def testDecomposesTo[A, Expected]: Data = ${ testDecomposesToImpl[A, Expected] }
+  private def testDecomposesToImpl[A: Type, Expected: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testDecomposesTo[A, Expected]
+
+  inline def testSameTypeConstructorAndReapply[A, B]: Data = ${ testSameTypeConstructorAndReapplyImpl[A, B] }
+  private def testSameTypeConstructorAndReapplyImpl[A: Type, B: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testSameTypeConstructorAndReapply[A, B]
+
   inline def testLazyTypeScopeSafety: Data = ${ testLazyTypeScopeSafetyImpl }
   private def testLazyTypeScopeSafetyImpl(using q: Quotes): Expr[Data] =
     new TypesFixtures(q).testLazyTypeScopeSafety

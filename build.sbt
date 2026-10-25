@@ -669,7 +669,9 @@ lazy val hearthTests = projectMatrix
         if (isScala3) CrossCtorTestGen.generateScala3Bridge()
         else CrossCtorTestGen.generateScala2Bridge()
       ArityGen.writeIfChanged(bridge, bridgeContent)
-      Seq(implGen, bridge)
+      val singletons = outDir / "hearth" / "crossquotes" / "CtorSingletons.scala"
+      ArityGen.writeIfChanged(singletons, CrossCtorTestGen.generateSingletons())
+      Seq(implGen, bridge, singletons)
     },
     Test / sourceGenerators += Def.task {
       val outDir = (Test / sourceManaged).value

@@ -90,6 +90,8 @@ object CrossCtorTestGen {
     sb ++= "\n"
     sb ++= genTestCtorSetMiddleAsUntypedRange(18, 22)
     sb ++= "\n"
+    sb ++= genTestCtorsOnSingleton(maxArity)
+    sb ++= "\n"
     sb ++= fileFooter
     sb.toString
   }
@@ -563,6 +565,138 @@ object CrossCtorTestGen {
     case _ => s"hearth.examples.kinds.Arity$n"
   }
 
+  // ---------------------------------------------------------------------------
+  // 11. testCtorsOnSingleton + CtorSingletons
+  // ---------------------------------------------------------------------------
+
+  /** Type arguments of the `CtorSingletons` vals (and of their declared types in the spec). */
+  private def singletonArgs(n: Int): Seq[String] = n match {
+    case 1 => Seq("String")
+    case 2 => Seq("String", "Int")
+    case _ => Seq.fill(n)("Int")
+  }
+
+  /** `singletonArgs`, as printed by `plainPrint`. */
+  private def singletonArgsPrinted(n: Int): Seq[String] = singletonArgs(n).map {
+    case "String" => "java.lang.String"
+    case other    => s"scala.$other"
+  }
+
+  /** Declared type of the `CtorSingletons` val for arity N. */
+  private def singletonDeclaredType(n: Int): String = s"${typeName(n)}[${singletonArgs(n).mkString(", ")}]"
+
+  /** Name of the `CtorSingletons` val for arity N. */
+  private def singletonVal(n: Int): String = keyPrefix(n)
+
+  /** Generates the object with stable vals, whose singleton types (`CtorSingletons.arity5.type`) are tested. */
+  def generateSingletons(maxArity: Int = ArityGen.maxArity): String = {
+    val sb = new StringBuilder
+    sb ++=
+      s"""// AUTO-GENERATED — DO NOT EDIT
+         |// format: off
+         |package hearth
+         |package crossquotes
+         |
+         |import hearth.examples.kinds.*
+         |
+         |/** Stable references of `CtorN`-shaped types: their singleton types (`x.type`) should be seen through by every
+         |  * type-constructor primitive, exactly like their declared types.
+         |  */
+         |object CtorSingletons {
+         |
+         |""".stripMargin
+    for (n <- 1 to maxArity) {
+      val tpe = singletonDeclaredType(n)
+      val value = n match {
+        case 1 => "Some(\"a\")"
+        case 2 => "Right(1)"
+        case _ => s"new $tpe {}"
+      }
+      sb ++= s"  val ${singletonVal(n)}: $tpe = $value\n"
+    }
+    sb ++= "}\n"
+    sb.toString
+  }
+
+  private def genTestCtorsOnSingleton(maxArity: Int): String = {
+    def printArgs(vars: Seq[String]): String = vars.map(v => s"Data($v.plainPrint)").mkString("Data.list(", ", ", ")")
+    // `Some(args)` of a CtorN/setA unapply (which returns a single value for arity 1 and a tuple otherwise) -> Data
+    def unapplied(call: String, arity: Int): String = {
+      val vars = (1 to arity).map(i => s"a$i")
+      if (arity == 1) s"$call.map(a1 => ${printArgs(vars)})"
+      else s"$call.map { case (${vars.mkString(", ")}) => ${printArgs(vars)} }"
+    }
+    def entries(items: Seq[String]): String = items.mkString(",\n")
+
+    val sb = new StringBuilder
+    sb ++= "  /** Test: every type-constructor primitive sees through the singleton type of a stable reference (`x.type`), for\n"
+    sb ++= "    * all arities. The spec compares the result for `A = x.type` against the result for `x`'s declared type.\n"
+    sb ++= "    */\n"
+    sb ++= "  def testCtorsOnSingleton[A: Type]: Expr[Data] = {\n"
+    for (n <- 1 to maxArity) {
+      val v = ctorVarName(n)
+      val t = typeName(n)
+      sb ++= s"    val $v: Type.Ctor$n[$t] = Type.Ctor$n.of[$t]\n"
+    }
+    sb ++= "\n"
+    sb ++= "    val untyped = UntypedType.fromTyped[A]\n"
+    // "<none>" rather than an empty map: lifting an empty `Data.map()` with `Expr(...)` does not typecheck on Scala 2
+    sb ++= "    def matching(results: List[(String, Option[Data])]): Data =\n"
+    sb ++= "      results.collect { case (name, Some(data)) => name -> data } match {\n"
+    sb ++= "        case Nil     => Data(\"<none>\")\n"
+    sb ++= "        case matched => Data.map(matched*)\n"
+    sb ++= "      }\n"
+    sb ++= "\n"
+    sb ++= "    Expr(\n"
+    sb ++= "      Data.map(\n"
+    sb ++= "        \"typeConstructor\" -> Data(UntypedType.typeConstructor(untyped).as_??.plainPrint),\n"
+    sb ++= "        \"typeArguments\" -> Data.list(Type.typeArguments[A].map(arg => Data(arg.plainPrint))*),\n"
+    sb ++= "        \"reappliedToOwnArguments\" -> Data(\n"
+    sb ++= "          UntypedType.applyTypeArgs(untyped, UntypedType.typeArguments(untyped)).as_??.plainPrint\n"
+    sb ++= "        ),\n"
+    sb ++= "        \"decompose1\" -> Type.decompose1[A].fold(Data(\"<none>\")) { case (_, a1) => Data.list(Data(a1.plainPrint)) },\n"
+    sb ++= "        \"decompose2\" -> Type.decompose2[A].fold(Data(\"<none>\")) { case (_, (a1, a2)) =>\n"
+    sb ++= "          Data.list(Data(a1.plainPrint), Data(a2.plainPrint))\n"
+    sb ++= "        },\n"
+
+    sb ++= "        \"sameTypeConstructorAs\" -> Data.list(\n"
+    sb ++= "          List(\n"
+    sb ++= entries((1 to maxArity).map(n => s"""            "Ctor$n" -> ${ctorVarName(n)}.sameTypeConstructorAs(untyped)"""))
+    sb ++= "\n          ).collect { case (name, true) => Data(name) }*\n"
+    sb ++= "        ),\n"
+
+    sb ++= "        \"unapply\" -> matching(\n"
+    sb ++= "          List(\n"
+    sb ++= entries((1 to maxArity).map { n =>
+      s"""            "Ctor$n" -> ${unapplied(s"${ctorVarName(n)}.unapply(Type[A])", n)}"""
+    })
+    sb ++= "\n          )\n"
+    sb ++= "        ),\n"
+
+    sb ++= "        \"fromUntyped.unapply\" -> matching(\n"
+    sb ++= "          List(\n"
+    sb ++= entries((1 to maxArity).map { n =>
+      val call = s"Type.Ctor$n.fromUntyped[${typeName(n)}](${ctorVarName(n)}.asUntyped).unapply(Type[A])"
+      s"""            "Ctor$n" -> ${unapplied(call, n)}"""
+    })
+    sb ++= "\n          )\n"
+    sb ++= "        ),\n"
+
+    sb ++= "        \"setA.unapply\" -> matching(\n"
+    sb ++= "          List(\n"
+    sb ++= entries((2 to maxArity).map { n =>
+      val first = singletonArgs(n).head
+      val call = s"${ctorVarName(n)}.setA[$first](using Type.of[$first]).unapply(Type[A])"
+      s"""            "Ctor$n" -> ${unapplied(call, n - 1)}"""
+    })
+    sb ++= "\n          )\n"
+    sb ++= "        )\n"
+    sb ++= "      )\n"
+    sb ++= "    )\n"
+    sb ++= "  }\n"
+    sb.toString
+  }
+
   def generateScala2Bridge(maxArity: Int = ArityGen.maxArity): String = {
     val sb = new StringBuilder
     sb ++=
@@ -659,6 +793,9 @@ object CrossCtorTestGen {
     sb ++= "  def testTypeOfWithCtorK1ContextBoundImpl: c.Expr[Data] = {\n    import hearth.examples.kinds.HigherKinded1\n    testTypeOfWithCtorK1ContextBound[HigherKinded1](Type.CtorK1.of[HigherKinded1])\n  }\n\n"
     sb ++= "  def testExprQuoteWithCtorK1ParamImpl: c.Expr[Data] = {\n    import hearth.examples.kinds.HigherKinded1\n    testExprQuoteWithCtorK1Param[HigherKinded1](Type.CtorK1.of[HigherKinded1])\n  }\n\n"
 
+    // Singleton types
+    sb ++= "  def testCtorsOnSingletonImpl[A: c.WeakTypeTag]: c.Expr[Data] = testCtorsOnSingleton[A]\n\n"
+
     sb ++= "}\n\n"
 
     // Companion object
@@ -723,6 +860,9 @@ object CrossCtorTestGen {
     sb ++= "  def testCtorK1FromUntyped: Data = macro CrossCtorInjectionFixtures.testCtorK1FromUntypedImpl\n\n"
     sb ++= "  def testTypeOfWithCtorK1ContextBound: Data = macro CrossCtorInjectionFixtures.testTypeOfWithCtorK1ContextBoundImpl\n\n"
     sb ++= "  def testExprQuoteWithCtorK1Param: Data = macro CrossCtorInjectionFixtures.testExprQuoteWithCtorK1ParamImpl\n\n"
+
+    // Singleton types
+    sb ++= "  def testCtorsOnSingleton[A]: Data = macro CrossCtorInjectionFixtures.testCtorsOnSingletonImpl[A]\n\n"
 
     sb ++= "}\n"
     sb.toString
@@ -912,6 +1052,11 @@ object CrossCtorTestGen {
     sb ++= genScala3InlineSplice("testTypeOfWithCtorK1ContextBound")
     sb ++= genScala3InlineSplice("testExprQuoteWithCtorK1Param")
 
+    // Singleton types - special: has type parameter
+    sb ++= "  inline def testCtorsOnSingleton[A]: Data = ${ testCtorsOnSingletonImpl[A] }\n"
+    sb ++= "  private def testCtorsOnSingletonImpl[A: Type](using q: Quotes): Expr[Data] =\n"
+    sb ++= "    new CrossCtorInjectionFixtures(q).testCtorsOnSingleton[A]\n\n"
+
     sb ++= "}\n"
     sb.toString
   }
@@ -1056,6 +1201,10 @@ object CrossCtorTestGen {
 
     // Group 10: testTypeOfWithDirectCtorValDef
     sb ++= genSpecDirectCtorValDef()
+    sb ++= "\n"
+
+    // Group 11: testCtorsOnSingleton
+    sb ++= genSpecCtorsOnSingleton(maxArity)
     sb ++= "\n"
 
     // Group 11: testTypeOfWithCtorNContextBound
@@ -1474,6 +1623,39 @@ object CrossCtorTestGen {
       case _ => Seq.fill(n)("scala.Int").mkString(", ")
     }
     s"$fqn[$args]"
+  }
+
+  private def genSpecCtorsOnSingleton(maxArity: Int): String = {
+    def quoted(items: Seq[String]): String = items.map(i => s"""Data("$i")""").mkString("Data.list(", ", ", ")")
+    val sb = new StringBuilder
+    sb ++= "    group(\"for singleton types of stable references (x.type)\") {\n\n"
+    for (n <- 1 to maxArity) {
+      val declared = singletonDeclaredType(n)
+      val declaredFqn = if (n >= 3) s"hearth.examples.kinds.$declared" else declared
+      val fqn = scala3Fqn(n)
+      val args = singletonArgsPrinted(n)
+      val decompose1 = if (n == 1) quoted(args) else "Data(\"<none>\")"
+      val decompose2 = if (n == 2) quoted(args) else "Data(\"<none>\")"
+      val setA = if (n == 1) "Data(\"<none>\")" else s"""Data.map("Ctor$n" -> ${quoted(args.tail)})"""
+
+      sb ++= s"""      test("Ctor$n primitives see through CtorSingletons.${singletonVal(n)}.type as through $declared") {\n"""
+      sb ++= s"""        val expected = Data.map(\n"""
+      sb ++= s"""          "typeConstructor" -> Data("$fqn"),\n"""
+      sb ++= s"""          "typeArguments" -> ${quoted(args)},\n"""
+      sb ++= s"""          "reappliedToOwnArguments" -> Data("$fqn[${args.mkString(", ")}]"),\n"""
+      sb ++= s"""          "decompose1" -> $decompose1,\n"""
+      sb ++= s"""          "decompose2" -> $decompose2,\n"""
+      sb ++= s"""          "sameTypeConstructorAs" -> Data.list(Data("Ctor$n")),\n"""
+      sb ++= s"""          "unapply" -> Data.map("Ctor$n" -> ${quoted(args)}),\n"""
+      sb ++= s"""          "fromUntyped.unapply" -> Data.map("Ctor$n" -> ${quoted(args)}),\n"""
+      sb ++= s"""          "setA.unapply" -> $setA\n"""
+      sb ++= s"""        )\n"""
+      sb ++= s"""        CrossCtorInjectionFixtures.testCtorsOnSingleton[$declaredFqn] <==> expected\n"""
+      sb ++= s"""        CrossCtorInjectionFixtures.testCtorsOnSingleton[CtorSingletons.${singletonVal(n)}.type] <==> expected\n"""
+      sb ++= s"""      }\n\n"""
+    }
+    sb ++= "    }\n"
+    sb.toString
   }
 
   private def genSpecCtorFromUntyped(maxArity: Int): String = {

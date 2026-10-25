@@ -486,6 +486,8 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
 
     /** Type arguments of an applied type, e.g. `List(Type[Int])` for `List[Int]`, `Nil` for non-applied types.
       *
+      * Singleton types are widened first, e.g. `x.type` (where `val x: List[Int]`) gives `List(Type[Int])`.
+      *
       * Typed counterpart of `UntypedType.typeArguments`.
       *
       * @since 0.4.0
@@ -517,6 +519,12 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       * Returns `None` for non-applied types and for types applied to a number of arguments different than 1 (the type
       * is dealiased first, so e.g. `type StringMap[V] = Map[String, V]` decomposes as `Map[String, V]` would - into 2
       * arguments - rather than as a unary constructor).
+      *
+      * Singleton types are widened first, so the singleton type of a stable reference decomposes like its declared
+      * type: `x.type` (where `val x: Option[Int]`) gives `Option` and `Int`. This matters when `A` comes from the
+      * static type of a macro argument that is a plain reference (on Scala 3 its type is the singleton `x.type`). A
+      * singleton of a non-applied type (`s.type` where `val s: String`) or a literal type (`1`) gives `None`, like its
+      * widened type.
       *
       * End-to-end recipe - discover a constructor `G` (e.g. the `G` in a field `g: G[X]`) at expansion, then summon a
       * type class `MyTC[G]` for it:

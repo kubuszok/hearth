@@ -1974,6 +1974,164 @@ final class TypesSpec extends MacroSuite {
           )
           testCtorK1FromDiscoveredParts[Int] <==> Data.map("error" -> Data("not an applied type"))
         }
+
+        group("on singleton types of stable references (x.type) - same results as for the widened type") {
+          import TypesFixtures.{
+            testDecomposesTo,
+            testSameTypeConstructorAndReapply,
+            testTypeConstructorPrimitives,
+            testTypeConstructorPrimitivesOfExpr
+          }
+          import examples.kinds.{singletons, Db, Eff, HigherKinded1, Res}
+
+          test("Resource-like Res[F[_], A]") {
+            val expected = Data.map(
+              "decompose1RebuildsExpected" -> Data("<none>"),
+              "decompose2RebuildsExpected" -> Data(true),
+              "typeConstructorAndArgumentsRebuildExpected" -> Data(true),
+              "hasSameTypeConstructor" -> Data(true)
+            )
+            testDecomposesTo[Res[Eff, Db], Res[Eff, Db]] <==> expected
+            testDecomposesTo[singletons.res.type, Res[Eff, Db]] <==> expected
+            // Scala 3 prints the higher-kinded argument `Eff` eta-expanded, so compare with the declared type's results.
+            testTypeConstructorPrimitives[singletons.res.type] <==> testTypeConstructorPrimitives[Res[Eff, Db]]
+          }
+
+          test("Option[Int] (also through a singleton of a singleton)") {
+            val expected = Data.map(
+              "typeConstructor" -> Data("scala.Option"),
+              "typeArguments" -> Data.list(Data("scala.Int")),
+              "Type.typeArguments" -> Data.list(Data("scala.Int")),
+              "decompose1" -> Data.list(Data("scala.Option"), Data("scala.Int")),
+              "decompose2" -> Data("<none>"),
+              "sameCtorAsOption" -> Data(true),
+              "sameCtorAsEither" -> Data(false),
+              "Ctor1.of[Option].unapply" -> Data("scala.Int"),
+              "Ctor2.of[Either].unapply" -> Data("<none>"),
+              "CtorK1.of[HigherKinded1].unapply" -> Data("<none>")
+            )
+            testTypeConstructorPrimitives[Option[Int]] <==> expected
+            testTypeConstructorPrimitives[singletons.opt.type] <==> expected
+            testTypeConstructorPrimitives[singletons.optAlias.type] <==> expected
+          }
+
+          test("Either[String, Int]") {
+            val expected = Data.map(
+              "typeConstructor" -> Data("scala.util.Either"),
+              "typeArguments" -> Data.list(Data("java.lang.String"), Data("scala.Int")),
+              "Type.typeArguments" -> Data.list(Data("java.lang.String"), Data("scala.Int")),
+              "decompose1" -> Data("<none>"),
+              "decompose2" -> Data.list(Data("scala.util.Either"), Data("java.lang.String"), Data("scala.Int")),
+              "sameCtorAsOption" -> Data(false),
+              "sameCtorAsEither" -> Data(true),
+              "Ctor1.of[Option].unapply" -> Data("<none>"),
+              "Ctor2.of[Either].unapply" -> Data.list(Data("java.lang.String"), Data("scala.Int")),
+              "CtorK1.of[HigherKinded1].unapply" -> Data("<none>")
+            )
+            testTypeConstructorPrimitives[Either[String, Int]] <==> expected
+            testTypeConstructorPrimitives[singletons.either.type] <==> expected
+          }
+
+          test("a declared alias (StringMap[Int]) is dealiased after widening") {
+            val expected = Data.map(
+              "typeConstructor" -> Data("scala.collection.immutable.Map"),
+              "typeArguments" -> Data.list(Data("java.lang.String"), Data("scala.Int")),
+              "Type.typeArguments" -> Data.list(Data("java.lang.String"), Data("scala.Int")),
+              "decompose1" -> Data("<none>"),
+              "decompose2" -> Data.list(
+                Data("scala.collection.immutable.Map"),
+                Data("java.lang.String"),
+                Data("scala.Int")
+              ),
+              "sameCtorAsOption" -> Data(false),
+              "sameCtorAsEither" -> Data(false),
+              "Ctor1.of[Option].unapply" -> Data("<none>"),
+              "Ctor2.of[Either].unapply" -> Data("<none>"),
+              "CtorK1.of[HigherKinded1].unapply" -> Data("<none>")
+            )
+            testTypeConstructorPrimitives[singletons.strMap.type] <==> expected
+          }
+
+          test("HigherKinded1[Option]") {
+            val expected = Data.map(
+              "decompose1RebuildsExpected" -> Data(true),
+              "decompose2RebuildsExpected" -> Data("<none>"),
+              "typeConstructorAndArgumentsRebuildExpected" -> Data(true),
+              "hasSameTypeConstructor" -> Data(true)
+            )
+            testDecomposesTo[HigherKinded1[Option], HigherKinded1[Option]] <==> expected
+            testDecomposesTo[singletons.hk.type, HigherKinded1[Option]] <==> expected
+            // Scala 3 prints the higher-kinded argument `Option` eta-expanded, so compare with the declared type's results.
+            testTypeConstructorPrimitives[singletons.hk.type] <==> testTypeConstructorPrimitives[HigherKinded1[Option]]
+          }
+
+          test("a singleton of a non-applied type (String) is not decomposable") {
+            val expected = Data.map(
+              "typeConstructor" -> Data("java.lang.String"),
+              "typeArguments" -> Data.list(),
+              "Type.typeArguments" -> Data.list(),
+              "decompose1" -> Data("<none>"),
+              "decompose2" -> Data("<none>"),
+              "sameCtorAsOption" -> Data(false),
+              "sameCtorAsEither" -> Data(false),
+              "Ctor1.of[Option].unapply" -> Data("<none>"),
+              "Ctor2.of[Either].unapply" -> Data("<none>"),
+              "CtorK1.of[HigherKinded1].unapply" -> Data("<none>")
+            )
+            testTypeConstructorPrimitives[String] <==> expected
+            testTypeConstructorPrimitives[singletons.str.type] <==> expected
+          }
+
+          test("a literal constant type decomposes like its widened type") {
+            val expected = Data.map(
+              "typeConstructor" -> Data("scala.Int"),
+              "typeArguments" -> Data.list(),
+              "Type.typeArguments" -> Data.list(),
+              "decompose1" -> Data("<none>"),
+              "decompose2" -> Data("<none>"),
+              "sameCtorAsOption" -> Data(false),
+              "sameCtorAsEither" -> Data(false),
+              "Ctor1.of[Option].unapply" -> Data("<none>"),
+              "Ctor2.of[Either].unapply" -> Data("<none>"),
+              "CtorK1.of[HigherKinded1].unapply" -> Data("<none>")
+            )
+            testTypeConstructorPrimitives[Int] <==> expected
+            testTypeConstructorPrimitives[1] <==> expected
+          }
+
+          test("static type of an argument expression that is a plain reference (Expr.typeOf)") {
+            // On Scala 3 `Expr.typeOf(x)` is the singleton `x.type`, on Scala 2 it is already widened - both must agree
+            // with the declared type (whose results are asserted explicitly in the tests above).
+            testTypeConstructorPrimitivesOfExpr(singletons.res) <==> testTypeConstructorPrimitives[Res[Eff, Db]]
+            testTypeConstructorPrimitivesOfExpr(singletons.opt) <==> testTypeConstructorPrimitives[Option[Int]]
+            testTypeConstructorPrimitivesOfExpr(singletons.either) <==> testTypeConstructorPrimitives[
+              Either[String, Int]
+            ]
+            testTypeConstructorPrimitivesOfExpr(singletons.hk) <==> testTypeConstructorPrimitives[HigherKinded1[Option]]
+            testTypeConstructorPrimitivesOfExpr(singletons.str) <==> testTypeConstructorPrimitives[String]
+          }
+
+          test("hasSameTypeConstructor and applyTypeArgs see through singletons") {
+            testSameTypeConstructorAndReapply[singletons.str.type, String] <==> Data.map(
+              "hasSameTypeConstructor" -> Data(true),
+              "reappliedWithArgsOfB" -> Data("java.lang.String")
+            )
+            testDecomposesTo[singletons.res.type, Res[Eff, Any]] <==> Data.map(
+              "decompose1RebuildsExpected" -> Data("<none>"),
+              "decompose2RebuildsExpected" -> Data(false),
+              "typeConstructorAndArgumentsRebuildExpected" -> Data(false),
+              "hasSameTypeConstructor" -> Data(true)
+            )
+            testSameTypeConstructorAndReapply[singletons.opt.type, Option[String]] <==> Data.map(
+              "hasSameTypeConstructor" -> Data(true),
+              "reappliedWithArgsOfB" -> Data("scala.Option[java.lang.String]")
+            )
+            testSameTypeConstructorAndReapply[singletons.list.type, Option[String]] <==> Data.map(
+              "hasSameTypeConstructor" -> Data(false),
+              "reappliedWithArgsOfB" -> Data("scala.collection.immutable.List[java.lang.String]")
+            )
+          }
+        }
       }
     }
 

@@ -404,10 +404,20 @@ trait UntypedTypes { this: MacroCommons =>
       * For non-applied types returns the (dealiased) type itself. The result can be re-applied with [[applyTypeArgs]],
       * or wrapped back into the typed layer with `Type.CtorN.fromUntyped`.
       *
+      * Singleton types are widened first, e.g. `x.type` (where `val x: List[Int]`) gives `List`, and a literal type `1`
+      * gives `Int`. (Since 0.4.4, before that singleton types were returned as-is.)
+      *
       * @since 0.4.0
       */
     def typeConstructor(untyped: UntypedType): UntypedType
 
+    /** Type arguments of an applied type, e.g. `List(Int)` for `List[Int]`, `Nil` for non-applied types.
+      *
+      * Singleton types are widened (and dealiased) first, e.g. `x.type` (where `val x: Map[String, Int]`) gives
+      * `List(String, Int)`. (Since 0.4.4, before that singleton types always returned `Nil`.)
+      *
+      * @since 0.4.0
+      */
     def typeArguments(untyped: UntypedType): List[UntypedType]
 
     /** Applies `args` to the type CONSTRUCTOR of `untyped` (after dealiasing), NOT to `untyped` as written.
@@ -418,6 +428,9 @@ trait UntypedTypes { this: MacroCommons =>
       * `F[Any, ?][Int]`; Scala 2 always applied to the constructor. Both platforms now agree.)
       *
       * `args.size` should match the constructor's arity; a mismatch produces a malformed type with no error.
+      *
+      * Like [[typeConstructor]], singleton types are widened first, so `x.type` (where `val x: List[Int]`) re-applied
+      * to `String` gives `List[String]`.
       *
       * @since 0.4.0
       *
@@ -435,7 +448,7 @@ trait UntypedTypes { this: MacroCommons =>
       * not.
       *
       * Works for both applied types (`List[Int]`) and bare constructors (`List` obtained from [[typeConstructor]] or
-      * `Type.CtorN.asUntyped`).
+      * `Type.CtorN.asUntyped`). Singleton types are widened first, like in [[typeConstructor]].
       *
       * @since 0.4.0
       */

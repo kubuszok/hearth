@@ -56,6 +56,26 @@ object MyTC {
   */
 final case class Box[A](items: List[A], maybe: Option[A])
 
+/** Resource-like `[F[_], A]` constructor (no cats dependency) for testing decomposition of singleton types. */
+trait Res[F[_], A]
+trait Eff[A]
+trait Db
+
+/** Stable references whose singleton types (`singletons.res.type` etc.) should decompose like their widened types. */
+object singletons {
+  type StringMap[V] = Map[String, V]
+
+  val res: Res[Eff, Db] = new Res[Eff, Db] {}
+  val either: Either[String, Int] = Right(1)
+  val opt: Option[Int] = Some(1)
+  val list: List[Int] = List(1)
+  val str: String = "a"
+  val strMap: StringMap[Int] = Map("a" -> 1)
+  val hk: HigherKinded1[Option] = new HigherKinded1[Option] {}
+  // a singleton of a singleton: `optAlias.type` widens to `opt.type`, which widens to `Option[Int]`
+  val optAlias: opt.type = opt
+}
+
 // format: off
 object Alias {
   type Renamed1[A] = Arity1[A]

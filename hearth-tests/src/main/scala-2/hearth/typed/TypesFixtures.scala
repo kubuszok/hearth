@@ -54,6 +54,16 @@ final private class TypesFixtures(val c: blackbox.Context) extends MacroCommonsS
 
   def testCtorK1FromDiscoveredPartsImpl[A: c.WeakTypeTag]: c.Expr[Data] = testCtorK1FromDiscoveredParts[A]
 
+  def testTypeConstructorPrimitivesImpl[A: c.WeakTypeTag]: c.Expr[Data] = testTypeConstructorPrimitives[A]
+
+  def testTypeConstructorPrimitivesOfExprImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testTypeConstructorPrimitivesOfExpr[A](expr)
+
+  def testDecomposesToImpl[A: c.WeakTypeTag, Expected: c.WeakTypeTag]: c.Expr[Data] = testDecomposesTo[A, Expected]
+
+  def testSameTypeConstructorAndReapplyImpl[A: c.WeakTypeTag, B: c.WeakTypeTag]: c.Expr[Data] =
+    testSameTypeConstructorAndReapply[A, B]
+
   def testLazyTypeScopeSafetyImpl: c.Expr[Data] = testLazyTypeScopeSafety
 }
 
@@ -102,6 +112,15 @@ object TypesFixtures {
   def testDecomposeSummonName[A]: String = macro TypesFixtures.testDecomposeSummonNameImpl[A]
 
   def testCtorK1FromDiscoveredParts[A]: Data = macro TypesFixtures.testCtorK1FromDiscoveredPartsImpl[A]
+
+  def testTypeConstructorPrimitives[A]: Data = macro TypesFixtures.testTypeConstructorPrimitivesImpl[A]
+
+  def testTypeConstructorPrimitivesOfExpr[A](expr: A): Data =
+    macro TypesFixtures.testTypeConstructorPrimitivesOfExprImpl[A]
+
+  def testDecomposesTo[A, Expected]: Data = macro TypesFixtures.testDecomposesToImpl[A, Expected]
+
+  def testSameTypeConstructorAndReapply[A, B]: Data = macro TypesFixtures.testSameTypeConstructorAndReapplyImpl[A, B]
 
   def testLazyTypeScopeSafety: Data = macro TypesFixtures.testLazyTypeScopeSafetyImpl
 }

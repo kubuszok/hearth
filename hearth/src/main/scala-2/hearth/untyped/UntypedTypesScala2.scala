@@ -529,17 +529,24 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     override def dealias(untyped: UntypedType): UntypedType =
       untyped.dealias
 
+    // Singleton types of stable references (`x.type` where `val x: F[A]`) have no type arguments of their own, so the
+    // type-constructor primitives look at the widened (and dealiased) type instead. Non-singletons are returned as-is.
+    private def widenSingletons(untyped: UntypedType): UntypedType = untyped.dealias match {
+      case singleton: SingletonType => widenSingletons(singleton.widen).dealias
+      case _                        => untyped
+    }
+
     override def typeConstructor(untyped: UntypedType): UntypedType =
-      untyped.dealias.typeConstructor
+      widenSingletons(untyped).dealias.typeConstructor
 
     override def typeArguments(untyped: UntypedType): List[UntypedType] =
-      untyped.typeArgs
+      widenSingletons(untyped).typeArgs
 
     override def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType =
-      appliedType(untyped.typeConstructor, args)
+      appliedType(widenSingletons(untyped).typeConstructor, args)
 
     override def sameTypeConstructorAs(a: UntypedType, b: UntypedType): Boolean =
-      a.dealias.typeConstructor.typeSymbol == b.dealias.typeConstructor.typeSymbol
+      typeConstructor(a).typeSymbol == typeConstructor(b).typeSymbol
 
     private val noSymbolCacheBucket = new AnyRef
     override private[hearth] def cacheBucketKey(untyped: UntypedType): AnyRef = {

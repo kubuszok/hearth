@@ -1029,14 +1029,22 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def dealias(untyped: UntypedType): UntypedType =
       untyped.dealias
 
+    // Singleton types of stable references (`x.type` where `val x: F[A]`, a `TermRef`) have no type arguments of their
+    // own, so the type-constructor primitives look at the widened (and dealiased) type instead. Non-singletons are
+    // returned as-is.
+    private def widenSingletons(untyped: UntypedType): UntypedType = untyped.dealias match {
+      case singleton if singleton.isSingleton => widenSingletons(singleton.widen).dealias
+      case _                                  => untyped
+    }
+
     override def typeConstructor(untyped: UntypedType): UntypedType =
-      untyped.dealias match {
+      widenSingletons(untyped).dealias match {
         case AppliedType(tycon, _) => tycon
         case other                 => other
       }
 
     override def typeArguments(untyped: UntypedType): List[UntypedType] =
-      untyped.typeArgs
+      widenSingletons(untyped).typeArgs
 
     override def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType =
       // Apply to the (dealiased) type CONSTRUCTOR rather than the type as-given, so that re-applying an

@@ -777,6 +777,78 @@ trait TypesFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** Every type-constructor primitive applied to `A` - used to check that singleton types (`x.type`) are seen through
+    * just like their widened types are.
+    */
+  def testTypeConstructorPrimitives[A: Type]: Expr[Data] = {
+    import hearth.examples.kinds.HigherKinded1
+    def print(tpe: UntypedType): Data = Data(tpe.as_??.plainPrint)
+    def printOpt(opt: Option[Data]): Data = opt.getOrElse(Data("<none>"))
+    val untyped = UntypedType.fromTyped[A]
+    Expr(
+      Data.map(
+        "typeConstructor" -> print(UntypedType.typeConstructor(untyped)),
+        "typeArguments" -> Data.list(UntypedType.typeArguments(untyped).map(print)*),
+        "Type.typeArguments" -> Data.list(Type.typeArguments[A].map(arg => Data(arg.plainPrint))*),
+        "decompose1" -> printOpt(Type.decompose1[A].map { case (ctor, arg) =>
+          Data.list(print(ctor.asUntyped), Data(arg.plainPrint))
+        }),
+        "decompose2" -> printOpt(Type.decompose2[A].map { case (ctor, (arg1, arg2)) =>
+          Data.list(print(ctor.asUntyped), Data(arg1.plainPrint), Data(arg2.plainPrint))
+        }),
+        "sameCtorAsOption" -> Data(Type.Ctor1.of[Option].sameTypeConstructorAs(untyped)),
+        "sameCtorAsEither" -> Data(Type.Ctor2.of[Either].sameTypeConstructorAs(untyped)),
+        "Ctor1.of[Option].unapply" -> printOpt(Type.Ctor1.of[Option].unapply(Type[A]).map(arg => Data(arg.plainPrint))),
+        "Ctor2.of[Either].unapply" -> printOpt(Type.Ctor2.of[Either].unapply(Type[A]).map { case (arg1, arg2) =>
+          Data.list(Data(arg1.plainPrint), Data(arg2.plainPrint))
+        }),
+        "CtorK1.of[HigherKinded1].unapply" -> printOpt(Type.CtorK1.of[HigherKinded1].unapply(Type[A]).map(print))
+      )
+    )
+  }
+
+  /** [[testTypeConstructorPrimitives]] on the static type of an argument expression (`Expr.typeOf`): for a plain
+    * reference `x` it is the singleton `x.type` on Scala 3 and the widened type on Scala 2.
+    */
+  def testTypeConstructorPrimitivesOfExpr[A](expr: Expr[A]): Expr[Data] =
+    testTypeConstructorPrimitives[A](using Expr.typeOf(expr))
+
+  /** Checks that `A`'s decomposition rebuilds exactly `Expected` (compared with `=:=`, so higher-kinded type arguments,
+    * which Scala 3 prints eta-expanded, need no platform-specific expectations).
+    */
+  def testDecomposesTo[A: Type, Expected: Type]: Expr[Data] = {
+    val expected = UntypedType.fromTyped[Expected]
+    def rebuilt(ctor: UntypedType, args: List[??]): Data =
+      Data(UntypedType.applyTypeArgs(ctor, args.map(_.Underlying.asUntyped)) =:= expected)
+    Expr(
+      Data.map(
+        "decompose1RebuildsExpected" -> Type.decompose1[A].fold(Data("<none>")) { case (ctor, arg) =>
+          rebuilt(ctor.asUntyped, List(arg))
+        },
+        "decompose2RebuildsExpected" -> Type.decompose2[A].fold(Data("<none>")) { case (ctor, (arg1, arg2)) =>
+          rebuilt(ctor.asUntyped, List(arg1, arg2))
+        },
+        "typeConstructorAndArgumentsRebuildExpected" -> rebuilt(
+          UntypedType.typeConstructor(UntypedType.fromTyped[A]),
+          Type.typeArguments[A]
+        ),
+        "hasSameTypeConstructor" -> Data(Type.hasSameTypeConstructor[A, Expected])
+      )
+    )
+  }
+
+  /** `Type.hasSameTypeConstructor[A, B]` and `UntypedType.applyTypeArgs(A, typeArguments(B))`. */
+  def testSameTypeConstructorAndReapply[A: Type, B: Type]: Expr[Data] = {
+    val a = UntypedType.fromTyped[A]
+    val b = UntypedType.fromTyped[B]
+    Expr(
+      Data.map(
+        "hasSameTypeConstructor" -> Data(Type.hasSameTypeConstructor[A, B]),
+        "reappliedWithArgsOfB" -> Data(UntypedType.applyTypeArgs(a, UntypedType.typeArguments(b)).as_??.plainPrint)
+      )
+    )
+  }
+
   // Type.Lazy: the deferred type must behave like an eagerly-initialized one even when its FIRST touch happens
   // inside an `Expr.splice` (a fresh nested Quotes on Scala 3) and it is then reused OUTSIDE that splice - the
   // pattern that breaks a plain `lazy val` with "Expression created in a splice was used outside of that splice".
