@@ -13,6 +13,9 @@ final private class EnclosuresFixtures(val c: blackbox.Context) extends MacroCom
   def testEnclosingLocalValuesImpl: c.Expr[Data] = testEnclosingLocalValues
   def testSumEnclosingLocalIntsImpl: c.Expr[Int] = testSumEnclosingLocalInts
   def testEnclosingClassHasSelfTypeMemberImpl: c.Expr[Data] = testEnclosingClassHasSelfTypeMember
+  def testEnclosingMethodParametersImpl: c.Expr[Data] = testEnclosingMethodParameters
+  def testEnclosingMethodParameterNamesImpl: c.Expr[Data] = testEnclosingMethodParameterNames
+  def testSumEnclosingMethodParametersImpl: c.Expr[Int] = testSumEnclosingMethodParameters
 }
 
 object EnclosuresFixtures {
@@ -23,4 +26,7 @@ object EnclosuresFixtures {
   def testEnclosingLocalValues: Data = macro EnclosuresFixtures.testEnclosingLocalValuesImpl
   def testSumEnclosingLocalInts: Int = macro EnclosuresFixtures.testSumEnclosingLocalIntsImpl
   def testEnclosingClassHasSelfTypeMember: Data = macro EnclosuresFixtures.testEnclosingClassHasSelfTypeMemberImpl
+  def testEnclosingMethodParameters: Data = macro EnclosuresFixtures.testEnclosingMethodParametersImpl
+  def testSumEnclosingMethodParameters: Int = macro EnclosuresFixtures.testSumEnclosingMethodParametersImpl
+  def testEnclosingMethodParameterNames: Data = macro EnclosuresFixtures.testEnclosingMethodParameterNamesImpl
 }

@@ -342,6 +342,10 @@ val mimaSettings = Seq(
     // `DestructuredExpr.findReferences` - added to the NESTED trait `Exprs#ExprModule`, `private[hearth]` and
     // implemented ONLY by Hearth's own `Expr` object (in ExprsScala2/ExprsScala3), same reasoning as `annotated` above.
     exclude[ReversedMissingMethodProblem]("hearth.typed.Exprs#ExprModule.destructuredReferences"),
+    // `enclosingMethodParameters` added to the NESTED trait `Environments#EnvironmentModule`. That trait is part of the
+    // MacroCommons cake and is implemented ONLY by Hearth's own `Environment` object (in EnvironmentsScala2/
+    // EnvironmentsScala3), same reasoning as `annotated` above.
+    exclude[ReversedMissingMethodProblem]("hearth.Environments#EnvironmentModule.enclosingMethodParameters"),
     // Perf: `ClassViewResult.Incompatible` changed from a `case class` to a plain class so its `reason` (an
     // expensive `Type.prettyPrint`, discarded by most callers) can be computed lazily. The former binary surface is
     // preserved as far as shims can reach: `apply(String)`, the primary constructor `this(String)`, and

@@ -60,7 +60,96 @@ final class EnclosuresSpec extends MacroSuite {
     }
   }
 
+  // Macros expanded inside methods with parameters - plain methods (not test lambdas) to avoid `$anonfun` owners.
+  object ParamNest {
+    import EnclosuresFixtures.{
+      testEnclosingMethodParameterNames as names,
+      testEnclosingMethodParameters as params,
+      testSumEnclosingMethodParameters as sum
+    }
+
+    def clauses(a: Int, b: String)(implicit c: Long): Data = { val _ = (a, b, c); params }
+    // (only names/flags: Scala 3 prints a method type parameter with its owner prefix, Scala 2 does not)
+    def generic[T](n: Int, t: T): Data = { val _ = (n, t); names }
+    def contextBound[T: Ordering](t: T): Data = { val _ = (t, implicitly[Ordering[T]]); names }
+    def byName(x: => Int): Data = { val _ = x; params }
+    def varargs(xs: Int*): Data = { val _ = xs; params }
+    def emptyClause(): Data = params
+    def noClause: Data = params
+    def inLambda(a: Int): Data = List("x").map { _ =>
+      val _ = a; params
+    }.head
+    def inLocalDef(a: Int): Data = {
+      def local(b: String): Data = { val _ = b; params }
+      val _ = a
+      local("b")
+    }
+    def inLocalClass(a: Int): Data = {
+      class Local { val data: Data = params }
+      val _ = a
+      (new Local).data
+    }
+    val inClassBody: Data = params
+
+    // `b` is deliberately not touched here: it must be evaluated exactly once, by the generated code.
+    def sumAll(a: Int, b: => Int, s: String)(xs: Int*): Int = { val _ = (a, s, xs); sum }
+  }
+
+  private def param(name: String, tpe: String, isImplicit: Boolean = false, isByName: Boolean = false): Data =
+    Data.map(
+      "name" -> Data(name),
+      "type" -> Data(tpe),
+      "isImplicit" -> Data(isImplicit),
+      "isByName" -> Data(isByName)
+    )
+
   group("trait hearth.Enclosures") {
+
+    group("Environment.enclosingMethodParameters, expected behavior") {
+
+      test("lists every value clause of the enclosing method, including implicit ones") {
+        ParamNest.clauses(1, "x")(2L) <==> Data.list(
+          Data.list(param("a", "scala.Int"), param("b", "java.lang.String")),
+          Data.list(param("c", "scala.Long", isImplicit = true))
+        )
+      }
+
+      test("does not list type parameters") {
+        ParamNest.generic[String](1, "s") <==> Data.list(Data.list(Data("n"), Data("t")))
+      }
+
+      test("lists a context bound's evidence as an implicit parameter") {
+        ParamNest.contextBound(1) <==> Data.list(Data.list(Data("t")), Data.list(Data("implicit evidence$1")))
+      }
+
+      test("unwraps by-name (=> A) and vararg (A*) parameter types") {
+        ParamNest.byName(1) <==> Data.list(Data.list(param("x", "scala.Int", isByName = true)))
+        ParamNest.varargs(1, 2) <==> Data.list(
+          Data.list(param("xs", "scala.collection.immutable.Seq[scala.Int]"))
+        )
+      }
+
+      test("distinguishes an empty clause from no clause") {
+        ParamNest.emptyClause() <==> Data.list(Data.list())
+        ParamNest.noClause <==> Data.list()
+      }
+
+      test("skips lambdas (their parameters are not listed) and stops at the closest method") {
+        ParamNest.inLambda(1) <==> Data.list(Data.list(param("a", "scala.Int")))
+        ParamNest.inLocalDef(1) <==> Data.list(Data.list(param("b", "java.lang.String")))
+      }
+
+      test("is empty in a class body (also of a local class inside a method)") {
+        ParamNest.inClassBody <==> Data.list()
+        ParamNest.inLocalClass(1) <==> Data.list()
+      }
+
+      test("refs are usable in generated code (also of by-name and vararg parameters)") {
+        var evaluated = 0
+        ParamNest.sumAll(1, { evaluated += 1; 10 }, "ignored")(100, 1000) ==> 1111
+        evaluated ==> 1
+      }
+    }
 
     group("Environment.enclosingScope, expected behavior") {
 

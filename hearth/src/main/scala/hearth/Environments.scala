@@ -73,6 +73,19 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
 
     final lazy val currentPosition: Position = Position.current
 
+    /** The value parameters of the IMMEDIATELY-enclosing method, grouped by parameter clause (in declaration order,
+      * including `implicit`/`using` clauses), each with a [[Enclosure.Parameter.ref]] usable in generated code (e.g.
+      * macwire-style wiring, where the enclosing method's parameters are candidates).
+      *
+      * Only the closest method counts: lambdas between the expansion and the method are skipped (their parameters are
+      * not included), and a class/object/package boundary ends the search - so a macro expanded in a class body (also
+      * in a local class inside a method) sees `Nil`. Type parameters are not included; a method without parameter
+      * clauses yields `Nil` and `def f()` yields `List(Nil)`.
+      *
+      * @since 0.4.4
+      */
+    def enclosingMethodParameters: List[List[Enclosure.Parameter]]
+
     def currentScalaVersion: ScalaVersion
 
     final lazy val currentLanguageVersion: LanguageVersion = currentScalaVersion.toLanguageVersion
@@ -749,6 +762,20 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       * @since 0.4.0
       */
     final case class LocalValue(name: String, tpe: ??, ref: Expr_??)
+
+    /** A value parameter of the immediately-enclosing method, see [[EnvironmentModule.enclosingMethodParameters]].
+      *
+      * @param tpe
+      *   the parameter's type as seen from the method body: a by-name `=> A` is `A` (see [[isByName]]) and a vararg
+      *   `A*` is `scala.collection.immutable.Seq[A]`
+      * @param ref
+      *   a reference to the parameter, usable in generated code (it evaluates a by-name parameter)
+      * @param isImplicit
+      *   whether the parameter belongs to an `implicit` (Scala 2/3) or `using` (Scala 3) clause
+      *
+      * @since 0.4.4
+      */
+    final case class Parameter(name: String, tpe: ??, ref: Expr_??, isImplicit: Boolean, isByName: Boolean)
   }
 
   /** The chain of lexical enclosures (scopes) surrounding the current macro-expansion point, from the INNERMOST

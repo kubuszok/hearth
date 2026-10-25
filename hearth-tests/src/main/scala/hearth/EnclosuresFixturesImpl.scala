@@ -95,4 +95,42 @@ trait EnclosuresFixturesImpl { this: MacroCommons =>
         }
     }
   }
+
+  /** `Environment.enclosingMethodParameters`, rendered clause by clause. */
+  def testEnclosingMethodParameters: Expr[Data] =
+    Expr(Data.list(Environment.enclosingMethodParameters.map { clause =>
+      Data.list(clause.map { p =>
+        Data.map(
+          "name" -> Data(p.name),
+          "type" -> Data(p.tpe.plainPrint),
+          "isImplicit" -> Data(p.isImplicit),
+          "isByName" -> Data(p.isByName)
+        )
+      }*)
+    }*))
+
+  /** `Environment.enclosingMethodParameters`' names (prefixed with `implicit ` for implicit ones), clause by clause. */
+  def testEnclosingMethodParameterNames: Expr[Data] =
+    Expr(Data.list(Environment.enclosingMethodParameters.map { clause =>
+      Data.list(clause.map(p => Data(if (p.isImplicit) s"implicit ${p.name}" else p.name))*)
+    }*))
+
+  /** Sums the enclosing method's `Int` and `Seq[Int]` (vararg) parameters by USING their `ref`s in generated code. */
+  def testSumEnclosingMethodParameters: Expr[Int] = {
+    implicit val IntType: Type[Int] = Type.of[Int]
+    implicit val SeqIntType: Type[Seq[Int]] = Type.of[Seq[Int]]
+    val refs: List[Expr[Int]] = Environment.enclosingMethodParameters.flatten.collect {
+      case p if p.tpe.Underlying =:= Type.of[Int]      => p.ref.value.asInstanceOf[Expr[Int]]
+      case p if p.tpe.Underlying =:= Type.of[Seq[Int]] =>
+        val seq = p.ref.value.asInstanceOf[Expr[Seq[Int]]]
+        Expr.quote(Expr.splice(seq).sum)
+    }
+    refs match {
+      case Nil          => Expr(0)
+      case head :: tail =>
+        tail.foldLeft(head) { (acc, next) =>
+          Expr.quote(Expr.splice(acc) + Expr.splice(next))
+        }
+    }
+  }
 }

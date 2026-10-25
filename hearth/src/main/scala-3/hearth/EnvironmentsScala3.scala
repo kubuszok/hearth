@@ -184,6 +184,47 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
 
   object Environment extends EnvironmentModule {
 
+    override lazy val enclosingMethodParameters: List[List[Enclosure.Parameter]] = {
+      def isHidden(symbol: Symbol): Boolean = {
+        val name = symbol.name
+        name == "macro" || name.startsWith("$anonfun") || name.contains("$anon") ||
+        (symbol.isDefDef && symbol.flags.is(Flags.Synthetic) && symbol.flags.is(Flags.Macro))
+      }
+      def parameter(param: Symbol): Enclosure.Parameter = {
+        // By-name-ness is not visible on the parameter symbol (its termRef widens the `ByNameType` away) - but it is in
+        // the type of the parameter's declaration (`Symbol.info` would have it too, but it is @experimental on 3.3).
+        val declared = param.tree match {
+          case ValDef(_, tpt, _) => tpt.tpe
+          case _                 => param.termRef.widen
+        }
+        val (tpe, isByName) = declared match {
+          case ByNameType(underlying) => (underlying, true)
+          case other                  => (other, false)
+        }
+        // `A*` -> `Seq[A]`, as in `Method` parameters
+        val normalized = tpe match {
+          case AppliedType(tycon, List(elem)) if tycon.typeSymbol == defn.RepeatedParamClass =>
+            TypeRepr.of[scala.collection.immutable.Seq].appliedTo(elem)
+          case other => other
+        }
+        Enclosure.Parameter(
+          name = param.name,
+          tpe = UntypedType.as_??(normalized),
+          ref = UntypedExpr.as_??(Ref(param): Term, normalized),
+          isImplicit = param.flags.is(Flags.Implicit) || param.flags.is(Flags.Given),
+          isByName = isByName
+        )
+      }
+      @scala.annotation.tailrec
+      def loop(symbol: Symbol): List[List[Enclosure.Parameter]] =
+        if symbol.isNoSymbol || symbol.isPackageDef || symbol.isClassDef then Nil
+        else if symbol.isDefDef && !isHidden(symbol) then
+        // `paramSymss` also lists type-parameter clauses - skip them (an empty clause is a `()` value clause)
+        symbol.paramSymss.filterNot(clause => clause.headOption.exists(_.isType)).map(_.map(parameter))
+        else loop(symbol.maybeOwner)
+      loop(Symbol.spliceOwner)
+    }
+
     override lazy val currentScalaVersion: ScalaVersion = ScalaVersion.byScalaLibrary(quotes)
 
     override lazy val XMacroSettings: List[String] = {

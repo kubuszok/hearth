@@ -186,6 +186,37 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
 
   object Environment extends EnvironmentModule {
 
+    override lazy val enclosingMethodParameters: List[List[Enclosure.Parameter]] = {
+      import c.universe.{Position as _, *}
+      def isHidden(symbol: Symbol): Boolean = {
+        val name = symbol.name.decodedName.toString.trim
+        name.startsWith("$anonfun") || name.contains("$anon") || (symbol.isMethod && symbol.isSynthetic)
+      }
+      def parameter(param: Symbol): Enclosure.Parameter = {
+        val raw = param.typeSignature
+        val isByName = raw.typeSymbol == definitions.ByNameParamClass
+        val tpe =
+          if (isByName) raw.typeArgs.head
+          // `A*` -> `Seq[A]`, as in `Method` parameters
+          else if (raw.typeSymbol == definitions.RepeatedParamClass)
+            appliedType(typeOf[scala.collection.immutable.Seq[Any]].typeConstructor, raw.typeArgs)
+          else raw
+        Enclosure.Parameter(
+          name = param.name.decodedName.toString.trim,
+          tpe = UntypedType.as_??(tpe),
+          ref = UntypedExpr.as_??(internal.gen.mkAttributedRef(param), tpe),
+          isImplicit = param.isImplicit,
+          isByName = isByName
+        )
+      }
+      @scala.annotation.tailrec
+      def loop(symbol: Symbol): List[List[Enclosure.Parameter]] =
+        if (symbol == NoSymbol || symbol.isPackage || symbol.isPackageClass || symbol.isClass || symbol.isModule) Nil
+        else if (symbol.isMethod && !isHidden(symbol)) symbol.asMethod.paramLists.map(_.map(parameter))
+        else loop(symbol.owner)
+      loop(c.internal.enclosingOwner)
+    }
+
     override lazy val currentScalaVersion: ScalaVersion = ScalaVersion.byScalaLibrary(c)
 
     override lazy val XMacroSettings: List[String] = c.settings

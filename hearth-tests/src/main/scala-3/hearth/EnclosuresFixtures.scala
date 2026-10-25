@@ -31,4 +31,16 @@ object EnclosuresFixtures {
   inline def testEnclosingClassHasSelfTypeMember: Data = ${ testEnclosingClassHasSelfTypeMemberImpl }
   private def testEnclosingClassHasSelfTypeMemberImpl(using q: Quotes): Expr[Data] =
     new EnclosuresFixtures(q).testEnclosingClassHasSelfTypeMember
+
+  inline def testEnclosingMethodParameters: Data = ${ testEnclosingMethodParametersImpl }
+  private def testEnclosingMethodParametersImpl(using q: Quotes): Expr[Data] =
+    new EnclosuresFixtures(q).testEnclosingMethodParameters
+
+  inline def testSumEnclosingMethodParameters: Int = ${ testSumEnclosingMethodParametersImpl }
+  private def testSumEnclosingMethodParametersImpl(using q: Quotes): Expr[Int] =
+    new EnclosuresFixtures(q).testSumEnclosingMethodParameters
+
+  inline def testEnclosingMethodParameterNames: Data = ${ testEnclosingMethodParameterNamesImpl }
+  private def testEnclosingMethodParameterNamesImpl(using q: Quotes): Expr[Data] =
+    new EnclosuresFixtures(q).testEnclosingMethodParameterNames
 }
