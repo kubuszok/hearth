@@ -1353,9 +1353,7 @@ object CrossCtorTestGen {
         |        val isScala3 = LanguageVersion.byHearth.isScala3
         |        CrossCtorInjectionFixtures.testCtorK1Of <==> Data.map(
         |          "applied" -> Data(
-        |            if (isScala3)
-        |              "hearth.examples.kinds.HigherKinded1[[A >: scala.Nothing <: scala.Any] => scala.Option[A]]"
-        |            else "hearth.examples.kinds.HigherKinded1[scala.Option]"
+        |            "hearth.examples.kinds.HigherKinded1[scala.Option]"
         |          ),
         |          "unapplyIsDefined" -> Data("true"),
         |          "asUntyped" -> Data(
@@ -1367,12 +1365,9 @@ object CrossCtorTestGen {
         |      }
         |
         |      test("should roundtrip via fromUntyped") {
-        |        val isScala3 = LanguageVersion.byHearth.isScala3
         |        CrossCtorInjectionFixtures.testCtorK1FromUntyped <==> Data.map(
         |          "applied" -> Data(
-        |            if (isScala3)
-        |              "hearth.examples.kinds.HigherKinded1[[A >: scala.Nothing <: scala.Any] => scala.Option[A]]"
-        |            else "hearth.examples.kinds.HigherKinded1[scala.Option]"
+        |            "hearth.examples.kinds.HigherKinded1[scala.Option]"
         |          ),
         |          "unapplyMatch" -> Data("true"),
         |          "unapplyNoMatch" -> Data("false")
@@ -1380,12 +1375,9 @@ object CrossCtorTestGen {
         |      }
         |
         |      test("should work with CtorK1 context bound") {
-        |        val isScala3 = LanguageVersion.byHearth.isScala3
         |        CrossCtorInjectionFixtures.testTypeOfWithCtorK1ContextBound <==> Data.map(
         |          "fOfOption" -> Data(
-        |            if (isScala3)
-        |              "hearth.examples.kinds.HigherKinded1[[A >: scala.Nothing <: scala.Any] => scala.Option[A]]"
-        |            else "hearth.examples.kinds.HigherKinded1[scala.Option]"
+        |            "hearth.examples.kinds.HigherKinded1[scala.Option]"
         |          )
         |        )
         |      }
@@ -1443,17 +1435,10 @@ object CrossCtorTestGen {
        |    }
        |""".stripMargin
 
-  /** Generates "A >: scala.Nothing <: scala.Any" repeated for N params. */
-  private def scala3BoundParams(n: Int): String =
-    ArityGen.params(n).map(p => s"$p >: scala.Nothing <: scala.Any").mkString(", ")
-
-  /** Generates Scala 3 ctor untyped representation for arity N. */
-  private def scala3CtorUntyped(n: Int): String = {
-    val fqn = scala3Fqn(n)
-    val params = scala3BoundParams(n)
-    val args = ArityGen.paramNameList(n)
-    s"$fqn[$params] => $fqn[$args]"
-  }
+  /** Generates Scala 3 ctor untyped representation for arity N: the eta-expansion `[A, ...] => F[A, ...]` prints
+    * eta-reduced (as `F`).
+    */
+  private def scala3CtorUntyped(n: Int): String = scala3Fqn(n)
 
   private def genSpecCtorAsUntyped(maxArity: Int): String = {
     val sb = new StringBuilder
@@ -1632,8 +1617,10 @@ object CrossCtorTestGen {
       sb ++= s"""        val isScala3 = LanguageVersion.byHearth.isScala3\n"""
       sb ++= s"""        CrossCtorInjectionFixtures.testTypeOfWithCtor${n}Higher <==> Data.map(\n"""
       sb ++= s"""          "container${n}OfResult" -> Data(\n"""
+      // Ctor22 is the bare (eta-expanded) Arity22, which prints eta-reduced; the others are partial applications.
+      val scala3Result = if (n == 22) scala3Fqn(22) else s"[$params] => $resultType"
       sb ++= s"""            if (isScala3)\n"""
-      sb ++= s"""              "hearth.crossquotes.${cn}[[$params] => $resultType]"\n"""
+      sb ++= s"""              "hearth.crossquotes.${cn}[$scala3Result]"\n"""
       sb ++= s"""            else "hearth.crossquotes.${cn}[container.Result]"\n"""
       sb ++= s"""          )\n"""
       sb ++= s"""        )\n"""

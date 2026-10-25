@@ -46,13 +46,30 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
     // In Scala 3 typeRepr.dealias dealiases only the "main" type but not types applied as type parameters,
     // while in Scala 2 macros it dealiases everything - to keep the same behavior between them we need to
     // apply recursive dealiasing ourselves.
+    //
+    // Scala 3 also represents a higher-kinded type constructor (`TypeRepr.of[F]`, e.g. `Type.Ctor1.of[F].asUntyped`)
+    // as its eta-expansion `[A >: Nothing <: Any] =>> F[A]`, which would print as such wherever it is used (e.g.
+    // `SyncLike[[A >: Nothing <: Any] => SomeF[A]]`), while Scala 2 prints `SyncLike[SomeF]` - so we eta-reduce too.
     private def dealiasAll(tpe: TypeRepr): TypeRepr =
       tpe match {
         case AppliedType(tycon, args) => AppliedType(dealiasAll(tycon), args.map(dealiasAll(_)))
         case OrType(left, right)      => OrType(dealiasAll(left), dealiasAll(right))
         case AndType(left, right)     => AndType(dealiasAll(left), dealiasAll(right))
+        case tl: TypeLambda           => etaReduced(tl).fold(tpe)(dealiasAll)
         case _                        => tpe.dealias
       }
+
+    // `[A1, ..., An] =>> F[A1, ..., An]` -> `F`, only for a PURE eta-expansion: unbounded parameters, applied in order
+    // to a plain type reference. Bounded lambdas (`Ctor.Bounded`) and partial applications (`[B] =>> F[Int, B]`) keep
+    // their shape, as it carries information.
+    private def etaReduced(tl: TypeLambda): Option[TypeRepr] = tl.resType match {
+      case AppliedType(tycon @ TypeRef(_, _), args)
+          if args.size == tl.paramNames.size &&
+            args.zipWithIndex.forall { case (arg, idx) => arg == tl.param(idx) } &&
+            tl.paramBounds.forall(bounds => bounds.low =:= TypeRepr.of[Nothing] && bounds.hi =:= TypeRepr.of[Any]) =>
+        Some(tycon)
+      case _ => None
+    }
 
     private def prettyPrintRepr[A: Type](repr: TypeRepr, ansi: Boolean): String =
       scala.util
