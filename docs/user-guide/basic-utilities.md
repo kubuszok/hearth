@@ -414,9 +414,12 @@ You should prefer `Type[A]` when `A: Type` is present, and only use `Type.of[A]`
 | Companion method        | Extension method        | Example result | Description                                          |
 |-------------------------|-------------------------|----------------|------------------------------------------------------|
 | `Type.shortName[Int]`   | `Type[Int].shortName`   | `"Int"`        | no package, no type parameters                       |
-| `Type.fqcn[Int]`        | `Type[Int].fqcn`        | `"scala.Int"`  | fully-qualified class name, no type parameters       |
+| `Type.fqcn[Int]`        | `Type[Int].fqcn`        | `"scala.Int"`  | fully-qualified class name, no type parameters (*)   |
 | `Type.plainPrint[Int]`  | `Type[Int].plainPrint`  | `"scala.Int"`  | with package name and type parameters, no coloring   |
 | `Type.prettyPrint[Int]` | `Type[Int].prettyPrint` | `"scala.Int"`  | with package name and type parameters, ANSI coloring |
+
+(*) `fqcn` is meant for messages and coarse heuristics, not as a type identity: `Box[Int]` and `Box[String]` share
+it. Compare types with `=:=` (or key by them with `Type.Cache`), and constructors with `Type.hasSameTypeConstructor`.
 
 **Runtime-aware printing** (since 0.3.0):
 
@@ -443,6 +446,8 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
 | `Type.isTypeSystemSpecial[Any]`        | `Type[Any].isTypeSystemSpecial`        | `true` for Any, AnyRef, AnyVal, Null, Nothing                        |
 | `Type.isOpaqueType[MyType]`            | `Type[MyType].isOpaqueType`            | `true` for `opaque type`s                                            |
 | `Type.isUnionType[MyType]`             | `Type[MyType].isUnionType`             | `true` for union types (`A \| B`, Scala 3 only; always `false` on 2) |
+| `Type.isFunction[MyType]`              | `Type[MyType].isFunction`              | `true` for `FunctionN` types, also classes extending them (since 0.4.4) |
+| `Type.isContextFunction[MyType]`       | `Type[MyType].isContextFunction`       | `true` for `A ?=> B` (Scala 3 only; always `false` on 2) (since 0.4.4) |
 |                                        |                                        | **Class types**                                                      |
 | `Type.isClass[MyClass]`                | `Type[MyClass].isClass`                | `true` for classes                                                   |
 | `Type.notJvmBuiltInClass[MyClass]`     | `Type[MyClass].notJvmBuiltInClass`     | `true` when `isClass && !isJvmBuiltIn`                               |

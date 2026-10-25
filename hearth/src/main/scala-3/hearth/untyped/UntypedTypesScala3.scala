@@ -1037,6 +1037,20 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       case _                                  => untyped
     }
 
+    // `FunctionN` for any N (Scala 3 also synthesizes `Function23`+ for `(A1, ..., A23) => B`), but NOT `ContextFunctionN`.
+    private val functionClassName = "scala\\.Function\\d+".r
+    override def functionComponents(instanceTpe: UntypedType): Option[(List[UntypedType], UntypedType)] = {
+      val tpe = widenSingletons(instanceTpe).dealias
+      typeReprBaseClasses(tpe).collectFirst {
+        case base if functionClassName.matches(base.fullName) => tpe.baseType(base)
+      } collect { case AppliedType(_, args) if args.nonEmpty => (args.init, args.last) }
+    }
+    override def contextFunctionComponents(instanceTpe: UntypedType): Option[(List[UntypedType], UntypedType)] =
+      widenSingletons(instanceTpe).dealias match {
+        case tpe @ AppliedType(_, args) if args.nonEmpty && tpe.isContextFunctionType => Some((args.init, args.last))
+        case _                                                                        => None
+      }
+
     override def typeConstructor(untyped: UntypedType): UntypedType =
       widenSingletons(untyped).dealias match {
         case AppliedType(tycon, _) => tycon

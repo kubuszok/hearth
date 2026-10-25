@@ -536,6 +536,14 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       case _                        => untyped
     }
 
+    override def functionComponents(instanceTpe: UntypedType): Option[(List[UntypedType], UntypedType)] = {
+      val tpe = widenSingletons(instanceTpe).dealias
+      val functionClasses = definitions.FunctionClass.seq.toSet[c.universe.Symbol]
+      tpe.baseClasses.collectFirst {
+        case base if functionClasses(base) => tpe.baseType(base).typeArgs
+      } collect { case args if args.nonEmpty => (args.init, args.last) }
+    }
+
     override def typeConstructor(untyped: UntypedType): UntypedType =
       widenSingletons(untyped).dealias.typeConstructor
 

@@ -850,5 +850,60 @@ final class TypesScala3Spec extends MacroSuite {
         )
       }
     }
+
+    group("methods: Type.{isFunction, isContextFunction, functionComponents, contextFunctionComponents} (Scala 3)") {
+      import TypesFixtures.testFunctionType
+
+      test("a context function is not a FunctionN, but a context function") {
+        testFunctionType[Int ?=> String] <==> Data.map(
+          "isFunction" -> Data(false),
+          "isContextFunction" -> Data(true),
+          "functionComponents" -> Data("<none>"),
+          "contextFunctionComponents" -> Data.map(
+            "params" -> Data.list(Data("scala.Int")),
+            "result" -> Data("java.lang.String")
+          ),
+          "Ctor2.of[Function1].unapply" -> Data("<none>")
+        )
+      }
+
+      test("functions of more than 22 parameters (synthetic Function23+) are functions") {
+        type F23 = (
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int
+        ) => String
+        testFunctionType[F23] <==> Data.map(
+          "isFunction" -> Data(true),
+          "isContextFunction" -> Data(false),
+          "functionComponents" -> Data.map(
+            "params" -> Data.list(List.fill(23)(Data("scala.Int"))*),
+            "result" -> Data("java.lang.String")
+          ),
+          "contextFunctionComponents" -> Data("<none>"),
+          "Ctor2.of[Function1].unapply" -> Data("<none>")
+        )
+      }
+    }
   }
 }

@@ -346,6 +346,10 @@ val mimaSettings = Seq(
     // MacroCommons cake and is implemented ONLY by Hearth's own `Environment` object (in EnvironmentsScala2/
     // EnvironmentsScala3), same reasoning as `annotated` above.
     exclude[ReversedMissingMethodProblem]("hearth.Environments#EnvironmentModule.enclosingMethodParameters"),
+    // `functionComponents` (the platform hook behind `isFunction`/`Type.functionComponents`) added to the NESTED trait
+    // `UntypedTypes#UntypedTypeModule`, implemented ONLY by Hearth's own `UntypedType` object (in UntypedTypesScala2/
+    // UntypedTypesScala3), same reasoning as `annotated` above.
+    exclude[ReversedMissingMethodProblem]("hearth.untyped.UntypedTypes#UntypedTypeModule.functionComponents"),
     // Perf: `ClassViewResult.Incompatible` changed from a `case class` to a plain class so its `reason` (an
     // expensive `Type.prettyPrint`, discarded by most callers) can be computed lazily. The former binary surface is
     // preserved as far as shims can reach: `apply(String)`, the primary constructor `this(String)`, and

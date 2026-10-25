@@ -207,6 +207,9 @@ object TypesFixtures {
   private def testSameTypeConstructorAndReapplyImpl[A: Type, B: Type](using q: Quotes): Expr[Data] =
     new TypesFixtures(q).testSameTypeConstructorAndReapply[A, B]
 
+  inline def testFunctionType[A]: Data = ${ testFunctionTypeImpl[A] }
+  private def testFunctionTypeImpl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testFunctionType[A]
+
   inline def testLazyTypeScopeSafety: Data = ${ testLazyTypeScopeSafetyImpl }
   private def testLazyTypeScopeSafetyImpl(using q: Quotes): Expr[Data] =
     new TypesFixtures(q).testLazyTypeScopeSafety

@@ -2135,6 +2135,54 @@ final class TypesSpec extends MacroSuite {
       }
     }
 
+    group("methods: Type.{isFunction, isContextFunction, functionComponents, contextFunctionComponents}") {
+      import TypesFixtures.testFunctionType
+      import examples.kinds.{functions, IntPredicate}
+
+      def function(params: List[String], result: String, ctor2Function1: Data = Data("<none>")): Data = Data.map(
+        "isFunction" -> Data(true),
+        "isContextFunction" -> Data(false),
+        "functionComponents" -> Data.map("params" -> Data.list(params.map(Data(_))*), "result" -> Data(result)),
+        "contextFunctionComponents" -> Data("<none>"),
+        "Ctor2.of[Function1].unapply" -> ctor2Function1
+      )
+      val notAFunction = Data.map(
+        "isFunction" -> Data(false),
+        "isContextFunction" -> Data(false),
+        "functionComponents" -> Data("<none>"),
+        "contextFunctionComponents" -> Data("<none>"),
+        "Ctor2.of[Function1].unapply" -> Data("<none>")
+      )
+      val intToString = function(
+        List("scala.Int"),
+        "java.lang.String",
+        Data.list(Data("scala.Int"), Data("java.lang.String"))
+      )
+
+      test("function types of different arities") {
+        testFunctionType[() => Int] <==> function(Nil, "scala.Int")
+        testFunctionType[Int => String] <==> intToString
+        testFunctionType[(Int, String) => Boolean] <==> function(List("scala.Int", "java.lang.String"), "scala.Boolean")
+      }
+
+      test("a class extending a function type (not headed by FunctionN)") {
+        val intToBoolean = Data.list(Data("scala.Int"), Data("scala.Boolean"))
+        testFunctionType[IntPredicate] <==> function(List("scala.Int"), "scala.Boolean", intToBoolean)
+        testFunctionType[PartialFunction[Int, String]] <==> intToString
+      }
+
+      test("an alias and a singleton type of a function value") {
+        testFunctionType[functions.IntToString] <==> intToString
+        testFunctionType[functions.f.type] <==> intToString
+      }
+
+      test("non-function types") {
+        testFunctionType[String] <==> notAFunction
+        testFunctionType[Option[Int]] <==> notAFunction
+        testFunctionType[(Int, String)] <==> notAFunction
+      }
+    }
+
     group("type Type.Lazy") {
 
       test("Type.Lazy first touched inside an Expr.splice stays usable outside that splice") {

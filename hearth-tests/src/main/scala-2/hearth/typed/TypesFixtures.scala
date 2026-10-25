@@ -64,6 +64,8 @@ final private class TypesFixtures(val c: blackbox.Context) extends MacroCommonsS
   def testSameTypeConstructorAndReapplyImpl[A: c.WeakTypeTag, B: c.WeakTypeTag]: c.Expr[Data] =
     testSameTypeConstructorAndReapply[A, B]
 
+  def testFunctionTypeImpl[A: c.WeakTypeTag]: c.Expr[Data] = testFunctionType[A]
+
   def testLazyTypeScopeSafetyImpl: c.Expr[Data] = testLazyTypeScopeSafety
 }
 
@@ -121,6 +123,8 @@ object TypesFixtures {
   def testDecomposesTo[A, Expected]: Data = macro TypesFixtures.testDecomposesToImpl[A, Expected]
 
   def testSameTypeConstructorAndReapply[A, B]: Data = macro TypesFixtures.testSameTypeConstructorAndReapplyImpl[A, B]
+
+  def testFunctionType[A]: Data = macro TypesFixtures.testFunctionTypeImpl[A]
 
   def testLazyTypeScopeSafety: Data = macro TypesFixtures.testLazyTypeScopeSafetyImpl
 }

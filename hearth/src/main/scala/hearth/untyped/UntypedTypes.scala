@@ -190,6 +190,37 @@ trait UntypedTypes { this: MacroCommons =>
     def isNamedTuple(instanceTpe: UntypedType): Boolean = false
     def isUnionType(instanceTpe: UntypedType): Boolean = false
 
+    /** The parameter types and the result type of a function type: `(List(A, B), C)` for `(A, B) => C`.
+      *
+      * Read off the `scala.FunctionN` BASE type, so a class that extends a function type (`class P extends (Int =>
+      * Boolean)`) is covered too, and so are aliases and singleton types of function values. Returns `None` for
+      * non-functions - including Scala 3 context functions (`A ?=> B`, see [[contextFunctionComponents]]), which are
+      * not subtypes of `FunctionN`. If a class extends several function types, the first one in its linearization is
+      * used.
+      *
+      * @since 0.4.4
+      */
+    def functionComponents(instanceTpe: UntypedType): Option[(List[UntypedType], UntypedType)]
+
+    /** The parameter types and the result type of a Scala 3 context function type: `(List(A, B), C)` for
+      * `(A, B) ?=> C`. Always `None` on Scala 2 (which has no context functions).
+      *
+      * @since 0.4.4
+      */
+    def contextFunctionComponents(instanceTpe: UntypedType): Option[(List[UntypedType], UntypedType)] = None
+
+    /** Whether the type is a function type - see [[functionComponents]].
+      *
+      * @since 0.4.4
+      */
+    final def isFunction(instanceTpe: UntypedType): Boolean = functionComponents(instanceTpe).isDefined
+
+    /** Whether the type is a Scala 3 context function type - see [[contextFunctionComponents]].
+      *
+      * @since 0.4.4
+      */
+    final def isContextFunction(instanceTpe: UntypedType): Boolean = contextFunctionComponents(instanceTpe).isDefined
+
     /** Whether the given member of the given union type has to be discriminated with a user-provided
       * `scala.reflect.TypeTest[Union, Member]` rather than a runtime class test (Scala 3-only).
       *
@@ -514,6 +545,11 @@ trait UntypedTypes { this: MacroCommons =>
     def isTuple: Boolean = UntypedType.isTuple(untyped)
     def isNamedTuple: Boolean = UntypedType.isNamedTuple(untyped)
     def isUnionType: Boolean = UntypedType.isUnionType(untyped)
+    def isFunction: Boolean = UntypedType.isFunction(untyped)
+    def isContextFunction: Boolean = UntypedType.isContextFunction(untyped)
+    def functionComponents: Option[(List[UntypedType], UntypedType)] = UntypedType.functionComponents(untyped)
+    def contextFunctionComponents: Option[(List[UntypedType], UntypedType)] =
+      UntypedType.contextFunctionComponents(untyped)
     def unionMemberRequiresTypeTest(member: UntypedType): Boolean =
       UntypedType.unionMemberRequiresTypeTest(untyped, member)
     def unionRefusalReason: Option[String] = UntypedType.unionRefusalReason(untyped)

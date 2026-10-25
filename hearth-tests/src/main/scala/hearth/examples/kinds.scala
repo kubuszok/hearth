@@ -76,6 +76,17 @@ object singletons {
   val optAlias: opt.type = opt
 }
 
+/** A class that only EXTENDS a function type (it is not headed by `Function1`). */
+class IntPredicate extends (Int => Boolean) {
+  def apply(i: Int): Boolean = i > 0
+}
+
+/** Stable references of function types, whose singleton types (`functions.f.type`) are tested. */
+object functions {
+  type IntToString = Int => String
+  val f: Int => String = _.toString
+}
+
 // format: off
 object Alias {
   type Renamed1[A] = Arity1[A]

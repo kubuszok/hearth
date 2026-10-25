@@ -849,6 +849,26 @@ trait TypesFixturesImpl { this: MacroCommons =>
     )
   }
 
+  /** `Type.isFunction`/`isContextFunction`/`functionComponents`/`contextFunctionComponents`, and `Ctor2.of[Function1]`
+    * unapply (which must read the type arguments of a `Function1` SUBCLASS off its base type).
+    */
+  def testFunctionType[A: Type]: Expr[Data] = {
+    def components(c: Option[(List[??], ??)]): Data = c.fold(Data("<none>")) { case (params, result) =>
+      Data.map("params" -> Data.list(params.map(p => Data(p.plainPrint))*), "result" -> Data(result.plainPrint))
+    }
+    Expr(
+      Data.map(
+        "isFunction" -> Data(Type.isFunction[A]),
+        "isContextFunction" -> Data(Type.isContextFunction[A]),
+        "functionComponents" -> components(Type.functionComponents[A]),
+        "contextFunctionComponents" -> components(Type.contextFunctionComponents[A]),
+        "Ctor2.of[Function1].unapply" -> Type.Ctor2.of[Function1].unapply(Type[A]).fold(Data("<none>")) { case (a, b) =>
+          Data.list(Data(a.plainPrint), Data(b.plainPrint))
+        }
+      )
+    )
+  }
+
   // Type.Lazy: the deferred type must behave like an eagerly-initialized one even when its FIRST touch happens
   // inside an `Expr.splice` (a fresh nested Quotes on Scala 3) and it is then reused OUTSIDE that splice - the
   // pattern that breaks a plain `lazy val` with "Expression created in a splice was used outside of that splice".

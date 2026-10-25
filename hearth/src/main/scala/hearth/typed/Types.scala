@@ -64,6 +64,18 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     final def unapply[A](tpe: Type[A])(implicit codec: TypeCodec[A]): Option[A] = codec.fromType(tpe).map(_.value)
 
     def shortName[A: Type]: String
+
+    /** The fully-qualified name of `A`'s type constructor, as printed by [[plainPrint]] up to the first `[` (e.g.
+      * `"scala.collection.immutable.List"` for `List[Int]`).
+      *
+      * Intended for messages, logging and coarse name-based heuristics. It is NOT a type identity: types that differ
+      * only in their type arguments (`Box[Int]` vs `Box[String]`) share an `fqcn`, and it is not normalized beyond what
+      * [[plainPrint]] does (e.g. a singleton type `x.type` is printed as such, and refinements/intersections are not a
+      * class name). To compare or key by type use `=:=` / [[Cache]]; to compare constructors use
+      * [[hasSameTypeConstructor]] / `Type.CtorN`; to recognize function types use [[isFunction]].
+      *
+      * @since 0.2.0
+      */
     final def fqcn[A: Type]: String = plainPrint[A].takeWhile(_ != '[')
     def plainPrint[A: Type]: String
     def prettyPrint[A: Type]: String
@@ -350,6 +362,40 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     final def isTuple[A: Type]: Boolean = UntypedType.fromTyped[A].isTuple
     final def isNamedTuple[A: Type]: Boolean = UntypedType.fromTyped[A].isNamedTuple
     final def isUnionType[A: Type]: Boolean = UntypedType.fromTyped[A].isUnionType
+
+    /** Whether `A` is a function type: `A => B`, `(A, B) => C`, ..., but also a class extending one (`class P extends
+      * (Int => Boolean)`), an alias or a singleton type of a function value. Scala 3 context functions are not
+      * included, see [[isContextFunction]].
+      *
+      * Prefer it over name-based checks like `Type.fqcn[A].startsWith("scala.Function")`, which miss subclasses.
+      *
+      * @since 0.4.4
+      */
+    final def isFunction[A: Type]: Boolean = UntypedType.fromTyped[A].isFunction
+
+    /** Whether `A` is a Scala 3 context function type (`A ?=> B`). Always `false` on Scala 2.
+      *
+      * @since 0.4.4
+      */
+    final def isContextFunction[A: Type]: Boolean = UntypedType.fromTyped[A].isContextFunction
+
+    /** The parameter types and the result type of a function type `A` (see [[isFunction]]): `(List(Type[A], Type[B]),
+      * Type[C])` for `(A, B) => C`, read off its `FunctionN` base type. `None` when `A` is not a function.
+      *
+      * @since 0.4.4
+      */
+    final def functionComponents[A: Type]: Option[(List[??], ??)] =
+      UntypedType.fromTyped[A].functionComponents.map { case (params, result) => (params.map(_.as_??), result.as_??) }
+
+    /** The parameter types and the result type of a Scala 3 context function type `A` (`(A, B) ?=> C`). Always `None`
+      * on Scala 2.
+      *
+      * @since 0.4.4
+      */
+    final def contextFunctionComponents[A: Type]: Option[(List[??], ??)] =
+      UntypedType.fromTyped[A].contextFunctionComponents.map { case (params, result) =>
+        (params.map(_.as_??), result.as_??)
+      }
 
     /** Whether the member `B` of the union type `A` has to be discriminated with a user-provided
       * `scala.reflect.TypeTest[A, B]` rather than a runtime class test (Scala 3-only).
@@ -1228,6 +1274,10 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def isTuple: Boolean = Type.isTuple(using tpe)
     def isNamedTuple: Boolean = Type.isNamedTuple(using tpe)
     def isUnionType: Boolean = Type.isUnionType(using tpe)
+    def isFunction: Boolean = Type.isFunction(using tpe)
+    def isContextFunction: Boolean = Type.isContextFunction(using tpe)
+    def functionComponents: Option[(List[??], ??)] = Type.functionComponents(using tpe)
+    def contextFunctionComponents: Option[(List[??], ??)] = Type.contextFunctionComponents(using tpe)
     def unionMemberRequiresTypeTest[B: Type]: Boolean = Type.unionMemberRequiresTypeTest[A, B](using tpe, Type[B])
     def unionRefusalReason: Option[String] = Type.unionRefusalReason(using tpe)
 
