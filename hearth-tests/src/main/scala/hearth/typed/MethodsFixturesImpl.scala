@@ -1251,4 +1251,89 @@ trait MethodsFixturesImpl { this: MacroCommons =>
         }
     }
   }
+
+  // Generic method chains: walk `instance.methodName` (expected to return `R`) through the whole builder chain, applying
+  // every method type parameter := `typeArg` at `ApplyTypes`, and `new Config` / a summoned implicit at `ApplyValues`.
+  // Types are rendered as "=:= R" when they are =:= the expected (substituted) return type `R`.
+
+  /** Applies `T` itself to the method's type parameters. */
+  def testGenericMethodChain[A: Type, R: Type, T: Type](instance: Expr[A])(methodName: Expr[String]): Expr[Data] =
+    genericMethodChain[A, R](instance, methodName, Type[T].as_??)
+
+  /** Applies the type constructor of `T` (e.g. `SomeF` for `T = SomeF[Any]`) to the method's type parameters. */
+  def testGenericMethodChainApplyingConstructorOf[A: Type, R: Type, T: Type](instance: Expr[A])(
+      methodName: Expr[String]
+  ): Expr[Data] =
+    genericMethodChain[A, R](instance, methodName, UntypedType.typeConstructor(UntypedType.fromTyped[T]).as_??)
+
+  /** Applies `Type.Ctor1.of[SomeF].asUntyped` (on Scala 3 an eta-expanded type lambda) to the method's type parameters.
+    */
+  def testGenericMethodChainApplyingCtor1Of[A: Type, R: Type](instance: Expr[A])(methodName: Expr[String]): Expr[Data] =
+    genericMethodChain[A, R](instance, methodName, Type.Ctor1.of[examples.genericmethods.SomeF].asUntyped.as_??)
+
+  private def genericMethodChain[A: Type, R: Type](
+      instance: Expr[A],
+      methodName: Expr[String],
+      typeArg: ??
+  ): Expr[Data] = {
+    import examples.genericmethods.Config
+    def renderType(t: ??): String = if (t.Underlying =:= Type[R]) "=:= R" else t.plainPrint
+    def renderExpectations(m: Method): Data = Data.list(m.expectations.map {
+      case MethodExpectation.NeedsInstance   => Data("NeedsInstance")
+      case MethodExpectation.NeedsTypes(tps) =>
+        Data(tps.map(_.map(_.name).mkString(", ")).mkString("NeedsTypes[", "][", "]"))
+      case MethodExpectation.NeedsValues(ps) =>
+        Data(
+          ps.map(_.map { case (n, p) => s"$n: ${p.tpe.plainPrint}" }.mkString(", ")).mkString("NeedsValues(", ")(", ")")
+        )
+    }*)
+    def renderStep(name: String, m: Method): Data = Data.map(
+      "step" -> Data(name),
+      "knownReturning" -> Data(m.knownReturning.map(renderType).getOrElse("<none>")),
+      "expectations" -> renderExpectations(m)
+    )
+
+    val name = Expr.unapply(methodName).getOrElse(Environment.reportErrorAndAbort("method name must be a literal"))
+    val method = Type[A].methods.find(_.name == name).getOrElse(Environment.reportErrorAndAbort(s"no method $name"))
+    implicit val ConfigType: Type[Config] = Type.of[Config]
+    implicit val StringType: Type[String] = Type.of[String]
+
+    val steps = scala.collection.mutable.ListBuffer.empty[Data]
+    @scala.annotation.tailrec
+    def loop(m: Method): Unit = m match {
+      case oi: Method.OnInstance =>
+        steps += renderStep("OnInstance", oi)
+        loop(oi.apply(instance.asInstanceOf[Expr[oi.Instance]]))
+      case at: Method.ApplyTypes =>
+        steps += renderStep("ApplyTypes", at)
+        loop(at.apply(at.typeParams.flatten.map(tp => tp -> typeArg).toMap))
+      case av: Method.ApplyValues =>
+        steps += renderStep("ApplyValues", av)
+        loop(av.apply(av.parameters.flatten.map { case (n, p) =>
+          import p.tpe.Underlying
+          val value: Expr_?? =
+            if (Underlying =:= Type.of[Config]) Expr.quote(new Config).as_??
+            else
+              Expr
+                .summonImplicitByType(p.tpe.asUntyped)
+                .map(UntypedExpr.as_??(_))
+                .getOrElse(Environment.reportErrorAndAbort(s"cannot summon ${p.tpe.plainPrint}"))
+          n -> value
+        }.toMap))
+      case r: Method.Result[?] =>
+        import r.Returned
+        steps += renderStep("Result", r)
+        steps += Data.map(
+          "Result.Returned" -> Data(renderType(Type[r.Returned].as_??)),
+          // the danger: if `Returned` is `Nothing`, it conforms to ANY expected result type
+          "Returned <:< String" -> Data(Type[r.Returned] <:< Type.of[String]),
+          "built" -> Data(r.build() match {
+            case Right(e) => s"built: ${renderType(e.tpe.as_??)}"
+            case Left(e)  => s"FAILED: $e"
+          })
+        )
+    }
+    loop(method)
+    Expr(Data.list(steps.toList*))
+  }
 }

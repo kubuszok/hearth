@@ -739,6 +739,35 @@ trait Methods { this: MacroCommons =>
         // parameter types (`(implicit ev: Sync[F])` -> `(implicit ev: Sync[SomeEffect])`). The platform builds this;
         // the default is identity (used when there are no unresolved method type parameters).
         resolveExpectationsForTypeArgs: UntypedTypeArguments => List[MethodExpectation]
+    ): Method = buildChain(
+      asUntyped = asUntyped,
+      untypedInstanceType = untypedInstanceType,
+      instanceEvidence = instanceEvidence,
+      expectations = expectations,
+      totalParameters = totalParameters,
+      returnType = returnType,
+      buildExpr = buildExpr,
+      pathDepResolvers = pathDepResolvers,
+      resolveExpectationsForTypeArgs = resolveExpectationsForTypeArgs,
+      resolveReturnTypeForTypeArgs = (_: UntypedTypeArguments) => None
+    )
+
+    // Overload instead of a changed signature: the method above stays in the bytecode (binary compatibility).
+    private[hearth] def buildChain(
+        asUntyped: UntypedMethod,
+        untypedInstanceType: UntypedType,
+        instanceEvidence: ??,
+        expectations: List[MethodExpectation],
+        totalParameters: Parameters,
+        returnType: Option[() => ??],
+        buildExpr: (Option[UntypedExpr], UntypedTypeArguments, UntypedArguments) => Either[String, UntypedExpr],
+        pathDepResolvers: Map[Int, UntypedArguments => Parameters],
+        resolveExpectationsForTypeArgs: UntypedTypeArguments => List[MethodExpectation],
+        // Given ALL type arguments applied so far, the method's return type with them substituted - `None` until every
+        // method type parameter has an argument (or when the platform cannot resolve it). A generic method's
+        // `returnType` is `None` (it references the method's own type parameters), so this is what makes
+        // `knownReturning`/`Result.Returned` known after `ApplyTypes`, instead of falling back to the built tree's type.
+        resolveReturnTypeForTypeArgs: UntypedTypeArguments => Option[() => ??]
     ): Method = {
       val initialState = AppliedState(hadKnownReturning = returnType.isDefined)
 
@@ -748,7 +777,8 @@ trait Methods { this: MacroCommons =>
           accInstance: Option[UntypedExpr],
           accTypeArgs: UntypedTypeArguments,
           accArgs: UntypedArguments,
-          appliedState: AppliedState
+          appliedState: AppliedState,
+          returnType: Option[() => ??]
       ): Method =
         if (stepIndex >= expectations.length) {
           val effectiveReturnType = returnType.map(_.apply()).orElse {
@@ -787,7 +817,15 @@ trait Methods { this: MacroCommons =>
                 knownReturning0 = returnType,
                 next = { instanceExpr =>
                   val nextState = appliedState.copy(steps = appliedState.steps :+ AppliedStep.Instance(instanceExpr))
-                  buildFromStep(expectations, stepIndex + 1, Some(instanceExpr), accTypeArgs, accArgs, nextState)
+                  buildFromStep(
+                    expectations,
+                    stepIndex + 1,
+                    Some(instanceExpr),
+                    accTypeArgs,
+                    accArgs,
+                    nextState,
+                    returnType
+                  )
                 }
               )(instanceEvidence, appliedState)
             case MethodExpectation.NeedsTypes(_) =>
@@ -803,7 +841,16 @@ trait Methods { this: MacroCommons =>
                   // [hearth#331] Substitute the just-applied type arguments into the parameter types of any subsequent
                   // value/implicit clauses, so `onValues` sees e.g. `Sync[SomeEffect]` rather than an empty clause.
                   val resolvedExpectations = resolveExpectationsForTypeArgs(allTypeArgs)
-                  buildFromStep(resolvedExpectations, stepIndex + 1, accInstance, allTypeArgs, accArgs, nextState)
+                  val resolvedReturnType = returnType.orElse(resolveReturnTypeForTypeArgs(allTypeArgs))
+                  buildFromStep(
+                    resolvedExpectations,
+                    stepIndex + 1,
+                    accInstance,
+                    allTypeArgs,
+                    accArgs,
+                    nextState,
+                    resolvedReturnType
+                  )
                 }
               )(instanceEvidence, appliedState)
             case MethodExpectation.NeedsValues(params) =>
@@ -828,12 +875,20 @@ trait Methods { this: MacroCommons =>
                       )
                     case None => expectations
                   }
-                  buildFromStep(nextExpectations, stepIndex + 1, accInstance, accTypeArgs, nextAccArgs, nextState)
+                  buildFromStep(
+                    nextExpectations,
+                    stepIndex + 1,
+                    accInstance,
+                    accTypeArgs,
+                    nextAccArgs,
+                    nextState,
+                    returnType
+                  )
                 }
               )(instanceEvidence, appliedState)
           }
 
-      buildFromStep(expectations, 0, None, Map.empty, Map.empty, initialState)
+      buildFromStep(expectations, 0, None, Map.empty, Map.empty, initialState, returnType)
     }
 
     /** Needs an instance expression (the receiver of a non-static, non-constructor method).

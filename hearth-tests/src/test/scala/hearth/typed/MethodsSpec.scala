@@ -3008,4 +3008,77 @@ final class MethodsSpec extends MacroSuite {
       assert(!labelParam.contains("error"), s"label default should not error: ${labelParam.get("error")}")
     }
   }
+
+  group("methods: return type of a generic method is substituted once its type parameters are applied") {
+    import examples.genericmethods.*
+    import MethodsFixtures.{
+      testGenericMethodChain,
+      testGenericMethodChainApplyingConstructorOf,
+      testGenericMethodChainApplyingCtor1Of
+    }
+
+    // `knownReturning` / `Returned` / the built expression's type are rendered as "=:= R" when they are =:= the
+    // expected (substituted) return type `R`.
+    def step(name: String, knownReturning: String, expectations: String*): Data = Data.map(
+      "step" -> Data(name),
+      "knownReturning" -> Data(knownReturning),
+      "expectations" -> Data.list(expectations.map(Data(_))*)
+    )
+    val result: Data = Data.map(
+      "Result.Returned" -> Data("=:= R"),
+      "Returned <:< String" -> Data(false),
+      "built" -> Data("built: =:= R")
+    )
+    val P = "hearth.examples.genericmethods"
+    val serviceBefore = s"NeedsValues(config: $P.Config)(evidence$$1: $P.SyncLike[F])"
+    val serviceAfter = s"NeedsValues(config: $P.Config)(evidence$$1: $P.SyncLike[$P.SomeF])"
+    val serviceSteps = Data.list(
+      step("OnInstance", "<none>", "NeedsInstance", "NeedsTypes[F]", serviceBefore),
+      step("ApplyTypes", "<none>", "NeedsInstance", "NeedsTypes[F]", serviceBefore),
+      // known right after ApplyTypes, before the value clauses are applied
+      step("ApplyValues", "=:= R", "NeedsInstance", "NeedsTypes[F]", serviceAfter),
+      step("Result", "=:= R", "NeedsInstance", "NeedsTypes[F]", serviceAfter),
+      result
+    )
+
+    test("type clause only: def resource[F[_]]: Res[F, Widget]") {
+      testGenericMethodChainApplyingConstructorOf[Widget.type, Res[SomeF, Widget], SomeF[Any]](Widget)(
+        "resource"
+      ) <==> Data.list(
+        step("OnInstance", "<none>", "NeedsInstance", "NeedsTypes[F]"),
+        step("ApplyTypes", "<none>", "NeedsInstance", "NeedsTypes[F]"),
+        step("Result", "=:= R", "NeedsInstance", "NeedsTypes[F]"),
+        result
+      )
+    }
+
+    test("Result.Returned is never Nothing (which would conform to anything): def resource[F[_]]: Option[Plain]") {
+      testGenericMethodChainApplyingConstructorOf[Plain.type, Option[Plain], SomeF[Any]](Plain)("resource") <==>
+        Data.list(
+          step("OnInstance", "<none>", "NeedsInstance", "NeedsTypes[F]"),
+          step("ApplyTypes", "<none>", "NeedsInstance", "NeedsTypes[F]"),
+          step("Result", "=:= R", "NeedsInstance", "NeedsTypes[F]"),
+          result
+        )
+    }
+
+    test("type, value and implicit clauses: def resource[F[_]: SyncLike](config: Config): Res[F, Service]") {
+      testGenericMethodChainApplyingConstructorOf[Service.type, Res[SomeF, Service], SomeF[Any]](Service)(
+        "resource"
+      ) <==> serviceSteps
+    }
+
+    test("type argument given as Type.Ctor1.of[SomeF].asUntyped (an eta-expanded type lambda on Scala 3)") {
+      testGenericMethodChainApplyingCtor1Of[Service.type, Res[SomeF, Service]](Service)("resource") <==> serviceSteps
+    }
+
+    test("class and method type parameters both substituted: Holder[Int].pair[B]: (Int, B)") {
+      testGenericMethodChain[Holder[Int], (Int, String), String](new Holder[Int])("pair") <==> Data.list(
+        step("OnInstance", "<none>", "NeedsInstance", "NeedsTypes[B]"),
+        step("ApplyTypes", "<none>", "NeedsInstance", "NeedsTypes[B]"),
+        step("Result", "=:= R", "NeedsInstance", "NeedsTypes[B]"),
+        result
+      )
+    }
+  }
 }

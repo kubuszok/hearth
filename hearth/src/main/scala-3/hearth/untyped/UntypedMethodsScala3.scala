@@ -906,6 +906,24 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         else if untyped.symbol.isNoSymbol then Some(() => instanceTpe.as_??)
         else if untyped.isConstructor then Some(() => instanceTpe.as_??)
         else Some(() => resolvedReturnType)
+      // A generic method's return type references its own type parameters - instantiate them once ALL are applied.
+      // Each `PolyType` (several with clause interleaving: `def f[A](a: A)[B]: ...`) is applied to its own
+      // parameters, taken in declaration order (the order of `methodTypeParamSyms`).
+      def resolveReturnType(typeArgs: UntypedTypeArguments): Option[() => ??] =
+        if !hasUnresolvedTypeParams || !methodTypeParamSyms.forall(typeArgs.contains) then None
+        else
+          Some { () =>
+            def instantiate(tpe: TypeRepr, args: List[TypeRepr]): TypeRepr = tpe match {
+              case mt: MethodType => instantiate(mt.resType, args)
+              case pt: PolyType   =>
+                val (own, rest) = args.splitAt(pt.paramNames.size)
+                instantiate(pt.appliedTo(own), rest)
+              case other => other.widenByName
+            }
+            val args = methodTypeParamSyms.map(tp => typeArgs(tp).Underlying.asUntyped: TypeRepr)
+            val memberType = safeMemberType(instanceTpe, untyped.symbol).widenByName
+            normalizeRepeatedParamType(instantiate(memberType, args)).as_??
+          }
 
       val buildExpr: (Option[UntypedExpr], UntypedTypeArguments, UntypedArguments) => Either[String, UntypedExpr] =
         (instance, typeArgs, args) => Right(untyped.unsafeApplyWithTypes(instanceTpe)(typeArgs, instance, args))
@@ -919,7 +937,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         returnType = returnType,
         buildExpr = buildExpr,
         pathDepResolvers = Map.empty,
-        resolveExpectationsForTypeArgs = resolveExpectations
+        resolveExpectationsForTypeArgs = resolveExpectations,
+        resolveReturnTypeForTypeArgs = resolveReturnType
       )
     }
 

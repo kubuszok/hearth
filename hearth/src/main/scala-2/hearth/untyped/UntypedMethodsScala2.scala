@@ -595,7 +595,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
       // Option-ness is decided by cheap flags; the expensive `typeSignatureIn` resolution inside `Some` is deferred
       // (memoized via the local lazy val) until someone actually asks the chain for `knownReturning`.
-      lazy val resolvedReturnType: ?? = {
+      lazy val resolvedReturnTypeRepr: c.Type = {
         val rawSig = untyped.symbol.typeSignatureIn(instanceTpe)
         val sig = rawSig match {
           case ExistentialType(_, underlying) => underlying
@@ -612,13 +612,25 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
             internal.annotatedType(annots, underlying.asSeenFrom(instanceTpe, untyped.symbol.owner))
           case _ => sig.finalResultType
         }
-        // E.g. the case-field accessor of a vararg parameter would otherwise return `scala.<repeated>[A]`.
-        normalizeRepeatedParamType(resultType.dealias).as_??
+        resultType
       }
+      // E.g. the case-field accessor of a vararg parameter would otherwise return `scala.<repeated>[A]`.
+      lazy val resolvedReturnType: ?? = normalizeRepeatedParamType(resolvedReturnTypeRepr.dealias).as_??
       val returnType: Option[() => ??] =
         if (hasUnresolvedTypeParams) None
         else if (untyped.isConstructor) Some(() => instanceTpe.as_??)
         else Some(() => resolvedReturnType)
+      // A generic method's return type references its own type parameters - substitute them once ALL are applied
+      // (the same substitution as `resolveTypeParamClauseValues`).
+      def resolveReturnType(typeArgs: UntypedTypeArguments): Option[() => ??] =
+        if (!hasUnresolvedTypeParams || !methodTypeParamSyms.forall(typeArgs.contains)) None
+        else
+          Some { () =>
+            val toReprs = methodTypeParamSyms.map(tp => typeArgs(tp).Underlying.asUntyped)
+            normalizeRepeatedParamType(
+              resolvedReturnTypeRepr.substituteTypes(methodTypeParamSyms, toReprs).dealias
+            ).as_??
+          }
 
       val buildExpr: (Option[UntypedExpr], UntypedTypeArguments, UntypedArguments) => Either[String, UntypedExpr] =
         (instance, typeArgs, args) => Right(untyped.unsafeApplyWithTypes(instanceTpe)(typeArgs, instance, args))
@@ -632,7 +644,8 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         returnType = returnType,
         buildExpr = buildExpr,
         pathDepResolvers = Map.empty,
-        resolveExpectationsForTypeArgs = resolveExpectations
+        resolveExpectationsForTypeArgs = resolveExpectations,
+        resolveReturnTypeForTypeArgs = resolveReturnType
       )
     }
 

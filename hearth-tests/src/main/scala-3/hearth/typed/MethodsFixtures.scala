@@ -265,4 +265,26 @@ object MethodsFixtures {
       methodName: Expr[String]
   )(using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testDefaultValueOnGenericMethod[A](instance, methodName)
+
+  inline def testGenericMethodChain[A, R, T](inline instance: A)(inline methodName: String): Data = ${
+    testGenericMethodChainImpl[A, R, T]('instance, 'methodName)
+  }
+  private def testGenericMethodChainImpl[A: Type, R: Type, T: Type](instance: Expr[A], methodName: Expr[String])(using
+      q: Quotes
+  ): Expr[Data] = new MethodsFixtures(q).testGenericMethodChain[A, R, T](instance)(methodName)
+
+  inline def testGenericMethodChainApplyingConstructorOf[A, R, T](inline instance: A)(inline methodName: String): Data =
+    ${ testGenericMethodChainApplyingConstructorOfImpl[A, R, T]('instance, 'methodName) }
+  private def testGenericMethodChainApplyingConstructorOfImpl[A: Type, R: Type, T: Type](
+      instance: Expr[A],
+      methodName: Expr[String]
+  )(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testGenericMethodChainApplyingConstructorOf[A, R, T](instance)(methodName)
+
+  inline def testGenericMethodChainApplyingCtor1Of[A, R](inline instance: A)(inline methodName: String): Data = ${
+    testGenericMethodChainApplyingCtor1OfImpl[A, R]('instance, 'methodName)
+  }
+  private def testGenericMethodChainApplyingCtor1OfImpl[A: Type, R: Type](instance: Expr[A], methodName: Expr[String])(
+      using q: Quotes
+  ): Expr[Data] = new MethodsFixtures(q).testGenericMethodChainApplyingCtor1Of[A, R](instance)(methodName)
 }

@@ -136,6 +136,19 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
   ): c.Expr[Data] =
     testFoldAnonymousInstanceMethod[A](instance, methodName)
 
+  def testGenericMethodChainImpl[A: c.WeakTypeTag, R: c.WeakTypeTag, T: c.WeakTypeTag](instance: c.Expr[A])(
+      methodName: c.Expr[String]
+  ): c.Expr[Data] = testGenericMethodChain[A, R, T](instance)(methodName)
+
+  def testGenericMethodChainApplyingConstructorOfImpl[A: c.WeakTypeTag, R: c.WeakTypeTag, T: c.WeakTypeTag](
+      instance: c.Expr[A]
+  )(methodName: c.Expr[String]): c.Expr[Data] =
+    testGenericMethodChainApplyingConstructorOf[A, R, T](instance)(methodName)
+
+  def testGenericMethodChainApplyingCtor1OfImpl[A: c.WeakTypeTag, R: c.WeakTypeTag](instance: c.Expr[A])(
+      methodName: c.Expr[String]
+  ): c.Expr[Data] = testGenericMethodChainApplyingCtor1Of[A, R](instance)(methodName)
+
   def testExposesNameAndAgeImpl[A: c.WeakTypeTag]: c.Expr[Data] = testExposesNameAndAge[A]
 
   def testJavaAccessorNamesImpl[A: c.WeakTypeTag]: c.Expr[Data] = testJavaAccessorNames[A]
@@ -250,4 +263,13 @@ object MethodsFixtures {
 
   def testFoldAnonymousInstanceMethod[A](instance: A, methodName: String): Data =
     macro MethodsFixtures.testFoldAnonymousInstanceMethodImpl[A]
+
+  def testGenericMethodChain[A, R, T](instance: A)(methodName: String): Data =
+    macro MethodsFixtures.testGenericMethodChainImpl[A, R, T]
+
+  def testGenericMethodChainApplyingConstructorOf[A, R, T](instance: A)(methodName: String): Data =
+    macro MethodsFixtures.testGenericMethodChainApplyingConstructorOfImpl[A, R, T]
+
+  def testGenericMethodChainApplyingCtor1Of[A, R](instance: A)(methodName: String): Data =
+    macro MethodsFixtures.testGenericMethodChainApplyingCtor1OfImpl[A, R]
 }
