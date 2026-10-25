@@ -416,6 +416,16 @@ final class ExprsSpec extends MacroSuite {
 
     group("type VarArgs") {
 
+      test("methods: VarArgs.toIterableOption gives the literal elements, and None for a splatted Seq") {
+        import ExprsFixtures.testVarArgsElements
+        val more = Seq(2, 3)
+        val _ = more
+        testVarArgsElements(1, 2) <==> Data.list(Data("1"), Data("2"))
+        testVarArgsElements[Int]() <==> Data.list()
+        testVarArgsElements(more*) <==> Data("<splat>")
+        testVarArgsElements(Seq(1, 2)*) <==> Data("<splat>")
+      }
+
       test("methods: VarArgs.{apply, from} should create VarArgs from iterable") {
         import ExprsFixtures.testVarArgs
 

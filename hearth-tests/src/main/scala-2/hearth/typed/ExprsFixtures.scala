@@ -28,6 +28,7 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
   def testSummonViaUntypedRoundtripImpl[A: c.WeakTypeTag]: c.Expr[Data] = testSummonViaUntypedRoundtrip[A]
 
   def testVarArgsImpl[A: c.WeakTypeTag](exprs: c.Expr[A]*): c.Expr[Data] = testVarArgs[A](exprs)
+  def testVarArgsElementsImpl[A: c.WeakTypeTag](exprs: c.Expr[A]*): c.Expr[Data] = testVarArgsElements[A](exprs)
 
   def testMatchCaseTypeMatchImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] = testMatchCaseTypeMatch[A](expr)
 
@@ -179,6 +180,7 @@ object ExprsFixtures {
   def testSummonViaUntypedRoundtrip[A]: Data = macro ExprsFixtures.testSummonViaUntypedRoundtripImpl[A]
 
   def testVarArgs[A](exprs: A*): Data = macro ExprsFixtures.testVarArgsImpl[A]
+  def testVarArgsElements[A](exprs: A*): Data = macro ExprsFixtures.testVarArgsElementsImpl[A]
 
   def testMatchCaseTypeMatch[A](expr: A): Data = macro ExprsFixtures.testMatchCaseTypeMatchImpl[A]
 

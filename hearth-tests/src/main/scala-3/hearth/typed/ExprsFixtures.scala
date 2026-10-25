@@ -64,6 +64,10 @@ object ExprsFixtures {
   private def testSummonViaUntypedRoundtripImpl[A: Type](using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testSummonViaUntypedRoundtrip[A]
 
+  inline def testVarArgsElements[A](inline exprs: A*): Data = ${ testVarArgsElementsImpl[A]('exprs) }
+  private def testVarArgsElementsImpl[A: Type](exprs: Expr[Seq[A]])(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testVarArgsElements[A](exprs)
+
   inline def testVarArgs[A](inline exprs: A*): Data = ${ testVarArgsImpl[A]('exprs) }
   private def testVarArgsImpl[A: Type](exprs: Expr[Seq[A]])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testVarArgs[A](exprs)

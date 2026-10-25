@@ -1294,6 +1294,18 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
   object VarArgs extends VarArgsModule {
     override def toIterable[A](args: VarArgs[A]): Iterable[Expr[A]] = args
+    override def toIterableOption[A](args: VarArgs[A]): Option[Iterable[Expr[A]]] = args match {
+      // a splat arrives as a single `xs: _*` argument
+      case Seq(single) if isSplat(single.tree) => None
+      case _                                   => Some(args)
+    }
+    private def isSplat(tree: c.Tree): Boolean = {
+      import c.universe.*
+      tree match {
+        case Typed(_, Ident(typeNames.WILDCARD_STAR)) => true
+        case _                                        => false
+      }
+    }
     override def from[A: Type](iterable: Iterable[Expr[A]]): Expr[Seq[A]] =
       c.Expr[Seq[A]](q"_root_.scala.collection.immutable.Seq(..${iterable.map(_.tree).toSeq})")
   }

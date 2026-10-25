@@ -760,7 +760,20 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
   val VarArgs: VarArgsModule
   trait VarArgsModule { this: VarArgs.type =>
 
+    /** The individual argument expressions.
+      *
+      * '''A splatted, non-literal sequence''' (`f(xs*)` / `f(xs: _*)`) cannot be split into elements: on Scala 3 it
+      * gives `Nil` (indistinguishable from no arguments), on Scala 2 a single `xs: _*` element (which is a `Seq`, not
+      * an `A`). Use [[toIterableOption]] to detect it.
+      */
     def toIterable[A](args: VarArgs[A]): Iterable[Expr[A]]
+
+    /** The individual argument expressions, when the varargs were written out literally (`f(a, b)`, also `f()`), or
+      * `None` for a splatted, non-literal sequence (`f(xs*)` / `f(xs: _*)`), whose elements are only known at runtime.
+      *
+      * @since 0.4.4
+      */
+    def toIterableOption[A](args: VarArgs[A]): Option[Iterable[Expr[A]]]
 
     def from[A: Type](iterable: Iterable[Expr[A]]): Expr[Seq[A]]
     final def apply[A: Type](exprs: Expr[A]*): Expr[Seq[A]] = from(exprs.to(Iterable))
@@ -769,6 +782,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
   implicit final class VarArgsMethods[A](private val varArgs: VarArgs[A]) {
 
     def toIterable: Iterable[Expr[A]] = VarArgs.toIterable(varArgs)
+    def toIterableOption: Option[Iterable[Expr[A]]] = VarArgs.toIterableOption(varArgs)
     def toSeq: Seq[Expr[A]] = toIterable.toSeq
     def toList: List[Expr[A]] = toIterable.toList
     def toVector: Vector[Expr[A]] = toIterable.toVector

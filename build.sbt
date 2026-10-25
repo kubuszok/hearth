@@ -350,6 +350,9 @@ val mimaSettings = Seq(
     // `UntypedTypes#UntypedTypeModule`, implemented ONLY by Hearth's own `UntypedType` object (in UntypedTypesScala2/
     // UntypedTypesScala3), same reasoning as `annotated` above.
     exclude[ReversedMissingMethodProblem]("hearth.untyped.UntypedTypes#UntypedTypeModule.functionComponents"),
+    // `toIterableOption` added to the NESTED trait `Exprs#VarArgsModule`, implemented ONLY by Hearth's own `VarArgs`
+    // object (in ExprsScala2/ExprsScala3), same reasoning as `annotated` above.
+    exclude[ReversedMissingMethodProblem]("hearth.typed.Exprs#VarArgsModule.toIterableOption"),
     // Perf: `ClassViewResult.Incompatible` changed from a `case class` to a plain class so its `reason` (an
     // expensive `Type.prettyPrint`, discarded by most callers) can be computed lazily. The former binary surface is
     // preserved as far as shims can reach: `apply(String)`, the primary constructor `this(String)`, and

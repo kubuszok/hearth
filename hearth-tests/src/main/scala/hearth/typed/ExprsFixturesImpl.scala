@@ -139,6 +139,13 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** What `VarArgs.toIterableOption` sees: the elements (as printed), or `<splat>` for a splatted, non-literal `Seq`.
+    */
+  def testVarArgsElements[A: Type](exprs: VarArgs[A]): Expr[Data] =
+    Expr(exprs.toIterableOption.fold(Data("<splat>")) { elements =>
+      Data.list(elements.toList.map(expr => Data(expr.plainPrint))*)
+    })
+
   // MatchCase methods
 
   // Chimney #625: mimics an enum->enum derivation - for each source case, `typeMatch` on it and return

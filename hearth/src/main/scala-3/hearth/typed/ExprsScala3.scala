@@ -1502,7 +1502,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
   final override type VarArgs[A] = Expr[Seq[A]]
 
   object VarArgs extends VarArgsModule {
-    override def toIterable[A](args: VarArgs[A]): Iterable[Expr[A]] = scala.quoted.Varargs.unapply(args).getOrElse(Nil)
+    override def toIterable[A](args: VarArgs[A]): Iterable[Expr[A]] = toIterableOption(args).getOrElse(Nil)
+    override def toIterableOption[A](args: VarArgs[A]): Option[Iterable[Expr[A]]] = scala.quoted.Varargs.unapply(args)
     override def from[A: Type](iterable: Iterable[Expr[A]]): Expr[Seq[A]] = scala.quoted.Varargs(iterable.toSeq)
   }
 
