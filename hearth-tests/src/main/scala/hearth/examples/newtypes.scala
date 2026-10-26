@@ -17,7 +17,7 @@ object newtypes {
   }
   type UserName = UserName.Type
 
-  /** estatico/scala-newtype (`@newtype case class Age(value: Int)` expansion): no generic parent, `Repr` is a member. */
+  /** estatico/scala-newtype (`@newtype case class Age(value: Int)`): no generic parent, `Repr` is a member. */
   object Age {
     type Repr = Int
     type Base = Any { type Age__newtype }
