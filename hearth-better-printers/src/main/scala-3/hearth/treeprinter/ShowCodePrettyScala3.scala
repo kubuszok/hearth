@@ -229,7 +229,8 @@ trait ShowCodePrettyScala3 {
           case HighlightedLiteral(literal) => appendIndent(indentLevel).append(literal)
 
           case _ if failOnUnsupportedTree => unsupportedTree(lastTree, what)
-          case IsTree(tree)               =>
+
+          case IsTree(tree) =>
             appendIndent(indentLevel).append(highlightTypeDef(tree.show(using Printer.TreeStructure)))
           case _ => appendIndent(indentLevel).append(highlightTypeDef(what.toString))
         }
@@ -261,7 +262,8 @@ trait ShowCodePrettyScala3 {
               case ClassOfConstant(value) =>
                 showProduct("ClassOfConstant", Iterator.single(value), indentLevel + 1, lastTree)
               case _ if failOnUnsupportedTree => unsupportedTree(lastTree, lastTree)
-              case IsTree(tree)               =>
+
+              case IsTree(tree) =>
                 appendIndent(indentLevel).append(highlightTypeDef(tree.show(using Printer.TreeStructure)))
               case _ => appendIndent(indentLevel).append(highlightTypeDef(value.toString))
             }
