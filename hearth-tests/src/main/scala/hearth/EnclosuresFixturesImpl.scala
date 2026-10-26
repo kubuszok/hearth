@@ -96,7 +96,6 @@ trait EnclosuresFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** `Environment.enclosingMethodParameters`, rendered clause by clause. */
   def testEnclosingMethodParameters: Expr[Data] =
     Expr(Data.list(Environment.enclosingMethodParameters.map { clause =>
       Data.list(clause.map { p =>
@@ -109,13 +108,12 @@ trait EnclosuresFixturesImpl { this: MacroCommons =>
       }*)
     }*))
 
-  /** `Environment.enclosingMethodParameters`' names (prefixed with `implicit ` for implicit ones), clause by clause. */
   def testEnclosingMethodParameterNames: Expr[Data] =
     Expr(Data.list(Environment.enclosingMethodParameters.map { clause =>
       Data.list(clause.map(p => Data(if (p.isImplicit) s"implicit ${p.name}" else p.name))*)
     }*))
 
-  /** Sums the enclosing method's `Int` and `Seq[Int]` (vararg) parameters by USING their `ref`s in generated code. */
+  /** Checks that the `ref`s work in generated code, not only that the parameters are listed. */
   def testSumEnclosingMethodParameters: Expr[Int] = {
     implicit val IntType: Type[Int] = Type.of[Int]
     implicit val SeqIntType: Type[Seq[Int]] = Type.of[Seq[Int]]

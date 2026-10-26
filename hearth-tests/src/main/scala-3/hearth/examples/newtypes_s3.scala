@@ -17,7 +17,6 @@ object newtypes3 {
   }
   type Email = Email.Type
 
-  /** An opaque type with its own companion. */
   opaque type Meters = Double
   object Meters {
     def apply(value: Double): Meters = value

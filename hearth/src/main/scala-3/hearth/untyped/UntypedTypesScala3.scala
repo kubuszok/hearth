@@ -729,7 +729,6 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def pseudoCompanionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] = {
       def isObjectModule(module: Symbol): Boolean =
         module.flags.is(Flags.Module) && !module.flags.is(Flags.Package) && !module.name.endsWith("$package")
-      // the prefix of an abstract or opaque (non-class) type member, if that prefix is an object
       def prefixObject: Option[(UntypedType, UntypedExpr)] = untyped.dealias match {
         case AppliedType(tycon, _) => pseudoCompanionObjectPrefix(tycon, isObjectModule)
         case tpe                   => pseudoCompanionObjectPrefix(tpe, isObjectModule)

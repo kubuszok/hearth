@@ -578,16 +578,13 @@ object CrossCtorTestGen {
     case _ => Seq.fill(n)("Int")
   }
 
-  /** `singletonArgs`, as printed by `plainPrint`. */
   private def singletonArgsPrinted(n: Int): Seq[String] = singletonArgs(n).map {
     case "String" => "java.lang.String"
     case other    => s"scala.$other"
   }
 
-  /** Declared type of the `CtorSingletons` val for arity N. */
   private def singletonDeclaredType(n: Int): String = s"${typeName(n)}[${singletonArgs(n).mkString(", ")}]"
 
-  /** Name of the `CtorSingletons` val for arity N. */
   private def singletonVal(n: Int): String = keyPrefix(n)
 
   /** Generates the object with stable vals, whose singleton types (`CtorSingletons.arity5.type`) are tested. */

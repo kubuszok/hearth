@@ -1252,10 +1252,6 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     }
   }
 
-  // Generic method chains: walk `instance.methodName` (expected to return `R`) through the whole builder chain, applying
-  // every method type parameter := `typeArg` at `ApplyTypes`, and `new Config` / a summoned implicit at `ApplyValues`.
-  // Types are rendered as "=:= R" when they are =:= the expected (substituted) return type `R`.
-
   /** Applies `T` itself to the method's type parameters. */
   def testGenericMethodChain[A: Type, R: Type, T: Type](instance: Expr[A])(methodName: Expr[String]): Expr[Data] =
     genericMethodChain[A, R](instance, methodName, Type[T].as_??)

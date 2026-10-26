@@ -38,7 +38,6 @@ object newtypes {
   }
   type Tagged[A] = Tagged.Type[A]
 
-  /** An alias of an alias of a newtype. */
   type Login = UserName
 
   /** A plain alias with a same-name object - NOT a newtype: the alias is dealiased to a class without a companion. */
@@ -52,7 +51,6 @@ object newtypes {
     override def toString: String = "Real"
   }
 
-  /** A type member of a non-object prefix. */
   trait HasMember { type T }
   val hasMember: HasMember = new HasMember { type T = Int }
 }

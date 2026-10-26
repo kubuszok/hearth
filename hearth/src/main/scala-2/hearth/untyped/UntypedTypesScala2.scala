@@ -459,7 +459,6 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       }
       def isObjectModule(module: Symbol): Boolean =
         module.isModule && !module.isPackage && module.name.decodedName.toString != "package"
-      // the prefix of an abstract (non-class) type member, if that prefix is an object
       def prefixObject: Option[(UntypedType, UntypedExpr)] = dealiasAll(untyped) match {
         case TypeRef(prefix, sym, _) if sym.isType && !sym.isClass =>
           prefix match {

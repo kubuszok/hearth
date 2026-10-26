@@ -42,7 +42,5 @@ case class ExampleCaseClassWithPrivateField(a: Int, private[hearth] val b: Strin
 //   - Anywhere KEEPS `b` -> (a, b) (enumeration use case)
 case class ExampleCaseClassWithClassPrivateField(a: Int, private val b: String)
 
-// Generic hierarchy: on Scala 2 a generic class's signature is a `PolyType` wrapping its class info, which `parents`
-// has to unwrap (and then resolve `A` against the applied type).
 trait ExampleGenericParent[A]
 class ExampleGenericChild[A] extends ExampleGenericParent[List[A]]

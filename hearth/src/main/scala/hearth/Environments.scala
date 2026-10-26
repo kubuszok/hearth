@@ -74,8 +74,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     final lazy val currentPosition: Position = Position.current
 
     /** The value parameters of the IMMEDIATELY-enclosing method, grouped by parameter clause (in declaration order,
-      * including `implicit`/`using` clauses), each with a [[Enclosure.Parameter.ref]] usable in generated code (e.g.
-      * macwire-style wiring, where the enclosing method's parameters are candidates).
+      * including `implicit`/`using` clauses), each with a [[Enclosure.Parameter.ref]] usable in generated code.
       *
       * Only the closest method counts: lambdas between the expansion and the method are skipped (their parameters are
       * not included), and a class/object/package boundary ends the search - so a macro expanded in a class body (also
