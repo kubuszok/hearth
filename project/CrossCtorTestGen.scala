@@ -1214,59 +1214,46 @@ object CrossCtorTestGen {
          |
          |""".stripMargin
 
-    // Group 1: testTypeOfWithImportedCtor1
     sb ++= genSpecImportedCtor1()
     sb ++= "\n"
 
-    // Group 2: testCtorAsUntyped
     sb ++= genSpecCtorAsUntyped(maxArity)
     sb ++= "\n"
 
-    // Group 3: testCtorSetAsUntyped
     sb ++= genSpecCtorSetAsUntyped(maxArity)
     sb ++= "\n"
 
-    // Group 4: testTypeOfWithCtorNHigher
     sb ++= genSpecTypeOfWithCtorNHigher(maxArity)
     sb ++= "\n"
 
-    // Group 5: testExprQuoteWithCtorNBody
     sb ++= genSpecExprQuoteWithCtorNBody(maxArity)
     sb ++= "\n"
 
-    // Group 6: testCtorFromUntyped
     sb ++= genSpecCtorFromUntyped(maxArity)
     sb ++= "\n"
 
-    // Group 7: testCtorExtractN
     sb ++= genSpecCtorExtractN(maxArity)
     sb ++= "\n"
 
-    // Group 8: testCtorSetApplyUnapply
     sb ++= genSpecCtorSetApplyUnapply(maxArity)
     sb ++= "\n"
 
-    // Group 9: testCtorSetMiddleAsUntyped
     sb ++= genSpecCtorSetMiddleAsUntyped(maxArity)
     sb ++= "\n"
 
-    // Group 10: testTypeOfWithDirectCtorValDef
     sb ++= genSpecDirectCtorValDef()
     sb ++= "\n"
 
-    // Group 11: testCtorsOnSingleton
     sb ++= genSpecCtorsOnSingleton(maxArity)
     sb ++= "\n"
 
-    // Group 12: testCtorUnapplyOnSubtypes
     sb ++= genSpecCtorUnapplyOnSubtypes(maxArity)
     sb ++= "\n"
 
-    // Group 11: testTypeOfWithCtorNContextBound
     sb ++= genSpecCtorContextBound(maxArity)
     sb ++= "\n"
 
-    // Group 12: Hand-written HKT tests
+    // Hand-written HKT tests
     sb ++=
       """    group("for Expr.quote and Type.of with HKT type parameters") {
         |
@@ -1286,7 +1273,7 @@ object CrossCtorTestGen {
         |""".stripMargin
     sb ++= "\n"
 
-    // Group 13: Local type param in splice tests
+    // Local type param in splice tests
     sb ++=
       """    group("for Type.of with local type params inside Expr.splice inside Expr.quote") {
         |
@@ -1314,7 +1301,7 @@ object CrossCtorTestGen {
         |""".stripMargin
     sb ++= "\n"
 
-    // Group 14: Nested quote tests
+    // Nested quote tests
     sb ++=
       """    group("for nested Expr.quote inside Expr.splice inside Expr.quote") {
         |
@@ -1346,7 +1333,7 @@ object CrossCtorTestGen {
         |""".stripMargin
     sb ++= "\n"
 
-    // Group: CtorK1 tests
+    // CtorK1 tests
     sb ++=
       """    group("for Type.CtorK1 (higher-kinded type constructors)") {
         |

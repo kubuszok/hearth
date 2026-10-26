@@ -29,7 +29,7 @@ private[hearth] object DirectStyleExecutor {
       )
       .fold(throw _, identity)
 
-  /** Virtual threads are only available on JVM and only from JDK 17+.
+  /** Virtual threads are only available on JVM and only from JDK 21+.
     *
     * So we need to discover if they are available and fall back if they are not.
     *
@@ -37,10 +37,8 @@ private[hearth] object DirectStyleExecutor {
     */
   implicit val ec: ExecutionContext = ExecutionContext.fromExecutorService {
     try
-      //  Use virtual thread from JDK 17+ if available
       newVirtualThreadPerTaskExecutor()
     catch {
-      // Fallback to normal thread if virtual threads are not available
       case _: Throwable => new FallbackExecutor
     }
   }
@@ -71,7 +69,6 @@ private[hearth] object DirectStyleExecutor {
       t.start()
     }
 
-    // ---- lifecycle ----
     override def shutdown(): Unit =
       if (shutdownFlag.compareAndSet(false, true))
         ignore(phaser.arriveAndDeregister())

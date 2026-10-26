@@ -26,7 +26,6 @@ final class IsCollectionProviderForJavaBitSet extends StandardMacroExtension { l
 
       private def isBitSet[A](A: Type[A]): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Int](new IsCollectionOf[A, Int] {
-          // We will use Iterable.unfold to iterate over the set bit indices.
           override def asIterable(value: Expr[A]): Expr[Iterable[Int]] = Expr.quote {
             val bitSet = Expr.splice(value).asInstanceOf[java.util.BitSet]
             Iterable.unfold(bitSet.nextSetBit(0)) { currentValue =>

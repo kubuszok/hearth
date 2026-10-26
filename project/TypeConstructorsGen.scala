@@ -137,7 +137,7 @@ object TypeConstructorsGen {
         |                case _ => None
         |              }
         |          }
-        |          // [hearth#384] an ordinary alias (`type X = HKT[...]`) has no outer `AppliedType` shape - retry on the
+        |          // An ordinary alias (`type X = HKT[...]`) has no outer `AppliedType` shape - retry on the
         |          // dealiased type (opaque types are kept by `dealias`, so opaque boundaries are preserved).
         |          matchRepr(rawRepr).orElse {
         |            val dealiased = rawRepr.dealias
@@ -172,7 +172,7 @@ object TypeConstructorsGen {
         |                case _ => None
         |              }
         |          }
-        |          // [hearth#384] see `FromUntypedImpl.unapply`
+        |          // An ordinary alias has no outer `AppliedType` shape - retry on the dealiased type.
         |          matchRepr(rawRepr).orElse {
         |            val dealiased = rawRepr.dealias
         |            if (dealiased == rawRepr) None else matchRepr(dealiased)
@@ -202,12 +202,10 @@ object TypeConstructorsGen {
     val cn = ArityGen.ctorName(n)
     val sb = new StringBuilder
 
-    // Type alias
     sb ++= s"    final type $cn[HKT[${ArityGen.simpleHktSlots(n)}]] = $cn.Bounded[${ArityGen.nothingAnyPairs(n)}, HKT]\n"
     sb ++= s"    object $cn {\n"
     sb ++= s"\n"
 
-    // of method
     sb ++= s"      /** Summons the `$cn` for a higher-kinded type constructor `HKT` ($n type param(s)), enabling `apply`/`unapply`\n"
     sb ++= s"        * on `Type`s across Scala 2 and 3.\n"
     sb ++= s"        *\n"
@@ -226,11 +224,9 @@ object TypeConstructorsGen {
     sb ++= s"""      def of[HKT[${ArityGen.simpleHktSlots(n)}]]: $cn[HKT] = sys.error("Install cross-quotes-plugin to use this method")\n"""
     sb ++= s"\n"
 
-    // fromUntyped method
     sb ++= s"      def fromUntyped[HKT[${ArityGen.simpleHktSlots(n)}]](untyped: UntypedType): $cn[HKT] = new Bounded.FromUntypedImpl[${ArityGen.nothingAnyPairs(n)}, HKT](untyped)\n"
     sb ++= s"\n"
 
-    // Bounded trait
     sb ++= s"      /** Allow applying and extracting some types `${boundsDoc(n)}` */\n"
     if (n == 1) {
       sb ++= s"      trait Bounded[${ArityGen.boundsPairs(n)}, HKT[${ArityGen.hktSlots(n)}]] {\n"
@@ -249,7 +245,6 @@ object TypeConstructorsGen {
     sb ++= s"          */\n"
     sb ++= s"        final def sameTypeConstructorAs(other: UntypedType): Boolean = UntypedType.sameTypeConstructorAs(asUntyped, other)\n"
 
-    // set methods
     for (pos <- 0 until n) {
       sb ++= s"\n"
       sb ++= setMethod3(n, pos)
@@ -257,13 +252,12 @@ object TypeConstructorsGen {
 
     sb ++= s"      }\n"
 
-    // Bounded companion object
     sb ++= s"      object Bounded {\n"
     sb ++= s"\n"
     sb ++= s"        /** Like `of`, but pins upper (and, for `Bounded`, lower) bounds on the constructor's type parameters.\n"
     sb ++= s"          *\n"
-    sb ++= s"          * Rewritten by Cross-Quotes on '''both''' Scala 2 (macro) and Scala 3 (compiler plugin, since\n"
-    sb ++= s"          * hearth#344). Bounds let `apply`/`unapply` respect `<:`/`>:` constraints on `HKT`.\n"
+    sb ++= s"          * Rewritten by Cross-Quotes on '''both''' Scala 2 (macro) and Scala 3 (compiler plugin).\n"
+    sb ++= s"          * Bounds let `apply`/`unapply` respect `<:`/`>:` constraints on `HKT`.\n"
     sb ++= s"          *\n"
     sb ++= s"          * @see `Type.$cn.of`\n"
     sb ++= s"          *\n"
@@ -273,17 +267,14 @@ object TypeConstructorsGen {
     sb ++= s"""        def of[${ArityGen.boundsPairs(n)}, HKT[${ArityGen.hktSlots(n)}]]: Bounded[${boundsAndHkt(n)}] = sys.error("Install cross-quotes-plugin to use this method")\n"""
     sb ++= s"\n"
 
-    // FromUntypedImpl
     sb ++= fromUntypedImpl3(n)
     sb ++= s"\n"
 
-    // Impl
     sb ++= impl3(n)
 
     sb ++= s"      }\n"
     sb ++= s"\n"
 
-    // UpperBounded
     sb ++= upperBounded3(n)
     sb ++= s"    }\n"
     sb ++= s"\n"
@@ -325,7 +316,6 @@ object TypeConstructorsGen {
         s"$name >: ${ArityGen.lower(i)} <: ${ArityGen.upper(i)}: Type"
       }.mkString(", ")
 
-      // unapply
       val unapplyReturn = boundsOptionType(remaining)
       val allLVars = lVars(n)
       val keptLVars = remaining.map(i => s"l$i")
@@ -384,7 +374,6 @@ object TypeConstructorsGen {
     sb ++= s"        class FromUntypedImpl[${ArityGen.boundsPairs(n)}, HKT[${ArityGen.hktSlots(n)}]](hktRepr: UntypedType) extends Bounded[${boundsAndHkt(n)}] {\n"
     sb ++= s"          def asUntyped: UntypedType = hktRepr\n"
 
-    // apply
     sb ++= s"          def apply[${ArityGen.applyParams(n)}]: Type[HKT[${allParams(n)}]] = {\n"
     sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
     sb ++= s"            import quotes.reflect.*\n"
@@ -396,7 +385,6 @@ object TypeConstructorsGen {
     sb ++= s"            hktRepr.asInstanceOf[TypeRepr].appliedTo(List($reprList)).asType.asInstanceOf[Type[HKT[${allParams(n)}]]]\n"
     sb ++= s"          }\n"
 
-    // unapply
     sb ++= s"          def unapply[A](A: Type[A]): Option[${boundsTuple(n)}] = {\n"
     sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
     sb ++= s"            import quotes.reflect.*\n"
@@ -417,7 +405,7 @@ object TypeConstructorsGen {
     sb ++= s"                  case _ => None\n"
     sb ++= s"                }\n"
     sb ++= s"            }\n"
-    // [hearth#384] an ordinary alias (`type X = HKT[...]`, e.g. Iron's `type AtLeastTwo = List[Int] :| MinLength[2]`)
+    // An ordinary alias (`type X = HKT[...]`, e.g. Iron's `type AtLeastTwo = List[Int] :| MinLength[2]`)
     // has no outer `AppliedType` shape and its `baseType` does not recover an opaque application - retry on the
     // dealiased type. `dealias` keeps opaque types, so opaque boundaries are preserved.
     sb ++= s"            matchRepr(rawRepr).orElse {\n"
@@ -433,9 +421,8 @@ object TypeConstructorsGen {
   private def impl3(n: Int): String = {
     val sb = new StringBuilder
 
-    // Class header
-    sb ++= s"        // We cannot use a macro here, we have to use compiler plugin, but at least, we at least\n"
-    sb ++= s"        // we can extract the body, so that only the `scala.quotes.Type` would be generated by the plugin.\n"
+    sb ++= s"        // This cannot be a macro - the compiler plugin rewrites `of` into it. With the body kept here,\n"
+    sb ++= s"        // the plugin only has to provide the `scala.quoted.Type`s.\n"
 
     val implParams = (1 to n).flatMap { i =>
       Seq(s"${ArityGen.lower(i)}: scala.quoted.Type", s"${ArityGen.upper(i)} >: ${ArityGen.lower(i)}: scala.quoted.Type")
@@ -470,13 +457,11 @@ object TypeConstructorsGen {
     sb ++= s"            (quotes.reflect.defn.NothingClass, quotes.reflect.defn.NullClass)\n"
     sb ++= s"          }\n"
 
-    // asUntyped
     sb ++= s"          def asUntyped: UntypedType = {\n"
     sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
     sb ++= s"            quotes.reflect.TypeRepr.of[HKT].asInstanceOf[UntypedType]\n"
     sb ++= s"          }\n"
 
-    // apply
     sb ++= s"          @scala.annotation.nowarn\n"
     sb ++= s"          def apply[${ArityGen.applyParams(n)}]: Type[HKT[${allParams(n)}]] = {\n"
     sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
@@ -498,13 +483,12 @@ object TypeConstructorsGen {
     sb ++= s"            scala.quoted.Type.of[HKT[${allParams(n)}]].asInstanceOf[Type[HKT[${allParams(n)}]]]\n"
     sb ++= s"          }\n"
 
-    // unapply
     sb ++= s"          def unapply[A](A: Type[A]): Option[${boundsTuple(n)}] = {\n"
     sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
 
     // Fast path (perf): when the scrutinee's dealiased head symbol IS the constructor's, the type is HKT applied to
     // the dealiased type's own arguments - extract them directly instead of running the (much costlier) QuoteMatcher.
-    // Wildcard arguments (TypeBounds, see #307) and everything else falls through to the full quote-pattern match,
+    // Wildcard arguments (TypeBounds) and everything else falls through to the full quote-pattern match,
     // which stays the source of truth for subtype-conformance matching (e.g. Vector[Int] against Seq).
     val fastPathArgs = (0 until n).map(i => s"arg$i").mkString(", ")
     val fastPathGuard = (0 until n).map(i => s"!fastPathIsWildcard(arg$i)").mkString(" && ")
@@ -600,8 +584,8 @@ object TypeConstructorsGen {
     sb ++= s"\n"
     sb ++= s"        /** Like `of`, but pins upper bounds on the constructor's type parameters.\n"
     sb ++= s"          *\n"
-    sb ++= s"          * Rewritten by Cross-Quotes on '''both''' Scala 2 (macro) and Scala 3 (compiler plugin, since\n"
-    sb ++= s"          * hearth#344). Bounds let `apply`/`unapply` respect `<:` constraints on `HKT`.\n"
+    sb ++= s"          * Rewritten by Cross-Quotes on '''both''' Scala 2 (macro) and Scala 3 (compiler plugin).\n"
+    sb ++= s"          * Bounds let `apply`/`unapply` respect `<:` constraints on `HKT`.\n"
     sb ++= s"          *\n"
     sb ++= s"          * @see `Type.${ArityGen.ctorName(n)}.of`\n"
     sb ++= s"          *\n"
@@ -704,12 +688,10 @@ object TypeConstructorsGen {
     val cn = ArityGen.ctorName(n)
     val sb = new StringBuilder
 
-    // Type alias
     sb ++= s"    final type $cn[HKT[${ArityGen.simpleHktSlots(n)}]] = $cn.Bounded[${ArityGen.nothingAnyPairs(n)}, HKT]\n"
     sb ++= s"    object $cn {\n"
     sb ++= s"\n"
 
-    // of method (macro)
     sb ++= s"      /** Summons the `$cn` for a higher-kinded type constructor `HKT` ($n type param(s)), enabling `apply`/`unapply`\n"
     sb ++= s"        * on `Type`s across Scala 2 and 3.\n"
     sb ++= s"        *\n"
@@ -727,11 +709,9 @@ object TypeConstructorsGen {
     sb ++= s"      def of[HKT[${ArityGen.simpleHktSlots(n)}]]: $cn[HKT] = macro CrossQuotesMacros.typeCtor${n}Impl[${ArityGen.nothingAnyPairs(n)}, HKT]\n"
     sb ++= s"\n"
 
-    // fromUntyped method (macro)
     sb ++= s"      def fromUntyped[HKT[${ArityGen.simpleHktSlots(n)}]](untyped: UntypedType): $cn[HKT] = macro CrossQuotesMacros.typeCtor${n}FromUntypedImpl[${ArityGen.nothingAnyPairs(n)}, HKT]\n"
     sb ++= s"\n"
 
-    // Bounded trait
     sb ++= s"      /** Allow applying and extracting some types `${boundsDoc(n)}` */\n"
     if (n == 1) {
       sb ++= s"      trait Bounded[${ArityGen.boundsPairs(n)}, HKT[${ArityGen.hktSlots(n)}]] {\n"
@@ -754,7 +734,6 @@ object TypeConstructorsGen {
     sb ++= s"          */\n"
     sb ++= s"        final def sameTypeConstructorAs(other: UntypedType): Boolean = UntypedType.sameTypeConstructorAs(asUntyped, other)\n"
 
-    // set methods
     for (pos <- 0 until n) {
       sb ++= s"\n"
       sb ++= setMethod2(n, pos)
@@ -762,7 +741,6 @@ object TypeConstructorsGen {
 
     sb ++= s"      }\n"
 
-    // Bounded companion object
     sb ++= s"      object Bounded {\n"
     if (n >= 4) {
       sb ++= s"\n"
@@ -781,11 +759,10 @@ object TypeConstructorsGen {
     sb ++= s"        }\n"
     sb ++= s"\n"
 
-    // Bounded.of (macro)
     sb ++= s"        /** Like `of`, but pins upper (and, for `Bounded`, lower) bounds on the constructor's type parameters.\n"
     sb ++= s"          *\n"
-    sb ++= s"          * Rewritten by Cross-Quotes on '''both''' Scala 2 (macro) and Scala 3 (compiler plugin, since\n"
-    sb ++= s"          * hearth#344). Bounds let `apply`/`unapply` respect `<:`/`>:` constraints on `HKT`.\n"
+    sb ++= s"          * Rewritten by Cross-Quotes on '''both''' Scala 2 (macro) and Scala 3 (compiler plugin).\n"
+    sb ++= s"          * Bounds let `apply`/`unapply` respect `<:`/`>:` constraints on `HKT`.\n"
     sb ++= s"          *\n"
     sb ++= s"          * @see `Type.$cn.of`\n"
     sb ++= s"          *\n"
@@ -795,10 +772,8 @@ object TypeConstructorsGen {
     sb ++= s"      }\n"
     sb ++= s"\n"
 
-    // UpperBounded
     sb ++= upperBounded2(n)
 
-    // Apply & Stub type aliases
     sb ++= s"\n"
     sb ++= s"      // Used inside the macro, because apparently applying TypeName or existential type to HKT[_] is not possible.\n"
     sb ++= s"      // But using a type alias and applying values to it finished without c.typecheck errors.\n"
@@ -842,7 +817,6 @@ object TypeConstructorsGen {
         s"$name >: ${ArityGen.lower(i)} <: ${ArityGen.upper(i)}: Type"
       }.mkString(", ")
 
-      // unapply
       val unapplyReturn = boundsOptionType(remaining)
       val allLVars = lVars(n)
       val keptLVars = remaining.map(i => s"l$i")
@@ -902,8 +876,8 @@ object TypeConstructorsGen {
     sb ++= s"\n"
     sb ++= s"        /** Like `of`, but pins upper bounds on the constructor's type parameters.\n"
     sb ++= s"          *\n"
-    sb ++= s"          * Rewritten by Cross-Quotes on '''both''' Scala 2 (macro) and Scala 3 (compiler plugin, since\n"
-    sb ++= s"          * hearth#344). Bounds let `apply`/`unapply` respect `<:` constraints on `HKT`.\n"
+    sb ++= s"          * Rewritten by Cross-Quotes on '''both''' Scala 2 (macro) and Scala 3 (compiler plugin).\n"
+    sb ++= s"          * Bounds let `apply`/`unapply` respect `<:` constraints on `HKT`.\n"
     sb ++= s"          *\n"
     sb ++= s"          * @see `Type.${ArityGen.ctorName(n)}.of`\n"
     sb ++= s"          *\n"

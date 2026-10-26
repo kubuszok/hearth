@@ -33,17 +33,15 @@
   *   val Map:  Type.Ctor2[Map]  = Type.Ctor2.of[Map]  // shadows scala.Map/Seq
   * }}}
   *
-  * When the emitted `unapply` used a bare `List(...)` / `Seq(...)` extractor, it
-  * resolved to the user's `Type.CtorN` value instead of the collection companion,
-  * producing baffling `Nothing <:??<: Any` type-mismatch errors deep inside the
-  * generated code (kubuszok/hearth#300).
+  * A bare `List(...)` / `Seq(...)` extractor in the emitted `unapply` would resolve
+  * to the user's `Type.CtorN` value instead of the collection companion, producing
+  * baffling `Nothing <:??<: Any` type-mismatch errors deep inside the generated code.
   *
   * RULE: anything with a stable full path MUST be written as `_root_.scala.<X>` (or
   * `_root_.pkg.<X>`) in the emitted strings — never bare. Path-dependent members of
   * the macro bundle (`Type`, `CrossQuotes`, `<:??<:`, `as_<:??<:`) resolve through
   * the enclosing `this` and cannot be `_root_`-qualified; those stay bare by
   * necessity, but every `scala.*` reference here is fully qualified on purpose.
-  * This was originally sanitized and got lost across rewrites — keep it sanitized.
   */
 object CrossQuotesMacrosGen {
 
@@ -94,21 +92,16 @@ object CrossQuotesMacrosGen {
     val cn = ArityGen.ctorName(n)
     val sb = new StringBuilder
 
-    // Comment block
     sb ++= s"  /* Replaces:\n"
     sb ++= s"   *   Type.$cn.of[HKT]\n"
     sb ++= s"   *   Type.$cn.UpperBounded.of[${upperBoundedOfArgs(n)}, HKT]\n"
     sb ++= s"   *   Type.$cn.Bounded.of[${boundedOfArgs(n)}, HKT]\n"
-    sb ++= s"   * with:\n"
-    sb ++= s"   *   what we see in Quasiquote\n"
     sb ++= s"   */\n"
 
-    // Method signature
     sb ++= s"  // format: off\n"
     sb ++= s"  protected def typeCtor${n}Body[${ArityGen.boundsPairs(n)}, HKT[${ArityGen.hktSlots(n)}]](implicit\n"
     sb ++= s"  // format: on\n"
 
-    // Implicit parameters
     for (i <- 1 to n) {
       sb ++= s"      ${ArityGen.lower(i)}: c.WeakTypeTag[${ArityGen.lower(i)}],\n"
       sb ++= s"      ${ArityGen.upper(i)}: c.WeakTypeTag[${ArityGen.upper(i)}],\n"
@@ -116,24 +109,20 @@ object CrossQuotesMacrosGen {
     sb ++= s"      HKTE: c.WeakTypeTag[HKT[${ArityGen.questionMarks(n)}]]\n"
     sb ++= s"  ): c.Tree = try {\n"
 
-    // Assert
     sb ++= s"""    assert(HKTE.tpe.typeParams.size == $n, "HKT must have exactly ${numberWords(n)} type parameter${if (n > 1) "s" else ""}")\n"""
     sb ++= s"\n"
 
-    // Val declarations
     sb ++= s"    val HKT = HKTE.tpe.typeConstructor\n"
     for (i <- 0 until n) {
       val p = ArityGen.paramName(i)
       sb ++= s"""    val $p = freshTypeName("$p") // ${i + 1}\n"""
     }
 
-    // appliedHKT
     val boundsArgs = (1 to n).flatMap(i => Seq(s"$$${ArityGen.lower(i)}", s"$$${ArityGen.upper(i)}")).mkString(", ")
     val paramArgs = (0 until n).map(i => s"$$${ArityGen.paramName(i)}").mkString(", ")
     sb ++= s"""    val appliedHKT = tq"Type.$cn.Apply[$boundsArgs, $$HKT, $paramArgs]"\n"""
     sb ++= s"\n"
 
-    // Fresh names
     sb ++= s"""    val ctx = freshName("ctx")\n"""
     sb ++= s"""    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")\n"""
     sb ++= s"""    val termInner = freshName("Inner")\n"""
@@ -191,7 +180,7 @@ object CrossQuotesMacrosGen {
     val tpList = (1 to n).map(i => s"tp$i").mkString(", ")
     sb ++= s"          case TypeRef(_, _, _root_.scala.List($tpList)) =>\n"
     sb ++= s"            matchResult($tpList)\n"
-    // [hearth#307] A WILDCARD type argument (`HKT[?]`, e.g. a `SomeFlag[?]` DSL member) makes `baseType` return a
+    // A WILDCARD type argument (`HKT[?]`, e.g. a `SomeFlag[?]` DSL member) makes `baseType` return a
     // PACKED `ExistentialType(_, TypeRef(...))` instead of a bare `TypeRef`, so the case above misses. Unwrap it here
     // (still `baseType`-symbol-based, so prefix-representation-independent) rather than falling through to the
     // structural-`==` fallback, which additionally misses when the constructor's prefix is captured via an alias.
@@ -218,7 +207,6 @@ object CrossQuotesMacrosGen {
     sb ++= s"    }\n"
     sb ++= s"\n"
 
-    // Call buildTree() and typecheck
     sb ++= s"    val unchecked = buildTree()\n"
     sb ++= s"    val result = suppressWarnings(c.typecheck(unchecked))\n"
     sb ++= s"\n"
@@ -242,17 +230,14 @@ object CrossQuotesMacrosGen {
     val cn = ArityGen.ctorName(n)
     val sb = new StringBuilder
 
-    // Comment block
     sb ++= s"  /* Creates:\n"
     sb ++= s"   *   Type.$cn.fromUntyped[HKT](untyped)\n"
     sb ++= s"   */\n"
 
-    // Method signature
     sb ++= s"  // format: off\n"
     sb ++= s"  protected def typeCtor${n}FromUntypedBody[${ArityGen.boundsPairs(n)}, HKT[${ArityGen.hktSlots(n)}]](untyped: c.Expr[Any])(implicit\n"
     sb ++= s"  // format: on\n"
 
-    // Implicit parameters
     for (i <- 1 to n) {
       sb ++= s"      ${ArityGen.lower(i)}: c.WeakTypeTag[${ArityGen.lower(i)}],\n"
       sb ++= s"      ${ArityGen.upper(i)}: c.WeakTypeTag[${ArityGen.upper(i)}],\n"
@@ -260,20 +245,17 @@ object CrossQuotesMacrosGen {
     sb ++= s"      HKTE: c.WeakTypeTag[HKT[${ArityGen.questionMarks(n)}]]\n"
     sb ++= s"  ): c.Tree = try {\n"
 
-    // Val declarations (no assert for fromUntyped)
     sb ++= s"    val HKT = HKTE.tpe.typeConstructor\n"
     for (i <- 0 until n) {
       val p = ArityGen.paramName(i)
       sb ++= s"""    val $p = freshTypeName("$p") // ${i + 1}\n"""
     }
 
-    // appliedHKT
     val boundsArgs = (1 to n).flatMap(i => Seq(s"$$${ArityGen.lower(i)}", s"$$${ArityGen.upper(i)}")).mkString(", ")
     val paramArgs = (0 until n).map(i => s"$$${ArityGen.paramName(i)}").mkString(", ")
     sb ++= s"""    val appliedHKT = tq"Type.$cn.Apply[$boundsArgs, $$HKT, $paramArgs]"\n"""
     sb ++= s"\n"
 
-    // Fresh names (no typeValue for fromUntyped)
     sb ++= s"""    val ctx = freshName("ctx")\n"""
     sb ++= s"""    val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")\n"""
     sb ++= s"""    val termInner = freshName("Inner")\n"""
@@ -328,7 +310,7 @@ object CrossQuotesMacrosGen {
     val tpList = (1 to n).map(i => s"tp$i").mkString(", ")
     sb ++= s"          case TypeRef(_, _, _root_.scala.List($tpList)) =>\n"
     sb ++= s"            matchResult($tpList)\n"
-    // [hearth#307] A WILDCARD type argument (`HKT[?]`, e.g. a `SomeFlag[?]` DSL member) makes `baseType` return a
+    // A WILDCARD type argument (`HKT[?]`, e.g. a `SomeFlag[?]` DSL member) makes `baseType` return a
     // PACKED `ExistentialType(_, TypeRef(...))` instead of a bare `TypeRef`, so the case above misses. Unwrap it here
     // (still `baseType`-symbol-based, so prefix-representation-independent) rather than falling through to the
     // structural-`==` fallback, which additionally misses when the constructor's prefix is captured via an alias.
@@ -355,7 +337,6 @@ object CrossQuotesMacrosGen {
     sb ++= s"    }\n"
     sb ++= s"\n"
 
-    // Call buildTree() and typecheck
     sb ++= s"    val unchecked = buildTree()\n"
     sb ++= s"    val result = suppressWarnings(c.typecheck(unchecked))\n"
     sb ++= s"\n"
@@ -415,9 +396,9 @@ object CrossQuotesMacrosGen {
     val exprIndent = " " * (baseIndent + 6) // aligning with inner Some(
     // Cast to `Type[U_i]` (the UPPER bound), not `Type[scala.Any]`: `as_<:??<:[L, U]` on a `Type[A]` requires `U >: A`,
     // so a `Type[scala.Any]` receiver would force `U >: Any` and reject any non-`Any` upper bound. For an unbounded
-    // ctor `U_i` is `Any`, so this is unchanged there; for a bounded ctor it makes `U >: U` hold trivially. See #307.
+    // ctor `U_i` is `Any`, so this is unchanged there; for a bounded ctor it makes `U >: U` hold trivially.
     //
-    // [hearth#307] `dealias` the extracted argument but do NOT `widen` it: widening decays a literal singleton
+    // `dealias` the extracted argument but do NOT `widen` it: widening decays a literal singleton
     // (`ConstantType`, e.g. the `"fieldName"` in `Path.Select["fieldName", _]`) to `java.lang.String`, and a
     // term singleton (`x.type`) to its widened type — an extractor must hand back the argument as written.
     if (n == 1) {

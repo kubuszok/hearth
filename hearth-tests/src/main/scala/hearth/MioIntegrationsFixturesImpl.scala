@@ -3,7 +3,6 @@ package hearth
 import hearth.data.Data
 import hearth.fp.effect.*
 
-/** Fixtures for testing [[MioIntegrationsSpec]]. */
 trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
 
   @scala.annotation.nowarn
@@ -38,12 +37,10 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
     // format: on
 
     val result = for {
-      // Test ofDef0 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def0Key", def0Builder)
       _ <- cacheLocal.buildCachedWith("def0Key", def0Builder)(_ => Expr.quote(0))
       def0Value <- cacheLocal.get0Ary[Int]("def0Key").map(_.fold(runtimeFail[Int])(identity))
 
-      // Test ofDef1 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def1Key", def1Builder)
       _ <- cacheLocal.buildCachedWith("def1Key", def1Builder) { case (_, a) =>
         Expr.quote(Expr.splice(a) * 10)
@@ -52,7 +49,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
         .get1Ary[Int, Int]("def1Key")
         .map(_.fold(runtimeFail[Int])(f => f(Expr.quote(1))))
 
-      // Test ofDef2 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def2Key", def2Builder)
       _ <- cacheLocal.buildCachedWith("def2Key", def2Builder) { case (_, (a, b)) =>
         Expr.quote((Expr.splice(a) + Expr.splice(b)) * 10)
@@ -61,7 +57,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
         .get2Ary[Int, Int, Int]("def2Key")
         .map(_.fold(runtimeFail[Int])(f => f(Expr.quote(1), Expr.quote(2))))
 
-      // Test ofDef3 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def3Key", def3Builder)
       _ <- cacheLocal.buildCachedWith("def3Key", def3Builder) { case (_, (a, b, c)) =>
         Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c)) * 10)
@@ -70,7 +65,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
         .get3Ary[Int, Int, Int, Int]("def3Key")
         .map(_.fold(runtimeFail[Int])(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3))))
 
-      // Test ofDef4 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def4Key", def4Builder)
       _ <- cacheLocal.buildCachedWith("def4Key", def4Builder) { case (_, (a, b, c, d)) =>
         Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d)) * 10)
@@ -79,7 +73,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
         .get4Ary[Int, Int, Int, Int, Int]("def4Key")
         .map(_.fold(runtimeFail[Int])(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4))))
 
-      // Test ofDef5 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def5Key", def5Builder)
       _ <- cacheLocal.buildCachedWith("def5Key", def5Builder) { case (_, (a, b, c, d, e)) =>
         Expr.quote((Expr.splice(a) + Expr.splice(b) + Expr.splice(c) + Expr.splice(d) + Expr.splice(e)) * 10)
@@ -90,7 +83,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           _.fold(runtimeFail[Int])(f => f(Expr.quote(1), Expr.quote(2), Expr.quote(3), Expr.quote(4), Expr.quote(5)))
         )
 
-      // Test ofDef6 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def6Key", def6Builder)
       _ <- cacheLocal.buildCachedWith("def6Key", def6Builder) { case (_, (a, b, c, d, e, f)) =>
         Expr.quote(
@@ -105,7 +97,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef7 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def7Key", def7Builder)
       _ <- cacheLocal.buildCachedWith("def7Key", def7Builder) { case (_, (a, b, c, d, e, f, g)) =>
         Expr.quote(
@@ -121,7 +112,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef8 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def8Key", def8Builder)
       _ <- cacheLocal.buildCachedWith("def8Key", def8Builder) { case (_, (a, b, c, d, e, f, g, h)) =>
         Expr.quote(
@@ -146,7 +136,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef9 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def9Key", def9Builder)
       _ <- cacheLocal.buildCachedWith("def9Key", def9Builder) { case (_, (a, b, c, d, e, f, g, h, i)) =>
         Expr.quote(
@@ -172,7 +161,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef10 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def10Key", def10Builder)
       _ <- cacheLocal.buildCachedWith("def10Key", def10Builder) { case (_, (a, b, c, d, e, f, g, h, i, j)) =>
         Expr.quote(
@@ -199,7 +187,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef11 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def11Key", def11Builder)
       _ <- cacheLocal.buildCachedWith("def11Key", def11Builder) { case (_, (a, b, c, d, e, f, g, h, i, j, k)) =>
         Expr.quote(
@@ -227,7 +214,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef12 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def12Key", def12Builder)
       _ <- cacheLocal.buildCachedWith("def12Key", def12Builder) { case (_, (a, b, c, d, e, f, g, h, i, j, k, l)) =>
         Expr.quote(
@@ -257,7 +243,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef13 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def13Key", def13Builder)
       _ <- cacheLocal.buildCachedWith("def13Key", def13Builder) { case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m)) =>
         Expr.quote(
@@ -288,7 +273,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef14 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def14Key", def14Builder)
       _ <- cacheLocal.buildCachedWith("def14Key", def14Builder) {
         case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n)) =>
@@ -321,7 +305,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef15 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def15Key", def15Builder)
       _ <- cacheLocal.buildCachedWith("def15Key", def15Builder) {
         case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)) =>
@@ -355,7 +338,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef16 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def16Key", def16Builder)
       _ <- cacheLocal.buildCachedWith("def16Key", def16Builder) {
         case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)) =>
@@ -390,7 +372,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef17 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def17Key", def17Builder)
       _ <- cacheLocal.buildCachedWith("def17Key", def17Builder) {
         case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)) =>
@@ -426,7 +407,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef18 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def18Key", def18Builder)
       _ <- cacheLocal.buildCachedWith("def18Key", def18Builder) {
         case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)) =>
@@ -466,7 +446,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef19 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def19Key", def19Builder)
       _ <- cacheLocal.buildCachedWith("def19Key", def19Builder) {
         case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)) =>
@@ -507,7 +486,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef20 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def20Key", def20Builder)
       _ <- cacheLocal.buildCachedWith("def20Key", def20Builder) {
         case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)) =>
@@ -569,7 +547,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef21 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def21Key", def21Builder)
       _ <- cacheLocal.buildCachedWith("def21Key", def21Builder) {
         case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)) =>
@@ -633,7 +610,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
           )
         )
 
-      // Test ofDef22 with forwardDeclare
       _ <- cacheLocal.forwardDeclare("def22Key", def22Builder)
       _ <- cacheLocal.buildCachedWith("def22Key", def22Builder) {
         case (_, (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v)) =>
@@ -782,27 +758,20 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
     )
   }
 
-  /** Test for ValDefsCache shared-parallel semantics with parMap2.
-    *
-    * With `MLocal.unsafeSharedParallel`, the ValDefsCache is shared across parallel branches:
-    *   - Branch A builds the cached entry (via `buildCachedWith`)
-    *   - Branch B sees branch A's entry already in the cache (via shared state)
-    *   - Branch B checks the cache before building, finds it, and reuses it
-    *   - No duplicate definitions — single `lazy val` in the output
+  /** With `MLocal.unsafeSharedParallel` the ValDefsCache is shared across parallel branches, so branch B finds the
+    * entry branch A built and reuses it - the output must contain a single `lazy val`, not a duplicate.
     */
   @scala.annotation.nowarn
-  def testValDefsCacheParMap2MergeBug: Expr[Data] = {
+  def testValDefsCacheParMap2SharesEntry: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
 
     val cacheLocal = ValDefsCache.mlocal
 
-    // Branch A builds the cached lazy val.
     val branchA: MIO[Expr[Int]] = for {
       _ <- cacheLocal.buildCachedWith("shared-lazy-int", ValDefBuilder.ofLazy[Int]("lazyInt"))(_ => Expr.quote(42))
       value <- cacheLocal.get0Ary[Int]("shared-lazy-int").map(_.fold(runtimeFail[Int])(identity))
     } yield value
 
-    // Branch B checks the cache first — with shared-parallel semantics, it sees branch A's entry.
     val branchB: MIO[Expr[Int]] = for {
       existing <- cacheLocal.get0Ary[Int]("shared-lazy-int")
       value <- existing match {
@@ -817,7 +786,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
       }
     } yield value
 
-    // With shared-parallel: branch B sees A's cache, checks it, and reuses the existing entry.
     val result = for {
       values <- branchA.parMap2(branchB)((a, b) => (a, b))
       cache <- cacheLocal.get
@@ -825,14 +793,11 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
       Expr.quote(Data(Expr.splice(values._1) + Expr.splice(values._2)))
     }
 
-    result.runToExprOrFail("testValDefsCacheParMap2MergeBug")((_, _) => "")
+    result.runToExprOrFail("testValDefsCacheParMap2SharesEntry")((_, _) => "")
   }
 
-  /** Test that calling `buildCachedWith` for an already-built key+signature produces a [[HearthRequirementError]].
-    *
-    * With shared-parallel semantics, if two branches both blindly call `buildCachedWith` for the same key, the second
-    * call detects that the key is already fully built and fails. Users should check the cache (via `get*` methods)
-    * before building.
+  /** With a shared cache, building an already-built key+signature is an error (a [[HearthRequirementError]]) rather
+    * than a silent duplicate definition - users have to check the cache with `get*` first.
     */
   @scala.annotation.nowarn
   def testValDefsCacheParMap2DuplicateBuildError: Expr[Data] = {
@@ -863,8 +828,6 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
     val (_, outcome) = result.unsafe.runSync
     Expr(outcome.getOrElse(Data("mio-failed")))
   }
-
-  // types using in fixtures
 
   private val IntType = Type.of[Int]
 

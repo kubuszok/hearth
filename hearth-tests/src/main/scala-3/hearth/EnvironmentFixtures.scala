@@ -8,8 +8,6 @@ final private class EnvironmentFixtures(q: Quotes) extends MacroCommonsScala3(us
 
 object EnvironmentFixtures {
 
-  // [hearth#176]
-
   inline def testPosition: Data = ${ testPositionImpl }
   private def testPositionImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(q).testPosition
 

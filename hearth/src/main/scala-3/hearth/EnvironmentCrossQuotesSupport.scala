@@ -9,9 +9,8 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
   /** Scala 3 needs to provide some platform-specific utilities to use in the compiler plugin. */
   private[hearth] trait CrossQuotesSupport { this: CrossQuotes.type =>
 
-    // Utilities to convert between Type[A] <=> scala.quoted.Type[A] and Expr[A] <=> scala.quoted.Expr[A].
-    // This is useful because type-inference in compiler plugins is a PITA, and expressing casting like that
-    // allow us to use it.
+    // Type inference in compiler plugins is hard to get right, so the plugin converts between Type[A] <=>
+    // scala.quoted.Type[A] and Expr[A] <=> scala.quoted.Expr[A] by calling these casts.
 
     final inline def typeCrossToQuotes[A](tpe: Type[A]): scala.quoted.Type[A] = tpe.asInstanceOf[scala.quoted.Type[A]]
     final inline def typeQuotesToCross[A](tpe: scala.quoted.Type[A]): Type[A] = tpe.asInstanceOf[Type[A]]
@@ -42,7 +41,7 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
         currentCtx = oldContext
     }
 
-    /** [hearth#317/#318] Runs `thunk` with the macro-ENTRY `Quotes` pinned as the active Cross-Quotes context. */
+    /** Runs `thunk` with the macro-ENTRY `Quotes` pinned as the active Cross-Quotes context. */
     final def withMacroEntryCtx[A](thunk: => A): A = {
       val oldContext = currentCtx
       currentCtx = macroEntryCtx
@@ -115,7 +114,7 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
     * first-touched during that splice — belongs to that ONE splice evaluation. Reusing them in another evaluation (e.g.
     * deriving a second instance in the same expansion) then aborts on Scala 3 with
     * `ScopeException: Expression created in a splice was used outside of that splice`. Wrapping the derivation in
-    * `withMacroEntryCtx` makes those values ENTRY-scoped, so they are usable across evaluations. See issues #317/#318.
+    * `withMacroEntryCtx` makes those values ENTRY-scoped, so they are usable across evaluations.
     *
     * @since 0.4.1
     */

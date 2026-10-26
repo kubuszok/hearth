@@ -3,10 +3,7 @@ package typed
 
 import hearth.data.Data
 
-/** Fixtures for testing [[TypesSpec]] and [[TypesJvmSpec]]. */
 trait TypesFixturesImpl { this: MacroCommons =>
-
-  // Type methods
 
   def testNamesPrinters[A: Type]: Expr[Data] = Expr(
     Data.map(
@@ -29,10 +26,8 @@ trait TypesFixturesImpl { this: MacroCommons =>
     )
   )
 
-  /** Exercises the type-hierarchy accessors `Type.isTrait`, `Type.parents` and `Type.baseClasses`. The exact parent
-    * lists differ across platforms/versions (Object/Any/Serializable/Product orderings), so we assert stable structural
-    * facts: whether `Parent` is among the direct parents / base classes, and that the self type and `scala.Any` are
-    * always among the base classes.
+  /** The exact parent lists differ across platforms/versions (Object/Any/Serializable/Product orderings), so only facts
+    * stable everywhere are reported.
     */
   def testTypeHierarchy[A: Type, Parent: Type]: Expr[Data] = {
     val parents = Type.parents[A]
@@ -45,7 +40,6 @@ trait TypesFixturesImpl { this: MacroCommons =>
         "baseClassesContainsParent" -> Data(containsType(baseClasses, Type[Parent].as_??)),
         "baseClassesContainsSelf" -> Data(containsType(baseClasses, Type[A].as_??)),
         "baseClassesContainsAny" -> Data(containsType(baseClasses, Type.of[Any].as_??)),
-        // The full linearization (baseClasses) is at least as long as the direct parents.
         "baseClassesAtLeastParents" -> Data(baseClasses.size >= parents.size)
       )
     )
@@ -180,8 +174,6 @@ trait TypesFixturesImpl { this: MacroCommons =>
       "=:=" -> Data(Type[A] =:= Type[B])
     )
   )
-
-  // TypeCodecs
 
   def testBidirectionalCodecs: Expr[Data] = {
     implicit val it: Type[Int] = intType
@@ -652,9 +644,6 @@ trait TypesFixturesImpl { this: MacroCommons =>
     )
   }
 
-  // Type constructor discovery (issue #284):
-  // Type.{typeArguments, decompose1, decompose2}, Ctor.sameTypeConstructorAs, CtorK1 + summoning
-
   def testTypeArguments[A: Type]: Expr[Data] = Expr(
     Data.map(
       "Type.typeArguments" -> Data.list(Type.typeArguments[A].map(arg => Data(arg.plainPrint))*)
@@ -702,10 +691,6 @@ trait TypesFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Mini-Functor-derivation flow: for each field `g: G[X]` of a case class, discovers `G` and `X` via
-    * `Type.decompose1`, compares `G` against literal constructors, re-applies `G` to another type, and summons
-    * `MyTC[G]` for the discovered `G` (via `Type.CtorK1`).
-    */
   def testMiniFunctorDerivation[A: Type]: Expr[Data] = {
     import hearth.examples.kinds.MyTC
     implicit val StringType: Type[String] = stringType
@@ -733,9 +718,7 @@ trait TypesFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Summons `MyTC[G]` for `G` discovered via `Type.decompose1` and splices the instance's `name` into the result, so
-    * the test asserts that the RIGHT instance was found (not just that something was found).
-    */
+  /** Returns the instance's `name`, to tell that the RIGHT instance was summoned, not just some instance. */
   def testDecomposeSummonName[A: Type]: Expr[String] = {
     import hearth.examples.kinds.{HasName, MyTC}
     val myTCCtor = Type.CtorK1.of[MyTC]
@@ -753,9 +736,6 @@ trait TypesFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Builds `Type[Alg[G]]` where BOTH `Alg` (kind `(* -> *) -> *`) and `G` (kind `* -> *`) are discovered during
-    * expansion: `Alg` via `UntypedType.typeConstructor` + `Type.CtorK1.fromUntyped`, `G` via `Type.decompose1`.
-    */
   def testCtorK1FromDiscoveredParts[A: Type]: Expr[Data] = {
     import hearth.examples.kinds.HigherKinded1
     val optionCtor = Type.Ctor1.of[Option]
@@ -875,7 +855,6 @@ trait TypesFixturesImpl { this: MacroCommons =>
     })
   }
 
-  /** The reference to the object, evaluated at runtime (`null` when there is none). */
   def testPseudoCompanionObjectValue[A: Type]: Expr[Any] = {
     implicit val AnyType: Type[Any] = Type.of[Any]
     Type.pseudoCompanionObject[A].fold(Expr.quote(null: Any)) { obj =>
@@ -899,7 +878,7 @@ trait TypesFixturesImpl { this: MacroCommons =>
   def testCtorK1OfOwnTypeParameter[Alg[_[_]]](ctor: Type.CtorK1[Alg]): Expr[String] =
     Expr(ctor.apply[Option](using Type.Ctor1.of[Option]).plainPrint)
 
-  // Type.Lazy: the deferred type must behave like an eagerly-initialized one even when its FIRST touch happens
+  // The deferred type must behave like an eagerly-initialized one even when its FIRST touch happens
   // inside an `Expr.splice` (a fresh nested Quotes on Scala 3) and it is then reused OUTSIDE that splice - the
   // pattern that breaks a plain `lazy val` with "Expression created in a splice was used outside of that splice".
   def testLazyTypeScopeSafety: Expr[Data] = {
@@ -922,8 +901,6 @@ trait TypesFixturesImpl { this: MacroCommons =>
       )
     }
   }
-
-  // types using in fixtures
 
   private val aStringType = Type.of["a"]
   private val bStringType = Type.of["b"]

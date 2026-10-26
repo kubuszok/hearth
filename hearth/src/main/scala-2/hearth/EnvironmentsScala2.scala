@@ -13,8 +13,8 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
     override def line(pos: Position): Int = pos.line
     override def column(pos: Position): Int = pos.column - macroPositionCorrection(pos)
 
-    // NOTE: slicing uses the RAW pos.start/pos.end (not macroPositionCorrection, which only adjusts reporting
-    // offsets) so we extract the exact source characters that the position spans.
+    // Slices with the RAW pos.start/pos.end: macroPositionCorrection only adjusts reporting offsets, applying it here
+    // would cut the wrong characters.
     override def sourceCode(pos: Position): Option[String] = scala.util
       .Try {
         if (pos == c.universe.NoPosition) None
@@ -61,9 +61,7 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
 
     def decodedName(symbol: Symbol): String = symbol.name.decodedName.toString.trim
 
-    // Local `val`s declared inside the immediately-enclosing method body that are in scope at the macro-expansion
-    // point (declared textually BEFORE the macro call). This is the literal macwire case. `c.enclosingMethod` is
-    // deprecated but is the only way on Scala 2 to reach the enclosing `DefDef` body tree.
+    // `c.enclosingMethod` is deprecated but is the only way on Scala 2 to reach the enclosing `DefDef` body tree.
     @scala.annotation.nowarn("cat=deprecation")
     def localValuesOf(methodSymbol: Symbol): List[Enclosure.LocalValue] = scala.util
       .Try {
@@ -127,11 +125,8 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
         )
       } else if (symbol.isClass) {
         val classTpe: UntypedType = symbol.asClass.toType
-        // A trait/class may declare a self-type requirement (`this: Provider =>`); its members are visible on `this`
-        // but absent from `toType`. Fold the self-type in (as an intersection) so the enclosing scope exposes them —
-        // wiring/DI draws candidates from `Enclosure.Class.members`. `typeOfThis` equals `toType` when there is no
-        // self-type, so non-self-typed classes are unaffected.
-        // `typeOfThis` (the type of `this`, including any self-type requirement) is only on the internal Symbol API.
+        // A self-type requirement (`this: Provider =>`) makes members visible on `this` that are absent from `toType`,
+        // so we use `typeOfThis` (equal to `toType` without a self-type) - it is only on the internal Symbol API.
         val selfTpe: UntypedType =
           symbol.asInstanceOf[scala.reflect.internal.Symbols#Symbol].typeOfThis.asInstanceOf[c.universe.Type]
         val tpe: UntypedType =

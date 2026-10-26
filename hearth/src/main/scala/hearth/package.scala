@@ -2,11 +2,10 @@ import scala.util.control.NonFatal
 
 package object hearth {
 
-  // Useful to remove all ANSI coloring from the text
   private[hearth] val AnsiControlCode = "\u001b\\[([0-9]+)m".r
   private[hearth] def removeAnsiColors(str: String): String = AnsiControlCode.replaceAllIn(str, "")
 
-  // removes $macro$n from freshterms to make it easier to test and read
+  // The `$macro$n` suffixes of fresh names make the output unstable in tests and harder to read.
   private[hearth] def removeMacroSuffix(str: String): String = str
     .replaceAll("\\$macro\\$\\d+", "")
 

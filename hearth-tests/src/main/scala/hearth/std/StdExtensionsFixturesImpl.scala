@@ -3,7 +3,6 @@ package std
 
 import hearth.data.Data
 
-/** Fixtures for testing [[StdExtensionsSpec]]. */
 trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
 
   private val IntType = Type.of[Int]
@@ -78,9 +77,7 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
       implicit val builderType: Type[scala.collection.mutable.Builder[Elem, CtorResult]] =
         BuilderType[Elem, CtorResult]
 
-      // Build iteration without calling provider for Option/Optional (ctx capture) in Scala 2.
-      // EnumSet now routes through the provider's `asIterable` like every other collection: issue #322
-      // extracted its quotes into the `isEnumSet` helper so the trees no longer capture the local `item`.
+      // Option/Optional are iterated without the provider: on Scala 2 its trees would capture ctx as a free term.
       val iteration =
         if (Type[A].plainPrint.startsWith("scala.Option["))
           Expr.quote {
@@ -299,7 +296,7 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
     case _ => Expr(Data("<no value type>"))
   }
 
-  // Chimney #962: re-wrapping an unwrapped value must produce an expression typed as the value type itself - for an
+  // Re-wrapping an unwrapped value must produce an expression typed as the value type itself - for an
   // opaque type it must NOT be seen as its underlying representation (which would happen if the companion was
   // referenced through a path from inside the opaque type's defining scope).
   def testIsValueTypeRewrapType[A: Type](value: Expr[A]): Expr[Data] = Type[A] match {
@@ -414,7 +411,6 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
           (ctorType, inputType, methodName)
         }
 
-        // Build ctors list as compile-time constant Data
         val ctorDataList: List[Data] = ctorInfos.map { case (ctorType, inputType, methodName) =>
           Data.map(
             "type" -> Data(ctorType),

@@ -678,7 +678,6 @@ final class StdExtensionsSpec extends MacroSuite {
       import StdExtensionsFixtures.testCtorLikes
       import hearth.examples.*
 
-      // Helper to check if a Data contains a ctor with the given type and method name
       def containsCtor(data: Data, ctorType: String, methodName: String): Boolean =
         data.get("ctors").flatMap(_.asList).exists { ctors =>
           ctors.exists { ctor =>
@@ -761,7 +760,6 @@ final class StdExtensionsSpec extends MacroSuite {
       test("skipped results contain provider count") {
         val result = testParse[Int]
         val isCollection = result.get("IsCollection")
-        // IsCollection should be skipped and have at least 1 provider that reported a reason
         assert(isCollection.flatMap(_.get("status")).contains(Data("skipped")))
         assert(
           isCollection.flatMap(_.get("count")).exists(c => c != Data(0)),

@@ -144,7 +144,7 @@ final class StdExtensionsScala3Spec extends MacroSuite {
         )
       }
 
-      test("for opaque type over a class with constructors (Chimney #962)") {
+      test("for opaque type over a class with constructors") {
         import hearth.examples.unions.OpaqueName
         // the underlying String's constructors must not be used to (uncompilably) construct the opaque type
         testIsValueType(OpaqueName("x")) <==> Data.map(
@@ -153,7 +153,7 @@ final class StdExtensionsScala3Spec extends MacroSuite {
         )
       }
 
-      test("re-wrapping an opaque type yields the opaque type, not its representation (Chimney #962)") {
+      test("re-wrapping an opaque type yields the opaque type, not its representation") {
         import hearth.examples.unions.{OpaqueId, OpaqueName}
         val expected = Data.map(
           "rewrappedIsValueType" -> Data(true),
@@ -176,7 +176,6 @@ final class StdExtensionsScala3Spec extends MacroSuite {
       import hearth.examples.eitherthrowablector.EitherThrowableCtorOpaque
       import hearth.examples.eitheriterablethrowablector.EitherIterableThrowableCtorOpaque
 
-      // Helper to check if a Data contains a ctor with the given type and method name
       def containsCtor(data: Data, ctorType: String, methodName: String): Boolean =
         data.get("ctors").flatMap(_.asList).exists { ctors =>
           ctors.exists { ctor =>
@@ -226,7 +225,7 @@ final class StdExtensionsScala3Spec extends MacroSuite {
       }
 
       test(
-        "opaque type over a class with constructors only exposes its companion's smart constructors (Chimney #962)"
+        "opaque type over a class with constructors only exposes its companion's smart constructors"
       ) {
         import hearth.examples.unions.OpaqueName
         val result = testCtorLikes[OpaqueName]

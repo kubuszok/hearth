@@ -44,7 +44,6 @@ final class NaturalLanguageOrdering private (caseSensitive: Boolean) extends Ord
 
   // All utilities are inlined to help JVM remove the overhead.
 
-  /** Skip leading spaces and zeroes. */
   private inline def skipLeadingSpacesOrZeroes(inline s: String, inline idxFrom: Int, inline number: StringBuilder)(
       using ZerosSkippedResult
   ): ZerosSkippedResult = {
@@ -156,7 +155,6 @@ object NaturalLanguageOrdering {
 
     def allocate: ZerosSkippedResult = new ZerosSkippedResult(0, 0, 0)
 
-    /** Set the result and return `zs`. */
     inline def apply(inline idx: Int, inline char: Char, inline zeroes: Int)(using
         zs: ZerosSkippedResult
     ): ZerosSkippedResult = {

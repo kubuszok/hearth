@@ -8,8 +8,6 @@ package examples3
   */
 object Examples3 {
 
-  // Case classes and value classes
-
   final case class SimpleCaseClass(a: Int, b: String)
 
   final case class CaseClassWithDefaults(
@@ -21,7 +19,6 @@ object Examples3 {
     def methodWithDefault(x: Int = 42): Int = a + x
   }
 
-  /** AnyVal wrapper to test how value classes are seen across Scala versions. */
   final class AnyValId(val value: Long) extends AnyVal
 
   // JavaBean-style class mirroring the Scala 2.13 BeanExample
@@ -44,8 +41,6 @@ object Examples3 {
       stringField = value
   }
 
-  // Scala 3 enum corresponding to the Scala 2.13 sealed hierarchy
-
   enum Color3 {
     case Rgb(r: Int, g: Int, b: Int)
     case Red
@@ -62,7 +57,6 @@ object Examples3 {
     }
   }
 
-  /** Class with multiple methods with default parameters (beyond constructors). */
   final class MethodsWithDefaults(val base: Int, val scale: Int = 2) {
 
     def addWithDefault(delta: Int = 1): Int = base + delta

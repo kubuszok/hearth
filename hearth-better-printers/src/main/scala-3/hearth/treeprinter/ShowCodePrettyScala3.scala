@@ -109,7 +109,6 @@ trait ShowCodePrettyScala3 {
           }).toList
       }
 
-      // Handles highlighting of literals and their formatting.
       private object HighlightedLiteral {
 
         def apply(value: Null | Boolean | Byte | Short | Int | Long | Float | Double | Char | String): String =
@@ -131,7 +130,7 @@ trait ShowCodePrettyScala3 {
         }
       }
 
-      // Workaround for the fact, that we can't check if a type is a tree at runtime.
+      // Workaround for the fact, that we can't check if a value is a symbol at runtime.
       private object IsSymbol {
 
         def unapply(symbol: Any): Option[Symbol] =
@@ -205,19 +204,18 @@ trait ShowCodePrettyScala3 {
           case Nil            => appendIndent(indentLevel).append(highlightTypeDef("Nil"))
           case lst: List[?]   => showProduct("List", lst.iterator, indentLevel, lastTree)
 
-          // We cannot print code that would build the symbols - but we can add comments what are they for.
+          // Code building a symbol cannot be printed, and expanding the symbol could recurse endlessly - so we only
+          // name it in a comment.
           case IsSymbol(symbol) =>
             appendIndent(indentLevel)
               .append(highlightTripleQs)
               .append(" /* Symbol of ")
               .append(highlightTypeDef(symbol.fullName))
               .append(" */")
-          // We do-NOT-want to handle that, at all (possible recursion and shit)
 
           case IsTypeTree(typeTree) =>
             appendIndent(indentLevel).append(highlightTypeDef(typeTree.show(using Printer.TreeStructure)))
 
-          // Handle all Tree elements that can be handled with TypeName.unapply(tree).
           case ReflectModule(name, product) =>
             def newLastTree = product match {
               case IsTree(tree) => tree
@@ -228,13 +226,10 @@ trait ShowCodePrettyScala3 {
               case s: String  => appendIndent(indentLevel).append(HighlightedLiteral(s))
             }
 
-          // Handle all literals.
           case HighlightedLiteral(literal) => appendIndent(indentLevel).append(literal)
 
-          // Unhandled cases are reported as unsupported trees, when such setting is enabled.
           case _ if failOnUnsupportedTree => unsupportedTree(lastTree, what)
-          // Unhandled cases are rendered as is, when it's not enabled.
-          case IsTree(tree) =>
+          case IsTree(tree)               =>
             appendIndent(indentLevel).append(highlightTypeDef(tree.show(using Printer.TreeStructure)))
           case _ => appendIndent(indentLevel).append(highlightTypeDef(what.toString))
         }
@@ -265,10 +260,8 @@ trait ShowCodePrettyScala3 {
               case NullConstant()         => showProduct("NullConstant", Iterator.empty, indentLevel + 1, lastTree)
               case ClassOfConstant(value) =>
                 showProduct("ClassOfConstant", Iterator.single(value), indentLevel + 1, lastTree)
-              // Unhandled cases are reported as unsupported trees, when such setting is enabled.
               case _ if failOnUnsupportedTree => unsupportedTree(lastTree, lastTree)
-              // Unhandled cases are rendered as is, when it's not enabled.
-              case IsTree(tree) =>
+              case IsTree(tree)               =>
                 appendIndent(indentLevel).append(highlightTypeDef(tree.show(using Printer.TreeStructure)))
               case _ => appendIndent(indentLevel).append(highlightTypeDef(value.toString))
             }

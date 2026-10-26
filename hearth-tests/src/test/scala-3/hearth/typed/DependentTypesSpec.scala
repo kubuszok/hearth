@@ -3,20 +3,13 @@ package typed
 
 import hearth.data.Data
 
-/** Tests for dependent/inner types - types defined inside a class/object.
-  *
-  * Reproduces https://github.com/kubuszok/hearth/issues/226
-  *
-  * The core issue is that for inner/dependent enum parameterless cases, `Ident(sym.termRef)` produces
-  * `InnerEnum.this.Qux` — a `this` reference valid only inside the defining scope. The fix: use `Ref(sym)` which
-  * produces a fully qualified path valid at any call site.
+/** For inner/dependent enum parameterless cases, `Ident(sym.termRef)` produces `InnerEnum.this.Qux` — a `this`
+  * reference valid only inside the defining scope - so these cases must be referenced with a fully qualified path.
   *
   * Inner types are defined in the companion object to avoid Scala 3's "missing outer accessor" limitation with inline
   * macros expanding inside a class that has inner types.
   */
 object DependentTypesSpec {
-
-  // ---- Inner sealed trait with case class + case object ----
 
   sealed trait InnerSealedTrait
   object InnerSealedTrait {
@@ -24,26 +17,22 @@ object DependentTypesSpec {
     case object InnerObj extends InnerSealedTrait
   }
 
-  // ---- Inner enum (Scala 3 only) ----
-
   enum InnerEnum {
     case Bar(a: Int)
     case Baz(b: String)
-    case Qux // parameterless case - this is the problematic one
+    case Qux // parameterless case - the one prone to a `this`-relative path
   }
-
-  // ---- Inner enum with type param ----
 
   enum InnerEnumWithTypeParam[+A] {
     case Wrapped(value: A)
-    case Empty // parameterless
+    case Empty
   }
 }
 
 final class DependentTypesSpec extends MacroSuite {
   import DependentTypesSpec.*
 
-  group("Dependent/inner types - issue #226") {
+  group("Dependent/inner types") {
 
     group("Enum[A] diagnostics for inner types") {
       import ClassesFixtures.testDependentEnumDiagnostic
@@ -72,8 +61,8 @@ final class DependentTypesSpec extends MacroSuite {
       import ClassesFixtures.testDependentEnumTypeReprDiagnostic
 
       // The report embeds raw compiler output (`TypeRepr.show`, `flags.show`, summoned Mirror trees), which
-      // differs between Scala 3 minor versions — this spec is also compiled under the NEWEST_SCALA_TESTS
-      // (Scala 3.8.4) matrix — so we pin only the structure: one `child=` block per case, in declaration order.
+      // differs between Scala 3 minor versions (this spec also runs on the regression tiers), so we pin only the
+      // structure: one `child=` block per case, in declaration order.
       test("should report TypeRepr details for inner enum") {
         val report: String = testDependentEnumTypeReprDiagnostic[InnerEnum]
         report.linesIterator.filter(_.startsWith("child=")).mkString("\n") <==> "child=Bar:\nchild=Baz:\nchild=Qux:"
@@ -101,7 +90,7 @@ final class DependentTypesSpec extends MacroSuite {
       }
     }
 
-    group("Enum[A].matchOn for inner enum (issue #226)") {
+    group("Enum[A].matchOn for inner enum") {
       import ClassesFixtures.testEnumMatchOnAndParMatchOn
 
       test("should match on inner enum case class (Bar)") {

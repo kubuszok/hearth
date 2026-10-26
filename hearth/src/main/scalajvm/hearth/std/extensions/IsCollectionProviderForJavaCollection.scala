@@ -50,7 +50,7 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
       private lazy val juTreeSet = Type.Ctor1.of[java.util.TreeSet]
       private lazy val juEnumType = Type.of[java.lang.Enum[?]]
       // `EnumSet[Nothing]` is a well-formed application of the F-bounded `EnumSet[E <: Enum[E]]` (Nothing conforms to
-      // any bound), used only to compare type constructors symbolically - see `isEnumSet` below and issue #323.
+      // any bound), used only to compare type constructors symbolically - see `isEnumSet` below.
       private lazy val juEnumSetType = Type.of[java.util.EnumSet[Nothing]]
 
       private def isCollection[Coll0[I] <: java.util.Collection[I], Item: Type, A <: Coll0[Item]](
@@ -59,7 +59,6 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
           emptyCollExpr: Expr[A]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
-          // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the collection to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(value).iterator()).to(Iterable)
           }
@@ -107,7 +106,7 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
       // Helper for EnumSet: mirrors `isCollection` but without requiring a `Type.Ctor1` (which cannot express the
       // `E <: Enum[E]` bound). Written as a method with a regular `Item` type parameter (and an implicit `Type[Item]`)
       // so the emitted quotes reference `Item` through its reified type - NOT the provider's local existential `item`
-      // path - and therefore survive a downstream `c.untypecheck` + re-typecheck on Scala 2. See issue #322.
+      // path - and therefore survive a downstream `c.untypecheck` + re-typecheck on Scala 2.
       private def isEnumSet[Item, A](
           A: Type[A],
           itemType: Type[Item],
@@ -142,7 +141,7 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
                       // `classOf[java.util.EnumSet[?]]` / `classOf[java.lang.Class[?]]` wildcard literals: those print
                       // RAW (`classOf[java.util.EnumSet]`) after a downstream `c.untypecheck` + re-typecheck on Scala 2
                       // and fail with "class EnumSet takes type parameters". `Class.forName` strings survive re-typecheck
-                      // unchanged. See issue #321.
+                      // unchanged.
                       val cls: java.lang.Class[?] = Expr.splice(enumClassExpr)
                       java.lang.Class
                         .forName("java.util.EnumSet")
@@ -250,7 +249,7 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
                       // Detect it SYMBOLICALLY (same type constructor as `java.util.EnumSet`) rather than by a
                       // macro-time `Class.forName` of the target: the runtime-class check returned nothing on Scala 3
                       // (so EnumSet only matched via the Iterable fallback) and never matched enums from the current
-                      // compilation run. See issue #323.
+                      // compilation run.
                       if (Item <:< juEnumType) {
                         val isEnumSetType =
                           UntypedType.fromTyped(using tpe).sameTypeConstructorAs(juEnumSetType.asUntyped)
@@ -258,12 +257,12 @@ final class IsCollectionProviderForJavaCollection extends StandardMacroExtension
                           // `classOf[Item]` is emitted as a literal from `Type[Item]` (ClassExprCodec ignores the value
                           // argument), so gating on a macro-time `Type.classOfType[Item]` (a `Class.forName`) is
                           // pointless AND wrongly rejects nested enums on Scala 3 and enums from the current compilation
-                          // run. Emit the literal directly. See issue #323.
+                          // run. Emit the literal directly.
                           val enumClassExpr: Expr[java.lang.Class[Item]] =
                             Expr.ClassExprCodec[Item].toExpr(classOf[Any].asInstanceOf[java.lang.Class[Item]])
                           // Route through the `isEnumSet` helper (regular `Item` type parameter) so the emitted quotes
                           // do not reference the provider's local existential `item` path - required for downstream
-                          // re-typecheck on Scala 2. See issue #322.
+                          // re-typecheck on Scala 2.
                           Some(isEnumSet[Item, A](tpe, Type[Item], enumClassExpr).asInstanceOf[IsCollection[A]])
                         } else None
                       } else None

@@ -140,14 +140,13 @@ import scala.util.chaining.*
   *
   * ==Gotchas and limitations (Scala 2)==
   *
-  *   - '''Self-referential implicit Type (fixed by hearth#285):'''
-  *     `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]` used to generate
+  *   - '''Self-referential implicit Type:''' in `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]`
+  *     the `weakTypeTag[Configuration]` would pick up the implicit being defined and generate
   *     `implicit val ConfigT: Type[Configuration] = ConfigT` (forward-reference error in blocks, null self-assignment
-  *     in class bodies), because `weakTypeTag[Configuration]` picked up the implicit being defined. `typeOfImpl` now
-  *     emits `selfReferenceShadows` (`val ConfigT: Unit = ()`) at the top of the generated block — Scala 2 implicit
-  *     search skips shadowed implicits, so the WeakTypeTag materializer is used instead. Note that
-  *     `implicit val A: Type[A] = Type.of[A]` where `A` is an abstract type whose ONLY `Type` instance would be the val
-  *     itself still cannot work (there is genuinely no way to materialize it).
+  *     in class bodies). So `typeOfImpl` emits `selfReferenceShadows` (`val ConfigT: Unit = ()`) at the top of the
+  *     generated block — Scala 2 implicit search skips shadowed implicits, so the WeakTypeTag materializer is used
+  *     instead. Note that `implicit val A: Type[A] = Type.of[A]` where `A` is an abstract type whose ONLY `Type`
+  *     instance would be the val itself still cannot work (there is genuinely no way to materialize it).
   *   - '''Free types from local type params do not cross quasiquote boundaries:''' When `Expr.splice` inside
   *     `Expr.quote` uses local type params (from methods defined inside the quote body), these are resolved via free
   *     type symbols in the quasiquote. Free types resolve only within the quasiquote where they were created. If a
@@ -297,7 +296,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     def isImportedCrossTypeImplicit: Boolean = ImportedCrossTypeImplicit(name.decodedName.toString)
   }
 
-  /* [hearth#285] `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]` — the very value being
+  /* `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]` — the very value being
    * defined is the best implicit candidate for the `Type[Configuration]` lookup performed by the generated code
    * (via `convertProvidedTypesForCrossQuotes`), producing `implicit val ConfigT = ConfigT` (a forward-reference
    * error in blocks, a null self-assignment in class/trait bodies).
@@ -332,11 +331,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     )
   }
 
-  /* Replaces:
-   *   Type.of[A]
-   * with:
-   *   what we see in Quasiquote
-   */
   def typeOfImpl[A: c.WeakTypeTag]: c.Tree = try {
     val ctx = freshName("ctx")
     val typeValue = TypeWithUnderlyingInjected(ctx, tq"${weakTypeOf[A]}")
@@ -519,18 +513,17 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     result
   } catch { case e: Throwable => reportIssue(e) }
 
-  /** [hearth#320] Scala 2 quasiquotes are not hygienic: Cross-Quotes reifies an `Expr.quote` body by printing it back
-    * to source and re-parsing it at the (possibly separately-compiled) expansion site. A reference to a top-level
-    * object printed by its SHORT name can there be captured by a same-named class/companion or be out of scope (e.g.
+  /** Scala 2 quasiquotes are not hygienic: Cross-Quotes reifies an `Expr.quote` body by printing it back to source and
+    * re-parsing it at the (possibly separately-compiled) expansion site. A reference to a top-level object printed by
+    * its SHORT name can there be captured by a same-named class/companion or be out of scope (e.g.
     * `value wrap is not a member of ...Wrapper; did you mean unwrap?` for a companion call, or `not found: value
-    * support` for a plain object) — exactly what broke separately-compiled `StandardMacroExtension`s in the Chimney
-    * migration.
+    * support` for a plain object) — which breaks e.g. separately-compiled macro extensions.
     *
     * By the time the body is printed it has already been untypechecked (symbols stripped), so we cannot qualify at
     * print time. Instead, while `expr.tree` is still fully typed, we rewrite every reference to a
     * statically-addressable public object into a fully-qualified, ROOTED `Select` chain (`_root_.a.b.C`). Being a
     * structural rewrite (rather than a symbol on a bare `Ident`), it survives the later untypecheck and prints as the
-    * full path — the same hygiene treatment #300 gave to bare `scala.*` names, generalised to arbitrary objects.
+    * full path — the same hygiene treatment bare `scala.*` names get, generalised to arbitrary objects.
     *
     * Statically-addressable public objects only: hearth API objects like `Expr`/`Type` are instance members (not
     * reachable via `mirror.staticModule`) and are left untouched, so `Expr.splice`/`Expr.quote` detection downstream is
@@ -557,11 +550,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     transformer.transform(tree)
   }
 
-  /* Replaces:
-   *   Expr.quote[A](a)
-   * with:
-   *   what we see in Quasiquote
-   */
   def quoteImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Tree = try {
     val ctx = freshName("ctx")
     val convertProvidedTypesForCrossQuotes = freshName("convertProvidedTypesForCrossQuotes")
@@ -589,8 +577,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           }
           resolved
       }
-    // [hearth#320] Fully-qualify statically-addressable object references while the tree is still typed (see
-    // `qualifyStaticModuleRefs`), so they survive convert's print-then-reparse at a separately-compiled expansion site.
+    // Qualified while the tree is still typed, so that they survive convert's print-then-reparse at a
+    // separately-compiled expansion site.
     val quasiquote = convert(ctx)(qualifyStaticModuleRefs(expr.tree))
 
     val quasiquoteFresh = freshName("Quasiquote")
@@ -642,18 +630,13 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       importedUnderlyingTypes ++ enclosingMethodImplicitTypes
     val excludingSet: Set[String] = excluding.view.map(_.decodedName.toString).toSet
 
-    // Separate HKT candidates (type constructors from Type.CtorN) from *-kinded types.
-    // HKT types can't use WeakTypeTag[F] but need substituteTypes post-processing.
-    // Only include candidates whose enclosing method implicit is actually Type.CtorN.Bounded[..., HKT],
-    // NOT arbitrary HKT types like DirectStyle[F].
-    // Also check outer enclosing methods for nested macro scenarios.
+    // HKT candidates (type constructors from Type.CtorN) cannot use WeakTypeTag[F], so they are substituted afterwards.
+    // Only Type.CtorN.Bounded[..., HKT] implicits qualify - NOT arbitrary HKT types like DirectStyle[F].
     val hktCandidates: List[(Type, String)] =
       enclosingMethodCtorHKTTypes.filterNot { case (_, renamed) =>
         excludingSet(renamed)
       }
 
-    // [hearth#285] Implicit term definitions whose RHS we are lexically inside of — referencing them from the
-    // generated code would be a self-reference (forward-reference error or null self-assignment).
     val selfShadowedNames = selfReferenceShadowNames
 
     val importedUnderlying = candidates.view
@@ -663,7 +646,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           val typeValue: Tree =
             c.inferImplicitValue(c.typecheck(tq"Type[$tpeToReplace]", mode = c.TYPEmode).tpe, silent = false)
           typeValue match {
-            // [hearth#285] The inferred implicit is the very definition being initialized — skip the candidate,
+            // The inferred implicit is the very definition being initialized — skip the candidate,
             // the fallback path (WeakTypeTag materializer with `selfReferenceShadows` in scope) handles it.
             case Ident(name) if selfShadowedNames(name.decodedName.toString) =>
               Iterable.empty
@@ -677,9 +660,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
               Iterable((paramDef, paramVal, tpeToReplace, weakTypeTagValue))
           }
         } catch {
-          // HKT types (F[_] from Type.CtorN[F]) can't be handled by the workaround mechanism
-          // because WeakTypeTag doesn't support higher-kinded types in Scala 2.
-          // These are handled separately via substituteTypes post-processing below.
+          // Scala 2 WeakTypeTag does not support higher-kinded types (F[_] from Type.CtorN[F]) - these are handled by
+          // `wrapWithHKTSubstitution` instead.
           case e: Throwable if e.getClass.getName == "scala.reflect.macros.TypecheckException" =>
             Iterable.empty
         }
@@ -689,9 +671,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     def wrapWithHKTSubstitution(baseResult: c.Tree): c.Tree =
       if (hktCandidates.isEmpty) baseResult
       else {
-        // For each HKT candidate, generate a runtime substituteTypes call.
-        // At runtime, FC.asUntyped provides the concrete type constructor (e.g., Option).
-        // We find F's symbol in the raw type by name and substitute it.
+        // Only at runtime FC.asUntyped provides the concrete type constructor (e.g. Option), so the substitution of
+        // F (found by name in the raw type) is generated as code.
         val ctxSub = freshName("ctxSub")
         val rawTpe = freshName("rawTpe")
         val fixedTpe = freshName("fixedTpe")
@@ -731,11 +712,10 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         val tpesToReplace: Seq[Type] = importedUnderlying.map(_._3)
         val weakTypeTagValues: Seq[Tree] = importedUnderlying.map(_._4)
 
-        // If macros were sane, this would be almost enough.
-        //
-        // We would just need to apply the fix to `weakTypeTagOf` in `$ctx2.weakTypeTag[$weakTypeTagOf].asInstanceOf[Type[$weakTypeTagOf]]`.
-        //
-        // So, why I put `null` instead of `$ctx2.weakTypeTag[$weakTypeTagOf]`? As a matter of the fact, why I created new $ctx2?
+        // `$ctx2.weakTypeTag[$weakTypeTagOf]` would not do: `weakTypeTagOf` must first be patched with the
+        // c.Type/Symbol of each type parameter, which requires typechecking. So this prototype has to typecheck on its
+        // own (the outer `ctx` is not in scope, hence a fresh `$ctx2`) with a `null` body, which `fixWorkaroundBody`
+        // replaces later.
         val uncheckedResultPrototype = q"""
       val $ctx2 = CrossQuotes.ctx[_root_.scala.reflect.macros.blackbox.Context]
       import $ctx2.universe.{ TypeRef, TypeRefTag }
@@ -743,11 +723,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       $workaround[..$tpesToReplace](..$weakTypeTagValues)
       """
 
-        // To fix the `weakTypeTagOf` tree, we have to have c.Type or Symbol or each type parameter, so that we could replace params with them.
-        //
-        // And this requires typechecking.
-        //
-        // So, we have to create a stub, that typechecks (ctx would not, since it's defined outside of that snippet), that we will modify later on.
         def fixWorkaroundBody(patchBody: DefDef => c.Tree): c.Tree = {
           val Block(List(ctxVal, ctxImport, unpatchedDef: DefDef), callDef) = c.typecheck(uncheckedResultPrototype)
           val patchedDef = treeCopy.DefDef(
@@ -760,16 +735,14 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
             patchBody(unpatchedDef)
           )
           if (skipWorkaround) noInjectResult
-          // We also have to c.untypecheck the result, because otherwise we're getting errors from mixing typed and untyped trees.
-          // Literally, NullPoinerExceptions, from Symbols on typechecking:
+          // Mixing typed and untyped trees makes the later typecheck throw NullPointerExceptions from Symbols:
           //   Cannot invoke "scala.reflect.internal.Types$Type.typeSymbol()" because "tp" is null
-          // So we have to untypecheck the result, to avoid this problem.
           else c.untypecheck(Block(List(ctxVal, ctxImport, patchedDef), callDef))
         }
 
         fixWorkaroundBody { unpatchedDef =>
-          // Replaces the Tree with the Type representation that could miss some value.Underlying,
-          // with Tree using Types from type parameters - because they would get picked up. SMH.
+          // A Type representation could miss some value.Underlying - Types of the workaround's type parameters would be
+          // picked up instead.
           object typePatcher extends Transformer {
 
             // To obtain these we had to typecheck the Tree above, because we need them to be able to recursively replace
@@ -785,16 +758,9 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
               }
             }
 
-            // We need to reify the type as a Tree, because otherwise it won't survive the c.untypecheck(result)
-            // (and we need to untypecheck the result, because otherwise we're getting errors from mixing typed and untyped trees).
-            //
-            // If we skipped this... then e.g.:
-            //   weakTypeTag[Option[B1]] // B1 is type paremeter
-            // on c.untypecheck becomes
-            //   weakTypeTag
-            // which on later (re)typechecking becomes
-            //   weakTypeTag[B1] // ??
-            // which is not what we want. We need to preserve the type during untypechecking... which requires reifying it as a Tree.
+            // The patched type has to be reified as a Tree to survive the c.untypecheck of the result: otherwise e.g.
+            // `weakTypeTag[Option[B1]]` (B1 being a type parameter) untypechecks to `weakTypeTag`, which retypechecks
+            // to `weakTypeTag[B1]`.
             private def pkgRef(sym: Symbol): Tree = {
               // sym is a package *class* symbol
               val parts = sym.fullName.split('.')
@@ -860,11 +826,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         (pos.line < expansionPos.line ||
           (pos.line == expansionPos.line && pos.column < expansionPos.column))
 
-    // Helper to extract names from import selectors that match *.Underlying pattern
     def extractNamesFromImport(importTree: Import): Unit =
-      // Check if import comes before macro expansion
       if (isBeforeExpansionPoint(importTree.pos)) {
-        // Check if the import expression is something.Underlying
         val found = importTree.selectors
           .collect {
             case ImportSelector(name, _, rename, _) if name.isImportedCrossTypeImplicit =>
@@ -880,7 +843,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         importedNames ++= found
       }
 
-    // Traverse tree to find Import statements
     object finder extends Traverser {
       override def traverse(tree: Tree): Unit = tree match {
         case importTree: Import =>
@@ -891,14 +853,12 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       }
     }
 
-    // Check enclosing method
     @scala.annotation.nowarn // No replacement and it's not going anywhere
     val enclosingMethod = c.enclosingMethod
     if (enclosingMethod != EmptyTree) {
       finder.traverse(enclosingMethod)
     }
 
-    // Check enclosing class
     @scala.annotation.nowarn // No replacement and it's not going anywhere
     val enclosingClass = c.enclosingClass
     if (enclosingClass != EmptyTree) {
@@ -911,7 +871,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     importedNames.toList
   } catch { case _: Throwable => Nil }
 
-  /** Collects implicit vals with ImportedCrossTypeImplicit names from the enclosing class (issue #168).
+  /** Collects implicit vals with ImportedCrossTypeImplicit names from the enclosing class.
     *
     * These are vals like `implicit val Key: Type[Key]` defined in the same class/trait as the Expr.quote call. Unlike
     * `importedUnderlyingTypes`, these are NOT fed into `TypeWithUnderlyingInjected` (which handles `Type.of[A]`
@@ -1157,10 +1117,8 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       // - only then we are replacing Expr.splice stubs
       .pipe(implicitTypeReferenceReplacer.replaceStubsInSource)
       .pipe(spliceReplacer.replaceStubsInSource)
-      // Validate that there are no stubs left
       .pipe(implicitTypeReferenceReplacer.validateNoStubsLeft)
       .pipe(spliceReplacer.validateNoStubsLeft)
-      // Parse back to Tree
       .tap { source =>
         if (loggingEnabled) {
           println(
@@ -1317,7 +1275,6 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
     object ImportedTypes {
       private val cachesAliases = scala.collection.mutable.Map.empty[String, Cache]
-      // Combine imported types with same-class implicit vals (issue #168).
       // Same-class implicit vals are only used here (not in TypeWithUnderlyingInjected) because
       // their ThisType prefixes cause issues in the WeakTypeTag workaround mechanism.
       private val caches =
@@ -1588,16 +1545,13 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         // will be resolved by the workaround method's own type params with the same names.
         val printedExpr = renderCode(expr)
 
-        // Build the workaround method type params: [A: ctx.WeakTypeTag, ...]
-        // Using implicit WeakTypeTag context bounds so the expression's implicit lookups resolve.
+        // Context bounds, so that the expression's implicit WeakTypeTag lookups resolve.
         val typeParamDecls = sortedRefs
           .map { case (_, name) => s"$name: $ctx.WeakTypeTag" }
           .mkString(", ")
 
-        // Build the type args for calling: [Any, Any, ...]
         val typeArgs = sortedRefs.map(_ => "Any").mkString(", ")
 
-        // Build the free type arguments: one for each local type param
         val freeTypeArgs = sortedRefs.map { case (_, name) => freeTypeCode(name) }.mkString(", ")
 
         val workaroundStr = workaroundName.decodedName.toString

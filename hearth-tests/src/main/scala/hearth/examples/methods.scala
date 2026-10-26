@@ -8,7 +8,7 @@ class ExampleAnnotation2(val value: Int) extends scala.annotation.StaticAnnotati
 class ParentAnnotation extends scala.annotation.StaticAnnotation
 class ChildAnnotation extends ParentAnnotation
 
-// Type-position annotations (`x: T @Ann`), for issue #306 - distinct from field annotations (`@Ann x: T`).
+// Type-position annotations (`x: T @Ann`) - distinct from field annotations (`@Ann x: T`).
 case class WithTypeAnnotations(
     name: String @ExampleAnnotation,
     age: Int,
@@ -111,13 +111,11 @@ class WithImplicits {
   def methodWithImplicitParam(implicit x: Int): String = x.toString
 }
 
-// Regression examples for commit 68e1781: setters (name_=) must not be marked as
-// constructor arguments nor case fields, and visibility declared on a var must
+// Setters (name_=) must not be marked as constructor arguments nor case fields, and visibility declared on a var must
 // propagate from the getter/val to the synthesized setter.
 
-// Reproducer for issue #283: a plain (non-case) `final` annotation class with `val` constructor
-// parameters, attached to a case class constructor parameter; literal args must be readable
-// cross-platform (String, Boolean, Double — not just Int).
+// A plain (non-case) `final` annotation class with `val` constructor parameters, attached to a case class constructor
+// parameter; literal args must be readable cross-platform (String, Boolean, Double - not just Int).
 
 final class fieldName(val name: String) extends scala.annotation.StaticAnnotation
 final class fieldFlags(val enabled: Boolean, val weight: Double) extends scala.annotation.StaticAnnotation
@@ -135,14 +133,14 @@ class WithRestrictedVar {
   private[examples] var counter: Int = 0
 }
 
-// [hearth#327] Inherited constructor-`val` fields: `id`/`status` are public vals declared in parent CLASSES; they must
+// Inherited constructor-`val` fields: `id`/`status` are public vals declared in parent CLASSES; they must
 // be listed by `Type[IdStatusEntity].methods` with correct metadata (isAvailable=true, isInherited=true).
 abstract class StatusEntity(val status: String)
 abstract class AbstractIdStatusEntity(val id: Long, status: String) extends StatusEntity(status)
 class IdStatusEntity(id: Long, status: String) extends AbstractIdStatusEntity(id, status)
 
-// Chimney #673: an intersection type `A & B` (an `AndType`) has `NoSymbol` as its `typeSymbol`, so
-// `unsortedMethods`/`methodsOf` reads no members and DROPS `name` (from HasName) and `age` (from HasAge).
+// An intersection type `A & B` (an `AndType`) has `NoSymbol` as its `typeSymbol`, so `name` (from HasName) and `age`
+// (from HasAge) cannot be read off a single symbol's members.
 trait ExampleHasName { def name: String }
 trait ExampleHasAge { def age: Int }
 

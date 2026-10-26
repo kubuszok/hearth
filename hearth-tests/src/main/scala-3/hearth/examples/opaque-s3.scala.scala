@@ -42,7 +42,7 @@ object opaqueunderlying {
   type AliasToOpaque = opaqueid.OpaqueId
 
   // $COVERAGE-OFF$ analyzed by macros at compile time, never run
-  /** Iron-style refinement (`A :| C`): a 2-parameter opaque type, used below through ordinary aliases (hearth#384). */
+  /** Iron-style refinement (`A :| C`): a 2-parameter opaque type, used below through ordinary aliases. */
   opaque type Refined[A, C] = A
   object Refined { def apply[A, C](a: A): Refined[A, C] = a }
 

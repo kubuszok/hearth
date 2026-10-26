@@ -5,8 +5,6 @@ import hearth.fp.Id
 
 private[typed] trait TypesCompat { this: MacroCommons =>
 
-  // Implicit Type composition for Scala 3 tuples (*: and EmptyTuple)
-
   @scala.annotation.nowarn
   implicit lazy val emptyTupleType: Type[EmptyTuple] = {
     given quotes: scala.quoted.Quotes = CrossQuotes.ctx

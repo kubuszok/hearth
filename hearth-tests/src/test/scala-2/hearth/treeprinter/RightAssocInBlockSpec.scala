@@ -13,14 +13,12 @@ final class RightAssocInBlockSpec extends MacroSuite {
     val printed = ShowCodePrettyFixtures.testExprPlainPrint {
       identity(1) :: identity(2) :: identity(3) :: identity(4) :: identity(5) :: identity(6) :: Nil
     }
-    // Each nested :: creates a unique rassoc$N val.
     // removeMacroSuffix must NOT strip the $N suffix from compiler-generated names.
     assert(
       printed.contains("rassoc$"),
       s"Generated code should contain 'rassoc$$N' with unique suffixes but was:\n$printed"
     )
 
-    // All 6 rassoc vals should have distinct names
     val rassocPattern = "rassoc\\$\\d+".r
     val rassocNames = rassocPattern.findAllIn(printed).toList
     val uniqueNames = rassocNames.distinct

@@ -596,15 +596,15 @@ trait Methods { this: MacroCommons =>
     private lazy val methodsOfCache = new Type.Cache[CachedMethods]
     private lazy val unsortedMethodsOfCache = new Type.Cache[CachedMethods]
 
-    /** Forces the (deferred) return type of a method chain step. [Chimney scalalandio/chimney#899] Resolving the result
-      * type completes the underlying member's signature; for a value/getter whose type is still being inferred (`val
-      * foo = someMacro[A]` with no explicit type annotation) that completion re-enters the member's own running
-      * completer and scala-reflect (or dotty) throws a `CyclicReference`. There is no answer to give - the type
-      * genuinely is not available yet - so the honest result is `None` ("return type not statically known here"),
-      * exactly what this `Option` already means for an unresolved type parameter. The caller then decides what to do
-      * with a member of unknown type, rather than a raw compiler-internal exception leaking out of a listing call.
-      * Matched by simple name so both `scala.reflect.internal.Symbols$CyclicReference` and
-      * `dotty.tools.dotc.core.CyclicReference` are covered without a hard dependency on either.
+    /** Forces the (deferred) return type of a method chain step. Resolving the result type completes the underlying
+      * member's signature; for a value/getter whose type is still being inferred (`val foo = someMacro[A]` with no
+      * explicit type annotation) that completion re-enters the member's own running completer and scala-reflect (or
+      * dotty) throws a `CyclicReference`. There is no answer to give - the type genuinely is not available yet - so the
+      * honest result is `None` ("return type not statically known here"), exactly what this `Option` already means for
+      * an unresolved type parameter. The caller then decides what to do with a member of unknown type, rather than a
+      * raw compiler-internal exception leaking out of a listing call. Matched by simple name so both
+      * `scala.reflect.internal.Symbols$CyclicReference` and `dotty.tools.dotc.core.CyclicReference` are covered without
+      * a hard dependency on either.
       */
     private[Methods] def forceKnownReturning(knownReturning0: Option[() => ??]): Option[??] =
       try knownReturning0.map(_.apply())
@@ -734,7 +734,7 @@ trait Methods { this: MacroCommons =>
         returnType: Option[() => ??],
         buildExpr: (Option[UntypedExpr], UntypedTypeArguments, UntypedArguments) => Either[String, UntypedExpr],
         pathDepResolvers: Map[Int, UntypedArguments => Parameters],
-        // [hearth#331] Given ALL type arguments applied so far, re-resolve the (still-static) expectations so that a
+        // Given ALL type arguments applied so far, re-resolve the (still-static) expectations so that a
         // value/implicit clause following a type-parameter clause has the applied type arguments substituted into its
         // parameter types (`(implicit ev: Sync[F])` -> `(implicit ev: Sync[SomeEffect])`). The platform builds this;
         // the default is identity (used when there are no unresolved method type parameters).
@@ -838,7 +838,7 @@ trait Methods { this: MacroCommons =>
                 next = { typeArgs =>
                   val allTypeArgs = accTypeArgs ++ typeArgs
                   val nextState = appliedState.copy(steps = appliedState.steps :+ AppliedStep.Types(typeArgs))
-                  // [hearth#331] Substitute the just-applied type arguments into the parameter types of any subsequent
+                  // Substitute the just-applied type arguments into the parameter types of any subsequent
                   // value/implicit clauses, so `onValues` sees e.g. `Sync[SomeEffect]` rather than an empty clause.
                   val resolvedExpectations = resolveExpectationsForTypeArgs(allTypeArgs)
                   val resolvedReturnType = returnType.orElse(resolveReturnTypeForTypeArgs(allTypeArgs))

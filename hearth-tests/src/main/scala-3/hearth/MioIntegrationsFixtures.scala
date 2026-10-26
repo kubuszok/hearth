@@ -10,8 +10,6 @@ final private class MioIntegrationsFixtures(q: Quotes) extends MacroCommonsScala
 
 object MioIntegrationsFixtures {
 
-  // [hearth#176]
-
   inline def testValDefBuilderBuildCachedWithMIO: Data = ${ testValDefBuilderBuildCachedWithMIOImpl }
   private def testValDefBuilderBuildCachedWithMIOImpl(using q: Quotes): Expr[Data] = new MioIntegrationsFixtures(
     q
@@ -22,10 +20,10 @@ object MioIntegrationsFixtures {
     q
   ).testExtensionLoadingResultToMIO
 
-  inline def testValDefsCacheParMap2MergeBug: Data = ${ testValDefsCacheParMap2MergeBugImpl }
+  inline def testValDefsCacheParMap2SharesEntry: Data = ${ testValDefsCacheParMap2MergeBugImpl }
   private def testValDefsCacheParMap2MergeBugImpl(using q: Quotes): Expr[Data] = new MioIntegrationsFixtures(
     q
-  ).testValDefsCacheParMap2MergeBug
+  ).testValDefsCacheParMap2SharesEntry
 
   inline def testValDefsCacheParMap2DuplicateBuildError: Data = ${
     testValDefsCacheParMap2DuplicateBuildErrorImpl

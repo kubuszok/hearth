@@ -50,8 +50,8 @@ trait UntypedTypes { this: MacroCommons =>
       * parameters, ...) yield `None` rather than throwing. The internal `hearthAssertionFailed` below fires ONLY for a
       * genuine maintainer gap - a type flagged built-in by [[isJvmBuiltIn]] for which no `toClass` branch exists - and
       * is never a user-facing failure mode. Branches that legitimately have no runtime class (arrays / `IArray` whose
-      * element has none) answer with `None` via [[toClassJvmBuiltInExtra]] instead of falling through to the assertion
-      * (issue #333). The typed-layer counterpart is `Type.classOfType`.
+      * element has none) answer with `None` via [[toClassJvmBuiltInExtra]] instead of falling through to the assertion.
+      * The typed-layer counterpart is `Type.classOfType`.
       *
       * @since 0.1.0
       *
@@ -103,7 +103,7 @@ trait UntypedTypes { this: MacroCommons =>
                   // added to `isJvmBuiltIn` without a corresponding `toClass` branch. Keep asserting so it cannot slip
                   // through silently. Branches that legitimately have no runtime class (e.g. `IArray` with an element
                   // that has none) must answer for themselves in `toClassJvmBuiltInExtra` rather than fall through
-                  // here — see issue #333.
+                  // here.
                   // $COVERAGE-OFF$
                   hearthAssertionFailed(
                     s"${untyped.prettyPrint} is recognized as built-in type, but is not handled by a built-in branch"
@@ -119,21 +119,10 @@ trait UntypedTypes { this: MacroCommons =>
     /** Override to add platform-specific built-in type class resolution (e.g. IArray on Scala 3). */
     protected def toClassJvmBuiltInExtra(untyped: UntypedType): Option[java.lang.Class[?]] = None
 
-    /** Whether the given type is a JVM primitive.
-      *
-      * A primitive is one of the 8 JVM value types that box to `java.lang.Object` (`Boolean`, `Byte`, `Short`, `Int`,
-      * `Long`, `Float`, `Double`, `Char`) - these are listed in `Type.primitiveTypes`. '''Additionally `Unit` counts
-      * here''': `isPrimitive` returns `true` for `Unit` even though `Unit` is deliberately excluded from
-      * `Type.primitiveTypes` (it does not box the way the value types do). The asymmetry exists for parity with
-      * scalac's `Symbol.isPrimitive`, which counts `Unit`; without it a `!isPrimitive && isClass && !isAbstract`
-      * classifier would wrongly treat `Unit` as an instantiable POJO. See issue #310.
-      *
-      * @since 0.1.0
-      */
-    // The built-in type lists are constant, but their UNTYPED forms were re-lowered (`fromTyped`) on every call of the
-    // predicates below - 8-13 conversions per query, and these run per field in derivation loops. Lower them once per
-    // expansion (module objects re-instantiate per expansion, so these lazy vals are effectively expansion-scoped, like
-    // the std-extension cached bottom types).
+    // The built-in type lists are constant, but lowering them (`fromTyped`) on every call of the predicates below would
+    // cost 8-13 conversions per query, and these run per field in derivation loops. Lower them once per expansion
+    // (module objects re-instantiate per expansion, so these lazy vals are effectively expansion-scoped, like the
+    // std-extension cached bottom types).
     private lazy val primitiveUntypedTypes: List[UntypedType] =
       Type.primitiveTypes.map(tpe => fromTyped(using tpe.Underlying))
     private lazy val unitUntypedType: UntypedType = fromTyped(using Type.of[Unit])
@@ -142,10 +131,18 @@ trait UntypedTypes { this: MacroCommons =>
     private lazy val typeSystemSpecialUntypedTypes: List[UntypedType] =
       Type.typeSystemSpecialTypes.map(tpe => fromTyped(using tpe.Underlying))
 
+    /** Whether the given type is a JVM primitive.
+      *
+      * A primitive is one of the 8 JVM value types that box to `java.lang.Object` (`Boolean`, `Byte`, `Short`, `Int`,
+      * `Long`, `Float`, `Double`, `Char`) - these are listed in `Type.primitiveTypes`. '''Additionally `Unit` counts
+      * here''': `isPrimitive` returns `true` for `Unit` even though `Unit` is deliberately excluded from
+      * `Type.primitiveTypes` (it does not box the way the value types do). The asymmetry exists for parity with
+      * scalac's `Symbol.isPrimitive`, which counts `Unit`; without it a `!isPrimitive && isClass && !isAbstract`
+      * classifier would wrongly treat `Unit` as an instantiable POJO.
+      *
+      * @since 0.1.0
+      */
     final def isPrimitive(instanceTpe: UntypedType): Boolean =
-      // `Unit` is not in `primitiveTypes` (it does not box to `java.lang.Object` the way the 8 value types do), but
-      // scalac's `Symbol.isPrimitive`/`isPrimitiveValueClass` counts it, so for parity we count it here too. Otherwise
-      // a `!isPrimitive && isClass && !isAbstract` classifier treats `Unit` as an instantiable POJO. See issue #310.
       primitiveUntypedTypes.exists(instanceTpe <:< _) || (instanceTpe <:< unitUntypedType)
     final def isArray(instanceTpe: UntypedType): Boolean =
       ArrayCtor.unapply(toTyped[Any](instanceTpe)).isDefined
@@ -268,8 +265,7 @@ trait UntypedTypes { this: MacroCommons =>
     /** Direct parents (the declared supertypes) of `instanceTpe`, e.g. `List(AnyRef, Serializable, ...)`.
       *
       * Only the immediate supertypes as written; use [[baseClasses]] for the full transitive linearization. On Scala 3
-      * this is computed via Java reflection to avoid the `TypeRepr#baseClasses` extension-method shadowing (issue
-      * #328).
+      * this is computed via Java reflection to avoid the `TypeRepr#baseClasses` extension-method shadowing.
       *
       * @see
       *   [[baseClasses]]
@@ -284,7 +280,7 @@ trait UntypedTypes { this: MacroCommons =>
     /** The full linearized set of base classes of `instanceTpe` - transitive, including `instanceTpe` itself.
       *
       * Contrast [[parents]] (direct supertypes only). On Scala 3, code that also imports `quotes.reflect` should prefer
-      * the `baseClassTypes` extension to sidestep the `TypeRepr#baseClasses` shadowing (issue #328).
+      * the `baseClassTypes` extension to sidestep the `TypeRepr#baseClasses` shadowing.
       *
       * @see
       *   [[parents]]
@@ -383,9 +379,9 @@ trait UntypedTypes { this: MacroCommons =>
       *
       * '''The map is keyed by the subtype's SIMPLE name.''' Same-named subtypes declared in different scopes (e.g.
       * `object Color { case object Green }` alongside a top-level `case object Green`) collapse into a single entry,
-      * hiding the ambiguity (issue #309) - use [[directChildrenList]] when you must observe every subtype. '''Do not
-      * rely on the key format''': it is retained as-is for backward compatibility only. In 0.5.0 the key changes to the
-      * subtype's FULL name (without type parameters).
+      * hiding the ambiguity - use [[directChildrenList]] when you must observe every subtype. '''Do not rely on the key
+      * format''': it is retained as-is for backward compatibility only. In 0.5.0 the key changes to the subtype's FULL
+      * name (without type parameters).
       *
       * @since 0.1.0
       */
@@ -398,7 +394,7 @@ trait UntypedTypes { this: MacroCommons =>
       * ambiguity becomes undetectable. This list form preserves every subtype (duplicate simple names included) and
       * their extraction order, so a caller can detect ambiguity and order/flatten as it sees fit. The extraction
       * strategy otherwise mirrors [[directChildren]] (which on Scala 2 pre-flattens nested sealed hierarchies while
-      * Scala 3 returns direct children). See issue #309.
+      * Scala 3 returns direct children).
       *
       * @since 0.4.1
       */
@@ -478,8 +474,7 @@ trait UntypedTypes { this: MacroCommons =>
       *
       * This means you may pass either a bare constructor (e.g. from [[typeConstructor]]) or an already-applied type -
       * both yield the same result, because an already-applied type's existing arguments are dropped and replaced by
-      * `args`. (Before issue #312, Scala 3 applied to the type as-given, silently producing malformed types like
-      * `F[Any, ?][Int]`; Scala 2 always applied to the constructor. Both platforms now agree.)
+      * `args` (applying them to the type as-given would silently produce malformed types like `F[Any, ?][Int]`).
       *
       * `args.size` should match the constructor's arity; a mismatch produces a malformed type with no error.
       *
@@ -526,7 +521,7 @@ trait UntypedTypes { this: MacroCommons =>
       * `AnnotatedType(X, @Ann)` on both Scala 2 and Scala 3. This is distinct from [[annotations]], which reads
       * annotations declared on the type's SYMBOL (`@Ann class X` / `@Ann val x`). Stacked type annotations (`X @A @B`)
       * are all returned, outermost first, and alias forms (`type Y = X @Ann`) are seen through. Returns `Nil` when the
-      * type carries no type-position annotations. See issue #306.
+      * type carries no type-position annotations.
       *
       * @since 0.4.1
       */
@@ -535,7 +530,6 @@ trait UntypedTypes { this: MacroCommons =>
 
     private lazy val ArrayCtor = Type.Ctor1.of[Array]
 
-    /** Matches if name represents a class existing in the classpath. */
     private object AvailableClass {
       def unapply(className: String): Option[java.lang.Class[?]] = try
         Option(java.lang.Class.forName(className))
@@ -606,7 +600,7 @@ trait UntypedTypes { this: MacroCommons =>
       * On Scala 3 `UntypedType` IS `quotes.reflect.TypeRepr`, so the [[baseClasses]] extension above shadows
       * `TypeRepr#baseClasses` (which returns `List[Symbol]`) inside a `MacroCommonsScala3` cake - a footgun, since the
       * two have different element types. Prefer this `baseClassTypes` name in mixed Hearth + `quotes.reflect` code; to
-      * reach the reflection one explicitly, call `quotes.reflect.TypeReprMethods.baseClasses(repr)`. See issue #328.
+      * reach the reflection one explicitly, call `quotes.reflect.TypeReprMethods.baseClasses(repr)`.
       *
       * @since 0.4.1
       */

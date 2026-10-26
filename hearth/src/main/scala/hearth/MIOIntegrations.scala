@@ -145,7 +145,6 @@ trait MIOIntegrations { this: MacroTypedCommons =>
               )
             writer.flush()
             if (!written) {
-              // No events were written, clean up the empty file
               java.nio.file.Files.deleteIfExists(path): Unit
             }
             None
@@ -224,15 +223,13 @@ trait MIOIntegrations { this: MacroTypedCommons =>
           MIO(failBuildCachedWith(key))
         else
           for {
-            // 1. Forward declare — recursive calls from f will see the declaration.
+            // Forward-declared first, so that recursive calls from f see the declaration.
             _ <- cache.set(builder.forwardDeclare(cache1, key))
-            // 2. Map builder with f — eagerly calls f(value), which may trigger MLocal side effects
-            //    via runSafe (e.g. nested helper() calls that add their own cache entries).
-            //    DirectStyle's state sync ensures the run loop sees these changes.
+            // f runs eagerly and may add its own cache entries as MLocal side effects (e.g. nested helper() calls via
+            // runSafe; DirectStyle's state sync makes them visible to the run loop)...
             mapped <- MIO(ValDefBuilder.traverse[Signature, Returned].map(builder)(f))
-            // 3. Read fresh cache — includes entries added by f's side effects.
+            // ...so we build on a freshly read cache: the `cache1` snapshot would overwrite those entries.
             cache2 <- cache.get
-            // 4. Build on the fresh cache — no stale snapshot, no overwritten entries.
             _ <- cache.set(mapped.buildCached(cache2, key))
           } yield ()
     } yield ()

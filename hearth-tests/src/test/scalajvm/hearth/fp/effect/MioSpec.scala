@@ -10,8 +10,7 @@ import org.scalacheck.Prop.{Exception as _, *}
 // MIO is macro-time machinery: it always executes on the JVM that hosts the compiler (even when the
 // compiled code targets Scala.js / Native), and its stack-safety depends on `DirectStyleExecutor`
 // (java.util.concurrent + JDK 17+ virtual threads) - JVM-only APIs never ported to JS / Native.
-// Cross-compiling this suite would break linking on JS / Native for zero added coverage. See the
-// "Execution model: JVM-only, by design" section in MIO's scaladoc for the full rationale.
+// Cross-compiling this suite would break linking on JS / Native for zero added coverage.
 final class MioSpec extends ScalaCheckSuite with Laws {
 
   group("MIO's redeem's family of methods'") {
@@ -288,7 +287,7 @@ final class MioSpec extends ScalaCheckSuite with Laws {
       val (state, result) = mio.unsafe.runSync
       result ==> Right(3)
 
-      // Explicitly count entries — the bug would show as missing one branch's logs
+      // Explicitly count entries — merging parallel logs must not drop one branch's logs
       val entries = state.logs.collect { case e: Log.Entry => e.message() }
       assert(entries.contains("from branch A"), s"Missing branch A in entries: $entries")
       assert(entries.contains("from branch B"), s"Missing branch B in entries: $entries")
@@ -661,7 +660,6 @@ final class MioSpec extends ScalaCheckSuite with Laws {
         assert(json.contains("\"name\": \"root-scope\""), s"Missing root-scope in flame graph:\n$json")
         assert(json.contains("\"name\": \"fast-scope\""), s"Missing fast-scope in flame graph:\n$json")
         assert(json.contains("\"name\": \"slow-scope\""), s"Missing slow-scope in flame graph:\n$json")
-        // Verify events are present
         assert(json.contains("\"type\": \"O\""), "Missing open events")
         assert(json.contains("\"type\": \"C\""), "Missing close events")
       } finally {
@@ -833,7 +831,6 @@ final class MioSpec extends ScalaCheckSuite with Laws {
           }
         }
 
-        // Verify logs and scope reconstruction
         val rendered = ex.capturedState.logs.render.fromInfo("root")
         assert(rendered.contains("step 1"), s"Expected 'step 1' in:\n$rendered")
         assert(rendered.contains("slow-scope"), s"Expected 'slow-scope' in:\n$rendered")
@@ -874,7 +871,6 @@ final class MioSpec extends ScalaCheckSuite with Laws {
           mio.unsafe.runSync
         }
       }
-      // MLocal value should be captured in the timeout state
       val localValue = ex.capturedState.get(local)
       assert(localValue == 42, s"Expected MLocal value 42, got $localValue")
     }
@@ -895,7 +891,6 @@ final class MioSpec extends ScalaCheckSuite with Laws {
         ex.prettyPrintedMessage.contains("MIO timed out"),
         s"Expected 'MIO timed out' in message, got:\n${ex.prettyPrintedMessage}"
       )
-      // The captured state should have the timeout marker log
       val rendered = ex.capturedState.logs.render.fromError("root")
       assert(rendered.contains("MIO timed out"), s"Expected timeout marker in logs:\n$rendered")
     }

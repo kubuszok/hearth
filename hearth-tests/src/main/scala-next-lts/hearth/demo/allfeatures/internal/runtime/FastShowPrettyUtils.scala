@@ -2,7 +2,6 @@ package hearth.demo.allfeatures.internal.runtime
 
 object FastShowPrettyUtils {
 
-  /** Appends indentation (indentString repeated level times) to the StringBuilder. */
   def appendIndent(sb: StringBuilder, indentString: String, level: Int): StringBuilder = {
     var i = 0
     while (i < level) {
@@ -60,7 +59,6 @@ object FastShowPrettyUtils {
     sb.append('"')
   }
 
-  /** Opens a collection rendering with the collection type name and opening bracket. */
   def openCollection(sb: StringBuilder, typeName: String): StringBuilder =
     sb.append(typeName).append("(")
 
@@ -82,19 +80,15 @@ object FastShowPrettyUtils {
     sb
   }
 
-  /** Closes a collection rendering with the closing bracket. */
   def closeCollection(sb: StringBuilder): StringBuilder =
     sb.append(")")
 
-  /** Opens a map entry rendering. */
   def openMapEntry(sb: StringBuilder): StringBuilder =
     sb.append("(")
 
-  /** Appends the separator between key and value in a map entry. */
   def appendMapArrow(sb: StringBuilder): StringBuilder =
     sb.append(", ")
 
-  /** Closes a map entry rendering. */
   def closeMapEntry(sb: StringBuilder): StringBuilder =
     sb.append(")")
 }

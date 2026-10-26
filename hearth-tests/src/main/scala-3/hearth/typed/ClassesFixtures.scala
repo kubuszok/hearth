@@ -9,8 +9,6 @@ final private class ClassesFixtures(q: Quotes) extends MacroCommonsScala3(using 
 
 object ClassesFixtures {
 
-  // [hearth#176]
-
   inline def testClass[A](inline excluding: String*): Data = ${ testClassImpl[A]('excluding) }
   private def testClassImpl[A: Type](excluding: Expr[Seq[String]])(using q: Quotes): Expr[Data] =
     new ClassesFixtures(q).testClass[A](excluding)
@@ -79,10 +77,6 @@ object ClassesFixtures {
   private def testDependentEnumDiagnosticImpl[A: Type](using q: Quotes): Expr[String] =
     new ClassesFixtures(q).testDependentEnumDiagnostic[A]
 
-  /** Scala 3-specific deep diagnostic for dependent enum types.
-    *
-    * Reports TypeRepr details, erasure, and attempts different tree construction strategies for pattern matching.
-    */
   inline def testDependentEnumTypeReprDiagnostic[A]: String = ${ testDependentEnumTypeReprDiagnosticImpl[A] }
   private def testDependentEnumTypeReprDiagnosticImpl[A: Type](using q: Quotes): Expr[String] = {
     import q.reflect.*
@@ -99,28 +93,22 @@ object ClassesFixtures {
         val isStable = childSym.flags.is(Flags.StableRealizable)
         val flagsStr = childSym.flags.show
 
-        // What does .termRef give us?
         val termRefStr = scala.util.Try(childSym.termRef.show).getOrElse("<no termRef>")
 
-        // What does the singleton type look like?
         val singletonRepr =
           if isEnum && (isStable || childSym.flags
             .is(Flags.JavaStatic)) then scala.util.Try(childSym.typeRef.show).getOrElse("<error>")
           else "<not a val>"
 
-        // What does TypeRepr.of give us with the child type?
         val childType = childRepr.asType
         val ofRepr = childType match {
           case '[t] => TypeRepr.of[t].show
         }
 
-        // Try .widen to see the erasure
         val widenedStr = scala.util.Try(childRepr.widen.show).getOrElse("<error>")
 
-        // Try different tree construction approaches
         val approach1 = scala.util
           .Try {
-            // Approach 1: Ident(sym.termRef) - current approach
             if isEnum && isStable then Ident(childSym.termRef).show
             else "<n/a>"
           }
@@ -128,7 +116,6 @@ object ClassesFixtures {
 
         val approach2 = scala.util
           .Try {
-            // Approach 2: Select from parent module
             if isEnum && isStable then {
               val parentModule = parentSym.companionModule
               if !parentModule.isNoSymbol then Select(Ref(parentModule), childSym).show
@@ -139,13 +126,11 @@ object ClassesFixtures {
 
         val approach3 = scala.util
           .Try {
-            // Approach 3: Ref(childSym) directly
             if isEnum && isStable then Ref(childSym).show
             else "<n/a>"
           }
           .getOrElse("<error>")
 
-        // Check what a Mirror would give us
         val mirrorInfo = scala.util
           .Try {
             childType match {

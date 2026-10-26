@@ -39,8 +39,8 @@ final class NaturalLanguageOrdering private (caseSensitive: Boolean) extends Ord
       // If chars are different, so one of them is smaller.
       // Otherwise, we haven't reached the end of either String, characters so far were either equal or skipped.
       else {
-        // manually inlined
-        // else aChar.compareOr(bChar, loop(aIdx + 1, bIdx + 1))
+        // `aChar.compareOr(bChar, loop(...))` inlined by hand: without Scala 3 `inline` parameters the
+        // recursive call would be evaluated eagerly as an argument - not in tail position.
         if (aChar < bChar) -1 else if (aChar > bChar) +1 else loop(aIdx + 1, bIdx + 1)
       }
     }
@@ -50,7 +50,6 @@ final class NaturalLanguageOrdering private (caseSensitive: Boolean) extends Ord
 
   // All utilities are inlined to help JVM remove the overhead.
 
-  /** Skip leading spaces and zeroes. */
   @inline
   private def skipLeadingSpacesOrZeroes(s: String, idxFrom: Int, number: StringBuilder)(implicit
       ev: ZerosSkippedResult
@@ -173,7 +172,6 @@ object NaturalLanguageOrdering {
 
     def allocate: ZerosSkippedResult = new ZerosSkippedResult(0, 0, 0)
 
-    /** Set the result and return `zs`. */
     @inline
     def set(idx: Int, char: Char, zeroes: Int)(implicit zs: ZerosSkippedResult): ZerosSkippedResult = {
       zs.idx = idx

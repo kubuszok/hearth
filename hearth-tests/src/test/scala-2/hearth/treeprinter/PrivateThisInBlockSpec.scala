@@ -1,10 +1,8 @@
 package hearth
 package treeprinter
 
-/** Test case for GitHub issue #169: private[this] val in Block context generates invalid code.
-  *
-  * The issue occurs when the compiler generates `private[this] val x$$N = ...` inside a Block, which is not valid Scala
-  * syntax. This typically happens with:
+/** The Scala 2 compiler generates `private[this] val x$$N = ...` inside a Block, which is not valid Scala syntax when
+  * printed back. This typically happens with:
   *   - `val _ = expr` used to suppress unused expression warnings
   *   - Nested Expr.splice in Cross-Quotes
   */
@@ -16,10 +14,8 @@ final class PrivateThisInBlockSpec extends MacroSuite {
       42
     }
 
-    // The generated code should not contain "private[this] val" since it's invalid in a Block
     assert(!printed.contains("private[this]"), s"Generated code should not contain 'private[this]' but was:\n$printed")
 
-    // The code should be valid and compile
     assert(printed.nonEmpty, "Generated code should not be empty")
   }
 
@@ -33,10 +29,8 @@ final class PrivateThisInBlockSpec extends MacroSuite {
       result
     }
 
-    // The generated code should not contain "private[this] val" since it's invalid in a Block
     assert(!printed.contains("private[this]"), s"Generated code should not contain 'private[this]' but was:\n$printed")
 
-    // The code should be valid and compile
     assert(printed.nonEmpty, "Generated code should not be empty")
   }
 }

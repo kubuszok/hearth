@@ -8,8 +8,6 @@ import scala.reflect.macros.blackbox
 
 final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommonsScala2 with MethodsFixturesImpl {
 
-  // [hearth#176]
-
   def testFoldSubstitutesTypeArgsImpl: c.Expr[Data] = testFoldSubstitutesTypeArgs
 
   def testConstructorsExtractionImpl[A: c.WeakTypeTag]: c.Expr[Data] =
@@ -119,7 +117,7 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
     testAnnotationValueDecoded[A]
 
   def testFieldNameReproducerImpl[A: c.WeakTypeTag]: c.Expr[Data] =
-    testFieldNameReproducer[A]
+    testFieldNamesFromAnnotations[A]
 
   def testSplicedAnnotationValueImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
     testSplicedAnnotationValue[A](methodName)
@@ -156,7 +154,6 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
 
 object MethodsFixtures {
 
-  // Chimney #673
   def testExposesNameAndAge[A]: Data = macro MethodsFixtures.testExposesNameAndAgeImpl[A]
 
   def testJavaAccessorNames[A]: Data = macro MethodsFixtures.testJavaAccessorNamesImpl[A]
@@ -252,7 +249,7 @@ object MethodsFixtures {
   def testAnnotationValueDecoded[A]: Data =
     macro MethodsFixtures.testAnnotationValueDecodedImpl[A]
 
-  def testFieldNameReproducer[A]: Data =
+  def testFieldNamesFromAnnotations[A]: Data =
     macro MethodsFixtures.testFieldNameReproducerImpl[A]
 
   def testSplicedAnnotationValue[A](methodName: String): Data =

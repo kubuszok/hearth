@@ -4,7 +4,6 @@ package typed
 import hearth.data.Data
 import hearth.fp.effect.MIO
 
-/** Fixtures for testing [[ClassesSpec]]. */
 trait ClassesFixturesImpl { this: MacroCommons =>
 
   def testClass[A: Type](excluding: VarArgs[String]): Expr[Data] = {
@@ -98,9 +97,8 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         .mkString
     )
 
-  /** Exercises every `parse` of every class-view on a type that is NOT compatible with it, asserting the human-readable
-    * `Incompatible.reason` strings (the public-facing diagnostics). The type-name prefix (`Type.prettyPrint[A]`) is
-    * stripped so the asserted suffix is stable across Scala 2 / Scala 3 and ANSI is removed.
+  /** The type-name prefix (`Type.prettyPrint[A]`) of each reason is stripped, as it is printed differently on Scala 2
+    * and Scala 3.
     */
   def testClassViewParseReasons[A: Type]: Expr[Data] = {
     val prefix = removeAnsiColors(Type.prettyPrint[A]) + " "
@@ -174,9 +172,6 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Like [[testCaseClassCaseFieldValuesAt]] but passes `AtCallSite` visibility, so fields inaccessible at the macro
-    * expansion point should be skipped (regression for commit 68e1781).
-    */
   def testCaseClassCaseFieldValuesAtCallSite[A: Type](expr: Expr[A]): Expr[String] = Expr {
     CaseClass.parse[A].toOption.fold("<no case class>") { caseClass =>
       caseClass
@@ -190,9 +185,6 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Like [[testCaseClassCaseFieldValuesAt]] but passes `Everywhere` visibility explicitly, so non-public fields should
-    * be skipped on both platforms.
-    */
   def testCaseClassCaseFieldValuesAtEverywhere[A: Type](expr: Expr[A]): Expr[String] = Expr {
     CaseClass.parse[A].toOption.fold("<no case class>") { caseClass =>
       caseClass
@@ -206,10 +198,7 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Like [[testCaseClassCaseFieldValuesAt]] but passes `Anywhere` visibility explicitly, so ALL case fields are
-    * returned regardless of visibility (enumeration use case). Preserves coverage of the `Anywhere` branch now that the
-    * default is `AtCallSite`.
-    */
+  /** `Anywhere` has to be passed explicitly, since the default is `AtCallSite`. */
   def testCaseClassCaseFieldValuesAtAnywhere[A: Type](expr: Expr[A]): Expr[String] = Expr {
     CaseClass.parse[A].toOption.fold("<no case class>") { caseClass =>
       caseClass
@@ -223,11 +212,7 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Issue #246: reports the canonical `copy` method discovered by [[CaseClass.copyMethod]] under each visibility
-    * scope. Renders the untyped parameter-name shape (e.g. `(i)(s)`) so the assertion is stable across Scala 2/3, or
-    * `<none>` when no accessible canonical copy exists (private copy under AtCallSite/Everywhere, abstract case class
-    * under any scope).
-    */
+  /** Renders only the parameter-name shape (e.g. `(i)(s)`), so the result is the same on Scala 2 and Scala 3. */
   def testCaseClassCopyMethod[A: Type]: Expr[Data] = {
     def describe(visibility: Accessible)(cc: CaseClass[A]): Data =
       cc.copyMethod(visibility) match {
@@ -245,10 +230,7 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     )
   }
 
-  /** Issue #246: exercises the [[CaseClass.copyMethod]] builder chain by overriding every `Int` field with `99` and
-    * leaving the remaining fields at their defaults (i.e. the original values, via `copy`'s default arguments), then
-    * evaluates the resulting instance's `toString` at runtime.
-    */
+  /** Only `Int` fields get a value, so the remaining ones exercise `copy`'s default arguments (the original values). */
   def testCaseClassCopyRoundTrip[A: Type](instance: Expr[A]): Expr[String] = {
     implicit val IntType: Type[Int] = intType
     CaseClass.parse[A].toOption.flatMap(cc => cc.copyMethod().map(cc -> _)) match {
@@ -296,10 +278,6 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         .fold(errors => Expr(s"<failed to construct: ${errors.mkString(", ")}>"), identity)
     }
 
-  /** Surfaces the full [[Enum.parse]] result: the (ANSI-stripped) error message when the type is rejected, or the
-    * direct children when it parses. Used to assert union refusal diagnostics (e.g. which
-    * `scala.reflect.TypeTest[Union, Member]` instances are missing).
-    */
   def testEnumParseDiagnostic[A: Type]: Expr[String] = Expr(
     Enum
       .parse[A]
@@ -310,8 +288,8 @@ trait ClassesFixturesImpl { this: MacroCommons =>
       )
   )
 
-  /** Regression for commit 68e1781 (splice isolation): parMatchOn handlers whose results are built from nested
-    * [[Expr.quote]] calls splicing the matched expression must not leak splice ownership across case boundaries.
+  /** Handlers built from nested [[Expr.quote]]s splicing the matched expression must not leak splice ownership across
+    * case boundaries.
     */
   def testEnumParMatchOnNestedQuote[A: Type](expr: Expr[A], suffix: Expr[String]): Expr[String] =
     Enum.parse[A].toOption.fold(Expr("<no enum>")) { enumm =>
@@ -331,13 +309,6 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         .fold(errors => Expr(s"<failed to construct: ${errors.mkString(", ")}>"), identity)
     }
 
-  /** Diagnostic method for issue #226: reports type info for enum children.
-    *
-    * For each child of an enum, reports:
-    *   - child name and type
-    *   - whether it's a val, object, case class
-    *   - what singletonOf produces
-    */
   def testDependentEnumDiagnostic[A: Type]: Expr[String] = Expr {
     Enum.parse[A].toOption.fold("<no enum>") { enumm =>
       val childInfo = enumm.directChildren.toList.map { case (name, child) =>
@@ -402,11 +373,6 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Constructs a case class via [[CaseClass.construct]], extracts field values via [[CaseClass.caseFieldValuesAt]],
-    * and evaluates everything at runtime.
-    *
-    * Returns a string like `"a=42"` or `"a=42, b=hello"`.
-    */
   def testCaseClassConstructRoundTrip[A: Type]: Expr[String] = {
     implicit val StringType: Type[String] = stringType
     CaseClass.parse[A].toOption.fold(Expr("<no case class>")) { caseClass =>
@@ -442,10 +408,6 @@ trait ClassesFixturesImpl { this: MacroCommons =>
 
   private val seqIntType: Type[Seq[Int]] = Type.of[Seq[Int]]
 
-  /** Vararg case-class coverage: parses the case class, pins the primary-constructor signature (the vararg parameter
-    * type is normalized to `scala.collection.immutable.Seq[A]`) and the case-field accessor types, then constructs an
-    * instance through the vararg-aware [[Method.ApplyValues]] path and compares it with `expected` at runtime.
-    */
   def testVarargCaseClassConstruct[A: Type](expected: Expr[A]): Expr[Data] = {
     implicit val SeqIntType: Type[Seq[Int]] = seqIntType
     CaseClass.parse[A].toOption.fold(Expr(Data("<no case class>"))) { caseClass =>
@@ -475,8 +437,6 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Evaluates the singleton expression at runtime and returns its `.toString`.
-    */
   def testSingletonRoundTrip[A: Type]: Expr[String] =
     SingletonValue.parse[A].toOption.fold(Expr("<no singleton>")) { singleton =>
       Expr.quote {
@@ -484,8 +444,6 @@ trait ClassesFixturesImpl { this: MacroCommons =>
       }
     }
 
-  /** Constructs a Java bean via [[JavaBean.constructWithSetters]] and evaluates `.toString` at runtime.
-    */
   def testJavaBeanConstructRoundTrip[A: Type]: Expr[String] = {
     implicit val StringType: Type[String] = stringType
     JavaBean.parse[A].toOption.fold(Expr("<no java bean>")) { javaBean =>
@@ -510,11 +468,6 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Constructs a named tuple via [[NamedTuple.construct]], extracts field values via `Product.productElement`, and
-    * evaluates everything at runtime.
-    *
-    * Returns a string like `"name=hello, age=42"`.
-    */
   @scala.annotation.nowarn("msg=is never used")
   def testNamedTupleConstructRoundTrip[A: Type]: Expr[String] = {
     implicit val IntType: Type[Int] = intType

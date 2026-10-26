@@ -3,7 +3,6 @@ package crossquotes
 
 import hearth.data.Data
 
-/** Fixtures for testing [[CrossExprsSpec]]. */
 trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
 
   def testExprOf[ExampleType: Type](example: Expr[ExampleType]): Expr[Data] = {
@@ -15,7 +14,6 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
       }
     }
 
-    // we can use multiple splices in a single Expr.quote block
     def multipleSplices: Expr[Data] = {
       val e1 = Expr.quote(1)
       val e2 = Expr.quote(2)
@@ -81,7 +79,6 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
       }
     }
 
-    // Reproduces the issue we had when trying to chain Expr.splice on a StringBuilder
     def chainingOnSplice(sb: Expr[StringBuilder], name: Expr[String]): Expr[Data] =
       Expr.quote {
         val value = Expr.splice(sb).append("<").append(Expr.splice(name)).append(">")
@@ -89,7 +86,7 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
       }
 
     def implicitTypeSubstitution: Expr[Data] = {
-      // Reproduces the issue we had when implementing StdExtensions (A was not substituted in Expr on Scala 2)
+      // On Scala 2 the type parameter A has to be substituted in the quoted Expr, not left as the macro's own A.
       def fromTypeParamInferred[A: Type](value: Expr[Iterable[A]]): Expr[Data] = Expr.quote {
         Data(Expr.splice(value).map(item => item.toString).mkString)
       }
@@ -98,7 +95,7 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
         fromTypeParamInferred(Expr.quote[Iterable[Int]](List(1, 2, 3)))
       }
 
-      // Reproduces the issue we had when implementing StdExtensions (A was not substituted in Expr on Scala 2)
+      // On Scala 2 the type parameter A has to be substituted in the quoted Expr, not left as the macro's own A.
       def fromTypeParamExplicit[A: Type](value: Expr[Iterable[A]]): Expr[Data] = Expr.quote {
         Data(Expr.splice(value).map((item: A) => item.toString).mkString)
       }
@@ -175,7 +172,7 @@ trait CrossExprsFixturesImpl { this: MacroTypedCommons =>
         Existential[MapType[Map[Int, String], *], (Int, String)](mapTypeExample)(using Type.of[(Int, String)])
       )(using Type.of[Map[Int, String]])
 
-      // Reproduces issue #168: implicit val Key/Value defined in the same class should be found by Cross-Quotes
+      // Implicit val Key/Value defined in the same class should be found by Cross-Quotes.
       def fromSameClassImplicit[A: Type](a: Expr[A], mapType: Existential[MapType[A, *]]): Expr[Data] = {
         // NO import of Key/Value - they come from the anonymous class's own implicit vals
         val wrapper: MapTypeWithResult[A, mapType.Underlying] = new MapTypeWithResult[A, mapType.Underlying] {

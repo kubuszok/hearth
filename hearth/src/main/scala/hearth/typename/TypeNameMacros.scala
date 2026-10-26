@@ -67,7 +67,7 @@ private[typename] trait TypeNameMacros { this: MacroCommons =>
           // the short name for leaf types (no type args) to ensure the tree is always decomposed.
           val plain = Type.plainPrint[tpe.Underlying]
           if (plain.contains("[")) None // applied type — let the printer recursively decompose
-          else Some(Expr(Type.shortName[tpe.Underlying])) // leaf — provide short name
+          else Some(Expr(Type.shortName[tpe.Underlying]))
       }
     }
     val sh = Expr(Type.shortName[A])

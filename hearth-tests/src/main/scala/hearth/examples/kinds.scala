@@ -25,22 +25,20 @@ trait Arity20[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]
 trait Arity21[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]
 trait Arity22[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]
 
-// Only needed for type aliasbwith 22 parameters (fixing 1 parameter).
+// Only needed for type alias with 22 parameters (fixing 1 parameter).
 // We do not support Type.Ctor23.of[...] and above.
 trait Arity23[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W]
 
 trait HigherKinded1[F[_]]
 
 /** Non-generic supertype of [[MyTC]], so that macro fixtures can splice `instance.name` without referencing the phantom
-  * constructor label in generated trees (issue #284).
+  * constructor label in generated trees.
   */
 trait HasName {
   def name: String
 }
 
-/** Tiny type class for testing summoning of instances for type constructors discovered via `Type.decompose1` (issue
-  * #284).
-  */
+/** Tiny type class for testing summoning of instances for type constructors discovered via `Type.decompose1`. */
 trait MyTC[F[_]] extends HasName
 object MyTC {
   implicit val myTCForList: MyTC[List] = new MyTC[List] {
@@ -51,9 +49,7 @@ object MyTC {
   }
 }
 
-/** Mini-Functor-derivation test case: each field is some `G[A]` where `G` is only discovered during expansion (issue
-  * #284).
-  */
+/** Mini-Functor-derivation test case: each field is some `G[A]` where `G` is only discovered during expansion. */
 final case class Box[A](items: List[A], maybe: Option[A])
 
 /** Resource-like `[F[_], A]` constructor (no cats dependency) for testing decomposition of singleton types. */

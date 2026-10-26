@@ -2,12 +2,12 @@ package hearth.demo.allfeatures
 
 /** Configuration for rendering with indentation support. */
 final case class RenderConfig(
-    indentString: String = "  ", // 2 spaces default
+    indentString: String = "  ",
     startLevel: Int = 0
 )
 object RenderConfig {
   val Default: RenderConfig = RenderConfig()
-  val Compact: RenderConfig = RenderConfig(indentString = "") // No indent
+  val Compact: RenderConfig = RenderConfig(indentString = "")
   val Tabs: RenderConfig = RenderConfig(indentString = "\t")
   val FourSpaces: RenderConfig = RenderConfig(indentString = "    ")
 }

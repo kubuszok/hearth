@@ -7,19 +7,14 @@ import scala.util.{Failure, Success, Try}
 
 final class RulesSpec extends Suite {
 
-  // Mock rule implementations for testing
-
-  /** Rule that always matches */
   final case class MatchingRule(name: String, result: Int) extends Rule {
     def attempt: Rule.Applicability[Int] = Rule.matched(result)
   }
 
-  /** Rule that always yields */
   final case class YieldingRule(name: String, reasons: Vector[String]) extends Rule {
     def attempt: Rule.Applicability[Int] = Rule.yielded(reasons*)
   }
 
-  /** Rule that matches conditionally */
   final case class ConditionalRule(name: String, shouldMatch: Boolean, result: Int, reasons: Vector[String])
       extends Rule {
     def attempt: Rule.Applicability[Int] =
@@ -27,7 +22,6 @@ final class RulesSpec extends Suite {
       else Rule.yielded(reasons*)
   }
 
-  // Helper to extract attempt from any rule type
   private def attemptRule(r: Rule): Rule.Applicability[Int] = r match {
     case m: MatchingRule    => m.attempt
     case y: YieldingRule    => y.attempt

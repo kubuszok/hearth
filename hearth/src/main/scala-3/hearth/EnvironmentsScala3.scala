@@ -46,14 +46,10 @@ trait EnvironmentsScala3 extends Environments { this: MacroCommonsScala3 =>
       method.invoke(symbolMethods, symbol).asInstanceOf[Tree]
     }.toOption
 
-    // Local `val`s declared inside the immediately-enclosing method body that are in scope at the macro-expansion
-    // point (declared textually BEFORE the macro call). This is the literal macwire case.
-    //
-    // EMPIRICAL FINDING (Scala 3.3.x / 3.8.x): `Symbol.tree` DOES return a `DefDef` for the enclosing method during
-    // its own expansion, BUT that `DefDef.rhs` is `None` - the method body is not yet available while the method is
-    // being compiled. So the code below correctly yields `Nil` on Scala 3 today. It is written defensively (rather
-    // than hard-coding `Nil`) so it will start working automatically should a future Scala version expose the body.
-    // See `Enclosure.LocalValue` scaladoc for the platform asymmetry. Scala 2 (`c.enclosingMethod`) does work.
+    // Empirically (Scala 3.3.x / 3.8.x) `Symbol.tree` DOES return a `DefDef` for the enclosing method during its own
+    // expansion, BUT its `rhs` is `None` - the body is not available while the method is being compiled - so this
+    // yields `Nil` today. It is not hard-coded to `Nil` so that it starts working should a future Scala version expose
+    // the body.
     def localValuesOf(methodSymbol: Symbol): List[Enclosure.LocalValue] = scala.util
       .Try {
         val macroStart = quotes.reflect.Position.ofMacroExpansion.start

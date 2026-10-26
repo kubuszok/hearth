@@ -66,9 +66,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
   val Environment: EnvironmentModule
   trait EnvironmentModule { this: Environment.type =>
 
-    /** Extensions that have already been applied (via extend()) in this macro expansion. Uses identity hash to track
-      * specific instances — extension objects are cached singletons from ServiceLoader.
-      */
+    // Identity-based: each extension is a singleton cached by the ServiceLoader, so its instance identifies it.
     private val appliedExtensions = new java.util.IdentityHashMap[Any, Unit]()
 
     final lazy val currentPosition: Position = Position.current
@@ -238,12 +236,11 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
         } yield value
 
         if (shouldUseReportError.getOrElse(true)) {
-          // This will terminate the macro expansion and show the error message using the reporter,
-          // but only the current macro will be terminated. (E.g. infinite loop in multiple macros will have to be terminated for each of them).
+          // Aborts only the current macro, so a loop spanning several macros has to be terminated in each of them.
           reportErrorAndAbort(e.prettyPrintedMessageWithStackTrace)
         } else {
-          // This will print only on stderr. It won't be visible if some compilation server is used,
-          // but it will terminate the whole compilation process... on Scala 2, on Scala 3 each looped macro has to be terminated individually.
+          // Prints only to stderr (invisible behind a compilation server), but on Scala 2 it aborts the whole
+          // compilation; on Scala 3 each looped macro still has to be terminated individually.
           e.prettyPrintMessageWithStackTrace()
           throw e
         }
@@ -428,8 +425,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     final private def loadMacroExtensionsFrom[Extension <: MacroExtension[?]](
         extensions: Either[Throwable, platformSpecificServiceLoader.Loaded[Extension]]
     ): ExtensionLoadingResult[Extension] = {
-      // Allow aggregating errors from each extension loading.
-      // Extensions that were already applied in this macro expansion are skipped to avoid duplicate side effects
+      // Extensions already applied in this macro expansion are skipped to avoid duplicate side effects
       // (e.g. double provider registration which causes exponential compilation time).
       def safeLoadExtension(ext: Extension): Either[(Extension, Throwable), Extension] =
         if (appliedExtensions.containsKey(ext)) {
@@ -458,16 +454,15 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
           }
 
       extensions match {
-        // No provider could even be instantiated (e.g. every candidate threw, or the only service jar has a
-        // forward-incompatible TASTy file): preserve the historical `LoaderFailed` shape so the cause stays visible.
+        // No provider could be instantiated at all (e.g. every candidate threw, or the only service jar has a
+        // forward-incompatible TASTy file): `LoaderFailed` keeps the cause visible.
         case Right(loaded) if loaded.services.isEmpty && loaded.failures.nonEmpty =>
           ExtensionLoadingResult.LoaderFailed(loaded.failures.head._2)
         case Right(loaded) =>
-          // A subset of providers could not be instantiated (e.g. one unloadable extension jar sitting next to
-          // Hearth's own built-in providers). The loader skipped just those rather than aborting the whole run, so the
-          // built-ins and the other extensions still load instead of poisoning EVERY derivation in the module. We do
-          // NOT `reportInfo`/`reportWarn` the skipped providers here: a macro may emit only one such message, and
-          // spending it inside shared loading machinery would steal it from the user's own macro. See issue #325.
+          // Providers that could not be instantiated (e.g. one unloadable extension jar next to Hearth's built-ins)
+          // were skipped, so that a single broken jar does not fail EVERY derivation in the module. They are NOT
+          // reported here: a macro may emit only one info/warning, and shared loading machinery must not use it up
+          // instead of the user's own macro.
           val sorted = loaded.services.sortBy(_.priority)(Ordering[Int].reverse)
           val (failure, success) = sorted.partitionMap(safeLoadExtension)
           val loadedExtensions = ListSet.from(success)
@@ -615,12 +610,6 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       */
     private[hearth] def macroEntryContextKey: AnyRef
   }
-
-  // Lexical-scope (enclosure) inspection for the current macro expansion.
-  //
-  // `enclosingScope` returns the chain of enclosures surrounding the expansion point, from the INNERMOST (closest to
-  // the expansion) OUTWARDS to the root package. This is the enabler for call-site-aware macros (macwire-style
-  // dependency injection, proxy/mock generation, etc.).
 
   /** A single lexical enclosure (scope) surrounding the current macro expansion point.
     *

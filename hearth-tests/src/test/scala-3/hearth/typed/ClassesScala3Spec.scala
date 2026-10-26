@@ -225,10 +225,9 @@ final class ClassesScala3Spec extends MacroSuite {
         "parsed with children: scala.collection.immutable.List[scala.Int], scala.collection.immutable.List[java.lang.String]"
     }
 
-    // Regression for the union-member disjointness check (research-hardening-0.4): the member types of these
-    // unions are defined IN THIS COMPILATION UNIT, so no classfile exists at macro-expansion time. A runtime
-    // `Class.forName`-style disjointness check fails (returns None → ByTypeTest → union refused), but a
-    // compiler-symbol-level check correctly accepts/refuses them. See ClassesScala3Spec.LocalUnions.
+    // The member types of these unions are defined IN THIS COMPILATION UNIT, so no classfile exists at
+    // macro-expansion time. A runtime `Class.forName`-style disjointness check fails (returns None → ByTypeTest →
+    // union refused), so only a compiler-symbol-level check can accept/refuse them correctly.
     test(
       "Enum[A].{matchOn and parMatchOn} should match on a disjoint union of types from the SAME compilation run (regression)"
     ) {

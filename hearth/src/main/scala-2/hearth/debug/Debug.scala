@@ -6,8 +6,6 @@ import scala.reflect.macros.blackbox
 
 final private class Debug(val c: blackbox.Context) extends MacroCommonsScala2 with DebugMacros {
 
-  // [hearth#176]
-
   def withFinalCodeInIDEImpl[A](expr: c.Expr[A]): c.Expr[A] = withFinalCodeInIDE(expr)
   def withFinalASTInIDEImpl[A](expr: c.Expr[A]): c.Expr[A] = withFinalASTInIDE(expr)
   def withGivenCodeInIDEImpl[A: c.WeakTypeTag]: c.Expr[A] = withGivenCodeInIDE[A]

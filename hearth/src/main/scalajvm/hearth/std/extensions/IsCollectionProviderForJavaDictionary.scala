@@ -39,7 +39,6 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
         implicit val Pair: Type[Pair] = Tuple2[Key0, Value0](keyType, valueType)
 
         Existential[IsCollectionOf[A, *], Pair](new IsMapOf[A, Pair] {
-          // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the dictionary to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] = Expr.quote {
             val dict: java.util.Dictionary[Key, Value] =
               Expr.splice(value).asInstanceOf[java.util.Dictionary[Key, Value]]
@@ -140,7 +139,6 @@ final class IsCollectionProviderForJavaDictionary extends StandardMacroExtension
 
         Existential[IsCollectionOf[java.util.Properties, *], (String, String)](
           new IsMapOf[java.util.Properties, (String, String)] {
-            // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the dictionary to Iterable.
             override def asIterable(value: Expr[java.util.Properties]): Expr[Iterable[(String, String)]] =
               asScalaExpr(value)
             override def sizeHintForBuilder(value: Expr[java.util.Properties]): Option[Expr[Int]] = Some(Expr.quote {

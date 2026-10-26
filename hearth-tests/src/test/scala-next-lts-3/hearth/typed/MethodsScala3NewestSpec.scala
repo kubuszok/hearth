@@ -3,7 +3,7 @@ package typed
 
 import hearth.data.Data
 
-/** Tests for Scala 3 newest features — only compiled on Scala 3.7+ (scala-newest-3 source set).
+/** Tests for Scala 3 newest features — only compiled on Scala 3.7+ (scala-next-lts-3 source set).
   *
   * Macro implementation is in [[MethodsFixturesImpl]]
   */
@@ -34,7 +34,6 @@ final class MethodsScala3NewestSpec extends MacroSuite {
         import MethodsFixtures.testConstructNamedTuple
 
         test("for named tuple (Scala 3.7+)") {
-          // Constructs (name: String, age: Int) with ("Alice", 42) via the synthesized constructor.
           // At runtime, NamedTuples are just regular tuples, so .toString gives "(Alice,42)".
           testConstructNamedTuple[(name: String, age: Int)] <==> Data("(Alice,42)")
         }
@@ -90,7 +89,6 @@ final class MethodsScala3NewestSpec extends MacroSuite {
             methodsMap.contains("productElement(Int)"),
             "NamedTuple should have productElement(Int) from Product"
           )
-          // Should NOT have _1/_2 (those belong to Tuple2, not Tuple)
           assert(!methodsMap.contains("_1"), "NamedTuple should not have _1 (belongs to Tuple2, not Tuple)")
           assert(!methodsMap.contains("_2"), "NamedTuple should not have _2 (belongs to Tuple2, not Tuple)")
         }

@@ -3,16 +3,14 @@ package crossquotes
 
 import hearth.data.Data
 
-/** Fixtures for testing [[CrossTypesSpec]]. */
 trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
 
   def testTypeOf[A: Type]: Expr[Data] = {
     import hearth.examples.classes.{ExampleTrait, ExampleTraitWithTypeParam}
     Expr(
       Data.map(
-        // Scala 2 types in quasiquotes required fcqn or their resolution would fail, or resolve to
-        // some local definition ofershading the intended one. We should make sure that if the type is
-        // unambiguosuly resolved during the macro compilation, it would be resolved to the same type during its expansion.
+        // In Scala 2 quasiquotes a type has to be fully qualified, or it fails to resolve or resolves to some local
+        // definition shadowing the intended one at the expansion site.
         "resolvingType" -> Data.map(
           "ofImportedType" -> Data(Type.of[ExampleTrait].plainPrint),
           "ofImportedTypeWithTypeParam" -> Data(Type.of[ExampleTraitWithTypeParam[A]].plainPrint),
@@ -21,11 +19,7 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
           "ofFqcnType" -> Data(Type.of[hearth.examples.classes.ExampleClass].plainPrint),
           "ofFqcnWithTypeParamType" -> Data(Type.of[hearth.examples.classes.ExampleClassWithTypeParam[A]].plainPrint)
         ),
-        // We should make sure that:
-        //  - type bound: [A: Type]
-        //  - import: import a.Underlying as Name
-        //  - declared val A: Type[A] = someType (declared locally or inherited)
-        // all would be considered when building a type that uses A.
+        // Every way a macro author can bring a Type[B] into scope has to be picked up by Type.of.
         "resolvingImplicitType" -> Data.map(
           "viaTypeBound" -> Data {
             def body[B: Type] = Type.of[Option[B]].plainPrint
@@ -101,9 +95,8 @@ trait CrossTypesFixturesImpl { this: MacroTypedCommons =>
     case _ => None
   }
 
-  // [hearth#307] The Scala 2 `Type.CtorN` codegen used to `.widen` each extracted type argument, decaying a literal
-  // singleton (`ConstantType`, e.g. Chimney's `Path.Select["fieldName", _]`) to `java.lang.String`. Verify the
-  // extractor now hands the argument back as written (`dealias` only, no `widen`).
+  // Extracted type arguments must only be dealiased, not widened: widening decays a literal singleton type
+  // (e.g. `Path.Select["fieldName", _]`) to `java.lang.String`.
   def testTypeCtorLiteralPreservation: Expr[Data] = {
     val Ctor1 = Type.Ctor1.of[examples.kinds.Arity1]
     val Ctor2 = Type.Ctor2.of[examples.kinds.Arity2]

@@ -5,10 +5,8 @@ import hearth.data.Data
 
 trait ExprCodecFixturesImpl { this: MacroCommons =>
 
-  // -- Expr.semiQuote direct tests --
-
-  // Cross-quotes Type.of cannot be assigned directly to a local implicit val (the expansion would self-reference
-  // the implicit being defined on Scala 2), so we follow the same pattern as AnonymousInstanceFixturesImpl.
+  // Cross-quotes Type.of cannot be assigned directly to a local implicit val (on Scala 2 the expansion would reference
+  // the implicit being defined), so the types are kept in private vals and made implicit locally.
   private val intTypeEC: Type[Int] = Type.of[Int]
   private val stringTypeEC: Type[String] = Type.of[String]
   private val booleanTypeEC: Type[Boolean] = Type.of[Boolean]
@@ -122,15 +120,13 @@ trait ExprCodecFixturesImpl { this: MacroCommons =>
     )
   }
 
-  // -- Expr.typeOf on exprs produced by built-in parameterized codecs --
-
   def testBuiltInCodecExprTypes: Expr[Data] = {
     implicit val intType: Type[Int] = intTypeEC
     implicit val stringType: Type[String] = stringTypeEC
 
-    // Regression test: on Scala 2, ExprCodec.make used to let c.Expr[A](tree) materialize a WeakTypeTag for the
-    // codec's own free type parameter A, so Expr.typeOf on the produced expr reported `A` instead of the concrete
-    // instantiated type (e.g. Seq[Int]), breaking downstream upcasts.
+    // On Scala 2 `c.Expr[A](tree)` inside ExprCodec.make can materialize a WeakTypeTag for the codec's own free type
+    // parameter A, so Expr.typeOf on the produced expr would report `A` instead of the instantiated type (e.g.
+    // Seq[Int]), breaking downstream upcasts.
     def reportedType[A: ExprCodec](value: A)(implicit expected: Type[A]): Data = {
       val reported = Expr.typeOf(ExprCodec[A].toExpr(value))
       if (reported <:< expected) Data("ok")
@@ -154,11 +150,8 @@ trait ExprCodecFixturesImpl { this: MacroCommons =>
     )
   }
 
-  // -- ExprCodec.derived negative path --
-
-  // Derives a codec for a type whose nested field type (NotQuotable) has no codec and cannot be derived, then exercises
-  // toExpr. The derived toExpr cannot quote the field, so it must abort with a clean, positioned compiler diagnostic
-  // (asserted via compileErrors(...).check(...)) rather than an opaque uncaught AssertionError.
+  // The nested field type (NotQuotable) has no codec and cannot be derived, so toExpr must abort with a clean,
+  // positioned compiler diagnostic rather than an opaque uncaught AssertionError.
   def testDeriveToExprFailure: Expr[Data] = {
     implicit val holderType: Type[hearth.examples.expr_codecs.HolderOfNotQuotable] = holderOfNotQuotableTypeEC
     val codec = ExprCodec.derived[hearth.examples.expr_codecs.HolderOfNotQuotable]
@@ -179,11 +172,8 @@ trait ExprCodecFixturesImpl { this: MacroCommons =>
     Expr(Data.map("decodedValue" -> Data(decoded.fold("<none>")(_.value.toString))))
   }
 
-  // -- override-map =:= cache behavior --
-
-  // A case class with TWO fields of the SAME type (String), quoted through a single QuoteOverride keyed by that type.
-  // The override map looks up by =:=, so BOTH occurrences must resolve to the one override (uppercasing). This proves
-  // dedup-by-=:= (one discovered override reused for every field of that type) does not drop one occurrence.
+  // TWO fields of the SAME type (String) share one QuoteOverride, looked up by =:=: deduplicating the discovered
+  // overrides by type must not drop one of the occurrences.
   def testOverrideMapReuseForRepeatedFieldType: Expr[Data] = {
     implicit val stringType: Type[String] = stringTypeEC
     implicit val twoHostsType: Type[hearth.examples.expr_codecs.TwoHosts] = twoHostsTypeEC
@@ -205,11 +195,8 @@ trait ExprCodecFixturesImpl { this: MacroCommons =>
     )
   }
 
-  // -- ExprCodec.derived round-trip --
-
-  // Decodes the literal `expr` to a value (semiEval), then re-quotes it with `semiQuote` and reports whether that
-  // succeeded. Exercises the `semiQuoteEnum` runtime-class dispatch: e.g. `List` decomposes as the sealed `:: | Nil`,
-  // whose `::` child has the JVM-encoded simple name `$colon$colon` - so simple-name dispatch would fail to re-lift it.
+  // `List` decomposes as the sealed `:: | Nil`, whose `::` child has the JVM-encoded simple name `$colon$colon`, so
+  // a `semiQuoteEnum` dispatching on the plain simple name would fail to re-lift it.
   def testSemiQuoteReLift[A: Type](expr: Expr[A]): Expr[Data] =
     Expr(Expr.semiEval[A](expr) match {
       case Right(value) =>

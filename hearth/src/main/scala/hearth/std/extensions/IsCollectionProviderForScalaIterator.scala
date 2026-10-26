@@ -29,7 +29,6 @@ final class IsCollectionProviderForScalaIterator extends StandardMacroExtension 
           fromIterator: Expr[scala.collection.Iterator[Item]] => Expr[A]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
-          // Consuming the iterator into a List to convert to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
             Expr.splice(toIterator(value)).toList
           }

@@ -7,12 +7,12 @@ import hearth.data.Data
   *
   * Fixtures are in [[CrossTypeSelfRefFixturesImpl]].
   *
-  * Regression tests for hearth#285 — `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]` must not
-  * resolve the generated implicit search to the very value being defined.
+  * `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]` must not resolve the generated implicit search
+  * to the very value being defined.
   */
 final class CrossTypeSelfRefSpec extends MacroSuite {
 
-  group("Cross-Quotes macro/plugin: self-referential implicit Type vals (hearth#285)") {
+  group("Cross-Quotes macro/plugin: self-referential implicit Type vals") {
 
     test("implicit val A: Type[A] = Type.of[A] should materialize directly, not resolve to itself") {
       CrossTypeSelfRefFixtures.testSelfReferentialImplicitType <==> Data.map(

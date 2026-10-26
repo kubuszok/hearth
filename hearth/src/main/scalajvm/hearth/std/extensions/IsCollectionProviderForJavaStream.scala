@@ -93,7 +93,6 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
           ]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Int](new IsCollectionOf[A, Int] {
-          // We will use scala.jdk.StreamConverters.IntStreamHasToScala to convert the stream to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Int]] = Expr.quote {
             new scala.jdk.StreamConverters.IntStreamHasToScala(Expr.splice(toIntStreamExpr(value)))
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
@@ -144,7 +143,6 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
           ]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Long](new IsCollectionOf[A, Long] {
-          // We will use scala.jdk.StreamConverters.LongStreamHasToScala to convert the stream to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Long]] = Expr.quote {
             new scala.jdk.StreamConverters.LongStreamHasToScala(Expr.splice(toLongStreamExpr(value)))
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))
@@ -196,7 +194,6 @@ final class IsCollectionProviderForJavaStream extends StandardMacroExtension { l
           ]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Double](new IsCollectionOf[A, Double] {
-          // We will use scala.jdk.StreamConverters.DoubleStreamHasToScala to convert the stream to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Double]] = Expr.quote {
             new scala.jdk.StreamConverters.DoubleStreamHasToScala(Expr.splice(toDoubleStreamExpr(value)))
               .toScala(Iterable)(using Expr.splice(accumulatorFactoryInfoExpr))

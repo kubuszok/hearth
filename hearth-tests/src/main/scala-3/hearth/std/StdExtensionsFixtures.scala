@@ -12,8 +12,6 @@ final private class StdExtensionsFixtures(q: Quotes)
 
 object StdExtensionsFixtures {
 
-  // [hearth#176]
-
   inline def testIsCollection[A](inline value: A): Data = ${ testIsCollectionImpl[A]('value) }
   private def testIsCollectionImpl[A: Type](value: Expr[A])(using q: Quotes): Expr[Data] =
     new StdExtensionsFixtures(q).testIsCollection[A](value)

@@ -74,7 +74,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
         sEta.finalResultType.substituteTypes(
           sEta.baseType(instanceTpe.typeSymbol).typeArgs.map(_.typeSymbol),
-          // dealiased: an alias' type arguments need not line up with the parent's type parameters, Chimney #960
+          // dealiased: an alias' type arguments need not line up with the parent's type parameters
           instanceTpe.dealias.typeArgs
         )
       }
@@ -100,10 +100,8 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
         val owner = symbol.owner
         val enclosing = c.internal.enclosingOwner
 
-        // Helper methods
         def privateWithin: Option[Symbol] = Option(symbol.privateWithin).filterNot(_ == NoSymbol)
 
-        // High-level checks
         def isPublic: Boolean = symbol.isPublic
         def isPrivateButInTheSameClass: Boolean = symbol.isPrivate && enclosing == owner
         def isProtectedButInTheSameClass: Boolean =
@@ -273,10 +271,9 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       symbolAvailable(instanceTpe.typeSymbol, scope)
 
     override def parents(instanceTpe: UntypedType): List[UntypedType] =
-      // NOTE: scala-reflect's `Type` has no `parents` member (only `ClassInfoType` does), so `instanceTpe.parents`
-      // resolves to Hearth's own `UntypedTypeMethods.parents` extension and recurses infinitely. We read the direct
-      // parents off the class info and resolve any type parameters against `instanceTpe` via `asSeenFrom`.
-      // A generic class's signature is a `PolyType` wrapping its `ClassInfoType`, so we unwrap it first.
+      // scala-reflect's `Type` has no `parents` member (only `ClassInfoType` does), so `instanceTpe.parents` would
+      // resolve to Hearth's own `UntypedTypeMethods.parents` extension and recurse infinitely. A generic class's
+      // signature is a `PolyType` wrapping its `ClassInfoType`, so matching only the latter would miss it.
       instanceTpe.typeSymbol.typeSignatureIn(instanceTpe) match {
         case ci: ClassInfoTypeApi => ci.parents.map(_.asSeenFrom(instanceTpe, instanceTpe.typeSymbol))
         case PolyType(_, ci: ClassInfoTypeApi @unchecked) =>
@@ -385,7 +382,6 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       new java.util.IdentityHashMap[UntypedType, java.util.IdentityHashMap[UntypedType, java.lang.Boolean]]()
 
     override def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean = {
-      // Fast path: reference equality means identical types
       if (subtype eq supertype) return true
       // Fast negative: if the dealiased subtype is a simple TypeRef (not a refinement, constant, or
       // existential type) and the supertype is final with a different symbol, they can't be in a subtype
@@ -401,7 +397,6 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
           ) return false
         case _ =>
       }
-      // Check cache before expensive compiler check
       var inner = subtypeCache.get(subtype)
       if (inner == null) {
         inner = new java.util.IdentityHashMap()
@@ -415,9 +410,8 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     }
 
     override def isSameAs(a: UntypedType, b: UntypedType): Boolean = {
-      // Fast path: reference equality
       if (a eq b) return true
-      // Dealias for fast comparison (dealias is cheap — just follows alias chain)
+      // dealias is cheap - it just follows the alias chain
       val ad = a.dealias
       val bd = b.dealias
       if (ad eq bd) return true
@@ -428,7 +422,6 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       // (e.g. singleton/literal types like `true` vs `Boolean`, or path-dependent types like
       // `WeekDay.Value` vs `Planet.Value`).
       if (adSym != bdSym && adSym != NoSymbol && bdSym != NoSymbol) return false
-      // Check cache before expensive compiler check
       var inner = sameTypeCache.get(a)
       if (inner == null) {
         inner = new java.util.IdentityHashMap()
@@ -484,12 +477,9 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       val A = instanceTpe.typeSymbol
 
       if (isEnumeration(instanceTpe)) {
-        // Determine if we have the object type or the Value type
         val enumObjectTypeOpt: Option[UntypedType] = if (A.isModuleClass) {
-          // We have the object type directly
           Some(instanceTpe)
         } else {
-          // We have the Value type - find the enum object from the type's prefix
           instanceTpe match {
             case TypeRef(prefix, _, _) if prefix.typeSymbol != NoSymbol && prefix.typeSymbol.isModuleClass =>
               Some(prefix)
@@ -502,12 +492,10 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
         }
 
         enumObjectTypeOpt.flatMap { enumObjectType =>
-          // Get the Value type member from scala.Enumeration
           val enumClass = c.mirror.staticClass("scala.Enumeration")
           val valueClassSymbol = enumClass.toType.decls.find(s => s.isClass && s.name == TypeName("Value"))
 
           valueClassSymbol.flatMap { valueSym =>
-            // Get enumeration values from the object's decls
             // Use baseClasses check instead of <:< because path-dependent types
             // (Enumeration.this.Value vs WeekDay.Value) make <:< unreliable.
             // Use .resultType to unwrap NullaryMethodType (Enumeration vals are implemented as methods).
@@ -599,7 +587,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
     // Type-position annotations live on `AnnotatedType(annotations, underlying)` wrappers (`X @Ann`), not on the type
     // symbol; stacked annotations nest, so we walk them all. Dealias so alias forms (`type Y = X @Ann`) are seen
-    // through. See issue #306.
+    // through.
     private def annotatedTypeAnnotations(untyped: UntypedType): List[c.universe.Annotation] = {
       def loop(tpe: c.Type): List[c.universe.Annotation] = tpe.dealias match {
         case AnnotatedType(annots, underlying) => annots ++ loop(underlying)

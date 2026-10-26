@@ -31,7 +31,7 @@ import hearth.fp.data.NonEmptyVector
   * MIO (and the rest of `hearth.fp.effect`) is '''macro-time''' machinery. A macro always '''runs on the JVM that hosts
   * the compiler''', even when the code being compiled targets Scala.js or Scala Native - the macro expands on the JVM
   * and only its ''output'' is then linked for the target platform. Accordingly, MIO's stack-safety relies on
-  * `DirectStyleExecutor`, which uses `java.util.concurrent` and (when available) JDK 17+ virtual threads. These are
+  * `DirectStyleExecutor`, which uses `java.util.concurrent` and (when available) JDK 21+ virtual threads. These are
   * JVM-only APIs that are '''deliberately not, and never will be, ported''' to Scala.js / Scala Native.
   *
   * Consequence for usage: MIO is meant to be used '''only from inside macros'''. Referencing it from ordinary
@@ -473,10 +473,8 @@ object MIO {
     */
   var timeoutDeadlineNanos: Long = Long.MaxValue
 
-  /** Tracks currently-open [[Log.namedScope]] calls so that scope nesting can be reconstructed when a timeout fires.
-    *
-    * With the flat-log-with-scope-IDs design, open scopes already have correct parent IDs in the log list. The
-    * `_openScopes` stack is used during timeout reconstruction to close open scopes (set their end timestamps).
+  /** Scopes still open when a timeout fires have their parent IDs in the log list already, but no end timestamps - this
+    * stack lets the timeout handler close them.
     */
   private[effect] case class OpenScope(name: String, scopeId: Int, start: Log.Timestamp)
   private[effect] var _openScopes: List[OpenScope] = Nil
@@ -569,13 +567,11 @@ object MIO {
   private def run[A](io: MIO[A], stateSync: StateSync = null): (MState, MResult[A]) = io match {
     case Impure(state, resultC, fnNecCToA) =>
       checkTermination(state, resultC, fnNecCToA)
-      // Sync accumulated state to DirectStyle before evaluating functions, so nested runSafe sees it.
       if (stateSync ne null) stateSync.write(state)
       val nextMio = fnNecCToA.view match {
         case FnNec.View.One(fnCToA)             => fnCToA(state, resultC)
         case FnNec.View.Cons(fnCToB, fnNecBToA) => fnCToB(state, resultC) :++ fnNecBToA
       }
-      // Read back from DirectStyle — nested runSafe may have modified the state.
       val baseState = if (stateSync ne null) stateSync.read() else state
       run(
         nextMio match {
@@ -617,14 +613,12 @@ object MIO {
       case (initialState, Left(e)) => Pure(initialState, Left(e))
     }
     override protected def runUnsafe[A](owner: DirectStyle.ScopeOwner[MIO])(mio: => MIO[A]): A = {
-      // Sync mechanism: the run loop writes its accumulated state before each function evaluation, and reads back
-      // after, so that nested runSafe calls see up-to-date state and their changes are incorporated into the run loop.
       val sync = new StateSync {
         def write(state: MState): Unit = setState(owner, state)
         def read(): MState = getState(owner)
       }
 
-      // We're running the MIO in a virtual thread, to avoid StackOverflowError when using recursive MIO with direct style.
+      // A separate (virtual) thread gets a fresh stack - recursive MIO with direct style would overflow this one.
       val (computedState, result) = DirectStyleExecutor {
         // Evaluate the by-name MIO first — it may call nested runSafe which modifies ongoingStates(owner).
         // Then re-read the current state AFTER evaluation, so we start the run loop from up-to-date state.
@@ -649,11 +643,9 @@ object MIO {
   }
 
   implicit final val ParallelForMio: fp.Parallel[MIO] = new fp.Parallel[MIO] {
-    // Members declared in hearth.fp.Applicative
     override def pure[A](a: A): MIO[A] = MIO.pure(a)
     override def map2[A, B, C](fa: MIO[A], fb: => MIO[B])(f: (A, B) => C): MIO[C] = fa.map2(fb)(f)
 
-    // Members declared in hearth.fp.Parallel
     override def parMap2[A, B, C](fa: MIO[A], fb: => MIO[B])(f: (A, B) => C): MIO[C] = fa.parMap2(fb)(f)
   }
 
@@ -767,15 +759,9 @@ object MIO {
       new MioTimeoutException(reconstructed, exceptionMsg)
     }
 
-    /** Close open scopes and add timeout marker.
-      *
-      * With flat-log-with-scope-IDs, open scopes already have correct parent IDs. We just need to:
-      *   1. Add a timeout marker log entry
-      *   2. Close all open scopes (set end timestamps, add to closedScopes)
-      */
+    /** Open scopes already have correct parent IDs in the flat log - they only miss their end timestamps. */
     private def reconstructScopes(state: MState): MState = {
       val now = Log.Timestamp.now
-      // Add timeout marker with correct parent scope ID
       val parentId = state.scopeStack match {
         case (_, id) :: _ => id
         case Nil          => 0

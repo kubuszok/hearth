@@ -22,10 +22,8 @@ object ServiceResourceGenPlugin extends AutoPlugin {
       else {
         val log = streams.value.log
 
-        // Cached analysis from incremental compiler
         val analysis = (Compile / compile).value.asInstanceOf[Analysis]
 
-        // Ensure the output directory exists
         val outDir = (Compile / resourceManaged).value / "META-INF" / "services"
         IO.createDirectory(outDir)
 
@@ -34,7 +32,6 @@ object ServiceResourceGenPlugin extends AutoPlugin {
 
         val apis = analysis.apis.internal
 
-        // Helper to extract FQCN from a Path
         def pathToFqcn(path: Path): String = {
           val parts = path.components.collect {
             // Use fully-qualified type to avoid clash with sbt.Id
@@ -43,21 +40,16 @@ object ServiceResourceGenPlugin extends AutoPlugin {
           parts.mkString(".")
         }
 
-        // Helper to extract FQCN from a Type
         def extractFqcn(tpe: Type): Option[String] =
           tpe match {
             case p: Parameterized => extractFqcn(p.baseType)
             case s: Singleton     =>
-              // Singleton has a path that can be converted to FQCN
               Some(pathToFqcn(s.path))
             case pr: Projection =>
-              // For Projection, build FQCN from prefix + id
               pr.prefix match {
                 case s: Singleton =>
-                  // If prefix is Singleton, extract path and combine with id
                   Some(pathToFqcn(s.path) + "." + pr.id)
                 case _ =>
-                  // Otherwise, try recursive extraction
                   extractFqcn(pr.prefix).map(_ + "." + pr.id).orElse {
                     // Fallback: if prefix extraction fails, try to use id alone if it looks like FQCN
                     if (pr.id.contains(".")) Some(pr.id) else None
@@ -67,20 +59,16 @@ object ServiceResourceGenPlugin extends AutoPlugin {
             case _            => None
           }
 
-        // Helper to get parent FQCNs from a ClassLike
         def getParentFqcns(cl: ClassLike): Set[String] =
           cl.structure.parents.flatMap(extractFqcn).toSet
 
-        // Helper to check if a class is a concrete (non-abstract) implementation
         def isConcreteImplementation(fqcn: String): Boolean =
           apis.get(fqcn).exists { api =>
             Option(api.api.classApi).exists { cl =>
-              // Must be a class (not a trait/interface) and not abstract
               cl.definitionType == DefinitionType.ClassDef && !cl.modifiers.isAbstract
             }
           }
 
-        // Find all direct implementations of a trait by checking all classes
         def findDirectImplementations(traitFqcn: String): Set[String] =
           apis
             .collect {
@@ -111,7 +99,6 @@ object ServiceResourceGenPlugin extends AutoPlugin {
       }
     },
 
-    // wire it into resources
     Compile / resourceGenerators += generateServiceFile.taskValue
   )
 }

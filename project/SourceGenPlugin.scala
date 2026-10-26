@@ -12,13 +12,11 @@ object SourceGenPlugin extends AutoPlugin {
   }
   import autoImport.*
 
-  // Must be explicitly enabled per module
   override def trigger = noTrigger
 
   override def projectSettings: Seq[Def.Setting[?]] = Seq(
     // Default: generate nothing. Override per-module.
     generateHearthSources := Seq.empty[File],
-    // Wire generated sources into compilation
     Compile / sourceGenerators += generateHearthSources.taskValue
   )
 }

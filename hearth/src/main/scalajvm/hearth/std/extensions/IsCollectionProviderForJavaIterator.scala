@@ -28,7 +28,6 @@ final class IsCollectionProviderForJavaIterator extends StandardMacroExtension {
           fromIterator: Expr[java.util.Iterator[Item]] => Expr[A]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
-          // To convert Iterator to Iterable we will use scala.jdk converters.
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = Expr.quote {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(toIterator(value))).to(Iterable)
           }
@@ -81,7 +80,6 @@ final class IsCollectionProviderForJavaIterator extends StandardMacroExtension {
 
       @scala.annotation.nowarn
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
-        // All Java iterators can be converted to Iterable.
         case Iterator(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe

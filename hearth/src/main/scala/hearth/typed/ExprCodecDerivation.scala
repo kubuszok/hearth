@@ -79,8 +79,8 @@ trait ExprCodecDerivation { this: MacroCommons =>
   ): Either[String, Expr[A]] =
     // Dispatch on the value's RUNTIME CLASS, not on `getClass.getSimpleName` matched against the child's key: the
     // simple name is JVM-encoded (`$colon$colon` for `::`, so `List` would never dispatch) and same-simple-name
-    // children in different scopes collide (#309). `isInstance` selects the (unique, since children are disjoint)
-    // child whose type the value belongs to; nested sealed hierarchies recurse through `semiQuoteInternal`.
+    // children in different scopes collide. `isInstance` selects the (unique, since children are disjoint) child
+    // whose type the value belongs to; nested sealed hierarchies recurse through `semiQuoteInternal`.
     en.directChildren.iterator
       .flatMap { case (_, childType) =>
         import childType.Underlying as C

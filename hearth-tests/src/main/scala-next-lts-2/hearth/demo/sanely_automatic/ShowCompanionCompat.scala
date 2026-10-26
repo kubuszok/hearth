@@ -19,8 +19,6 @@ private[sanely_automatic] class ShowMacros(val c: blackbox.Context)
     extends hearth.MacroCommonsScala2
     with ShowMacrosImpl {
 
-  // [hearth#176]
-
   def deriveTypeClassImpl[A: c.WeakTypeTag]: c.Expr[Show[A]] = deriveTypeClass[A]
 
   def deriveShowStringImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[String] = deriveShowString[A](value)

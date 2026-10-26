@@ -3,7 +3,7 @@ package typename
 
 /** Tests for TypeName injection via context bounds.
   *
-  * These tests require `summonImplicitIgnoring` (Scala 2.13.17+ / Scala 3), so they are placed in `scala-newest` to
+  * These tests require `summonImplicitIgnoring` (Scala 2.13.17+ / Scala 3), so they are placed in `scala-next-lts` to
   * avoid running on Scala 2.13.16 where summoning is disabled.
   */
 final class TypeNameInjectionSpec extends MacroSuite {

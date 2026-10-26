@@ -9,8 +9,6 @@ final private class CrossTypesFixtures(q: Quotes) extends MacroCommonsScala3(usi
 
 object CrossTypesFixtures {
 
-  // [hearth#176]
-
   inline def testTypeOf[A]: Data = ${ testTypeOfImpl[A] }
   private def testTypeOfImpl[A: Type](using q: Quotes): Expr[Data] = new CrossTypesFixtures(q).testTypeOf[A]
 

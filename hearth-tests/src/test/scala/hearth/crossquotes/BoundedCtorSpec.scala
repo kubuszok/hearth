@@ -4,11 +4,12 @@ package crossquotes
 import hearth.data.Data
 
 /** Cross-platform (2.13 + 3) tests that `Type.CtorN.UpperBounded.of` / `Type.CtorN.Bounded.of` expand and match on BOTH
-  * platforms (hearth#344 — the Scala 3 cross-quotes plugin previously only rewrote the 2-select `Type.CtorN.of`).
+  * platforms - on Scala 3 the cross-quotes plugin has to rewrite these 3-select forms, not only the 2-select
+  * `Type.CtorN.of`.
   */
 final class BoundedCtorSpec extends MacroSuite {
 
-  group("Cross-Quotes: Type.CtorN.UpperBounded.of / Bounded.of expand on both platforms (#344)") {
+  group("Cross-Quotes: Type.CtorN.UpperBounded.of / Bounded.of expand on both platforms") {
 
     test("Ctor1.UpperBounded.of matches F1[SubMarker]") {
       BoundedCtorFixtures.testUpperBounded1[BoundedCtors.F1[BoundedCtors.SubMarker]] <==> Data(true)

@@ -27,7 +27,6 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           case typeParamSymbols :: _ if typeParamSymbols.exists(_.isType) =>
             // An alias' symbol and type arguments need not line up with the parent's type parameters
             // (`type U[A] = Parent[Any, A]`, possibly chained, renamed or reordered), so we use the dealiased type.
-            // See Chimney #960.
             val parentTpe = instanceTpe.dealias
             // we have to figure how subtypes type params map to parent type params
             val appliedTypeByParam: Map[String, TypeRepr] =
@@ -59,11 +58,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         val enclosing = Symbol.spliceOwner
         def enclosings = Iterator.iterate(enclosing)(_.owner).takeWhile(!_.isNoSymbol)
 
-        // Helper methods
         def isPrivate: Boolean = effectiveSymbol.flags.is(Flags.Private)
         def isProtected: Boolean = effectiveSymbol.flags.is(Flags.Protected)
 
-        // High-level checks
         def isPublic: Boolean =
           !isPrivate && !isProtected && effectiveSymbol.privateWithin.isEmpty && effectiveSymbol.protectedWithin.isEmpty
         def isPrivateButInTheSameClass: Boolean = isPrivate && enclosing == owner
@@ -221,12 +218,10 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         case _         => false
       }
 
-    // [hearth#315] The symbol to classify a type by. For an `export`-created alias of a real CLASS (e.g.
-    // `export Inner.Foo`) the alias's own `typeSymbol` carries none of the class flags, so resolve through to the
-    // underlying class. But ONLY when the dealiased symbol is a non-module class: this leaves aliases of OBJECTS (e.g.
-    // `type EmptyTuple = EmptyTuple.type`, whose dealias is a module class and must stay `isClass=false`/non-final),
-    // direct object types (e.g. an `Enumeration` object, which classify as before), and ordinary aliases untouched —
-    // the change is purely additive (it only lets an export alias of a class see its class's flags).
+    // For an `export`-created alias of a real CLASS (e.g. `export Inner.Foo`) the alias's own `typeSymbol` carries none
+    // of the class flags, so we resolve through to the underlying class. But ONLY when the dealiased symbol is a
+    // non-module class: aliases of OBJECTS (e.g. `type EmptyTuple = EmptyTuple.type`, whose dealias is a module class
+    // and must stay `isClass=false`/non-final), direct object types and ordinary aliases stay untouched.
     private def classificationSymbol(instanceTpe: UntypedType): Symbol = {
       val orig = instanceTpe.typeSymbol
       val dealiased = instanceTpe.dealias.typeSymbol
@@ -251,7 +246,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def toClassJvmBuiltInExtra(untyped: UntypedType): Option[java.lang.Class[?]] =
       untyped.asTyped[Any] match {
         case IArrayCtor(elementType) =>
-          // [hearth#333] `IArray[E]` erases to an array, so its branch must ALWAYS answer with a `Class` (never fall
+          // `IArray[E]` erases to an array, so its branch must ALWAYS answer with a `Class` (never fall
           // through to the shared "unhandled built-in" assertion, which exists to catch built-ins that have no branch
           // at all). Use the element's runtime class when resolvable; when it is not — e.g. `IArray[Int | String]`,
           // whose element is a union with no single class — fall back to the erased array-of-Object class.
@@ -264,7 +259,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       }
 
     override def isFinal(instanceTpe: UntypedType): Boolean = {
-      val A = classificationSymbol(instanceTpe) // resolve `export`-created aliases of classes, see #315
+      val A = classificationSymbol(instanceTpe) // resolve `export`-created aliases of classes
       // String is not being detected as a final in Scala 3, so we need to check it manually.
       // TODO: check if it's not a general issue with Java classes in Scala 3
       !A.isNoSymbol && ((A.flags.is(Flags.Final) || instanceTpe.asTyped[Any] <:< Type.of[String]) || isArray(
@@ -273,12 +268,12 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     }
 
     override def isTrait(instanceTpe: UntypedType): Boolean = {
-      val A = classificationSymbol(instanceTpe) // resolve `export`-created aliases of classes, see #315
+      val A = classificationSymbol(instanceTpe) // resolve `export`-created aliases of classes
       !A.isNoSymbol && A.flags.is(Flags.Trait)
     }
 
     override def isClass(instanceTpe: UntypedType): Boolean = {
-      val A = classificationSymbol(instanceTpe) // resolve `export`-created aliases of classes, see #315
+      val A = classificationSymbol(instanceTpe) // resolve `export`-created aliases of classes
       // String is not being detected as a class in Scala 3, so we need to check it manually.
       // TODO: check if it's not a general issue with Java classes in Scala 3
       !A.isNoSymbol && ((A.isClassDef || instanceTpe.asTyped[Any] <:< Type.of[String]) && !isArray(
@@ -287,7 +282,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     }
 
     override def isSealed(instanceTpe: UntypedType): Boolean = {
-      val A = classificationSymbol(instanceTpe) // resolve `export`-created aliases of classes, see #315
+      val A = classificationSymbol(instanceTpe) // resolve `export`-created aliases of classes
       !A.isNoSymbol && A.flags.is(Flags.Sealed)
     }
     override def isJavaEnum(instanceTpe: UntypedType): Boolean = {
@@ -356,10 +351,10 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def isCase(instanceTpe: UntypedType): Boolean = {
       // Parameterless Scala 3 enum cases (`enum Foo { case A }`) present their singleton with the enum CLASS as the
       // type symbol (no Case flag) while the `Case|Enum|StableRealizable` flags live on the TERM symbol - so we have to
-      // inspect both, mirroring `isVal`. See issue #311.
+      // inspect both, mirroring `isVal`.
       def hasCase(sym: Symbol): Boolean = !sym.isNoSymbol && sym.flags.is(Flags.Case)
       // Resolve `export`-created aliases of case classes (identity for non-alias/object types); the term symbol still
-      // carries the `Case` flag for parameterless enum cases / case objects. See #315 and #311.
+      // carries the `Case` flag for parameterless enum cases / case objects.
       hasCase(classificationSymbol(instanceTpe)) || hasCase(instanceTpe.termSymbol)
     }
     override def isObject(instanceTpe: UntypedType): Boolean = {
@@ -387,8 +382,8 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def baseClasses(instanceTpe: UntypedType): List[UntypedType] =
       instanceTpe.dealias match {
         // An intersection `A & B` has `NoSymbol` as its `typeSymbol`, so `typeReprBaseClasses` would return Nil and drop
-        // every ancestor of both parts. Union the base classes of the parts, deduplicating by symbol (Chimney #673,
-        // mirrors the `AndType` branch in `parents`).
+        // every ancestor of both parts. Union the base classes of the parts, deduplicating by symbol (mirrors the
+        // `AndType` branch in `parents`).
         case AndType(left, right) =>
           val seen = scala.collection.mutable.Set.empty[Symbol]
           (baseClasses(left) ++ baseClasses(right)).filter(bc => seen.add(bc.typeSymbol))
@@ -442,8 +437,8 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       // method's type as seen from the target (a PolyType over the ORIGINAL type-parameter binders for a generic
       // method); applying it to the actual type arguments handed to the DefDef body substitutes those binders with
       // the fresh type parameters and yields the concrete result — `String` for `def f[T](t: T): String`, the
-      // re-bound `T` for `def f[T](t: T): T`. This replaces the old `Any` fallback that lost concrete returns of
-      // generic methods. (We avoid `Symbol.info`, which is `@experimental`, hence the reuse of `memberType`.)
+      // re-bound `T` for `def f[T](t: T): T`. (We avoid `Symbol.info`, which is `@experimental`, hence the reuse of
+      // `memberType`.)
       def methodResultType(memberType: TypeRepr, typeArgs: List[TypeRepr]): TypeRepr = {
         val applied = memberType match {
           case pt: PolyType if typeArgs.nonEmpty => pt.appliedTo(typeArgs)
@@ -645,7 +640,6 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       new java.util.IdentityHashMap[UntypedType, java.util.IdentityHashMap[UntypedType, java.lang.Boolean]]()
 
     override def isSubtypeOf(subtype: UntypedType, supertype: UntypedType): Boolean = {
-      // Fast path: reference equality means identical types
       if subtype eq supertype then return true
       // Fast negative: if the dealiased subtype is a simple class type (not an AndType, ConstantType, or
       // other compound type) and the supertype is final with a different symbol, they can't be in a subtype
@@ -661,7 +655,6 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         supSym.flags.is(Flags.Final) && supertype.typeArgs.isEmpty &&
         subSym != defn.NothingClass && subSym != defn.NullClass then return false
       }
-      // Check cache before expensive compiler check
       var inner = subtypeCache.get(subtype)
       if inner == null then {
         inner = new java.util.IdentityHashMap()
@@ -675,9 +668,8 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     }
 
     override def isSameAs(a: UntypedType, b: UntypedType): Boolean = {
-      // Fast path: reference equality
       if a eq b then return true
-      // Dealias for fast comparison (dealias is cheap — just follows alias chain)
+      // dealias is cheap - it just follows the alias chain
       val ad = a.dealias
       val bd = b.dealias
       if ad eq bd then return true
@@ -688,7 +680,6 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       // (e.g. singleton/literal types like `true` vs `Boolean`, or path-dependent types like
       // `WeekDay.Value` vs `Planet.Value`).
       if adSym != bdSym && !adSym.isNoSymbol && !bdSym.isNoSymbol then return false
-      // Check cache before expensive compiler check
       var inner = sameTypeCache.get(a)
       if inner == null then {
         inner = new java.util.IdentityHashMap()
@@ -757,7 +748,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     // companion that is the path as seen from INSIDE the opaque's defining scope, where the opaque type is transparent,
     // so the results of the companion's methods (`Foo.apply(1)`) would be typed with the dealiased representation
     // (`Int`) rather than the opaque type (`Foo`), failing e.g. `Option.apply[Foo](x: Foo | Null)` on Scala 3.8+.
-    // Select the module from the opaque type's own (external) prefix instead. See Chimney #962.
+    // Select the module from the opaque type's own (external) prefix instead.
     private def companionRef(untyped: UntypedType, module: Symbol, isOpaque: Boolean): UntypedExpr =
       untyped.dealias match {
         case tr: TypeRef if isOpaque =>
@@ -773,12 +764,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     override def directChildrenList(instanceTpe: UntypedType): Option[List[(String, UntypedType)]] =
       if isEnumeration(instanceTpe) then {
-        // Determine if we have the object type or the Value type
         val enumObjectTypeOpt: Option[UntypedType] = if instanceTpe.typeSymbol.flags.is(Flags.Module) then {
-          // We have the object type directly
           Some(instanceTpe)
         } else {
-          // We have the Value type - find the companion object
           // In Scala 3, WeekDay.Value might be a TypeRef(WeekDay.type, "Value")
           val fromTypeRef =
             try
@@ -790,11 +778,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
             catch { case _: ClassCastException => None }
 
           fromTypeRef.orElse {
-            // Fallback: try owner chain
             val owner = instanceTpe.typeSymbol.owner
             if owner.isNoSymbol || !owner.flags.is(Flags.Module) then None
             else {
-              // Get the module type
               Some(owner.typeRef)
             }
           }
@@ -836,23 +822,12 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           else if sym.flags.is(Flags.Module) then sym.typeRef.typeSymbol.moduleClass
           else sym
 
-        // Sort the ORIGINAL child symbols, THEN map them through `handleSymbols` - the previous code did the reverse
-        // (`.map(handleSymbols).sorted`), which is what made the order flaky.
-        //
-        // `symbolOrdering` orders by source position first, and falls back to the (deterministic) alphabetical name
-        // only when a position is absent - the intended behaviour, because incremental compilation drops positions and
-        // the name is then the one stable key available. The bug was purely about WHICH symbol we sorted: for a
-        // `case object`, `handleSymbols` returns the synthetic module CLASS, whose source position is frequently absent
-        // (and unreliably completed) during macro expansion, so `symbolOrdering` fell through to the name fallback and
-        // the result flipped between declaration order ("warm" build) and alphabetical order ("cold" build) for the
-        // SAME sources. The ORIGINAL child symbol (the user-written `case object`'s module val / the case class) carries
-        // a real source position for a same-compilation-unit hierarchy, so sorting it directly restores stable
-        // declaration order there while keeping the exact position-then-name semantics everywhere else. We deliberately
-        // do NOT rely on the `children` list order itself (it is not a documented declaration-order guarantee across
-        // Scala versions / incremental compilation), only on the per-symbol position/name keys.
+        // Sort the ORIGINAL child symbols BEFORE `handleSymbols`: for a `case object` it returns the synthetic module
+        // CLASS, whose source position is frequently absent during macro expansion, so `symbolOrdering` (position, then
+        // name when the position is absent) would flip between declaration and alphabetical order for the SAME
+        // sources. The `children` list order itself is not a documented declaration-order guarantee, hence the sort.
         // `classificationSymbol` rather than `typeSymbol`: for an alias (`type U[A] = Sealed[Any, A]`) the latter is the
-        // alias' symbol, which has no children (Chimney #960).
-        // Sorted by `symbolOrdering`: original child position, then alphabetical name when the position is absent.
+        // alias' symbol, which has no children.
         classificationSymbol(instanceTpe).children.sorted
           .map(handleSymbols)
           .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
@@ -900,7 +875,6 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     private def unionMemberDispatch(instanceTpe: UntypedType): Option[List[(UntypedType, UnionMemberDispatch)]] = {
       val nothingType = TypeRepr.of[Nothing]
 
-      // Flatten nested OrType tree
       def flatten(tpe: TypeRepr): List[TypeRepr] = tpe.dealias match {
         case OrType(left, right) => flatten(left) ++ flatten(right)
         case other               => List(other)
@@ -910,7 +884,6 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       else {
         val allMembers = flatten(instanceTpe.dealias)
 
-        // Filter Nothing, deduplicate
         val members = allMembers
           .filterNot(_ =:= nothingType)
           .foldLeft(Vector.empty[TypeRepr]) { (acc, tpe) =>
@@ -920,7 +893,6 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         // Need >= 2 members for a meaningful union
         if members.size < 2 then None
         else {
-          // Check no subtype relationships between members
           val hasSubtypeOverlap = members.exists { a =>
             members.exists(b => !(a =:= b) && (a <:< b || b <:< a))
           }
@@ -1091,7 +1063,6 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       // Apply to the (dealiased) type CONSTRUCTOR rather than the type as-given, so that re-applying an
       // already-applied type (e.g. a wildcard example `F[Any, ?]`) replaces its arguments instead of silently
       // producing a malformed `F[Any, ?][Int, String]`. This matches Scala 2's `appliedType(typeConstructor, args)`.
-      // See issue #312.
       typeConstructor(untyped).appliedTo(args)
 
     override def sameTypeConstructorAs(a: UntypedType, b: UntypedType): Boolean =
@@ -1110,7 +1081,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     // Type-position annotations live on `AnnotatedType(underlying, annot)` wrappers (`X @Ann`), not on the type symbol;
     // stacked annotations nest (`X @A @B` => `AnnotatedType(AnnotatedType(X, @A), @B)`), so we walk them all. Dealias so
-    // alias forms (`type Y = X @Ann`) are seen through. See issue #306.
+    // alias forms (`type Y = X @Ann`) are seen through.
     private def annotatedTypeTerms(untyped: UntypedType): List[Term] = {
       // Match `AnnotatedType` BEFORE dealiasing: on Scala 3 `AnnotatedType(X, @Ann).dealias` strips the annotation.
       // Dealias only to see through a plain alias to an annotated type (`type Y = X @Ann`); the `d != tpe` guard stops

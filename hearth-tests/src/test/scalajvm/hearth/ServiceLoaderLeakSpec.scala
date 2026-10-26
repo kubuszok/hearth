@@ -6,7 +6,7 @@ import java.net.URLClassLoader
 
 final class ServiceLoaderLeakSpec extends Suite {
 
-  group("platformSpecificServiceLoader classloader retention (#377)") {
+  group("platformSpecificServiceLoader classloader retention") {
 
     test("old classloader should be GC-eligible after a new classloader is used") {
       val parent = Thread.currentThread().getContextClassLoader

@@ -9,9 +9,9 @@ import scala.collection.immutable.ListMap
 trait StdExtensions { this: MacroCommons =>
 
   // Cached across all shape companions of one cake: on Scala 3 each `Type.of[X]` call unpickles a quoted type
-  // literal, and `isBottomType` used to pay two of them per `parse` call. Cake-level (not on the nested
+  // literal, and `isBottomType` would pay two of them per `parse` call. Cake-level (not on the nested
   // `ProvidedCompanion` trait) so that trait's compiled interface stays untouched - see the note above
-  // `bottomTypeSkipReason` / issue #319.
+  // `bottomTypeSkipReason`.
   private lazy val stdExtensionsCachedNullType: Type[Null] = Type.of[Null]
   private lazy val stdExtensionsCachedNothingType: Type[Nothing] = Type.of[Nothing]
 
@@ -60,9 +60,8 @@ trait StdExtensions { this: MacroCommons =>
         * (always attempt). An override MUST be a genuine necessary condition — returning `false` for a type the
         * provider could actually build silently drops support for it. Sound cheap checks: `tpe <:< Bound` for a
         * '''covariant''' `Bound` (a subtype of `Bound[X]` is always a subtype of `Bound[Any]`), or
-        * `sameTypeConstructorAs` for an exact/invariant constructor. See the compile-time perf notes: the shape
-        * companions scan ~15 providers per field, so a cheap reject that avoids the full match on the common negative
-        * case is the main provider-scan lever.
+        * `sameTypeConstructorAs` for an exact/invariant constructor. The shape companions scan ~15 providers per field,
+        * so a cheap reject that avoids the full match on the common negative case is the main provider-scan lever.
         *
         * @since 0.4.1
         */
@@ -121,14 +120,14 @@ trait StdExtensions { this: MacroCommons =>
       * Bottom types conform to EVERY type via `<:<`, so a provider that selects by `<:<` matches them and then crashes
       * while eagerly building exprs it cannot build (e.g. upcasting `java.util.Optional[Nothing]` to `Null`). No
       * provider can produce a value of a bottom type, so every shape companion's `parse` skips them up front rather
-      * than crashing - which is why a registered [[Provider]] need not guard for them at those entry points. See #319.
+      * than crashing - which is why a registered [[Provider]] need not guard for them at those entry points.
       *
       * @since 0.3.0
       */
     final protected def isBottomType[A: Type]: Boolean =
       Type[A] <:< stdExtensionsCachedNullType || Type[A] <:< stdExtensionsCachedNothingType
     // A `def` (not a `val`): a new trait `val`/`var` adds an abstract accessor to the compiled interface, breaking
-    // binary compatibility; a `final def` compiles to a provided default method and does not. See issue #319.
+    // binary compatibility; a `final def` compiles to a provided default method and does not.
     final protected def bottomTypeSkipReason: String =
       "bottom types (Nothing/Null) conform to every type but no provider can build a value of them"
 
@@ -138,7 +137,7 @@ trait StdExtensions { this: MacroCommons =>
 
     /** Provenance of the provider that produced the most recent successful match through [[parse]]/[[unapply]], or
       * `None` when the last call did not match. Populated by [[firstMatch]] (and thus by every companion whose `parse`
-      * delegates to it). Lets callers tell built-in results apart from specific extensions. See issue #329.
+      * delegates to it). Lets callers tell built-in results apart from specific extensions.
       */
     final def lastMatchProvenance: Option[ProviderProvenance] = lastMatchProvenanceValue
 
@@ -146,7 +145,7 @@ trait StdExtensions { this: MacroCommons =>
       lastMatchProvenanceValue = Some(ProviderProvenance(provider.name, provider.getClass.getName))
 
     /** Standard "first provider that matches wins, otherwise aggregate the skip reasons" loop, shared by the companions
-      * with that shape (IsCollection/IsOption/IsEither/IsValueType). Records [[lastMatchProvenance]] on a match (#329).
+      * with that shape (IsCollection/IsOption/IsEither/IsValueType). Records [[lastMatchProvenance]] on a match.
       */
     final protected def firstMatch[A: Type](companionName: String): ProviderResult[Provided[A]] = {
       lastMatchProvenanceValue = None
@@ -377,19 +376,17 @@ trait StdExtensions { this: MacroCommons =>
     def extractCtorLikesResult[Output: Type, Result: Type](
         buildCtor: CtorBuilder[Output, Result]
     ): List[Existential[CtorLikeOf[*, Output]]] = {
-      // Constructors of the type itself
       val plainCtors: List[Method] =
         if (Type[Output] <:< Type[Result]) Type[Output].constructors
         else Nil
 
-      // Non-instance methods from the type (for case objects, etc.). Order does not matter here (we collect the ones
-      // usable as smart constructors), so use the cheaper unsorted variant that skips source-position resolution.
+      // Order does not matter here (we collect the ones usable as smart constructors), so use the cheaper unsorted
+      // variant that skips source-position resolution.
       val noInstanceMethods: List[Method] = Type[Output].unsortedMethods.filter {
         case _: Method.OnInstance => false
         case _                    => true
       }
 
-      // Process constructors and non-instance methods
       (plainCtors ++ noInstanceMethods).collect {
         case method if method.isUnary && method.knownReturning.exists { rt =>
               import rt.Underlying as R
@@ -587,7 +584,7 @@ trait StdExtensions { this: MacroCommons =>
     var lastUnapplyFailure: NonEmptyMap[String, Either[Throwable, () => String]] = _
 
     /** Provenance of the provider behind the most recent successful match - mirrors
-      * [[IsCollection.lastMatchProvenance]] since `IsMap` decodes through the collection providers. See issue #329.
+      * [[IsCollection.lastMatchProvenance]] since `IsMap` decodes through the collection providers.
       */
     def lastMatchProvenance: Option[ProviderProvenance] = IsCollection.lastMatchProvenance
 

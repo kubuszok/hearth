@@ -61,13 +61,10 @@ private[data] trait DataCommons {
       k.tail -> v
     }
     val (errors, data) = x.partitionMap[List[String], (String, Data)] {
-      // No values for key -> we return an error
       case (key, List()) =>
         Left(List(s"$key: no value"))
-      // Single value for key -> we parse it
       case (key, List((Nil, str))) =>
         parseString(str).map(data => key -> data).left.map(e => List(s"$key: $e"))
-      // Multiple values for key -> we group them by nested keys
       case (key, values) =>
         val (nested, leafs) = values.partitionMap { case (keys, str) =>
           NonEmptyList.fromList(keys) match {
@@ -76,12 +73,10 @@ private[data] trait DataCommons {
           }
         }
         if (nested.isEmpty) {
-          // No nested values -> there should be exactly one leaf
           if (leafs.isEmpty) Left(List(s"$key: no value"))
           else if (leafs.sizeIs == 1) parseString(leafs.head).map(data => key -> data).left.map(e => List(s"$key: $e"))
           else Left(List(s"$key: multiple values: ${leafs.mkString(", ")}"))
         } else {
-          // There are nested values -> there should be no leafs
           if (leafs.isEmpty) parsePairs(nested).map(data => key -> data)
           else
             Left(

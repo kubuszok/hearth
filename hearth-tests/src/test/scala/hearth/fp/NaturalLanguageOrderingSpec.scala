@@ -51,7 +51,6 @@ final class NaturalLanguageOrderingSpec extends MacroSuite {
       val ord = NaturalLanguageOrdering.caseInsensitive
       // _1 and _1 should be equal (underscore skipped, numbers equal)
       assert(ord.compare("_1", "_1") == 0, "_1 should equal _1")
-      // _1 should come before _10 (1 < 10)
       assert(ord.compare("_1", "_10") < 0, "_1 should come before _10")
     }
 

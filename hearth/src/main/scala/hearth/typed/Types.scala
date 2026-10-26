@@ -107,12 +107,11 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       * Total and safe for callers: it returns `None` (never throws) whenever the class cannot be resolved - a
       * user-project type, an abstract type, a type parameter, etc. The one internal assertion in the underlying
       * `UntypedType.toClass` fires only for a genuine maintainer gap (a type flagged built-in without a matching
-      * branch), never for anything a user can express; arrays and `IArray` answer with `None` rather than throwing
-      * (issue #333).
+      * branch), never for anything a user can express; arrays and `IArray` answer with `None` rather than throwing.
       *
       * Caveat: a re-materialised parameterised `classOf` literal does not survive Scala 2 re-typechecking - e.g.
-      * splicing `classOf[EnumSet[?]]` fails with "takes type parameters" (issue #321), so prefer the raw constructor's
-      * class over a parameterised one.
+      * splicing `classOf[EnumSet[?]]` fails with "takes type parameters", so prefer the raw constructor's class over a
+      * parameterised one.
       *
       * @see
       *   [[getRuntimeClass]] for the same lookup as an extension method on `Type[A]`
@@ -149,7 +148,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
         if (idx < 0) scala.reflect.NameTransformer.encode(fqn)
         else fqn.substring(0, idx + 1) + scala.reflect.NameTransformer.encode(fqn.substring(idx + 1))
       }
-      // Decoded candidates first (existing behaviour), then the symbol-encoded ones as an additive fallback.
+      // Decoded candidates first, so the symbol-encoded ones are only a fallback.
       def candidatesOf(base: String): Array[String] = {
         val encoded = encodeSimpleName(base)
         if (encoded == base) iter(base) else iter(base) ++ iter(encoded)
@@ -190,9 +189,9 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       *
       * '''The map is keyed by the subtype's SIMPLE name.''' Same-named subtypes declared in different scopes (e.g.
       * `object Color { case object Green }` alongside a top-level `case object Green`) collapse into a single entry,
-      * hiding the ambiguity (issue #309) - use [[directChildrenList]] when you must observe every subtype. '''Do not
-      * rely on the key format''': it is retained as-is for backward compatibility only. In 0.5.0 the key changes to the
-      * subtype's FULL name (without type parameters).
+      * hiding the ambiguity - use [[directChildrenList]] when you must observe every subtype. '''Do not rely on the key
+      * format''': it is retained as-is for backward compatibility only. In 0.5.0 the key changes to the subtype's FULL
+      * name (without type parameters).
       *
       * @since 0.1.0
       */
@@ -200,7 +199,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       UntypedType.fromTyped[A].directChildren.map(m => ListMap.from(m.view.mapValues(_.asTyped[A].as_??<:[A])))
 
     /** Like [[directChildren]], but returns an ordered `List` preserving duplicate simple names and extraction order,
-      * so same-named subtypes in different scopes are all observable (and their ambiguity detectable). See issue #309.
+      * so same-named subtypes in different scopes are all observable (and their ambiguity detectable).
       *
       * Because [[directChildren]] collapses same-simple-name subtypes - and will change its key to the subtype's FULL
       * name in 0.5.0 - this list form is the stable way to observe every subtype regardless of the map's key format.
@@ -258,8 +257,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
 
     /** Annotations in the TYPE POSITION of `A` - the `@Ann` in `X @Ann` (an `AnnotatedType`), as opposed to
       * [[annotations]] which reads annotations on the type's SYMBOL. Typically used to inspect annotations placed AFTER
-      * the type of a case-class field (`name: String @Action("anonymize")`). Stacked annotations are all returned. See
-      * issue #306.
+      * the type of a case-class field (`name: String @Action("anonymize")`). Stacked annotations are all returned.
       *
       * @since 0.4.1
       */
@@ -288,9 +286,9 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       * `Double`, `Char`.
       *
       * '''`Unit` is intentionally NOT in this list''' - it does not box the way the 8 value types do. Beware the
-      * resulting asymmetry: [[isPrimitive]] returns `true` for `Unit` (for parity with scalac's `Symbol.isPrimitive`,
-      * issue #310) even though `Unit` is absent here. See [[isPrimitive]] for the full contract and [[jvmBuiltInTypes]]
-      * for the broader built-in set.
+      * resulting asymmetry: [[isPrimitive]] returns `true` for `Unit` (for parity with scalac's `Symbol.isPrimitive`)
+      * even though `Unit` is absent here. See [[isPrimitive]] for the full contract and [[jvmBuiltInTypes]] for the
+      * broader built-in set.
       *
       * @since 0.1.0
       */
@@ -311,8 +309,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       *
       * `true` for any of the 8 value types in [[primitiveTypes]] '''and additionally for `Unit`''' - so
       * `isPrimitive[Unit]` is `true` even though `Unit` is deliberately absent from [[primitiveTypes]]. This asymmetry
-      * exists for parity with scalac's `Symbol.isPrimitive` (issue #310). See `UntypedType.isPrimitive` for the full
-      * contract.
+      * exists for parity with scalac's `Symbol.isPrimitive`. See `UntypedType.isPrimitive` for the full contract.
       *
       * @since 0.1.0
       */
@@ -455,7 +452,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     /** Whether `A` is a member of a `scala.Enumeration` (the pre-`enum` Scala 2 `Enumeration#Value` pattern).
       *
       * This is NOT a Scala 3 `enum` (whose cases are decomposable via [[directChildren]]/[[isCaseVal]]) and NOT a Java
-      * `enum` (see [[isJavaEnum]]). The three "enum" notions are easy to confuse (issue #311).
+      * `enum` (see [[isJavaEnum]]). The three "enum" notions are easy to confuse.
       *
       * @see
       *   [[isJavaEnum]], [[isSealed]]
@@ -475,15 +472,14 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
 
     /** Whether `A` is a module singleton (`object`).
       *
-      * Note that a parameterless Scala 3 `enum` case is a `val`, NOT an `object` - see [[isVal]] and [[isCaseVal]]
-      * (issue #311).
+      * Note that a parameterless Scala 3 `enum` case is a `val`, NOT an `object` - see [[isVal]] and [[isCaseVal]].
       *
       * @since 0.1.0
       */
     final def isObject[A: Type]: Boolean = UntypedType.fromTyped[A].isObject
 
     /** Whether `A` is a `val` singleton, in particular a parameterless Scala 3 `enum` case (which is represented as a
-      * `val`, not an `object` - issue #311).
+      * `val`, not an `object`).
       *
       * @see
       *   [[isObject]], [[isCaseVal]]
@@ -498,7 +494,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     /** Whether `A` is a parameterless case value - a `case object` or a parameterless Scala 3 `enum` case.
       *
       * Distinct from [[isCaseObject]]: a Scala 3 parameterless `enum` case is a `val`, not an `object`, so it is an
-      * `isCaseVal` but not an `isCaseObject` (issue #311 - such cases were previously missed).
+      * `isCaseVal` but not an `isCaseObject`.
       *
       * @see
       *   [[isCaseObject]], [[isCaseClass]]
@@ -513,7 +509,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       *
       * These are only the immediate supertypes as written; use [[baseClasses]] for the full transitive linearization.
       * On Scala 3 this is computed via Java reflection to avoid the `TypeRepr#baseClasses` extension-method shadowing
-      * that would otherwise capture the call (issue #328).
+      * that would otherwise capture the call.
       *
       * @see
       *   [[baseClasses]]
@@ -529,7 +525,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       *
       * Contrast [[parents]], which returns only the direct supertypes. On Scala 3, code that also imports
       * `quotes.reflect` should prefer the `UntypedType#baseClassTypes` extension to sidestep the `TypeRepr#baseClasses`
-      * shadowing (issue #328).
+      * shadowing.
       *
       * @see
       *   [[parents]]
@@ -669,7 +665,6 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
           }
       }
 
-    // Tuple codecs
     def Tuple1Codec[T1: TypeCodec]: TypeCodec[Tuple1[T1]]
     def Tuple2Codec[T1: TypeCodec, T2: TypeCodec]: TypeCodec[(T1, T2)]
     def Tuple3Codec[T1: TypeCodec, T2: TypeCodec, T3: TypeCodec]: TypeCodec[(T1, T2, T3)]
@@ -1081,7 +1076,6 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
           Existential.UpperBounded[Any, Id, A](value.asInstanceOf[A])(using tpe)
         }
 
-      /** Matches if name represents a module singleton existing in the classpath. */
       private object ModuleSingleton {
         def unapply(className: String): Option[Any] = try
           Option(java.lang.Class.forName(className).getField("MODULE$").get(null))
@@ -1334,8 +1328,6 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def as_??<:[U >: A]: ??<:[U] = Existential.UpperBounded[U, Type, A](tpe)(using tpe)
     def as_<:??<:[L <: A, U >: A]: L <:??<: U = Existential.Bounded[L, U, Type, A](tpe)(using tpe)
   }
-
-  // Aliases to make the (very common) existential types shorter
 
   final type ?? = Existential[Type]
   final type ??>:[L] = Existential.LowerBounded[L, Type]

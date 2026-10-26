@@ -9,7 +9,6 @@ final private class MethodsFixtures(q: Quotes) extends MacroCommonsScala3(using 
 
 object MethodsFixtures {
 
-  // Chimney #673
   inline def testExposesNameAndAge[A]: Data = ${ testExposesNameAndAgeImpl[A] }
   private def testExposesNameAndAgeImpl[A: Type](using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testExposesNameAndAge[A]
@@ -18,12 +17,9 @@ object MethodsFixtures {
   private def testJavaAccessorNamesImpl[A: Type](using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testJavaAccessorNames[A]
 
-  // [hearth#331]
   inline def testFoldSubstitutesTypeArgs: Data = ${ testFoldSubstitutesTypeArgsImpl }
   private def testFoldSubstitutesTypeArgsImpl(using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testFoldSubstitutesTypeArgs
-
-  // [hearth#176]
 
   inline def testConstructorsExtraction[A]: Data = ${ testConstructorsExtractionImpl[A] }
   private def testConstructorsExtractionImpl[A: Type](using q: Quotes): Expr[Data] =
@@ -238,9 +234,9 @@ object MethodsFixtures {
   private def testAnnotationValueDecodedImpl[A: Type](using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testAnnotationValueDecoded[A]
 
-  inline def testFieldNameReproducer[A]: Data = ${ testFieldNameReproducerImpl[A] }
+  inline def testFieldNamesFromAnnotations[A]: Data = ${ testFieldNameReproducerImpl[A] }
   private def testFieldNameReproducerImpl[A: Type](using q: Quotes): Expr[Data] =
-    new MethodsFixtures(q).testFieldNameReproducer[A]
+    new MethodsFixtures(q).testFieldNamesFromAnnotations[A]
 
   inline def testSplicedAnnotationValue[A](inline methodName: String): Data = ${
     testSplicedAnnotationValueImpl[A]('methodName)

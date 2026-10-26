@@ -22,7 +22,6 @@ final class StdExtensionsJvmSpec extends MacroSuite {
     )
   }
 
-  // Helper for Dictionary types (legacy API)
   private def expectedIterationForDictionary[K, V](dict: java.util.Dictionary[K, V]): Data = {
     import scala.jdk.CollectionConverters.*
     Data.list(
@@ -869,7 +868,6 @@ final class StdExtensionsJvmSpec extends MacroSuite {
     group("class: CtorLikes[A], Java boxed types should include valueOf method reference") {
       import StdExtensionsFixtures.testCtorLikes
 
-      // Helper to check if a Data contains a ctor with the given type and method name
       def containsCtor(data: Data, ctorType: String, methodName: String): Boolean =
         data.get("ctors").flatMap(_.asList).exists { ctors =>
           ctors.exists { ctor =>

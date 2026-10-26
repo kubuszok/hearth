@@ -26,8 +26,6 @@ final private class ExprsFixtures(q: Quotes) extends MacroCommonsScala3(using q)
 
 object ExprsFixtures {
 
-  // [hearth#176]
-
   inline def testExprPrinters[A](inline expr: A): Data = ${ testExprPrintersImpl[A]('expr) }
   private def testExprPrintersImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testExprPrinters[A](expr)
@@ -47,7 +45,6 @@ object ExprsFixtures {
   private def testExprUpcastingImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testExprUpcasting[A, B](expr)
 
-  // Chimney #625
   inline def testEnumDispatch[From, To](inline from: From): To = ${ testEnumDispatchImpl[From, To]('from) }
   private def testEnumDispatchImpl[From: Type, To: Type](from: Expr[From])(using q: Quotes): Expr[To] =
     new ExprsFixtures(q).testEnumDispatch[From, To](from)

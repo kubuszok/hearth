@@ -11,7 +11,7 @@ final private class MioIntegrationsFixtures(val c: blackbox.Context)
 
   def testValDefBuilderBuildCachedWithMIOImpl: c.Expr[Data] = testValDefBuilderBuildCachedWithMIO
   def testExtensionLoadingResultToMIOImpl: c.Expr[Data] = testExtensionLoadingResultToMIO
-  def testValDefsCacheParMap2MergeBugImpl: c.Expr[Data] = testValDefsCacheParMap2MergeBug
+  def testValDefsCacheParMap2MergeBugImpl: c.Expr[Data] = testValDefsCacheParMap2SharesEntry
   def testValDefsCacheParMap2DuplicateBuildErrorImpl: c.Expr[Data] = testValDefsCacheParMap2DuplicateBuildError
 }
 
@@ -19,7 +19,7 @@ object MioIntegrationsFixtures {
 
   def testValDefBuilderBuildCachedWithMIO: Data = macro MioIntegrationsFixtures.testValDefBuilderBuildCachedWithMIOImpl
   def testExtensionLoadingResultToMIO: Data = macro MioIntegrationsFixtures.testExtensionLoadingResultToMIOImpl
-  def testValDefsCacheParMap2MergeBug: Data = macro MioIntegrationsFixtures.testValDefsCacheParMap2MergeBugImpl
+  def testValDefsCacheParMap2SharesEntry: Data = macro MioIntegrationsFixtures.testValDefsCacheParMap2MergeBugImpl
   def testValDefsCacheParMap2DuplicateBuildError: Data =
     macro MioIntegrationsFixtures.testValDefsCacheParMap2DuplicateBuildErrorImpl
 }

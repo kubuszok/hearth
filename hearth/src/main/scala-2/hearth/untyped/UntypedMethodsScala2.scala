@@ -68,7 +68,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
     /** Resolves the parameter-name -> parameter-type map for ALL value clauses of `method` as seen from `instanceTpe`.
       * Since the map covers every clause, `UntypedMethod.toTyped` computes it ONCE and shares it between the per-clause
-      * expectations and `totalParameters` (previously it was recomputed for each).
+      * expectations and `totalParameters`.
       */
     private[hearth] def resolveTypesByParamName(
         instanceTpe: UntypedType,
@@ -175,18 +175,15 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       lazy val adaptedArguments = arguments.adaptToParams(instanceTpe, instance, this)
       invocation match {
         case Invocation.Constructor =>
-          // new A... or new A() or new A(b1, b2), ...
           q"new $instanceTpe(...$adaptedArguments)"
         case Invocation.OnInstance =>
           instance match {
             case None =>
               hearthAssertionFailed(s"Expected an instance for method $name that is called on an instance")
             case Some(instance) =>
-              // instance.method, or instance.method(), or instance.method(b1, b2, ...)
               q"$instance.$symbol(...$adaptedArguments)"
           }
         case Invocation.OnModule(module) =>
-          // module.method, or module.method(), or module.method(b1, b2, ...)
           q"$module.$symbol(...$adaptedArguments)"
       }
     }
@@ -281,14 +278,13 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       val paramss =
         try if (symbol.isMethod) symbol.asMethod.paramLists else Nil
         catch {
-          // [Chimney scalalandio/chimney#899] Forcing a member's parameter lists completes its full signature. For a
-          // value/getter whose type is still being inferred (`val foo = someMacro[A]` with no explicit type), completing
-          // that signature re-enters the member's own still-running completer and scala-reflect throws a CyclicReference.
-          // A getter provably takes no value parameters, so we can safely report `Nil` (exactly what a completed
-          // getter would return) WITHOUT forcing the cyclic signature - reading `isGetter` does not complete it. The
-          // member stays listable; its still-unknown return type surfaces as `knownReturning == None` (see
-          // `Method.knownReturning`) instead of throwing. Non-getter members genuinely cannot be shaped without the
-          // signature, so their cycle propagates (the compiler then reports "recursive value ... needs type").
+          // Forcing a member's parameter lists completes its full signature. For a value/getter whose type is still
+          // being inferred (`val foo = someMacro[A]` with no explicit type), that re-enters the member's own
+          // still-running completer and scala-reflect throws a CyclicReference. A getter provably takes no value
+          // parameters, so we report `Nil` without forcing the signature (reading `isGetter` does not complete it); its
+          // still-unknown return type surfaces as `knownReturning == None` instead of throwing. Non-getter members
+          // cannot be shaped without the signature, so their cycle propagates (the compiler then reports "recursive
+          // value ... needs type").
           case e: Throwable
               if e.getClass.getName.endsWith("CyclicReference") && symbol.isMethod && symbol.asMethod.isGetter =>
             Nil
@@ -317,7 +313,6 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     // A stable deferred accessor (e.g. the `value` member of a structural refinement `{ val value: String }`) is a
     // method symbol with no accessed field and `symbol.isVal == false`, yet scalac's `MethodSymbol.isStable` is the
     // authoritative "this reads like a val" signal - without it such accessors are misclassified as plain methods.
-    // See issue #326.
     override def isVal: Boolean =
       symbol.isVal || accessedOf(symbol).exists(_.isVal) || isLazy ||
         (symbol.isMethod && symbol.asMethod.isStable && !symbol.isConstructor)
@@ -457,15 +452,10 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     override def signatureSegments(instanceTpe: UntypedType, hl: hearth.treeprinter.SyntaxHighlight): List[String] =
       signatureSegmentsImpl(instanceTpe, hl)
 
-    // -------------------------------------------- Special cases handling --------------------------------------------
-    // So, the symbol of val/var is no just one symbol - there is a symbol for var/var `fieldName` as a `TermSymbol`,
-    // representing the field, but there is also a separate symbol for `def fieldName` as a getter `MethodSymbol`,
-    // and - if we are talking about var - a separate symbol for `def fieldName_=` as a setter `MethodSymbol`.
-    //
-    // Oh. and if we are talking about class constructor argument then I guess it's another one?
-    //
-    // These symbols are not equal, so if we want to check for .isVal, .isVar, .isLazy, etc, we need to check both the
-    // symbol itself and the accessed symbol. FML
+    // A val/var is not just one symbol: there is a `TermSymbol` for the field `fieldName`, a separate getter
+    // `MethodSymbol` `def fieldName` and - for a var - a setter `MethodSymbol` `def fieldName_=` (and possibly another
+    // one for a class constructor argument). These symbols are not equal, so checking .isVal, .isVar, .isLazy, etc.
+    // requires checking both the symbol itself and the accessed symbol.
 
     private def accessedOf(symbol: TermSymbol): Option[TermSymbol] =
       scala.util.Try(symbol.accessed).toOption.filterNot(_ == NoSymbol).collectFirst {
@@ -530,14 +520,13 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       val untypedExpectations = untyped.methodExpectations(instanceTpe)
 
       // The map covers ALL value clauses, so resolve it once and share it between the per-clause expectations and
-      // `totalParameters` below (it used to be recomputed for each of them).
+      // `totalParameters` below.
       lazy val sharedTypesByParamName = UntypedParameters.resolveTypesByParamName(instanceTpe, untyped)
 
-      // [hearth#331] A value/implicit clause that FOLLOWS a type-parameter clause references the method's own type
-      // parameters (`(implicit ev: Sync[F])`); resolving it against `Instance` conflates method and class type
-      // parameters, so it used to be dropped to `List.empty`. Instead read the parameter types straight from the
-      // member signature (class type parameters resolved as-seen-from `Instance`, method type parameters left
-      // abstract) and substitute the applied type arguments — abstract before `onTypes`, concrete after.
+      // A value/implicit clause that FOLLOWS a type-parameter clause references the method's own type parameters
+      // (`(implicit ev: Sync[F])`); resolving it against `Instance` conflates method and class type parameters. So the
+      // parameter types are read straight from the member signature (class type parameters resolved as-seen-from
+      // `Instance`, method type parameters left abstract) and the applied type arguments are substituted later.
       val methodTypeParamSyms: List[Symbol] = untyped.typeParameters.flatten
       lazy val rawParamTypesByName: Map[String, c.universe.Type] = {
         def collect(tpe: c.universe.Type): Map[String, c.universe.Type] = tpe match {
@@ -602,11 +591,9 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
           case other                          => other
         }
         // `typeSignatureIn` (as-seen-from applied to the whole NullaryMethodType) DROPS type-position annotations
-        // (`AnnotatedType`, e.g. `String @Ann` on a case-field getter) from the result on Scala 2.13 - see
-        // [hearth#348], where they survive the constructor-parameter path but not this getter/`knownReturning` one.
-        // The raw `typeSignature` keeps them, so recover the annotations from ITS result type and re-apply
-        // `asSeenFrom` to the underlying (preserving prefix/type-param substitution); non-annotated results keep the
-        // instantiated signature's result unchanged.
+        // (`AnnotatedType`, e.g. `String @Ann` on a case-field getter) from the result on Scala 2.13. The raw
+        // `typeSignature` keeps them, so we recover the annotations from ITS result type and re-apply `asSeenFrom` to
+        // the underlying.
         val resultType = untyped.symbol.typeSignature.finalResultType match {
           case AnnotatedType(annots, underlying) =>
             internal.annotatedType(annots, underlying.asSeenFrom(instanceTpe, untyped.symbol.owner))
@@ -663,14 +650,14 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     override def unsortedMethods(instanceTpe: UntypedType): List[UntypedMethod] = {
       // Defined in the type or its parent, or synthetic
       val classMembers = instanceTpe.members
-      // Defined exatcly in the type
+      // Defined exactly in the type
       val classDeclared = instanceTpe.decls.toSet
 
       val (members, declared, moduleBySymbol) = instanceTpe.companionObject
         .map { case (companionTpe, companionRef) =>
           // Defined in the companion object or its parent, or synthetic
           val companionMembers = companionTpe.members.filterNot(methodsSkippedInCompanion)
-          // Defined exatcly in the companion object
+          // Defined exactly in the companion object
           val companionDeclared = companionTpe.decls.toSet.filterNot(methodsSkippedInCompanion)
 
           val allMembers = classMembers ++ companionMembers
@@ -782,7 +769,6 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       enclosingOf(c.internal.enclosingOwner)
     }
 
-    // ------------------------------------------------- Special cases handling -------------------------------------------------
     // When behavior between Scala 2 and 3 is different, and it makes sense to align them, we have to decide which behavior is
     // "saner" and which one needs adjustment. Below are methods used to adjust behavior on Scala 2 side.
 

@@ -115,10 +115,6 @@ object Log {
 
   private val scopeIdCounter = new java.util.concurrent.atomic.AtomicInteger(0)
 
-  /** Generate a new globally unique scope ID.
-    *
-    * @since 0.3.0
-    */
   private[effect] def nextScopeId(): Int = scopeIdCounter.incrementAndGet()
 
   /** Reset the scope ID counter. Called at the start of each macro expansion.
@@ -129,12 +125,7 @@ object Log {
 
   // ---------------------------------------------- Tree reconstruction ------------------------------------------------
 
-  /** Reconstruct a tree structure from the flat log list with parent IDs.
-    *
-    * Used by rendering code. Returns a vector of tree nodes representing the root-level entries and scopes.
-    */
   private[effect] def toTree(logs: Logs): Vector[TreeNode] = {
-    // Group logs by parent scope ID
     val byParent = new java.util.HashMap[Int, scala.collection.mutable.ArrayBuffer[Log]]()
     var i = 0
     while (i < logs.size) {
@@ -162,7 +153,6 @@ object Log {
     buildChildren(0) // 0 = root
   }
 
-  /** Tree node for rendering — reconstructed from flat logs. */
   sealed private[effect] trait TreeNode
   final private[effect] case class TreeEntry(level: Level, message: () => String) extends TreeNode
   final private[effect] case class TreeScope(name: String, entries: Vector[TreeNode], start: Timestamp, end: Timestamp)

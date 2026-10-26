@@ -1,9 +1,6 @@
 package hearth
 package crossquotes
 
-// Container traits for testing Expr.quote with higher-arity type constructors.
-// Container[F[_]] is defined separately in Container.scala.
-
 trait Container2[F[_, _]] { def value: String }
 trait Container3[F[_, _, _]] { def value: String }
 trait Container4[F[_, _, _, _]] { def value: String }

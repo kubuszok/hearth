@@ -3,7 +3,7 @@ package typed
 
 import hearth.data.Data
 
-/** NamedTuple class view tests — only compiled on Scala 3.7+ (scala-newest-3 source set).
+/** NamedTuple class view tests — only compiled on Scala 3.7+ (scala-next-lts-3 source set).
   *
   * Macro implementation is in [[ClassesFixturesImpl]]
   */

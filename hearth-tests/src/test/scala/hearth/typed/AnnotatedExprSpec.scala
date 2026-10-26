@@ -1,7 +1,7 @@
 package hearth
 package typed
 
-/** Cross-platform tests for `Expr.annotated` (hearth#334) — Scala and Java annotations, with and without arguments. */
+/** Cross-platform tests for `Expr.annotated` — Scala and Java annotations, with and without arguments. */
 final class AnnotatedExprSpec extends MacroSuite {
 
   group("Expr.annotated") {

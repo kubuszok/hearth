@@ -15,7 +15,7 @@ package extensions
   *   This provider matches '''only the exact''' `java.lang.Iterable[Item]`, deliberately declining proper subtypes
   *   (e.g. `java.util.EnumSet`) so they fall through to a more specific provider. Its factory builds a
   *   `java.util.ArrayList` and hands it back as `A`, which is sound only when `A` really is `java.lang.Iterable[Item]`;
-  *   upcasting that `ArrayList` to a subtype would fail. See issue #324.
+  *   upcasting that `ArrayList` to a subtype would fail.
   *
   * @since 0.3.0
   */
@@ -89,7 +89,6 @@ final class IsCollectionProviderForJavaIterable extends StandardMacroExtension {
           // back as `A`; that is sound only when `A` really is `java.lang.Iterable[Item]`. A PROPER subtype (e.g.
           // `java.util.EnumSet[E]`) is handled by a more specific provider - matching it here and then casting a plain
           // Iterable to the subtype (`_.upcast[A]`) would assert, since the built ArrayList is not an instance of it.
-          // See issue #324.
           if (Type[A] =:= IterableItem)
             ProviderResult.Matched(isIterable[A, Item](A, _.upcast[java.lang.Iterable[Item]], _.upcast[A]))
           else

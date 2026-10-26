@@ -8,12 +8,9 @@ import hearth.fp.syntax.*
 
 import scala.util.control.NonFatal
 
-/** Fixtures for testing [[ExprsSpec]]. */
 trait ExprsFixturesImpl { this: MacroCommons =>
 
   private val stringTypeEF: Type[String] = Type.of[String]
-
-  // Expr methods
 
   def testExprPrinters[A: Type](expr: Expr[A]): Expr[Data] = Expr(
     Data.map(
@@ -121,8 +118,6 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     )
   }
 
-  // VarArgs methods
-
   def testVarArgs[A: Type](exprs: VarArgs[A]): Expr[Data] = {
     implicit val dataType: Type[Data] = DataType
     val iterable = exprs.toIterable.map { expr =>
@@ -139,18 +134,13 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** What `VarArgs.toIterableOption` sees: the elements (as printed), or `<splat>` for a splatted, non-literal `Seq`.
-    */
   def testVarArgsElements[A: Type](exprs: VarArgs[A]): Expr[Data] =
     Expr(exprs.toIterableOption.fold(Data("<splat>")) { elements =>
       Data.list(elements.toList.map(expr => Data(expr.plainPrint))*)
     })
 
-  // MatchCase methods
-
-  // Chimney #625: mimics an enum->enum derivation - for each source case, `typeMatch` on it and return
-  // the same-named target enum singleton. With LOWERCASE parameterless cases the generated match
-  // miscompiles (every case collapses to the first) via `Bind(name, Ref(sym))`.
+  // Mimics an enum->enum derivation: with lowercase parameterless cases a match built from `Bind(name, Ref(sym))`
+  // treats the lowercase name as a variable pattern, so every case collapses to the first one.
   def testEnumDispatch[From: Type, To: Type](from: Expr[From]): Expr[To] = {
     val toChildren = Type[To].exhaustiveChildren.get.toNonEmptyList.toList.toMap
     from.matchOn(Type[From].exhaustiveChildren.get.toNonEmptyList.map { case (name, fromChild) =>
@@ -183,9 +173,9 @@ trait ExprsFixturesImpl { this: MacroCommons =>
       }
   }
 
-  /** Regression for commit 68e1781 (splice isolation): each case body is built via a nested [[Expr.quote]] that splices
-    * both the matched expression and the inline-macro argument (which on Scala 3 arrives as an `Inlined` tree).
-    * `matchOn` must not let splice ownership of such nested quotes leak across the match-case boundary.
+  /** Each case body is a nested [[Expr.quote]] splicing both the matched expression and the inline-macro argument
+    * (which on Scala 3 arrives as an `Inlined` tree); `matchOn` must not let the splice ownership of such nested quotes
+    * leak across the match-case boundary.
     */
   def testMatchOnWithNestedQuote[A: Type](expr: Expr[A], suffix: Expr[String]): Expr[String] = {
     implicit val StringType: Type[String] = stringTypeEF
@@ -247,7 +237,6 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     result
   }
 
-  // Tests eqValue with a singleton (case object) — exercises singletonOf and the module branch in matchOn
   def testMatchCaseEqValueSingleton[A: Type]: Expr[Data] = {
     implicit val dataType: Type[Data] = DataType
 
@@ -270,7 +259,6 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     }
   }
 
-  // Tests singletonOf on the children of a parent type (exercises directChildren + singletonOf integration)
   def testChildrenSingletonOf[A: Type]: Expr[Data] =
     Type[A].directChildren match {
       case Some(children) =>
@@ -284,10 +272,9 @@ trait ExprsFixturesImpl { this: MacroCommons =>
         Expr(Data("<no children>"))
     }
 
-  // Tests eqValue with partition — exercises the partition EqValue branch and default FreshName
   def testMatchCaseEqValuePartition[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
     val matched = MatchCase.typeMatch[B]("matched")
-    val either = MatchCase.eqValue[A](expr).partition { a => // use default FreshName.FromExpr
+    val either = MatchCase.eqValue[A](expr).partition { a =>
       if (Type[A] <:< Type.of[AnyRef] && Type[B] <:< Type.of[AnyRef]) Right {
         Expr.quote(Expr.splice(a).asInstanceOf[B])
       }
@@ -296,7 +283,6 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     either.fold[Expr[B]](throwing => expr.matchOn(matched, throwing), unmatched => expr.matchOn(matched, unmatched))
   }
 
-  // Tests eqValue with directStyle — exercises the directStyle EqValue branch
   def testMatchCaseEqValueDirectStyle[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
     import MatchCase.unsafe.*
     val matched = MatchCase.typeMatch[B]("matched")
@@ -308,8 +294,6 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     }
     expr.matchOn(matched, unmatched)
   }
-
-  // ValDefs methods
 
   def testValDefsCreateAndUse: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
@@ -339,11 +323,10 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     }
   }
 
-  // Positive coverage (Scala 3 owner hygiene): a `ValDefs.createVal(...).use { ... }` whose Block lands inside a NATIVE
-  // quoted lambda body. The fresh val must be owned by the lambda, not the macro entry, or `-Xcheck-macros` would abort
-  // "Block contains definition with different owners". This SIMPLE shape is owner-correct on the current code; the
-  // kindlings yaml-derivation failure of the same class needs the fuller MIO.scoped/ValDefsCache/recursive-derivation
-  // structure to trip it (a minimal repro of that has been elusive — see the 0.4.1 downstream-gate notes).
+  // On Scala 3 a `ValDefs.createVal(...).use { ... }` Block landing inside a quoted lambda body must have its fresh val
+  // owned by the lambda, not by the macro entry, or `-Xcheck-macros` aborts with "Block contains definition with
+  // different owners". This simple shape passes; the same failure is known to need a fuller MIO.scoped/ValDefsCache/
+  // recursive derivation structure to trip, which has no minimal reproduction yet.
   def testValDefsInsideQuotedLambda: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
     val fn: Expr[Int => Int] = Expr.quote { (x: Int) =>
@@ -433,10 +416,9 @@ trait ExprsFixturesImpl { this: MacroCommons =>
   def testValDefsMap2DoesNotDoubleCreate: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
 
-    // Regression: ValDefs.map2's second argument is by-name. When `traverse`/`sequence` route a freshly
-    // created val through it, forcing it twice would materialize two conflicting fresh vals - the emitted
-    // definitions coming from the first evaluation while the referenced Ref comes from the second (discarded)
-    // one, producing a dangling reference in the generated code. Each element must be created exactly once.
+    // ValDefs.map2's second argument is by-name. When `traverse`/`sequence` route a freshly created val through it,
+    // forcing it twice would emit the definitions from the first evaluation but reference the Ref from the second
+    // (discarded) one - a dangling reference in the generated code.
     val summed: Expr[Int] = List(Expr(10), Expr(20), Expr(30))
       .traverse(e => ValDefs.createVal(e, "x"))
       .use { (refs: List[Expr[Int]]) =>
@@ -449,8 +431,6 @@ trait ExprsFixturesImpl { this: MacroCommons =>
       )
     }
   }
-
-  // ValDefBuilder methods
 
   def testValDefBuilderCreateAndUse: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
@@ -650,34 +630,27 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     option.fold[Expr[B]](runtimeFail)(_.build.close)
   }
 
-  // ValDefsCache methods
-
   def testValDefBuilderBuildCachedAndUse: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
     var cache = ValDefsCache.empty
 
-    // Test ofVal
     val valBuilder = ValDefBuilder.ofVal[Int]("valExample")
     cache = valBuilder.buildCachedWith(cache, "valKey")(_ => Expr.quote(1))
     val valValue = cache.get0Ary[Int]("valKey").fold(Expr.quote(0))(identity)
 
-    // Test ofVar - getter and setter
     val varBuilder = ValDefBuilder.ofVar[Int]("varExample")
     cache = varBuilder.buildCachedWith(cache, "varKey")(_ => Expr.quote(2))
     val varGetter = cache.get0Ary[Int]("varKey").fold(Expr.quote(0))(identity)
-    val varValue = varGetter // Just use getter value, setter existence is verified separately
+    val varValue = varGetter // the setter is checked by testValDefBuilderBuildCachedVarGetterSetter
 
-    // Test ofLazy
     val lazyBuilder = ValDefBuilder.ofLazy[Int]("lazyExample")
     cache = lazyBuilder.buildCachedWith(cache, "lazyKey")(_ => Expr.quote(3))
     val lazyValue = cache.get0Ary[Int]("lazyKey").fold(Expr.quote(0))(identity)
 
-    // Test ofDef0
     val def0Builder = ValDefBuilder.ofDef0[Int]("def0Example")
     cache = def0Builder.buildCachedWith(cache, "def0Key")(_ => Expr.quote(0))
     val def0Value = cache.get0Ary[Int]("def0Key").fold(Expr.quote(0))(identity)
 
-    // Test ofDef1 through ofDef22
     // format: off
     val def1Builder = ValDefBuilder.ofDef1[Int, Int]("def1Example", "a")
     cache = def1Builder.buildCachedWith(cache, "def1Key") { case (_, a) => Expr.quote(Expr.splice(a) * 10) }
@@ -807,15 +780,12 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     implicit val unitType: Type[Unit] = UnitType
     var cache = ValDefsCache.empty
 
-    // Create var builder and build cached
     val varBuilder = ValDefBuilder.ofVar[Int]("varExample")
     cache = varBuilder.buildCachedWith(cache, "varKey")(_ => Expr.quote(100))
 
-    // Retrieve getter
     val getterOpt = cache.get0Ary[Int]("varKey")
     val getterValue = getterOpt.fold(Expr.quote(0))(identity)
 
-    // Retrieve setter
     val setterOpt = cache.get1Ary[Int, Unit]("varKey")
 
     cache.toValDefs.use { _ =>
@@ -828,8 +798,6 @@ trait ExprsFixturesImpl { this: MacroCommons =>
       }
     }
   }
-
-  // LambdaBuilder methods
 
   def testLambdaBuilderOfNAndBuild: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
@@ -1044,28 +1012,15 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     }
   }
 
-  // LambdaBuilder scope issue reproduction
-  //
-  // Reproduces the pattern from FastShowPrettyMacrosImpl.deriveCollectionItems where:
-  // 1. An outer Expr.splice creates a nested Quotes context (Q1)
-  // 2. Inside Q1, Type[Item] is obtained and LambdaBuilder.of1[Item] is called
-  // 3. mk.apply creates '{ (a: A) => ${ mkBody('a) } } — the '{ ... } uses the
-  //    implicit `quotes` from the class constructor (Q0), not the current Q1
-  // 4. Type[A] from Q1 is used in a quote bound to Q0 → ScopeException
-  //
-  // Fix: withQuotes ensures '{ ... } uses CrossQuotes.ctx (Q1), not the stale Q0.
-  // resetOwner fixes body Expr's symbol ownership to match the new splice owner.
+  // The *ScopeIssue fixtures use a LambdaBuilder/ValDefBuilder inside an Expr.splice, which on Scala 3 runs under a
+  // nested Quotes (Q1). If the builder's own '{ ... } used the `quotes` captured at construction (Q0), a Type obtained
+  // under Q1 would end up in a quote bound to Q0 - a ScopeException.
 
   def testLambdaBuilderOf1ScopeIssue: Expr[Data] = {
-    // Create a non-trivial quote + splice to enter Q1 context.
-    // Inside Q1: create Type[Int], set up LambdaBuilder, run MIO, return lambda Expr.
-    // Without withQuotes fix, mk.apply's '{ ... } uses Q0 but Type[Int] is from Q1.
     val lambda: Expr[Int => Int] = Expr.quote {
       val x: Int => Int = Expr.splice {
-        // We're now in Q1 context (CrossQuotes.nestedCtx pushed new Quotes)
-        // Cannot use `implicit val t: Type[Int] = ...` because the cross-quotes plugin
-        // transforms Type[Int] annotations into self-referencing code, causing infinite loop.
-        // Instead, call a helper that takes Type[Int] as a parameter.
+        // Not `implicit val t: Type[Int] = ...`: the cross-quotes plugin would rewrite it into code referencing
+        // itself, which loops forever - so Type[Int] is passed to a helper instead.
         scopeIssueOf1Inner(Type.of[Int])
       }
       x
@@ -1657,8 +1612,6 @@ trait ExprsFixturesImpl { this: MacroCommons =>
       .runSync
       ._2
       .fold(es => throw es.head, identity)
-
-  // ValDefBuilder scope issue tests
 
   def testValDefBuilderOfValScopeIssue: Expr[Data] = {
     val result: Expr[Int] = Expr.quote {
@@ -2365,8 +2318,6 @@ trait ExprsFixturesImpl { this: MacroCommons =>
 
   // format: on
 
-  // ExprCodecs
-
   def testBidirectionalCodecs: Expr[Data] = try {
     implicit val intType: Type[Int] = IntType
     def displayValue(a: Any): String = a match {
@@ -2441,8 +2392,6 @@ trait ExprsFixturesImpl { this: MacroCommons =>
       Environment.reportErrorAndAbort(e.getMessage)
   }
 
-  // DirectStyle tests
-
   def testMatchCaseDirectStyle[A: Type, B: Type](expr: Expr[A]): Expr[B] = {
     import MatchCase.unsafe.*
     val matched = MatchCase.typeMatch[B]("matched")
@@ -2494,8 +2443,6 @@ trait ExprsFixturesImpl { this: MacroCommons =>
       Data(Expr.splice(lambda)(2))
     }
   }
-
-  // types using in fixtures
 
   private val IntType = Type.of[Int]
   private val StringType = Type.of[String]

@@ -306,7 +306,7 @@ final class AnonymousInstanceSpec extends MacroSuite {
           testAnonymousInstanceConstruct[examples.anonymous_instances.GenericParent[Int]] <==> "success"
         }
 
-        test("generic abstract class with constructor args through type aliases (Chimney #960)") {
+        test("generic abstract class with constructor args through type aliases") {
           testAnonymousInstanceConstruct[examples.anonymous_instances.GenericAbstractClassWithArgs.Partial[Int]] <==>
             "success"
           testAnonymousInstanceConstruct[
@@ -385,8 +385,8 @@ final class AnonymousInstanceSpec extends MacroSuite {
           ] <==> "success"
         }
 
-        // Regression for commit 7c82fc9 (Scala 2: premature c.typecheck of the generated `new` tree broke
-        // anonymous instances in call-site-local scopes).
+        // Scala 2: a premature c.typecheck of the generated `new` tree breaks anonymous instances in call-site-local
+        // scopes.
         test("anonymous instance of a trait defined locally at the call site") {
           trait LocalTrait {
             def value: Int
@@ -394,8 +394,8 @@ final class AnonymousInstanceSpec extends MacroSuite {
           testAnonymousInstanceConstruct[LocalTrait] <==> "success"
         }
 
-        // Regression for commit 7c82fc9 (Scala 2: premature c.typecheck of the generated `new` tree broke
-        // anonymous instances whose override bodies reference call-site-scoped expressions).
+        // Scala 2: a premature c.typecheck of the generated `new` tree breaks anonymous instances whose override bodies
+        // reference call-site-scoped expressions.
         test("override body can splice an expression captured from the call site") {
           val captured = List("captured", "value").mkString("-") // a local val, not a literal
           AnonymousInstanceFixtures.testAnonymousInstanceCapturedOverride(captured) <==> "captured-value!"
@@ -405,11 +405,9 @@ final class AnonymousInstanceSpec extends MacroSuite {
           AnonymousInstanceFixtures.testAnonymousInstanceOverrideReferencingQuoteParam.apply("quoted") <==> "quoted!"
         }
 
-        // Coverage for the scenario behind #317/#318: an anonymous instance whose override body is derived via
-        // DirectStyle (continuation on a DirectStyleExecutor thread) + ValDefs.createVal, constructed INSIDE an
-        // Expr.splice, and (second test) two instances derived in one expansion. Hearth's ValDefs/AnonymousInstance
-        // keep owners/scopes consistent here under -Xcheck-macros; these guard against regressing that.
-        test("anonymous instance with a DirectStyle+createVal body derived inside a splice (scenario of #317/#318)") {
+        // DirectStyle runs the continuation on a DirectStyleExecutor thread, and the instance is constructed INSIDE an
+        // Expr.splice - owners/scopes of the created vals must still be consistent under -Xcheck-macros.
+        test("anonymous instance with a DirectStyle+createVal body derived inside a splice") {
           AnonymousInstanceFixtures.testAnonymousInstanceValDefBodyInSplice <==> "base-one"
         }
 

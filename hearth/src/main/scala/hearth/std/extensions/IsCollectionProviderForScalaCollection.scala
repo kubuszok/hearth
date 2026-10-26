@@ -104,15 +104,12 @@ final class IsCollectionProviderForScalaCollection extends StandardMacroExtensio
 
       @scala.annotation.nowarn
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
-        // Scala collections are Iterables with Factories, we're start by finding the item type...
         case Iterable(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
 
-          // ...then we can summon the Factory...
           Expr.summonImplicit(using Type.of[scala.collection.Factory[Item, A]]).toOption match {
             case Some(factoryExpr) =>
-              // ...and use it to build the collection.
               val buildExpr: Expr[scala.collection.mutable.Builder[Item, A]] => Expr[A] =
                 builder => Expr.quote(Expr.splice(builder).result())
 

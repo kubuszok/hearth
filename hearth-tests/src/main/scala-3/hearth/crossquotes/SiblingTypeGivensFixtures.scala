@@ -5,11 +5,13 @@ import hearth.data.Data
 
 import scala.quoted.*
 
-final private class Issue316ReproFixtures(q: Quotes) extends MacroCommonsScala3(using q), Issue316ReproFixturesImpl
+final private class SiblingTypeGivensFixtures(q: Quotes)
+    extends MacroCommonsScala3(using q),
+      SiblingTypeGivensFixturesImpl
 
-object Issue316ReproFixtures {
+object SiblingTypeGivensFixtures {
 
   inline def testSiblingImplicitTypes: Data = ${ testSiblingImplicitTypesImpl }
   private def testSiblingImplicitTypesImpl(using q: Quotes): Expr[Data] =
-    new Issue316ReproFixtures(q).testSiblingImplicitTypes
+    new SiblingTypeGivensFixtures(q).testSiblingImplicitTypes
 }

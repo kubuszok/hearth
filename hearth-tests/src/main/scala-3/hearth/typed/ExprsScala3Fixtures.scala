@@ -8,14 +8,9 @@ import hearth.fp.syntax.*
 
 import scala.quoted.*
 
-/** Scala 3-only fixtures for testing [[passQuotes]] and [[withQuotes]] utilities with native Scala 3 quoting syntax.
-  *
-  * Unlike [[ExprsFixtures]] which uses cross-quotes ([[Expr.quote]] and [[Expr.splice]]), these fixtures use native
-  * Scala 3 `'{...}` and `${...}` syntax, which requires explicit [[passQuotes]] and [[withQuotes]] calls to manage the
-  * [[Quotes]] context.
-  *
-  * These are used in [[ExprsScala3Spec]] to verify that [[passQuotes]]/[[withQuotes]] correctly handle the scope issue
-  * when building expressions with [[LambdaBuilder]] and [[ValDefBuilder]] in a Scala-3-only codebase.
+/** Unlike cross-quotes ([[Expr.quote]] and [[Expr.splice]]), native Scala 3 `'{...}` and `${...}` don't manage the
+  * [[Quotes]] context for us, so building with [[LambdaBuilder]] and [[ValDefBuilder]] inside them needs explicit
+  * [[passQuotes]] and [[withQuotes]] calls.
   */
 // format: off
 final private class ExprsScala3Fixtures(q: Quotes) extends MacroCommonsScala3(using q) {
@@ -25,11 +20,8 @@ final private class ExprsScala3Fixtures(q: Quotes) extends MacroCommonsScala3(us
   // Instead, pass the type as Any and cast to the expected type within a helper that delegates to a method
   // accepting Type[Int] implicitly in the shared source.
 
-  /** Provides an implicit Type[Int] within a thunk by obtaining it from Type.of[Int] inside a passQuotes block. */
   private inline def withIntType[A](thunk: Type[Int] ?=> A): A =
     thunk(using Type.of[Int])
-
-  // LambdaBuilder scope issue tests using passQuotes/withQuotes
 
   def testLambdaBuilderOf1ScopeIssue: Expr[Data] = {
     def lambda: Expr[Int => Int] = withQuotes {
@@ -105,8 +97,6 @@ final private class ExprsScala3Fixtures(q: Quotes) extends MacroCommonsScala3(us
     }
     withQuotes{'{ Data(${ passQuotes{lambda} }(2, 3, 5)) }}
   }
-
-  // ValDefBuilder scope issue tests using passQuotes/withQuotes
 
   def testValDefBuilderOfValScopeIssue: Expr[Data] = {
     def result: Expr[Int] = withQuotes {

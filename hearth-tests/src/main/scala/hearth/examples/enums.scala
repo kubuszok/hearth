@@ -47,7 +47,7 @@ object ExampleSealedTraitGADT {
   case object ExampleSealedTraitWithTypeParamObject extends ExampleSealedTraitGADT[Unit]
 }
 
-// Chimney #960: a type alias whose type arguments do not line up with the sealed trait's type parameters.
+// Type aliases whose type arguments do not line up with the sealed trait's type parameters.
 sealed trait ExampleSealedTraitPhantom[R, A]
 object ExampleSealedTraitPhantom {
   // type parameters deliberately in a different order than the parent's

@@ -33,20 +33,20 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         def resetOwner(using Type[A]): Expr[A] = expr.asTerm.changeOwner(Symbol.spliceOwner).asExprOf[A]
       }
 
-      /** [hearth#317] The splice owner of the CURRENTLY-ACTIVE Cross-Quotes context (`CrossQuotes.ctx`), NOT the
-        * macro-entry `quotes`. When a derivation runs inside an `Expr.splice` (under `nestedCtx`) — e.g. a whole
-        * instance derivation running in `new Show[A] { def show(a) = ${ derive } }` — fresh vals/defs/binds must be
-        * owned by that nested splice's owner (here `def show`). Otherwise a `Block` (from `ValDefs.closeScope`) mixing
-        * such a symbol with trees built by cross-quoted helpers (owned by the nested owner) aborts under
-        * `-Xcheck-macros`: "Block contains definition with different owners". In the common, non-nested case
-        * `CrossQuotes.ctx == quotes`, so this is exactly the entry splice owner and nothing changes.
+      /** The splice owner of the CURRENTLY-ACTIVE Cross-Quotes context (`CrossQuotes.ctx`), NOT the macro-entry
+        * `quotes`. When a derivation runs inside an `Expr.splice` (under `nestedCtx`) — e.g. a whole instance
+        * derivation running in `new Show[A] { def show(a) = ${ derive } }` — fresh vals/defs/binds must be owned by
+        * that nested splice's owner (here `def show`). Otherwise a `Block` (from `ValDefs.closeScope`) mixing such a
+        * symbol with trees built by cross-quoted helpers (owned by the nested owner) aborts under `-Xcheck-macros`:
+        * "Block contains definition with different owners". In the common, non-nested case `CrossQuotes.ctx == quotes`,
+        * so this is exactly the entry splice owner and nothing changes.
         *
-        * [hearth R2, 0.4.1] `CrossQuotes.ctx` follows Hearth's own nested splices (the #317 case, which we WANT) but
-        * ALSO tracks into native quoted lambdas — `Expr.quote { x => ... }` produces an `$anonfun` splice owner. Fresh
-        * symbols created there via `ValDefs` are placed by Hearth's control flow at the ENCLOSING splice level (not
-        * inside the quoted lambda), so owning them by `$anonfun` makes a `Block` mix `$anonfun`-owned and macro-owned
-        * defs → the same "different owners" abort (surfaced by kindlings' yaml-derivation). When the ctx owner is an
-        * anonymous function, fall back to the native `Symbol.spliceOwner`, which is the stable enclosing owner.
+        * `CrossQuotes.ctx` follows Hearth's own nested splices (which we WANT) but ALSO tracks into native quoted
+        * lambdas — `Expr.quote { x => ... }` produces an `$anonfun` splice owner. Fresh symbols created there via
+        * `ValDefs` are placed by Hearth's control flow at the ENCLOSING splice level (not inside the quoted lambda), so
+        * owning them by `$anonfun` makes a `Block` mix `$anonfun`-owned and macro-owned defs → the same "different
+        * owners" abort. When the ctx owner is an anonymous function, fall back to the native `Symbol.spliceOwner`,
+        * which is the stable enclosing owner.
         */
       private[Expr] def currentSpliceOwner: Symbol = {
         val ctxOwner = CrossQuotes.ctx[scala.quoted.Quotes].reflect.Symbol.spliceOwner.asInstanceOf[Symbol]
@@ -189,11 +189,11 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         bindingsBySymbol: Map[Any, DestructuredExpr.Binding]
     ): List[DestructuredExpr.Reference] = dstrFindReferences(tree, bindingsBySymbol)
 
-    // [hearth#334] `{ @Ann(arguments...) val fresh = expr; fresh }`. The annotation is built in annotation position via
+    // `{ @Ann(arguments...) val fresh = expr; fresh }`: the annotation is built in annotation position via
     // `quotes.reflect`'s `New` (which, unlike source-level `new`, works for Java annotations like `@SuppressWarnings`)
     // and carried as an `AnnotatedType` on the fresh `val`'s type. `currentSpliceOwner`/`freshTerm` are the
-    // owner-following, `@experimental`-free helpers used by `ValDefs` (see the #317 note above); `changeOwner`
-    // reparents the bound expression onto the fresh symbol so `-Xcheck-macros` accepts the block.
+    // owner-following, `@experimental`-free helpers used by `ValDefs`; `changeOwner` reparents the bound expression
+    // onto the fresh symbol so `-Xcheck-macros` accepts the block.
     override def annotated[A: Type, Ann: Type](expr: Expr[A], arguments: List[UntypedExpr]): Expr[A] = {
       val annotationSymbol = TypeRepr.of[Ann].typeSymbol
       def valueParams(ctor: Symbol): List[Symbol] = ctor.paramSymss.flatten.filterNot(_.isType)
@@ -283,11 +283,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           case Inlined(_, _, inner) =>
             evalWithLocals(inner, locals, overrides)
 
-          // A `scala.ValueOf[A]` is fully determined by its type argument `A`: for a literal singleton
-          // `A` the value is `A`'s constant, for an object singleton it is the module. The synthesized
-          // `ValueOf` given is not always reducible by the reflective evaluator below (e.g. it yields an
-          // opaque `ValueOf` whose `.value` getter does not reduce), so reconstruct it from the type
-          // instead. This makes `valueOf[A]` / `summon[ValueOf[A]].value` evaluate at compile time.
+          // The synthesized `ValueOf` given is not always reducible by the reflective evaluator below (e.g. it yields
+          // an opaque `ValueOf` whose `.value` getter does not reduce), but it is fully determined by its type
+          // argument, so we reconstruct it from the type.
           case ValueOfExpr(value) =>
             Right(new scala.ValueOf(value))
 
@@ -536,7 +534,6 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           case _ => None
         }
 
-      /** Matches a term whose type is a reducible `scala.ValueOf[A]`, yielding the witnessed value. */
       private object ValueOfExpr {
         def unapply(term: Term): Option[Any] = valueOfValue(term.tpe)
       }
@@ -1068,14 +1065,13 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     override lazy val CharExprCodec: ExprCodec[Char] = ExprCodec.make[Char]
     override lazy val StringExprCodec: ExprCodec[String] = ExprCodec.make[String]
 
-    // For now, assume that all ExprCodecs below are of PoC quality. It was needed to unblock some other work.
-    // But each should have unit tests which would make sure that Scala 2 and Scala 3 are in sync (which would
-    // require adding missing implementations to both sides, and then expanding the built-in FromExpr and ToExpr
-    // with more cases).
+    // TODO: the ExprCodecs below are of PoC quality. Each should have unit tests keeping Scala 2 and Scala 3 in sync
+    // (which would require adding missing implementations to both sides, and expanding the built-in FromExpr and
+    // ToExpr with more cases).
 
     override def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = {
       // Emit a proper class LITERAL (`Literal(ClassOfConstant(tpe))`, rendered as `classOf[fqcn]`) so the encoding
-      // survives a downstream re-typecheck and matches Scala 2's `Literal(Constant(tpe))`. See issue #321.
+      // survives a downstream re-typecheck and matches Scala 2's `Literal(Constant(tpe))`.
       given ToExpr[java.lang.Class[A]] = new {
         override def apply(value: java.lang.Class[A])(using scala.quoted.Quotes): Expr[java.lang.Class[A]] =
           Literal(ClassOfConstant(TypeRepr.of[A])).asExprOf[java.lang.Class[A]]
@@ -1277,8 +1273,6 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                   hearthAssertionFailed(
                     s"Could not figure out ClassTag[${Type.prettyPrint[A]}] - support for such cases is still experimental"
                   )
-                  // given scala.reflect.ClassTag[A] = scala.reflect.ClassTag(classOf[Any]).asInstanceOf[scala.reflect.ClassTag[A]]
-                  // ToExpr.ArrayToExpr[A]
                 }
                 // $COVERAGE-ON$
                 .apply(value)
@@ -1585,7 +1579,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             // to a reference-equality check (`arg eq value`). This dispatches BY VALUE (so it works even though the
             // case's declared type is erased) while avoiding both traps of a plain `case arg @ value` pattern: the
             // value reference sits in TYPE position, so a lowercase enum case is never reinterpreted as a catch-all
-            // variable pattern (scala/scala3#20350, Chimney #625), and matching is by `eq` (not a checkcast), so it
+            // variable pattern (scala/scala3#20350), and matching is by `eq` (not a checkcast), so it
             // never fails on other members of a union scrutinee. `Singleton(Ref(sym))` builds the `value.type` tree.
             // case arg : Enum.Value.type => ...
             CaseDef(Bind(name, Typed(Wildcard(), Singleton(Ref(sym)))), None, body)
@@ -1635,7 +1629,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 val termSym = TypeRepr.of[ValueType].termSymbol
                 if sym.flags.is(Flags.Module) then CaseDef(Bind(name, Ref(sym.companionModule)), None, body)
                 // A parameterless enum case: match by a SINGLETON TYPE TEST (`case name: value.type`, i.e. `name eq
-                // value`) so a lowercase case is not misread as a variable pattern (scala/scala3#20350, Chimney #625)
+                // value`) so a lowercase case is not misread as a variable pattern (scala/scala3#20350)
                 // and no checkcast is inserted on other members of a union scrutinee. See the same shape in `TypeMatch`.
                 else if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(
                   Flags.StableRealizable
@@ -6155,8 +6149,6 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         }
       }
   }
-
-  // --- Expression destructuring ---
 
   override protected def destructureExpr(expr: UntypedExpr): DestructuredExpr =
     dstrImpl(expr, dstrExternalBindings(expr))

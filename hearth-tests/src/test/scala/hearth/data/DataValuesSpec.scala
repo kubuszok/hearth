@@ -149,7 +149,6 @@ final class DataValuesSpec extends MacroSuite {
       // which widens numerics. Int 1 and Long 1 therefore compare equal (and so produce no diff).
       assert(Data(1) == Data(1L))
       Data(1).diff(Data(1L)) ==> Nil
-      // Distinct numeric values still differ.
       assert(Data(1) != Data(2L))
     }
   }

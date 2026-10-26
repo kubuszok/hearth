@@ -14,15 +14,14 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
 
     object platformSpecific {
 
-      /** It is surprisingly ridiculous but I've found no other way of telling whether I am looking at enum abstract
-        * class or its value, since EVERYTHING else looks the same: parent is not abstract, everyone is static, everyone
-        * has the same baseClasses, everyone reports to have public primaryConstructor (which is <none>). The only
-        * different in behavior is that one prints com.my.Enum and another com.my.Enum(MyValue).
+      /** The only way found to tell a Java enum class from its value: EVERYTHING else looks the same (parent is not
+        * abstract, all are static, same baseClasses, all report a public primaryConstructor which is <none>), but one
+        * prints com.my.Enum and the other com.my.Enum(MyValue).
         */
       val javaEnumRegexpFormat = raw"^(.+)\((.+)\)$$".r
 
-      /** Workaround for <https://issues.scala-lang.org/browse/SI-7755> and
-        * <https://github.com/scalalandio/chimney/issues/562> and similar.
+      /** Workaround for <https://issues.scala-lang.org/browse/SI-7755> and similar: a symbol whose signature was not
+        * forced yet may report e.g. no `knownDirectSubclasses`.
         */
       def forceTypeSymbolInitialization[A: Type]: Unit = forceTypeSymbolInitialization(
         UntypedType.fromTyped[A].typeSymbol

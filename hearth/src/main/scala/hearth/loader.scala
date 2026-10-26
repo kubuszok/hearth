@@ -19,7 +19,7 @@ private[hearth] object platformSpecificServiceLoader extends platformSpecificSer
     *   the providers that loaded successfully
     * @param failures
     *   the providers that failed to load, paired with the cause (fully-qualified class name where known); a non-empty
-    *   `failures` means one or more service jars were skipped rather than aborting the whole load. See issue #325.
+    *   `failures` means one or more service jars were skipped rather than aborting the whole load.
     */
   final case class Loaded[+T](services: Vector[T], failures: Vector[(String, Throwable)])
 
@@ -76,9 +76,8 @@ private[hearth] object platformSpecificServiceLoader extends platformSpecificSer
 
       // A single unloadable provider (e.g. a service jar with a forward-incompatible TASTy version) must NOT abort the
       // whole ServiceLoader iteration - that would poison EVERY derivation in the module, including ones that never use
-      // that extension and Hearth's own built-in providers. Instead we skip the failing provider, remember the failure
-      // so it can be reported, and keep loading the rest. Each step is guarded, because the failure can surface either
-      // while advancing the (lazy) iterator, while resolving the provider's class, or while instantiating it. See #325.
+      // that extension and Hearth's own built-in providers. Each step is guarded, because the failure can surface
+      // while advancing the (lazy) iterator, while resolving the provider's class, or while instantiating it.
       def loop(acc: Vector[T], failures: Vector[(String, Throwable)]): Loaded[T] =
         Tried(stream.hasNext) match {
           case Left(error)  => Loaded(acc, failures :+ ("<unknown provider>" -> error))
@@ -107,16 +106,13 @@ private[hearth] object platformSpecificServiceLoader extends platformSpecificSer
     def apply[A](value: => A): Tried[A] = Try(value).toEither
   }
 
-  // Caches previous results within the same compilation ClassLoader.
-  //
-  // Keying on ClassLoader (not Class) provides correct cache scoping: all services loaded from the
-  // same compilation ClassLoader share one cache entry. String class names are used as inner keys
-  // since they are stable and won't be collected.
+  // Keyed on the compilation ClassLoader (not Class), so all services loaded from it share one cache entry. String
+  // class names are the inner keys since they are stable and won't be collected.
   //
   // WeakHashMap alone does NOT prevent metaspace leaks here: the cached values (ServiceLoader,
   // extension instances) hold strong references back to the ClassLoader key, so the WeakReference
   // is never enqueued. Instead, we clear the map when a new ClassLoader appears — stale entries
-  // keyed by a previous ClassLoader can never be reused anyway. See #377.
+  // keyed by a previous ClassLoader can never be reused anyway.
 
   private val serviceLoadersByClassLoader =
     new java.util.WeakHashMap[ClassLoader, java.util.HashMap[String, Tried[ServiceLoader[?]]]]()

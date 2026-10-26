@@ -40,8 +40,6 @@ final private class Debug(q: Quotes) extends MacroCommonsScala3(using q), DebugM
   */
 object Debug {
 
-  // [hearth#176]
-
   /** Passes expression unchanged, but displays its code in IDE as a hint.
     *
     * @since 0.1.0

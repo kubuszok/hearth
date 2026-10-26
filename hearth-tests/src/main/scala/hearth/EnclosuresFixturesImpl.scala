@@ -2,12 +2,9 @@ package hearth
 
 import hearth.data.Data
 
-/** Fixtures for testing [[EnclosuresSpec]]. */
 trait EnclosuresFixturesImpl { this: MacroCommons =>
 
-  /** Render the enclosing scope chain (innermost -> outermost) as a list of `{kind, name}` maps.
-    *
-    * Package enclosures are filtered out of the rendered chain because their names/segmentation differ between Scala 2
+  /** Package enclosures are filtered out of the rendered chain because their names/segmentation differ between Scala 2
     * (one `Enclosure.Package` per package segment) and Scala 3 (a single package def), and the test focuses on the
     * method/class/object structure which is identical across platforms.
     */
@@ -24,9 +21,6 @@ trait EnclosuresFixturesImpl { this: MacroCommons =>
   def testEnclosingScopeReachesPackage: Expr[Data] =
     Expr(Data(enclosingScope.toVector.lastOption.exists(_.kind == "package")))
 
-  /** Find a nullary `Int`-returning member named `helper` in the immediately-enclosing class/object and call it on the
-    * enclosing instance. Proves "allow calling methods/values from the scope".
-    */
   def testCallEnclosingHelper: Expr[Int] = {
     val receiverAndMembers: Option[(Expr_??, List[Method])] = enclosingScope.iterator.collectFirst {
       case enc: Enclosure.Class if enc.thisRef.isDefined => enc.thisRef.get -> enc.members
@@ -53,9 +47,8 @@ trait EnclosuresFixturesImpl { this: MacroCommons =>
     call.getOrElse(Environment.reportErrorAndAbort("No nullary Int-returning `helper` found in the enclosing scope"))
   }
 
-  /** Render whether the immediately-enclosing class exposes a member named `fromSelfType` (declared on a self-type
-    * requirement `this: Provider =>`, not on the trait itself). Proves self-type members are folded into the enclosing
-    * class's `members`, which wiring/DI relies on. Returns `<no class>` if there is no enclosing class.
+  /** Members declared on a self-type requirement (`this: Provider =>`), not on the trait itself, have to be among the
+    * enclosing class's `members` - wiring/DI relies on it.
     */
   def testEnclosingClassHasSelfTypeMember: Expr[Data] = {
     val result = enclosingScope.iterator
@@ -65,9 +58,7 @@ trait EnclosuresFixturesImpl { this: MacroCommons =>
     Expr(result)
   }
 
-  /** Render the `localValues` of the immediately-enclosing method as a list of `{name, type}` maps. Proves that local
-    * `val`s declared before the macro call are discoverable (the macwire case).
-    */
+  /** Local `val`s declared before the macro call have to be discoverable - macwire-style wiring builds on them. */
   def testEnclosingLocalValues: Expr[Data] = {
     val locals: List[Enclosure.LocalValue] = enclosingScope.iterator
       .collectFirst { case m: Enclosure.Method => m.localValues }
@@ -76,9 +67,7 @@ trait EnclosuresFixturesImpl { this: MacroCommons =>
     Expr(Data.list(rendered*))
   }
 
-  /** Sum the discovered local `Int` vals by USING their `ref` expressions in the generated code. Proves the ref is a
-    * usable expression (not just metadata).
-    */
+  /** Checks that the `ref`s work in generated code, not only that the local vals are listed. */
   def testSumEnclosingLocalInts: Expr[Int] = {
     val refs: List[Expr[Int]] = enclosingScope.iterator
       .collectFirst { case m: Enclosure.Method => m.localValues }

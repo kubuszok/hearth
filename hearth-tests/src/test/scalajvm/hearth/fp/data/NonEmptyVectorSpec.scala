@@ -154,23 +154,18 @@ final class NonEmptyVectorSpec extends ScalaCheckSuite with Laws {
     test("should maintain non-emptiness after operations") {
       val nel = NonEmptyVector(1, 2, 3)
 
-      // Prepend
       val prepended = 0 +: nel
       assert(prepended.toVector.nonEmpty)
 
-      // Append
       val appended = nel :+ 4
       assert(appended.toVector.nonEmpty)
 
-      // Concatenate
       val concatenated = nel ++ NonEmptyVector(4, 5)
       assert(concatenated.toVector.nonEmpty)
 
-      // Map
       val mapped = nel.map(_ * 2)
       assert(mapped.toVector.nonEmpty)
 
-      // FlatMap
       val flatMapped = nel.flatMap(n => NonEmptyVector(n, n * 2))
       assert(flatMapped.toVector.nonEmpty)
     }
@@ -179,15 +174,12 @@ final class NonEmptyVectorSpec extends ScalaCheckSuite with Laws {
       val original = Vector(1, 2, 3, 4, 5)
       val nel = NonEmptyVector.fromVector(original).get
 
-      // Prepend
       val prepended = 0 +: nel
       prepended.toVector === 0 +: original
 
-      // Append
       val appended = nel :+ 6
       appended.toVector === original :+ 6
 
-      // Map
       val mapped = nel.map(_ * 2)
       mapped.toVector === original.map(_ * 2)
     }
@@ -195,7 +187,6 @@ final class NonEmptyVectorSpec extends ScalaCheckSuite with Laws {
     test("should handle single element correctly") {
       val nel = NonEmptyVector.one(42)
 
-      // Operations on single element
       val prepended = 0 +: nel
       prepended.toVector === Vector(0, 42)
 

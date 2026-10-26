@@ -116,9 +116,8 @@ final class ExprsSpec extends MacroSuite {
           )
         }
 
-        // Regression for commits 481f734 and 1472324: asInstanceOf/isInstanceOf are compiler intrinsics, not
-        // real JVM methods — semiEval must not try to invoke them reflectively (this is the cross-platform
-        // counterpart of the Scala 3-only tests in ExprsScala3Spec; the Scala 2 code path had no coverage).
+        // asInstanceOf/isInstanceOf are compiler intrinsics, not real JVM methods — semiEval must not try to invoke
+        // them reflectively.
         test("should evaluate asInstanceOf as an intrinsic (pass value through)") {
           testSemiEval(("hello": Any).asInstanceOf[String].length) <==> Data.map(
             "status" -> Data("success"),
@@ -482,7 +481,6 @@ final class ExprsSpec extends MacroSuite {
       test("method MatchCase.eqValue should work with singletons (case objects)") {
         import ExprsFixtures.testMatchCaseEqValueSingleton
 
-        // Singleton type: singletonOf returns Some, eqValue matches the object
         @scala.annotation.nowarn // suppress "unreachable code"
         def runObject =
           testMatchCaseEqValueSingleton[
@@ -493,7 +491,6 @@ final class ExprsSpec extends MacroSuite {
           )
         runObject
 
-        // Non-singleton type should return singletonOf = none
         testMatchCaseEqValueSingleton[Int] <==> Data.map(
           "singletonOf" -> Data("none")
         )
@@ -502,7 +499,6 @@ final class ExprsSpec extends MacroSuite {
       test("method MatchCase.eqValue should work with singletons (Enumeration values)") {
         import ExprsFixtures.testMatchCaseEqValueSingleton
 
-        // Enumeration value singleton: singletonOf returns Some, eqValue matches
         @scala.annotation.nowarn // suppress "unreachable code"
         def runEnumValue =
           testMatchCaseEqValueSingleton[
@@ -1193,8 +1189,8 @@ final class ExprsSpec extends MacroSuite {
             "decoded" -> Data("a")
           ),
           "Class" -> Data.map(
-            // #321: emitted as a class LITERAL now (renders as plain `classOf[fqcn]`), identical on both platforms,
-            // so the encoding survives a downstream `c.untypecheck` + re-typecheck.
+            // Emitted as a class LITERAL (renders as plain `classOf[fqcn]`), identical on both platforms, so the
+            // encoding survives a downstream `c.untypecheck` + re-typecheck.
             "encoded" -> Data("classOf[scala.Int]"),
             "decoded" -> Data("int")
           ),

@@ -11,8 +11,6 @@ final private class StdExtensionsFixtures(val c: blackbox.Context)
     with StdExtensions
     with StdExtensionsFixturesImpl {
 
-  // [hearth#176]
-
   def testIsCollectionImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[Data] = testIsCollection[A](value)
 
   def testIsOptionImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[Data] = testIsOption[A](value)

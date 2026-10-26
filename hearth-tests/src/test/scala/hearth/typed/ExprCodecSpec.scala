@@ -94,7 +94,7 @@ final class ExprCodecSpec extends MacroSuite {
     group("collections route to built-in codecs") {
       import ExprCodecFixtures.testSemiQuoteReLift
 
-      // Regression: `lookupBuiltInExprCodec` only special-cased `Seq`, so these fell into the sealed cascade and failed.
+      // Not only `Seq` needs a built-in codec: without one these would fall into the sealed cascade and fail.
       // (`Set`/`Map` are also routed for the quote side, but not asserted here: `semiEval` cannot yet decode a `Set`
       // (Scala 2) or `Map` literal - a separate limitation - so a full round-trip via this fixture is not observable.)
       test("List")(testSemiQuoteReLift[List[Int]](List(1, 2, 3)) <==> Data("reLifted: List(1, 2, 3)"))
@@ -170,8 +170,8 @@ final class ExprCodecSpec extends MacroSuite {
   group("built-in parameterized codecs") {
 
     test("Expr.typeOf reports the concrete instantiated type for exprs produced by built-in codecs") {
-      // Regression: on Scala 2 ExprCodec.make captured the codec's own free type parameter A in the WeakTypeTag,
-      // so Expr.typeOf reported `A` instead of e.g. Seq[Int], breaking downstream upcast calls.
+      // On Scala 2 ExprCodec.make can capture the codec's own free type parameter A in the WeakTypeTag, making
+      // Expr.typeOf report `A` instead of e.g. Seq[Int], which breaks downstream upcast calls.
       ExprCodecFixtures.testBuiltInCodecExprTypes <==> Data.map(
         "Seq[Int]" -> Data("ok"),
         "List[Int]" -> Data("ok"),

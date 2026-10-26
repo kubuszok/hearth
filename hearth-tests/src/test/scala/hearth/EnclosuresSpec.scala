@@ -177,7 +177,7 @@ final class EnclosuresSpec extends MacroSuite {
         NestObj.callsHelper ==> 7
       }
 
-      // Regression: a trait's self-type requirement (`this: SelfProvider =>`) contributes members visible on `this`.
+      // A trait's self-type requirement (`this: SelfProvider =>`) contributes members visible on `this`.
       // These must appear in the enclosing class's `members` (wiring/DI relies on it) on BOTH platforms.
       test("includes self-type requirement members of the enclosing trait") {
         val instance = new SelfTyped with SelfProvider { def fromSelfType: Int = 1 }

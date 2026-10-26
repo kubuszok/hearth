@@ -16,8 +16,6 @@ case class ExampleCaseClassWithVarargs(xs: Int*)
 case class ExampleCaseClassWithTypeParam[A](a: A)
 case class ExampleCaseClassWithDefaults(a: Int, b: String = "default-b")
 
-// Examples for CaseClass.copyMethod (issue #246).
-
 // Multiple parameter lists: the canonical `copy` mirrors them, i.e. `def copy(i: Int = i)(s: String = s)`.
 case class ExampleCaseClassMultipleParamLists(i: Int)(val s: String)
 

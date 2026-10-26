@@ -66,7 +66,6 @@ object FlameGraph {
       }
     }
 
-    // Simple flat iteration — no work queue needed
     var i = 0
     while (i < logs.size) {
       logs(i) match {
@@ -76,14 +75,13 @@ object FlameGraph {
           val relEnd = end - macroStart
           events += Event("O", idx, relStart)
           events += Event("C", idx, relEnd)
-        case _ => // Skip entries and scopes without timestamps
+        case _ =>
       }
       i += 1
     }
 
     if (events.isEmpty) false
     else {
-      // Sort events in-place by timestamp; at same timestamp, close before open to maintain valid nesting.
       events.sortInPlace()(eventOrdering)
       val startValue = events.head.at
       val endValue = events.last.at

@@ -202,19 +202,15 @@ final class NonEmptyMapSpec extends ScalaCheckSuite with Laws {
     test("should maintain non-emptiness after operations") {
       val nem = NonEmptyMap(("a", 1), ("b", 2), ("c", 3))
 
-      // Prepend
       val prepended = ("x", 0) +: nem
       assert(prepended.toList.nonEmpty)
 
-      // Append
       val appended = nem :+ ("d", 4)
       assert(appended.toList.nonEmpty)
 
-      // Map
       val mapped = nem.map { case (k, v) => (k.toUpperCase, v * 2) }
       assert(mapped.toList.nonEmpty)
 
-      // FlatMap
       val flatMapped = nem.flatMap { case (k, v) => NonEmptyMap((k, v), (k + k, v * 2)) }
       assert(flatMapped.toList.nonEmpty)
     }
@@ -223,15 +219,12 @@ final class NonEmptyMapSpec extends ScalaCheckSuite with Laws {
       val original = ListMap(("a", 1), ("b", 2), ("c", 3), ("d", 4), ("e", 5))
       val nem = NonEmptyMap.fromListMap(original).get
 
-      // Prepend
       val prepended = ("x", 0) +: nem
       prepended.toList === (("x", 0) +: original.toList)
 
-      // Append
       val appended = nem :+ ("f", 6)
       appended.toList === (original.toList :+ ("f", 6))
 
-      // Map
       val mapped = nem.map { case (k, v) => (k, v * 2) }
       mapped.toList === original.toList.map { case (k, v) => (k, v * 2) }
     }
@@ -239,7 +232,6 @@ final class NonEmptyMapSpec extends ScalaCheckSuite with Laws {
     test("should handle single element correctly") {
       val nem = NonEmptyMap.one(("key", 42))
 
-      // Operations on single element
       val prepended = ("x", 0) +: nem
       prepended.toList === List(("x", 0), ("key", 42))
 

@@ -90,11 +90,9 @@ final class IsValueTypeProviderForOpaque extends StandardMacroExtension { loader
           val inner = underlyingRepr.as_??
           import inner.Underlying as Inner
 
-          // Find smart constructors via CtorLikes
           CtorLikes
             .unapply(tpe)
             .flatMap { ctors =>
-              // Find a ctor whose input type matches the underlying type
               ctors.toList
                 .find { existential =>
                   import existential.Underlying as Input

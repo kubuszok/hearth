@@ -29,7 +29,7 @@ abstract class AbstractClassWithArgs(val x: Int, val y: String) {
   def abstractMethod: Int
 }
 
-// Chimney #960: parent referred to through (chained, renaming, reordering) aliases with mismatched type parameters
+// Used through (chained, renaming, reordering) aliases, whose type parameters don't line up with the class's ones.
 abstract class GenericAbstractClassWithArgs[R, A](val x: Int, val y: String) {
   def abstractMethod: Int
 }
@@ -92,8 +92,7 @@ trait TraitWithBoundedGenericMethod {
 }
 
 /** Generic method whose declared return is CONCRETE (`String`), independent of the method's type parameter. The
-  * override body must see `OverrideContext.returnType = String` (not `Any`) — the regression Kindlings hit while
-  * porting ScalaMock.
+  * override body must see `OverrideContext.returnType = String` (not `Any`).
   */
 trait TraitWithGenericConcreteReturn {
   def describe[T](x: T): String

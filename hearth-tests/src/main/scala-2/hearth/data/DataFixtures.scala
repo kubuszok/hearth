@@ -7,8 +7,6 @@ import scala.reflect.macros.blackbox
 
 final private class DataFixtures(val c: blackbox.Context) extends MacroCommonsScala2 with DataFixturesImpl {
 
-  // [hearth#176]
-
   def exampleImpl: c.Expr[Data] = example
 }
 object DataFixtures {

@@ -103,7 +103,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     *
     * A type alias can take different type arguments than the class it aliases (`type U[A] = P[Any, Nothing, A]`,
     * `type Swapped[A, B] = GenericClass[B, A]`, `type Fixed = P[Any, Nothing, String]`), so `tpe.typeArgs` cannot be
-    * zipped with or applied to the class' (constructor's) type parameters before dealiasing. See Chimney #960.
+    * zipped with or applied to the class' (constructor's) type parameters before dealiasing.
     */
   private[hearth] def classTypeArgs(tpe: TypeRepr): List[TypeRepr] = tpe.dealias.typeArgs
 
@@ -122,7 +122,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
     /** Resolves the parameter-name -> parameter-type map for ALL value clauses of `method` as seen from `instanceTpe`.
       * Since the map covers every clause, `UntypedMethod.toTyped` computes it ONCE and shares it between the per-clause
-      * expectations and `totalParameters` (previously it was recomputed for each).
+      * expectations and `totalParameters`.
       */
     private[hearth] def resolveTypesByParamName(
         instanceTpe: UntypedType,
@@ -240,12 +240,9 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       lazy val adaptedArguments = arguments.adaptToParams(instanceTpe, instance, this)
       invocation match {
         case Invocation.Constructor =>
-          // new A
           val select = New(TypeTree.of[Instance]).select(symbol)
-          // new A[B1, B2, ...] vs new A
           val instanceTypeArgs = classTypeArgs(instanceTpe)
           val tree = if instanceTypeArgs.nonEmpty then select.appliedToTypes(instanceTypeArgs) else select
-          // new A... or new A() or new A(b1, b2), ...
           tree.appliedToArgss(adaptedArguments)
         case Invocation.OnInstance =>
           instance match {
@@ -254,11 +251,9 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
               hearthAssertionFailed(s"Expected an instance for method $name that is called on an instance")
             // $COVERAGE-ON$
             case Some(instance) =>
-              // instance.method, or instance.method(), or instance.method(b1, b2, ...)
               instance.select(symbol).appliedToArgss(adaptedArguments)
           }
         case Invocation.OnModule(module) =>
-          // module.method, or module.method(), or module.method(b1, b2, ...)
           module.select(symbol).appliedToArgss(adaptedArguments)
       }
     }
@@ -332,7 +327,6 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
         paramss.foreach { paramList =>
           if paramList.exists(_.isType) then {
-            // Type parameter list — flush accumulated values, then add NeedsTypes
             flushValues()
             steps += UntypedMethodExpectation.NeedsTypes(List(paramList))
           } else if !skippedExtensionReceiver then {
@@ -570,9 +564,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       signatureSegmentsImpl(instanceTpe, hl)
   }
 
-  // NamedTuple synthetic constructor support (Scala 3.7+ only).
-  // NamedTuples are opaque type aliases and have no real constructor symbol.
-  // We synthesize one that builds the underlying tuple and type-ascribes it.
+  // NamedTuples (Scala 3.7+) are opaque type aliases and have no real constructor symbol, so we synthesize one that
+  // builds the underlying tuple and type-ascribes it.
 
   /** Synthetic parameter for NamedTuple constructor — carries its type directly instead of using a Symbol. */
   final private class SyntheticNamedTupleParameter(
@@ -638,7 +631,6 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def unsafeApply(
         instanceTpe: UntypedType
     )(instance: Option[UntypedExpr], arguments: UntypedArguments): UntypedExpr = {
-      // Build a regular Tuple with arguments in the right order
       val orderedArgs = fieldNames.map { fname =>
         arguments.getOrElse(fname, hearthRequirementFailed(s"Missing argument for field '$fname'"))
       }
@@ -651,10 +643,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
       orderedArgs.length match {
         case 0 =>
-          // Empty named tuple (e.g. NamedTuple.Empty) -> EmptyTuple. See issue #313.
           castToNamedTuple('{ scala.EmptyTuple })
         case n if n < 23 =>
-          // Construct the underlying tuple via its constructor: new TupleN(arg1, arg2, ...)
           val underlyingTupleTpe = instanceTpe.dealias match {
             case AppliedType(_, List(_, valuesTpe)) => valuesTpe
             case _ => hearthAssertionFailed(s"Expected NamedTuple AppliedType, got ${instanceTpe.show}")
@@ -666,11 +656,10 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           val applied =
             if underlyingTupleTpe.typeArgs.nonEmpty then select.appliedToTypes(underlyingTupleTpe.typeArgs)
             else select
-          // Type-ascribe the tuple to the NamedTuple type: (tupleExpr : NamedTupleType)
           Typed(applied.appliedToArgss(List(orderedArgs)), TypeTree.of[NT])
         case _ =>
           // TupleXXL (arity >= 23) has no public N-ary constructor - build the runtime tuple via Tuple.fromArray,
-          // boxing each element to Object. See issue #314.
+          // boxing each element to Object.
           val boxed = orderedArgs.map(arg => '{ ${ arg.asExpr }.asInstanceOf[Object] })
           castToNamedTuple('{ scala.Tuple.fromArray(scala.Array[Object](${ scala.quoted.Varargs(boxed) }*)) })
       }
@@ -735,7 +724,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       }
 
     // Dealias so that alias forms such as `scala.NamedTuple.Empty` (= `NamedTuple[EmptyTuple, EmptyTuple]`) are
-    // recognized. The empty named tuple has zero fields, so we must allow `names.length == 0`. See issue #313.
+    // recognized. The empty named tuple has zero fields, so we must allow `names.length == 0`.
     instanceTpe.dealias match {
       case applied @ AppliedType(_, List(namesTpe, valuesTpe)) if UntypedType.isNamedTuple(applied) =>
         val names = extractStringLiterals(namesTpe)
@@ -818,15 +807,14 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       val untypedExpectations = untyped.methodExpectations(instanceTpe)
 
       // The map covers ALL value clauses, so resolve it once and share it between the per-clause expectations and
-      // `totalParameters` below (it used to be recomputed for each of them).
+      // `totalParameters` below.
       lazy val sharedTypesByParamName = UntypedParameters.resolveTypesByParamName(instanceTpe, untyped)
 
-      // [hearth#331] A value/implicit clause that FOLLOWS a type-parameter clause references the method's own type
-      // parameters (`(implicit ev: Sync[F])`). `up.asTyped[Instance]` cannot resolve those against `Instance` (it
-      // conflates method and class type parameters and can even crash), so historically the clause was dropped to
-      // `List.empty`. Instead we read the parameter types straight from the member signature (class type parameters
-      // already resolved as-seen-from `Instance`, method type parameters left abstract) and substitute the applied
-      // type arguments for the method's type parameters — abstract when none are applied yet, concrete after `onTypes`.
+      // A value/implicit clause that FOLLOWS a type-parameter clause references the method's own type parameters
+      // (`(implicit ev: Sync[F])`). `up.asTyped[Instance]` cannot resolve those against `Instance` (it conflates method
+      // and class type parameters and can even crash), so we read the parameter types straight from the member
+      // signature (class type parameters already resolved as-seen-from `Instance`, method type parameters left
+      // abstract) and substitute the applied type arguments for the method's type parameters.
       val methodTypeParamSyms: List[Symbol] = untyped.typeParameters.flatten
       // Resolve parameter types with the method's own type parameters instantiated to `typeArgs` — applied arguments
       // become concrete, un-applied ones become the type parameter's own (bare) ref. We `appliedTo` the member
@@ -948,7 +936,6 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         case None                 =>
           // Dealias so that an `export`-created alias (`export Inner.Foo`) resolves to the underlying class symbol -
           // otherwise `typeSymbol` is the alias and reports no constructors. Scala 2's `typeSymbol` auto-dealiases.
-          // See issue #315.
           Option(instanceTpe.dealias.typeSymbol.primaryConstructor)
             .filterNot(_.isNoSymbol)
             .flatMap(
@@ -967,10 +954,10 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         case Some((names, types)) => List(new SyntheticNamedTupleConstructor(names, types))
         // Outside of its defining scope an opaque type has no constructors, but its symbol's `declarations` are those of
         // the underlying class (`opaque type Name = String` would report all `java.lang.String` constructors, which
-        // `CtorLikes` would then use to emit an uncompilable `new Name(...)`). See Chimney #962.
+        // `CtorLikes` would then use to emit an uncompilable `new Name(...)`).
         case None if UntypedType.isOpaqueType(instanceTpe) => Nil
         case None                                          =>
-          instanceTpe.dealias.typeSymbol.declarations // dealias for `export`-created aliases, see issue #315
+          instanceTpe.dealias.typeSymbol.declarations // dealias for `export`-created aliases
             .filterNot(_.isNoSymbol)
             .filter(_.isClassConstructor)
             .flatMap(
@@ -990,7 +977,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     override def unsortedMethods(instanceTpe: UntypedType): List[UntypedMethod] = instanceTpe match {
       // An intersection `A & B` (an `AndType`) has `NoSymbol` as its `typeSymbol`, so the single-symbol member walk in
       // `unsortedMethodsOfSingleSymbol` reads nothing and the accessors declared by the parts (`name`, `age`, ...)
-      // vanish entirely (Chimney #673). A value of `A & B` exposes the members of BOTH parts, so union them,
+      // vanish entirely. A value of `A & B` exposes the members of BOTH parts, so union them,
       // deduplicating members shared via a common parent (e.g. `Object`'s methods) by their underlying symbol. Mirrors
       // the `AndType` branch already in `parents`/`baseClasses`.
       case AndType(left, right) =>
@@ -1006,7 +993,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     // exposes all of `String`'s members, `opaque type Name = String` only `Any`'s). Yet the opaque type's symbol reports
     // the representation's members. We keep listing them (they ARE callable within the defining scope), but members not
     // reachable through the bound become available only at call sites within the opaque type's owner (where the opaque
-    // type is transparent) - so `isAvailable(Everywhere)`/`isAvailable(AtCallSite)` filter them out. See Chimney #962.
+    // type is transparent) - so `isAvailable(Everywhere)`/`isAvailable(AtCallSite)` filter them out.
     private def gateOpaqueRepresentationMembers(
         instanceTpe: UntypedType,
         members: List[UntypedMethod]
@@ -1029,8 +1016,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       // constructor vals of an abstract parent) are neither methods nor own fields and would vanish entirely. Walk the
       // base classes and pick up their public, non-synthetic fields, deduplicating by name (closest class wins, since
       // `baseClasses` is ordered subclass-first) and never shadowing an own member. Scala 2's `.members` already sees
-      // them. See issue #327. `UntypedType.baseClasses` is used explicitly to avoid the extension-shadowing footgun.
-      // [hearth#327] The genuine PUBLIC accessors inherited from parent CLASSES (candidates, closest class first).
+      // them. `UntypedType.baseClasses` is used explicitly to avoid the extension-shadowing footgun.
       // `fieldMembers` computes member denotations, which is expensive, so skip the base classes that cannot
       // contribute: the type itself (its fields are already in `ownMembers` and would be deduplicated by `seenNames`
       // below) and the universal parents, which declare no public fields.
@@ -1043,7 +1029,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         .filter(f => !f.isNoSymbol && !f.flags.is(Flags.Private) && !f.flags.is(Flags.Synthetic))
         .toList
       val inheritedPublicFieldNames = inheritedPublicFieldCandidates.iterator.map(_.name).toSet
-      // [hearth#327] When a subclass re-takes a constructor param and only passes it to `super` (e.g. `class
+      // When a subclass re-takes a constructor param and only passes it to `super` (e.g. `class
       // IdStatusEntity(id: Long, ...) extends AbstractIdStatusEntity(id, ...)`), Scala 3 keeps it as a `private[this]`
       // `ParamAccessor` field. Such a field would `seenNames`-shadow the genuine PUBLIC inherited accessor of the same
       // name, leaving the listing with an unavailable, "declared" member (isAvailable=false, isInherited=false). Drop it
@@ -1056,7 +1042,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       val inheritedFields = inheritedPublicFieldCandidates.filter(f => seenNames.add(f.name))
       // Defined in the type or its parent, or synthetic
       val classMembers = ownMembers ++ inheritedFields
-      // Defined exatcly in the type
+      // Defined exactly in the type
       val classDeclared = symbol.declaredMethods.toSet ++ symbol.declaredFields.toSet ++ declaredByJvmOrScala(symbol)
 
       val (members, declared, moduleBySymbol) = instanceTpe.companionObject
@@ -1065,7 +1051,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           // Defined in the companion object or its parent, or synthetic
           val companionMembers =
             (companionSymbol.methodMembers ++ companionSymbol.fieldMembers).filterNot(methodsSkippedInCompanion)
-          // Defined exatcly in the companion object
+          // Defined exactly in the companion object
           val companionDeclared =
             (companionSymbol.declaredMethods.toSet ++ companionSymbol.declaredFields.toSet ++ declaredByJvmOrScala(
               companionSymbol
@@ -1176,11 +1162,10 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       enclosingOf(Symbol.spliceOwner)
     }
 
-    // ------------------------------------------------- Special cases handling -------------------------------------------------
     // When behavior between Scala 2 and 3 is different, and it makes sense to align them, we have to decide which behavior is
     // "saner" and which one needs adjustment. Below are methods used to adjust behavior on Scala 3 side.
 
-    // [hearth#327] Universal parents that appear in almost every type's `baseClasses` but declare no public fields,
+    // Universal parents that appear in almost every type's `baseClasses` but declare no public fields,
     // so the inherited-public-field walk in `unsortedMethods` can skip their (expensive) `fieldMembers` call.
     private lazy val fieldlessUniversalParents: Set[Symbol] = Set(
       defn.ObjectClass,

@@ -3,22 +3,20 @@ package crossquotes
 
 import hearth.data.Data
 
-/** Fixtures for testing [[CrossTypeSelfRefSpec]].
-  *
-  * Regression tests for hearth#285: `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]` used to make
-  * the generated implicit/given lookup resolve to the very value being defined:
-  *   - Scala 2: `weakTypeTag` picked up the in-definition implicit via `convertProvidedTypesForCrossQuotes`, producing
+/** In `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]` the implicit/given lookup generated for
+  * `Type.of` could resolve to the very value being defined:
+  *   - Scala 2: `weakTypeTag` picks up the in-definition implicit via `convertProvidedTypesForCrossQuotes`, producing
   *     `implicit val ConfigT = ConfigT` (forward-reference error in blocks, null/infinite recursion in class bodies),
-  *   - Scala 3: the plugin injected `given castedConfigT: scala.quoted.Type[...] = Type[...]...` which summoned the val
+  *   - Scala 3: the plugin injects `given castedConfigT: scala.quoted.Type[...] = Type[...]...` which summons the val
   *     being initialized (forward-reference error in blocks, null at runtime in class bodies).
   *
-  * The fix excludes the definition currently being initialized from the implicit search performed by the generated
-  * code, so `Type.of`/`Type.CtorN.of` fall back to direct materialization from the literal type argument.
+  * So the definition being initialized has to be excluded from that search, and `Type.of`/`Type.CtorN.of` materialize
+  * directly from the literal type argument instead.
   */
 trait CrossTypeSelfRefFixturesImpl { this: MacroTypedCommons =>
 
-  /** Mirrors the downstream `StandardMacroExtension` pattern from hearth#285: a class-level `implicit val` whose own
-    * RHS calls `Type.of` for the very type the val provides.
+  /** A class-level `implicit val` whose own RHS calls `Type.of` for the very type it provides - a common pattern in
+    * macro extensions.
     */
   implicit val classLevelSelfRefType: Type[examples.classes.ExampleClass] =
     Type.of[examples.classes.ExampleClass]

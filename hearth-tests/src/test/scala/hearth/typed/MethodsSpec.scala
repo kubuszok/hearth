@@ -45,12 +45,10 @@ final class MethodsSpec extends MacroSuite {
     else
       Data(s"Some(hearth-tests/src/main/scala/hearth/examples/methods.scala:$line:$column)")
 
-  group("regression: intersection types (Chimney #673)") {
+  group("regression: intersection types") {
 
-    // Reproduces the Hearth bug behind Chimney #673: `unsortedMethods`/`methodsOf` reads members only
-    // from `instanceTpe.typeSymbol`, which is `NoSymbol` for an intersection `A & B` (an `AndType`), so
-    // the accessors declared by the parts (`name`, `age`) are dropped. FAILS today (returns `false`);
-    // will pass once `unsortedMethods`/`baseClasses` gain an `AndType` branch (like `parents` already has).
+    // `instanceTpe.typeSymbol` is `NoSymbol` for an intersection `A & B` (an `AndType`), so reading members only from
+    // it would drop the accessors declared by the parts (`name`, `age`).
     test("methods of `A & B` include the members of both parts") {
       MethodsFixtures.testExposesNameAndAge[examples.methods.ExampleHasName & examples.methods.ExampleHasAge] <==>
         Data(true)
@@ -99,7 +97,7 @@ final class MethodsSpec extends MacroSuite {
           )
         }
 
-        test("for type alias with fewer type parameters than the aliased class (Chimney #960)") {
+        test("for type alias with fewer type parameters than the aliased class") {
           testConstructorsExtraction[examples.methods.PhantomParams.Partial[String]] <==> Data.map(
             "primaryConstructor" -> Data("(a: scala.Int, b: java.lang.String)"),
             "defaultConstructor" -> Data("<no default constructor>"),
@@ -107,7 +105,7 @@ final class MethodsSpec extends MacroSuite {
           )
         }
 
-        test("for type alias with no type parameters of a generic class (Chimney #960)") {
+        test("for type alias with no type parameters of a generic class") {
           testConstructorsExtraction[examples.methods.PhantomParams.Fixed] <==> Data.map(
             "primaryConstructor" -> Data("(a: scala.Int, b: java.lang.String)"),
             "defaultConstructor" -> Data("<no default constructor>"),
@@ -115,7 +113,7 @@ final class MethodsSpec extends MacroSuite {
           )
         }
 
-        test("for type alias reordering type parameters of the aliased class (Chimney #960)") {
+        test("for type alias reordering type parameters of the aliased class") {
           testConstructorsExtraction[examples.methods.GenericClassAliases.Swapped[Int, String]] <==> Data.map(
             "primaryConstructor" -> Data("(a: java.lang.String, b: scala.Int)"),
             "defaultConstructor" -> Data("<no default constructor>"),
@@ -123,7 +121,7 @@ final class MethodsSpec extends MacroSuite {
           )
         }
 
-        test("for chains of type aliases renaming, reordering and fixing type parameters (Chimney #960)") {
+        test("for chains of type aliases renaming, reordering and fixing type parameters") {
           testConstructorsExtraction[examples.methods.PhantomParams.PartialOfPartial[String]] <==> Data.map(
             "primaryConstructor" -> Data("(a: scala.Int, b: java.lang.String)"),
             "defaultConstructor" -> Data("<no default constructor>"),
@@ -1703,8 +1701,8 @@ final class MethodsSpec extends MacroSuite {
         }
       }
 
-      // Regression for commit 68e1781: a `var` constructor parameter produces a getter and a setter (name_=);
-      // only the getter may be flagged as a constructor argument / case field — the setter must not be.
+      // A `var` constructor parameter produces a getter and a setter (name_=); only the getter may be flagged as a
+      // constructor argument / case field — the setter must not be.
       group("regression: setters are not constructor arguments nor case fields") {
         import MethodsFixtures.testMethodProperties
 
@@ -1873,14 +1871,14 @@ final class MethodsSpec extends MacroSuite {
         }
       }
 
-      // Regression for commit 68e1781: visibility declared on a var (private[examples]) must propagate
-      // from the getter/val to the synthesized setter (counter_=), on both platforms.
+      // Visibility declared on a var (private[examples]) must propagate from the getter/val to the synthesized setter
+      // (counter_=), on both platforms.
       group("regression: setter inherits the visibility of its var") {
         import MethodsFixtures.{testMethodProperties, testMethodVisibility}
 
-        // The original motivation for the fix: scala.collection.immutable.:: declares
-        // `private[scala] var next` — for the precompiled stdlib class on Scala 3 the synthesized
-        // setter symbol does not carry the visibility flags itself, so they must be looked up on the field.
+        // scala.collection.immutable.:: declares `private[scala] var next` — for the precompiled stdlib class on
+        // Scala 3 the synthesized setter symbol does not carry the visibility flags itself, so they must be looked up
+        // on the field.
         test("private[scala] var next of scala.collection.immutable.:: restricts the setter too") {
           testMethodVisibility[scala.collection.immutable.::[Int]]("next") <==> Data.map(
             "next" -> Data.map(
@@ -2084,7 +2082,6 @@ final class MethodsSpec extends MacroSuite {
           privateCtorIdx < publicCtorIdx,
           s"'privateCtorArg' (idx=$privateCtorIdx) should appear before 'publicCtorArg' (idx=$publicCtorIdx): $names"
         )
-        // Both should appear before declared methods
         val publicMethodIdx = names.indexOf("publicMethod")
         assert(
           publicCtorIdx < publicMethodIdx,
@@ -2426,8 +2423,8 @@ final class MethodsSpec extends MacroSuite {
           )
       }
 
-      // [hearth#331] An implicit clause that FOLLOWS a type-parameter clause used to be dropped (`NeedsValues()`),
-      // so there was no way to supply the `Sync[F]`. It is now surfaced with the method's type parameter abstract.
+      // An implicit clause that FOLLOWS a type-parameter clause must not be dropped (`NeedsValues()`), or there is no
+      // way to supply the `Sync[F]`. It is surfaced with the method's type parameter abstract.
       test("resource[F[_]](implicit ev: Sync[F]): F[Int] — implicit clause after a type-param clause is kept") {
         MethodsFixtures.testMethodExpectations[examples.methods.HigherKindedImplicit]("resource") <==>
           Data.list(
@@ -2469,7 +2466,7 @@ final class MethodsSpec extends MacroSuite {
 
     group("method calling via fold") {
 
-      // [hearth#331] applying `T := Int` in `onTypes` substitutes into the value/implicit clauses that follow.
+      // Applying `T := Int` in `onTypes` substitutes into the value/implicit clauses that follow.
       test("fold substitutes applied type arguments into a following value/implicit clause") {
         MethodsFixtures.testFoldSubstitutesTypeArgs <==> Data.map(
           "params" -> Data.list(
@@ -2507,7 +2504,7 @@ final class MethodsSpec extends MacroSuite {
         assert(str.contains("SimpleConstructor"), s"Result should be a SimpleConstructor: $str")
       }
 
-      test("construct PhantomParams through a type alias with mismatched type parameters via fold (Chimney #960)") {
+      test("construct PhantomParams through a type alias with mismatched type parameters via fold") {
         MethodsFixtures.testCallConstructorViaFold[examples.methods.PhantomParams.Partial[String]](1) <==>
           Data("PhantomParams(1, test)")
         MethodsFixtures.testCallConstructorViaFold[examples.methods.PhantomParams.Fixed](1) <==>
@@ -2685,7 +2682,7 @@ final class MethodsSpec extends MacroSuite {
       assert(args == "", s"no-arg annotation should destructure to empty args, got: '$args'")
     }
 
-    test("type-position annotations on case-class field types are exposed (#306)") {
+    test("type-position annotations on case-class field types are exposed") {
       import MethodsFixtures.testTypeAnnotations
 
       testTypeAnnotations[examples.methods.WithTypeAnnotations] <==> Data.map(
@@ -2701,7 +2698,7 @@ final class MethodsSpec extends MacroSuite {
       )
     }
 
-    test("type-position annotations survive the caseFields / knownReturning path (#348)") {
+    test("type-position annotations survive the caseFields / knownReturning path") {
       import MethodsFixtures.testTypeAnnotationsViaKnownReturning
 
       testTypeAnnotationsViaKnownReturning[examples.methods.WithTypeAnnotations] <==> Data.list(
@@ -2765,7 +2762,7 @@ final class MethodsSpec extends MacroSuite {
   }
 
   group("methods: annotationsOfType and constructorArguments") {
-    import MethodsFixtures.{testAnnotationsOfType, testAnnotationValueDecoded, testFieldNameReproducer}
+    import MethodsFixtures.{testAnnotationsOfType, testAnnotationValueDecoded, testFieldNamesFromAnnotations}
 
     test("filters type and method annotations by type, decoding constructor args (present and absent cases)") {
       testAnnotationsOfType[examples.methods.NoCompanionClass]("methodWithAnnotation") <==> Data.map(
@@ -2927,9 +2924,9 @@ final class MethodsSpec extends MacroSuite {
     }
 
     test(
-      "issue #283 reproducer: @fieldName(\"first_name\") on case class ctor param decodes String/Boolean/Double literals"
+      "@fieldName(\"first_name\") on case class ctor param decodes String/Boolean/Double literals"
     ) {
-      testFieldNameReproducer[examples.methods.Person] <==> Data.list(
+      testFieldNamesFromAnnotations[examples.methods.Person] <==> Data.list(
         Data.map(
           "name" -> Data("firstName"),
           "fieldNames" -> Data.list(Data("first_name")),

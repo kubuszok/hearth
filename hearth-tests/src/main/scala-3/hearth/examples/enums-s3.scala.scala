@@ -16,9 +16,9 @@ enum ExampleEnumGADT[A] {
   case ExampleEnumWithTypeParamValue extends ExampleEnumGADT[Unit]
 }
 
-// Chimney #625: LOWERCASE parameterless enum cases. Hearth's `matchOn`/`MatchCase.typeMatch` emits
-// `case x @ Ref(sym)` for enum vals; dotty (scala/scala3#20350) reinterprets a bare lowercase `Ident`
-// in pattern position as a variable pattern, so the first case swallows everything.
+// LOWERCASE parameterless enum cases: if `matchOn`/`MatchCase.typeMatch` emitted `case x @ Ref(sym)` for enum vals,
+// dotty (scala/scala3#20350) would reinterpret a bare lowercase `Ident` in pattern position as a variable pattern, so
+// the first case would swallow everything.
 enum LowerEnum1 {
   case solo, team, school
 }

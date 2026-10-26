@@ -312,18 +312,15 @@ val mimaSettings = Seq(
   //     new interface and its new implementation atomically, so the change can never be witnessed as a link error.
   //     (MiMa does not even report adding a method to a nested *class* - only trait members turn into forwarders.)
   //
-  // Only the second kind may be excluded here, and each exclusion must cite why it is not user-observable. See
-  // docs/contributing/binary-compatibility-and-mixins.md for the full policy and worked examples.
+  // Only the second kind may be excluded here, and each exclusion must cite why it is not user-observable.
   //
   // Example of an allowed exclusion (a member added to a NESTED trait/object that MiMa would otherwise flag):
   //   exclude[ReversedMissingMethodProblem]("hearth.typed.SomeTrait#SomeNestedTrait.newHelper")
   mimaBinaryIssueFilters ++= Seq(
-    // NOTE: `skipped` briefly went by-name here (filters existed for the String -> Function0 signature change) but
-    // that BROKE pre-compiled provider extensions at link time - kindlings' cats-integration threw NoSuchMethodError
-    // from its `parse` when loaded by a newer Hearth. The "every extension is recompiled against its Hearth version"
-    // justification was wrong: extensions are ServiceLoader-loaded binaries. The strict `skipped(String)` signatures
-    // are restored (laziness lives in the new `skippedLazily`), so those filters are gone.
-    // #329: `lastMatchProvenance` provider-provenance state added to the NESTED trait `StdExtensions#ProvidedCompanion`.
+    // NOTE: never filter a signature change of a method that provider extensions call (e.g. `skipped(String)`):
+    // extensions are pre-compiled, ServiceLoader-loaded binaries - they are NOT recompiled against the Hearth that
+    // loads them, so such a change throws NoSuchMethodError at link time.
+    // `lastMatchProvenance` provider-provenance state added to the NESTED trait `StdExtensions#ProvidedCompanion`.
     // That trait is part of the MacroCommons cake and is implemented ONLY by Hearth's own std companion objects
     // (IsCollection/IsOption/IsEither/IsValueType/CtorLikes), which live in the same trait - so the interface and its
     // implementations are always evicted together and no user has a standalone implementation to break. The public
@@ -334,11 +331,11 @@ val mimaSettings = Seq(
     exclude[ReversedMissingMethodProblem](
       "hearth.std.StdExtensions#ProvidedCompanion.hearth$std$StdExtensions$ProvidedCompanion$$lastMatchProvenanceValue_="
     ),
-    // #334: `annotated` added to the NESTED trait `Exprs#ExprModule`. That trait is part of the MacroCommons cake and
+    // `annotated` added to the NESTED trait `Exprs#ExprModule`. That trait is part of the MacroCommons cake and
     // is implemented ONLY by Hearth's own `Expr` object (in ExprsScala2/ExprsScala3), so the interface and its
     // implementation are always evicted together - no user has a standalone `ExprModule` implementation to break.
     exclude[ReversedMissingMethodProblem]("hearth.typed.Exprs#ExprModule.annotated"),
-    // #384 follow-up (DestructuredExpr bindings): `destructuredReferences` - the platform hook behind
+    // `destructuredReferences` - the platform hook behind
     // `DestructuredExpr.findReferences` - added to the NESTED trait `Exprs#ExprModule`, `private[hearth]` and
     // implemented ONLY by Hearth's own `Expr` object (in ExprsScala2/ExprsScala3), same reasoning as `annotated` above.
     exclude[ReversedMissingMethodProblem]("hearth.typed.Exprs#ExprModule.destructuredReferences"),

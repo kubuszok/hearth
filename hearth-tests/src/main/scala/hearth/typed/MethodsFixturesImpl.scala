@@ -3,7 +3,6 @@ package typed
 
 import hearth.data.Data
 
-/** Fixtures for testing [[MethodsSpec]]. */
 trait MethodsFixturesImpl { this: MacroCommons =>
 
   def testConstructorsExtraction[A: Type]: Expr[Data] = Expr(
@@ -21,14 +20,12 @@ trait MethodsFixturesImpl { this: MacroCommons =>
   private def renderConstructor(constructor: Method): Data =
     renderParameters(constructor.totalParameters)
 
-  // Chimney #673: does Hearth expose `name` and `age` on an intersection type `A & B`?
-  // (Currently `false` for an intersection because `unsortedMethods` finds no `typeSymbol`.)
+  // An intersection type `A & B` has no single `typeSymbol` to list the methods of.
   def testExposesNameAndAge[A: Type]: Expr[Data] =
     Expr(Data(Method.unsortedMethodsNamed[A]("name").nonEmpty && Method.unsortedMethodsNamed[A]("age").nonEmpty))
 
-  // Classifies every `get*`/`is*`/`set*`-named method of `A` as its JavaBean accessor property name, or "<none>" when
-  // it is NOT a JavaBean accessor. Exercises the capitalization rule: `getters`/`island`/`settle` merely start with a
-  // prefix but have no upper-case char after it, so they must NOT be accessors.
+  // `getters`/`island`/`settle` merely start with a prefix but have no upper-case char after it, so they must NOT be
+  // JavaBean accessors.
   def testJavaAccessorNames[A: Type]: Expr[Data] =
     Expr(
       Data.map(
@@ -53,7 +50,6 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     Expr(renderMethods(filtered))
   }
 
-  // Chimney #962: whether the (first listed) method of the given name is available in each scope.
   def testMethodAvailability[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
     case Expr(name) =>
       Expr(Type[A].methods.find(_.name == name) match {
@@ -101,9 +97,8 @@ trait MethodsFixturesImpl { this: MacroCommons =>
       Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}")
   }
 
-  // [hearth#327] Focused report of the accessor metadata that matters for inherited constructor-`val` fields: an
-  // inherited public `val` must be listed as a usable, inherited accessor (isVal + isAvailable + isInherited), not the
-  // subclass's private param-accessor plumbing.
+  // An inherited public constructor `val` must be listed as a usable, inherited accessor (isVal + isAvailable +
+  // isInherited), not as the subclass's private param-accessor plumbing.
   def testAccessorMetadata[A: Type](methodName: Expr[String]): Expr[Data] = methodName match {
     case Expr(name) =>
       Expr(Data(Type[A].methods.filter(_.name == name).map { m =>
@@ -281,10 +276,6 @@ trait MethodsFixturesImpl { this: MacroCommons =>
       Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${other.prettyPrint}")
   }
 
-  /** Exercises `Method.toString` AFTER the builder chain has been partially consumed, so the applied-state rendering
-    * branch is hit (instance step -> "on ...", value step -> "applied (...)", plus the inferred "returning ..."
-    * suffix).
-    */
   def testMethodAppliedToString[A: Type](instance: Expr[A])(methodName: Expr[String]): Expr[Data] = {
     implicit val IntType: Type[Int] = this.IntType
     implicit val StringType: Type[String] = this.StringType
@@ -300,7 +291,6 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     }
     method match {
       case oi: Method.OnInstance =>
-        // After applying the instance the next step carries an AppliedStep.Instance, so toString renders "on <expr>".
         val afterInstance = oi.applyUntyped(instance.asUntyped)
         val afterValues = afterInstance match {
           case av: Method.ApplyValues =>
@@ -325,9 +315,6 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Exercises constructor `toString` after applying its value arguments — hits the "applied (...)" + "returning ..."
-    * rendering of the applied state for a no-instance (constructor) chain.
-    */
   def testConstructorAppliedToString[A: Type]: Expr[Data] = {
     implicit val IntType: Type[Int] = this.IntType
     implicit val StringType: Type[String] = this.StringType
@@ -519,7 +506,7 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     }
   }
 
-  // [hearth#331] The applied type arguments must be SUBSTITUTED into a value/implicit clause that follows the
+  // The applied type arguments must be SUBSTITUTED into a value/implicit clause that follows the
   // type-parameter clause: applying `T := Int` to `pick[T](t: T)(implicit ord: Ordering[T])` should present
   // `t: scala.Int` and `ord: scala.math.Ordering[scala.Int]` to `onValues` (not the abstract `T`/`Ordering[T]`).
   def testFoldSubstitutesTypeArgs: Expr[Data] = {
@@ -927,8 +914,6 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     Expr(Data.list((typeAnnotations ++ methodAnnotations)*))
   }
 
-  // Issue #306: type-position annotations (`name: String @ExampleAnnotation`). Renders each primary-constructor
-  // field's name to the annotations found on its TYPE (via `Type.typeAnnotations`), plus the annotations directly on A.
   def testTypeAnnotations[A: Type]: Expr[Data] = {
     def annNames(anns: List[Expr_??]): Data = Data.list(anns.map { ann =>
       if (ann.Underlying =:= Type.of[hearth.examples.methods.ExampleAnnotation2]) Data("ExampleAnnotation2")
@@ -952,7 +937,7 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     )
   }
 
-  // Issue #348: type-position annotations must ALSO survive the caseFields / knownReturning path (each case-field
+  // Type-position annotations must ALSO survive the caseFields / knownReturning path (each case-field
   // GETTER's return type), not only the primaryConstructor.totalParameters path exercised by testTypeAnnotations.
   def testTypeAnnotationsViaKnownReturning[A: Type]: Expr[Data] = {
     def annNames(anns: List[Expr_??]): Data = Data.list(anns.map { ann =>
@@ -1093,10 +1078,8 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     implicit val exampleAnnotation2Type: Type[hearth.examples.methods.ExampleAnnotation2] = this.ExampleAnnotation2Type
     Type[A].annotationsOfType[hearth.examples.methods.ExampleAnnotation2] match {
       case ann :: Nil =>
-        // `ann` is a properly typed `Expr[ExampleAnnotation2]`, so it can be evaluated as a whole at macro time...
         val wholeAnnotation =
           ann.semiEval.fold(errors => s"<failed: ${errors.head}>", instance => instance.value.toString)
-        // ... and its constructor arguments can be extracted and decoded one by one.
         val firstArgument = Annotations
           .constructorArguments(ann)
           .flatMap(_.headOption)
@@ -1107,13 +1090,8 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Reproducer for issue #283: read literal annotation arguments (String/Boolean/Double, not just Int) off a plain
-    * (non-case) annotation class with `val` constructor parameters, attached to case class constructor parameters.
-    *
-    * `fieldNames` uses the exact composition recommended to users (annotationsOfType + decodedConstructorArguments);
-    * `fieldFlags` decodes every argument, exercising Boolean and Double literals.
-    */
-  def testFieldNameReproducer[A: Type]: Expr[Data] = {
+  /** `fieldNames` uses the composition we recommend to users (annotationsOfType + decodedConstructorArguments). */
+  def testFieldNamesFromAnnotations[A: Type]: Expr[Data] = {
     implicit val fieldNameType: Type[hearth.examples.methods.fieldName] = this.FieldNameType
     implicit val fieldFlagsType: Type[hearth.examples.methods.fieldFlags] = this.FieldFlagsType
 
@@ -1252,18 +1230,15 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Applies `T` itself to the method's type parameters. */
   def testGenericMethodChain[A: Type, R: Type, T: Type](instance: Expr[A])(methodName: Expr[String]): Expr[Data] =
     genericMethodChain[A, R](instance, methodName, Type[T].as_??)
 
-  /** Applies the type constructor of `T` (e.g. `SomeF` for `T = SomeF[Any]`) to the method's type parameters. */
   def testGenericMethodChainApplyingConstructorOf[A: Type, R: Type, T: Type](instance: Expr[A])(
       methodName: Expr[String]
   ): Expr[Data] =
     genericMethodChain[A, R](instance, methodName, UntypedType.typeConstructor(UntypedType.fromTyped[T]).as_??)
 
-  /** Applies `Type.Ctor1.of[SomeF].asUntyped` (on Scala 3 an eta-expanded type lambda) to the method's type parameters.
-    */
+  /** On Scala 3 `Type.Ctor1.of[SomeF].asUntyped` is an eta-expanded type lambda, not the bare constructor. */
   def testGenericMethodChainApplyingCtor1Of[A: Type, R: Type](instance: Expr[A])(methodName: Expr[String]): Expr[Data] =
     genericMethodChain[A, R](instance, methodName, Type.Ctor1.of[examples.genericmethods.SomeF].asUntyped.as_??)
 

@@ -37,9 +37,8 @@ final case class MState private[effect] (
     if (this eq MState.empty) state
     else if (state eq MState.empty) this
     else {
-      // For parallel branches: this = branchA result, state = branchB result.
-      // Branch B was forked from branch A's result, so its logs start with A's logs.
-      // Take the longer vector (which includes both branches' logs).
+      // Branch B (`state`) was forked from branch A's (`this`) result, so its logs start with A's logs: the longer
+      // vector already holds both branches' logs.
       val joinedLogs = if (state.logs.size >= logs.size) state.logs else logs
       MState(joinLocals(locals, state.locals), joinedLogs, state.scopeStack, closedScopes | state.closedScopes)
     }

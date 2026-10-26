@@ -18,7 +18,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     object platformSpecific {
 
-      // when there is some c variable c.Expr[A] becomes not available
+      // Inside code that has its own variable named `c`, `c.Expr[A]` resolves to the wrong `c`.
       def asExpr[A](tree: Tree): Expr[A] = c.Expr[A](tree)
 
       final class ExprCodecImpl[A](typeCodec: Option[TypeCodec[A]])(implicit
@@ -150,11 +150,10 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         bindingsBySymbol: Map[Any, DestructuredExpr.Binding]
     ): List[DestructuredExpr.Reference] = dstrFindReferences(tree, bindingsBySymbol)
 
-    // [hearth#334] `{ @Ann(arguments...) val fresh = expr; fresh }`. The annotation is built in annotation position as
-    // `new Ann(arguments...)` (which, unlike an expression-position `new`, is accepted for Java annotations like
-    // `@SuppressWarnings`). Quasiquotes are not typed, so the argument trees are `untypecheck`ed before splicing
-    // (mixing typed and untyped trees crashes the compiler — the same reason annotation trees are untypechecked
-    // elsewhere).
+    // The annotation is built in annotation position (`@Ann(...) val fresh = expr; fresh`) because, unlike an
+    // expression-position `new`, it is accepted for Java annotations like `@SuppressWarnings`. Quasiquotes are not
+    // typed, so the argument trees are `untypecheck`ed before splicing (mixing typed and untyped trees crashes the
+    // compiler).
     override def annotated[A: Type, Ann: Type](expr: Expr[A], arguments: List[UntypedExpr]): Expr[A] = {
       val name = c.internal.reificationSupport.freshTermName("annotated$macro$")
       val argTrees = arguments.map(argument => c.untypecheck(argument.duplicate))
@@ -234,11 +233,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           case Literal(Constant(value)) =>
             Right(value)
 
-          // A `scala.ValueOf[A]` is fully determined by its type argument `A`: for a literal singleton
-          // `A` the value is `A`'s constant, for an object singleton it is the module. The synthesized
-          // `ValueOf` given is not always reducible by the reflective evaluator below, so reconstruct it
-          // from the type instead. This makes `valueOf[A]` / `implicitly[ValueOf[A]].value` evaluate at
-          // compile time.
+          // The synthesized `ValueOf` given is not always reducible by the reflective evaluator below, but it is
+          // fully determined by its type argument, so we reconstruct it from the type.
           case ValueOfExpr(value) =>
             Right(new scala.ValueOf(value))
 
@@ -428,7 +424,6 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
             }
         }
 
-      /** Matches a tree whose type is a reducible `scala.ValueOf[A]`, yielding the witnessed value. */
       private object ValueOfExpr {
         def unapply(tree: Tree): Option[Any] = valueOfValue(tree.tpe)
       }
@@ -801,16 +796,15 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     override lazy val CharExprCodec: ExprCodec[Char] = ExprCodec.withTypeCodec[Char]
     override lazy val StringExprCodec: ExprCodec[String] = ExprCodec.withTypeCodec[String]
 
-    // For now, assume that all ExprCodecs below are of PoC quality. It was needed to unblock some other work.
-    // But each should have unit tests which would make sure that Scala 2 and Scala 3 are in sync (which would
-    // require adding missing implementations to both sides, and then expanding the built-in Liftable and Unliftable
-    // with more cases).
+    // TODO: the ExprCodecs below are of PoC quality. Each should have unit tests keeping Scala 2 and Scala 3 in sync
+    // (which would require adding missing implementations to both sides, and expanding the built-in Liftable and
+    // Unliftable with more cases).
 
     override def ClassExprCodec[A: Type]: ExprCodec[java.lang.Class[A]] = {
       implicit val liftable: Liftable[java.lang.Class[A]] = Liftable[java.lang.Class[A]] { _ =>
         // Emit a real class LITERAL (`Literal(Constant(tpe))`, which scalac renders as `classOf[fqcn]`) rather than a
         // `classOf[${Type[A]}]` quasiquote: the type splice produced a path-dependent reference into the provider's
-        // `parse` method that did not survive a downstream `c.untypecheck` + re-typecheck. See issue #321.
+        // `parse` method that did not survive a downstream `c.untypecheck` + re-typecheck.
         Literal(Constant(UntypedType.fromTyped[A]))
       }
       implicit val unliftable: Unliftable[java.lang.Class[A]] = new Unliftable[java.lang.Class[A]] {
@@ -956,7 +950,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           case q"scala.collection.immutable.Seq(..$elems)"       => extractElems(elems)
           case q"Seq.apply(..$elems)"                            => extractElems(elems)
           case q"Seq(..$elems)"                                  => extractElems(elems)
-          // subtype specialization: delegate to List and Vector codecs
+          // a `Seq` value may have been built as `List(...)` or `Vector(...)`
           case _ =>
             listCodec
               .fromExpr(c.Expr[List[A]](tree))
@@ -1464,7 +1458,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         // The block tree is quasiquote-built and therefore untyped, so a bare `c.Expr[A](block)` would materialize an
         // UNRESOLVED `WeakTypeTag[A]` (literally the abstract type parameter `A`), corrupting every `Expr.typeOf` on the
         // result. `closeScope` has no `Type[A]` bound (adding one would break binary compatibility), but `scoped.value`
-        // already carries the caller's real type - so we re-tag with it. See issue #308.
+        // already carries the caller's real type - so we re-tag with it.
         c.Expr[A](q"..${scoped.definitions}; ${scoped.value}")(Expr.typeOf(scoped.value))
 
     override val traverse: fp.ApplicativeTraverse[ValDefs] = new fp.ApplicativeTraverse[ValDefs] {
@@ -3689,8 +3683,6 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       }
   }
 
-  // --- Expression destructuring ---
-
   override protected def destructureExpr(expr: UntypedExpr): DestructuredExpr =
     dstrImpl(expr, dstrExternalBindings(expr))
 
@@ -4049,10 +4041,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         if (vd.tpt != null && vd.tpt.tpe != null && vd.tpt.tpe != NoType) vd.tpt.tpe
         else if (vd.symbol != null && vd.symbol != NoSymbol) vd.symbol.typeSignature
         else definitions.AnyTpe
-      // [hearth#341] `tpt.tpe` is the typechecked (widened) type — Scala 2's typer widens a Java-enum-value singleton
-      // ascription (`Color.Black.type` -> `Color`), so the selected value is lost. The syntactic `tpt.original` keeps it
-      // as `SingletonTypeTree(Literal(const))`; rebuild the precise (un-widened) type from the constant so downstream
-      // can recover the enum value. Every other parameter keeps its (already-precise) widened type.
+      // Scala 2's typer widens a Java-enum-value singleton ascription (`Color.Black.type` -> `Color`) in `tpt.tpe`, so
+      // the selected value is lost. The syntactic `tpt.original` keeps it as `SingletonTypeTree(Literal(const))`.
       val declaredTpe: c.Type = vd.tpt match {
         case tpt: TypeTree =>
           tpt.original match {

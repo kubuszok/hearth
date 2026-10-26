@@ -53,9 +53,9 @@ sealed trait ProviderResult[+A] extends Product with Serializable {
 
 /** Provenance of the provider that produced a matched std result.
   *
-  * Skip reasons already name the providers that declined, but a matched result historically carried no way to tell
-  * WHICH provider produced it - so callers could not distinguish a built-in from a specific `StandardMacroExtension`
-  * except by fragile type filters. This captures the matching provider's `name` and implementing class. See issue #329.
+  * Skip reasons already name the providers that declined, but a matched result alone does not tell WHICH provider
+  * produced it - so callers could not distinguish a built-in from a specific `StandardMacroExtension` except by fragile
+  * type filters. This captures the matching provider's `name` and implementing class.
   *
   * @since 0.4.1
   */

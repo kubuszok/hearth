@@ -43,9 +43,7 @@ import scala.util.control.{ControlThrowable, NoStackTrace}
   * When you extract values with `runSafe` (or [[MIO.scoped]]) to build a splice, keep the direct-style block SMALL —
   * pull the value out, then quote. Do NOT run an entire derivation direct-style while a lambda/instance splice is being
   * evaluated: the entry `spliceOwner` and the `freshTerm` owner (which follows `CrossQuotes.ctx`) then belong to
-  * different owners, and the re-owning that `LambdaBuilder` does will not line up. (History: hearth#318 first blamed
-  * the `DirectStyleExecutor` thread hop; that was wrong — the real cause was running a derivation direct-style during
-  * splice evaluation. This caution reflects the corrected understanding.)
+  * different owners, and the re-owning that `LambdaBuilder` does will not line up.
   *
   * @since 0.1.0
   */

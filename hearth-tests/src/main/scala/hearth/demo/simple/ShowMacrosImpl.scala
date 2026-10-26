@@ -10,10 +10,8 @@ import hearth.fp.effect.*
 import hearth.fp.instances.*
 import hearth.fp.syntax.*
 
-/** Implementation of the [[Show]] macro, tested in [[ShowSpec]]. */
 private[demo] trait ShowMacrosImpl { this: MacroCommons =>
 
-  /** Derives a `Show[A]` type class instance for a given type `A`. */
   def deriveTypeClass[A: Type]: Expr[Show[A]] = Expr.quote {
     new Show[A] {
       def show(value: A): String = Expr.splice {
@@ -22,11 +20,9 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
     }
   }
 
-  /** Derives a `String` representation of a given value of type `A` (inlined `Show[A].show`). */
   def deriveShowString[A: Type](value: Expr[A]): Expr[String] =
     deriveOrFail[A](value, s"${Types.Show[A].prettyPrint}.show(${value.prettyPrint}) result")
 
-  /** Converts the [[MIO]] results into an [[Expr]] or error message. */
   private def deriveOrFail[A: Type](value: Expr[A], name: String): Expr[String] = Log
     .namedScope(s"Derivation for $name") {
       Log.info(s"Macro expansion started at ${Environment.currentPosition.prettyPrint}") >>
@@ -79,8 +75,6 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
     logDerivationImported || logDerivationSetGlobally
   }
 
-  // All methods below implement the rules for deriving a `Show[A]` type class instance.
-
   /** The idea here is that we are attempting one derivation rule after another, and if one fails, we try the next one.
     *
     *   - successful MIO with Some(expr) -> derivation succeeded according to the rule
@@ -91,7 +85,6 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
     */
   private type Attempt[A] = MIO[Option[Expr[A]]]
 
-  /** Attempts one derivation rule after another, if none of them apply, we fail the derivation. */
   private def attemptAllRules[A: Type](value: Expr[A]): MIO[Expr[String]] = MIO.scoped { runSafe =>
     runSafe {
       attemptUsingImplicit[A](value)
@@ -110,7 +103,6 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
     }
   }
 
-  /** Attempts to show `A` value using an implicit `Show[A]` value. */
   private def attemptUsingImplicit[A: Type](value: Expr[A]): Attempt[String] =
     Log.info(s"Attempting summoning implicit ${Types.Show[A].prettyPrint} to show value") >> MIO {
       implicit val showA: Type[Show[A]] = Types.Show[A]
@@ -124,7 +116,6 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
       case None       => Log.info(s"Failed to summon ${Types.Show[A].prettyPrint}")
     }
 
-  /** Attempts to show `A` value using a built-in handlers for primitive types. */
   private def attemptAsBuiltIn[A: Type](value: Expr[A]): Attempt[String] =
     Log.info(s"Attempting to use built-in support to show value of type ${Type.prettyPrint[A]}") >> MIO {
       if (Type[A] <:< Type.of[Boolean]) Some(Expr.quote {
@@ -169,14 +160,13 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
       case None => Log.info(s"Failed to use built-in support to show value of type ${Type.prettyPrint[A]}")
     }
 
-  /** Attempts to show `A` value using a iterable support. */
   private def attemptAsIterable[A: Type](value: Expr[A]): Attempt[String] =
     Log.info(s"Attempting to use iterable support to show value of type ${Type.prettyPrint[A]}") >>
       Types.Iterable
         .unapply(Type[A])
         .traverse { innerType =>
-          // It is currently required to have a separate method with `B: Type` for Scala 2 to find the implicit `Type[B]`.
-          // (Scala 2 doesn't find implicit `Type[B]` if provided in another way, and we are PoC-quality now).
+          // A separate method with `B: Type` is needed, because Scala 2 doesn't find an implicit `Type[B]` provided in
+          // another way.
           def showIterable[B: Type](
               iterableExpr: Expr[Iterable[B]]
           )(f: Expr[B] => Expr[String]): Expr[String] =
@@ -214,7 +204,6 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
           case None => Log.info(s"Failed to use iterable support to show value of type ${Type.prettyPrint[A]}")
         }
 
-  /** Attempts to show `A` value as a singleton (case object, enum val, etc.). */
   private def attemptAsSingleton[A: Type](@scala.annotation.unused value: Expr[A]): Attempt[String] =
     Log.info(s"Attempting to use singleton support to show value of type ${Type.prettyPrint[A]}") >> MIO {
       SingletonValue.parse[A].toOption.map { _ =>
@@ -228,7 +217,6 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
       case None => Log.info(s"Failed to use singleton support to show value of type ${Type.prettyPrint[A]}")
     }
 
-  /** Attempts to show `A` value using a case class support. */
   private def attemptAsCaseClass[A: Type](value: Expr[A]): Attempt[String] =
     Log.info(s"Attempting to use case class support to show value of type ${Type.prettyPrint[A]}") >>
       CaseClass
@@ -270,7 +258,6 @@ private[demo] trait ShowMacrosImpl { this: MacroCommons =>
           case None => Log.info(s"Failed to use case class support to show value of type ${Type.prettyPrint[A]}")
         }
 
-  /** Attempts to show `A` value using an enum support. */
   private def attemptAsEnum[A: Type](value: Expr[A]): Attempt[String] =
     Log.info(s"Attempting to use enum support to show value of type ${Type.prettyPrint[A]}") >>
       Enum

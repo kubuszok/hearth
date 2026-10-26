@@ -4,34 +4,24 @@ package typed
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
 
-/** Fixtures for [[CyclicReferenceScala2Spec]] — a Scala-2-only reproduction of the mechanism behind Chimney #899 (`case
-  * class A() { val foo = this.transformInto[B] }`), and of Hearth's fix for it.
-  *
-  * The essential ingredient is that the reflection of `A` happens INSIDE an implicit search that runs while an
-  * enclosing `val` of `A` is still being inferred. [[CyclicTC]] plays the role of Chimney's `Transformer`: its implicit
-  * materializer ([[deriveCyclicTC]]) reflects on the source with the very same calls Chimney's product extraction uses
-  * (`Type[A].unsortedMethods` + forcing each member's return type). Forcing the still-inferring member's signature
-  * re-enters its own completer, which scala-reflect signals with a `CyclicReference`.
-  *
-  * BEFORE the fix that raw `CyclicReference` leaked out of the listing call and the compile failed with
-  * `recursive value foo needs type`. AFTER the fix Hearth treats the un-completable member honestly: a getter provably
-  * has no value parameters (so it stays listable with `Nil` parameters) and its still-unknown return type surfaces as
-  * `knownReturning == None` instead of throwing — the caller then decides what to do with a member of unknown type.
-  * Here the materializer simply ignores it and returns a stub, so the whole thing compiles.
+/** Scala 2 only: `case class A() { val foo = this.cyclicConvertInto[B] }` reflects on `A` INSIDE an implicit search
+  * that runs while `foo`'s type is still being inferred. Forcing `foo`'s signature re-enters its own completer, which
+  * scala-reflect signals with a `CyclicReference`; letting it escape fails the compilation with
+  * `recursive value foo needs type`. A getter provably has no value parameters, so it can still be listed (with `Nil`
+  * parameters) and only its unknown return type surfaces as `knownReturning == None` - the caller decides what to do
+  * with it. Here the materializer ignores it and returns a stub, so the whole thing compiles.
   */
 trait CyclicReferenceFixturesImpl { this: MacroCommons =>
 
   def deriveCyclicTC[A: Type, B: Type]: Expr[CyclicTC[A, B]] = {
-    // Reflect on `A` exactly like Chimney's product extraction: list instance methods and force each return type.
-    // Under the implicit search below this re-enters the still-running completer of the enclosing `val` — Hearth now
-    // yields `knownReturning == None` for that member instead of throwing a raw CyclicReference.
+    // The same calls a product-type derivation would make. Under the implicit search this re-enters the still-running
+    // completer of the enclosing `val`.
     val _ = Type[A].unsortedMethods.collect { case oi: Method.OnInstance => (oi: Method) }.map(_.knownReturning)
     cyclicStub[A, B]
   }
 
-  /** Reflects on a FULLY-TYPED `A` and reports, per instance method, whether its `knownReturning` is defined —
-    * `"name:Some"` / `"name:None"`, comma-separated. Used to prove the #899 fix does not over-eagerly report `None`:
-    * ordinary getters on a completed type must still resolve their return type (`Some`).
+  /** On a FULLY-TYPED `A` ordinary getters must still resolve their return type: `None` must be reserved for members
+    * whose type is still being inferred.
     */
   def knownReturningReport[A: Type]: Expr[String] = {
     val report = Type[A].unsortedMethods
@@ -46,11 +36,10 @@ trait CyclicReferenceFixturesImpl { this: MacroCommons =>
   protected def cyclicStub[A: Type, B: Type]: Expr[CyclicTC[A, B]]
 }
 
-/** Type class standing in for Chimney's `Transformer[A, B]`. */
 trait CyclicTC[A, B]
 
 object CyclicTC {
-  // Materializer that REFLECTS on `A` (the #899 trigger).
+  // Reflecting on `A` is what triggers the cycle.
   implicit def derive[A, B]: CyclicTC[A, B] = macro CyclicReferenceFixtures.deriveCyclicTCImpl[A, B]
 }
 

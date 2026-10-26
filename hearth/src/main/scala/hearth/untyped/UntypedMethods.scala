@@ -97,9 +97,8 @@ trait UntypedMethods { this: MacroCommons =>
     /** The types of this parameter's [[annotations]], captured separately so the typed layer can re-tag each annotation
       * expression with its type.
       *
-      * Exists for the Scala 2 annotation-type-preservation fix: `c.untypecheck(ann.tree)` (required before splicing an
-      * annotation tree) strips its type, so the type is recorded here beforehand. See CLAUDE.md "Annotation type
-      * preservation".
+      * Needed on Scala 2: `c.untypecheck(ann.tree)` (required before splicing an annotation tree) strips its type, so
+      * the type is recorded here beforehand.
       *
       * @since 0.4.0
       */
@@ -159,7 +158,7 @@ trait UntypedMethods { this: MacroCommons =>
   type UntypedArguments = Map[String, UntypedExpr]
   object UntypedArguments {
 
-    final def fromTyped(typed: Arguments): UntypedArguments = typed.view.mapValues(_.value.asUntyped).toMap // wtf?
+    final def fromTyped(typed: Arguments): UntypedArguments = typed.view.mapValues(_.value.asUntyped).toMap
     final def toTyped(untyped: UntypedArguments): Arguments = untyped.view.mapValues(_.as_??).toMap
   }
 
@@ -252,7 +251,7 @@ trait UntypedMethods { this: MacroCommons =>
 
     /** We want to keep sorting consistent between Scala 2 and 3, and make it reasonable for both.
       *
-      * The chanllenges are:
+      * The challenges are:
       *   - we want to keep methods defined in the type before all inherited or synthetic methods
       *   - we want to keep declared methods in their source order... but [[Position]] can be empty
       *   - inherited methods can come from multiple parental classes, sorting them primarily by position doesn't make
@@ -354,8 +353,8 @@ trait UntypedMethods { this: MacroCommons =>
     def annotations: List[UntypedExpr]
 
     /** The types of this method's [[annotations]], captured separately so the typed layer can re-tag each annotation
-      * expression with its type; needed for the Scala 2 annotation-type-preservation fix (see CLAUDE.md "Annotation
-      * type preservation").
+      * expression with its type. Needed on Scala 2, where `c.untypecheck(ann.tree)` (required before splicing an
+      * annotation tree) strips its type.
       *
       * @since 0.4.0
       */
@@ -369,7 +368,7 @@ trait UntypedMethods { this: MacroCommons =>
     /** Whether this method is a case-class field accessor.
       *
       * Singletons (case objects, parameterless Scala 3 enum cases) are NOT case-class fields - they are routed to
-      * [[SingletonValue]] instead (hearth#311).
+      * [[SingletonValue]] instead.
       *
       * @since 0.1.0
       */
@@ -378,7 +377,7 @@ trait UntypedMethods { this: MacroCommons =>
     /** Whether this member is a `val` / stable value member.
       *
       * This is not limited to concrete backing fields: it also holds for stable *deferred* (abstract) accessors and for
-      * inherited constructor-`val` fields (hearth#326, hearth#327). Consequently an inherited public `val` surfaces as
+      * inherited constructor-`val` fields. Consequently an inherited public `val` surfaces as
       * `isVal && isInherited && isAvailable(...)`, rather than as the subclass's private param-accessor plumbing.
       *
       * @since 0.1.0

@@ -174,14 +174,14 @@ final class CrossQuotesPlugin extends StandardPlugin {
   *
   * ==Gotchas and limitations (Scala 3)==
   *
-  *   - '''Self-referential implicit Type/Type.CtorN (fixed by hearth#285):'''
+  *   - '''Self-referential implicit Type/Type.CtorN:'''
   *     `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]` and
-  *     `implicit val OptionCtor: Type.Ctor1[Option] = Type.Ctor1.of[Option]` used to inject a `given` that summoned the
-  *     very value being initialized (forward-reference error in blocks, "Infinite loop in function body" or null
-  *     self-assignment in class bodies). The plugin now excludes the definition being initialized (and, in blocks, any
+  *     `implicit val OptionCtor: Type.Ctor1[Option] = Type.Ctor1.of[Option]` could get an injected `given` that summons
+  *     the very value being initialized (forward-reference error in blocks, "Infinite loop in function body" or null
+  *     self-assignment in class bodies). So the plugin excludes the definition being initialized (and, in blocks, any
   *     implicit val declared in a later statement) from the injected `casted` givens, so the type is materialized
   *     directly from the literal type argument. Note that `implicit val A: Type[A] = Type.of[A]` where `A` is an
-  *     abstract type whose ONLY `Type` instance would be the val itself cannot work — it is now reported as a missing
+  *     abstract type whose ONLY `Type` instance would be the val itself cannot work — it is reported as a missing
   *     `Type[A]` instead of an infinite loop.
   *   - '''`Type.of[A]` requires a parameterless given:''' `scala.quoted.Type.of[A]` and `'{ ... }: Expr[A]` ignore
   *     `Type[A]` values that require implicit resolution to obtain. Only `implicit val`/parameterless `given`
@@ -236,8 +236,6 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
           try {
             injectingQuote = true
 
-            // Create the ValDef for quotes
-
             counter += 1
 
             val quotes = locally {
@@ -259,13 +257,13 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
 
       private var givenCandidates = List.empty[untpd.ValDef]
       private var givensInjected = Set.empty[untpd.ValDef]
-      // [hearth#285] Names of implicit val/def definitions whose RHS is currently being transformed.
+      // Names of implicit val/def definitions whose RHS is currently being transformed.
       // Their `casted$name` given candidates must NOT be injected inside their own RHS — the generated given
       // would summon the very value being initialized (forward-reference error in blocks, "Infinite loop in
       // function body" / null self-assignment in class bodies). With the candidate excluded,
       // `scala.quoted.Type.of[A]` / `Type.CtorN.Bounded.Impl` materialize the type directly instead.
       private var selfDefNames = Set.empty[String]
-      // [hearth#316] Names of the sibling implicit `Type[_]`/`Type.CtorN[_]` val/def definitions declared in the
+      // Names of the sibling implicit `Type[_]`/`Type.CtorN[_]` val/def definitions declared in the
       // enclosing TEMPLATE (class/trait/object body). Unlike a block, template members are mutually visible with no
       // statement ordering, so injecting one sibling's `casted$name` given into another sibling's RHS forces it
       // (via the `hearth.fp.ignore` suppression), and its RHS forces back — a mutual lazy-val init deadlock (hangs
@@ -484,14 +482,14 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
           )
           .withFlags(Flags.Given)
 
-      // [hearth#285] Does an implicit val/def with this declared type produce a `casted$name` given candidate
+      // Does an implicit val/def with this declared type produce a `casted$name` given candidate
       // (see blockGivenCandidates)? Used to exclude that candidate while transforming the definition itself.
       private def producesSelfGivenCandidate(tpt: untpd.Tree): Boolean =
         TypeAppliedTypeTree.unapply(tpt).isDefined ||
           TypeCtorAppliedTypeTree.unapply(tpt).isDefined ||
           TypeCtorK1AppliedTypeTree.unapply(tpt).isDefined
 
-      // [hearth#316] Names of the implicit `Type[_]`/`Type.CtorN[_]` val/(parameterless) def members of a template
+      // Names of the implicit `Type[_]`/`Type.CtorN[_]` val/(parameterless) def members of a template
       // body — i.e. the members that produce mutually-visible `casted$name` given candidates and could deadlock each
       // other during initialization. See `enclosingTemplateTypeDefNames`.
       private def templateTypeDefNames(body: List[untpd.Tree]): Set[String] = body.collect {
@@ -644,7 +642,6 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
             case _ => None
           }
 
-      // [hearth#285] Drops candidates that would reference the definition whose RHS is being transformed.
       private def withoutSelfReferences(candidates: List[untpd.ValDef]): List[untpd.ValDef] =
         if selfDefNames.isEmpty then candidates
         else candidates.filterNot(vd => selfDefNames.exists(name => vd.name.show == s"casted$name"))
@@ -876,7 +873,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          *   ...
          *   Type.Ctor22.Bounded.Impl[Nothing, U1, Nothing, U2, ..., Nothing, U22, HKT]
          */
-        // [hearth#344] `UpperBounded.of` is a 3-select (`Type.CtorN.UpperBounded.of`), not the 2-select `.of` above.
+        // `UpperBounded.of` is a 3-select (`Type.CtorN.UpperBounded.of`), not the 2-select `.of` above.
         case TypeApply(Select(Select(Select(Ident(tp), ctor), upperBounded), of), upper :+ hkt)
             if tp.show == "Type" && isCtor(ctor.show) && upperBounded.show == "UpperBounded" && of.show == "of" =>
           replaceTypeCtorOf(tree, ctor, hkt, upper.flatMap(u => List(minLower, u)))
@@ -894,7 +891,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
          *   ...
          *   Type.Ctor22.Bounded.Impl[L1, U1, L2, U2, ..., L22, U22, HKT]
          */
-        // [hearth#344] `Bounded.of` is a 3-select (`Type.CtorN.Bounded.of`), not the 2-select `.of` above.
+        // `Bounded.of` is a 3-select (`Type.CtorN.Bounded.of`), not the 2-select `.of` above.
         case TypeApply(Select(Select(Select(Ident(tp), ctor), boundedSel), of), bounded :+ hkt)
             if tp.show == "Type" && isCtor(ctor.show) && boundedSel.show == "Bounded" && of.show == "of" =>
           replaceTypeCtorOf(tree, ctor, hkt, bounded)
@@ -949,7 +946,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
         case Apply(Select(Ident(expr), splice), List(thunk)) if expr.show == "Expr" && splice.show == "splice" =>
           replaceExprSplice(tree, thunk)
 
-        /* [hearth#285] An implicit val/given whose declared type is Type[A]/Type.CtorN[HKT]/Type.CtorK1[HKT] is
+        /* An implicit val/given whose declared type is Type[A]/Type.CtorN[HKT]/Type.CtorK1[HKT] is
          * itself a given candidate (see blockGivenCandidates). While transforming ITS OWN definition (in
          * particular its RHS, e.g. `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]`), that
          * candidate must not be injected — the generated given would summon the value being initialized.
@@ -957,7 +954,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
         case vd: untpd.ValDef if vd.isImplicit && producesSelfGivenCandidate(vd.tpt) =>
           val oldSelfDefNames = selfDefNames
           try {
-            // [hearth#316] Exclude self AND every sibling template-level implicit Type member: injecting a sibling's
+            // Exclude self AND every sibling template-level implicit Type member: injecting a sibling's
             // casted given here would force it (and it would force back) — a mutual lazy-val init deadlock.
             selfDefNames = oldSelfDefNames + vd.name.show ++ enclosingTemplateTypeDefNames
             super.transform(vd)
@@ -977,7 +974,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
             // (Implicit) defs can legally be forward-referenced from earlier statements in a block, so their
             // candidates are visible to every expansion in the block.
             givenCandidates = oldGivenCandidates ++ blockGivenCandidates(block.stats.filterNot(isScopedFromItsPosition))
-            // [hearth#285] Candidates from implicit vals become visible only AFTER their defining statement —
+            // Candidates from implicit vals become visible only AFTER their defining statement —
             // injecting them into earlier expansions would generate an illegal forward reference to the val.
             // The same holds for imports: an imported name is in scope only AFTER the import, so the
             // `given casted$D` of an `import x.Underlying as D` must not be injected into an earlier `Type.of`.
@@ -1007,7 +1004,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
           val oldEnclosingTemplateTypeDefNames = enclosingTemplateTypeDefNames
           try {
             givenCandidates = oldGivenCandidates ++ newGivenCandidates
-            // [hearth#316] Record this template's mutually-visible implicit Type members so that each one's RHS can
+            // Record this template's mutually-visible implicit Type members so that each one's RHS can
             // exclude its siblings (avoiding the mutual lazy-val init deadlock). Templates nest, so accumulate.
             enclosingTemplateTypeDefNames = oldEnclosingTemplateTypeDefNames ++ templateTypeDefNames(tpl.body)
             val constr = transformSub(tpl.constr)
@@ -1051,7 +1048,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
           // }
           // when found, handle new cases in CtxBoundsTypeTree.
 
-          // [hearth#285] A parameterless implicit def returning Type[A]/Type.CtorN[HKT]/Type.CtorK1[HKT] is itself
+          // A parameterless implicit def returning Type[A]/Type.CtorN[HKT]/Type.CtorK1[HKT] is itself
           // a given candidate — exclude it while transforming its own body (calling it there would recurse forever).
           val selfName =
             if dd.isImplicit && paramss.flatten.isEmpty && producesSelfGivenCandidate(returnTpe)
@@ -1062,7 +1059,7 @@ final class CrossQuotesPhase(loggingEnabled: (Option[JFile], Int, Int) => Boolea
           val oldSelfDefNames = selfDefNames
           try {
             givenCandidates = oldGivenCandidates ++ newGivenCandidates
-            // [hearth#316] For an implicit parameterless Type def (selfName defined), also exclude sibling
+            // For an implicit parameterless Type def (selfName defined), also exclude sibling
             // template-level implicit Type members to avoid the mutual init deadlock. Regular methods keep all
             // sibling givens available (their bodies legitimately summon sibling Type[_]).
             selfDefNames =

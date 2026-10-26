@@ -10,12 +10,12 @@ package extensions
   *
   * @note
   *   The code this provider emits calls `java.util.Map.entry(...)`, which requires '''JDK 9+''' at the consumer's
-  *   runtime; compile consuming code with a matching `-release` (e.g. `-release 11`). See issue #330 and the mkdocs
-  *   "JDK baseline of emitted code" section in https://scala-hearth.readthedocs.io/en/stable/standard-extensions/.
+  *   runtime; compile consuming code with a matching `-release` (e.g. `-release 11`). See "JDK baseline of emitted
+  *   code" in https://scala-hearth.readthedocs.io/en/stable/standard-extensions/.
   * @note
   *   `EnumMap` is detected '''symbolically''' (same type constructor as `java.util.EnumMap`), not via a macro-time
   *   `Class.forName` - the latter missed enums defined in the same compilation run on Scala 3. Do not reintroduce the
-  *   `Class.forName` gate. See issue #323.
+  *   `Class.forName` gate.
   *
   * @since 0.3.0
   */
@@ -46,7 +46,7 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
 
       private lazy val juEnumType = Type.of[java.lang.Enum[?]]
       // `EnumMap[Nothing, Nothing]` is a well-formed application of the F-bounded `EnumMap[K <: Enum[K], V]`, used only
-      // to compare type constructors symbolically - see `isEnumMapType` below and issue #323.
+      // to compare type constructors symbolically - see `isEnumMapType` below.
       private lazy val juEnumMapType = Type.of[java.util.EnumMap[Nothing, Nothing]]
 
       private lazy val Entry = Type.Ctor2.of[java.util.Map.Entry]
@@ -136,7 +136,6 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
         implicit val Pair: Type[Pair] = Entry[Key0, Value0](keyType, valueType)
 
         Existential[IsCollectionOf[A, *], Pair](new IsMapOf[A, Pair] {
-          // We will use scala.jdk.javaapi.CollectionConverters.asScala to convert the map to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Pair]] = Expr.quote {
             scala.jdk.javaapi.CollectionConverters.asScala(Expr.splice(value).entrySet().iterator()).to(Iterable)
           }
@@ -263,7 +262,7 @@ final class IsCollectionProviderForJavaMap extends StandardMacroExtension { load
                   // EnumMap requires a `K <: Enum[K]` bound which cannot be expressed as a Type.Ctor2. Detect it
                   // SYMBOLICALLY (same type constructor as `java.util.EnumMap`) and emit `classOf[Key]` as a literal
                   // directly, rather than gating on a macro-time `Class.forName` of the target/key which returned
-                  // nothing on Scala 3 and never matched enums from the current compilation run. See issue #323.
+                  // nothing on Scala 3 and never matched enums from the current compilation run.
                   if (Key <:< juEnumType) {
                     val isEnumMapType =
                       UntypedType.fromTyped(using tpe).sameTypeConstructorAs(juEnumMapType.asUntyped)

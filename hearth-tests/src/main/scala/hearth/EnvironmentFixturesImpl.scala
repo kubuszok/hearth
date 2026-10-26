@@ -2,7 +2,6 @@ package hearth
 
 import hearth.data.Data
 
-/** Fixtures for testing [[EnvironmentSpec]]. */
 trait EnvironmentFixturesImpl { this: MacroCommons =>
 
   def testPosition: Expr[Data] = {
@@ -120,16 +119,13 @@ trait EnvironmentFixturesImpl { this: MacroCommons =>
   }
 
   def testLoadingExtensionsTwice: Expr[Data] = {
-    // Reset tracking for clean test
     loadedExtensions = Vector.empty
-    // Load extensions first time
     val result1 = Environment.loadMacroExtensions[SuccessfulMacroExtension]
     // Load the same extensions again — should NOT call extend() again
     val result2 = Environment.loadMacroExtensions[SuccessfulMacroExtension]
     val result = Data.map(
       "firstLoad" -> processResult(result1),
       "secondLoad" -> processResult(result2),
-      // Each extension name should appear exactly once, not twice
       "loadedExtensions" -> Data.list(loadedExtensions.map(Data(_))*)
     )
     Expr(result)
@@ -169,7 +165,7 @@ trait EnvironmentFixturesImpl { this: MacroCommons =>
   }
 }
 
-// Nothing fancy, just demonstarate that we can distinct extensions by type, and that they can access macro API
+// Nothing fancy, just demonstrates that we can distinguish extensions by type, and that they can access the macro API
 // that we prepared for them.
 abstract class SuccessfulMacroExtension(name: String) extends MacroExtension[EnvironmentFixturesImpl] {
 

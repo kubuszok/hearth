@@ -91,7 +91,7 @@ final class TypesScala3Spec extends MacroSuite {
           )
         }
 
-        test("for IArray must not throw (issue #333)") {
+        test("for IArray must not throw") {
           // `IArray[E]` is an opaque alias recognized as a JVM built-in; `classOfType` must degrade gracefully
           // (return a class or None) rather than aborting the macro with a HearthAssertionError.
           testClassOfType[IArray[Int]] <==> Data.map(
@@ -100,10 +100,8 @@ final class TypesScala3Spec extends MacroSuite {
           testClassOfType[IArray[String]] <==> Data.map(
             "Type.classOfType" -> Data("class [Ljava.lang.String;")
           )
-          // Element type with no resolvable runtime class (a union): the `IArrayCtor` branch answers for itself with
-          // the erased array-of-Object class instead of falling through to the "unhandled built-in" assertion, which
-          // used to abort with a HearthAssertionError here (issue #333). The assertion itself stays in place to catch
-          // genuinely un-branched built-ins.
+          // Element type with no resolvable runtime class (a union): must answer with the erased array-of-Object
+          // class instead of falling through to the "unhandled built-in" assertion.
           testClassOfType[IArray[Int | String]] <==> Data.map(
             "Type.classOfType" -> Data("class [Ljava.lang.Object;")
           )
@@ -203,9 +201,9 @@ final class TypesScala3Spec extends MacroSuite {
       ) {
         import TypesFixtures.{testFlags, testChildrenFlags}
 
-        test("an export-created alias classifies identically to its underlying class (issue #315)") {
+        test("an export-created alias classifies identically to its underlying class") {
           // `Exported.Foo` is `export Inner.Foo`; its flags (isClass/isCase/isAbstract/...) must match `Inner.Foo`,
-          // not the (flag-less) alias symbol. Before the fix isClass/isCase were false for the export alias.
+          // not the (flag-less) alias symbol.
           testFlags[examples.exports.Exported.Foo] <==> testFlags[examples.exports.Inner.Foo]
         }
 
@@ -501,7 +499,7 @@ final class TypesScala3Spec extends MacroSuite {
             "Type.isJavaEnum" -> Data(false),
             "Type.isJavaEnumValue" -> Data(false),
             "Type.isEnumeration" -> Data(false),
-            // `EmptyTuple`'s value is a `case object`, whose `Case` flag lives on the term symbol - now detected (#311).
+            // `EmptyTuple`'s value is a `case object`, whose `Case` flag lives on the term symbol.
             // The composite classifiers stay `false` because `isClass`/`isObject`/`isVal` are all `false` here.
             "Type.isCase" -> Data(true),
             "Type.isObject" -> Data(false),
@@ -738,7 +736,7 @@ final class TypesScala3Spec extends MacroSuite {
         }
       }
 
-      group("methods: Type.CtorN.fromUntyped on aliases of (opaque) type applications (hearth#384)") {
+      group("methods: Type.CtorN.fromUntyped on aliases of (opaque) type applications") {
         import TypesFixtures.testCtorFromUntypedOnAliases
         import examples.opaqueunderlying.*
 

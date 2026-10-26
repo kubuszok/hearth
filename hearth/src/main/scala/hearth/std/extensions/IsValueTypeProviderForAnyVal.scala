@@ -37,8 +37,6 @@ final class IsValueTypeProviderForAnyVal extends StandardMacroExtension { loader
 
       override def parse[A](tpe: Type[A]): ProviderResult[IsValueType[A]] = if (tpe <:< AnyVal) {
         val result = for {
-          // Since we've already checked that the type is an AnyVal, let's see if we can wrap/unwrap it here.
-          // We're looking for a primary constructor that is available at call site and has exactly one parameter.
           ctor <- tpe.primaryConstructor.filter { ctor =>
             ctor.isAvailable(AtCallSite) && ctor.parameters.flatten.sizeIs == 1
           }
@@ -47,7 +45,6 @@ final class IsValueTypeProviderForAnyVal extends StandardMacroExtension { loader
             method.isConstructorArgument
           }
           if ctorArgumentMethods.sizeIs == 1
-          // We're looking for a method that is a constructor argument and is available at call site and has the same type as the primary constructor argument.
           getArgument <- ctorArgumentMethods.headOption.collect {
             case method: Method.OnInstance
                 if method

@@ -88,20 +88,11 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
     Expr(renderDetailed(parsed))
   }
 
-  /** Optics-style marker path recognition.
-    *
-    * A macro author building a Monocle/quicklens-style optic destructures the lambda and recognizes optics MARKERS
-    * (`.each`, `.when[Sub]`/`.as[Sub]`, `.some`) purely from structure. Because the cross-platform DSL exposes these as
-    * `implicit class` extension methods, a marker call appears as a `MethodCall` whose name is the marker and whose
-    * receiver Instance is the implicit-wrapper `MethodCall` (`EachOps`/`WhenOps`/`SomeOps`); the wrapper's FIRST value
-    * argument is the real underlying expression the optic focuses on. (The exact desugaring differs between Scala 2 and
-    * Scala 3 — extra module-path refs, evidence terms, wrapper applied-kinds — but the marker call and the real
-    * receiver are recoverable identically on both.) Type arguments of a prism (`.as[Dog]`) surface as an `AppliedTypes`
-    * on the marker call itself. Plain field selects are `MethodCall`s with only a receiver Instance.
-    *
-    * This fixture walks the body, unwrapping the implicit-class plumbing, and emits a clean root -> leaf path where
-    * each segment is classified `field` or `marker` (with the marker's recovered type arguments) — proving that optics
-    * markers are cleanly recognizable regardless of platform desugaring.
+  /** Recognizes optics markers (`.each`, `.when[Sub]`/`.as[Sub]`, `.some`) the way a Monocle/quicklens-style macro
+    * would. To be cross-platform the DSL exposes them as `implicit class` extension methods, so a marker call's
+    * receiver is the implicit-wrapper `MethodCall` (`EachOps`/`WhenOps`/`SomeOps`), and the wrapper's FIRST value
+    * argument is the real focused expression. The desugaring around it differs between Scala 2 and Scala 3 (extra
+    * module-path refs, evidence terms, wrapper applied-kinds), yet the path has to come out the same on both.
     */
   def testMarkerPath[A: Type](expr: Expr[A]): Expr[Data] = {
     val markerWrappers = Map("each" -> "EachOps", "when" -> "WhenOps", "as" -> "WhenOps", "some" -> "SomeOps")
@@ -112,7 +103,6 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
     def firstValueArg(mc: DestructuredExpr.MethodCall): Option[DestructuredExpr] =
       mc.applied.collectFirst { case av: DestructuredExpr.MethodCall.AppliedValues if av.args.nonEmpty => av.args.head }
 
-    // Is `node` an implicit-wrapper MethodCall for the given marker? If so, return the real focused expression.
     def unwrapWrapper(node: DestructuredExpr, marker: String): Option[DestructuredExpr] = node match {
       case mc: DestructuredExpr.MethodCall if markerWrappers.get(marker).contains(mc.method.name) =>
         firstValueArg(mc)
@@ -130,7 +120,6 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
       )
     }
 
-    // Walk from leaf back to root, peeling one logical segment at a time, returning segments root -> leaf.
     def walk(node: DestructuredExpr, acc: List[Data]): Either[String, List[Data]] = node match {
       case _: DestructuredExpr.Lambda.ParamRef => Right(acc)
       case mc: DestructuredExpr.MethodCall     =>
@@ -257,13 +246,9 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
       case other => Expr(Data.map("error" -> Data(s"Expected a lambda, got ${other.plainPrint}")))
     }
 
-  /** `plainPrint` of every node of the parsed tree (in `collect` order). */
   def testPlainPrints[A: Type](expr: Expr[A]): Expr[Data] =
     Expr(Data(DestructuredExpr.parse(expr).collect { case node => Data(node.plainPrint) }))
 
-  /** For each statement of a block: its `plainPrint`, whether it has a position, and whether `toUntypedExpr` rebuilds
-    * it as a `Unit`-typed expression (`{ statement; () }`), as documented for statement nodes.
-    */
   def testStatements[A: Type](expr: Expr[A]): Expr[Data] = DestructuredExpr.parse(expr) match {
     case block: DestructuredExpr.Block =>
       Expr(Data(block.statements.map { statement =>
@@ -277,7 +262,6 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
     case other => Expr(Data.map("error" -> Data(s"Expected a block, got ${other.plainPrint}")))
   }
 
-  /** Skips contextual wrappers and reports what is left. */
   def testSkipContextualWrappers[A: Type](expr: Expr[A]): Expr[Data] = {
     val parsed = DestructuredExpr.parse(expr)
     def describe(node: DestructuredExpr): Data = node match {
@@ -298,9 +282,7 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
     )
   }
 
-  /** Follows `MethodCall.receiver` from a lambda body down to the lambda parameter, returning method names root ->
-    * leaf. The same code reads `implicit class` (Scala 2 and 3) and `extension` (Scala 3) DSL methods.
-    */
+  /** The same code has to read both `implicit class` (Scala 2 and 3) and `extension` (Scala 3) DSL methods. */
   def testReceiverChain[A: Type](expr: Expr[A]): Expr[Data] = {
     def walk(node: DestructuredExpr, acc: List[Data]): Data = node match {
       case _: DestructuredExpr.Lambda.ParamRef => Data(acc)

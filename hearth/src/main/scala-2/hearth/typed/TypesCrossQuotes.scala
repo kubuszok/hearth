@@ -20,19 +20,19 @@ trait TypesCrossQuotes { this: Types =>
       *
       * ==Self-referential implicit==
       *
-      * Both `weakTypeTag[A]` and `scala.quoted.Type.of[A]` pick up an implicit `Type[A]` in scope. Since hearth#285 the
-      * val being defined is excluded from that search, so
-      * `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]` works for '''statically-known''' types; but
-      * for an '''abstract''' `A` whose only `Type[A]` would be the val itself there is nothing to materialize from —
-      * get `Type[A]` from a `[A: Type]` context bound / implicit param instead.
+      * Both `weakTypeTag[A]` and `scala.quoted.Type.of[A]` pick up an implicit `Type[A]` in scope. The val being
+      * defined is excluded from that search, so `implicit val ConfigT: Type[Configuration] = Type.of[Configuration]`
+      * works for '''statically-known''' types; but for an '''abstract''' `A` whose only `Type[A]` would be the val
+      * itself there is nothing to materialize from — get `Type[A]` from a `[A: Type]` context bound / implicit param
+      * instead.
       *
       * ==Limitations==
       *
       *   - `Type.of` referencing an existentially-imported type fails to compile; remedy: use a `def` with type bounds.
       *   - `Type.of[F[A, ?]]` loses the wildcard inside methods with type params (`not found: type ?`); avoid the
       *     inline wildcard (name the param or restructure).
-      *   - Sibling `implicit lazy val Type` givens that mutually force each other can deadlock on Scala 3 cross-quotes
-      *     (hearth#316); remedy: hoist them to '''non-implicit''' lazies.
+      *   - Sibling `implicit lazy val Type` givens that mutually force each other can deadlock on Scala 3 cross-quotes;
+      *     remedy: hoist them to '''non-implicit''' lazies.
       *
       * @see
       *   https://scala-hearth.readthedocs.io/en/stable/cross-quotes/

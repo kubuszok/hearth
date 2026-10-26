@@ -54,8 +54,8 @@ class HigherKinded {
   def higherKinded[F[_]](a: F[String]): F[String] = a
 }
 
-// [hearth#331] a value/implicit clause that FOLLOWS a type-parameter clause: `Method.fold` used to hand `onValues`
-// an EMPTY clause here (the params were dropped), so there was no way to supply the `Sync[F]`.
+// A value/implicit clause that FOLLOWS a type-parameter clause: if `Method.fold` handed `onValues` an EMPTY clause
+// here (dropping the params), there would be no way to supply the `Sync[F]`.
 trait Sync[F[_]]
 class HigherKindedImplicit {
   @scala.annotation.nowarn
@@ -65,7 +65,7 @@ class HigherKindedImplicit {
 }
 
 class ProperKindedImplicit {
-  // [hearth#331] value + implicit clauses that follow a `[T]` clause; used to check that applying `T := Int` in
+  // Value + implicit clauses that follow a `[T]` clause; used to check that applying `T := Int` in
   // `onTypes` substitutes into the subsequent clauses (`(t: T)(implicit ord: Ordering[T])`).
   @scala.annotation.nowarn
   def pick[T](t: T)(implicit ord: Ordering[T]): T = t
@@ -119,7 +119,7 @@ class WithVarargsCtor(val xs: String*) {
   override def toString(): String = s"WithVarargsCtor(${xs.mkString(",")})"
 }
 
-// Chimney #960: a type alias whose type arguments do not line up with the aliased class' type parameters
+// Type aliases whose type arguments do not line up with the aliased class' type parameters
 // (different arity, fixed arguments, reordered arguments).
 final class PhantomParams[R, E, A](val a: Int, val b: String) {
   override def toString(): String = s"PhantomParams($a, $b)"

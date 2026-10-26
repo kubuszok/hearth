@@ -219,9 +219,8 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Regression for commit 7c82fc9 (Scala 2 anonymous instance scope): the override body splices an expression captured
-    * at the call site (a reference to a local val), and the constructed instance's overridden method is called at
-    * runtime. A premature `c.typecheck` of the generated `new ... { ... }` tree must not break this.
+  /** On Scala 2 a premature `c.typecheck` of the generated `new ... { ... }` tree breaks an override body that splices
+    * an expression captured at the call site (a reference to a local val).
     */
   def testAnonymousInstanceCapturedOverride(captured: Expr[String]): Expr[String] = {
     implicit val StringType: Type[String] = stringTypeAI
@@ -249,10 +248,10 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Regression for commit 7c82fc9 (the cats-tagless pattern): the anonymous instance is constructed inside
-    * `Expr.splice`, and its override body references a lambda parameter bound by the enclosing [[Expr.quote]]. A
-    * premature `c.typecheck` of the generated `new` tree cannot resolve such a reference (the binding only exists in
-    * the quote under construction), so construct must keep the tree untyped until final splicing.
+  /** The cats-tagless pattern: the instance is constructed inside `Expr.splice`, and its override body references a
+    * lambda parameter bound by the enclosing [[Expr.quote]]. A premature `c.typecheck` of the generated `new` tree
+    * cannot resolve such a reference (the binding only exists in the quote under construction), so construct must keep
+    * the tree untyped until final splicing.
     */
   def testAnonymousInstanceOverrideReferencingQuoteParam: Expr[String => String] =
     Expr.quote { (prefix: String) =>
@@ -288,12 +287,10 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** [hearth#317] Reproduces the Chimney "derive an instance inside a splice" scenario: the anonymous instance is
-    * constructed INSIDE `Expr.splice`, and its override body is produced via a `ValDefs.createVal` scope (as a real
-    * derivation would). On Scala 3 the created val used to be owned by the macro-ENTRY splice owner while the method
-    * body it is spliced into belongs to the nested (method) owner, so `-Xcheck-macros` aborted with "Block contains
-    * definition with different owners". Deriving TWO instances in one expansion additionally exercises the
-    * splice-scoping failure mode (mode 2). The fix makes Hearth symbol creation follow `CrossQuotes.ctx`.
+  /** Derives an instance inside `Expr.splice` with an override body built in a `ValDefs.createVal` scope, as a real
+    * derivation would. On Scala 3 the created val must be owned by the nested method, not the macro-entry splice, or
+    * `-Xcheck-macros` aborts with "Block contains definition with different owners". Deriving TWO instances in one
+    * expansion also checks that splice scoping does not leak from one to the other.
     */
   def testAnonymousInstanceValDefBodyInSplice: Expr[String] =
     Expr.quote {
@@ -328,9 +325,8 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
         val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
           cm.method.asUntyped -> new OverrideBody {
             def apply(ctx: OverrideContext): Expr_?? = {
-              // Build the body via DirectStyle (runs the continuation on a DirectStyleExecutor thread) — the shape a
-              // real derivation uses. Combined with construction inside a splice + repeated evaluation (two instances),
-              // this is what tripped the -Xcheck-macros scope checker in the Chimney migration (#317 mode 2 / #318).
+              // DirectStyle runs the continuation on a DirectStyleExecutor thread, like a real derivation; together
+              // with construction inside a splice and two instances, it is what trips the -Xcheck-macros scope checker.
               val vd: ValDefs[Expr[String]] = fp.DirectStyle[ValDefs].scoped { runSafe =>
                 val c: Expr[String] = runSafe(ValDefs.createVal(captured, "captured"))
                 Expr.quote(Expr.splice(c) + Expr.splice(suffixExpr))
@@ -352,9 +348,6 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Companion regression for commit 7c82fc9: override bodies that use the override's own parameters (`Ident` refs to
-    * the generated method's params) together with a captured call-site expression.
-    */
   def testAnonymousInstanceOverrideUsingParams(captured: Expr[String]): Expr[String] = {
     implicit val StringType: Type[String] = stringTypeAI
     implicit val ParentType: Type[examples.anonymous_instances.GenericParent[String]] =
@@ -383,9 +376,7 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Builds an anonymous instance of [[examples.anonymous_instances.TraitWithOverloads]] where each abstract overload
-    * gets a DISTINCT override body, then invokes all three overloads at runtime and joins their results. Proves that
-    * overload resolution picks the correct override per arity / parameter-type (not a single collapsed-by-name method).
+  /** Each overload gets a distinct body, so overrides collapsed into a single method by name would show in the result.
     */
   def testAnonymousInstanceConstructOverloads: Expr[String] = {
     implicit val IntType: Type[Int] = intTypeAI
@@ -399,7 +390,6 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
           cm.method.asUntyped -> new OverrideBody {
             def apply(ctx: OverrideContext): Expr_?? = {
               import ctx.returnType.Underlying as R
-              // Distinguish the three `overloaded` overloads by their (arity, parameter types) signature.
               val paramTypes = cm.method.totalParameters.flatten.toList.map { case (_, p) => p.tpe.plainPrint }
               val tag =
                 if (paramTypes == List("scala.Int")) "int->string"
@@ -425,10 +415,6 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Builds an anonymous instance of [[examples.anonymous_instances.TraitWithGenericMethod]] whose generic method
-    * `identity[T](t: T): T` is overridden with the natural identity body (return the single parameter whose type equals
-    * the return type), then invokes it at two distinct instantiations to prove the polymorphic override works.
-    */
   def testAnonymousInstanceConstructGeneric: Expr[String] = {
     implicit val StringType: Type[String] = stringTypeAI
     implicit val GenericType: Type[examples.anonymous_instances.TraitWithGenericMethod] =
@@ -439,7 +425,6 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
         val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
           cm.method.asUntyped -> new OverrideBody {
             def apply(ctx: OverrideContext): Expr_?? =
-              // Identity: exactly one parameter whose type is the return type — return it unchanged.
               ctx.parameters.head
           }
         }.toMap
@@ -457,9 +442,6 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Overrides `describe[T](x: T): String` — a generic method with a CONCRETE return. The body asserts that
-    * `ctx.returnType` is `String` (not `Any`), proving the resolved-return fix. Invoked at two instantiations.
-    */
   def testAnonymousInstanceConstructGenericConcreteReturn: Expr[String] = {
     implicit val StringType: Type[String] = stringTypeAI
     implicit val GenericType: Type[examples.anonymous_instances.TraitWithGenericConcreteReturn] =
@@ -492,9 +474,7 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Overrides `emptyList[T]: List[T]` — a generic method with no value parameters, so the body must use
-    * `ctx.typeParameters` to name `T` and build `List.empty[T]`. Proves type parameters are threaded into the context.
-    */
+  /** `emptyList[T]: List[T]` has no value parameters, so `ctx.typeParameters` is the only way to name `T`. */
   def testAnonymousInstanceConstructGenericFactory: Expr[String] = {
     implicit val StringType: Type[String] = stringTypeAI
     implicit val FactoryType: Type[examples.anonymous_instances.TraitWithGenericFactory] =
@@ -526,9 +506,7 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Overrides the symbolic method `+(x: Int): Int` to return its argument, proving an operator-named member is
-    * synthesized and resolved.
-    */
+  /** A symbolic member has to be synthesized under its encoded name (`$plus`) to override `+`. */
   def testAnonymousInstanceConstructSymbolic: Expr[String] = {
     implicit val OpsType: Type[examples.anonymous_instances.TraitWithSymbolicMethod] =
       Type.of[examples.anonymous_instances.TraitWithSymbolicMethod]
@@ -552,9 +530,7 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Overrides `run(cmd: String)(implicit cfg: Int): String`, joining both parameters, proving the trailing implicit
-    * clause is preserved on the override (so the member is no longer abstract).
-    */
+  /** Unless the override keeps the trailing clause implicit, it does not match `run` and the member stays abstract. */
   def testAnonymousInstanceConstructImplicitParam: Expr[String] = {
     implicit val StringType: Type[String] = stringTypeAI
     implicit val RunType: Type[examples.anonymous_instances.TraitWithImplicitParam] =
@@ -588,7 +564,7 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Overrides the abstract `val abstractVal: String`, proving a `val` member (not a `def`) is synthesized. */
+  /** An abstract `val` cannot be overridden by a `def`, so a `val` member has to be synthesized. */
   def testAnonymousInstanceConstructAbstractVal: Expr[String] = {
     implicit val StringType: Type[String] = stringTypeAI
     implicit val HasValType: Type[examples.anonymous_instances.TraitWithAbstractVal] =
@@ -613,9 +589,7 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
-  /** Overrides `chain: this.type` by returning `this` (`ctx.self`), then checks the returned reference is the
-    * constructed instance — proving the override's `this.type` result resolves to the synthesized subtype.
-    */
+  /** The override's `this.type` has to refer to the synthesized subtype, or returning `ctx.self` does not typecheck. */
   def testAnonymousInstanceConstructThisType: Expr[String] = {
     implicit val IntType: Type[Int] = intTypeAI
     implicit val ChainType: Type[examples.anonymous_instances.TraitWithThisTypeReturn] =

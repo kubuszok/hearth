@@ -3,7 +3,7 @@ package typed
 
 import hearth.data.Data
 
-/** Chimney #962: an opaque type expanded within its defining scope, where it is transparent. */
+/** An opaque type expanded within its defining scope, where it is transparent. */
 object OpaqueTypeScope {
   opaque type ScopedName = String
   object ScopedName {
@@ -18,7 +18,7 @@ final class MethodsScala3Spec extends MacroSuite {
 
     group("type Method") {
 
-      group("methods: inherited constructor-val fields (issue #327)") {
+      group("methods: inherited constructor-val fields") {
         import MethodsFixtures.testAccessorMetadata
 
         test("are listed as available, inherited accessors (not the subclass's private param-accessor plumbing)") {
@@ -44,7 +44,7 @@ final class MethodsScala3Spec extends MacroSuite {
         val available = Data.map("Everywhere" -> Data(true), "AtCallSite" -> Data(true), "Anywhere" -> Data(true))
         val unavailable = Data.map("Everywhere" -> Data(false), "AtCallSite" -> Data(false), "Anywhere" -> Data(true))
 
-        test("for opaque type without a bound, the representation's members are unavailable (Chimney #962)") {
+        test("for opaque type without a bound, the representation's members are unavailable") {
           testMethodAvailability[examples.unions.OpaqueName]("toLowerCase") <==> unavailable
           testMethodAvailability[examples.unions.OpaqueName]("length") <==> unavailable
         }
@@ -78,7 +78,7 @@ final class MethodsScala3Spec extends MacroSuite {
           )
         }
 
-        test("for opaque type over a class with constructors (Chimney #962)") {
+        test("for opaque type over a class with constructors") {
           // the underlying java.lang.String's constructors must not leak through the opaque type
           testConstructorsExtraction[examples.unions.OpaqueName] <==> Data.map(
             "primaryConstructor" -> Data("<no primary constructor>"),
@@ -147,7 +147,6 @@ final class MethodsScala3Spec extends MacroSuite {
             "ne",
             "##"
           )
-          // Verify that methods were extracted (non-empty), and check expected accessor methods exist
           val methodsMap = methods.asMap.get
           assert(methodsMap.nonEmpty, "Tuple2 should have methods")
           assert(methodsMap.contains("_1"), "Tuple2 should have _1 accessor")
@@ -202,11 +201,8 @@ final class MethodsScala3Spec extends MacroSuite {
             "ne",
             "##"
           )
-          // Verify that methods were extracted for TupleXXL
           val methodsMap = methods.asMap.get
           assert(methodsMap.nonEmpty, "TupleXXL should have methods")
-          // TupleXXL types expose Tuple's methods like productIterator, productElementName, etc.
-          // but NOT _1/_2 (those belong to *: which is not what typeSymbol resolves to)
         }
       }
 
@@ -284,8 +280,8 @@ final class MethodsScala3Spec extends MacroSuite {
         import MethodsFixtures.testMethodProperties
 
         test("for IArray[Int] extension method (should not crash)") {
-          // Regression test: extension methods' receiver parameter must be correctly handled
-          // (dropped from parameters and type resolution) to avoid crashes during macro expansion.
+          // Extension methods' receiver parameter must be dropped from parameters and type resolution, or the macro
+          // expansion crashes.
           val methods = testMethodProperties[IArray[Int]]("length")
           val methodsMap = methods.asMap.get
           assert(methodsMap.nonEmpty, "IArray[Int] should have 'length' extension method")

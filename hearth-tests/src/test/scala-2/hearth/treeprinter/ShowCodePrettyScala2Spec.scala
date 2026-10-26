@@ -1743,7 +1743,7 @@ final class ShowCodePrettyScala2Spec extends MacroSuite {
                    |}] with hearth.treeprinter.ShowCodePrettyScala2Spec.Outer#Inner""".stripMargin
   }
 
-  // Regression for commit 481f734: Scala 2.13 uses LiteralType for explicit literal type annotations
+  // Scala 2.13 uses LiteralType for explicit literal type annotations
   // (distinct from FoldableConstantType, used for constant folding) — showCodePretty must render
   // literal types used as type arguments (as in Witness-based refined predicates like Greater[5]).
   test("showCodePretty should render literal types (LiteralType) on Scala 2") {

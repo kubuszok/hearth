@@ -3,10 +3,9 @@ package crossquotes
 
 import hearth.data.Data
 
-/** Fixtures for [[BoundedCtorSpec]] — a CROSS-COMPILED (2.13 + 3) exercise of `Type.CtorN.UpperBounded.of` /
-  * `Type.CtorN.Bounded.of` (hearth#344). Before the Scala 3 cross-quotes plugin gained the 3-select rewrite cases,
-  * these expanded to the `@compileTimeOnly` stub on Scala 3 (the existing `Issue307ReproFixturesImpl` is Scala-2-only,
-  * so the gap was not exercised).
+/** Cross-compiled counterpart of the Scala-2-only `BoundedCtorWildcardMatchFixturesImpl`: on Scala 3
+  * `Type.CtorN.UpperBounded.of` / `Type.CtorN.Bounded.of` need their own cross-quotes plugin rewrite, or they expand to
+  * the `@compileTimeOnly` stub.
   */
 trait BoundedCtorFixturesImpl { this: MacroCommons =>
 

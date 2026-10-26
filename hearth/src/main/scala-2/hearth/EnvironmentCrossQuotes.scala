@@ -29,7 +29,6 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
         try sym.getClass.getMethod("isFreeType").invoke(sym).asInstanceOf[java.lang.Boolean].booleanValue()
         catch { case _: Throwable => false }
 
-      // Fast bail-out: check if any free types exist in the tree
       var hasFree = false
       tree.foreach {
         case tt: TypeTree if tt.tpe != null =>
@@ -70,7 +69,7 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
         case ConstantType(const)                 => Literal(const)
         case AnnotatedType(_, underlying)        => typeToTree(underlying)
         case ExistentialType(_, underlying)      => typeToTree(underlying)
-        case other                               => TypeTree(other) // fallback for types without free types
+        case other                               => TypeTree(other)
       }
 
       object stripper extends Transformer {

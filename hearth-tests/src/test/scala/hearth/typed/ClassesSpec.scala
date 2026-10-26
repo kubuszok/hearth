@@ -201,14 +201,10 @@ final class ClassesSpec extends MacroSuite {
     group("directChildren ordering") {
       import ClassesFixtures.testEnumParseDiagnostic
 
-      // Regression: a sealed hierarchy's children must come back in DECLARATION order, deterministically, on both
-      // platforms. On Scala 3 the earlier implementation sorted the synthetic module-CLASS symbols by source position,
-      // but those synthetic symbols frequently lack a position during macro expansion, which intermittently collapsed
-      // the whole list onto an alphabetical name fallback - declaration order on a "warm" build, alphabetical on a
-      // "cold"/from-TASTy one, for the SAME sources. `TrafficLight`'s children are ordered so that declaration order
-      // (`Red, Yellow, Green`) differs from alphabetical (`Green, Red, Yellow`); an accidental alphabetical sort would
-      // therefore fail this assertion. `TrafficLight` lives in the test sources (same compilation unit as this spec),
-      // mirroring the real-world hierarchy that first surfaced the flake.
+      // A sealed hierarchy's children must come back in DECLARATION order, deterministically, on both platforms. On
+      // Scala 3 the synthetic module-CLASS symbols frequently lack a position during macro expansion, so sorting them
+      // by source position can intermittently collapse the whole list onto an alphabetical name fallback -
+      // declaration order on a "warm" build, alphabetical on a "cold"/from-TASTy one, for the SAME sources.
       test("sealed trait children preserve declaration order (not alphabetical)") {
         testEnumParseDiagnostic[ClassesSpec.TrafficLight] <==>
           "parsed with children: Red, Yellow, Green"
@@ -245,9 +241,9 @@ final class ClassesSpec extends MacroSuite {
         "(a: hearth.examples.classes.ExampleCaseClass.apply(0).a)"
     }
 
-    // caseFieldValuesAt(instance, visibility) filters case fields by accessibility. The DEFAULT is now
-    // AtCallSite (0.4.0 breaking change): only fields accessible at the macro expansion point are returned,
-    // because the generated `instance.field` access has to compile there. `private[hearth]` field b IS
+    // caseFieldValuesAt(instance, visibility) filters case fields by accessibility. The DEFAULT is AtCallSite: only
+    // fields accessible at the macro expansion point are returned, because the generated `instance.field` access has
+    // to compile there. `private[hearth]` field b IS
     // accessible at this call site (inside hearth), so default + AtCallSite both keep it, while explicit
     // Everywhere (b is not public) skips it on both platforms. Anywhere keeps every field regardless.
     test("CaseClass[A].caseFieldValuesAt should filter fields by the requested visibility") {
@@ -354,8 +350,8 @@ final class ClassesSpec extends MacroSuite {
         "ExampleSealedTraitObject"
     }
 
-    // Regression for commit 68e1781 (splice isolation): handlers build their results from nested
-    // Expr.quote calls that splice the matched expression and an Inlined macro argument.
+    // Handlers build their results from nested Expr.quote calls that splice the matched expression and an Inlined
+    // macro argument - splice ownership from these inner quotes must not cross the match case's splice boundary.
     test("Enum[A].parMatchOn with handler results built from nested Expr.quote") {
       import ClassesFixtures.testEnumParMatchOnNestedQuote
 
@@ -422,9 +418,9 @@ final class ClassesSpec extends MacroSuite {
       }
     }
 
-    // Issue #246: CaseClass.copyMethod returns the canonical, compiler-synthesized `copy` (matching the primary
+    // CaseClass.copyMethod returns the canonical, compiler-synthesized `copy` (matching the primary
     // constructor's value-parameter clauses), filtered by an availability scope that defaults to AtCallSite.
-    group("CaseClass[A].copyMethod (issue #246)") {
+    group("CaseClass[A].copyMethod") {
       import ClassesFixtures.testCaseClassCopyMethod
 
       test("finds the canonical copy for a simple case class under every visibility") {
@@ -504,10 +500,9 @@ final class ClassesSpec extends MacroSuite {
 
 object ClassesSpec {
 
-  /** Witness for the `directChildren ordering` regression: the children are declared in an order (`Red, Yellow, Green`)
-    * that differs from their alphabetical order (`Green, Red, Yellow`), so the test can tell declaration order apart
-    * from an accidental alphabetical sort. Defined in the test sources (same compilation unit as the spec) so both
-    * Scala 2 and Scala 3 resolve it identically.
+  /** The children are declared in an order (`Red, Yellow, Green`) that differs from their alphabetical order (`Green,
+    * Red, Yellow`), so the test can tell declaration order apart from an accidental alphabetical sort. Defined in the
+    * test sources (same compilation unit as the spec) so both Scala 2 and Scala 3 resolve it identically.
     */
   sealed trait TrafficLight
   object TrafficLight {

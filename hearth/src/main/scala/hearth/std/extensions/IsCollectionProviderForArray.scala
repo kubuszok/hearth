@@ -38,7 +38,6 @@ final class IsCollectionProviderForArray extends StandardMacroExtension { loader
           buildExpr: Expr[scala.collection.mutable.Builder[Item, A]] => Expr[A]
       ): IsCollection[A] =
         Existential[IsCollectionOf[A, *], Item](new IsCollectionOf[A, Item] {
-          // We will use Array as the collection type, we need to adjust how we convert the collection to Iterable.
           override def asIterable(value: Expr[A]): Expr[Iterable[Item]] = toIterableExpr(value)
           override def sizeHintForBuilder(value: Expr[A]): Option[Expr[Int]] = Some(Expr.quote {
             Expr.splice(value).asInstanceOf[Array[Item]].length
@@ -67,17 +66,15 @@ final class IsCollectionProviderForArray extends StandardMacroExtension { loader
         tpe.asUntyped.baseClasses.exists(_.sameTypeConstructorAs(ArrayCtorUntyped))
 
       override def parse[A](tpe: Type[A]): ProviderResult[IsCollection[A]] = tpe match {
-        // All Arrays can be converted to Iterable...
         case Array(item) =>
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
 
-          // ...but for making Factory we need to access ClassTag...
+          // A Factory for an Array needs a ClassTag.
           Expr
             .summonImplicit(using Type.of[scala.reflect.ClassTag[Item]])
             .toOption match {
             case Some(classTagExpr) =>
-              // ...and use it to build the collection.
               val factoryExpr: Expr[scala.collection.Factory[Item, A]] = Expr
                 .quote {
                   scala.collection.Factory.arrayFactory(using Expr.splice(classTagExpr))

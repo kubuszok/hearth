@@ -154,23 +154,18 @@ final class NonEmptyListSpec extends ScalaCheckSuite with Laws {
     test("should maintain non-emptiness after operations") {
       val nel = NonEmptyList(1, 2, 3)
 
-      // Prepend
       val prepended = 0 +: nel
       assert(prepended.toList.nonEmpty)
 
-      // Append
       val appended = nel :+ 4
       assert(appended.toList.nonEmpty)
 
-      // Concatenate
       val concatenated = nel ++ NonEmptyList(4, 5)
       assert(concatenated.toList.nonEmpty)
 
-      // Map
       val mapped = nel.map(_ * 2)
       assert(mapped.toList.nonEmpty)
 
-      // FlatMap
       val flatMapped = nel.flatMap(n => NonEmptyList(n, n * 2))
       assert(flatMapped.toList.nonEmpty)
     }
@@ -179,15 +174,12 @@ final class NonEmptyListSpec extends ScalaCheckSuite with Laws {
       val original = List(1, 2, 3, 4, 5)
       val nel = NonEmptyList.fromList(original).get
 
-      // Prepend
       val prepended = 0 +: nel
       prepended.toList === 0 +: original
 
-      // Append
       val appended = nel :+ 6
       appended.toList === original :+ 6
 
-      // Map
       val mapped = nel.map(_ * 2)
       mapped.toList === original.map(_ * 2)
     }
@@ -195,7 +187,6 @@ final class NonEmptyListSpec extends ScalaCheckSuite with Laws {
     test("should handle single element correctly") {
       val nel = NonEmptyList.one(42)
 
-      // Operations on single element
       val prepended = 0 +: nel
       prepended.toList === List(0, 42)
 

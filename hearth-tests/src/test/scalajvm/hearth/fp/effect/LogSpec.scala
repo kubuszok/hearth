@@ -170,18 +170,15 @@ final class LogSpec extends ScalaCheckSuite {
         assert(result.isDefined, "Expected flame graph JSON to be generated")
         val json = result.get
 
-        // Verify basic structure
         assert(json.contains("\"$schema\": \"https://www.speedscope.app/file-format-schema.json\""), "Missing schema")
         assert(json.contains("\"name\": \"test-macro\""), "Missing profile name")
         assert(json.contains("\"unit\": \"nanoseconds\""), "Missing unit")
         assert(json.contains("\"type\": \"evented\""), "Missing profile type")
 
-        // Verify frames - outer, inner1, inner2
         assert(json.contains("\"name\": \"outer\""), "Missing outer frame")
         assert(json.contains("\"name\": \"inner1\""), "Missing inner1 frame")
         assert(json.contains("\"name\": \"inner2\""), "Missing inner2 frame")
 
-        // Verify events (O/C pairs)
         assert(json.contains("\"type\": \"O\""), "Missing open events")
         assert(json.contains("\"type\": \"C\""), "Missing close events")
       } finally
@@ -239,12 +236,10 @@ final class LogSpec extends ScalaCheckSuite {
         assert(result.isDefined, "Expected flame graph JSON")
         val json = result.get
 
-        // Verify that both frames exist and have open/close events
         val eventPattern = """"type": "(O|C)", "at": (\d+), "frame": (\d+)""".r
         val events = eventPattern.findAllMatchIn(json).map(m => (m.group(1), m.group(3).toInt)).toVector
 
         assert(events.nonEmpty, "Expected events")
-        // Each frame should have matching open/close counts
         val frameEvents = events.groupBy(_._2)
         frameEvents.foreach { case (frame, evts) =>
           val opens = evts.count(_._1 == "O")
@@ -290,7 +285,6 @@ final class LogSpec extends ScalaCheckSuite {
         // Verify reasonable output size — should be well under 1MB for ~1956 scopes
         assert(charCount < 1024L * 1024L, s"Output unexpectedly large: $charCount chars")
 
-        // Also render to string to verify structure
         val result = FlameGraph.renderSpeedscope("factorial-test", state.logs, macroStart)
         assert(result.isDefined, "Expected flame graph JSON")
         val json = result.get
@@ -300,7 +294,6 @@ final class LogSpec extends ScalaCheckSuite {
         val eventCount = eventPattern.findAllMatchIn(json).size
         assert(eventCount >= 3900 && eventCount <= 3920, s"Expected ~3912 events, got $eventCount")
 
-        // Verify matching open/close counts
         val opens = """"type": "O"""".r.findAllMatchIn(json).size
         val closes = """"type": "C"""".r.findAllMatchIn(json).size
         assert(opens == closes, s"Mismatched opens ($opens) and closes ($closes)")
@@ -315,7 +308,6 @@ final class LogSpec extends ScalaCheckSuite {
         MIO.benchmarkScopes = true
         val macroStart = Log.Timestamp.now
 
-        // Build a moderately deep graph
         def buildLogs(breadth: Int): MIO[Unit] =
           if (breadth <= 0) MIO.pure(())
           else
@@ -336,7 +328,6 @@ final class LogSpec extends ScalaCheckSuite {
             assert(written, "Expected flame graph to be written to file")
           } finally writer.close()
 
-          // Read back and verify basic structure
           val content = new String(java.nio.file.Files.readAllBytes(tmpFile.toPath), "UTF-8")
           assert(content.contains("\"$schema\""), "Missing schema in file output")
           assert(content.contains("\"type\": \"evented\""), "Missing profile type in file output")

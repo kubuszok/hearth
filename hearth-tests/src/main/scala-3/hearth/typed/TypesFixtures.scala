@@ -16,8 +16,8 @@ final private class TypesFixtures(q: Quotes) extends MacroCommonsScala3(using q)
   def ctorK1OfOwnTypeParameter[Alg[_[_]]: scala.quoted.Type]: Expr[String] =
     testCtorK1OfOwnTypeParameter[Alg](Type.CtorK1.of[Alg])
 
-  /** hearth#384: `Type.CtorN.fromUntyped` has to match an ordinary alias of a type application (also of an opaque type)
-    * just like the dealiased type - without unwrapping the opaque type itself.
+  /** `Type.CtorN.fromUntyped` has to match an ordinary alias of a type application (also of an opaque type) just like
+    * the dealiased type - without unwrapping the opaque type itself.
     */
   def testCtorFromUntypedOnAliases[A: Type]: Expr[Data] = {
     given quotes: scala.quoted.Quotes = CrossQuotes.ctx
@@ -111,8 +111,6 @@ final private class TypesFixtures(q: Quotes) extends MacroCommonsScala3(using q)
 }
 
 object TypesFixtures {
-
-  // [hearth#176]
 
   inline def testNamesPrinters[A]: Data = ${ testNamesPrintersImpl[A] }
   private def testNamesPrintersImpl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testNamesPrinters[A]

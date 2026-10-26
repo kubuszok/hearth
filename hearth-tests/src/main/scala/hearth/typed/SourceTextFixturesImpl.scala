@@ -5,7 +5,6 @@ import hearth.data.Data
 
 trait SourceTextFixturesImpl { this: MacroCommons =>
 
-  /** Returns the source text of the passed expression (trimmed), or "<none>" if not available. */
   def testExprSourceText[A: Type](expr: Expr[A]): Expr[Data] =
     Expr(Data(expr.sourceCode.map(_.trim).getOrElse("<none>")))
 
@@ -16,13 +15,10 @@ trait SourceTextFixturesImpl { this: MacroCommons =>
     */
   protected def noSourcePositionSourceCode: Option[String]
 
-  /** Returns the source text for a position with no real source. Proves the negative path (guard returns None). */
   def testSyntheticSourceText: Expr[Data] =
     Expr(Data(noSourcePositionSourceCode.map(_.trim).getOrElse("<none>")))
 
-  /** Destructures an expression and reports the source text of each direct subexpression — proves the assert-macro use
-    * case: walk subexpressions and recover their original source.
-    */
+  /** What an assert macro needs: the original source of each direct subexpression. */
   def testDestructuredSourceText[A: Type](expr: Expr[A]): Expr[Data] = {
     val parsed = DestructuredExpr.parse(expr)
     def sourceOf(e: DestructuredExpr): Data =

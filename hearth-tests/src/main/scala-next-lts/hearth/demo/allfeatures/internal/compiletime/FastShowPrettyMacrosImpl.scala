@@ -11,8 +11,6 @@ import hearth.demo.allfeatures.internal.runtime.FastShowPrettyUtils
 
 trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
 
-  // Entrypoints to the macro
-
   def deriveInline[A: Type](valueExpr: Expr[A], configExpr: Expr[RenderConfig], levelExpr: Expr[Int]): Expr[String] = {
     implicit val StringBuilder: Type[StringBuilder] = Types.StringBuilder
     implicit val RenderConfig: Type[RenderConfig] = Types.RenderConfig
@@ -237,8 +235,6 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
     def apply[A: DerivationCtx]: MIO[Rule.Applicability[Expr[StringBuilder]]]
   }
 
-  // Reusable components
-
   private object Types {
 
     def FastShowPretty: Type.Ctor1[FastShowPretty] = Type.Ctor1.of[FastShowPretty]
@@ -258,8 +254,6 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
     val String: Type[String] = Type.of[String]
     val Product: Type[Product] = Type.of[Product]
   }
-
-  // The actual derivation logic in the form of DerivationCtx[A] ?=> MIO[Expr[StringBuilder]].
 
   def deriveResultRecursively[A: DerivationCtx]: MIO[Expr[StringBuilder]] =
     Log
@@ -604,7 +598,6 @@ trait FastShowPrettyMacrosImpl { this: MacroCommons & StdExtensions =>
               }
             }
             .map { toAppend =>
-              // Render without a type name prefix — just "(\n  name = ...,\n  age = ...\n)"
               val renderLeftParenthesisAndHeadField = toAppend.head match {
                 case (fieldName, fieldResult) =>
                   Expr.quote {

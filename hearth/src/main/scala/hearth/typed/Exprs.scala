@@ -474,8 +474,6 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     def as_<:??<:[L <: A, U >: A](implicit A: Type[A]): Expr_<:??<:[L, U] = Existential.Bounded[L, U, Expr, A](expr)
   }
 
-  // Aliases to make the (very common) existential types shorter
-
   final type Expr_?? = Existential[Expr]
   final type Expr_??>:[L] = Existential.LowerBounded[L, Expr]
   final type Expr_??<:[U] = Existential.UpperBounded[U, Expr]
@@ -2056,8 +2054,8 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     * back out of a destructured expression, collect the [[DestructuredExpr.Singleton]] nodes (its `name` is the module
     * path) or match a node's `tpe` against a `Type.Ctor` extractor. Beware: on Scala 2 the typer WIDENS singleton
     * types, so a lambda parameter ascribed `Color.Black.type` shows up as `Color` in `Lambda.Param.tpe`; use
-    * [[DestructuredExpr.Lambda.Param]]'s `declaredTpe` (the syntactic type, singleton preserved — hearth#341; on Scala
-    * 3 the two are equal) when you need to `Type.Ctor`-match a selected singleton:
+    * [[DestructuredExpr.Lambda.Param]]'s `declaredTpe` (the syntactic type, singleton preserved; on Scala 3 the two are
+    * equal) when you need to `Type.Ctor`-match a selected singleton:
     *
     * {{{
     * // e.g. lambda `(c: Color.Black.type) => ...` fed through the fixtures:
@@ -2404,7 +2402,7 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
         private[hearth] val rebuild: () => UntypedExpr
     ) extends DestructuredExpr {
 
-      // Set by the platform parser right after construction (kept out of the constructor, which stays unchanged).
+      // Set by the platform parser after construction: a new constructor parameter would break binary compatibility.
       private[hearth] var contextual: Boolean = false
 
       /** Whether this is a context function literal (`(ctx: Ctx) ?=> body`, Scala 3 only).
@@ -2444,12 +2442,12 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
         * @param declaredTpe
         *   the DECLARED / syntactic parameter type, with singletons preserved (from `tpt.original` on Scala 2); use
         *   this to recover e.g. a selected Java-enum value via `Type.Ctor` matching. On Scala 3 the compiler already
-        *   retains the precise type, so `declaredTpe == tpe` there. See hearth#341.
+        *   retains the precise type, so `declaredTpe == tpe` there.
         */
       final class Param private[hearth] (val name: String, val tpe: ??, val declaredTpe: ??) extends Binding {
         private[hearth] def this(name: String, tpe: ??) = this(name, tpe, tpe)
 
-        // Set by the platform parser right after construction (kept out of the constructor, which stays unchanged).
+        // Set by the platform parser after construction: a new constructor parameter would break binary compatibility.
         private[hearth] var bindingSymbol: Any = null
       }
 

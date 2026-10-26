@@ -4,7 +4,7 @@ package crossquotes
 /** The Scala 3 cross-quotes plugin turns `import x.Underlying as D` into a `given Type[D]`, which must be visible only
   * to `Type.of`s AFTER the import - injected into an earlier one it fails with `[E006] Not found: type D`.
   */
-trait ImportOrderReproFixturesImpl { this: MacroCommons =>
+trait ImportOrderFixturesImpl { this: MacroCommons =>
 
   def importBeforeTypeOf(expr: Expr[Any]): Expr[String] = {
     val tpe: ?? = expr.tpe.as_??
