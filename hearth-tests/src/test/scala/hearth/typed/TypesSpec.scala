@@ -1845,6 +1845,20 @@ final class TypesSpec extends MacroSuite {
           )
         }
 
+        test("a generic class lists its parents with the type arguments resolved") {
+          testTypeHierarchy[
+            examples.classes.ExampleGenericChild[Int],
+            examples.classes.ExampleGenericParent[List[Int]]
+          ] <==> Data.map(
+            "isTrait" -> Data(false),
+            "parentContainsParent" -> Data(true),
+            "baseClassesContainsParent" -> Data(true),
+            "baseClassesContainsSelf" -> Data(true),
+            "baseClassesContainsAny" -> Data(true),
+            "baseClassesAtLeastParents" -> Data(true)
+          )
+        }
+
         test("a final class is not a trait") {
           testTypeHierarchy[examples.classes.ExampleClass, scala.Any] <==> Data.map(
             "isTrait" -> Data(false),

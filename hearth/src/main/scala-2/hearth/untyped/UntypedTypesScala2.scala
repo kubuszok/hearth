@@ -276,14 +276,18 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       // NOTE: scala-reflect's `Type` has no `parents` member (only `ClassInfoType` does), so `instanceTpe.parents`
       // resolves to Hearth's own `UntypedTypeMethods.parents` extension and recurses infinitely. We read the direct
       // parents off the class info and resolve any type parameters against `instanceTpe` via `asSeenFrom`.
+      // A generic class's signature is a `PolyType` wrapping its `ClassInfoType`, so we unwrap it first.
       instanceTpe.typeSymbol.typeSignatureIn(instanceTpe) match {
-        case ci: ClassInfoTypeApi =>
+        case ci: ClassInfoTypeApi => ci.parents.map(_.asSeenFrom(instanceTpe, instanceTpe.typeSymbol))
+        case PolyType(_, ci: ClassInfoTypeApi @unchecked) =>
           ci.parents.map(_.asSeenFrom(instanceTpe, instanceTpe.typeSymbol))
         case _ => Nil
       }
 
     override def baseClasses(instanceTpe: UntypedType): List[UntypedType] =
-      instanceTpe.baseClasses.map(_.asType.toType)
+      // `baseType` resolves a generic base class's type parameters against `instanceTpe` (`sym.asType.toType` would
+      // give the class applied to its own, unresolved type parameters).
+      instanceTpe.baseClasses.map(instanceTpe.baseType)
 
     override def unsafeNewSubtype(
         targetType: UntypedType,
