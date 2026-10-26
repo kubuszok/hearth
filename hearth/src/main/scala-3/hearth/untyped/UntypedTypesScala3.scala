@@ -726,6 +726,34 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           }
       }
 
+    override def pseudoCompanionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] = {
+      def isObjectModule(module: Symbol): Boolean =
+        module.flags.is(Flags.Module) && !module.flags.is(Flags.Package) && !module.name.endsWith("$package")
+      // the prefix of an abstract or opaque (non-class) type member, if that prefix is an object
+      def prefixObject: Option[(UntypedType, UntypedExpr)] = untyped.dealias match {
+        case AppliedType(tycon, _) => pseudoCompanionObjectPrefix(tycon, isObjectModule)
+        case tpe                   => pseudoCompanionObjectPrefix(tpe, isObjectModule)
+      }
+      // `companionObject` only for class-backed and opaque types (where it finds the same-name object)
+      val sym = widenSingletons(untyped).dealias.typeSymbol
+      val hasOwnCompanion = sym.isClassDef || sym.flags.is(Flags.Opaque)
+      (if hasOwnCompanion then companionObject(untyped) else None).orElse(prefixObject)
+    }
+    private def pseudoCompanionObjectPrefix(
+        tycon: UntypedType,
+        isObjectModule: Symbol => Boolean
+    ): Option[(UntypedType, UntypedExpr)] = tycon match {
+      case tr: TypeRef if !tr.typeSymbol.isClassDef =>
+        tr.qualifier match {
+          case prefix: TermRef if isObjectModule(prefix.termSymbol)         => Some((prefix, Ref.term(prefix)))
+          case prefix: ThisType if prefix.typeSymbol.flags.is(Flags.Module) =>
+            val module = prefix.typeSymbol.companionModule
+            if !module.isNoSymbol && isObjectModule(module) then Some((module.termRef, Ref(module))) else None
+          case _ => None
+        }
+      case _ => None
+    }
+
     // `Ref(module)` refers to the module through its owner's `this` (e.g. `types$package.this.Foo`). For an opaque type's
     // companion that is the path as seen from INSIDE the opaque's defining scope, where the opaque type is transparent,
     // so the results of the companion's methods (`Foo.apply(1)`) would be typed with the dealiased representation

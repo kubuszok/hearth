@@ -219,6 +219,14 @@ object TypesFixtures {
   inline def testFunctionType[A]: Data = ${ testFunctionTypeImpl[A] }
   private def testFunctionTypeImpl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testFunctionType[A]
 
+  inline def testPseudoCompanionObject[A]: Data = ${ testPseudoCompanionObjectImpl[A] }
+  private def testPseudoCompanionObjectImpl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testPseudoCompanionObject[A]
+
+  inline def testPseudoCompanionObjectValue[A]: Any = ${ testPseudoCompanionObjectValueImpl[A] }
+  private def testPseudoCompanionObjectValueImpl[A: Type](using q: Quotes): Expr[Any] =
+    new TypesFixtures(q).testPseudoCompanionObjectValue[A]
+
   inline def testCtor1OfOwnTypeParameter[F[_]]: String = ${ testCtor1OfOwnTypeParameterImpl[F] }
   private def testCtor1OfOwnTypeParameterImpl[F[_]: Type](using q: Quotes): Expr[String] =
     new TypesFixtures(q).ctor1OfOwnTypeParameter[F]

@@ -869,6 +869,25 @@ trait TypesFixturesImpl { this: MacroCommons =>
     )
   }
 
+  def testPseudoCompanionObject[A: Type]: Expr[Data] = {
+    val NewtypeCtor = Type.Ctor1.of[examples.newtypes.Newtype]
+    Expr(Type.pseudoCompanionObject[A].fold(Data("<none>")) { obj =>
+      Data.map(
+        "object" -> Data(obj.Underlying.plainPrint),
+        "Newtype[_] argument" -> NewtypeCtor.unapply(obj.Underlying).fold(Data("<none>"))(a => Data(a.plainPrint))
+      )
+    })
+  }
+
+  /** The reference to the object, evaluated at runtime (`null` when there is none). */
+  def testPseudoCompanionObjectValue[A: Type]: Expr[Any] = {
+    implicit val AnyType: Type[Any] = Type.of[Any]
+    Type.pseudoCompanionObject[A].fold(Expr.quote(null: Any)) { obj =>
+      import obj.Underlying as O
+      obj.value.upcast[Any]
+    }
+  }
+
   /** Applies a `Type.Ctor1` / `Type.CtorK1` that the platform bridge built with `.of` from the macro's OWN type
     * parameter (`F` / `Alg`), as derivation entry points (`Functor.derived[F]`, `FunctorK.derived[Alg]`) do.
     */

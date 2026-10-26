@@ -447,6 +447,33 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
           if companionClass != NoSymbol && companionClass.isType
         } yield (subtypeTypeOf(untyped, companionClass.asType), q"$companion")
 
+    override def pseudoCompanionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] = {
+      // `dealias` until a fixed point: aliases of aliases (`type A = B; type B = Obj.Type`)
+      def dealiasAll(tpe: UntypedType): UntypedType = {
+        val d = tpe.dealias
+        if (d eq tpe) tpe else dealiasAll(d)
+      }
+      def isObjectModule(module: Symbol): Boolean =
+        module.isModule && !module.isPackage && module.name.decodedName.toString != "package"
+      // the prefix of an abstract (non-class) type member, if that prefix is an object
+      def prefixObject: Option[(UntypedType, UntypedExpr)] = dealiasAll(untyped) match {
+        case TypeRef(prefix, sym, _) if sym.isType && !sym.isClass =>
+          prefix match {
+            case SingleType(_, module) if isObjectModule(module) =>
+              Some((prefix, c.internal.gen.mkAttributedQualifier(prefix)))
+            case ThisType(moduleClass) if moduleClass.isModuleClass && isObjectModule(moduleClass.asClass.module) =>
+              val module = moduleClass.asClass.module
+              Some((prefix, q"$module"))
+            case _ => None
+          }
+        case _ => None
+      }
+      // `companionObject` only for class-backed types: for an abstract type member its fallback could resolve some
+      // unrelated object by the owner path
+      val classBacked = dealiasAll(widenSingletons(untyped)).typeSymbol.isClass
+      (if (classBacked) companionObject(untyped) else None).orElse(prefixObject)
+    }
+
     override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
       directChildrenList(instanceTpe).map(ListMap.from)
 

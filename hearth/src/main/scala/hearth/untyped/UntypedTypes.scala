@@ -355,6 +355,29 @@ trait UntypedTypes { this: MacroCommons =>
 
     def companionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)]
 
+    /** The object "standing for" the type: its [[companionObject]] if it has one, otherwise - if the type (after
+      * dealiasing) is an abstract or opaque type MEMBER of an object - that object (the type's prefix). Returns the
+      * object's (singleton) type and a reference to it.
+      *
+      * This is the encoding used by newtype libraries, where the type has no companion of its own:
+      * {{{
+      * object UserName extends Newtype[String] // neotype, zio-prelude, monix-newtypes: `type Type` declared in Newtype
+      * type UserName = UserName.Type           // -> UserName
+      *
+      * object Age { type Repr = Int; type Type <: Base with Tag; ... } // estatico/scala-newtype (@newtype expansion)
+      * type Age = Age.Type                                              // -> Age
+      * }}}
+      * Then e.g. `Type.Ctor1.of[Newtype].unapply` on the object's type extracts the wrapped type, and its `apply`
+      * method can be found with the `Method` API.
+      *
+      * Unlike a same-name lookup, the prefix does not depend on the user's alias: `UserName` and `UserName.Type` give
+      * the same object. A type member of a non-object prefix (`val x: HasMember; x.T`) or of a package object gives
+      * `None`.
+      *
+      * @since 0.4.4
+      */
+    def pseudoCompanionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)]
+
     /** Direct subtypes of a sealed hierarchy or enum, keyed by the subtype's SIMPLE name, or `None` when the type is
       * not decomposable.
       *
@@ -604,6 +627,7 @@ trait UntypedTypes { this: MacroCommons =>
     def unsortedMethods: List[UntypedMethod] = UntypedMethod.unsortedMethods(untyped)
 
     def companionObject: Option[(UntypedType, UntypedExpr)] = UntypedType.companionObject(untyped)
+    def pseudoCompanionObject: Option[(UntypedType, UntypedExpr)] = UntypedType.pseudoCompanionObject(untyped)
 
     def directChildren: Option[ListMap[String, UntypedType]] = UntypedType.directChildren(untyped)
     def directChildrenList: Option[List[(String, UntypedType)]] = UntypedType.directChildrenList(untyped)

@@ -905,5 +905,32 @@ final class TypesScala3Spec extends MacroSuite {
         )
       }
     }
+
+    group("methods: Type.pseudoCompanionObject on opaque types") {
+      import TypesFixtures.{testPseudoCompanionObject, testPseudoCompanionObjectValue}
+      import examples.newtypes3
+
+      test("a newtype whose opaque type member is declared in the object's generic parent (neotype)") {
+        val email = Data.map(
+          "object" -> Data("hearth.examples.newtypes3.Email.type"),
+          "Newtype[_] argument" -> Data("<none>")
+        )
+        testPseudoCompanionObject[newtypes3.Email] <==> email
+        testPseudoCompanionObject[newtypes3.Email.Type] <==> email
+        testPseudoCompanionObjectValue[newtypes3.Email] ==> newtypes3.Email
+      }
+
+      test("an opaque type with a companion gives the companion") {
+        testPseudoCompanionObject[newtypes3.Meters] <==> Data.map(
+          "object" -> Data("hearth.examples.newtypes3.Meters.type"),
+          "Newtype[_] argument" -> Data("<none>")
+        )
+        testPseudoCompanionObjectValue[newtypes3.Meters] ==> newtypes3.Meters
+      }
+
+      test("a top-level opaque type without a companion does not give its package object") {
+        testPseudoCompanionObject[examples.TopLevelOpaque] <==> Data("<none>")
+      }
+    }
   }
 }

@@ -350,6 +350,9 @@ val mimaSettings = Seq(
     // `UntypedTypes#UntypedTypeModule`, implemented ONLY by Hearth's own `UntypedType` object (in UntypedTypesScala2/
     // UntypedTypesScala3), same reasoning as `annotated` above.
     exclude[ReversedMissingMethodProblem]("hearth.untyped.UntypedTypes#UntypedTypeModule.functionComponents"),
+    // `pseudoCompanionObject` added to the NESTED trait `UntypedTypes#UntypedTypeModule`, implemented ONLY by Hearth's
+    // own `UntypedType` object (in UntypedTypesScala2/UntypedTypesScala3), same reasoning as `annotated` above.
+    exclude[ReversedMissingMethodProblem]("hearth.untyped.UntypedTypes#UntypedTypeModule.pseudoCompanionObject"),
     // `toIterableOption` added to the NESTED trait `Exprs#VarArgsModule`, implemented ONLY by Hearth's own `VarArgs`
     // object (in ExprsScala2/ExprsScala3), same reasoning as `annotated` above.
     exclude[ReversedMissingMethodProblem]("hearth.typed.Exprs#VarArgsModule.toIterableOption"),

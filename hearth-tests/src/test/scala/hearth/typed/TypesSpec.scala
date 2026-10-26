@@ -2183,6 +2183,41 @@ final class TypesSpec extends MacroSuite {
       }
     }
 
+    group("methods: Type.pseudoCompanionObject") {
+      import TypesFixtures.{testPseudoCompanionObject, testPseudoCompanionObjectValue}
+      import examples.newtypes
+
+      def pseudo(obj: String, newtypeArg: String = "<none>"): Data =
+        Data.map("object" -> Data(obj), "Newtype[_] argument" -> Data(newtypeArg))
+
+      test("a newtype whose type member is declared in the object's generic parent (neotype, zio-prelude)") {
+        val userName = pseudo("hearth.examples.newtypes.UserName.type", "java.lang.String")
+        testPseudoCompanionObject[newtypes.UserName] <==> userName
+        testPseudoCompanionObject[newtypes.UserName.Type] <==> userName
+        testPseudoCompanionObject[newtypes.Login] <==> userName
+        testPseudoCompanionObjectValue[newtypes.UserName] ==> newtypes.UserName
+        testPseudoCompanionObjectValue[newtypes.Login] ==> newtypes.UserName
+      }
+
+      test("a newtype whose type member is declared in the object itself (estatico/scala-newtype)") {
+        testPseudoCompanionObject[newtypes.Age] <==> pseudo("hearth.examples.newtypes.Age.type")
+        testPseudoCompanionObject[newtypes.Tagged[Int]] <==> pseudo("hearth.examples.newtypes.Tagged.type")
+        testPseudoCompanionObjectValue[newtypes.Age] ==> newtypes.Age
+        testPseudoCompanionObjectValue[newtypes.Tagged[Int]] ==> newtypes.Tagged
+      }
+
+      test("a class with a companion gives the companion") {
+        testPseudoCompanionObject[newtypes.Real] <==> pseudo("hearth.examples.newtypes.Real.type")
+        testPseudoCompanionObjectValue[newtypes.Real] ==> newtypes.Real
+      }
+
+      test("no object stands for the type") {
+        testPseudoCompanionObject[newtypes.Plain] <==> Data("<none>")
+        testPseudoCompanionObject[newtypes.hasMember.T] <==> Data("<none>")
+        testPseudoCompanionObjectValue[newtypes.hasMember.T] ==> null
+      }
+    }
+
     group("Type.Ctor1.of / Type.CtorK1.of on the macro's own type parameter") {
       import TypesFixtures.{testCtor1OfOwnTypeParameter, testCtor2OfOwnTypeParameter, testCtorK1OfOwnTypeParameter}
 

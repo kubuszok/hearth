@@ -171,6 +171,20 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
         Existential(expr0)(using A0)
       }
 
+    /** The object "standing for" `A`: its [[companionObject]], or - when `A` is (an alias of) an abstract or opaque
+      * type member of an object, as in newtype libraries (`object UserName extends Newtype[String]; type UserName =
+      * UserName.Type`) - that object. The expression's type is the object's singleton type, so e.g.
+      * `Type.Ctor1.of[Newtype].unapply` can extract the wrapped type from it. See
+      * [[UntypedTypeModule.pseudoCompanionObject]].
+      *
+      * @since 0.4.4
+      */
+    final def pseudoCompanionObject[A: Type]: Option[Expr_??] =
+      UntypedType.fromTyped[A].pseudoCompanionObject.map { case (tpe, expr) =>
+        val O = tpe.asTyped[Any]
+        Existential(expr.asTyped[Any](using O))(using O)
+      }
+
     /** Direct subtypes of a sealed hierarchy or enum `A`, keyed by the subtype's SIMPLE name, or `None` when `A` is not
       * decomposable.
       *
@@ -1249,6 +1263,7 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
       Method.unsortedMethodsNamed(name)(using tpe).map(_.asInstanceOf[Method { type Instance = A }])
 
     def companionObject: Option[Expr_??] = Type.companionObject(using tpe)
+    def pseudoCompanionObject: Option[Expr_??] = Type.pseudoCompanionObject(using tpe)
 
     def directChildren: Option[ListMap[String, ??<:[A]]] = Type.directChildren(using tpe)
     def exhaustiveChildren: Option[NonEmptyMap[String, ??<:[A]]] = Type.exhaustiveChildren(using tpe)

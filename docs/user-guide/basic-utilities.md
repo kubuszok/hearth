@@ -481,6 +481,7 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
 |--------------------------------------|--------------------------------------|---------------------------------------------------|----------------------------------|
 | `Type.position[MyClass]`             | `Type[MyClass].position`             | `Option[Position]`                                | where type is defined            |
 | `Type.companionObject[MyClass]`      | `Type[MyClass].companionObject`      | `Option[Expr_??]`                                 | companion object if exists       |
+| `Type.pseudoCompanionObject[MyType]` | `Type[MyType].pseudoCompanionObject` | `Option[Expr_??]`                                 | companion or newtype's object (2)|
 | `Type.annotations[MyClass]`          | `Type[MyClass].annotations`          | `List[Expr_??]`                                   | type annotations                 |
 | `Type.parents[MyClass]`              | `Type[MyClass].parents`              | `List[??]`                                        | direct parent types              |
 | `Type.baseClasses[MyClass]`          | `Type[MyClass].baseClasses`          | `List[??]`                                        | all ancestors (linearization)    |
@@ -494,6 +495,11 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
    (e.g. `List[Int] | Seq[String]`, where a `List` value would be caught by either branch) return `None`.
    Stable singleton members (e.g. `Color.Red.type`, case objects) are matched by value, so they are
    accepted even when they share a runtime class.
+2. `pseudoCompanionObject` is `companionObject`, but when the type (after dealiasing) is an abstract or opaque type
+   member of an object - the encoding of newtype libraries, e.g. `object UserName extends Newtype[String]` with
+   `type UserName = UserName.Type` (neotype, zio-prelude, monix-newtypes) or the `@newtype` expansion of
+   estatico/scala-newtype - it returns that object (the type's prefix). Then e.g. `Type.Ctor1.of[Newtype].unapply`
+   on the object's type extracts the wrapped type, and its `apply` method can be found with the `Method` API.
 
 **Visibility checks**:
 

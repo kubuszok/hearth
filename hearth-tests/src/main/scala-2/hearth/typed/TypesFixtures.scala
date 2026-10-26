@@ -66,6 +66,9 @@ final private class TypesFixtures(val c: blackbox.Context) extends MacroCommonsS
 
   def testFunctionTypeImpl[A: c.WeakTypeTag]: c.Expr[Data] = testFunctionType[A]
 
+  def testPseudoCompanionObjectImpl[A: c.WeakTypeTag]: c.Expr[Data] = testPseudoCompanionObject[A]
+  def testPseudoCompanionObjectValueImpl[A: c.WeakTypeTag]: c.Expr[Any] = testPseudoCompanionObjectValue[A]
+
   // As in derivation entry points: the macro's own type parameter comes with a `WeakTypeTag` of it APPLIED.
   def testCtor1OfOwnTypeParameterImpl[F[_]](implicit F: c.WeakTypeTag[F[Any]]): c.Expr[String] =
     testCtor1OfOwnTypeParameter[F](Type.Ctor1.of[F])
@@ -133,6 +136,9 @@ object TypesFixtures {
   def testSameTypeConstructorAndReapply[A, B]: Data = macro TypesFixtures.testSameTypeConstructorAndReapplyImpl[A, B]
 
   def testFunctionType[A]: Data = macro TypesFixtures.testFunctionTypeImpl[A]
+
+  def testPseudoCompanionObject[A]: Data = macro TypesFixtures.testPseudoCompanionObjectImpl[A]
+  def testPseudoCompanionObjectValue[A]: Any = macro TypesFixtures.testPseudoCompanionObjectValueImpl[A]
 
   def testCtor1OfOwnTypeParameter[F[_]]: String = macro TypesFixtures.testCtor1OfOwnTypeParameterImpl[F]
   def testCtor2OfOwnTypeParameter[F[_, _]]: String = macro TypesFixtures.testCtor2OfOwnTypeParameterImpl[F]
