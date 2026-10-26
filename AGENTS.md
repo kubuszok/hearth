@@ -225,6 +225,47 @@ but an agent was not able to run the compilation and tests (e.g. because GitHub 
 prevents downloading artifacts), it should inform user that any PR they would attempt to make
 will be closed immediately.
 
+### Code comments
+
+We aim for code that explains itself through its names: type names (including the packages and objects they live in),
+method names, parameter names and variable names. Rename before you reach for a comment.
+
+Scaladoc on the public API is the exception: it is published, and it is how users learn to use our APIs, so write
+it for them.
+
+Any other comment admits that the code alone could not express why we did what we did - that a reader who knows the
+domain would not get it at a glance. So a comment should answer the question the reader will have: why the obvious,
+simplest solution - the one they probably have in mind - is not enough here, and why we need something less obvious.
+It should not describe what the code does.
+
+A comment has to make sense on its own:
+
+ - don't send the reader elsewhere - to internal documents, sections of our Markdown files, etc.
+ - don't refer to our own tickets (Hearth, Kindlings) or bug reports ("kindlings feedback (2)", "see #123") - state
+   the problem in a short, easy-to-grasp sentence instead, so the reader understands the reason without leaving the
+   code
+ - the only allowed exception: a workaround for a bug outside our control and outside our domain (e.g. in the Scala
+   compiler or in a downstream library) may link that project's ticket, next to the short explanation
+
+```scala
+// WRONG - restates the code
+// unwrap the PolyType
+case PolyType(_, ci: ClassInfoTypeApi) => ...
+
+// WRONG - points elsewhere instead of explaining
+// kindlings feedback (2), see docs/research/....md
+
+// CORRECT - says why the obvious match is not enough
+// A generic class's signature is a `PolyType` wrapping its `ClassInfoType`, so matching only the latter misses it.
+case PolyType(_, ci: ClassInfoTypeApi) => ...
+
+// CORRECT - a workaround for something outside our control may link to it
+// On Scala.js `1.0f.toString` is "1" (https://www.scala-js.org/doc/semantics.html#tostring-of-float-double-and-unit)
+val workaround = if (result.contains(".")) result else result + ".0"
+```
+
+The same applies to test names: describe the behavior being tested, not the report it came from.
+
 ### Test Conventions
 
 Tests follow a macro fixture pattern with cross-platform assertions:
