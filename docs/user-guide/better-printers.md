@@ -177,14 +177,14 @@ This is used internally by `Type.runtimePlainPrint`, `Type.runtimePrettyPrint`, 
 
 ## Comparison with Built-in Printers
 
-| Feature           | Scala 2 Built-in | Better Printers (Scala 2) | Scala 3 Built-in       | Better Printers (Scala 3) |
-|-------------------|------------------|---------------------------|------------------------|---------------------------|
-| Code rendering    |                  |                           |                        |                           |
-| ANSI colors       | ❌               | ✅                        | ✅ (`TreeAnsiCode`)    | ✅                        |
-| Indentation       | ❌               | ✅                        | ✅                     | ✅                        |
-| Tree rendering    |                  |                           |                        |                           |
-| ANSI colors       | ❌               | ✅                        | ❌                     | ✅                        |
-| Indentation       | ❌               | ✅                        | ❌                     | ✅                        |
+| Feature        | Scala 2 Built-in | Better Printers (Scala 2) | Scala 3 Built-in   | Better Printers (Scala 3) |
+|----------------|------------------|---------------------------|--------------------|---------------------------|
+| Code rendering |                  |                           |                    |                           |
+| ANSI colors    | ❌                | ✅                         | ✅ (`TreeAnsiCode`) | ✅                         |
+| Indentation    | ❌                | ✅                         | ✅                  | ✅                         |
+| Tree rendering |                  |                           |                    |                           |
+| ANSI colors    | ❌                | ✅                         | ❌                  | ✅                         |
+| Indentation    | ❌                | ✅                         | ❌                  | ✅                         |
 
 !!! tip
     If you're using `MacroCommons` from Hearth's Basic Utilities, you already have access to Better Printers through methods like `expr.prettyPrint` and `expr.prettyAST`. You don't need to use Better Printers directly unless you're building a standalone macro library.

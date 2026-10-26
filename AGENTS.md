@@ -258,12 +258,12 @@ For the complete bug-fix workflow (reproduce → fix → verify), see [Instructi
 
 **Quick reference — clean commands by changed module** (all using `sbt --client`):
 
-| What changed | Clean commands |
-|---|---|
+| What changed             | Clean commands                                                                                                                                               |
+|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `hearth-better-printers` | `hearthBetterPrinters/clean ; hearthBetterPrinters2/clean ; hearthCrossQuotes/clean ; hearthCrossQuotes2/clean ; hearth/clean ; hearth2/clean ; quick-clean` |
-| `hearth-cross-quotes` | `hearthCrossQuotes/clean ; hearthCrossQuotes2/clean ; hearth/clean ; hearth2/clean ; quick-clean` |
-| `hearth` | `hearth/clean ; hearth2/clean ; quick-clean` |
-| `hearth-tests` only | `quick-clean` |
+| `hearth-cross-quotes`    | `hearthCrossQuotes/clean ; hearthCrossQuotes2/clean ; hearth/clean ; hearth2/clean ; quick-clean`                                                            |
+| `hearth`                 | `hearth/clean ; hearth2/clean ; quick-clean`                                                                                                                 |
+| `hearth-tests` only      | `quick-clean`                                                                                                                                                |
 
 **Key reminders:**
 - Always clean after macro changes — incremental compilation does NOT re-expand macros
@@ -278,25 +278,25 @@ Regression testing uses always-visible sbt subprojects (NOT env vars). Published
 only at LTS versions (2.13.16 / 3.3.8). Test modules have tier rows that compile at regression
 versions but link against LTS-compiled library artifacts (binary compatible).
 
-| Tier | Scala versions | Project suffix | Purpose |
-|------|---------------|----------------|---------|
-| LTS | 2.13.16 + 3.3.8 | (none) / `2` | Published versions, all platforms |
+| Tier     | Scala versions  | Project suffix         | Purpose                                   |
+|----------|-----------------|------------------------|-------------------------------------------|
+| LTS      | 2.13.16 + 3.3.8 | (none) / `2`           | Published versions, all platforms         |
 | Next-LTS | 2.13.18 + 3.9.0 | `NextLts` / `2NextLts` | Last cross-compiling generation, JVM-only |
-| Next | 3.10.0-RC1 | `Next` | Forward-looking, no 2.13, JVM-only |
+| Next     | 3.10.0-RC1      | `Next`                 | Forward-looking, no 2.13, JVM-only        |
 
 **Project naming convention:** Scala 3 is the default (no suffix). Scala 2.13 gets the `2` suffix.
 Examples: `hearth` = Scala 3, `hearth2` = Scala 2.13, `hearthTestsNextLts` = tests at 3.9.
 
 ### Test source directory convention (hearth-tests)
 
-| Directory | LTS | Next-LTS | Next | Description |
-|-----------|:---:|:--------:|:----:|-------------|
-| `scala/` | ✓ | ✓ | ✓ | Universal (all versions) |
-| `scala-2/` | ✓ | ✓ | — | Scala 2 only |
-| `scala-3/` | ✓ | ✓ | ✓ | Universal Scala 3 (must compile on ALL 3.x) |
-| `scala-lts*` | ✓ | ✓ | — | Cross-compatible range only (not 3.10+) |
-| `scala-next-lts*` | — | ✓ | — | Post-LTS features (2.13.17+ / 3.4–3.9) |
-| `scala-next*` | — | — | ✓ | 3.10+ only |
+| Directory         | LTS | Next-LTS | Next | Description                                 |
+|-------------------|:---:|:--------:|:----:|---------------------------------------------|
+| `scala/`          | ✓   | ✓        | ✓    | Universal (all versions)                    |
+| `scala-2/`        | ✓   | ✓        | —    | Scala 2 only                                |
+| `scala-3/`        | ✓   | ✓        | ✓    | Universal Scala 3 (must compile on ALL 3.x) |
+| `scala-lts*`      | ✓   | ✓        | —    | Cross-compatible range only (not 3.10+)     |
+| `scala-next-lts*` | —   | ✓        | —    | Post-LTS features (2.13.17+ / 3.4–3.9)      |
+| `scala-next*`     | —   | —        | ✓    | 3.10+ only                                  |
 
 When 3.10 deprecation forces splitting code out of `scala-3/`, move the old-syntax version
 to `scala-lts-3/` and put the new-syntax version in `scala-next-3/`.

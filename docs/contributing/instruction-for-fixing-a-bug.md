@@ -90,12 +90,12 @@ when their implementation changes, and it may not detect new test fixtures eithe
 
 All commands use `sbt --client`:
 
-| What changed | Minimum clean commands (Scala 2.13 + 3) |
-|---|---|
-| `hearth-better-printers` | `hearthBetterPrinters/clean ; hearthBetterPrinters3/clean ; hearthCrossQuotes/clean ; hearthCrossQuotes3/clean ; hearth/clean ; hearth3/clean ; quick-clean` |
-| `hearth-cross-quotes` | `hearthCrossQuotes/clean ; hearthCrossQuotes3/clean ; hearth/clean ; hearth3/clean ; quick-clean` |
-| `hearth` | `hearth/clean ; hearth3/clean ; quick-clean` |
-| `hearth-tests` only (new test/fixture) | `quick-clean` |
+| What changed                           | Minimum clean commands (Scala 2.13 + 3)                                                                                                                      |
+|----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `hearth-better-printers`               | `hearthBetterPrinters/clean ; hearthBetterPrinters3/clean ; hearthCrossQuotes/clean ; hearthCrossQuotes3/clean ; hearth/clean ; hearth3/clean ; quick-clean` |
+| `hearth-cross-quotes`                  | `hearthCrossQuotes/clean ; hearthCrossQuotes3/clean ; hearth/clean ; hearth3/clean ; quick-clean`                                                            |
+| `hearth`                               | `hearth/clean ; hearth3/clean ; quick-clean`                                                                                                                 |
+| `hearth-tests` only (new test/fixture) | `quick-clean`                                                                                                                                                |
 
 Note: `quick-clean` cleans `hearthTests`, `hearthTests3`, `hearthSandwichTests`, `hearthSandwichTests3`.
 

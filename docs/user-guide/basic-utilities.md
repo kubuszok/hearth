@@ -426,67 +426,67 @@ it. Compare types with `=:=` (or key by them with `Type.Cache`), and constructor
 These methods build `Expr[String]` values that substitute abstract type parameters with runtime-provided expressions,
 while keeping concrete parts identical to the corresponding compile-time print:
 
-| Companion method                           | Extension method                          | Fallback style | Description                                    |
-|--------------------------------------------|-------------------------------------------|----------------|------------------------------------------------|
-| `Type.runtimePlainPrint[A](fn)`            | `Type[A].runtimePlainPrint(fn)`           | `plainPrint`   | runtime-aware plain print with overrides        |
-| `Type.runtimePrettyPrint[A](fn)`           | `Type[A].runtimePrettyPrint(fn)`          | `prettyPrint`  | runtime-aware ANSI-colored print with overrides |
-| `Type.runtimeShortPrint[A](fn)`            | `Type[A].runtimeShortPrint(fn)`           | `shortName`    | runtime-aware short print with overrides        |
+| Companion method                 | Extension method                 | Fallback style | Description                                     |
+|----------------------------------|----------------------------------|----------------|-------------------------------------------------|
+| `Type.runtimePlainPrint[A](fn)`  | `Type[A].runtimePlainPrint(fn)`  | `plainPrint`   | runtime-aware plain print with overrides        |
+| `Type.runtimePrettyPrint[A](fn)` | `Type[A].runtimePrettyPrint(fn)` | `prettyPrint`  | runtime-aware ANSI-colored print with overrides |
+| `Type.runtimeShortPrint[A](fn)`  | `Type[A].runtimeShortPrint(fn)`  | `shortName`    | runtime-aware short print with overrides        |
 
 The `fn` parameter is a callback `?? => Option[Expr[String]]` that is called for each type and its type arguments.
 Return `Some(expr)` to override the printing for that type, or `None` to use the default.
 
 **`Type` predicates**:
 
-| Companion method                       | Extension method                       | Description                                                          |
-|----------------------------------------|----------------------------------------|----------------------------------------------------------------------|
-|                                        |                                        | **Primitives and built-ins**                                         |
-| `Type.isPrimitive[Int]`                | `Type[Int].isPrimitive`                | `true` for Boolean, Byte, Short, Int, Long, Float, Double, Char      |
-| `Type.isArray[Array[Int]]`             | `Type[Array[Int]].isArray`             | `true` for array types                                               |
-| `Type.isJvmBuiltIn[String]`            | `Type[String].isJvmBuiltIn`            | `true` for primitives, Unit, String, arrays, `java.lang.*` types     |
-| `Type.isTypeSystemSpecial[Any]`        | `Type[Any].isTypeSystemSpecial`        | `true` for Any, AnyRef, AnyVal, Null, Nothing                        |
-| `Type.isOpaqueType[MyType]`            | `Type[MyType].isOpaqueType`            | `true` for `opaque type`s                                            |
-| `Type.isUnionType[MyType]`             | `Type[MyType].isUnionType`             | `true` for union types (`A \| B`, Scala 3 only; always `false` on 2) |
-| `Type.isFunction[MyType]`              | `Type[MyType].isFunction`              | `true` for `FunctionN` types, also classes extending them (since 0.4.4) |
-| `Type.isContextFunction[MyType]`       | `Type[MyType].isContextFunction`       | `true` for `A ?=> B` (Scala 3 only; always `false` on 2) (since 0.4.4) |
-|                                        |                                        | **Class types**                                                      |
-| `Type.isClass[MyClass]`                | `Type[MyClass].isClass`                | `true` for classes                                                   |
-| `Type.notJvmBuiltInClass[MyClass]`     | `Type[MyClass].notJvmBuiltInClass`     | `true` when `isClass && !isJvmBuiltIn`                               |
-| `Type.isPlainOldJavaObject[MyClass]`   | `Type[MyClass].isPlainOldJavaObject`   | `true` for non-abstract, non-sealed, non-enum class                  |
-| `Type.isJavaBean[MyClass]`             | `Type[MyClass].isJavaBean`             | `true` for POJO with default constructor                             |
-|                                        |                                        | **Modifiers**                                                        |
-| `Type.isAbstract[MyClass]`             | `Type[MyClass].isAbstract`             | `true` for abstract class or trait                                   |
-| `Type.isFinal[MyClass]`                | `Type[MyClass].isFinal`                | `true` for final class                                               |
-| `Type.isTrait[MyClass]`                | `Type[MyClass].isTrait`                | `true` for traits (not classes)                                      |
-| `Type.isSealed[MyClass]`               | `Type[MyClass].isSealed`               | `true` for sealed trait/class                                        |
-| `Type.isObject[MyClass]`               | `Type[MyClass].isObject`               | `true` for object/module                                             |
-| `Type.isVal[MyClass]`                  | `Type[MyClass].isVal`                  | `true` for `someValue.type` (e.g. parameterless `enum` `case`s)      |
-|                                        |                                        | **Case classes and enums**                                           |
-| `Type.isCase[MyClass]`                 | `Type[MyClass].isCase`                 | `true` for case class, case object, or case val                      |
-| `Type.isCaseClass[MyClass]`            | `Type[MyClass].isCaseClass`            | `true` for case class specifically                                   |
-| `Type.isCaseObject[MyClass]`           | `Type[MyClass].isCaseObject`           | `true` for case object specifically                                  |
-| `Type.isCaseVal[MyClass]`              | `Type[MyClass].isCaseVal`              | `true` for parameterless `enum` `case`s                              |
-| `Type.isJavaEnum[MyClass]`             | `Type[MyClass].isJavaEnum`             | `true` for Java enum                                                 |
-| `Type.isJavaEnumValue[MyClass]`        | `Type[MyClass].isJavaEnumValue`        | `true` for Java enum value                                           |
+| Companion method                     | Extension method                     | Description                                                             |
+|--------------------------------------|--------------------------------------|-------------------------------------------------------------------------|
+|                                      |                                      | **Primitives and built-ins**                                            |
+| `Type.isPrimitive[Int]`              | `Type[Int].isPrimitive`              | `true` for Boolean, Byte, Short, Int, Long, Float, Double, Char         |
+| `Type.isArray[Array[Int]]`           | `Type[Array[Int]].isArray`           | `true` for array types                                                  |
+| `Type.isJvmBuiltIn[String]`          | `Type[String].isJvmBuiltIn`          | `true` for primitives, Unit, String, arrays, `java.lang.*` types        |
+| `Type.isTypeSystemSpecial[Any]`      | `Type[Any].isTypeSystemSpecial`      | `true` for Any, AnyRef, AnyVal, Null, Nothing                           |
+| `Type.isOpaqueType[MyType]`          | `Type[MyType].isOpaqueType`          | `true` for `opaque type`s                                               |
+| `Type.isUnionType[MyType]`           | `Type[MyType].isUnionType`           | `true` for union types (`A \| B`, Scala 3 only; always `false` on 2)    |
+| `Type.isFunction[MyType]`            | `Type[MyType].isFunction`            | `true` for `FunctionN` types, also classes extending them (since 0.4.4) |
+| `Type.isContextFunction[MyType]`     | `Type[MyType].isContextFunction`     | `true` for `A ?=> B` (Scala 3 only; always `false` on 2) (since 0.4.4)  |
+|                                      |                                      | **Class types**                                                         |
+| `Type.isClass[MyClass]`              | `Type[MyClass].isClass`              | `true` for classes                                                      |
+| `Type.notJvmBuiltInClass[MyClass]`   | `Type[MyClass].notJvmBuiltInClass`   | `true` when `isClass && !isJvmBuiltIn`                                  |
+| `Type.isPlainOldJavaObject[MyClass]` | `Type[MyClass].isPlainOldJavaObject` | `true` for non-abstract, non-sealed, non-enum class                     |
+| `Type.isJavaBean[MyClass]`           | `Type[MyClass].isJavaBean`           | `true` for POJO with default constructor                                |
+|                                      |                                      | **Modifiers**                                                           |
+| `Type.isAbstract[MyClass]`           | `Type[MyClass].isAbstract`           | `true` for abstract class or trait                                      |
+| `Type.isFinal[MyClass]`              | `Type[MyClass].isFinal`              | `true` for final class                                                  |
+| `Type.isTrait[MyClass]`              | `Type[MyClass].isTrait`              | `true` for traits (not classes)                                         |
+| `Type.isSealed[MyClass]`             | `Type[MyClass].isSealed`             | `true` for sealed trait/class                                           |
+| `Type.isObject[MyClass]`             | `Type[MyClass].isObject`             | `true` for object/module                                                |
+| `Type.isVal[MyClass]`                | `Type[MyClass].isVal`                | `true` for `someValue.type` (e.g. parameterless `enum` `case`s)         |
+|                                      |                                      | **Case classes and enums**                                              |
+| `Type.isCase[MyClass]`               | `Type[MyClass].isCase`               | `true` for case class, case object, or case val                         |
+| `Type.isCaseClass[MyClass]`          | `Type[MyClass].isCaseClass`          | `true` for case class specifically                                      |
+| `Type.isCaseObject[MyClass]`         | `Type[MyClass].isCaseObject`         | `true` for case object specifically                                     |
+| `Type.isCaseVal[MyClass]`            | `Type[MyClass].isCaseVal`            | `true` for parameterless `enum` `case`s                                 |
+| `Type.isJavaEnum[MyClass]`           | `Type[MyClass].isJavaEnum`           | `true` for Java enum                                                    |
+| `Type.isJavaEnumValue[MyClass]`      | `Type[MyClass].isJavaEnumValue`      | `true` for Java enum value                                              |
 
 **`Type` relationships**:
 
-| Companion method                       | Extension method                 | Description                                         |
-|----------------------------------------|----------------------------------|-----------------------------------------------------|
-| `Type.isSubtypeOf[String, AnyRef]`     | `Type[String] <:< Type[AnyRef]`  | whether the left type is a subtype of the right one |
-| `Type.isSameAs[Int, Int]`              | `Type[Int] =:= Type[Int]`        | whether types are equal                             |
+| Companion method                   | Extension method                | Description                                         |
+|------------------------------------|---------------------------------|-----------------------------------------------------|
+| `Type.isSubtypeOf[String, AnyRef]` | `Type[String] <:< Type[AnyRef]` | whether the left type is a subtype of the right one |
+| `Type.isSameAs[Int, Int]`          | `Type[Int] =:= Type[Int]`       | whether types are equal                             |
 
 **Metadata and navigation**:
 
-| Companion method                     | Extension method                     | Result type                                       | Description                      |
-|--------------------------------------|--------------------------------------|---------------------------------------------------|----------------------------------|
-| `Type.position[MyClass]`             | `Type[MyClass].position`             | `Option[Position]`                                | where type is defined            |
-| `Type.companionObject[MyClass]`      | `Type[MyClass].companionObject`      | `Option[Expr_??]`                                 | companion object if exists       |
-| `Type.pseudoCompanionObject[MyType]` | `Type[MyType].pseudoCompanionObject` | `Option[Expr_??]`                                 | companion or newtype's object (2)|
-| `Type.annotations[MyClass]`          | `Type[MyClass].annotations`          | `List[Expr_??]`                                   | type annotations                 |
-| `Type.parents[MyClass]`              | `Type[MyClass].parents`              | `List[??]`                                        | direct parent types              |
-| `Type.baseClasses[MyClass]`          | `Type[MyClass].baseClasses`          | `List[??]`                                        | all ancestors (linearization)    |
-| `Type.directChildren[MyClass]`       | `Type[MyClass].directChildren`       | `Option[ListMap[String, ??<:[MyClass]]]`          | immediate subtypes (1)           |
-| `Type.exhaustiveChildren[MyClass]`   | `Type[MyClass].exhaustiveChildren`   | `Option[NonEmptyMap[String, ??<:[MyClass]]]`      | all subtypes (1)                 |
+| Companion method                     | Extension method                     | Result type                                  | Description                       |
+|--------------------------------------|--------------------------------------|----------------------------------------------|-----------------------------------|
+| `Type.position[MyClass]`             | `Type[MyClass].position`             | `Option[Position]`                           | where type is defined             |
+| `Type.companionObject[MyClass]`      | `Type[MyClass].companionObject`      | `Option[Expr_??]`                            | companion object if exists        |
+| `Type.pseudoCompanionObject[MyType]` | `Type[MyType].pseudoCompanionObject` | `Option[Expr_??]`                            | companion or newtype's object (2) |
+| `Type.annotations[MyClass]`          | `Type[MyClass].annotations`          | `List[Expr_??]`                              | type annotations                  |
+| `Type.parents[MyClass]`              | `Type[MyClass].parents`              | `List[??]`                                   | direct parent types               |
+| `Type.baseClasses[MyClass]`          | `Type[MyClass].baseClasses`          | `List[??]`                                   | all ancestors (linearization)     |
+| `Type.directChildren[MyClass]`       | `Type[MyClass].directChildren`       | `Option[ListMap[String, ??<:[MyClass]]]`     | immediate subtypes (1)            |
+| `Type.exhaustiveChildren[MyClass]`   | `Type[MyClass].exhaustiveChildren`   | `Option[NonEmptyMap[String, ??<:[MyClass]]]` | all subtypes (1)                  |
 
 1. `directChildren` and `exhaustiveChildren` work for sealed traits, Scala 3 enums, Java enums, and
    **disjoint union types** (Scala 3 only). For union types like `String | Int`, the flattened members
@@ -624,12 +624,12 @@ might be necessary).
 
 **Printing and display**:
 
-| Companion method          | Extension method  | Example result               | Description                          |
-|---------------------------|-------------------|------------------------------|--------------------------------------|
-| `Expr.plainPrint(expr)`   | `expr.plainPrint` | `"42"`                       | code representation without colors   |
-| `Expr.prettyPrint(expr)`  | `expr.prettyPrint`| `"42"`                       | colored code representation          |
-| `Expr.plainAST(expr)`     | `expr.plainAST`   | `"Literal(IntConstant(42))"` | AST representation without colors    |
-| `Expr.prettyAST(expr)`    | `expr.prettyAST`  | `"Literal(IntConstant(42))"` | colored AST representation           |
+| Companion method         | Extension method   | Example result               | Description                        |
+|--------------------------|--------------------|------------------------------|------------------------------------|
+| `Expr.plainPrint(expr)`  | `expr.plainPrint`  | `"42"`                       | code representation without colors |
+| `Expr.prettyPrint(expr)` | `expr.prettyPrint` | `"42"`                       | colored code representation        |
+| `Expr.plainAST(expr)`    | `expr.plainAST`    | `"Literal(IntConstant(42))"` | AST representation without colors  |
+| `Expr.prettyAST(expr)`   | `expr.prettyAST`   | `"Literal(IntConstant(42))"` | colored AST representation         |
 
 **Summoning implicits**:
 
@@ -644,16 +644,16 @@ It can be used to e.g. prevent the macro from summoning itself, so that recursio
 
 **`Expr` operations**:
 
-| Companion method                          | Extension method            | Result type                         | Description                                                                                              |
-|-------------------------------------------|-----------------------------|-------------------------------------|----------------------------------------------------------------------------------------------------------|
-| `Expr.upcast[String, AnyRef](stringExpr)` | `stringExpr.upcast[AnyRef]` | `Expr[...]`                         | safe upcast to a supertype                                                                               |
-| `Expr.suppressUnused[A](expr)`            | `expr.suppressUnused`       | `Expr[Unit]`                        | prevents "unused value" warnings                                                                         |
-| `Expr.singletonOf[A]`                     | —                           | `Option[Expr[A]]`                   | returns singleton reference if `A` is a case object, Java enum value, or Scala 3 parameterless enum case |
-| `Expr.semiEval[A](expr)`                  | `expr.semiEval`             | `Either[String, A]`                 | reconstructs a runtime value from expression AST using reflection                                        |
-| `Expr.semiEval[A](expr, overrides)`       | `expr.semiEval(overrides)`  | `Either[String, A]`                 | like `semiEval` but with custom per-type evaluation dispatch via `EvalOverride`                           |
-| `Expr.semiQuote[A](value)`                | —                           | `Either[String, Expr[A]]`           | converts a runtime value to an expression tree (inverse of `semiEval`)                                   |
-| `Expr.semiQuote[A](value, overrides)`     | —                           | `Either[String, Expr[A]]`           | like `semiQuote` but with custom per-type quoting dispatch via `QuoteOverride`                            |
-| `Expr.typeOf[A](expr)`                    | `expr.tpe`                  | `Type[A]`                           | extracts the compiler-inferred type of an expression                                                     |
+| Companion method                          | Extension method            | Result type               | Description                                                                                              |
+|-------------------------------------------|-----------------------------|---------------------------|----------------------------------------------------------------------------------------------------------|
+| `Expr.upcast[String, AnyRef](stringExpr)` | `stringExpr.upcast[AnyRef]` | `Expr[...]`               | safe upcast to a supertype                                                                               |
+| `Expr.suppressUnused[A](expr)`            | `expr.suppressUnused`       | `Expr[Unit]`              | prevents "unused value" warnings                                                                         |
+| `Expr.singletonOf[A]`                     | —                           | `Option[Expr[A]]`         | returns singleton reference if `A` is a case object, Java enum value, or Scala 3 parameterless enum case |
+| `Expr.semiEval[A](expr)`                  | `expr.semiEval`             | `Either[String, A]`       | reconstructs a runtime value from expression AST using reflection                                        |
+| `Expr.semiEval[A](expr, overrides)`       | `expr.semiEval(overrides)`  | `Either[String, A]`       | like `semiEval` but with custom per-type evaluation dispatch via `EvalOverride`                          |
+| `Expr.semiQuote[A](value)`                | —                           | `Either[String, Expr[A]]` | converts a runtime value to an expression tree (inverse of `semiEval`)                                   |
+| `Expr.semiQuote[A](value, overrides)`     | —                           | `Either[String, Expr[A]]` | like `semiQuote` but with custom per-type quoting dispatch via `QuoteOverride`                           |
+| `Expr.typeOf[A](expr)`                    | `expr.tpe`                  | `Type[A]`                 | extracts the compiler-inferred type of an expression                                                     |
 
 !!! warning "Expr.typeOf / expr.tpe returns the compiler-inferred type"
 
@@ -1140,13 +1140,13 @@ Then we would have to build that expression programmatically with `MatchCase`.
 While `MatchCase.typeMatch[A]` generates `case x: A => ...`, `MatchCase.eqValue[A](expr)` matches by value equality
 against a known expression. The generated pattern is optimized where possible:
 
-| Expression kind                              | Generated pattern                      |
-|----------------------------------------------|----------------------------------------|
-| Literal (`Expr(42)`, `Expr("hello")`)        | `case x @ 42 => ...`                   |
-| Case object / module reference               | `case x @ SomeObject => ...`           |
-| Scala 3 parameterless enum case or Java enum | `case x @ EnumValue => ...`            |
-| Other stable reference                       | `case x @ stableRef => ...`            |
-| General expression                           | `case x if x == expr => ...`           |
+| Expression kind                              | Generated pattern            |
+|----------------------------------------------|------------------------------|
+| Literal (`Expr(42)`, `Expr("hello")`)        | `case x @ 42 => ...`         |
+| Case object / module reference               | `case x @ SomeObject => ...` |
+| Scala 3 parameterless enum case or Java enum | `case x @ EnumValue => ...`  |
+| Other stable reference                       | `case x @ stableRef => ...`  |
+| General expression                           | `case x if x == expr => ...` |
 
 This is useful when matching on enum children: `Enum[A].matchOn` automatically uses `eqValue` for children that
 are values with erased types (Scala 3 parameterless enum cases, Java enum values), where a type-based `typeMatch`
@@ -2022,58 +2022,58 @@ Path-dependent parameter lists are split into separate `NeedsValues` entries at 
 
 We should just call one of the methods on `Method` or `Type[A]`, depending on which kind of method we need.
 
-| Companion method                     | Extension method                   | Result type       | Description                           |
-|--------------------------------------|------------------------------------|-------------------|---------------------------------------|
-| `Method.primaryConstructor[MyClass]` | `Type[MyClass].primaryConstructor` | `Option[Method]`  | primary constructor                   |
-| `Method.defaultConstructor[MyClass]` | `Type[MyClass].defaultConstructor` | `Option[Method]`  | nullary constructor                   |
-| `Method.constructors[MyClass]`       | `Type[MyClass].constructors`       | `List[Method]`    | all constructors                      |
-| `Method.methods[MyClass]`            | `Type[MyClass].methods`            | `List[Method]`    | instance and companion object methods |
+| Companion method                     | Extension method                   | Result type      | Description                           |
+|--------------------------------------|------------------------------------|------------------|---------------------------------------|
+| `Method.primaryConstructor[MyClass]` | `Type[MyClass].primaryConstructor` | `Option[Method]` | primary constructor                   |
+| `Method.defaultConstructor[MyClass]` | `Type[MyClass].defaultConstructor` | `Option[Method]` | nullary constructor                   |
+| `Method.constructors[MyClass]`       | `Type[MyClass].constructors`       | `List[Method]`   | all constructors                      |
+| `Method.methods[MyClass]`            | `Type[MyClass].methods`            | `List[Method]`   | instance and companion object methods |
 
 ### `Method` Operations
 
 **Metadata**:
 
-| Method                    | Result type              | Description                                     |
-|---------------------------|--------------------------|------------------------------------------------|
-| `method.name`             | `String`                 | method name                                     |
-| `method.position`         | `Option[Position]`       | source location                                 |
-| `method.annotations`      | `List[Expr_??]`          | method annotations                              |
-| `method.totalParameters`  | `Parameters`             | all value parameters across the full chain      |
-| `method.parameters`       | `Parameters`             | this step's value parameters only               |
-| `method.expectations`     | `List[MethodExpectation]`| pre-parsed step structure                       |
-| `method.knownReturning`   | `Option[??]`             | terminal return type (if known)                 |
-| `method.plainPrint`       | `String`                 | full method signature (no ANSI)                 |
-| `method.prettyPrint`      | `String`                 | full method signature (ANSI-colored)            |
-| `method.toString`         | `String`                 | `plainPrint` + applied state (if partially applied) |
+| Method                   | Result type               | Description                                         |
+|--------------------------|---------------------------|-----------------------------------------------------|
+| `method.name`            | `String`                  | method name                                         |
+| `method.position`        | `Option[Position]`        | source location                                     |
+| `method.annotations`     | `List[Expr_??]`           | method annotations                                  |
+| `method.totalParameters` | `Parameters`              | all value parameters across the full chain          |
+| `method.parameters`      | `Parameters`              | this step's value parameters only                   |
+| `method.expectations`    | `List[MethodExpectation]` | pre-parsed step structure                           |
+| `method.knownReturning`  | `Option[??]`              | terminal return type (if known)                     |
+| `method.plainPrint`      | `String`                  | full method signature (no ANSI)                     |
+| `method.prettyPrint`     | `String`                  | full method signature (ANSI-colored)                |
+| `method.toString`        | `String`                  | `plainPrint` + applied state (if partially applied) |
 
 **Predicates**:
 
-| Method                           | Description                         |
-|----------------------------------|-------------------------------------|
-|                                  | **Kind checks**                     |
-| `method.isConstructor`           | `true` for constructors             |
-| `method.isVal`                   | `true` for `val` member             |
-| `method.isVar`                   | `true` for `var` member             |
-| `method.isLazy`                  | `true` for `lazy val`               |
-| `method.isDef`                   | `true` for `def` method             |
-| `method.isImplicit`              | `true` for `implicit` `def`/`val`   |
-|                                  | **Source info**                     |
-| `method.isDeclared`              | `true` if declared in this `class`  |
-| `method.isSynthetic`             | `true` if compiler-generated        |
-| `method.isInherited`             | `true` if inherited from parent     |
-| `method.isCaseField`             | `true` if `case class` field        |
-| `method.isConstructorArgument`   | `true` if constructor parameter     |
-|                                  | **Modifiers**                       |
-| `method.isFinal`                 | `true` for `final` methods          |
-| `method.isAbstract`              | `true` for abstract/deferred methods|
-| `method.isOverride`              | `true` for methods with `override`  |
-|                                  | **Visibility**                      |
-| `method.isPrivate`               | `true` if strictly private (not `private[pkg]`) |
-| `method.isProtected`             | `true` if strictly protected (not `protected[pkg]`) |
-| `method.privateWithin`           | `Some("pkg")` for `private[pkg]`, `None` otherwise |
+| Method                           | Description                                          |
+|----------------------------------|------------------------------------------------------|
+|                                  | **Kind checks**                                      |
+| `method.isConstructor`           | `true` for constructors                              |
+| `method.isVal`                   | `true` for `val` member                              |
+| `method.isVar`                   | `true` for `var` member                              |
+| `method.isLazy`                  | `true` for `lazy val`                                |
+| `method.isDef`                   | `true` for `def` method                              |
+| `method.isImplicit`              | `true` for `implicit` `def`/`val`                    |
+|                                  | **Source info**                                      |
+| `method.isDeclared`              | `true` if declared in this `class`                   |
+| `method.isSynthetic`             | `true` if compiler-generated                         |
+| `method.isInherited`             | `true` if inherited from parent                      |
+| `method.isCaseField`             | `true` if `case class` field                         |
+| `method.isConstructorArgument`   | `true` if constructor parameter                      |
+|                                  | **Modifiers**                                        |
+| `method.isFinal`                 | `true` for `final` methods                           |
+| `method.isAbstract`              | `true` for abstract/deferred methods                 |
+| `method.isOverride`              | `true` for methods with `override`                   |
+|                                  | **Visibility**                                       |
+| `method.isPrivate`               | `true` if strictly private (not `private[pkg]`)      |
+| `method.isProtected`             | `true` if strictly protected (not `protected[pkg]`)  |
+| `method.privateWithin`           | `Some("pkg")` for `private[pkg]`, `None` otherwise   |
 | `method.protectedWithin`         | `Some("pkg")` for `protected[pkg]`, `None` otherwise |
-| `method.isAvailable(Everywhere)` | `true` for public methods           |
-| `method.isAvailable(AtCallSite)` | `true` if accessible from call site |
+| `method.isAvailable(Everywhere)` | `true` for public methods                            |
+| `method.isAvailable(AtCallSite)` | `true` if accessible from call site                  |
 
 **Arity**:
 
@@ -2087,19 +2087,19 @@ We should just call one of the methods on `Method` or `Type[A]`, depending on wh
 
 **Accessors (getters/setters)**:
 
-| Method                      | Result type       | Description                                       |
-|-----------------------------|-------------------|---------------------------------------------------|
-|                             |                   | **Scala-style accessors**                         |
-| `method.isScalaGetter`      | `Boolean`         | `true` for val, var, lazy val (without `_=`)      |
-| `method.isScalaSetter`      | `Boolean`         | `true` for var setter (`name_=`)                  |
-| `method.scalaAccessorName`  | `Option[String]`  | field name if Scala accessor                      |
-|                             |                   | **Java Bean accessors**                           |
-| `method.isJavaGetter`       | `Boolean`         | `true` for `getX()` → X, `isX()` → Boolean        |
-| `method.isJavaSetter`       | `Boolean`         | `true` for `setX(v)` → Unit                       |
-| `method.javaAccessorName`   | `Option[String]`  | property name if Java Bean accessor               |
-|                             |                   | **Combined**                                      |
-| `method.isAccessor`         | `Boolean`         | `true` for any accessor (Scala or Java)           |
-| `method.accessorName`       | `Option[String]`  | property name (tries both Scala and Java styles)  |
+| Method                     | Result type      | Description                                      |
+|----------------------------|------------------|--------------------------------------------------|
+|                            |                  | **Scala-style accessors**                        |
+| `method.isScalaGetter`     | `Boolean`        | `true` for val, var, lazy val (without `_=`)     |
+| `method.isScalaSetter`     | `Boolean`        | `true` for var setter (`name_=`)                 |
+| `method.scalaAccessorName` | `Option[String]` | field name if Scala accessor                     |
+|                            |                  | **Java Bean accessors**                          |
+| `method.isJavaGetter`      | `Boolean`        | `true` for `getX()` → X, `isX()` → Boolean       |
+| `method.isJavaSetter`      | `Boolean`        | `true` for `setX(v)` → Unit                      |
+| `method.javaAccessorName`  | `Option[String]` | property name if Java Bean accessor              |
+|                            |                  | **Combined**                                     |
+| `method.isAccessor`        | `Boolean`        | `true` for any accessor (Scala or Java)          |
+| `method.accessorName`      | `Option[String]` | property name (tries both Scala and Java styles) |
 
 ### Pattern Matching on `Method`s
 
@@ -2286,17 +2286,17 @@ The format is `$signature (on $expr, applied [...](...)..., returning $type)` wh
 
 **Parameter** - represents a method's parameter:
 
-| Property               | Result type                      | Description                  |
-|------------------------|----------------------------------|------------------------------|
-| `param.name`           | `String`                         | parameter name               |
-| `param.index`          | `Int`                            | parameter position           |
-| `param.position`       | `Option[Position]`               | source location              |
-| `param.tpe`            | `??`                             | the parameter type           |
-| `param.hasDefault`     | `Boolean`                        | has default value?           |
-| `param.defaultValue`   | `Option[Method]`                 | default value's getter       |
-| `param.annotations`    | `List[Expr_??]`                  | parameter annotations        |
-| `param.isByName`       | `Boolean`                        | by-name parameter?           |
-| `param.isImplicit`     | `Boolean`                        | implicit parameter?          |
+| Property             | Result type        | Description            |
+|----------------------|--------------------|------------------------|
+| `param.name`         | `String`           | parameter name         |
+| `param.index`        | `Int`              | parameter position     |
+| `param.position`     | `Option[Position]` | source location        |
+| `param.tpe`          | `??`               | the parameter type     |
+| `param.hasDefault`   | `Boolean`          | has default value?     |
+| `param.defaultValue` | `Option[Method]`   | default value's getter |
+| `param.annotations`  | `List[Expr_??]`    | parameter annotations  |
+| `param.isByName`     | `Boolean`          | by-name parameter?     |
+| `param.isImplicit`   | `Boolean`          | implicit parameter?    |
 
 **Parameters** - all parameters of a method, grouped by its parameter lists:
 
@@ -2708,20 +2708,20 @@ inlined body). Constructor calls (`new Foo(args)`) are parsed as `MethodCall` wi
 
 ### Node Types
 
-| Node                   | Description                                             | Key fields                                                      |
-|------------------------|---------------------------------------------------------|-----------------------------------------------------------------|
-| `MethodCall`           | A resolved method/field call                            | `method: Method`, `applied: List[Applied]`                      |
-| `Lambda`               | A lambda expression                                     | `params: List[Lambda.Param]`, `body: DestructuredExpr`          |
-| `Lambda.ParamRef`      | Reference to a lambda parameter                         | `param: Lambda.Param`                                           |
-| `Literal`              | A constant value: `42`, `"hello"`, `true`, `null`       | `value: Any`                                                    |
-| `Singleton`            | A module/companion reference: `None`, `Nil`             | `name: String`                                                  |
-| `Block`                | A block: `{ stmt1; stmt2; result }`                     | `statements: List[DestructuredExpr]`, `result: DestructuredExpr`|
-| `ValDefinition`        | A `val`/`var`/`lazy val` statement of a block           | `binding: LocalBinding`, `rhs: DestructuredExpr`                |
-| `LocalReference`       | Reference to a local `val`/`var`/`lazy val`             | `binding: LocalBinding`                                         |
-| `Import`               | An `import` statement of a block                        | `qualifier: DestructuredExpr`, `selectors: List[String]`        |
-| `LocalDefinition`      | A local `def`/`class`/`trait`/`object`/`type` statement | `kind: String`, `name: String`                                  |
-| `Varargs`              | Individual elements passed to a vararg parameter        | `elements: List[DestructuredExpr]`                              |
-| `NonDestructurable`    | Smallest unresolvable sub-expression                    | `raw: UntypedExpr`, `description: String`                       |
+| Node                | Description                                             | Key fields                                                       |
+|---------------------|---------------------------------------------------------|------------------------------------------------------------------|
+| `MethodCall`        | A resolved method/field call                            | `method: Method`, `applied: List[Applied]`                       |
+| `Lambda`            | A lambda expression                                     | `params: List[Lambda.Param]`, `body: DestructuredExpr`           |
+| `Lambda.ParamRef`   | Reference to a lambda parameter                         | `param: Lambda.Param`                                            |
+| `Literal`           | A constant value: `42`, `"hello"`, `true`, `null`       | `value: Any`                                                     |
+| `Singleton`         | A module/companion reference: `None`, `Nil`             | `name: String`                                                   |
+| `Block`             | A block: `{ stmt1; stmt2; result }`                     | `statements: List[DestructuredExpr]`, `result: DestructuredExpr` |
+| `ValDefinition`     | A `val`/`var`/`lazy val` statement of a block           | `binding: LocalBinding`, `rhs: DestructuredExpr`                 |
+| `LocalReference`    | Reference to a local `val`/`var`/`lazy val`             | `binding: LocalBinding`                                          |
+| `Import`            | An `import` statement of a block                        | `qualifier: DestructuredExpr`, `selectors: List[String]`         |
+| `LocalDefinition`   | A local `def`/`class`/`trait`/`object`/`type` statement | `kind: String`, `name: String`                                   |
+| `Varargs`           | Individual elements passed to a vararg parameter        | `elements: List[DestructuredExpr]`                               |
+| `NonDestructurable` | Smallest unresolvable sub-expression                    | `raw: UntypedExpr`, `description: String`                        |
 
 Every node carries `tpe: ??` (existential type), `toUntypedExpr: UntypedExpr` for reconstruction of the
 original tree, and `position: Option[Position]` for reporting errors at the offending sub-expression.
@@ -2731,11 +2731,11 @@ original tree, and `position: Option[Position]` for reporting errors at the offe
 The `MethodCall` node holds a resolved `Method` and its `applied` list mirrors `method.expectations` — each entry
 maps to one step of the builder chain:
 
-| Applied variant        | Maps to              | Contains                                  |
-|------------------------|----------------------|-------------------------------------------|
-| `AppliedInstance`      | `Method.OnInstance`  | `value: DestructuredExpr` (the receiver)  |
-| `AppliedTypes`         | `Method.ApplyTypes`  | `typeArgs: List[??]`                      |
-| `AppliedValues`        | `Method.ApplyValues` | `args: List[DestructuredExpr]`            |
+| Applied variant   | Maps to              | Contains                                 |
+|-------------------|----------------------|------------------------------------------|
+| `AppliedInstance` | `Method.OnInstance`  | `value: DestructuredExpr` (the receiver) |
+| `AppliedTypes`    | `Method.ApplyTypes`  | `typeArgs: List[??]`                     |
+| `AppliedValues`   | `Method.ApplyValues` | `args: List[DestructuredExpr]`           |
 
 For `_.address.street`, the tree is:
 
@@ -2929,21 +2929,21 @@ But what if:
 
 Then we would have to work with `Class[A]`, a convenient utility that aggregates information about a type:
 
-| Method              | Result type                        | Description                         |
-|---------------------|------------------------------------|-------------------------------------|
-| `cls.constructors`  | `List[Method]`                     | all constructors                    |
-| `cls.methods`       | `List[Method]`                     | all methods                         |
-| `cls.method("foo")` | `List[Method]`                     | all overloads named "foo"           |
+| Method              | Result type    | Description               |
+|---------------------|----------------|---------------------------|
+| `cls.constructors`  | `List[Method]` | all constructors          |
+| `cls.methods`       | `List[Method]` | all methods               |
+| `cls.method("foo")` | `List[Method]` | all overloads named "foo" |
 
 `Class` also provides specialized views when applicable:
 
-| Method            | Result type                          | Description                       |
-|-------------------|--------------------------------------|-----------------------------------|
-| `cls.asSingleton` | `Option[SingletonValue[MyClass]]`    | singleton view if applicable      |
-| `cls.asNamedTuple`| `Option[NamedTuple[MyClass]]`        | named tuple view if applicable    |
-| `cls.asCaseClass` | `Option[CaseClass[MyClass]]`         | case class view if applicable     |
-| `cls.asEnum`      | `Option[Enum[MyClass]]`              | enum view if applicable           |
-| `cls.asJavaBean`  | `Option[JavaBean[MyClass]]`          | Java Bean view if applicable      |
+| Method             | Result type                       | Description                    |
+|--------------------|-----------------------------------|--------------------------------|
+| `cls.asSingleton`  | `Option[SingletonValue[MyClass]]` | singleton view if applicable   |
+| `cls.asNamedTuple` | `Option[NamedTuple[MyClass]]`     | named tuple view if applicable |
+| `cls.asCaseClass`  | `Option[CaseClass[MyClass]]`      | case class view if applicable  |
+| `cls.asEnum`       | `Option[Enum[MyClass]]`           | enum view if applicable        |
+| `cls.asJavaBean`   | `Option[JavaBean[MyClass]]`       | Java Bean view if applicable   |
 
 These utilities are built on top of `Type` and `Method` - you could implement similar functionality yourself, but they provide convenient shortcuts.
 
@@ -2952,9 +2952,9 @@ These utilities are built on top of `Type` and `Method` - you could implement si
 Specialized view for singleton types: case objects, parameterless Scala 3 enum cases, normal objects, Java enum values,
 or Scala Enumeration values:
 
-| Method                     | Result type                          | Description                   |
-|----------------------------|--------------------------------------|-------------------------------|
-| `sv.singletonExpr`        | `Expr[MyObject.type]`               | expression referencing the singleton |
+| Method             | Result type           | Description                          |
+|--------------------|-----------------------|--------------------------------------|
+| `sv.singletonExpr` | `Expr[MyObject.type]` | expression referencing the singleton |
 
 !!! example "Detecting singleton types"
 
@@ -3046,10 +3046,10 @@ or Scala Enumeration values:
 
 Specialized view for named tuples (Scala 3.7+ only), providing access to fields and construction:
 
-| Method                     | Result type                          | Description                   |
-|----------------------------|--------------------------------------|-------------------------------|
-| `nt.primaryConstructor`   | `Method`                             | primary constructor           |
-| `nt.fields`               | `List[(String, ??)]`                 | field names and types         |
+| Method                  | Result type          | Description           |
+|-------------------------|----------------------|-----------------------|
+| `nt.primaryConstructor` | `Method`             | primary constructor   |
+| `nt.fields`             | `List[(String, ??)]` | field names and types |
 
 !!! example "Inspecting named tuple fields"
 
@@ -3111,12 +3111,12 @@ Specialized view for named tuples (Scala 3.7+ only), providing access to fields 
 
 Specialized view for case classes, providing access to primary constructor and case fields:
 
-| Method                     | Result type                          | Description                   |
-|----------------------------|--------------------------------------|-------------------------------|
-| `cc.primaryConstructor`    | `Method`                             | primary constructor           |
-| `cc.nonPrimaryConstructors`| `List[Method]`                       | other constructors            |
-| `cc.caseFields`            | `List[Method]`                       | case class fields             |
-| `cc.copyMethod()`          | `Option[Method.OnInstance.Of[A]]`    | canonical `copy` method       |
+| Method                      | Result type                       | Description             |
+|-----------------------------|-----------------------------------|-------------------------|
+| `cc.primaryConstructor`     | `Method`                          | primary constructor     |
+| `cc.nonPrimaryConstructors` | `List[Method]`                    | other constructors      |
+| `cc.caseFields`             | `List[Method]`                    | case class fields       |
+| `cc.copyMethod()`           | `Option[Method.OnInstance.Of[A]]` | canonical `copy` method |
 
 !!! tip "`cc.copyMethod()` for updating case class instances"
 
@@ -3341,10 +3341,10 @@ Specialized view for case classes, providing access to primary constructor and c
 
 Specialized view for sealed traits, Scala 3 enums, Java enums, or disjoint union types (Scala 3 only):
 
-| Method                      | Result type                                | Description                |
-|-----------------------------|--------------------------------------------|----------------------------|
-| `enumm.directChildren`      | `ListMap[String, ??<:[Color]]`             | immediate subtypes         |
-| `enumm.exhaustiveChildren`  | `Option[NonEmptyMap[String, ??<:[Color]]]` | all subtypes               |
+| Method                     | Result type                                | Description        |
+|----------------------------|--------------------------------------------|--------------------|
+| `enumm.directChildren`     | `ListMap[String, ??<:[Color]]`             | immediate subtypes |
+| `enumm.exhaustiveChildren` | `Option[NonEmptyMap[String, ??<:[Color]]]` | all subtypes       |
 
 !!! example "Pattern matching on sealed trait/enum values"
 
@@ -3486,20 +3486,20 @@ distinguished at runtime via pattern matching. Class-tested members must have un
 (literal types, case objects, parameterless Scala 3 enum cases) are matched by value and are exempt
 from the runtime-class requirement:
 
-| Union type              | `directChildren`           | Reason                                    |
-|-------------------------|----------------------------|-------------------------------------------|
-| `String \| Int`         | `Some(String, Int)`        | unrelated runtime classes                 |
-| `Boolean \| Double`     | `Some(Boolean, Double)`    | unrelated runtime classes                 |
-| `String \| Int \| Boolean` | `Some(String, Int, Boolean)` | nested unions are flattened           |
-| `Color.Red.type \| Color.Blue.type` | `Some(Red, Blue)` | singletons are matched by value      |
-| `Color.Red.type \| String` | `Some(Red, String)`     | singleton + unrelated class               |
-| `String \| AnyRef`      | `None`                     | subtype overlap (`String <:< AnyRef`)     |
-| `List[Int] \| List[String]` | `None`                | same runtime class (both are `List`)      |
-| `List[Int] \| Seq[String]` | `None`                  | related runtime classes (`List <: Seq`)   |
-| `Int \| java.lang.Integer` | `None`                  | same runtime class after boxing           |
-| `Nothing \| String`     | `None`                     | `Nothing` filtered out, leaving 1 member  |
-| `String \| String`      | `None`                     | duplicate, leaving 1 member               |
-| `OpaqueId \| String`    | `None`                     | opaque types have unknown runtime class   |
+| Union type                          | `directChildren`             | Reason                                   |
+|-------------------------------------|------------------------------|------------------------------------------|
+| `String \| Int`                     | `Some(String, Int)`          | unrelated runtime classes                |
+| `Boolean \| Double`                 | `Some(Boolean, Double)`      | unrelated runtime classes                |
+| `String \| Int \| Boolean`          | `Some(String, Int, Boolean)` | nested unions are flattened              |
+| `Color.Red.type \| Color.Blue.type` | `Some(Red, Blue)`            | singletons are matched by value          |
+| `Color.Red.type \| String`          | `Some(Red, String)`          | singleton + unrelated class              |
+| `String \| AnyRef`                  | `None`                       | subtype overlap (`String <:< AnyRef`)    |
+| `List[Int] \| List[String]`         | `None`                       | same runtime class (both are `List`)     |
+| `List[Int] \| Seq[String]`          | `None`                       | related runtime classes (`List <: Seq`)  |
+| `Int \| java.lang.Integer`          | `None`                       | same runtime class after boxing          |
+| `Nothing \| String`                 | `None`                       | `Nothing` filtered out, leaving 1 member |
+| `String \| String`                  | `None`                       | duplicate, leaving 1 member              |
+| `OpaqueId \| String`                | `None`                       | opaque types have unknown runtime class  |
 
 On Scala 2, `isUnionType` always returns `false` and `directChildren` is not affected.
 
@@ -3563,11 +3563,11 @@ On Scala 2, `isUnionType` always returns `false` and `directChildren` is not aff
 
 Specialized view for Java Beans (POJOs with default constructor and setters):
 
-| Method                      | Result type                                       | Description                |
-|-----------------------------|---------------------------------------------------|----------------------------|
-| `bean.defaultConstructor`   | `Method`                                          | nullary constructor        |
-| `bean.beanGetters`          | `List[Method]`                                    | getter methods             |
-| `bean.beanSetters`          | `List[Method]`                                    | setter methods             |
+| Method                    | Result type    | Description         |
+|---------------------------|----------------|---------------------|
+| `bean.defaultConstructor` | `Method`       | nullary constructor |
+| `bean.beanGetters`        | `List[Method]` | getter methods      |
+| `bean.beanSetters`        | `List[Method]` | setter methods      |
 
 !!! example "Constructing JavaBean without setters"
 
@@ -3805,24 +3805,24 @@ Use cases include mockito-style mocking and compile-time proxy generation.
 
 **Parsing:**
 
-| Method                                              | Result type                                | Description                       |
-|-----------------------------------------------------|--------------------------------------------|-----------------------------------|
-| `AnonymousInstance.parse[A]`                         | `ClassViewResult[AnonymousInstance[A]]`     | single parent type                |
-| `AnonymousInstance.parseWithMixins[A](mixins)`       | `ClassViewResult[AnonymousInstance[A]]`     | with additional trait mixins      |
+| Method                                         | Result type                             | Description                  |
+|------------------------------------------------|-----------------------------------------|------------------------------|
+| `AnonymousInstance.parse[A]`                   | `ClassViewResult[AnonymousInstance[A]]` | single parent type           |
+| `AnonymousInstance.parseWithMixins[A](mixins)` | `ClassViewResult[AnonymousInstance[A]]` | with additional trait mixins |
 
 Rejects: `final` types, `sealed` types, inaccessible types, types with inaccessible constructors,
 more than one class parent.
 
 **Method classification:**
 
-| Field                  | Type                       | Description                                |
-|------------------------|----------------------------|--------------------------------------------|
-| `ai.mustOverride`      | `List[ClassifiedMethod]`   | abstract methods (must be overridden)      |
-| `ai.mayOverride`       | `List[ClassifiedMethod]`   | concrete non-final methods (can override)  |
-| `ai.cannotOverride`    | `List[ClassifiedMethod]`   | `final` methods (cannot override)          |
-| `ai.diamondConflicts`  | `List[ClassifiedMethod]`   | conflicting implementations from parents   |
-| `ai.classParent`       | `Option[(??, List[Method])]` | class parent type + accessible constructors |
-| `ai.traitParents`      | `List[??]`                 | trait parent types                         |
+| Field                 | Type                         | Description                                 |
+|-----------------------|------------------------------|---------------------------------------------|
+| `ai.mustOverride`     | `List[ClassifiedMethod]`     | abstract methods (must be overridden)       |
+| `ai.mayOverride`      | `List[ClassifiedMethod]`     | concrete non-final methods (can override)   |
+| `ai.cannotOverride`   | `List[ClassifiedMethod]`     | `final` methods (cannot override)           |
+| `ai.diamondConflicts` | `List[ClassifiedMethod]`     | conflicting implementations from parents    |
+| `ai.classParent`      | `Option[(??, List[Method])]` | class parent type + accessible constructors |
+| `ai.traitParents`     | `List[??]`                   | trait parent types                          |
 
 **Construction:**
 
@@ -3850,15 +3850,15 @@ Errors are accumulated (multiple missing overrides, conflicting methods) and ret
 
 Represents a source code location (corresponds to `c.universe.Position` on Scala 2, `quotes.reflect.Position` on Scala 3):
 
-| Property / Method       | Result type                      | Example result                           | Description                                |
-|-------------------------|----------------------------------|------------------------------------------|--------------------------------------------|
-| `pos.file`              | `Option[java.nio.file.Path]`     |                                          | source file path                           |
-| `pos.fileName`          | `Option[String]`                 |                                          | file name only (no path)                   |
-| `pos.line`              | `Int`                            |                                          | line number                                |
-| `pos.column`            | `Int`                            |                                          | column number                              |
-| `pos.offset`            | `Int`                            |                                          | character offset from file start           |
-| `pos.prettyPrint`       | `String`                         | `"MyFile.scala:42:10"`                   | short format with filename                 |
-| `pos.prettyPrintLong`   | `String`                         | `"/full/path/to/MyFile.scala:42:10"`     | full path format                           |
+| Property / Method     | Result type                  | Example result                       | Description                      |
+|-----------------------|------------------------------|--------------------------------------|----------------------------------|
+| `pos.file`            | `Option[java.nio.file.Path]` |                                      | source file path                 |
+| `pos.fileName`        | `Option[String]`             |                                      | file name only (no path)         |
+| `pos.line`            | `Int`                        |                                      | line number                      |
+| `pos.column`          | `Int`                        |                                      | column number                    |
+| `pos.offset`          | `Int`                        |                                      | character offset from file start |
+| `pos.prettyPrint`     | `String`                     | `"MyFile.scala:42:10"`               | short format with filename       |
+| `pos.prettyPrintLong` | `String`                     | `"/full/path/to/MyFile.scala:42:10"` | full path format                 |
 
 Positions can be compared and sorted:
 
@@ -3988,18 +3988,18 @@ It has utilities:
 
 ### Current Compilation Context
 
-| Property / Method                      | Result type         | Description                                    |
-|----------------------------------------|---------------------|------------------------------------------------|
-| `Environment.currentPosition`          | `Position`          | where macro is expanded                        |
-| `Environment.currentScalaVersion`      | `ScalaVersion`      | e.g. `2.13.10`, `3.3.0`                        |
-| `Environment.currentLanguageVersion`   | `LanguageVersion`   | `Scala2_13` or `Scala3`                        |
-| `Environment.isScala2_13`              | `Boolean`           | whether running under Scala 2.13               |
-| `Environment.isScala3`                 | `Boolean`           | whether running under Scala 3                  |
-| `Environment.currentJDKVersion`        | `JDKVersion`        | runtime JDK version                            |
-| `Environment.currentPlatform`          | `Platform`          | `JVM`, `JS`, or `Native`                       |
-| `Environment.isJvm`                    | `Boolean`           | whether running on JVM                         |
-| `Environment.isJs`                     | `Boolean`           | whether running on Scala.js                    |
-| `Environment.isNative`                 | `Boolean`           | whether running on Scala Native                |
+| Property / Method                    | Result type       | Description                      |
+|--------------------------------------|-------------------|----------------------------------|
+| `Environment.currentPosition`        | `Position`        | where macro is expanded          |
+| `Environment.currentScalaVersion`    | `ScalaVersion`    | e.g. `2.13.10`, `3.3.0`          |
+| `Environment.currentLanguageVersion` | `LanguageVersion` | `Scala2_13` or `Scala3`          |
+| `Environment.isScala2_13`            | `Boolean`         | whether running under Scala 2.13 |
+| `Environment.isScala3`               | `Boolean`         | whether running under Scala 3    |
+| `Environment.currentJDKVersion`      | `JDKVersion`      | runtime JDK version              |
+| `Environment.currentPlatform`        | `Platform`        | `JVM`, `JS`, or `Native`         |
+| `Environment.isJvm`                  | `Boolean`         | whether running on JVM           |
+| `Environment.isJs`                   | `Boolean`         | whether running on Scala.js      |
+| `Environment.isNative`               | `Boolean`         | whether running on Scala Native  |
 
 ### Macro Settings
 
@@ -4023,12 +4023,12 @@ Pass settings to macros via `-Xmacro-settings:key=value`:
 
 Report messages to the user during compilation:
 
-| Method                                 | Result type | Description                                            |
-|----------------------------------------|-------------|--------------------------------------------------------|
-| `Environment.reportInfo(msg)`          | `Unit`      | report informational message                           |
-| `Environment.reportWarn(msg)`          | `Unit`      | report warning message                                 |
-| `Environment.reportError(msg)`         | `Unit`      | report error message                                   |
-| `Environment.reportErrorAndAbort(msg)` | `Nothing`   | report error and abort compilation (throws exception)  |
+| Method                                 | Result type | Description                                           |
+|----------------------------------------|-------------|-------------------------------------------------------|
+| `Environment.reportInfo(msg)`          | `Unit`      | report informational message                          |
+| `Environment.reportWarn(msg)`          | `Unit`      | report warning message                                |
+| `Environment.reportError(msg)`         | `Unit`      | report error message                                  |
+| `Environment.reportErrorAndAbort(msg)` | `Nothing`   | report error and abort compilation (throws exception) |
 
 !!! note "Reporting Behavior"
     For each level (INFO, WARN, ERROR), only **the first** call matters. Subsequent calls at the same level are no-ops.

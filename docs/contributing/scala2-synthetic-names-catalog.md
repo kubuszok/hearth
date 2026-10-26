@@ -10,8 +10,8 @@ Source: `scala.reflect.internal.StdNames` and `scala.tools.nsc.ast.parser.Parser
 
 ### Right-associative operator desugaring
 
-| Prefix | Constant | Example | Source |
-|--------|----------|---------|--------|
+| Prefix    | Constant                | Example                | Source          |
+|-----------|-------------------------|------------------------|-----------------|
 | `rassoc$` | `RIGHT_ASSOC_OP_PREFIX` | `rassoc$1`, `rassoc$2` | `Parsers.scala` |
 
 **When:** `complexExpr :: list` (any right-assoc operator with a non-trivial LHS).
@@ -30,9 +30,9 @@ that break when reparsed (see Kindlings java-enum-codegen issue).
 
 ### Fresh term names (`val _ = ...`, pattern bindings, etc.)
 
-| Prefix | Constant | Example | Source |
-|--------|----------|---------|--------|
-| `x$` | `FRESH_TERM_NAME_PREFIX` / `NAMEDARG_PREFIX` | `x$1`, `x$2` | various |
+| Prefix | Constant                                     | Example      | Source  |
+|--------|----------------------------------------------|--------------|---------|
+| `x$`   | `FRESH_TERM_NAME_PREFIX` / `NAMEDARG_PREFIX` | `x$1`, `x$2` | various |
 
 **When:** `val _ = expr` (wildcard patterns), named arguments, tuple decomposition.
 
@@ -41,8 +41,8 @@ renders as `_` for wildcard patterns. Other uses (named args) keep the name.
 
 ### Evidence parameters (implicit resolution)
 
-| Prefix | Constant | Example | Source |
-|--------|----------|---------|--------|
+| Prefix      | Constant                | Example      | Source |
+|-------------|-------------------------|--------------|--------|
 | `evidence$` | `EVIDENCE_PARAM_PREFIX` | `evidence$1` | Typers |
 
 **When:** Compiler-generated implicit parameters, e.g. `def foo[A: Ordering]` gets
@@ -52,8 +52,8 @@ renders as `_` for wildcard patterns. Other uses (named args) keep the name.
 
 ### Stabilizer vals (stable references)
 
-| Prefix | Constant | Example | Source |
-|--------|----------|---------|--------|
+| Prefix        | Constant            | Example        | Source |
+|---------------|---------------------|----------------|--------|
 | `stabilizer$` | `STABILIZER_PREFIX` | `stabilizer$1` | Typers |
 
 **When:** Compiler creates a stable val to reference a non-stable qualifier, e.g.
@@ -63,8 +63,8 @@ renders as `_` for wildcard patterns. Other uses (named args) keep the name.
 
 ### Qualifier vals
 
-| Prefix | Constant | Example | Source |
-|--------|----------|---------|--------|
+| Prefix  | Constant      | Example  | Source |
+|---------|---------------|----------|--------|
 | `qual$` | `QUAL_PREFIX` | `qual$1` | Typers |
 
 **When:** Compiler-generated qualifier bindings in complex selections.
@@ -73,9 +73,9 @@ renders as `_` for wildcard patterns. Other uses (named args) keep the name.
 
 ### While/do-while loop labels
 
-| Prefix | Constant | Example | Source |
-|--------|----------|---------|--------|
-| `while$` | `WHILE_PREFIX` | `while$1` | LabelDef |
+| Prefix     | Constant          | Example     | Source   |
+|------------|-------------------|-------------|----------|
+| `while$`   | `WHILE_PREFIX`    | `while$1`   | LabelDef |
 | `doWhile$` | `DO_WHILE_PREFIX` | `doWhile$1` | LabelDef |
 
 **When:** `while` and `do-while` loops desugar to `LabelDef` with these names.
@@ -85,8 +85,8 @@ renders as `_` for wildcard patterns. Other uses (named args) keep the name.
 
 ### Bitmap fields (lazy val initialization)
 
-| Prefix | Constant | Example | Source |
-|--------|----------|---------|--------|
+| Prefix    | Constant        | Example    | Source       |
+|-----------|-----------------|------------|--------------|
 | `bitmap$` | `BITMAP_PREFIX` | `bitmap$0` | Fields phase |
 
 **When:** Lazy val initialization tracking fields in classes.
@@ -96,46 +96,46 @@ Filtered by `syntheticToRemove`.
 
 ### Exception result (try-catch)
 
-| Prefix | Constant | Example | Source |
-|--------|----------|---------|--------|
+| Prefix            | Constant                  | Example            | Source              |
+|-------------------|---------------------------|--------------------|---------------------|
 | `exceptionResult` | `EXCEPTION_RESULT_PREFIX` | `exceptionResult1` | (no `$` separator!) |
 
 **When:** Compiler-generated val to hold try-catch result.
 
 ### Lifted tree (eta expansion, etc.)
 
-| Prefix | Constant | Example | Source |
-|--------|----------|---------|--------|
+| Prefix       | Constant      | Example       | Source              |
+|--------------|---------------|---------------|---------------------|
 | `liftedTree` | `LIFTED_TREE` | `liftedTree1` | (no `$` separator!) |
 
 **When:** Trees extracted by the compiler during eta expansion or other transformations.
 
 ### Non-local return key
 
-| Prefix | Constant | Example | Source |
-|--------|----------|---------|--------|
+| Prefix              | Constant                      | Example              | Source              |
+|---------------------|-------------------------------|----------------------|---------------------|
 | `nonLocalReturnKey` | `NON_LOCAL_RETURN_KEY_STRING` | `nonLocalReturnKey1` | (no `$` separator!) |
 
 **When:** `return` from inside a lambda body.
 
 ### Anonymous class/function names
 
-| Name | Constant | Source |
-|------|----------|--------|
-| `$anon` | `ANON_CLASS_NAME` | Anonymous classes |
-| `$anonfun` | `ANON_FUN_NAME` | Anonymous functions |
-| `$lambda` | `DELAMBDAFY_LAMBDA_CLASS_NAME` | Delambdafy phase |
+| Name       | Constant                       | Source              |
+|------------|--------------------------------|---------------------|
+| `$anon`    | `ANON_CLASS_NAME`              | Anonymous classes   |
+| `$anonfun` | `ANON_FUN_NAME`                | Anonymous functions |
+| `$lambda`  | `DELAMBDAFY_LAMBDA_CLASS_NAME` | Delambdafy phase    |
 
 **Rendering strategy:** `showCodePretty` already handles `$anon` via `AnonThis` extractor,
 removing the prefix and printing `new { ... }` style.
 
 ### Protected/super accessor names
 
-| Prefix | Constant | Example |
-|--------|----------|---------|
-| `protected$` | `PROTECTED_PREFIX` | `protected$name` |
+| Prefix          | Constant               | Example             |
+|-----------------|------------------------|---------------------|
+| `protected$`    | `PROTECTED_PREFIX`     | `protected$name`    |
 | `protected$set` | `PROTECTED_SET_PREFIX` | `protected$setName` |
-| `super$` | `SUPER_PREFIX_STRING` | `super$name` |
+| `super$`        | `SUPER_PREFIX_STRING`  | `super$name`        |
 
 **When:** Compiler-generated accessors for protected members accessed from subclasses
 or super calls from traits.
@@ -144,25 +144,25 @@ or super calls from traits.
 
 ### Quasiquote internal names
 
-| Prefix | Constant |
-|--------|----------|
-| `nn$` | `QUASIQUOTE_NAME_PREFIX` |
-| `qq$` | `QUASIQUOTE_PREFIX` |
-| `$quasiquote$case$` | `QUASIQUOTE_CASE` |
-| `$quasiquote$function$` | `QUASIQUOTE_FUNCTION` |
-| `$quasiquote$param$` | `QUASIQUOTE_PARAM` |
-| ... | (several more) |
+| Prefix                  | Constant                 |
+|-------------------------|--------------------------|
+| `nn$`                   | `QUASIQUOTE_NAME_PREFIX` |
+| `qq$`                   | `QUASIQUOTE_PREFIX`      |
+| `$quasiquote$case$`     | `QUASIQUOTE_CASE`        |
+| `$quasiquote$function$` | `QUASIQUOTE_FUNCTION`    |
+| `$quasiquote$param$`    | `QUASIQUOTE_PARAM`       |
+| ...                     | (several more)           |
 
 **When:** Internal names used by the quasiquote machinery.
 These should never appear in user-visible trees.
 
 ### Name suffixes (encoding, not standalone names)
 
-| Suffix | Constant | Meaning |
-|--------|----------|---------|
-| `$` (trailing) | `MODULE_SUFFIX_STRING` | Object/module |
-| ` ` (trailing space) | `LOCAL_SUFFIX_STRING` | Local name |
-| `$lzy` (trailing) | `LAZY_LOCAL_SUFFIX_STRING` | Lazy val local |
+| Suffix               | Constant                   | Meaning        |
+|----------------------|----------------------------|----------------|
+| `$` (trailing)       | `MODULE_SUFFIX_STRING`     | Object/module  |
+| ` ` (trailing space) | `LOCAL_SUFFIX_STRING`      | Local name     |
+| `$lzy` (trailing)    | `LAZY_LOCAL_SUFFIX_STRING` | Lazy val local |
 
 **Rendering strategy:** `showCodePretty` handles trailing `$` by stripping it and
 adding `.type` when appropriate. Local suffixes are handled by `dropLocal`.

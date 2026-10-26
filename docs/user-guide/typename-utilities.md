@@ -10,12 +10,12 @@ The `hearth.typename` package provides `TypeName[A]` — a type class that produ
 
 `TypeName[A]` provides 4 different ways to print the name of a type:
 
-| Method        | Example (`Option[String]`)                 | Description                                        |
-|---------------|--------------------------------------------|----------------------------------------------------|
-| `prettyPrint` | `"\u001b[...scala.Option[java.lang.String]\u001b[...]"` | ANSI colored, fully qualified names     |
-| `plainPrint`  | `"scala.Option[java.lang.String]"`         | no ANSI, fully qualified names                     |
-| `simplePrint` | `"Option[String]"`                         | no ANSI, short names with type parameters          |
-| `shortPrint`  | `"Option"`                                 | no ANSI, short name only, no type parameters       |
+| Method        | Example (`Option[String]`)                              | Description                                  |
+|---------------|---------------------------------------------------------|----------------------------------------------|
+| `prettyPrint` | `"\u001b[...scala.Option[java.lang.String]\u001b[...]"` | ANSI colored, fully qualified names          |
+| `plainPrint`  | `"scala.Option[java.lang.String]"`                      | no ANSI, fully qualified names               |
+| `simplePrint` | `"Option[String]"`                                      | no ANSI, short names with type parameters    |
+| `shortPrint`  | `"Option"`                                              | no ANSI, short name only, no type parameters |
 
 Instances are **auto-derived** — no boilerplate needed:
 

@@ -6,12 +6,12 @@ This instruction covers adding new features, fixing bugs, or extending `Type.Cto
 
 Type constructors (`Type.Ctor1` through `Type.Ctor22`) are generated from code in `project/`:
 
-| Generator | Output | Purpose |
-|-----------|--------|---------|
-| `project/TypeConstructorsGen.scala` | `hearth/.../TypeConstructors.scala` | Public API trait with `CtorN` types, `of`, `fromUntyped`, `apply`, `unapply`, `setX`, `asUntyped` |
-| `project/CrossCtorTestGen.scala` | 4 files in `hearth-tests/` | Test impl trait, Scala 2/3 bridges, spec file |
-| `project/CrossQuotesMacrosGen.scala` | Cross-quotes macro/plugin code | `Type.CtorN.of[F]` rewriting for Scala 2 macros and Scala 3 compiler plugin |
-| `project/ArityGen.scala` | (shared helpers, not a generator) | Naming conventions: `paramName`, `params`, `lower`, `upper`, `writeIfChanged` |
+| Generator                            | Output                              | Purpose                                                                                           |
+|--------------------------------------|-------------------------------------|---------------------------------------------------------------------------------------------------|
+| `project/TypeConstructorsGen.scala`  | `hearth/.../TypeConstructors.scala` | Public API trait with `CtorN` types, `of`, `fromUntyped`, `apply`, `unapply`, `setX`, `asUntyped` |
+| `project/CrossCtorTestGen.scala`     | 4 files in `hearth-tests/`          | Test impl trait, Scala 2/3 bridges, spec file                                                     |
+| `project/CrossQuotesMacrosGen.scala` | Cross-quotes macro/plugin code      | `Type.CtorN.of[F]` rewriting for Scala 2 macros and Scala 3 compiler plugin                       |
+| `project/ArityGen.scala`             | (shared helpers, not a generator)   | Naming conventions: `paramName`, `params`, `lower`, `upper`, `writeIfChanged`                     |
 
 All generators are wired in `build.sbt` via `SourceGenPlugin`. Generated files go to `sourceManaged` directories and should never be checked in.
 
@@ -140,13 +140,13 @@ This is a common source of bugs in the test generators. If generated expected va
 
 When `setA` is called on a type constructor, Scala 3 produces a type lambda with synthetic parameter names that differ from the original:
 
-| Source | Example | Synthetic params |
-|--------|---------|-----------------|
-| `Type.Ctor1.of[Either].setA[String]` → `Ctor1` | `Either[String, _]` | `X` |
-| `Type.Ctor2.of[Arity3].setA[String]` → `Ctor2` | `Arity3[String, _, _]` | `X, Y` |
-| `Type.Ctor3.of[Arity4].setA[String]` → `Ctor3` | `Arity4[String, _, _, _]` | `B, C, D` (original names) |
+| Source                                            | Example                      | Synthetic params                |
+|---------------------------------------------------|------------------------------|---------------------------------|
+| `Type.Ctor1.of[Either].setA[String]` → `Ctor1`    | `Either[String, _]`          | `X`                             |
+| `Type.Ctor2.of[Arity3].setA[String]` → `Ctor2`    | `Arity3[String, _, _]`       | `X, Y`                          |
+| `Type.Ctor3.of[Arity4].setA[String]` → `Ctor3`    | `Arity4[String, _, _, _]`    | `B, C, D` (original names)      |
 | `Type.Ctor21.of[Arity22].setA[String]` → `Ctor21` | `Arity22[String, _, ..., _]` | `B, C, ..., V` (original names) |
-| `Type.Ctor22.of[Arity22]` (no setA) → `Ctor22` | `Arity22[_, ..., _]` | `A, B, ..., V` (original names) |
+| `Type.Ctor22.of[Arity22]` (no setA) → `Ctor22`    | `Arity22[_, ..., _]`         | `A, B, ..., V` (original names) |
 
 The pattern: **Ctor1 and Ctor2 (after setA) use synthetic names `X` and `X, Y`**. All higher arities preserve the original parameter names starting from `B`. This matters for `asUntyped` and `typeOf` expected values in tests.
 

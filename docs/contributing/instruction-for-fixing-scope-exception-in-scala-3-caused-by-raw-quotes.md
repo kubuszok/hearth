@@ -170,7 +170,7 @@ from lexical scope rather than from `CrossQuotes.ctx`.
 
 | Commit                                     | What was fixed                                                           |
 |--------------------------------------------|--------------------------------------------------------------------------|
-| `113c2deaacd24b819c4bb0eb3b1a61fdde9ec9ac` | quick fix in `LambdaBuilder.of1` — temporary workaround for one arity    | 
+| `113c2deaacd24b819c4bb0eb3b1a61fdde9ec9ac` | quick fix in `LambdaBuilder.of1` — temporary workaround for one arity    |
 | `1b8340404ccbf65543825a3c836150de0fdf3c01` | reproduction and fix for every `LambdaBuilder.ofN`                       |
 | `1c01e680431ef8178ea38901d99ae500e439bd70` | quick fix in `ValDefBuilder.ofDef4` — temporary workaround for one arity |
 | `655e1251a349c229c11227e82570d534a29ed69e` | reproduction and fix for every `ValDefBuilder.ofDefN`                    |

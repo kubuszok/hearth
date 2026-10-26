@@ -30,13 +30,13 @@ The sample-fraction deltas above are *diagnostic* — they tell us where the tim
 `macro-commons` Chimney**, per Scala version. Known state so far (wall-clock of a Chimney module
 compile, old design as 1.0×):
 
-| | Scala 3 | Scala 2 |
-|---|---|---|
-| pre-optimization (Hearth as-migrated) | ~3.0× | ~2.0× |
-| after the optimizations so far | ~1.7× | ~1.5× |
-| **after PR #347 (perf9, measured 2026-07-10)** | **1.30×** | **1.27×** |
+|                                                              | Scala 3   | Scala 2          |
+|--------------------------------------------------------------|-----------|------------------|
+| pre-optimization (Hearth as-migrated)                        | ~3.0×     | ~2.0×            |
+| after the optimizations so far                               | ~1.7×     | ~1.5×            |
+| **after PR #347 (perf9, measured 2026-07-10)**               | **1.30×** | **1.27×**        |
 | **shipped state (#347+#349+#350 + chimney#905, 2026-07-10)** | **1.22×** | **~1.3×** (flat) |
-| goal | → 1.0× | → 1.0× |
+| goal                                                         | → 1.0×    | → 1.0×           |
 
 Shipped-state row: premig 115s/74s vs merged `2.0.0-development` @ `0.4.0-45-g8dcd069-SNAPSHOT`
 140s/98s, best of 3. The #350 quote-tax and Part E/F cuts are Scala-3-side (pickled quotes and the
