@@ -36,7 +36,11 @@ Scala 2 and Scala 3 have fundamentally different metaprogramming systems:
 
 This means that code using metaprogramming features cannot be shared between Scala 2 and Scala 3 without significant duplication or complex abstractions.
 
-!!! tip "If you only need to work with Scala 2/Scala 3, you might be fine just sticking to quasi-quotes/quotes."
+!!! tip "If you only target Scala 2 or only Scala 3, Cross Quotes are optional"
+
+    Native quasi-quotes/quotes work with all of Hearth's other utilities. But using Cross Quotes in a single-version
+    macro costs nothing measurable: they are rewritten into native quotes once, when your macro library is compiled,
+    not each time the macro is expanded.
 
 ## The Solution
 

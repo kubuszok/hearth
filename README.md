@@ -8,13 +8,23 @@
 
 The first Scala macros' standard library.
 
+Hearth gives macro authors robust, well-tested utilities that handle the corner cases you would otherwise learn about
+only from your users' bug reports - "this obviously should work, but it doesn't". It is worth using even if you
+target only Scala 3 or only Scala 2.13.
+
 Goals:
 
- - being able to build the code with `Type`s, `Expr`s and high-level utilities that operate on them - limiting the need for AST and Symbols manipulation
- - cross-compilable API, allowing reuse of the macro code for both Scala 2 and Scala 3
+ - **robust building blocks instead of hand-written ASTs** - work with `Type`s, `Expr`s, `Method`s, case classes,
+   enums and other well-defined APIs, instead of reverse-engineering compiler trees and building them from scratch
+ - **macros that are easy to get right** - error aggregation and logging with `MIO`, readable error messages that let
+   your users fix their code in one go, fast compilation and well-performing generated code
+ - **no lock-in** - the native representation (`c.Type`/`c.Tree`, `TypeRepr`/`Term`) is always available: use Hearth
+   for the 90% it covers and the low-level API for the rest
+ - **one macro for Scala 2.13 and Scala 3**, when you need it - a cross-compilable API (with optional Cross Quotes),
+   while Scala 2-only and Scala 3-only macros are supported just as well
+ - not only type class derivation - also optics, dependency injection, mocking, parsers and more
  - exhaustive documentation lowering the barrier of entry
  - no dependencies on additional ecosystems (some FP-utilities are already provided!)
- - promote best-practices in macro development, to deliver great developer experience
 
 ## Call for Feedback
 

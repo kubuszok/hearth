@@ -8,9 +8,59 @@ hide:
 <h1 style="margin-bottom:0">Hearth</h1>
 <h2 style="margin-top:0">The first Scala macros' standard library.</h2>
 
-This is the first library focused on helping you write robust, easy-to-maintain macros that you can make cross-compilable between the Scala 2 and Scala 3 macro systems.
+Hearth helps you write robust, fast-to-compile, easy-to-maintain macros - for Scala 3, for Scala 2.13, or for both at
+once.
 
-Introduces, among other things:
+## Why Hearth?
+
+### Corner cases handled before your users find them
+
+The hard part of a macro is rarely the happy path. It is the type parameters that have to be reapplied to methods and
+subtypes, the singleton and opaque types, the named tuples, the Java enums, the default values, the recursive types -
+everything that "obviously should work" until a user reports that it doesn't. Hearth's utilities are tested against
+these cases on Scala 2.13 and Scala 3, on JVM, Scala.js and Scala Native, and battle-tested in real libraries.
+
+Instead of reverse-engineering compiler trees and building ASTs from scratch, you - or your coding agent - glue
+together well-defined APIs: `Type`s, `Expr`s, `Method`s, `CaseClass`, `Enum`, builders for `val`s, lambdas and pattern
+matching. Together with [Macro IO](micro-fp.md) for error aggregation and logging, they make it easy to write macros
+that compile fast, generate well-performing code, and report errors that let users fix their code in one go.
+
+This is valuable even if you target only one Scala version.
+
+### Scala 2-only and Scala 3-only macros are first-class
+
+Most of our examples cross-compile, because that is the most demanding setup. But you don't have to: extend
+`MacroCommonsScala3` (or `MacroCommonsScala2`) directly, use `scala.quoted.Expr`/`Type` (or `c.Expr`/`c.WeakTypeTag`)
+as they are, and call Hearth's utilities on them - see
+[Scala 2-only and Scala 3-only macros](basic-utilities.md#your-first-hearth-based-macro).
+
+### The low-level API is always one step away
+
+Our goal is to limit how often you *need* the low-level API, not to take it away. In platform-specific code
+`UntypedType` *is* `c.Type`/`TypeRepr` and `UntypedExpr` *is* `c.Tree`/`Term`, and every `Type`/`Expr` converts to
+them and back. Use Hearth for the 90% it covers and the native API for the remaining 10% - which, most of the time,
+you won't even need.
+
+### Cross Quotes are optional, and cost nothing at expansion
+
+[Cross Quotes](cross-quotes.md) let you write one `Expr.quote`/`Expr.splice` for both Scala versions. You don't have
+to use them: a Scala 3-only macro can use native `'{ ... }`/`${ ... }`. And if you do, they are rewritten into native
+quotes (or quasiquotes on Scala 2) once, when your macro library is compiled - not each time your macro is expanded
+in your users' code - so the overhead is too small to measure.
+
+### Not only type class derivation
+
+Type class derivation is our most common example, but Hearth is a general-purpose macro library.
+[Kindlings](https://github.com/kubuszok/kindlings) uses it, among others, for:
+
+ * [optics](https://github.com/kubuszok/kindlings/tree/master/optics) - quicklens-like `obj.modify(_.a.b)` lenses
+ * [dependency injection](https://github.com/kubuszok/kindlings/tree/master/di) - macwire-like compile-time wiring
+   (also of Cats Effect `Resource`s, in [di-cats](https://github.com/kubuszok/kindlings/tree/master/di-cats))
+ * [mocking](https://github.com/kubuszok/kindlings/tree/master/mock) - ScalaMock-like `mock[T]` without reflection
+ * [parsers](https://github.com/kubuszok/kindlings/tree/master/parser) - BNF grammars compiled into LALR(1) parsers
+   at compile time
+
+## What's inside?
 
  * reliable extension methods that make checking properties of types, expressions and methods easier
  * Magnolia-like utilities for creating and decomposing data types
@@ -24,7 +74,8 @@ Hearth encourages [sanely-automatic type class derivation](https://kubuszok.com/
 
 ## How to use the library for cross-compilable macros?
 
-As a showcase, we will build a cross-compilable `Show` derivation.
+As a showcase, we will build a cross-compilable `Show` derivation. (Targeting only one Scala version? See
+[Scala 2-only and Scala 3-only macros](basic-utilities.md#your-first-hearth-based-macro).)
 
 ??? example "`build.sbt` (assumes [sbt-crossproject](https://github.com/portable-scala/sbt-crossproject) or [sbt-projectmatrix](https://github.com/sbt/sbt-projectmatrix)/sbt 2)"
 

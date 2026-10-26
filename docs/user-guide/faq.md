@@ -16,7 +16,15 @@ Hearth is possible, because:
 
 ## Do I need this library if I don't want to cross-compile?
 
-**It depends on how complex your macro is.**
+**If your macro does more than quote values - most likely yes.** Cross-compilation is one of Hearth's goals, but not
+the main reason to use it.
+
+Hearth's main value is in robust, tested utilities that handle the corner cases your users would otherwise report to
+you, and in a high-level API that lets you (or your coding agent) glue together well-defined building blocks instead of
+building ASTs by hand. That is just as useful for a Scala 3-only or Scala 2-only macro, and Hearth supports them
+directly: see the [Scala 2-only and Scala 3-only examples](basic-utilities.md#your-first-hearth-based-macro).
+
+Only the simplest macros can skip it:
 
 If your macro only needs to quote and unquote values — with no programmatic logic for generating the quoted code — you
 might not need macros at all. Scala 3's `inline` defs, `inline match`, `scala.compiletime` utilities and
@@ -81,6 +89,7 @@ This modular design allows picking only what you want to use:
       to allow you working with them without any new collection types
     * [Cross Quotes](cross-quotes.md) are completely optional; they are encouraged if you want to build for both Scala 2 and Scala 3,
       but if you only want to target one of them, you can work with quasi-quotes/quotes/ASTs directly
+      (using them in a single-version macro is fine too - see [Do Cross Quotes add overhead?](#do-cross-quotes-add-overhead))
 
 Utilities work best if used together, but it's easier to learn one tool at a time and reach for the next one
 only once we stumble upon the problem that a new tool would solve.
@@ -97,12 +106,40 @@ To implement these use-case-specific utilities you would have to know the macro 
 that you are working with, but since there should be only a small portion of the whole codebase, it would be easier
 to test them (since you should be able to trust the behavior of the existing utilities).
 
+## Will Hearth get in my way when I need the low-level API?
+
+**No. Hearth limits how often you need the low-level API - it never takes it away.**
+
+In platform-specific code (`MacroCommonsScala2`/`MacroCommonsScala3`) Hearth's types are the native ones:
+`UntypedType` is `c.Type`/`TypeRepr`, `UntypedExpr` is `c.Tree`/`Term`, and every `Type`/`Expr` converts to them and
+back. So you can write 90% of a macro with Hearth's API and the remaining 10% with the compiler's own, mixing the two
+freely. In shared code, declare an abstract method and implement it per platform (see the tip in
+[Library conventions](basic-utilities.md#library-conventions)).
+
+## Do Cross Quotes add overhead?
+
+**No measurable overhead, and only when your macro library is compiled.**
+
+Cross Quotes (`Expr.quote`/`Expr.splice`, `Type.of`) are rewritten into native quotes on Scala 3 (by a compiler
+plugin) and into quasiquotes on Scala 2 (by macros) once, when the macro library itself is compiled. When users
+expand your macro, it runs the same native quotes you would have written by hand. And they are optional: a Scala
+3-only macro can use `'{ ... }`/`${ ... }` with all of Hearth's other utilities.
+
+## Is Hearth only for type class derivation?
+
+**No.** Most of our examples derive type classes, because that is the most common use of macros, but Hearth is
+a general-purpose macro library. [Kindlings](https://github.com/kubuszok/kindlings) also uses it to implement
+[optics](https://github.com/kubuszok/kindlings/tree/master/optics),
+[dependency injection](https://github.com/kubuszok/kindlings/tree/master/di),
+[mocking](https://github.com/kubuszok/kindlings/tree/master/mock) and
+[parsers generated at compile time](https://github.com/kubuszok/kindlings/tree/master/parser).
+
 ## Are there any examples of real-world macros built with Hearth?
 
 **Yes — [Kindlings](https://github.com/kubuszok/kindlings).**
 
-Kindlings is a companion repository that re-implements several real-world derivation macros using Hearth. It serves
-multiple purposes:
+Kindlings is a companion repository that re-implements several real-world macros using Hearth - type class
+derivation, but also optics, dependency injection, mocking and parser generation. It serves multiple purposes:
 
  - **Primary test bed** — every Hearth utility is battle-tested through Kindlings. If a feature works in Kindlings'
    derivations, it works in practice. If something is missing or broken, Kindlings is usually where it surfaces first.
