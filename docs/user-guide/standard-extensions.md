@@ -468,9 +468,18 @@ Core library allows us to define [macro extensions](basic-utilities.md#macro-ext
  - we define some trait, tell it how much it knows about our quoting context
  - then we load it in a macro, so that it would execute some code, e.g. injecting new capabilities into our codebase
 
-But there are no built-in macro extensions in the bare `MacroCommons`, since every such extensio is a design decision.
+But there are no built-in macro extensions in the bare `MacroCommons`, since every such extension is a design decision.
 
-But we can predefine a set of such extensions as a proposal of usable API that Hearth users can opt-in into using, because they could be immensly useful.
+Standard Macro Extensions are such a predefined set: shared interfaces - `IsCollection`, `IsMap`, `IsOption`,
+`IsEither`, `IsValueType` - through which a macro asks "is this type a collection/an option/a wrapper, and how do I
+work with it?", while the answers come from providers discovered on the classpath.
+
+That is what lets an integration be written **once**: a module teaching these interfaces about a library's types -
+e.g. [Kindlings](https://github.com/kubuszok/kindlings)' integrations for Cats collections (`NonEmptyList`, `Chain`,
+`Validated`, ...), Iron, neotype, scala-newtype and Refined - makes every macro that uses the standard extensions
+support those types, with no extra imports: all Kindlings derivations, but also your own or a third-party Hearth-based
+library. So if you write a macro, prefer these interfaces over hard-coding `Iterable`/`Option` checks, and if you
+maintain a library with collection-like or wrapper types, one integration serves every such macro.
 
 ### Requirements
 
@@ -666,6 +675,17 @@ In these examples:
  3. **Accessing item type**: We import `isCollection.Underlying as Item` to get the existential item type, and `isCollection.value.CtorResult` to get the result type that can be built.
  4. **Iteration**: We use `isCollection.value.asIterable(collection)` to convert the collection to an `Iterable[Item]` that we can iterate over. Alternatively, `isCollection.value.foreach(collection)(f)` provides an optimized iteration path — the default delegates to `asIterable`, but providers may override it with zero-overhead loops (e.g. indexed array access, Java iterator without Scala conversion).
  5. **Building**: We use `isCollection.value.factory` to get a `Factory[Item, CtorResult]`, create a builder, add items, and use `isCollection.value.build` to construct the final collection.
+
+`IsCollectionOf` has 2 more methods that the example above does not use:
+
+ - `isCollection.value.sizeHintForBuilder(collection): Option[Expr[Int]]` (since 0.4.1) - an expression computing the
+   size of the collection, to pre-allocate a builder (`builder.sizeHint(size)`) when we build a new collection
+   element by element, so that it does not have to regrow. It is `None` when the size cannot be computed without
+   traversing (consuming) the collection, e.g. for iterators or Java streams. The expression can be negative at
+   runtime when the size is unknown (e.g. `knownSize` of a `List`), so guard it with `if (size >= 0)`.
+ - `isCollection.value.asMap: Option[IsMapOf[A, Item]]` (since 0.3.1) - `Some` when the collection is actually a map,
+   which adds `key(pair)`, `value(pair)` and `pair(key, value)` helpers for its entries (`Item` is then the entry type),
+   without parsing the type again.
 
 This API works seamlessly with Scala collections, `Array`s, `IArray`s (Scala 3), and Java collections, all through the same interface!
 

@@ -9,10 +9,13 @@ could be more complex than either of the compilers (if anyone would be willing t
 
 Hearth is possible, because:
 
- - it's **not a translation layer**, it's **one high-level abstraction over 2 low-level APIs**
- - it's **not aiming to handle all possible cases**, only the common ones
- - it's resorting to some "unprincipled" (but well thought out and tested) hacks under the hood, which will fail in some cases - it might
-  be seen as a "non-elegant" solution that occasionally requires a workaround - but by not promising perfection it immediately unblocks people
+ - it's **not a translation layer** that would run arbitrary Scala 2 macros on Scala 3, it's **one high-level
+   abstraction over 2 low-level APIs**
+ - its API covers **what macros commonly need** (inspecting and constructing types, case classes, enums, methods,
+   building code) rather than every compiler feature - and for anything outside of it, the native API of each compiler
+   is still available (see [Will Hearth get in my way when I need the low-level API?](#will-hearth-get-in-my-way-when-i-need-the-low-level-api))
+ - under the hood it relies on compiler-specific techniques that are not always "elegant", but that are tested against
+   corner cases on both compilers and all platforms - so you don't have to discover them yourself
 
 ## Do I need this library if I don't want to cross-compile?
 

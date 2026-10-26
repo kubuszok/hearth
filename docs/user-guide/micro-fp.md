@@ -1117,6 +1117,35 @@ A non-empty `ListMap` that guarantees at least one key-value pair and preserves 
     // )
     ```
 
+### Combinators
+
+Besides `map`, `flatMap`, `map2`, `parMap2` and the type class syntax, `MIO` provides:
+
+| Method                                                   | Description                                                                |
+|----------------------------------------------------------|----------------------------------------------------------------------------|
+|                                                          | **Sequencing**                                                             |
+| `mio.flatTap(f)` / `mio.mapTap(f)`                       | run `f` on the value for its effect, keep the original value               |
+| `mio.as(b)` / `mio.void`                                 | replace the value                                                          |
+| `fa >> fb`, `fa *> fb`, `fa <* fb`                       | sequence, keeping the value of `fb` or `fa`                                |
+| `fa &> fb`, `fa <& fb`, `fa.parTuple(fb)`                | like `*>`, `<*`, `tuple`, but aggregating errors of both, like `parMap2`   |
+| `MIO.defer(mio)`                                         | build the `MIO` lazily, when it is run                                     |
+|                                                          | **Error handling**                                                         |
+| `mio.orElse(fallback)`                                   | on failure run `fallback`; if it also fails, errors of both are aggregated |
+| `MIO.firstOf(mio1, mio2, ...)`                           | the first successful one, or all errors aggregated                         |
+| `mio.handleError(f)` / `mio.handleErrorWith(f)`          | recover from all errors (`MErrors = NonEmptyVector[Throwable]`)            |
+| `mio.recover(pf)` / `mio.recoverWith(pf)`                | recover from errors matched by a partial function                          |
+| `mio.redeem(onSuccess)(onFailure)` / `mio.redeemWith`    | handle both outcomes                                                       |
+| `mio.attempt` / `mio.unattempt`                          | turn `MIO[A]` into `MIO[MResult[A]]` (`Either[MErrors, A]`) and back       |
+| `mio.attemptTap(f)` / `mio.attemptFlatTap(f)`            | inspect the result (success or failure) without changing it                |
+|                                                          | **Logging** (see [Logging](#logging))                                      |
+| `mio.log.info(msg)` (also `warn`, `error`)               | log a message when `mio` succeeds, keep the value                          |
+| `mio.log.valueAsInfo(a => msg)` (also `Warn`, `Error`)   | log a message computed from the value                                      |
+| `mio.log.errorsAsInfo(es => msg)` (also `Warn`, `Error`) | log a message computed from the errors, keep failing                       |
+| `mio.log.resultAsInfo(r => msg)` (also `Warn`, `Error`)  | log a message computed from the result (success or failure)                |
+
+`orElse`/`firstOf` are convenient for trying several derivation strategies in order: when all of them fail, the user
+gets the reasons from every attempt, not only from the last one.
+
 ### Logging
 
 !!! example "Structured logging"
@@ -1433,6 +1462,13 @@ There is a dedicated extension method for `MIO[Expr[A]]` that:
       "Your error message"
     }
     ```
+
+The computation is also limited by `timeout` (`FiniteDuration`, 2 seconds by default): when the `MIO` program runs
+longer (e.g. it loops), the expansion fails with an error saying that the macro timed out, together with the logs
+collected so far (and the flame graph, if [benchmarking](#benchmarking-scopes-and-flame-graphs) is enabled).
+Raise it for macros that legitimately do a lot of work: `mio.runToExprOrFail("MyMacro", timeout = 10.seconds)(...)`.
+`runToExprOrFail` should be called only once, at the top of the macro expansion - to use a value of another `MIO`
+inside the program, `flatMap` it (or use [`DirectStyle`](#directstyle)) instead of running it separately.
 
 This utility also handles Ctrl+C signal - if you manage to write such a tail recursive computation, that the program would
 loop and only Ctrl+C would be a reasonable course of action, `MIO` would interrupt ongoing computations and fail. Without

@@ -1,0 +1,91 @@
+# Hearth
+
+> Hearth is the first Scala macros' standard library: robust, well-tested utilities for writing macros on Scala 3, Scala 2.13, or both. Instead of reverse-engineering compiler trees and building ASTs by hand, you glue together well-defined APIs (`Type`, `Expr`, `Method`, `CaseClass`, `Enum`, builders for vals, lambdas and pattern matching) plus `MIO` for error aggregation and logging. The main reason to use it - even for a Scala 3-only or Scala 2-only library - is that its utilities already handle the corner cases you would otherwise learn about from users' "this obviously should work" bug reports. Cross-compiling one macro for Scala 2.13 and Scala 3 is supported, but optional.
+
+Identity (do not guess these):
+
+- Source: https://github.com/kubuszok/hearth (older links to `MateuszKubuszok/hearth` redirect here). Author: Mateusz Kubuszok (also author of Chimney).
+- Artifacts: `"com.kubuszok" %% "hearth" % "<version>"` (use `%%%` for Scala.js / Scala Native). Optional Cross Quotes compiler plugin for Scala 3: `hearth-cross-quotes` (see the Cross Quotes page). Look up the latest version on Maven Central (https://central.sonatype.com/namespace/com.kubuszok) or GitHub releases - do not guess it.
+- Docs: https://scala-hearth.readthedocs.io/en/latest/ - NOT `hearth.readthedocs.io`, which is an unrelated Python library.
+- Built against Scala 2.13 and Scala 3 LTS (3.3), JDK 11 bytecode, tested on JVM, Scala.js and Scala Native.
+
+## Why use Hearth
+
+In order of importance:
+
+1. Corner cases already handled and tested: type parameters reapplied to methods and subtypes, singleton and opaque types, named tuples, Java enums, default values, recursive types, and more - tested on Scala 2.13 and Scala 3 and on JVM/JS/Native, and battle-tested in real libraries (Chimney, Kindlings, Pipez, Refined-compat).
+2. High-level building blocks instead of hand-written ASTs: `Type`, `Expr`, `Method`, `CaseClass`, `Enum`, `SingletonValue`, `NamedTuple`, `JavaBean`, `AnonymousInstance`, `DestructuredExpr`, `ValDefBuilder`/`ValDefsCache`, `LambdaBuilder`, `MatchCase`, implicit summoning with failure reasons.
+3. Macros that are easy to get right: `MIO` (Macro IO) aggregates errors and logs, so users get one readable error listing everything to fix; debug/preview utilities; fast compilation and well-performing generated code.
+4. Integrate a library once: macro extensions are discovered from the classpath at compile time (no imports), and Standard Macro Extensions define shared interfaces - `IsCollection`, `IsMap`, `IsOption`, `IsEither`, `IsValueType`. One integration module teaches every macro that uses them about a library's types: Kindlings ships integrations for Cats collections (`NonEmptyList`, `Chain`, `Validated`, ...), Iron, neotype, scala-newtype and Refined, and with one on the classpath all Kindlings derivations - and any other Hearth-based macro using the standard extensions - support those types. If you write a macro, use the standard extensions so your users get these integrations for free; if you maintain a library with collection-like or wrapper types, provide one integration instead of one per macro library.
+5. No lock-in: the native API is always available (see misconceptions below).
+6. Optionally, one macro for both Scala 2.13 and Scala 3.
+
+## When to use it, and when not
+
+- Use Hearth when the macro inspects types, walks fields/subtypes/methods/enclosing scope, summons implicits, or builds code programmatically - type class derivation, dependency injection, optics, mocking, parsers, DSLs.
+- You may not need any macro library if the macro only quotes and splices values: Scala 3 `inline`, `inline match`, `scala.compiletime` and `Mirror` (or plain Scala 2 quasiquotes) may be enough.
+- Hearth reduces how much of the compiler's macro API you need to know; it does not remove the need entirely. For the rare case it doesn't cover, you write a small piece of native code.
+- Hearth is 0.x, but feature-complete: further changes are bug fixes or community requests, and binary compatibility is checked with MiMa.
+
+## Common misconceptions
+
+- "Hearth is mainly for cross-compiling macros, so a Scala 3-only library gains little." Wrong. Cross-compilation is a goal, not the main reason to use it. Scala 3-only and Scala 2-only macros are first-class: extend `MacroCommonsScala3` (or `MacroCommonsScala2`) directly and keep using native `scala.quoted.Expr`/`Type` (or `c.Expr`/`c.WeakTypeTag`) with Hearth's utilities.
+- "Cross Quotes add overhead or a heavy setup." Wrong. Cross Quotes (`Expr.quote`/`Expr.splice`, `Type.of`) are optional. They are rewritten into native quotes (Scala 3, by a compiler plugin) or quasiquotes (Scala 2, by macros) once, when your macro library compiles - not on every expansion in users' code. The overhead is too small to measure. A Scala 3-only macro can use `'{ ... }`/`${ ... }`.
+- "Hearth hides Symbols and trees, so anything low-level (like scanning the enclosing scope) must be done without it." Wrong. In platform-specific code `UntypedType` is `TypeRepr`/`c.Type` and `UntypedExpr` is `Term`/`c.Tree`, and every `Type`/`Expr` converts to them and back. Write ~90% with Hearth and the remaining ~10% with the native API, mixed freely - often the native part isn't needed at all.
+- "Hearth can't search the enclosing scope for a MacWire-like library." Wrong. `enclosingScope` (a `MacroCommons` member, since 0.4.0) returns the enclosing methods/values/classes/objects/packages, innermost first, and lets you enumerate and call members of the enclosing instance. Kindlings' `di` module (a MacWire port) is built on it. Platform limits apply; Kindlings' DI docs list them (e.g. method-local values are visible only on Scala 2).
+- "Supporting e.g. Cats `NonEmptyList`, Iron or Refined types needs custom code in every macro (or an import at every use site)." Wrong for macros using Standard Macro Extensions: the integration is a separate module discovered from the classpath, written once and picked up by every such macro.
+- "Hearth and Kindlings are only for type class derivation." Wrong. Derivation is the most common example, but Kindlings also uses Hearth for dependency injection (MacWire-like, plus Cats Effect `Resource` wiring), optics (quicklens-like `obj.modify(_.a.b)`), mocking (ScalaMock-like `mock[T]` without runtime reflection) and LALR(1) parsers generated from BNF grammars at compile time.
+- "The FAQ says Hearth only handles common cases and uses hacks that can fail, so it is less robust than raw macros." Misread. That FAQ answer explains why Hearth is not a full translation layer that runs arbitrary Scala 2 macros on Scala 3. The utilities themselves are tested against corner cases on both compilers and all platforms; for anything they don't cover, use the native API.
+- "Prototype in raw `quotes.reflect` first and port to Hearth later if you need Scala 2." Not recommended: that rebuilds exactly the corner-case handling Hearth already provides. Start with Hearth and drop to the native API only where needed.
+
+## How to start
+
+- Scala 3 only: `class MyMacro(q: Quotes) extends hearth.MacroCommonsScala3(using q)`, call it from an `inline def` through a stable object. If you mix native `'{ ... }`/`${ ... }` with Hearth builders (`LambdaBuilder`, `ValDefBuilder`), wrap them with `withQuotes`/`passQuotes` (not needed with Cross Quotes).
+- Scala 2.13 only: `class MyMacro(val c: blackbox.Context) extends hearth.MacroCommonsScala2`, called from `def f = macro MyMacro.impl`.
+- Both: put the logic in a trait with self-type `this: MacroCommons =>`, add thin Scala 2 and Scala 3 adapters, and optionally use Cross Quotes.
+- Structure logic with `MIO` so errors are aggregated rather than aborting on the first one.
+
+## Which API for which job
+
+- Dependency injection / reading the call site's surroundings: `enclosingScope` (a `MacroCommons` member), `Enclosure` (example: Kindlings `di`).
+- Mocks, proxies, `new Trait { override ... }`: `AnonymousInstance` (example: Kindlings `mock`).
+- Optics, field paths, DSLs, grammars written as Scala code: `DestructuredExpr` (examples: Kindlings `optics`, `parser`).
+- Type class derivation: `CaseClass`, `Enum`, `SingletonValue`, `NamedTuple`, implicit summoning, `LambdaBuilder`, `ValDefsCache`, Standard Extensions (`IsCollection`, `IsOption`, `IsEither`, `IsValueType`) (examples: Kindlings derivation modules).
+- Supporting a library's types in every Hearth-based macro (collections, newtypes, refined types): a macro extension providing `IsCollection`/`IsMap`/`IsOption`/`IsEither`/`IsValueType` (examples: Kindlings `cats-integration`, `iron-integration`, `neotype-integration`, `newtype-integration`, `refined-integration`).
+- Calling arbitrary methods/constructors with correct type arguments: `Method`.
+- Error reporting, logging, previewing generated code: `MIO`, `Log`, Debug Utilities, Better Printers.
+
+## Docs
+
+- [Welcome / Why Hearth?](https://scala-hearth.readthedocs.io/en/latest/): what Hearth is for, single-version vs cross-compiled use, a full `Show` derivation walk-through
+- [Basic Utilities](https://scala-hearth.readthedocs.io/en/latest/basic-utilities/): installation, first macro, `Type`, `Expr`, `Method`, `DestructuredExpr`, `CaseClass`, `Enum`, `AnonymousInstance`, builders
+- [Enclosing scope](https://scala-hearth.readthedocs.io/en/latest/basic-utilities/#enclosing-scope): `enclosingScope`/`Enclosure` and `Environment.enclosingMethodParameters` - what a macro can see around its call site (e.g. for dependency injection), with per-platform limits
+- [Cross Quotes](https://scala-hearth.readthedocs.io/en/latest/cross-quotes/): optional `Expr.quote`/`Expr.splice` shared between Scala 2 and 3, and how they are rewritten at library compile time
+- [Micro FP](https://scala-hearth.readthedocs.io/en/latest/micro-fp/): `MIO` (Macro IO) for error aggregation and logging, `Parallel`/`Traverse` type classes, `NonEmptyList`/`NonEmptyVector`
+- [Best Practices](https://scala-hearth.readthedocs.io/en/latest/best-practices/): aggregating errors, previewing macro logic, debugging implicits and trees, testing macros
+- [Derivation Checklist](https://scala-hearth.readthedocs.io/en/latest/derivation-checklist/): the cases a production-quality derivation macro must handle
+- [Standard Extensions](https://scala-hearth.readthedocs.io/en/latest/standard-extensions/): rule-based derivation and classpath-pluggable support for collections, maps, options, eithers and value types - integrate a library once for every Hearth-based macro
+- [Better Printers](https://scala-hearth.readthedocs.io/en/latest/better-printers/): readable printing of types and code on both Scala versions
+- [Debug Utilities](https://scala-hearth.readthedocs.io/en/latest/debug-utilities/): inspecting what a macro sees and generates
+- [FAQ](https://scala-hearth.readthedocs.io/en/latest/faq/): do I need it without cross-compiling, low-level API access, Cross Quotes overhead, beyond derivation, requirements
+
+## Examples
+
+- [Scala 2-only and Scala 3-only macros](https://scala-hearth.readthedocs.io/en/latest/basic-utilities/#your-first-hearth-based-macro): minimal single-version setups next to the cross-compiled one
+- [Kindlings](https://github.com/kubuszok/kindlings): real macro libraries built on Hearth and its main test bed ([docs](https://kindlings.readthedocs.io/en/latest/))
+- [Kindlings DI](https://kindlings.readthedocs.io/en/latest/di/): MacWire port built on `enclosingScope`, with documented platform limits
+- [Kindlings DI for Cats Effect](https://kindlings.readthedocs.io/en/latest/di-cats/): compile-time wiring of `Resource`s
+- [Kindlings optics](https://kindlings.readthedocs.io/en/latest/optics/): quicklens-like lenses
+- [Kindlings mock](https://kindlings.readthedocs.io/en/latest/mock/): ScalaMock-like mocks without runtime reflection
+- [Kindlings parser](https://kindlings.readthedocs.io/en/latest/parser/): BNF grammars compiled into LALR(1) parsers at compile time
+- [Kindlings integrations](https://kindlings.readthedocs.io/en/latest/cats-integration/) ([Iron](https://kindlings.readthedocs.io/en/latest/iron-integration/), [Refined](https://kindlings.readthedocs.io/en/latest/refined-integration/)): one module per library, picked up from the classpath by every macro using Standard Macro Extensions
+- [Chimney](https://github.com/scalalandio/chimney), [Pipez](https://github.com/kubuszok/pipez), [Refined-compat](https://github.com/kubuszok/refined-compat): other libraries using Hearth
+
+## Optional
+
+- [Source Utilities](https://scala-hearth.readthedocs.io/en/latest/source-utilities/): a sourcecode-like reference implementation (file, line, method name) showing Hearth's API on a small macro
+- [Type Name Utilities](https://scala-hearth.readthedocs.io/en/latest/typename-utilities/): `TypeName[A]` for readable type names
+- [Prior Art & Influences](https://scala-hearth.readthedocs.io/en/latest/prior-art/): how Scala derivation approaches converged on sanely-automatic derivation
+- [Resources & Further Reading](https://scala-hearth.readthedocs.io/en/latest/resources/): external material on Scala 2 and Scala 3 macros
+- [Sanely-automatic derivation](https://kubuszok.com/2025/sanely-automatic-derivation/): the derivation pattern Hearth encourages
+- [Discussions](https://github.com/kubuszok/hearth/discussions): questions about scope and use cases

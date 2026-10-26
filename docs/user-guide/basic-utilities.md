@@ -204,7 +204,7 @@ These examples show how to write Scala-specific macros with Hearth.
 
     final class ExampleSpec extends munit.FunSuite {
 
-      test("Example.callingMacro runs our Scala-3-only macro") {
+      test("Example.callingMacro runs our Scala-2-only macro") {
         assertEquals(Example.callingMacro("value"), "\"value\" : java.lang.String")
       }
     }
@@ -234,9 +234,9 @@ These examples show how to write Scala-specific macros with Hearth.
 
     class YourMacro(q: Quotes) extends hearth.MacroCommonsScala3(using q) {
 
-      // Type[A] = c.WeakTypeTag[A]
+      // Type[A] = scala.quoted.Type[A]
 
-      // Expr[A] = c.Expr[A]
+      // Expr[A] = scala.quoted.Expr[A]
 
       def yourMacro[A: Type](expr: Expr[A]): Expr[String] = Expr {
         s"${expr.plainPrint} : ${Type[A].plainPrint}"
@@ -440,12 +440,16 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
 | Companion method                     | Extension method                     | Description                                                             |
 |--------------------------------------|--------------------------------------|-------------------------------------------------------------------------|
 |                                      |                                      | **Primitives and built-ins**                                            |
-| `Type.isPrimitive[Int]`              | `Type[Int].isPrimitive`              | `true` for Boolean, Byte, Short, Int, Long, Float, Double, Char         |
+| `Type.isPrimitive[Int]`              | `Type[Int].isPrimitive`              | `true` for Boolean, Byte, Short, Int, Long, Float, Double, Char, Unit   |
 | `Type.isArray[Array[Int]]`           | `Type[Array[Int]].isArray`           | `true` for array types                                                  |
+| `Type.isIArray[IArray[Int]]`         | `Type[IArray[Int]].isIArray`         | `true` for `IArray` (Scala 3 only; always `false` on 2)                 |
 | `Type.isJvmBuiltIn[String]`          | `Type[String].isJvmBuiltIn`          | `true` for primitives, Unit, String, arrays, `java.lang.*` types        |
+| `Type.isInJavaLangPackage[String]`   | `Type[String].isInJavaLangPackage`   | `true` for types defined directly in the `java.lang` package            |
 | `Type.isTypeSystemSpecial[Any]`      | `Type[Any].isTypeSystemSpecial`      | `true` for Any, AnyRef, AnyVal, Null, Nothing                           |
 | `Type.isOpaqueType[MyType]`          | `Type[MyType].isOpaqueType`          | `true` for `opaque type`s                                               |
 | `Type.isUnionType[MyType]`           | `Type[MyType].isUnionType`           | `true` for union types (`A \| B`, Scala 3 only; always `false` on 2)    |
+| `Type.isTuple[(Int, String)]`        | `Type[(Int, String)].isTuple`        | `true` for tuples (`TupleN`; on Scala 3 also `*:`-based ones)           |
+| `Type.isNamedTuple[MyType]`          | `Type[MyType].isNamedTuple`          | `true` for named tuples (Scala 3.7+ only; always `false` otherwise)     |
 | `Type.isFunction[MyType]`            | `Type[MyType].isFunction`            | `true` for `FunctionN` types, also classes extending them (since 0.4.4) |
 | `Type.isContextFunction[MyType]`     | `Type[MyType].isContextFunction`     | `true` for `A ?=> B` (Scala 3 only; always `false` on 2) (since 0.4.4)  |
 |                                      |                                      | **Class types**                                                         |
@@ -467,6 +471,7 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
 | `Type.isCaseVal[MyClass]`            | `Type[MyClass].isCaseVal`            | `true` for parameterless `enum` `case`s                                 |
 | `Type.isJavaEnum[MyClass]`           | `Type[MyClass].isJavaEnum`           | `true` for Java enum                                                    |
 | `Type.isJavaEnumValue[MyClass]`      | `Type[MyClass].isJavaEnumValue`      | `true` for Java enum value                                              |
+| `Type.isEnumeration[MyClass]`        | `Type[MyClass].isEnumeration`        | `true` for `scala.Enumeration` values (not Scala 3/Java `enum`s)        |
 
 **`Type` relationships**:
 
@@ -477,22 +482,31 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
 
 **Metadata and navigation**:
 
-| Companion method                     | Extension method                     | Result type                                  | Description                       |
-|--------------------------------------|--------------------------------------|----------------------------------------------|-----------------------------------|
-| `Type.position[MyClass]`             | `Type[MyClass].position`             | `Option[Position]`                           | where type is defined             |
-| `Type.companionObject[MyClass]`      | `Type[MyClass].companionObject`      | `Option[Expr_??]`                            | companion object if exists        |
-| `Type.pseudoCompanionObject[MyType]` | `Type[MyType].pseudoCompanionObject` | `Option[Expr_??]`                            | companion or newtype's object (2) |
-| `Type.annotations[MyClass]`          | `Type[MyClass].annotations`          | `List[Expr_??]`                              | type annotations                  |
-| `Type.parents[MyClass]`              | `Type[MyClass].parents`              | `List[??]`                                   | direct parent types               |
-| `Type.baseClasses[MyClass]`          | `Type[MyClass].baseClasses`          | `List[??]`                                   | all ancestors (linearization)     |
-| `Type.directChildren[MyClass]`       | `Type[MyClass].directChildren`       | `Option[ListMap[String, ??<:[MyClass]]]`     | immediate subtypes (1)            |
-| `Type.exhaustiveChildren[MyClass]`   | `Type[MyClass].exhaustiveChildren`   | `Option[NonEmptyMap[String, ??<:[MyClass]]]` | all subtypes (1)                  |
+| Companion method                          | Extension method                          | Result type                                  | Description                             |
+|-------------------------------------------|-------------------------------------------|----------------------------------------------|-----------------------------------------|
+| `Type.position[MyClass]`                  | `Type[MyClass].position`                  | `Option[Position]`                           | where type is defined                   |
+| `Type.companionObject[MyClass]`           | `Type[MyClass].companionObject`           | `Option[Expr_??]`                            | companion object if exists              |
+| `Type.pseudoCompanionObject[MyType]`      | `Type[MyType].pseudoCompanionObject`      | `Option[Expr_??]`                            | companion or newtype's object (2)       |
+| `Type.annotations[MyClass]`               | `Type[MyClass].annotations`               | `List[Expr_??]`                              | annotations of the type (4)             |
+| `Type.annotationsOfType[MyClass, Ann]`    | `Type[MyClass].annotationsOfType[Ann]`    | `List[Expr[Ann]]`                            | annotations that are `<:< Ann` (3)      |
+| `Type.hasAnnotationOfType[MyClass, Ann]`  | `Type[MyClass].hasAnnotationOfType[Ann]`  | `Boolean`                                    | has an annotation `<:< Ann` (3)         |
+| `Type.typeAnnotations[MyType]`            | `Type[MyType].typeAnnotations`            | `List[Expr_??]`                              | annotations in type position (4)        |
+| `Type.typeAnnotationsOfType[MyType, Ann]` | `Type[MyType].typeAnnotationsOfType[Ann]` | `List[Expr[Ann]]`                            | type-position annotations `<:< Ann` (4) |
+| `Type.typeArguments[List[Int]]`           | `Type[List[Int]].typeArguments`           | `List[??]`                                   | type arguments, e.g. `List(Type[Int])`  |
+| `Type.opaqueUnderlyingType[MyType]`       | `Type[MyType].opaqueUnderlyingType`       | `Option[??]`                                 | `Y` of `opaque type X = Y` (5)          |
+| `Type.classOfType[MyClass]`               | `Type[MyClass].getRuntimeClass`           | `Option[java.lang.Class[MyClass]]`           | runtime class, if on the classpath (6)  |
+| `Type.parents[MyClass]`                   | `Type[MyClass].parents`                   | `List[??]`                                   | direct parent types                     |
+| `Type.baseClasses[MyClass]`               | `Type[MyClass].baseClasses`               | `List[??]`                                   | all ancestors (linearization)           |
+| `Type.directChildren[MyClass]`            | `Type[MyClass].directChildren`            | `Option[ListMap[String, ??<:[MyClass]]]`     | immediate subtypes (1)                  |
+| `Type.directChildrenList[MyClass]`        | `Type[MyClass].directChildrenList`        | `Option[List[(String, ??<:[MyClass])]]`      | immediate subtypes, as a list (7)       |
+| `Type.exhaustiveChildren[MyClass]`        | `Type[MyClass].exhaustiveChildren`        | `Option[NonEmptyMap[String, ??<:[MyClass]]]` | all subtypes (1)                        |
 
 1. `directChildren` and `exhaustiveChildren` work for sealed traits, Scala 3 enums, Java enums, and
    **disjoint union types** (Scala 3 only). For union types like `String | Int`, the flattened members
-   are returned when they are safe for exhaustive pattern matching at runtime — meaning no subtype overlap,
-   no related runtime classes (after boxing of primitives), and no opaque types. Unsafe unions
-   (e.g. `List[Int] | Seq[String]`, where a `List` value would be caught by either branch) return `None`.
+   are returned when they are safe for exhaustive pattern matching at runtime — meaning no subtype overlap and
+   no related runtime classes (after boxing of primitives and unwrapping opaque types). Unsafe unions
+   (e.g. `List[Int] | Seq[String]`, where a `List` value would be caught by either branch) return `None`,
+   unless the user provides a `scala.reflect.TypeTest` for the ambiguous members (see [Union types](#union-types-scala-3-only)).
    Stable singleton members (e.g. `Color.Red.type`, case objects) are matched by value, so they are
    accepted even when they share a runtime class.
 2. `pseudoCompanionObject` is `companionObject`, but when the type (after dealiasing) is an abstract or opaque type
@@ -500,6 +514,21 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
    `type UserName = UserName.Type` (neotype, zio-prelude, monix-newtypes) or the `@newtype` expansion of
    estatico/scala-newtype - it returns that object (the type's prefix). Then e.g. `Type.Ctor1.of[Newtype].unapply`
    on the object's type extracts the wrapped type, and its `apply` method can be found with the `Method` API.
+3. `annotationsOfType`/`hasAnnotationOfType` (since 0.4.0) match with `<:<`, so a whole annotation hierarchy can be
+   selected by its base type, and the results are already typed as `Expr[Ann]`. The same methods exist on `Method`
+   and `Parameter` - see [Reading annotation arguments](#reading-annotation-arguments).
+4. `annotations` reads the annotations of the type's *symbol* (`@Ann class Foo`), while `typeAnnotations` (since 0.4.1)
+   reads the ones written *after* a type (`String @Ann`, an annotated type), e.g. on a case class field
+   `name: String @Action("anonymize")`. Stacked annotations are all returned.
+5. `opaqueUnderlyingType` (since 0.4.0) sees through bounds, chains of opaque types, applied parameterized opaque types
+   and aliases. It is `None` for non-opaque types and always `None` on Scala 2.
+6. `classOfType`/`getRuntimeClass` only work for types whose class can be loaded by the compiler, so not for types
+   from the module being compiled (they don't have a class file yet), nor for abstract types and type parameters -
+   then the result is `None`.
+7. `directChildren` is keyed by the subtype's *simple* name, so same-named subtypes from different scopes (e.g. a
+   `case object Green` inside `object Color` and a top-level `case object Green`) collapse into one entry.
+   `directChildrenList` (since 0.4.1) keeps all of them, in declaration order. Don't rely on the key format of
+   `directChildren` - it is planned to change to the full name in 0.5.0.
 
 **Visibility checks**:
 
@@ -507,6 +536,94 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
 |-----------------------------------------|-----------------------------------------|-------------------------------------------------------------|
 | `Type.isAvailable[MyClass](Everywhere)` | `Type[MyClass].isAvailable(Everywhere)` | `true` for public types                                     |
 | `Type.isAvailable[MyClass](AtCallSite)` | `Type[MyClass].isAvailable(AtCallSite)` | `true` if accessible from call site (incl. package-private) |
+
+**Function types** (since 0.4.4):
+
+| Companion method                    | Extension method                    | Result type              | Description                            |
+|-------------------------------------|-------------------------------------|--------------------------|----------------------------------------|
+| `Type.functionComponents[A]`        | `Type[A].functionComponents`        | `Option[(List[??], ??)]` | parameter types and result type of `A` |
+| `Type.contextFunctionComponents[A]` | `Type[A].contextFunctionComponents` | `Option[(List[??], ??)]` | the same for `A ?=> B` (Scala 3 only)  |
+
+`functionComponents` reads the `FunctionN` base type, so it works for `(A, B) => C` as well as for aliases, singleton
+types of function values and classes extending a function type (`class P extends (Int => Boolean)`). It is `None` for
+non-functions and for context functions (which are not `FunctionN`s); `contextFunctionComponents` handles those and
+is always `None` on Scala 2. Prefer these (and `isFunction`) over checks like `Type[A].fqcn.startsWith("scala.Function")`.
+
+!!! example "Reading a function type"
+
+    ```scala
+    Type.of[(Int, String) => Boolean].functionComponents match {
+      case Some((params, result)) =>
+        params.map(_.plainPrint) // List("scala.Int", "java.lang.String")
+        result.plainPrint        // "scala.Boolean"
+      case None => // not a function
+    }
+    ```
+
+**Decomposing applied types** (since 0.4.0):
+
+When the type constructor is known upfront, use [`Type.Ctor1.of[F].unapply`](cross-quotes.md#type-constructor-operations).
+When it is not - e.g. a field has type `G[X]` and we want to know both `G` and `X` - use:
+
+| Companion method                    | Result type                        | Description                                                  |
+|-------------------------------------|------------------------------------|--------------------------------------------------------------|
+| `Type.decompose1[A]`                | `Option[(Ctor1[AnyK1], ??)]`       | splits `G[X]` into a usable `Type.Ctor1` of `G` and `X`      |
+| `Type.decompose2[A]`                | `Option[(Ctor2[AnyK2], (??, ??))]` | splits `G[X, Y]` into a usable `Type.Ctor2` of `G`, `X`, `Y` |
+| `Type.hasSameTypeConstructor[A, B]` | `Boolean`                          | `true` for e.g. `List[Int]` and `List[String]`               |
+
+The types are dealiased first (so `type StringMap[V] = Map[String, V]` is decomposed as a `Map` with 2 arguments) and
+singleton types are widened. `AnyK1`/`AnyK2` are just static labels - the returned constructor is the real `G`, so it can
+be re-applied to other types, compared, or used to summon a type class for `G`:
+
+!!! example "Summoning `MyTC[G]` for a `G` discovered during expansion"
+
+    ```scala
+    Type.decompose1[A] match {
+      case Some((gCtor, _)) =>
+        implicit val tcOfG: Type[MyTC[AnyK1]] = Type.CtorK1.of[MyTC].apply(using gCtor)
+        Expr.summonImplicit[MyTC[AnyK1]] // looks for the real MyTC[G]
+      case None => // A is not a type applied to exactly 1 argument
+    }
+    ```
+
+### `Type.Cache` and `Type.Lazy`
+
+`Type[A]` has no value-based `equals` (on Scala 3 `==` compares references), so it should not be used as a key of
+a `Map`. `Type.Cache[F[_]]` (since 0.4.1) is a mutable memo that stores one `F[A]` per type, comparing keys with `=:=`:
+
+!!! example "Computing something once per type within a macro expansion"
+
+    ```scala
+    private type Encoder[A] = Expr[String]
+    private val encoders = new Type.Cache[Encoder]
+
+    def encoderFor[A: Type]: Expr[String] =
+      encoders.getOrPut(Type[A])(computeExpensively[A]) // also: get(Type[A]), put(Type[A], value)
+    ```
+
+It is meant to live as long as a single macro expansion (e.g. as a field of your macro class); it is not thread-safe.
+On Scala 3 entries are also partitioned by the current `Expr.splice` scope, so an `Expr` cached inside one splice is
+never handed out in another one - which would fail with a `ScopeException` (a miss just recomputes the value).
+
+`Type.Lazy[A]` (since 0.4.1) is for helper `Type`s kept in the macro class. An eager `val StringType = Type.of[String]`
+is computed on every expansion, even if never used, while a plain `lazy val` is unsafe on Scala 3: if it is first
+used inside an `Expr.splice` it is tied to that splice, and using it in another splice fails with
+`Expression created in a splice was used outside of that splice` (under `-Xcheck-macros`). `Type.Lazy` computes the
+`Type` only when needed, but always in the scope of the whole macro expansion:
+
+```scala
+// a field of the macro trait/class: nothing is computed yet
+private val StringType: Type.Lazy[String] = Type.Lazy(Type.of[String])
+
+def myMacro[A: Type](expr: Expr[A]): Expr[String] = {
+  // Type.Lazy[A] converts to Type[A] implicitly - the Type is computed on the first use
+  implicit val String: Type[String] = StringType
+  ...
+}
+```
+
+On Scala 3-only code the same problem can be solved for any value with
+[`withMacroEntryCtx`](#withmacroentryctx-scala-3-only).
 
 ### `TypeCodec`
 
@@ -644,22 +761,43 @@ It can be used to e.g. prevent the macro from summoning itself, so that recursio
 
 **`Expr` operations**:
 
-| Companion method                          | Extension method            | Result type               | Description                                                                                              |
-|-------------------------------------------|-----------------------------|---------------------------|----------------------------------------------------------------------------------------------------------|
-| `Expr.upcast[String, AnyRef](stringExpr)` | `stringExpr.upcast[AnyRef]` | `Expr[...]`               | safe upcast to a supertype                                                                               |
-| `Expr.suppressUnused[A](expr)`            | `expr.suppressUnused`       | `Expr[Unit]`              | prevents "unused value" warnings                                                                         |
-| `Expr.singletonOf[A]`                     | —                           | `Option[Expr[A]]`         | returns singleton reference if `A` is a case object, Java enum value, or Scala 3 parameterless enum case |
-| `Expr.semiEval[A](expr)`                  | `expr.semiEval`             | `Either[String, A]`       | reconstructs a runtime value from expression AST using reflection                                        |
-| `Expr.semiEval[A](expr, overrides)`       | `expr.semiEval(overrides)`  | `Either[String, A]`       | like `semiEval` but with custom per-type evaluation dispatch via `EvalOverride`                          |
-| `Expr.semiQuote[A](value)`                | —                           | `Either[String, Expr[A]]` | converts a runtime value to an expression tree (inverse of `semiEval`)                                   |
-| `Expr.semiQuote[A](value, overrides)`     | —                           | `Either[String, Expr[A]]` | like `semiQuote` but with custom per-type quoting dispatch via `QuoteOverride`                           |
-| `Expr.typeOf[A](expr)`                    | `expr.tpe`                  | `Type[A]`                 | extracts the compiler-inferred type of an expression                                                     |
+| Companion method                          | Extension method             | Result type                         | Description                                                                                              |
+|-------------------------------------------|------------------------------|-------------------------------------|----------------------------------------------------------------------------------------------------------|
+| `Expr.upcast[String, AnyRef](stringExpr)` | `stringExpr.upcast[AnyRef]`  | `Expr[...]`                         | safe upcast to a supertype                                                                               |
+| `Expr.suppressUnused[A](expr)`            | `expr.suppressUnused`        | `Expr[Unit]`                        | prevents "unused value" warnings                                                                         |
+| `Expr.singletonOf[A]`                     | —                            | `Option[Expr[A]]`                   | returns singleton reference if `A` is a case object, Java enum value, or Scala 3 parameterless enum case |
+| `Expr.semiEval[A](expr)`                  | `expr.semiEval`              | `Either[NonEmptyVector[String], A]` | reconstructs a runtime value from expression AST using reflection                                        |
+| `Expr.semiEval[A](expr, overrides)`       | `expr.semiEval(overrides)`   | `Either[NonEmptyVector[String], A]` | like `semiEval` but with custom per-type evaluation dispatch via `EvalOverride`                          |
+| `Expr.semiQuote[A](value)`                | —                            | `Either[String, Expr[A]]`           | converts a runtime value to an expression tree (inverse of `semiEval`)                                   |
+| `Expr.semiQuote[A](value, overrides)`     | —                            | `Either[String, Expr[A]]`           | like `semiQuote` but with custom per-type quoting dispatch via `QuoteOverride`                           |
+| `Expr.typeOf[A](expr)`                    | `expr.tpe`                   | `Type[A]`                           | extracts the compiler-inferred type of an expression                                                     |
+| `Expr.annotated[A, Ann](expr, args)`      | `expr.annotated[Ann](args*)` | `Expr[A]`                           | wraps `expr` in a `val` annotated with `@Ann(args...)` (since 0.4.1)                                     |
+| —                                         | `expr.position`              | `Option[Position]`                  | where the expression is in the source (since 0.4.0)                                                      |
+| —                                         | `expr.sourceCode`            | `Option[String]`                    | the original source text of the expression (since 0.4.0)                                                 |
 
 !!! warning "Expr.typeOf / expr.tpe returns the compiler-inferred type"
 
     The returned `Type[A]` may be **narrower** than the declared type parameter `A`. For instance, if `A` is `Any` but
     the expression tree carries `String`, `expr.tpe` returns `Type[String]` (typed as `Type[A]`). Use this only when
     you need the exact type the compiler inferred for the expression — not when you need the declared type parameter.
+
+
+`expr.annotated[Ann](args*)` generates the equivalent of `{ @Ann(args...) val fresh = expr; fresh }`. It takes the
+annotation *type* (and its constructor arguments as `UntypedExpr`s), so it also works for Java annotations, which
+cannot be created in expression position. Use it e.g. to silence warnings in generated code with an annotation your
+user configured:
+
+```scala
+expr.annotated[scala.annotation.nowarn]()                         // @nowarn
+expr.annotated[scala.annotation.nowarn](Expr("msg").asUntyped)    // @nowarn("msg")
+expr.annotated[java.lang.SuppressWarnings](                       // @SuppressWarnings(Array("..."))
+  Expr.quote(scala.Array("org.wartremover.warts.All")).asUntyped
+)
+```
+
+`expr.sourceCode` (also available as `pos.sourceCode` on any [`Position`](#position)) returns the code as the user wrote it,
+which is handy for assert-like macros that show the failing (sub)expression. It is `None` for synthetic positions that
+don't point at real source code; then `expr.plainPrint` can be used as a fallback.
 
 ### `Expr.semiEval`
 
@@ -688,7 +826,7 @@ It cannot handle:
 - **Lambdas with arity > 22** on Scala 2 (Scala 3 supports any arity via `FunctionXXL`)
 - **Types not on the classpath** — modules or classes only defined in the currently-compiled module
 
-When evaluation fails, it returns `Left` with error reasons joined into a single string.
+When evaluation fails, it returns `Left` with all the reasons (a `NonEmptyVector[String]`).
 
 #### `semiEval` with overrides
 
@@ -969,6 +1107,19 @@ that convert variadic arguments into the same representation.
       }
     }
     ```
+
+`toList` (as well as `toIterable`, `toSeq`, `toVector` and `to(factory)`) can only split the arguments into
+individual expressions when they were written out (`method(a, b, c)`). When the user passes an existing sequence
+(`method(xs*)`, or `method(xs: _*)` on Scala 2) its elements are only known at runtime: Scala 3 would give you no
+expressions at all (as if no arguments were passed) and Scala 2 a single expression of type `Seq[A]`.
+`toIterableOption` (since 0.4.4) lets you tell these cases apart:
+
+```scala
+args.toIterableOption match {
+  case Some(exprs) => // written out (also `method()`): one Expr[A] per argument
+  case None        => // `method(xs*)`: handle the sequence as a whole (or report an error)
+}
+```
 
 If you want to pass variadic arguments into AST, you can use `VarArgs.apply` or `VarArgs.from`, combined with `Expr.splice`:
 
@@ -2022,29 +2173,40 @@ Path-dependent parameter lists are split into separate `NeedsValues` entries at 
 
 We should just call one of the methods on `Method` or `Type[A]`, depending on which kind of method we need.
 
-| Companion method                     | Extension method                   | Result type      | Description                           |
-|--------------------------------------|------------------------------------|------------------|---------------------------------------|
-| `Method.primaryConstructor[MyClass]` | `Type[MyClass].primaryConstructor` | `Option[Method]` | primary constructor                   |
-| `Method.defaultConstructor[MyClass]` | `Type[MyClass].defaultConstructor` | `Option[Method]` | nullary constructor                   |
-| `Method.constructors[MyClass]`       | `Type[MyClass].constructors`       | `List[Method]`   | all constructors                      |
-| `Method.methods[MyClass]`            | `Type[MyClass].methods`            | `List[Method]`   | instance and companion object methods |
+| Companion method                               | Extension method                             | Result type      | Description                                  |
+|------------------------------------------------|----------------------------------------------|------------------|----------------------------------------------|
+| `Method.primaryConstructorOf[MyClass]`         | `Type[MyClass].primaryConstructor`           | `Option[Method]` | primary constructor                          |
+| —                                              | `Type[MyClass].defaultConstructor`           | `Option[Method]` | nullary constructor                          |
+| `Method.constructorsOf[MyClass]`               | `Type[MyClass].constructors`                 | `List[Method]`   | all constructors                             |
+| `Method.methodsOf[MyClass]`                    | `Type[MyClass].methods`                      | `List[Method]`   | instance and companion methods, stable order |
+| `Method.unsortedMethodsOf[MyClass]`            | `Type[MyClass].unsortedMethods`              | `List[Method]`   | the same, unspecified order (since 0.4.1)    |
+| `Method.unsortedMethodsNamed[MyClass]("name")` | `Type[MyClass].unsortedMethodsNamed("name")` | `List[Method]`   | only methods with that name (since 0.4.1)    |
+
+`methods` lists declared, inherited and synthetic methods in a deterministic order (constructor arguments first, then
+declared methods by their position in the source, then the rest by name). Computing that order is relatively
+expensive, so if you only search the list (`find`, `filter`, `collectFirst`...) prefer `unsortedMethods`, and when
+you look methods up by name, `unsortedMethodsNamed` - it converts only the matching methods. If you need the stable
+order of a few methods, filter the unsorted list first and sort the rest with `Method.sort(methods)` (or
+`Method.sortBy(values)(toMethod)` for e.g. name-method pairs) - the result is the same as filtering `methods`.
 
 ### `Method` Operations
 
 **Metadata**:
 
-| Method                   | Result type               | Description                                         |
-|--------------------------|---------------------------|-----------------------------------------------------|
-| `method.name`            | `String`                  | method name                                         |
-| `method.position`        | `Option[Position]`        | source location                                     |
-| `method.annotations`     | `List[Expr_??]`           | method annotations                                  |
-| `method.totalParameters` | `Parameters`              | all value parameters across the full chain          |
-| `method.parameters`      | `Parameters`              | this step's value parameters only                   |
-| `method.expectations`    | `List[MethodExpectation]` | pre-parsed step structure                           |
-| `method.knownReturning`  | `Option[??]`              | terminal return type (if known)                     |
-| `method.plainPrint`      | `String`                  | full method signature (no ANSI)                     |
-| `method.prettyPrint`     | `String`                  | full method signature (ANSI-colored)                |
-| `method.toString`        | `String`                  | `plainPrint` + applied state (if partially applied) |
+| Method                            | Result type               | Description                                         |
+|-----------------------------------|---------------------------|-----------------------------------------------------|
+| `method.name`                     | `String`                  | method name                                         |
+| `method.position`                 | `Option[Position]`        | source location                                     |
+| `method.annotations`              | `List[Expr_??]`           | method annotations                                  |
+| `method.annotationsOfType[Ann]`   | `List[Expr[Ann]]`         | method annotations that are `<:< Ann`               |
+| `method.hasAnnotationOfType[Ann]` | `Boolean`                 | whether there is an annotation `<:< Ann`            |
+| `method.totalParameters`          | `Parameters`              | all value parameters across the full chain          |
+| `method.parameters`               | `Parameters`              | this step's value parameters only                   |
+| `method.expectations`             | `List[MethodExpectation]` | pre-parsed step structure                           |
+| `method.knownReturning`           | `Option[??]`              | terminal return type (if known)                     |
+| `method.plainPrint`               | `String`                  | full method signature (no ANSI)                     |
+| `method.prettyPrint`              | `String`                  | full method signature (ANSI-colored)                |
+| `method.toString`                 | `String`                  | `plainPrint` + applied state (if partially applied) |
 
 **Predicates**:
 
@@ -2092,10 +2254,12 @@ We should just call one of the methods on `Method` or `Type[A]`, depending on wh
 |                            |                  | **Scala-style accessors**                        |
 | `method.isScalaGetter`     | `Boolean`        | `true` for val, var, lazy val (without `_=`)     |
 | `method.isScalaSetter`     | `Boolean`        | `true` for var setter (`name_=`)                 |
+| `method.isScalaAccessor`   | `Boolean`        | `isScalaGetter \|\| isScalaSetter`               |
 | `method.scalaAccessorName` | `Option[String]` | field name if Scala accessor                     |
 |                            |                  | **Java Bean accessors**                          |
 | `method.isJavaGetter`      | `Boolean`        | `true` for `getX()` → X, `isX()` → Boolean       |
 | `method.isJavaSetter`      | `Boolean`        | `true` for `setX(v)` → Unit                      |
+| `method.isJavaAccessor`    | `Boolean`        | `isJavaGetter \|\| isJavaSetter`                 |
 | `method.javaAccessorName`  | `Option[String]` | property name if Java Bean accessor              |
 |                            |                  | **Combined**                                     |
 | `method.isAccessor`        | `Boolean`        | `true` for any accessor (Scala or Java)          |
@@ -2286,17 +2450,23 @@ The format is `$signature (on $expr, applied [...](...)..., returning $type)` wh
 
 **Parameter** - represents a method's parameter:
 
-| Property             | Result type        | Description            |
-|----------------------|--------------------|------------------------|
-| `param.name`         | `String`           | parameter name         |
-| `param.index`        | `Int`              | parameter position     |
-| `param.position`     | `Option[Position]` | source location        |
-| `param.tpe`          | `??`               | the parameter type     |
-| `param.hasDefault`   | `Boolean`          | has default value?     |
-| `param.defaultValue` | `Option[Method]`   | default value's getter |
-| `param.annotations`  | `List[Expr_??]`    | parameter annotations  |
-| `param.isByName`     | `Boolean`          | by-name parameter?     |
-| `param.isImplicit`   | `Boolean`          | implicit parameter?    |
+| Property                         | Result type        | Description                                         |
+|----------------------------------|--------------------|-----------------------------------------------------|
+| `param.name`                     | `String`           | parameter name                                      |
+| `param.index`                    | `Int`              | parameter position                                  |
+| `param.position`                 | `Option[Position]` | source location                                     |
+| `param.tpe`                      | `??`               | the parameter type                                  |
+| `param.hasDefault`               | `Boolean`          | has default value?                                  |
+| `param.defaultValue`             | `Option[Method]`   | default value's getter                              |
+| `param.annotations`              | `List[Expr_??]`    | parameter annotations                               |
+| `param.annotationsOfType[Ann]`   | `List[Expr[Ann]]`  | parameter annotations that are `<:< Ann`            |
+| `param.hasAnnotationOfType[Ann]` | `Boolean`          | has an annotation `<:< Ann`?                        |
+| `param.isByName`                 | `Boolean`          | by-name parameter?                                  |
+| `param.byNameUnderlying`         | `Option[??]`       | `A` of a by-name `=> A` parameter, `None` otherwise |
+| `param.isVararg`                 | `Boolean`          | vararg (`A*`) parameter? `tpe` is then `Seq[A]` (1) |
+| `param.isImplicit`               | `Boolean`          | implicit parameter?                                 |
+
+1. For a vararg parameter pass an `Expr[Seq[A]]` as its argument - it will be spliced into the call as `seq*`.
 
 **Parameters** - all parameters of a method, grouped by its parameter lists:
 
@@ -2686,6 +2856,33 @@ val result: MIO[Either[String, Expr_??]] = method.foldF[MIO](
   } yield args
 )
 ```
+
+### Reading annotation arguments
+
+`Type`, `Method` and `Parameter` expose their annotations as `annotations: List[Expr_??]`, and
+`annotationsOfType[Ann]`/`hasAnnotationOfType[Ann]` filter them by type (with `<:<`, so a base type selects a whole
+annotation hierarchy). An annotation is an expression `new Ann(args...)`, so to read its arguments without
+platform-specific code, the `Annotations` helper (since 0.4.0) uses [`DestructuredExpr`](#destructuredexpr):
+
+| Method                                                | Result type                         | Description                                         |
+|-------------------------------------------------------|-------------------------------------|-----------------------------------------------------|
+| `Annotations.filterOfType[Ann](annotations)`          | `List[Expr[Ann]]`                   | what `annotationsOfType` does on a `List[Expr_??]`  |
+| `Annotations.constructorArguments(annotation)`        | `Option[List[Expr_??]]`             | arguments of all parameter lists, in order          |
+| `Annotations.decodedConstructorArguments(annotation)` | `Option[List[Either[String, Any]]]` | the same, evaluated at compile time with `semiEval` |
+
+Both accept `Expr_??` as well as `Expr[A]`, and return `None` if the expression is not a constructor call.
+`decodedConstructorArguments` returns a `Left` (with the reason) for each argument it cannot evaluate, e.g. a
+reference to something that is not on the macro's classpath.
+
+!!! example "Reading `@fieldName("first_name")` of a case class field"
+
+    ```scala
+    // given: final class fieldName(val name: String) extends scala.annotation.StaticAnnotation
+    val renamed: Option[String] = param.annotationsOfType[fieldName].headOption
+      .flatMap(ann => Annotations.decodedConstructorArguments(ann))
+      .flatMap(_.headOption.flatMap(_.toOption))
+      .collect { case name: String => name }
+    ```
 
 ## `DestructuredExpr`
 
@@ -3486,22 +3683,40 @@ distinguished at runtime via pattern matching. Class-tested members must have un
 (literal types, case objects, parameterless Scala 3 enum cases) are matched by value and are exempt
 from the runtime-class requirement:
 
-| Union type                          | `directChildren`             | Reason                                   |
-|-------------------------------------|------------------------------|------------------------------------------|
-| `String \| Int`                     | `Some(String, Int)`          | unrelated runtime classes                |
-| `Boolean \| Double`                 | `Some(Boolean, Double)`      | unrelated runtime classes                |
-| `String \| Int \| Boolean`          | `Some(String, Int, Boolean)` | nested unions are flattened              |
-| `Color.Red.type \| Color.Blue.type` | `Some(Red, Blue)`            | singletons are matched by value          |
-| `Color.Red.type \| String`          | `Some(Red, String)`          | singleton + unrelated class              |
-| `String \| AnyRef`                  | `None`                       | subtype overlap (`String <:< AnyRef`)    |
-| `List[Int] \| List[String]`         | `None`                       | same runtime class (both are `List`)     |
-| `List[Int] \| Seq[String]`          | `None`                       | related runtime classes (`List <: Seq`)  |
-| `Int \| java.lang.Integer`          | `None`                       | same runtime class after boxing          |
-| `Nothing \| String`                 | `None`                       | `Nothing` filtered out, leaving 1 member |
-| `String \| String`                  | `None`                       | duplicate, leaving 1 member              |
-| `OpaqueId \| String`                | `None`                       | opaque types have unknown runtime class  |
+| Union type                          | `directChildren`             | Reason                                              |
+|-------------------------------------|------------------------------|-----------------------------------------------------|
+| `String \| Int`                     | `Some(String, Int)`          | unrelated runtime classes                           |
+| `Boolean \| Double`                 | `Some(Boolean, Double)`      | unrelated runtime classes                           |
+| `String \| Int \| Boolean`          | `Some(String, Int, Boolean)` | nested unions are flattened                         |
+| `Color.Red.type \| Color.Blue.type` | `Some(Red, Blue)`            | singletons are matched by value                     |
+| `Color.Red.type \| String`          | `Some(Red, String)`          | singleton + unrelated class                         |
+| `String \| AnyRef`                  | `None`                       | subtype overlap (`String <:< AnyRef`)               |
+| `List[Int] \| List[String]`         | `None`                       | same runtime class (both are `List`)                |
+| `List[Int] \| Seq[String]`          | `None`                       | related runtime classes (`List <: Seq`)             |
+| `Int \| java.lang.Integer`          | `None`                       | same runtime class after boxing                     |
+| `Nothing \| String`                 | `None`                       | `Nothing` filtered out, leaving 1 member            |
+| `String \| String`                  | `None`                       | duplicate, leaving 1 member                         |
+| `OpaqueId \| String`                | `Some(OpaqueId, String)`     | opaque type tested by its underlying `Long`         |
+| `OpaqueId \| Long`                  | `None`                       | same runtime class after unwrapping the opaque type |
 
-On Scala 2, `isUnionType` always returns `false` and `directChildren` is not affected.
+Members that a runtime class test cannot tell apart (`List[Int] | List[String]`, abstract types, type parameters)
+are still accepted when the user provides an implicit `scala.reflect.TypeTest[Union, Member]` for each of them at
+the macro call site - it acts as the runtime discriminator. Two methods help to handle such unions (since 0.4.0):
+
+| Companion method                         | Extension method                         | Result type      | Description                                                            |
+|------------------------------------------|------------------------------------------|------------------|------------------------------------------------------------------------|
+| `Type.unionMemberRequiresTypeTest[A, B]` | `Type[A].unionMemberRequiresTypeTest[B]` | `Boolean`        | whether member `B` of union `A` has to be matched with a `TypeTest`    |
+| `Type.unionRefusalReason[A]`             | `Type[A].unionRefusalReason`             | `Option[String]` | why `directChildren` refused union `A`, naming the missing `TypeTest`s |
+
+`unionRefusalReason` is meant for error messages: when `directChildren` returns `None` for a union, it tells the user
+which `TypeTest` instances to provide (it is `None` when there is no such fix, e.g. for `String | AnyRef`).
+`Enum.parse`/`matchOn` use `TypeTest`s automatically. If you build a `match` yourself with
+[`MatchCase`](#matchcase), use `MatchCase.typeTestMatch[A, B]` (instead of `MatchCase.typeMatch[B]`) for the members
+where `unionMemberRequiresTypeTest` is `true` - it generates `case b @ tt(_) =>` using the summoned
+`TypeTest[A, B]`, and fails if there is none.
+
+On Scala 2, `isUnionType` always returns `false`, `directChildren` is not affected, `unionMemberRequiresTypeTest` is
+always `false` and `unionRefusalReason` is always `None`.
 
 !!! example "Inspecting union types in a macro"
 
@@ -3850,15 +4065,16 @@ Errors are accumulated (multiple missing overrides, conflicting methods) and ret
 
 Represents a source code location (corresponds to `c.universe.Position` on Scala 2, `quotes.reflect.Position` on Scala 3):
 
-| Property / Method     | Result type                  | Example result                       | Description                      |
-|-----------------------|------------------------------|--------------------------------------|----------------------------------|
-| `pos.file`            | `Option[java.nio.file.Path]` |                                      | source file path                 |
-| `pos.fileName`        | `Option[String]`             |                                      | file name only (no path)         |
-| `pos.line`            | `Int`                        |                                      | line number                      |
-| `pos.column`          | `Int`                        |                                      | column number                    |
-| `pos.offset`          | `Int`                        |                                      | character offset from file start |
-| `pos.prettyPrint`     | `String`                     | `"MyFile.scala:42:10"`               | short format with filename       |
-| `pos.prettyPrintLong` | `String`                     | `"/full/path/to/MyFile.scala:42:10"` | full path format                 |
+| Property / Method     | Result type                  | Example result                       | Description                                       |
+|-----------------------|------------------------------|--------------------------------------|---------------------------------------------------|
+| `pos.file`            | `Option[java.nio.file.Path]` |                                      | source file path                                  |
+| `pos.fileName`        | `Option[String]`             |                                      | file name only (no path)                          |
+| `pos.line`            | `Int`                        |                                      | line number                                       |
+| `pos.column`          | `Int`                        |                                      | column number                                     |
+| `pos.offset`          | `Int`                        |                                      | character offset from file start                  |
+| `pos.prettyPrint`     | `String`                     | `"MyFile.scala:42:10"`               | short format with filename                        |
+| `pos.prettyPrintLong` | `String`                     | `"/full/path/to/MyFile.scala:42:10"` | full path format                                  |
+| `pos.sourceCode`      | `Option[String]`             | `"a + b"`                            | source text spanned by the position (since 0.4.0) |
 
 Positions can be compared and sorted:
 
@@ -4001,6 +4217,171 @@ It has utilities:
 | `Environment.isJs`                   | `Boolean`         | whether running on Scala.js      |
 | `Environment.isNative`               | `Boolean`         | whether running on Scala Native  |
 
+### Enclosing scope
+
+Some macros need to know where they are expanded - not only the file and line, but also the definitions around the
+call site: e.g. a [MacWire](https://github.com/softwaremill/macwire)-style dependency-injection macro, that builds
+`new Service(repository, config)` from the values available in the enclosing class. Hearth provides 2 utilities
+for that:
+
+| Method                                  | Result type                       | Description                                                     |
+|-----------------------------------------|-----------------------------------|-----------------------------------------------------------------|
+| `enclosingScope`                        | `NonEmptyVector[Enclosure]`       | definitions around the call site, innermost first (since 0.4.0) |
+| `Environment.enclosingMethodParameters` | `List[List[Enclosure.Parameter]]` | parameters of the closest enclosing method (since 0.4.4)        |
+
+`enclosingScope` (a member of `MacroCommons` itself, not of `Environment`) is the chain of definitions from the
+innermost one (closest to the macro call) outwards, ending with the root package. Each `Enclosure` has a `name`, an
+optional `fullName` and `position`, and a `kind`: `"method"`, `"value"`, `"class"`, `"object"` or `"package"`.
+The variants carry more information:
+
+| Variant             | Represents                          | Additional fields                                              |
+|---------------------|-------------------------------------|----------------------------------------------------------------|
+| `Enclosure.Method`  | an enclosing `def`                  | `tpe: Option[??]` (currently always `None`), `localValues`     |
+| `Enclosure.Value`   | an enclosing `val`/`var`/`lazy val` | `tpe: ??`                                                      |
+| `Enclosure.Class`   | an enclosing `class`/`trait`        | `tpe: ??`, `members: List[Method]`, `thisRef: Option[Expr_??]` |
+| `Enclosure.Object`  | an enclosing `object`               | `tpe: ??`, `members: List[Method]`, `thisRef: Expr_??`         |
+| `Enclosure.Package` | an enclosing package                | —                                                              |
+
+`members` are the methods and values of the class/object (declared, inherited, and coming from a self-type
+`this: Other =>`) as [`Method`s](#method), and `thisRef` is the receiver to call them on: the `object` itself, or
+`this` of the class. Synthetic definitions (lambdas, macro-expansion wrappers, etc.) are skipped, so the chain is
+the same on Scala 2 and Scala 3, with some limitations:
+
+ - only the **closest** enclosing class has a `thisRef` - a `this` of an outer class cannot be referred to
+   cross-platform. Objects always have it, since they have a stable path
+ - `Enclosure.Method.localValues` - the `val`s defined in the method's body before the macro call - are only
+   available on **Scala 2** and only for the closest method. On Scala 3 the method's body is not available yet while
+   the macro inside it is being expanded, so the list is always empty there
+ - `Enclosure.Package`s are not listed the same way on Scala 2 and Scala 3 (e.g. how package segments are split
+   into enclosures), so don't rely on them being identical between versions
+
+`Environment.enclosingMethodParameters` returns the value parameters of the closest enclosing method, grouped by
+parameter lists (including `implicit`/`using` ones), each with a `ref: Expr_??` that can be used in the generated
+code. Each `Enclosure.Parameter` also has a `name`, `tpe`, `isImplicit` and `isByName` (for `x: => A`, `tpe` is `A`
+and `ref` evaluates it; for `xs: A*`, `tpe` is `Seq[A]`). Lambdas between the macro call and the method are skipped,
+but a class body ends the search: a macro used in a class body (also of a local class inside a method) sees `Nil`.
+Type parameters are not included, and a method without parameter lists gives `Nil`, while `def f()` gives `List(Nil)`.
+Unlike `localValues`, it works the same way on Scala 2 and Scala 3.
+
+!!! example "Inspecting the enclosing scope"
+
+    ```scala
+    // file: src/main/scala/example/ScopeMacro.scala - part of enclosing scope example
+    //> using scala {{ scala.2_13 }} {{ scala.3 }}
+    //> using dep com.kubuszok::hearth:{{ hearth_version() }}
+
+    trait ScopeMacro { this: hearth.MacroCommons =>
+
+      // e.g. "method chain <- class Inner <- object Fixtures"
+      def scopeChain: Expr[String] = {
+        val chain = enclosingScope.toVector
+          .filterNot(_.kind == "package")
+          .map(enclosure => s"${enclosure.kind} ${enclosure.name}")
+        Expr(chain.mkString(" <- "))
+      }
+
+      // sums all Int parameters of the enclosing method
+      def sumIntParameters: Expr[Int] = {
+        implicit val IntType: Type[Int] = Type.of[Int]
+        val ints: List[Expr[Int]] = Environment.enclosingMethodParameters.flatten.collect {
+          case param if param.tpe.Underlying =:= Type[Int] => param.ref.value.asInstanceOf[Expr[Int]]
+        }
+        ints.foldLeft(Expr(0)) { (sum, int) =>
+          Expr.quote(Expr.splice(sum) + Expr.splice(int))
+        }
+      }
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-2/example/ScopeMacroImpl.scala - part of enclosing scope example
+    //> using target.scala {{ scala.2_13 }}
+    //> using options -Xsource:3
+
+    import hearth.MacroCommonsScala2
+
+    import scala.language.experimental.macros
+    import scala.reflect.macros.blackbox
+
+    object Example {
+      def scopeChain: String = macro ScopeMacroImpl.scopeChainImpl
+      def sumIntParameters: Int = macro ScopeMacroImpl.sumIntParametersImpl
+    }
+
+    // Scala 2 adapter
+    class ScopeMacroImpl(val c: blackbox.Context) extends MacroCommonsScala2 with ScopeMacro {
+
+      def scopeChainImpl: c.Expr[String] = scopeChain
+      def sumIntParametersImpl: c.Expr[Int] = sumIntParameters
+    }
+    ```
+
+    ```scala
+    // file: src/main/scala-3/example/ScopeMacroImpl.scala - part of enclosing scope example
+    //> using target.scala {{ scala.3 }}
+    //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
+
+    import hearth.MacroCommonsScala3
+
+    import scala.quoted.*
+
+    object Example {
+      inline def scopeChain: String = ${ ScopeMacroImpl.scopeChainImpl }
+      inline def sumIntParameters: Int = ${ ScopeMacroImpl.sumIntParametersImpl }
+    }
+
+    // Scala 3 adapter
+    class ScopeMacroImpl(q: Quotes) extends MacroCommonsScala3(using q), ScopeMacro
+    object ScopeMacroImpl {
+
+      def scopeChainImpl(using q: Quotes): Expr[String] = new ScopeMacroImpl(q).scopeChain
+      def sumIntParametersImpl(using q: Quotes): Expr[Int] = new ScopeMacroImpl(q).sumIntParameters
+    }
+    ```
+
+    ```scala
+    // file: src/test/scala/example/ExampleSpec.scala - part of enclosing scope example
+    //> using test.dep org.scalameta::munit::{{ libraries.munit }}
+
+    object Fixtures {
+
+      final class Inner {
+        def chain: String = Example.scopeChain
+      }
+
+      def add(a: Int, label: String)(b: Int): Int = Example.sumIntParameters
+    }
+
+    final class ExampleSpec extends munit.FunSuite {
+
+      test("Example.scopeChain lists the enclosing definitions") {
+        assertEquals((new Fixtures.Inner).chain, "method chain <- class Inner <- object Fixtures")
+      }
+
+      test("Example.sumIntParameters uses the enclosing method's parameters") {
+        assertEquals(Fixtures.add(1, "ignored")(2), 3)
+      }
+    }
+    ```
+
+To call a member of the enclosing class/object, find it among `members` and apply it to `thisRef`:
+
+```scala
+val dependency: Option[Expr_??] = enclosingScope.iterator.collectFirst {
+  case enc: Enclosure.Class if enc.thisRef.isDefined => enc.thisRef.get -> enc.members
+  case enc: Enclosure.Object                         => enc.thisRef -> enc.members
+}.flatMap { case (receiver, members) =>
+  members.collectFirst {
+    case m: Method.OnInstance if m.isNullary && m.knownReturning.exists(_.Underlying =:= Type[Dependency]) =>
+      import receiver.value as self
+      m(self.asInstanceOf[Expr[m.Instance]]) match {
+        case r: Method.Result[?] => r.build().toOption.map(_.as_??)
+        case _                   => None
+      }
+  }.flatten
+}
+```
+
 ### Macro Settings
 
 Pass settings to macros via `-Xmacro-settings:key=value`:
@@ -4023,12 +4404,19 @@ Pass settings to macros via `-Xmacro-settings:key=value`:
 
 Report messages to the user during compilation:
 
-| Method                                 | Result type | Description                                           |
-|----------------------------------------|-------------|-------------------------------------------------------|
-| `Environment.reportInfo(msg)`          | `Unit`      | report informational message                          |
-| `Environment.reportWarn(msg)`          | `Unit`      | report warning message                                |
-| `Environment.reportError(msg)`         | `Unit`      | report error message                                  |
-| `Environment.reportErrorAndAbort(msg)` | `Nothing`   | report error and abort compilation (throws exception) |
+| Method                                      | Result type | Description                                               |
+|---------------------------------------------|-------------|-----------------------------------------------------------|
+| `Environment.reportInfo(msg)`               | `Unit`      | report informational message                              |
+| `Environment.reportWarn(msg)`               | `Unit`      | report warning message                                    |
+| `Environment.reportError(msg)`              | `Unit`      | report error message                                      |
+| `Environment.reportErrorAndAbort(msg)`      | `Nothing`   | report error and abort compilation (throws exception)     |
+| `Environment.reportInfo(msg, pos)`          | `Unit`      | report informational message at `pos` (since 0.4.0)       |
+| `Environment.reportWarn(msg, pos)`          | `Unit`      | report warning message at `pos` (since 0.4.0)             |
+| `Environment.reportError(msg, pos)`         | `Unit`      | report error message at `pos` (since 0.4.0)               |
+| `Environment.reportErrorAndAbort(msg, pos)` | `Nothing`   | report error at `pos` and abort compilation (since 0.4.0) |
+
+The overloads taking a `Position` report at the given position instead of the macro call, e.g. at the field,
+parameter or argument (`expr.position`) that made the derivation fail.
 
 !!! note "Reporting Behavior"
     For each level (INFO, WARN, ERROR), only **the first** call matters. Subsequent calls at the same level are no-ops.
@@ -4096,6 +4484,13 @@ from the classpath.
     example.MyMacroExtensionFoo
     example.MyMacroExtensionBar
     ```
+
+If only some of the extensions should be loaded, use (since 0.3.0):
+
+ - `Environment.loadMacroExtensionsExcluding[MyMacroExtension]("example.MyMacroExtensionFoo", ...)` - skips
+   the implementations with the given fully-qualified class names
+ - `Environment.loadMacroExtensionsWhen[MyMacroExtension](clazz => ...)` - loads only the implementations whose
+   `java.lang.Class` satisfies the condition
 
 Extensions are discovered via Java's [ServiceLoader](https://docs.oracle.com/javase/8/docs/api/java/util/ServiceLoader.html) mechanism,
 allowing functionality to be added just by having the right JAR on the classpath during compilation.
@@ -4226,3 +4621,28 @@ withQuotes {      // restores current Quotes before quoting
     ```
 
     See also the [FAQ entry](faq.md#how-to-fix-scopeexception-cannot-call-asterm-on-an-expr-that-was-defined-in-a-different-quotes-context) on this error.
+
+### `withMacroEntryCtx` (Scala 3 only)
+
+Each `${ ... }` (and each `Expr.splice`) runs with its own, nested `Quotes`, and the `Expr`s and `Type`s created
+there belong to that splice. It matters when a whole derivation runs inside a splice (e.g.
+`new Show[A] { def show(a: A) = ${ derive('a) } }`) and memoizes something - in a `lazy val` or a cache - that is
+first computed during that splice: if a second instance is derived in the same expansion, reusing it fails with:
+
+```
+ScopeException: Expression created in a splice was used outside of that splice
+```
+
+(detected under `-Xcheck-macros`). `withMacroEntryCtx` (since 0.4.1) runs its argument with the `Quotes` the macro
+was entered with, so the created values are valid in the whole expansion:
+
+```scala
+private lazy val cachedSuffix: Expr[String] = Expr.quote("!")
+
+def body(a: Expr[Int]): Expr[String] = Expr.quote {
+  Expr.splice(a).toString + Expr.splice(withMacroEntryCtx(cachedSuffix))
+}
+```
+
+It is only available in `MacroCommonsScala3`. In cross-compiled code use [`Type.Lazy`](#typecache-and-typelazy)
+for helper `Type`s (on Scala 2 there is no such problem).

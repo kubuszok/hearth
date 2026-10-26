@@ -366,7 +366,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       * @return
       *   `AllLoaded(loadedExtensions)` if all the extensions were loaded successfully,
       *   `SomeFailed(loadedExtensions, errors)` otherwise, `LoaderFailed(error)` if the ServiceLoader failed to load
-      *   them in thr first place.
+      *   them in the first place.
       */
     final def loadMacroExtensions[Extension <: MacroExtension[?]: ClassTag]: ExtensionLoadingResult[Extension] = {
       @scala.annotation.nowarn
@@ -387,7 +387,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       * @return
       *   `AllLoaded(loadedExtensions)` if all the extensions were loaded successfully,
       *   `SomeFailed(loadedExtensions, errors)` otherwise, `LoaderFailed(error)` if the ServiceLoader failed to load
-      *   them in thr first place.
+      *   them in the first place.
       */
     final def loadMacroExtensionsExcluding[Extension <: MacroExtension[?]: ClassTag](
         excluded: String*
@@ -410,7 +410,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       * @return
       *   `AllLoaded(loadedExtensions)` if all the extensions were loaded successfully,
       *   `SomeFailed(loadedExtensions, errors)` otherwise, `LoaderFailed(error)` if the ServiceLoader failed to load
-      *   them in thr first place.
+      *   them in the first place.
       */
     final def loadMacroExtensionsWhen[Extension <: MacroExtension[?]: ClassTag](
         condition: java.lang.Class[?] => Boolean

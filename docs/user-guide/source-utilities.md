@@ -17,6 +17,10 @@ Source utilities expose the following information as `implicit`/`given` values:
 - **`FileName`**: Just the filename (without path) of the current source file
 - **`Location`**: A combination of `File` and `Line`, useful for error messages
 
+and one implicit conversion:
+
+- **`Text[T]`** (since 0.4.0): a value together with the source code of the expression that computed it
+
 !!! example "`Source` utilities - Scala 3"
 
     ```scala
@@ -120,6 +124,28 @@ Source utilities expose the following information as `implicit`/`given` values:
     }
     ```
 
+### 5. Showing the asserted expression
+
+!!! example
+
+    `Text[T]` captures both the value and the source code of an argument, so an assert-like method can show what failed:
+
+    ```scala
+    import hearth.source.*
+
+    def check(condition: Text[Boolean]): Unit =
+      if (!condition.value) throw new AssertionError(s"Failed: ${condition.source}")
+
+    val a = 1
+    val b = 2
+    check(a + b == 4) // AssertionError: Failed: a + b == 4
+
+    // the conversion can also be called explicitly
+    val captured = Text.generate(a + b)
+    captured.value  // 3
+    captured.source // "a + b"
+    ```
+
 ## Understanding the Types
 
 All source utilities use phantom types for type safety:
@@ -129,6 +155,9 @@ All source utilities use phantom types for type safety:
 - **`File`**: A subtype of `String` - full file path (normalized with forward slashes)
 - **`FileName`**: A subtype of `String` - just the filename without path
 - **`Location`**: A case class containing `File` and `Line` - can be derived implicitly if both `File` and `Line` are available
+- **`Text[T]`**: A case class containing `value: T` and `source: String` - created by the implicit conversion
+  `Text.generate`, which uses [`expr.sourceCode`](basic-utilities.md#expression-operations) (and falls back to the
+  printed expression when the source is not available)
 
 ## How It Works
 
