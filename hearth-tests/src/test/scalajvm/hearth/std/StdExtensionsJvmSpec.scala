@@ -900,5 +900,112 @@ final class StdExtensionsJvmSpec extends MacroSuite {
         )
       }
     }
+    group("class: IsCollection[A], Java item/key/value types, building and size hint") {
+      import StdExtensionsFixtures.{testBuildAndIterate, testCollectionTypes, testSizeHint}
+
+      test("for java.util.List and java.util.Map") {
+        testCollectionTypes[java.util.List[String]] <==> Data.map(
+          "item" -> Data("java.lang.String"),
+          "ctorResult" -> Data("java.util.List[java.lang.String]"),
+          "build" -> Data("PlainValue"),
+          "asMap" -> Data("<not a map>"),
+          "IsMap" -> Data("<not a map>")
+        )
+        testCollectionTypes[java.util.Map[Int, String]] <==> Data.map(
+          "item" -> Data("java.util.Map.Entry[scala.Int, java.lang.String]"),
+          "ctorResult" -> Data("java.util.Map[scala.Int, java.lang.String]"),
+          "build" -> Data("PlainValue"),
+          "asMap" -> Data.map("key" -> Data("scala.Int"), "value" -> Data("java.lang.String")),
+          "IsMap" -> Data.map("key" -> Data("scala.Int"), "value" -> Data("java.lang.String"))
+        )
+      }
+
+      test("builds Java collections which can be iterated again") {
+        def built(one: Data, two: Data): Data = Data.map("one" -> one, "two" -> two)
+        testBuildAndIterate[java.util.List[Int]] <==> built(Data.list(Data("1")), Data.list(Data("1"), Data("2")))
+        testBuildAndIterate[java.util.ArrayList[String]] <==> built(
+          Data.list(Data("a")),
+          Data.list(Data("a"), Data("b"))
+        )
+        testBuildAndIterate[java.util.TreeSet[Int]] <==> built(Data.list(Data("1")), Data.list(Data("1"), Data("2")))
+        testBuildAndIterate[java.util.BitSet] <==> built(Data.list(Data("1")), Data.list(Data("1"), Data("2")))
+        testBuildAndIterate[java.util.Iterator[Int]] <==> built(Data.list(Data("1")), Data.list(Data("1"), Data("2")))
+        testBuildAndIterate[java.util.TreeMap[Int, String]] <==> built(
+          Data.list(Data("1=a")),
+          Data.list(Data("1=a"), Data("2=b"))
+        )
+        testBuildAndIterate[java.util.Optional[Int]] <==> built(
+          Data.list(Data("1")),
+          Data("error: Expected at most 1 element for Optional, got 2")
+        )
+        testBuildAndIterate[java.util.stream.Stream[Int]] <==> built(
+          Data.list(Data("1")),
+          Data.list(Data("1"), Data("2"))
+        )
+      }
+
+      test("size hint is computed for Java collections and absent for single-pass sources") {
+        testSizeHint(java.util.Arrays.asList("a", "b", "c")) <==> Data(3)
+        testSizeHint(java.util.Arrays.asList("a", "b", "c").iterator()) <==> Data("<no size hint>")
+        testSizeHint(
+          java.util.Collections.enumeration(java.util.Arrays.asList("a", "b", "c"))
+        ) <==> Data("<no size hint>")
+        testSizeHint(java.util.stream.Stream.of("a", "b", "c")) <==> Data("<no size hint>")
+      }
+    }
+
+    group("class: IsOption[A], Java item types and orElse") {
+      import StdExtensionsFixtures.{testIsOptionOrElse, testIsOptionTypes}
+
+      test("for Java Optional and its primitive specializations") {
+        testIsOptionTypes[java.util.Optional[String]] <==> Data.map("item" -> Data("java.lang.String"))
+        testIsOptionTypes[java.util.OptionalInt] <==> Data.map("item" -> Data("scala.Int"))
+        testIsOptionTypes[java.util.OptionalLong] <==> Data.map("item" -> Data("scala.Long"))
+        testIsOptionTypes[java.util.OptionalDouble] <==> Data.map("item" -> Data("scala.Double"))
+      }
+
+      test("orElse keeps a present Optional and falls back for an empty one") {
+        testIsOptionOrElse(java.util.Optional.of("value"), java.util.Optional.of("default")) <==>
+          Data("Optional[value]")
+        testIsOptionOrElse(java.util.Optional.empty[String](), java.util.Optional.of("default")) <==>
+          Data("Optional[default]")
+        testIsOptionOrElse(java.util.OptionalInt.empty(), java.util.OptionalInt.of(2)) <==> Data("OptionalInt[2]")
+      }
+    }
+
+    group("class: IsValueType[A], Java boxed types inner types and provenance") {
+      import StdExtensionsFixtures.testValueTypeInfo
+
+      test("for java.lang.Integer") {
+        testValueTypeInfo[java.lang.Integer] <==> Data.map(
+          "inner" -> Data("scala.Int"),
+          "wrap" -> Data("PlainValue"),
+          "ctors" -> Data.list((1 to 6).map(_ => Data("PlainValue"))*),
+          "provenance" -> Data.map(
+            "provider" -> Data("hearth.std.extensions.IsValueTypeProviderForJavaInteger"),
+            "isBuiltIn" -> Data(true)
+          )
+        )
+      }
+    }
+
+    group("lastMatchProvenance for Java types") {
+      import StdExtensionsFixtures.testProvenance
+
+      test("names the Java providers") {
+        testProvenance[java.util.Optional[String]] <==> Data.map(
+          "IsCollection" -> Data.map(
+            "provider" -> Data("hearth.std.extensions.IsCollectionProviderForJavaOptional"),
+            "isBuiltIn" -> Data(true)
+          ),
+          "IsOption" -> Data.map(
+            "provider" -> Data("hearth.std.extensions.IsOptionProviderForJavaOptional"),
+            "isBuiltIn" -> Data(true)
+          ),
+          "IsEither" -> Data("<none>"),
+          "IsValueType" -> Data("<none>")
+        )
+      }
+    }
   }
 }

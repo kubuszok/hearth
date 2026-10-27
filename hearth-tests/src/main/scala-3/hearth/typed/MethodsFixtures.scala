@@ -283,4 +283,67 @@ object MethodsFixtures {
   private def testGenericMethodChainApplyingCtor1OfImpl[A: Type, R: Type](instance: Expr[A], methodName: Expr[String])(
       using q: Quotes
   ): Expr[Data] = new MethodsFixtures(q).testGenericMethodChainApplyingCtor1Of[A, R](instance)(methodName)
+
+  inline def testMethodSignatures[A](inline methodName: String): Data = ${ testMethodSignaturesImpl[A]('methodName) }
+  private def testMethodSignaturesImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testMethodSignatures[A](methodName)
+
+  inline def testConstructorSignatures[A]: Data = ${ testConstructorSignaturesImpl[A] }
+  private def testConstructorSignaturesImpl[A: Type](using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testConstructorSignatures[A]
+
+  inline def testMethodFlags[A](inline methodName: String): Data = ${ testMethodFlagsImpl[A]('methodName) }
+  private def testMethodFlagsImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testMethodFlags[A](methodName)
+
+  inline def testConstructorFlags[A]: Data = ${ testConstructorFlagsImpl[A] }
+  private def testConstructorFlagsImpl[A: Type](using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testConstructorFlags[A]
+
+  inline def testMethodAccessorsAndArity[A](inline methodName: String): Data = ${
+    testMethodAccessorsAndArityImpl[A]('methodName)
+  }
+  private def testMethodAccessorsAndArityImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testMethodAccessorsAndArity[A](methodName)
+
+  inline def testMethodParameters[A](inline methodName: String): Data = ${ testMethodParametersImpl[A]('methodName) }
+  private def testMethodParametersImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testMethodParameters[A](methodName)
+
+  inline def testConstructorParameters[A]: Data = ${ testConstructorParametersImpl[A] }
+  private def testConstructorParametersImpl[A: Type](using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testConstructorParameters[A]
+
+  inline def testChainWalk[A](inline instance: A)(inline methodName: String)(inline params: Int*): Data = ${
+    testChainWalkImpl[A]('instance, 'methodName, 'params)
+  }
+  private def testChainWalkImpl[A: Type](instance: Expr[A], methodName: Expr[String], params: Expr[Seq[Int]])(using
+      q: Quotes
+  ): Expr[Data] = new MethodsFixtures(q).testChainWalk[A](instance)(methodName)(params)
+
+  inline def testConstructorChainWalk[A](inline params: Int*): Data = ${ testConstructorChainWalkImpl[A]('params) }
+  private def testConstructorChainWalkImpl[A: Type](params: Expr[Seq[Int]])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testConstructorChainWalk[A](params)
+
+  inline def testBuildWithWrongArgumentTypes[A](inline instance: A)(inline methodName: String): Data = ${
+    testBuildWithWrongArgumentTypesImpl[A]('instance, 'methodName)
+  }
+  private def testBuildWithWrongArgumentTypesImpl[A: Type](instance: Expr[A], methodName: Expr[String])(using
+      q: Quotes
+  ): Expr[Data] = new MethodsFixtures(q).testBuildWithWrongArgumentTypes[A](instance)(methodName)
+
+  inline def testFoldFEffects[A](inline instance: A)(inline methodName: String)(inline params: Int*): Data = ${
+    testFoldFEffectsImpl[A]('instance, 'methodName, 'params)
+  }
+  private def testFoldFEffectsImpl[A: Type](instance: Expr[A], methodName: Expr[String], params: Expr[Seq[Int]])(using
+      q: Quotes
+  ): Expr[Data] = new MethodsFixtures(q).testFoldFEffects[A](instance)(methodName)(params)
+
+  inline def testMethodListings[A]: Data = ${ testMethodListingsImpl[A] }
+  private def testMethodListingsImpl[A: Type](using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testMethodListings[A]
+
+  inline def testHasMethodsNamed[A](inline names: String*): Data = ${ testHasMethodsNamedImpl[A]('names) }
+  private def testHasMethodsNamedImpl[A: Type](names: Expr[Seq[String]])(using q: Quotes): Expr[Data] =
+    new MethodsFixtures(q).testHasMethodsNamed[A](names)
 }

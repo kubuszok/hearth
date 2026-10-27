@@ -120,4 +120,53 @@ trait EnclosuresFixturesImpl { this: MacroCommons =>
         }
     }
   }
+
+  def testEnclosureDetails: Expr[Data] = {
+    val rendered = enclosingScope.toVector.filterNot(_.kind == "package").map {
+      case m: Enclosure.Method =>
+        Data.map(
+          "kind" -> Data(m.kind),
+          "name" -> Data(m.name),
+          "hasPosition" -> Data(m.position.isDefined),
+          "hasTpe" -> Data(m.tpe.isDefined)
+        )
+      case v: Enclosure.Value =>
+        Data.map(
+          "kind" -> Data(v.kind),
+          "name" -> Data(v.name),
+          "hasPosition" -> Data(v.position.isDefined)
+        )
+      case c: Enclosure.Class =>
+        Data.map(
+          "kind" -> Data(c.kind),
+          "name" -> Data(c.name),
+          "hasPosition" -> Data(c.position.isDefined),
+          "hasThisRef" -> Data(c.thisRef.isDefined)
+        )
+      case o: Enclosure.Object =>
+        Data.map(
+          "kind" -> Data(o.kind),
+          "name" -> Data(o.name),
+          "hasPosition" -> Data(o.position.isDefined)
+        )
+      case p: Enclosure.Package =>
+        Data.map("kind" -> Data(p.kind), "name" -> Data(p.name))
+    }
+    Expr(Data.list(rendered*))
+  }
+
+  def testEnclosingValueType: Expr[String] =
+    Expr(
+      enclosingScope.iterator
+        .collectFirst { case v: Enclosure.Value => v.tpe.plainPrint }
+        .getOrElse("<no value enclosure>")
+    )
+
+  /** The expansion point is added as `<expansion>`, so the innermost enclosure must sort right before it. */
+  def testEnclosurePositionsSorted: Expr[Data] = {
+    val named = enclosingScope.toVector
+      .filterNot(_.kind == "package")
+      .flatMap(enc => enc.position.map(_ -> enc.name)) :+ (Environment.currentPosition -> "<expansion>")
+    Expr(Data.list(named.sortBy(_._1).map(pair => Data(pair._2))*))
+  }
 }

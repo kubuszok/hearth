@@ -406,7 +406,7 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
             case _: CtorLikeOf.EitherIterableThrowableOrValue[?, ?] => "EitherIterableThrowableOrValue"
             case other                                              => s"Unknown(${other.getClass.getSimpleName})"
           }
-          val inputType = Input.prettyPrint
+          val inputType = Input.plainPrint
           val methodName = existential.value.method.map(_.name).getOrElse("<no method>")
           (ctorType, inputType, methodName)
         }
@@ -446,6 +446,252 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
         "IsEither" -> resultToData(IsEither.parse[A]),
         "IsValueType" -> resultToData(IsValueType.parse[A]),
         "CtorLikes" -> resultToData(CtorLikes.parse[A])
+      )
+    )
+  }
+
+  private val CharType = Type.of[Char]
+  private val ThrowableType = Type.of[Throwable]
+
+  // Skip reasons are rendered with `prettyPrint`, which colours the type names.
+  private def stripAnsi(s: String): String = s.replaceAll("\u001b\\[[0-9;]*m", "")
+
+  private def ctorLikeKind(ctor: CtorLikeOf[?, ?]): String = ctor match {
+    case _: CtorLikeOf.PlainValue[?, ?]                     => "PlainValue"
+    case _: CtorLikeOf.EitherStringOrValue[?, ?]            => "EitherStringOrValue"
+    case _: CtorLikeOf.EitherIterableStringOrValue[?, ?]    => "EitherIterableStringOrValue"
+    case _: CtorLikeOf.EitherThrowableOrValue[?, ?]         => "EitherThrowableOrValue"
+    case _: CtorLikeOf.EitherIterableThrowableOrValue[?, ?] => "EitherIterableThrowableOrValue"
+    case other                                              => s"Unknown(${other.getClass.getSimpleName})"
+  }
+
+  private def renderProvenance(provenance: Option[ProviderProvenance]): Data = provenance match {
+    case Some(p) => Data.map("provider" -> Data(p.providerName), "isBuiltIn" -> Data(p.isBuiltIn))
+    case None    => Data("<none>")
+  }
+
+  def testCollectionTypes[A: Type]: Expr[Data] = IsCollection.parse[A] match {
+    case ProviderResult.Matched(isCollection) =>
+      import isCollection.{Underlying as Item, value as isCollectionOf}
+      import isCollectionOf.CtorResult
+      val asMap = isCollectionOf.asMap match {
+        case Some(isMapOf) =>
+          Data.map("key" -> Data(isMapOf.Key.plainPrint), "value" -> Data(isMapOf.Value.plainPrint))
+        case None => Data("<not a map>")
+      }
+      val isMap = IsMap.parse[A] match {
+        case ProviderResult.Matched(isMap) =>
+          import isMap.value as isMapOf
+          Data.map("key" -> Data(isMapOf.Key.plainPrint), "value" -> Data(isMapOf.Value.plainPrint))
+        case _: ProviderResult.Skipped => Data("<not a map>")
+      }
+      Expr(
+        Data.map(
+          "item" -> Data(Item.plainPrint),
+          "ctorResult" -> Data(CtorResult.plainPrint),
+          "build" -> Data(ctorLikeKind(isCollectionOf.build)),
+          "asMap" -> asMap,
+          "IsMap" -> isMap
+        )
+      )
+    case _: ProviderResult.Skipped => Expr(Data("<no collection>"))
+  }
+
+  // Builds the collection through the provider's `factory` + `build` from 1 and from 2 items, then iterates the built
+  // value through the provider's `asIterable`, so that the whole build-then-read round trip is checked.
+  def testBuildAndIterate[A: Type]: Expr[Data] = Type[A] match {
+    case IsCollection(isCollection) =>
+      import isCollection.{Underlying as Item, value as isCollectionOf}
+      import isCollectionOf.CtorResult
+      implicit val dataType: Type[Data] = DataType
+      implicit val intType: Type[Int] = IntType
+      implicit val charType: Type[Char] = CharType
+      implicit val stringType: Type[String] = StringType
+      implicit val builderType: Type[scala.collection.mutable.Builder[Item, CtorResult]] =
+        BuilderType[Item, CtorResult]
+
+      val items: Option[(Expr[Item], Expr[Item])] = isCollectionOf.asMap match {
+        case Some(isMapOf) =>
+          import isMapOf.{Key, Value}
+          if (IntType <:< Key && StringType <:< Value)
+            Some(
+              (
+                isMapOf.pair(Expr(1).upcast[Key], Expr("a").upcast[Value]),
+                isMapOf.pair(Expr(2).upcast[Key], Expr("b").upcast[Value])
+              )
+            )
+          else None
+        case None =>
+          if (IntType <:< Item) Some((Expr(1).upcast[Item], Expr(2).upcast[Item]))
+          else if (CharType <:< Item) Some((Expr('a').upcast[Item], Expr('b').upcast[Item]))
+          else if (StringType <:< Item) Some((Expr("a").upcast[Item], Expr("b").upcast[Item]))
+          else None
+      }
+
+      items match {
+        case Some((first, second)) =>
+          val onBuilt = handleSmartConstructor(isCollectionOf.build) { built =>
+            Expr.quote {
+              val it = Expr.splice(isCollectionOf.asIterable(built))
+              Data(it.map(item => Data(item.toString)).toList)
+            }
+          }
+          Expr.quote {
+            val one = {
+              val b = Expr.splice(isCollectionOf.factory).newBuilder
+              val item1 = Expr.splice(first)
+              b.addOne(item1)
+              Expr.splice(onBuilt(Expr.quote(b)))
+            }
+            val two = {
+              val b = Expr.splice(isCollectionOf.factory).newBuilder
+              val item1 = Expr.splice(first)
+              val item2 = Expr.splice(second)
+              b.addOne(item1)
+              b.addOne(item2)
+              Expr.splice(onBuilt(Expr.quote(b)))
+            }
+            Data.map("one" -> one, "two" -> two)
+          }
+        case None => Expr(Data("<unsupported item type>"))
+      }
+    case _ => Expr(Data("<no collection>"))
+  }
+
+  def testSizeHint[A: Type](value: Expr[A]): Expr[Data] = Type[A] match {
+    case IsCollection(isCollection) =>
+      import isCollection.value as isCollectionOf
+      implicit val dataType: Type[Data] = DataType
+      isCollectionOf.sizeHintForBuilder(value) match {
+        case Some(size) => Expr.quote(Data(Expr.splice(size)))
+        case None       => Expr(Data("<no size hint>"))
+      }
+    case _ => Expr(Data("<no collection>"))
+  }
+
+  def testIsOptionOrElse[A: Type](value: Expr[A], default: Expr[A]): Expr[Data] = Type[A] match {
+    case IsOption(isOption) =>
+      implicit val dataType: Type[Data] = DataType
+      Expr.quote(Data(Expr.splice(isOption.value.orElse(value)(default)).toString))
+    case _ => Expr(Data("<no option>"))
+  }
+
+  def testIsEitherOrElse[A: Type](value: Expr[A], default: Expr[A]): Expr[Data] = Type[A] match {
+    case IsEither(isEither) =>
+      implicit val dataType: Type[Data] = DataType
+      Expr.quote(Data(Expr.splice(isEither.value.orElse(value)(default)).toString))
+    case _ => Expr(Data("<no either>"))
+  }
+
+  def testIsEitherTypes[A: Type]: Expr[Data] = Type[A] match {
+    case IsEither(isEither) =>
+      import isEither.{LeftValue, RightValue}
+      implicit val dataType: Type[Data] = DataType
+      implicit val intType: Type[Int] = IntType
+      implicit val throwableType: Type[Throwable] = ThrowableType
+
+      val building =
+        if (ThrowableType <:< LeftValue && IntType <:< RightValue) Expr.quote {
+          val left = Expr.splice(
+            isEither.value.left(Expr.quote(new IllegalStateException("boom"): Throwable).upcast[LeftValue])
+          )
+          val right = Expr.splice(isEither.value.right(Expr(42).upcast[RightValue]))
+          Data.map("left" -> Data(left.toString), "right" -> Data(right.toString))
+        }
+        else Expr(Data("<not an either of throwable and int>"))
+
+      val types = Expr(Data.map("left" -> Data(LeftValue.plainPrint), "right" -> Data(RightValue.plainPrint)))
+      Expr.quote {
+        Data.map(
+          "types" -> Expr.splice(types),
+          "building" -> Expr.splice(building)
+        )
+      }
+    case _ => Expr(Data("<no either>"))
+  }
+
+  def testIsOptionTypes[A: Type]: Expr[Data] = Type[A] match {
+    case IsOption(isOption) =>
+      import isOption.Underlying as Item
+      Expr(Data.map("item" -> Data(Item.plainPrint)))
+    case _ => Expr(Data("<no option>"))
+  }
+
+  def testValueTypeInfo[A: Type]: Expr[Data] = IsValueType.parse[A] match {
+    case ProviderResult.Matched(isValueType) =>
+      import isValueType.Underlying as Inner
+      val provenance = IsValueType.lastMatchProvenance
+      Expr(
+        Data.map(
+          "inner" -> Data(Inner.plainPrint),
+          "wrap" -> Data(ctorLikeKind(isValueType.value.wrap)),
+          "ctors" -> Data(isValueType.value.ctors.toList.map(ctor => ctorLikeKind(ctor.value)).sorted.map(Data(_))),
+          "provenance" -> renderProvenance(provenance)
+        )
+      )
+    case _: ProviderResult.Skipped => Expr(Data("<no value type>"))
+  }
+
+  private def provenanceAfter(parse: => ProviderResult[Any], provenance: => Option[ProviderProvenance]) = {
+    val _ = parse
+    provenance
+  }
+
+  def testProvenance[A: Type]: Expr[Data] = {
+    val collection = provenanceAfter(IsCollection.parse[A], IsCollection.lastMatchProvenance)
+    val option = provenanceAfter(IsOption.parse[A], IsOption.lastMatchProvenance)
+    val either = provenanceAfter(IsEither.parse[A], IsEither.lastMatchProvenance)
+    val valueType = provenanceAfter(IsValueType.parse[A], IsValueType.lastMatchProvenance)
+    Expr(
+      Data.map(
+        "IsCollection" -> renderProvenance(collection),
+        "IsOption" -> renderProvenance(option),
+        "IsEither" -> renderProvenance(either),
+        "IsValueType" -> renderProvenance(valueType)
+      )
+    )
+  }
+
+  def testIsMapProvenance[A: Type]: Expr[Data] = {
+    val result = IsMap.parse[A] match {
+      case ProviderResult.Matched(_) => "matched"
+      case _: ProviderResult.Skipped => "skipped"
+    }
+    Expr(Data.map("result" -> Data(result), "provenance" -> renderProvenance(IsMap.lastMatchProvenance)))
+  }
+
+  def testSkipReasons[A: Type]: Expr[Data] = {
+    def render[B](result: ProviderResult[B]): Data = result match {
+      case ProviderResult.Matched(_)       => Data("matched")
+      case ProviderResult.Skipped(reasons) =>
+        reasons.toList match {
+          case (provider, reason) :: Nil =>
+            Data.map(provider -> Data(reason.fold(error => s"error: ${error.getMessage}", r => stripAnsi(r()))))
+          case _ => Data("<skipped by multiple providers>")
+        }
+    }
+    Expr(
+      Data.map(
+        "IsCollection" -> render(IsCollection.parse[A]),
+        "IsMap" -> render(IsMap.parse[A]),
+        "IsOption" -> render(IsOption.parse[A]),
+        "IsEither" -> render(IsEither.parse[A]),
+        "IsValueType" -> render(IsValueType.parse[A]),
+        "CtorLikes" -> render(CtorLikes.parse[A])
+      )
+    )
+  }
+
+  def testUnapplyFailures[A: Type]: Expr[Data] = {
+    def failureAfter(matched: Option[Any], failure: => AnyRef): Data =
+      Data.map("matched" -> Data(matched.isDefined), "hasFailure" -> Data(failure != null))
+    Expr(
+      Data.map(
+        "IsMap" -> failureAfter(IsMap.unapply(Type[A]), IsMap.lastUnapplyFailure),
+        "IsOption" -> failureAfter(IsOption.unapply(Type[A]), IsOption.lastUnapplyFailure),
+        "IsEither" -> failureAfter(IsEither.unapply(Type[A]), IsEither.lastUnapplyFailure),
+        "IsValueType" -> failureAfter(IsValueType.unapply(Type[A]), IsValueType.lastUnapplyFailure),
+        "CtorLikes" -> failureAfter(CtorLikes.unapply(Type[A]), CtorLikes.lastUnapplyFailure)
       )
     )
   }

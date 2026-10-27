@@ -931,4 +931,54 @@ final class TypesScala3Spec extends MacroSuite {
       }
     }
   }
+
+  group("typed.Types: union type discrimination (Scala 3)") {
+    import TypesFixtures.testUnionTypeTests
+
+    test("members of a union with disjoint runtime classes do not need a TypeTest and the union is not refused") {
+      testUnionTypeTests[String | Int, String] <==> Data.map(
+        "Type.unionMemberRequiresTypeTest" -> Data(false),
+        "Type.unionRefusalReason" -> Data("<none>")
+      )
+    }
+
+    test("singleton members are matched by value and do not need a TypeTest") {
+      testUnionTypeTests[examples.Color.Red.type | examples.Color.Blue.type, examples.Color.Red.type] <==> Data.map(
+        "Type.unionMemberRequiresTypeTest" -> Data(false),
+        "Type.unionRefusalReason" -> Data("<none>")
+      )
+    }
+
+    test("members sharing an erasure need a TypeTest and the refusal reason names the missing TypeTest") {
+      testUnionTypeTests[List[Int] | List[String], List[Int]] <==> Data.map(
+        "Type.unionMemberRequiresTypeTest" -> Data(true),
+        "Type.unionRefusalReason" -> Data.map(
+          "mentions TypeTest" -> Data(true),
+          "mentions member" -> Data(true)
+        )
+      )
+    }
+
+    test("members sharing an erasure are not refused when the TypeTests are in scope") {
+      import examples.unions.typetests.given
+      testUnionTypeTests[List[Int] | List[String], List[Int]] <==> Data.map(
+        "Type.unionMemberRequiresTypeTest" -> Data(true),
+        "Type.unionRefusalReason" -> Data("<none>")
+      )
+    }
+
+    test("a union refused because of a static subtype relationship has no actionable refusal reason") {
+      testUnionTypeTests[String | AnyRef, String] <==> Data.map(
+        "Type.unionMemberRequiresTypeTest" -> Data(false),
+        "Type.unionRefusalReason" -> Data("<none>")
+      )
+    }
+
+    test("a non-union type does not need a TypeTest and has no refusal reason") {
+      testUnionTypeTests[String, String] <==> Data.map(
+        "Type.unionMemberRequiresTypeTest" -> Data(false),
+        "Type.unionRefusalReason" -> Data("<none>")
+      )
+    }
+  }
 }

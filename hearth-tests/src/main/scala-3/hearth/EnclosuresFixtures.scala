@@ -43,4 +43,17 @@ object EnclosuresFixtures {
   inline def testEnclosingMethodParameterNames: Data = ${ testEnclosingMethodParameterNamesImpl }
   private def testEnclosingMethodParameterNamesImpl(using q: Quotes): Expr[Data] =
     new EnclosuresFixtures(q).testEnclosingMethodParameterNames
+
+  inline def testEnclosureDetails: Data = ${ testEnclosureDetailsImpl }
+  private def testEnclosureDetailsImpl(using q: Quotes): Expr[Data] = new EnclosuresFixtures(q).testEnclosureDetails
+
+  inline def testEnclosingValueType: String = ${ testEnclosingValueTypeImpl }
+  private def testEnclosingValueTypeImpl(using q: Quotes): Expr[String] = new EnclosuresFixtures(
+    q
+  ).testEnclosingValueType
+
+  inline def testEnclosurePositionsSorted: Data = ${ testEnclosurePositionsSortedImpl }
+  private def testEnclosurePositionsSortedImpl(using q: Quotes): Expr[Data] = new EnclosuresFixtures(
+    q
+  ).testEnclosurePositionsSorted
 }

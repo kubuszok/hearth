@@ -495,6 +495,439 @@ final class ClassesSpec extends MacroSuite {
       code(hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitObject) <==>
         "sequential: subtype name: hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type, expr: ExampleSealedTraitObject, parallel: subtype name: hearth.examples.enums.ExampleSealedTrait.ExampleSealedTraitObject.type, expr: ExampleSealedTraitObject"
     }
+
+    group("Class.apply picks the most specific view") {
+      import ClassesFixtures.testClassViewKind
+
+      test("for a case class, a sealed hierarchy, objects, a bean and a plain trait") {
+        testClassViewKind[examples.classesedge.CCDeclarationOrder] <==> "CaseClass"
+        testClassViewKind[examples.classesedge.Animal] <==> "Enum"
+        testClassViewKind[examples.classesedge.Animal.Cat.type] <==> "SingletonValue"
+        testClassViewKind[examples.classesedge.PlainObject.type] <==> "SingletonValue"
+        testClassViewKind[examples.classesedge.ScalaBean] <==> "JavaBean"
+        testClassViewKind[examples.classes.ExampleTrait] <==> "Class"
+      }
+    }
+
+    group("Class[A].method(name)") {
+      import ClassesFixtures.testClassMethodOverloads
+
+      test("returns every overload with the given name, and nothing for an unknown name") {
+        testClassMethodOverloads[examples.classesedge.ClassWithOverloads]("foo") <==> Data.list(
+          Data("(s: java.lang.String)"),
+          Data("(i: scala.Int)")
+        )
+        testClassMethodOverloads[examples.classesedge.ClassWithOverloads]("bar") <==> Data.list(Data(""))
+        testClassMethodOverloads[examples.classesedge.ClassWithOverloads]("missing") <==> Data.list()
+      }
+    }
+
+    group("CaseClass[A] constructors and case fields") {
+      import ClassesFixtures.testCaseClassSummary
+
+      test("case fields keep declaration order") {
+        testCaseClassSummary[examples.classesedge.CCDeclarationOrder] <==> Data.map(
+          "primaryConstructor" -> Data("(zeta: scala.Int, alpha: java.lang.String, mid: scala.Boolean)"),
+          "nonPrimaryConstructors" -> Data.list(),
+          "caseFields" -> Data.list(
+            Data("zeta: scala.Int"),
+            Data("alpha: java.lang.String"),
+            Data("mid: scala.Boolean")
+          )
+        )
+      }
+
+      test("nonPrimaryConstructors does not contain the primary constructor") {
+        testCaseClassSummary[examples.classes.ExampleCaseClass] <==> Data.map(
+          "primaryConstructor" -> Data("(a: scala.Int)"),
+          "nonPrimaryConstructors" -> Data.list(),
+          "caseFields" -> Data.list(Data("a: scala.Int"))
+        )
+      }
+
+      test("nonPrimaryConstructors contains only the auxiliary constructors") {
+        testCaseClassSummary[examples.classesedge.CCWithAuxiliaryCtor] <==> Data.map(
+          "primaryConstructor" -> Data("(i: scala.Int, s: java.lang.String)"),
+          "nonPrimaryConstructors" -> Data.list(Data("(i: scala.Int)")),
+          "caseFields" -> Data.list(Data("i: scala.Int"), Data("s: java.lang.String"))
+        )
+      }
+
+      test("a case class without fields") {
+        testCaseClassSummary[examples.classesedge.CCEmpty] <==> Data.map(
+          "primaryConstructor" -> Data("()"),
+          "nonPrimaryConstructors" -> Data.list(),
+          "caseFields" -> Data.list()
+        )
+      }
+
+      test("a generic case class seen through an alias reordering its type parameters") {
+        testCaseClassSummary[examples.classesedge.CCGeneric2.Flipped[String, Int]] <==> Data.map(
+          "primaryConstructor" -> Data("(a: scala.Int, b: java.lang.String)"),
+          "nonPrimaryConstructors" -> Data.list(),
+          "caseFields" -> Data.list(Data("a: scala.Int"), Data("b: java.lang.String"))
+        )
+      }
+
+      test("only the first parameter list holds case fields, but the constructor has all of them") {
+        testCaseClassSummary[examples.classesedge.CCMultipleParamLists] <==> Data.map(
+          "primaryConstructor" -> Data("(i: scala.Int)(s: java.lang.String)"),
+          "nonPrimaryConstructors" -> Data.list(),
+          "caseFields" -> Data.list(Data("i: scala.Int"))
+        )
+        testCaseClassSummary[examples.classesedge.CCImplicitParam] <==> Data.map(
+          "primaryConstructor" -> Data("(i: scala.Int)(s: java.lang.String)"),
+          "nonPrimaryConstructors" -> Data.list(),
+          "caseFields" -> Data.list(Data("i: scala.Int"))
+        )
+      }
+
+      test("a value class") {
+        testCaseClassSummary[examples.classesedge.CCValueClass] <==> Data.map(
+          "primaryConstructor" -> Data("(value: scala.Int)"),
+          "nonPrimaryConstructors" -> Data.list(),
+          "caseFields" -> Data.list(Data("value: scala.Int"))
+        )
+      }
+    }
+
+    group("CaseClass[A].{construct, parConstruct, caseFieldValuesAt} evaluated at runtime") {
+      import ClassesFixtures.testCaseClassRuntimeRoundTrip
+
+      test("for a case class with fields in non-alphabetical order") {
+        testCaseClassRuntimeRoundTrip[examples.classesedge.CCDeclarationOrder] <==>
+          "CCDeclarationOrder(42,hello,true) | CCDeclarationOrder(42,hello,true) | zeta=42, alpha=hello, mid=true"
+      }
+
+      test("for a type alias of a case class") {
+        testCaseClassRuntimeRoundTrip[examples.classesedge.CCAliases.Plain] <==>
+          "CCDeclarationOrder(42,hello,true) | CCDeclarationOrder(42,hello,true) | zeta=42, alpha=hello, mid=true"
+      }
+
+      test("for a case class without fields") {
+        testCaseClassRuntimeRoundTrip[examples.classesedge.CCEmpty] <==> "CCEmpty() | CCEmpty() | <no fields>"
+      }
+
+      test("for generic case classes, also through aliases that reorder or fix type parameters") {
+        testCaseClassRuntimeRoundTrip[examples.classes.ExampleCaseClassWithTypeParam[String]] <==>
+          "ExampleCaseClassWithTypeParam(hello) | ExampleCaseClassWithTypeParam(hello) | a=hello"
+        testCaseClassRuntimeRoundTrip[examples.classesedge.CCGeneric2[Int, String]] <==>
+          "CCGeneric2(42,hello) | CCGeneric2(42,hello) | a=42, b=hello"
+        testCaseClassRuntimeRoundTrip[examples.classesedge.CCGeneric2.Flipped[String, Int]] <==>
+          "CCGeneric2(42,hello) | CCGeneric2(42,hello) | a=42, b=hello"
+        testCaseClassRuntimeRoundTrip[examples.classesedge.CCGeneric2.IntFirst[Boolean]] <==>
+          "CCGeneric2(42,true) | CCGeneric2(42,true) | a=42, b=true"
+      }
+
+      test("for a case class with default values (every parameter is still provided)") {
+        testCaseClassRuntimeRoundTrip[examples.classes.ExampleCaseClassWithDefaults] <==>
+          "ExampleCaseClassWithDefaults(42,hello) | ExampleCaseClassWithDefaults(42,hello) | a=42, b=hello"
+      }
+
+      test("for a case class with multiple parameter lists") {
+        testCaseClassRuntimeRoundTrip[examples.classesedge.CCMultipleParamLists] <==>
+          "CCMultipleParamLists(42)(hello) | CCMultipleParamLists(42)(hello) | i=42"
+      }
+
+      test("for a case class with an implicit parameter list") {
+        testCaseClassRuntimeRoundTrip[examples.classesedge.CCImplicitParam] <==>
+          "CCImplicitParam(42)(hello) | CCImplicitParam(42)(hello) | i=42"
+      }
+
+      test("for a value class") {
+        testCaseClassRuntimeRoundTrip[examples.classesedge.CCValueClass] <==>
+          "CCValueClass(42) | CCValueClass(42) | value=42"
+      }
+
+      test("for a case class nested in an object") {
+        testCaseClassRuntimeRoundTrip[examples.classesedge.CCOuter.CCNested] <==>
+          "CCNested(42) | CCNested(42) | i=42"
+      }
+
+      test("for a path-dependent case class nested in a class instance") {
+        testCaseClassRuntimeRoundTrip[examples.classesedge.CCContainerInstance.CCInner] <==>
+          "CCInner(42,hello) | CCInner(42,hello) | i=42, s=hello"
+      }
+
+      test("for a case class defined locally at the call site") {
+        case class LocalCaseClass(i: Int, s: String)
+        testCaseClassRuntimeRoundTrip[LocalCaseClass] <==>
+          "LocalCaseClass(42,hello) | LocalCaseClass(42,hello) | i=42, s=hello"
+      }
+    }
+
+    group("CaseClass[A].construct visibility") {
+      import ClassesFixtures.testCaseClassConstructVisibility
+
+      test("a public constructor is available in every scope") {
+        testCaseClassConstructVisibility[examples.classesedge.CCDeclarationOrder] <==> Data.map(
+          "atCallSite" -> Data("<constructed>"),
+          "everywhere" -> Data("<constructed>"),
+          "anywhere" -> Data("<constructed>")
+        )
+      }
+
+      test("a private constructor is available only when accessibility is ignored") {
+        testCaseClassConstructVisibility[examples.classesedge.CCPrivateCtor] <==> Data.map(
+          "atCallSite" -> Data("<inaccessible>"),
+          "everywhere" -> Data("<inaccessible>"),
+          "anywhere" -> Data("<constructed>")
+        )
+      }
+
+      test("a package-private constructor is available at a call site inside that package, but is not public") {
+        testCaseClassConstructVisibility[examples.classesedge.CCHearthPrivateCtor] <==> Data.map(
+          "atCallSite" -> Data("<constructed>"),
+          "everywhere" -> Data("<inaccessible>"),
+          "anywhere" -> Data("<constructed>")
+        )
+      }
+    }
+
+    test("CaseClass[A].parConstruct aggregates errors of all fields, while construct stops at the first one") {
+      import ClassesFixtures.testCaseClassConstructErrorAggregation
+
+      testCaseClassConstructErrorAggregation[examples.classesedge.CCDeclarationOrder] <==> Data.map(
+        "construct" -> Data.list(Data("no value for zeta")),
+        "parConstruct" -> Data.list(
+          Data("no value for zeta"),
+          Data("no value for alpha"),
+          Data("no value for mid")
+        )
+      )
+    }
+
+    group("Enum[A] children") {
+      import ClassesFixtures.testEnumChildren
+
+      test("for a sealed abstract class") {
+        testEnumChildren[examples.classesedge.SealedAbstractShape] <==> Data.map(
+          "directChildren" -> Data.list(
+            Data("Circle: hearth.examples.classesedge.SealedAbstractShape.Circle"),
+            Data("Dot: hearth.examples.classesedge.SealedAbstractShape.Dot.type")
+          ),
+          "exhaustiveChildren" -> Data.list(
+            Data("Circle: hearth.examples.classesedge.SealedAbstractShape.Circle"),
+            Data("Dot: hearth.examples.classesedge.SealedAbstractShape.Dot.type")
+          )
+        )
+      }
+
+      test("for a nested sealed hierarchy: direct children keep the nested trait, exhaustive children flatten it") {
+        testEnumChildren[examples.classesedge.Animal] <==> Data.map(
+          "directChildren" -> Data.list(
+            Data("Fish: hearth.examples.classesedge.Animal.Fish"),
+            Data("Mammal: hearth.examples.classesedge.Animal.Mammal")
+          ),
+          "exhaustiveChildren" -> Data.list(
+            Data("Fish: hearth.examples.classesedge.Animal.Fish"),
+            Data("Cat: hearth.examples.classesedge.Animal.Cat.type"),
+            Data("Dog: hearth.examples.classesedge.Animal.Dog")
+          )
+        )
+      }
+
+      test("for an applied generic sealed trait") {
+        testEnumChildren[examples.enums.ExampleSealedTraitWithTypeParam[Int]] <==> Data.map(
+          "directChildren" -> Data.list(
+            Data(
+              "ExampleSealedTraitWithTypeParamClass: hearth.examples.enums.ExampleSealedTraitWithTypeParam.ExampleSealedTraitWithTypeParamClass[scala.Int]"
+            ),
+            Data(
+              "ExampleSealedTraitWithTypeParamObject: hearth.examples.enums.ExampleSealedTraitWithTypeParam.ExampleSealedTraitWithTypeParamObject.type"
+            )
+          ),
+          "exhaustiveChildren" -> Data.list(
+            Data(
+              "ExampleSealedTraitWithTypeParamClass: hearth.examples.enums.ExampleSealedTraitWithTypeParam.ExampleSealedTraitWithTypeParamClass[scala.Int]"
+            ),
+            Data(
+              "ExampleSealedTraitWithTypeParamObject: hearth.examples.enums.ExampleSealedTraitWithTypeParam.ExampleSealedTraitWithTypeParamObject.type"
+            )
+          )
+        )
+      }
+
+      test("for a Scala Enumeration") {
+        val days = List("Fri", "Mon", "Sat", "Sun", "Thu", "Tue", "Wed")
+          .map(day => Data(s"$day: hearth.examples.enums.WeekDay.$day.type"))
+        testEnumChildren[examples.enums.WeekDay.Value] <==> Data.map(
+          "directChildren" -> Data(days),
+          "exhaustiveChildren" -> Data(days)
+        )
+      }
+
+      test("a sealed trait without children is not an Enum") {
+        testEnumChildren[examples.classesedge.SealedWithoutChildren] <==> Data("<no enum>")
+      }
+    }
+
+    group("Enum[A].{matchOn and parMatchOn} evaluated at runtime") {
+      import ClassesFixtures.testEnumMatchOnRuntime
+
+      test("for a sealed abstract class") {
+        def code(input: examples.classesedge.SealedAbstractShape) = testEnumMatchOnRuntime(input)
+        code(examples.classesedge.SealedAbstractShape.Circle(1)) <==>
+          "hearth.examples.classesedge.SealedAbstractShape.Circle: Circle(1) / hearth.examples.classesedge.SealedAbstractShape.Circle: Circle(1)"
+        code(examples.classesedge.SealedAbstractShape.Dot) <==>
+          "hearth.examples.classesedge.SealedAbstractShape.Dot.type: Dot / hearth.examples.classesedge.SealedAbstractShape.Dot.type: Dot"
+      }
+
+      test("for a nested sealed hierarchy, matching on the direct children") {
+        def code(input: examples.classesedge.Animal) = testEnumMatchOnRuntime(input)
+        code(examples.classesedge.Animal.Dog("rex")) <==>
+          "hearth.examples.classesedge.Animal.Mammal: Dog(rex) / hearth.examples.classesedge.Animal.Mammal: Dog(rex)"
+        code(examples.classesedge.Animal.Cat) <==>
+          "hearth.examples.classesedge.Animal.Mammal: Cat / hearth.examples.classesedge.Animal.Mammal: Cat"
+        code(examples.classesedge.Animal.Fish("nemo")) <==>
+          "hearth.examples.classesedge.Animal.Fish: Fish(nemo) / hearth.examples.classesedge.Animal.Fish: Fish(nemo)"
+      }
+
+      test("for an applied generic sealed trait") {
+        def code(input: examples.enums.ExampleSealedTraitWithTypeParam[Int]) = testEnumMatchOnRuntime(input)
+        code(examples.enums.ExampleSealedTraitWithTypeParam.ExampleSealedTraitWithTypeParamClass(5)) <==>
+          "hearth.examples.enums.ExampleSealedTraitWithTypeParam.ExampleSealedTraitWithTypeParamClass[scala.Int]: ExampleSealedTraitWithTypeParamClass(5) / hearth.examples.enums.ExampleSealedTraitWithTypeParam.ExampleSealedTraitWithTypeParamClass[scala.Int]: ExampleSealedTraitWithTypeParamClass(5)"
+        code(examples.enums.ExampleSealedTraitWithTypeParam.ExampleSealedTraitWithTypeParamObject) <==>
+          "hearth.examples.enums.ExampleSealedTraitWithTypeParam.ExampleSealedTraitWithTypeParamObject.type: ExampleSealedTraitWithTypeParamObject / hearth.examples.enums.ExampleSealedTraitWithTypeParam.ExampleSealedTraitWithTypeParamObject.type: ExampleSealedTraitWithTypeParamObject"
+      }
+
+      test("for a Scala Enumeration") {
+        def code(input: examples.enums.WeekDay.Value) = testEnumMatchOnRuntime(input)
+        code(examples.enums.WeekDay.Tue) <==>
+          "hearth.examples.enums.WeekDay.Tue.type: Tue / hearth.examples.enums.WeekDay.Tue.type: Tue"
+        code(examples.enums.WeekDay.Sun) <==>
+          "hearth.examples.enums.WeekDay.Sun.type: Sun / hearth.examples.enums.WeekDay.Sun.type: Sun"
+      }
+    }
+
+    group("SingletonValue[A] evaluated at runtime") {
+      import ClassesFixtures.testSingletonRoundTrip
+
+      test("for a plain object, a case object, a nested case object and None") {
+        testSingletonRoundTrip[examples.classesedge.PlainObject.type] <==> "PlainObject"
+        testSingletonRoundTrip[examples.classesedge.SealedAbstractShape.Dot.type] <==> "Dot"
+        testSingletonRoundTrip[examples.classesedge.Animal.Cat.type] <==> "Cat"
+        testSingletonRoundTrip[None.type] <==> "None"
+      }
+
+      test("for a Scala Enumeration value") {
+        testSingletonRoundTrip[examples.enums.WeekDay.Mon.type] <==> "Mon"
+      }
+
+      test("not for literal singleton types") {
+        testSingletonRoundTrip[42] <==> "<no singleton>"
+        testSingletonRoundTrip["abc"] <==> "<no singleton>"
+        testSingletonRoundTrip[true] <==> "<no singleton>"
+      }
+
+      test("not for a case class, a non-singleton class or Unit") {
+        testSingletonRoundTrip[examples.classesedge.CCDeclarationOrder] <==> "<no singleton>"
+        testSingletonRoundTrip[examples.classesedge.ScalaBean] <==> "<no singleton>"
+        testSingletonRoundTrip[Unit] <==> "<no singleton>"
+      }
+    }
+
+    group("class-view parse: Incompatible reasons for edge cases") {
+      import ClassesFixtures.testClassViewParseReasons
+
+      test("a sealed trait without children is rejected by Enum") {
+        testClassViewParseReasons[examples.classesedge.SealedWithoutChildren] <==> Data.map(
+          "asSingleton" -> Data("is not a singleton type"),
+          "asNamedTuple" -> Data("is not a named tuple"),
+          "asCaseClass" -> Data("is not a case class"),
+          "asEnum" -> Data("is sealed/enumeration/union but has no direct children"),
+          "asJavaBean" -> Data("is not a plain old Java object"),
+          "asClass" -> Data("<compatible>")
+        )
+      }
+
+      test("an abstract class is not a JavaBean, since it cannot be instantiated") {
+        testClassViewParseReasons[examples.classes.ExampleAbstractClass] <==> Data.map(
+          "asSingleton" -> Data("is not a singleton type"),
+          "asNamedTuple" -> Data("is not a named tuple"),
+          "asCaseClass" -> Data("is not a case class"),
+          "asEnum" -> Data("is not sealed, not an enumeration, and not a union type"),
+          "asJavaBean" -> Data("is not a plain old Java object"),
+          "asClass" -> Data("<compatible>")
+        )
+      }
+
+      test("a plain object is a SingletonValue only") {
+        testClassViewParseReasons[examples.classesedge.PlainObject.type] <==> Data.map(
+          "asSingleton" -> Data("<compatible>"),
+          "asNamedTuple" -> Data("is not a named tuple"),
+          "asCaseClass" -> Data("is not a case class"),
+          "asEnum" -> Data("is not sealed, not an enumeration, and not a union type"),
+          "asJavaBean" -> Data("is not a plain old Java object"),
+          "asClass" -> Data("<compatible>")
+        )
+      }
+
+      test("a class whose default constructor is not public is not a JavaBean") {
+        testClassViewParseReasons[examples.classesedge.ScalaBeanHearthPrivateCtor] <==> Data.map(
+          "asSingleton" -> Data("is not a singleton type"),
+          "asNamedTuple" -> Data("is not a named tuple"),
+          "asCaseClass" -> Data("is not a case class"),
+          "asEnum" -> Data("is not sealed, not an enumeration, and not a union type"),
+          "asJavaBean" -> Data("is a POJO but has no public default constructor"),
+          "asClass" -> Data("<compatible>")
+        )
+      }
+    }
+
+    group("JavaBean[A] for a class with Scala-defined getters and setters") {
+      import ClassesFixtures.{
+        testJavaBeanConstructRoundTrip,
+        testJavaBeanConstructVisibility,
+        testJavaBeanConstructWithoutSettersRoundTrip,
+        testJavaBeanSetterErrorAggregation,
+        testJavaBeanSummary
+      }
+
+      test("beanGetters include boolean `is` getters, beanSetters are listed with their parameters") {
+        testJavaBeanSummary[examples.classesedge.ScalaBean] <==> Data.map(
+          "defaultConstructor" -> Data("()"),
+          "beanGetters" -> Data.list(Data("getCount"), Data("getName"), Data("isActive")),
+          "beanSetters" -> Data.list(
+            Data.map("name" -> Data("setActive"), "parameters" -> Data("(active: scala.Boolean)")),
+            Data.map("name" -> Data("setCount"), "parameters" -> Data("(count: scala.Int)")),
+            Data.map("name" -> Data("setName"), "parameters" -> Data("(name: java.lang.String)"))
+          )
+        )
+      }
+
+      test("constructWithoutSetters uses only the default constructor") {
+        testJavaBeanConstructWithoutSettersRoundTrip[examples.classesedge.ScalaBean] <==> "ScalaBean(, 0, false)"
+      }
+
+      test("constructWithSetters calls every setter") {
+        testJavaBeanConstructRoundTrip[examples.classesedge.ScalaBean] <==> "ScalaBean(hello, 42, true)"
+      }
+
+      test("constructWithoutSetters is available in every scope for a public default constructor") {
+        testJavaBeanConstructVisibility[examples.classesedge.ScalaBean] <==> Data.map(
+          "atCallSite" -> Data("<constructed>"),
+          "everywhere" -> Data("<constructed>"),
+          "anywhere" -> Data("<constructed>")
+        )
+      }
+
+      test("parConstructWithSetters aggregates errors of all setters, while constructWithSetters stops at the first") {
+        testJavaBeanSetterErrorAggregation[examples.classesedge.ScalaBean] <==> Data.map(
+          "constructWithSetters (number of errors)" -> Data(1),
+          "parConstructWithSetters" -> Data.list(
+            Data("no value for active"),
+            Data("no value for count"),
+            Data("no value for name")
+          ),
+          "parConstructWithSetters(SetField)" -> Data.list(
+            Data("no value for active"),
+            Data("no value for count"),
+            Data("no value for name")
+          )
+        )
+      }
+    }
   }
 }
 

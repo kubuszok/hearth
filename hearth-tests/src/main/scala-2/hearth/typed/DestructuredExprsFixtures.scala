@@ -48,6 +48,21 @@ final private class DestructuredExprsFixtures(val c: blackbox.Context)
 
   def testStatementsImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
     testStatements[A](expr)
+
+  def testNodeSummariesImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testNodeSummaries[A](expr)
+
+  def testReferenceOrderImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testReferenceOrder[A](expr)
+
+  def testReceiverImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testReceiver[A](expr)
+
+  def testLocalBindingsImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testLocalBindings[A](expr)
+
+  def testAppliedMirrorsExpectationsImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[Data] =
+    testAppliedMirrorsExpectations[A](expr)
 }
 
 object DestructuredExprsFixtures {
@@ -77,4 +92,15 @@ object DestructuredExprsFixtures {
   def testPlainPrints[A](expr: A): Data = macro DestructuredExprsFixtures.testPlainPrintsImpl[A]
 
   def testStatements[A](expr: A): Data = macro DestructuredExprsFixtures.testStatementsImpl[A]
+
+  def testNodeSummaries[A](expr: A): Data = macro DestructuredExprsFixtures.testNodeSummariesImpl[A]
+
+  def testReferenceOrder[A](expr: A): Data = macro DestructuredExprsFixtures.testReferenceOrderImpl[A]
+
+  def testReceiver[A](expr: A): Data = macro DestructuredExprsFixtures.testReceiverImpl[A]
+
+  def testLocalBindings[A](expr: A): Data = macro DestructuredExprsFixtures.testLocalBindingsImpl[A]
+
+  def testAppliedMirrorsExpectations[A](expr: A): Data =
+    macro DestructuredExprsFixtures.testAppliedMirrorsExpectationsImpl[A]
 }

@@ -282,6 +282,82 @@ final class ClassesScala3Spec extends MacroSuite {
         "Type.exhaustiveChildren" -> Data("<no exhaustive children>")
       )
     }
+
+    group("Scala 3 edge cases of class views") {
+      import ClassesFixtures.{
+        testCaseClassRuntimeRoundTrip,
+        testCaseClassSummary,
+        testClassViewKind,
+        testEnumChildren,
+        testEnumMatchOnRuntime,
+        testSingletonRoundTrip
+      }
+
+      test("Class.apply picks the most specific view for Scala 3 enums, their cases and union types") {
+        testClassViewKind[examples.ExampleEnum] <==> "Enum"
+        testClassViewKind[examples.ExampleEnum.ExampleEnumValue.type] <==> "SingletonValue"
+        testClassViewKind[examples.ExampleEnum.ExampleEnumClass] <==> "CaseClass"
+        testClassViewKind[examples.unions.StringOrInt] <==> "Enum"
+      }
+
+      test("CaseClass for a case class with a using parameter list") {
+        testCaseClassSummary[examples.classesedge.CCUsingParam] <==> Data.map(
+          "primaryConstructor" -> Data("(i: scala.Int)(s: java.lang.String)"),
+          "nonPrimaryConstructors" -> Data.list(),
+          "caseFields" -> Data.list(Data("i: scala.Int"))
+        )
+        testCaseClassRuntimeRoundTrip[examples.classesedge.CCUsingParam] <==>
+          "CCUsingParam(42)(hello) | CCUsingParam(42)(hello) | i=42"
+      }
+
+      test("CaseClass for a parameterized Scala 3 enum case") {
+        testCaseClassRuntimeRoundTrip[examples.ExampleEnum.ExampleEnumClass] <==>
+          "ExampleEnumClass(42) | ExampleEnumClass(42) | a=42"
+      }
+
+      test("SingletonValue for parameterless Scala 3 enum cases") {
+        testSingletonRoundTrip[examples.ExampleEnum.ExampleEnumValue.type] <==> "ExampleEnumValue"
+        testSingletonRoundTrip[examples.Color.Red.type] <==> "Red"
+        testSingletonRoundTrip[examples.LowerEnum1.team.type] <==> "team"
+      }
+
+      test("Enum children of an applied generic Scala 3 enum") {
+        testEnumChildren[examples.ExampleEnumWithTypeParam[Int]] <==> Data.map(
+          "directChildren" -> Data.list(
+            Data(
+              "ExampleEnumWithTypeParamClass: hearth.examples.ExampleEnumWithTypeParam.ExampleEnumWithTypeParamClass[scala.Int]"
+            ),
+            Data(
+              "ExampleEnumWithTypeParamValue: hearth.examples.ExampleEnumWithTypeParam.ExampleEnumWithTypeParamValue.type"
+            )
+          ),
+          "exhaustiveChildren" -> Data.list(
+            Data(
+              "ExampleEnumWithTypeParamClass: hearth.examples.ExampleEnumWithTypeParam.ExampleEnumWithTypeParamClass[scala.Int]"
+            ),
+            Data(
+              "ExampleEnumWithTypeParamValue: hearth.examples.ExampleEnumWithTypeParam.ExampleEnumWithTypeParamValue.type"
+            )
+          )
+        )
+      }
+
+      test("Enum.{matchOn and parMatchOn} for an applied generic Scala 3 enum, evaluated at runtime") {
+        def code(input: examples.ExampleEnumWithTypeParam[Int]) = testEnumMatchOnRuntime(input)
+        code(examples.ExampleEnumWithTypeParam.ExampleEnumWithTypeParamClass(3)) <==>
+          "hearth.examples.ExampleEnumWithTypeParam.ExampleEnumWithTypeParamClass[scala.Int]: ExampleEnumWithTypeParamClass(3) / hearth.examples.ExampleEnumWithTypeParam.ExampleEnumWithTypeParamClass[scala.Int]: ExampleEnumWithTypeParamClass(3)"
+        code(examples.ExampleEnumWithTypeParam.ExampleEnumWithTypeParamValue) <==>
+          "hearth.examples.ExampleEnumWithTypeParam.ExampleEnumWithTypeParamValue.type: ExampleEnumWithTypeParamValue / hearth.examples.ExampleEnumWithTypeParam.ExampleEnumWithTypeParamValue.type: ExampleEnumWithTypeParamValue"
+      }
+
+      test("Enum.{matchOn and parMatchOn} for lowercase parameterless Scala 3 enum cases, evaluated at runtime") {
+        def code(input: examples.LowerEnum1) = testEnumMatchOnRuntime(input)
+        code(examples.LowerEnum1.team) <==>
+          "hearth.examples.LowerEnum1.team.type: team / hearth.examples.LowerEnum1.team.type: team"
+        code(examples.LowerEnum1.school) <==>
+          "hearth.examples.LowerEnum1.school.type: school / hearth.examples.LowerEnum1.school.type: school"
+      }
+    }
   }
 }
 

@@ -98,10 +98,35 @@ final class ClassesScala3NewestSpec extends MacroSuite {
       testNamedTupleConstructRoundTrip[(name: String, age: Int)] <==> "name=hello, age=42"
     }
 
+    test("Class.apply picks the NamedTuple view for a named tuple") {
+      import ClassesFixtures.testClassViewKind
+
+      testClassViewKind[(name: String, age: Int)] <==> "NamedTuple"
+      testClassViewKind[ClassesScala3NewestSpec.PersonTuple] <==> "NamedTuple"
+    }
+
+    test("NamedTuple round-trip for a single-field named tuple and a type alias of a named tuple") {
+      import ClassesFixtures.testNamedTupleConstructRoundTrip
+
+      testNamedTupleConstructRoundTrip[(only: Int)] <==> "only=42"
+      testNamedTupleConstructRoundTrip[ClassesScala3NewestSpec.PersonTuple] <==> "name=hello, age=42"
+    }
+
+    test("NamedTuple fields keep declaration order") {
+      import ClassesFixtures.testNamedTupleConstructRoundTrip
+
+      testNamedTupleConstructRoundTrip[(zeta: Int, alpha: String)] <==> "zeta=42, alpha=hello"
+    }
+
     test("NamedTuple[A].{construct and fields} should return <no named tuple> for non-named-tuple types") {
       import ClassesFixtures.testNamedTupleConstructAndFields
 
       testNamedTupleConstructAndFields[String] <==> "<no named tuple>"
     }
   }
+}
+
+object ClassesScala3NewestSpec {
+
+  type PersonTuple = (name: String, age: Int)
 }

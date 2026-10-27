@@ -2621,4 +2621,531 @@ final class TypesSpec extends MacroSuite {
       }
     }
   }
+
+  group("trait typed.Types: edge cases of documented contracts") {
+    import examples.typesedge
+    import examples.typesedge.aliases
+
+    group("methods: Type.{isPrimitive, isArray, isJvmBuiltIn, isInJavaLangPackage, isTypeSystemSpecial, isTuple}") {
+      import TypesFixtures.testBuiltInPredicates
+
+      def predicates(
+          isPrimitive: Boolean = false,
+          isArray: Boolean = false,
+          isJvmBuiltIn: Boolean = false,
+          isInJavaLangPackage: Boolean = false,
+          isTypeSystemSpecial: Boolean = false,
+          isTuple: Boolean = false,
+          inPrimitiveTypes: Boolean = false,
+          inJvmBuiltInTypes: Boolean = false,
+          inTypeSystemSpecialTypes: Boolean = false
+      ): Data = Data.map(
+        "Type.isPrimitive" -> Data(isPrimitive),
+        "Type.isArray" -> Data(isArray),
+        "Type.isJvmBuiltIn" -> Data(isJvmBuiltIn),
+        "Type.isInJavaLangPackage" -> Data(isInJavaLangPackage),
+        "Type.isTypeSystemSpecial" -> Data(isTypeSystemSpecial),
+        "Type.isTuple" -> Data(isTuple),
+        "in Type.primitiveTypes" -> Data(inPrimitiveTypes),
+        "in Type.jvmBuiltInTypes" -> Data(inJvmBuiltInTypes),
+        "in Type.typeSystemSpecialTypes" -> Data(inTypeSystemSpecialTypes)
+      )
+
+      test("primitives are listed in primitiveTypes and jvmBuiltInTypes") {
+        testBuiltInPredicates[Int] <==> predicates(
+          isPrimitive = true,
+          isJvmBuiltIn = true,
+          inPrimitiveTypes = true,
+          inJvmBuiltInTypes = true
+        )
+        testBuiltInPredicates[Char] <==> predicates(
+          isPrimitive = true,
+          isJvmBuiltIn = true,
+          inPrimitiveTypes = true,
+          inJvmBuiltInTypes = true
+        )
+      }
+
+      test("Unit is primitive but absent from primitiveTypes, while present in jvmBuiltInTypes") {
+        testBuiltInPredicates[Unit] <==> predicates(isPrimitive = true, isJvmBuiltIn = true, inJvmBuiltInTypes = true)
+      }
+
+      test("String is built-in, listed in jvmBuiltInTypes and in the java.lang package") {
+        testBuiltInPredicates[String] <==> predicates(
+          isJvmBuiltIn = true,
+          isInJavaLangPackage = true,
+          inJvmBuiltInTypes = true
+        )
+      }
+
+      test("java.lang.Integer is built-in and in the java.lang package, although not listed in jvmBuiltInTypes") {
+        testBuiltInPredicates[java.lang.Integer] <==> predicates(isJvmBuiltIn = true, isInJavaLangPackage = true)
+      }
+
+      test("java.lang.StringBuilder is built-in and in the java.lang package, although not listed in jvmBuiltInTypes") {
+        testBuiltInPredicates[java.lang.StringBuilder] <==> predicates(isJvmBuiltIn = true, isInJavaLangPackage = true)
+      }
+
+      test("an applied java.lang.Class is built-in and in the java.lang package") {
+        testBuiltInPredicates[java.lang.Class[String]] <==> predicates(isJvmBuiltIn = true, isInJavaLangPackage = true)
+      }
+
+      test("arrays of any element type are built-in") {
+        testBuiltInPredicates[Array[String]] <==> predicates(isArray = true, isJvmBuiltIn = true)
+        testBuiltInPredicates[Array[typesedge.FinalCaseClass]] <==> predicates(isArray = true, isJvmBuiltIn = true)
+      }
+
+      test("Any and AnyVal are type-system special") {
+        testBuiltInPredicates[Any] <==> predicates(isTypeSystemSpecial = true, inTypeSystemSpecialTypes = true)
+        testBuiltInPredicates[AnyVal] <==> predicates(isTypeSystemSpecial = true, inTypeSystemSpecialTypes = true)
+      }
+
+      test("AnyRef is type-system special and, being java.lang.Object, a built-in java.lang type") {
+        testBuiltInPredicates[AnyRef] <==> predicates(
+          isJvmBuiltIn = true,
+          isInJavaLangPackage = true,
+          isTypeSystemSpecial = true,
+          inTypeSystemSpecialTypes = true
+        )
+      }
+
+      test("Null is type-system special, not a primitive nor a JVM built-in") {
+        testBuiltInPredicates[Null] <==> predicates(isTypeSystemSpecial = true, inTypeSystemSpecialTypes = true)
+      }
+
+      test("Nothing is type-system special, not a primitive nor a JVM built-in") {
+        testBuiltInPredicates[Nothing] <==> predicates(isTypeSystemSpecial = true, inTypeSystemSpecialTypes = true)
+      }
+
+      test("TupleN types are tuples, other applied types are not") {
+        testBuiltInPredicates[Tuple1[Int]] <==> predicates(isTuple = true)
+        testBuiltInPredicates[(Int, String)] <==> predicates(isTuple = true)
+        testBuiltInPredicates[(Int, String, Boolean, Long, Int, String, Boolean, Long, Int, String, Boolean)] <==>
+          predicates(isTuple = true)
+        testBuiltInPredicates[List[Int]] <==> predicates()
+        testBuiltInPredicates[typesedge.FinalCaseClass] <==> predicates()
+      }
+    }
+
+    group("methods: Type.{isAbstract, isFinal, isClass, isSealed, isObject, isCase, ...} on more class shapes") {
+      import TypesFixtures.testFlags
+
+      def flags(overrides: (String, Boolean)*): Data = {
+        val defaults = List(
+          "Type.isPrimitive" -> false,
+          "Type.isArray" -> false,
+          "Type.isIArray" -> false,
+          "Type.isJvmBuiltIn" -> false,
+          "Type.isAbstract" -> false,
+          "Type.isFinal" -> false,
+          "Type.isClass" -> true,
+          "Type.isTypeSystemSpecial" -> false,
+          "Type.isOpaqueType" -> false,
+          "Type.isTuple" -> false,
+          "Type.isNamedTuple" -> false,
+          "Type.isUnionType" -> false,
+          "Type.notJvmBuiltInClass" -> true,
+          "Type.isPlainOldJavaObject" -> false,
+          "Type.isJavaBean" -> false,
+          "Type.isSealed" -> false,
+          "Type.isJavaEnum" -> false,
+          "Type.isJavaEnumValue" -> false,
+          "Type.isEnumeration" -> false,
+          "Type.isCase" -> false,
+          "Type.isObject" -> false,
+          "Type.isVal" -> false,
+          "Type.isCaseClass" -> false,
+          "Type.isCaseObject" -> false,
+          "Type.isCaseVal" -> false,
+          "Type.isAvailable(Everywhere)" -> true,
+          "Type.isAvailable(AtCallSite)" -> true
+        )
+        val overridden = overrides.toMap
+        Data.map(defaults.map { case (name, default) => name -> Data(overridden.getOrElse(name, default)) }*)
+      }
+
+      test("a plain object is a final, non-case object") {
+        testFlags[typesedge.PlainObject.type] <==> flags(
+          "Type.isFinal" -> true,
+          "Type.isObject" -> true,
+          "Type.isPlainOldJavaObject" -> true
+        )
+      }
+
+      test("a top-level case object is a case object but not a case val") {
+        testFlags[typesedge.TopLevelCaseObject.type] <==> flags(
+          "Type.isFinal" -> true,
+          "Type.isObject" -> true,
+          "Type.isPlainOldJavaObject" -> true,
+          "Type.isCase" -> true,
+          "Type.isCaseObject" -> true
+        )
+      }
+
+      test("a sealed abstract class is abstract and sealed") {
+        testFlags[typesedge.SealedBase] <==> flags("Type.isAbstract" -> true, "Type.isSealed" -> true)
+      }
+
+      test("a final case class without a nullary constructor is not a Java Bean") {
+        testFlags[typesedge.FinalCaseClass] <==> flags(
+          "Type.isFinal" -> true,
+          "Type.isPlainOldJavaObject" -> true,
+          "Type.isCase" -> true,
+          "Type.isCaseClass" -> true
+        )
+      }
+
+      test("a non-final class with a public nullary constructor is a Java Bean") {
+        testFlags[typesedge.Leaf] <==> flags("Type.isPlainOldJavaObject" -> true, "Type.isJavaBean" -> true)
+      }
+
+      test("type aliases classify identically to the aliased types") {
+        testFlags[aliases.CaseClassAlias] <==> testFlags[typesedge.FinalCaseClass]
+        testFlags[aliases.TraitAlias] <==> testFlags[typesedge.Root]
+        testFlags[aliases.SealedAlias] <==> testFlags[typesedge.Shape]
+        testFlags[aliases.IntAlias] <==> testFlags[Int]
+        testFlags[aliases.ListAlias[Int]] <==> testFlags[List[Int]]
+        testFlags[aliases.Identity[typesedge.FinalCaseClass]] <==> testFlags[typesedge.FinalCaseClass]
+      }
+    }
+
+    group("methods: Type.{isPlainOldJavaObject, isJavaBean(visibility)}") {
+      import TypesFixtures.testJavaBeanVisibility
+
+      def bean(isJavaBean: Boolean, everywhere: Boolean, atCallSite: Boolean): Data = Data.map(
+        "Type.isPlainOldJavaObject" -> Data(true),
+        "Type.isJavaBean" -> Data(isJavaBean),
+        "Type.isJavaBean(Everywhere)" -> Data(everywhere),
+        "Type.isJavaBean(AtCallSite)" -> Data(atCallSite)
+      )
+
+      test("a public nullary constructor makes a Java Bean everywhere") {
+        testJavaBeanVisibility[typesedge.PublicBean] <==> bean(isJavaBean = true, everywhere = true, atCallSite = true)
+      }
+
+      test("a package-private nullary constructor makes a Java Bean only where it is accessible") {
+        testJavaBeanVisibility[typesedge.PackagePrivateBean] <==> bean(
+          isJavaBean = false,
+          everywhere = false,
+          atCallSite = true
+        )
+      }
+
+      test("a private nullary constructor or no nullary constructor at all does not make a Java Bean") {
+        testJavaBeanVisibility[typesedge.PrivateBean] <==> bean(
+          isJavaBean = false,
+          everywhere = false,
+          atCallSite = false
+        )
+        testJavaBeanVisibility[typesedge.NoDefaultConstructorBean] <==> bean(
+          isJavaBean = false,
+          everywhere = false,
+          atCallSite = false
+        )
+      }
+
+      test("an object is never a Java Bean") {
+        testJavaBeanVisibility[typesedge.PlainObject.type] <==> bean(
+          isJavaBean = false,
+          everywhere = false,
+          atCallSite = false
+        )
+      }
+    }
+
+    group("methods: Type.{isTrait, isAbstract, parents, baseClasses} (exact lists)") {
+      import TypesFixtures.testHierarchyLists
+
+      test("a class mixing in traits lists its direct parents and its linearization (self first)") {
+        testHierarchyLists[typesedge.Leaf] <==> Data.map(
+          "Type.isTrait" -> Data(false),
+          "Type.isAbstract" -> Data(false),
+          "Type.parents" -> Data.list(
+            Data("hearth.examples.typesedge.Middle"),
+            Data("hearth.examples.typesedge.Generic[scala.Int]")
+          ),
+          "Type.baseClasses" -> Data.list(
+            Data("hearth.examples.typesedge.Leaf"),
+            Data("hearth.examples.typesedge.Generic[scala.Int]"),
+            Data("hearth.examples.typesedge.Middle"),
+            Data("hearth.examples.typesedge.Root")
+          )
+        )
+      }
+
+      test("a generic class lists its parents and base classes with its type arguments applied") {
+        testHierarchyLists[typesedge.GenericLeaf[String]] <==> Data.map(
+          "Type.isTrait" -> Data(false),
+          "Type.isAbstract" -> Data(false),
+          "Type.parents" -> Data.list(
+            Data("hearth.examples.typesedge.Generic[scala.collection.immutable.List[java.lang.String]]")
+          ),
+          "Type.baseClasses" -> Data.list(
+            Data("hearth.examples.typesedge.GenericLeaf[java.lang.String]"),
+            Data("hearth.examples.typesedge.Generic[scala.collection.immutable.List[java.lang.String]]")
+          )
+        )
+      }
+
+      test("a trait extending another trait is an abstract trait with that trait as its parent") {
+        testHierarchyLists[typesedge.Middle] <==> Data.map(
+          "Type.isTrait" -> Data(true),
+          "Type.isAbstract" -> Data(true),
+          "Type.parents" -> Data.list(Data("hearth.examples.typesedge.Root")),
+          "Type.baseClasses" -> Data.list(
+            Data("hearth.examples.typesedge.Middle"),
+            Data("hearth.examples.typesedge.Root")
+          )
+        )
+      }
+
+      test("an abstract class is abstract but not a trait") {
+        testHierarchyLists[typesedge.AbstractBase] <==> Data.map(
+          "Type.isTrait" -> Data(false),
+          "Type.isAbstract" -> Data(true),
+          "Type.parents" -> Data.list(),
+          "Type.baseClasses" -> Data.list(Data("hearth.examples.typesedge.AbstractBase"))
+        )
+      }
+
+      test("a type alias gives the hierarchy of the aliased type") {
+        testHierarchyLists[aliases.TraitAlias] <==> testHierarchyLists[typesedge.Root]
+      }
+    }
+
+    group("methods: Type.{directChildren, directChildrenList, exhaustiveChildren}") {
+      import TypesFixtures.{testChildrenList, testExhaustiveChildren}
+
+      test("same-named subtypes from different scopes collapse in directChildren but not in directChildrenList") {
+        testChildrenList[typesedge.Clash] <==> Data.map(
+          "Type.directChildren keys" -> Data.list(Data("Green")),
+          "Type.directChildrenList" -> Data.list(
+            Data.list(Data("Green"), Data("hearth.examples.typesedge.Clash.Green.type")),
+            Data.list(Data("Green"), Data("hearth.examples.typesedge.OtherScope.Green.type"))
+          )
+        )
+      }
+
+      test("directChildrenList is None for non-sealed types") {
+        testChildrenList[typesedge.Root] <==> Data.map(
+          "Type.directChildren keys" -> Data("<no direct children>"),
+          "Type.directChildrenList" -> Data("<no direct children>")
+        )
+      }
+
+      test("exhaustiveChildren recurses through nested sealed traits down to the leaves") {
+        val leaves = Data.map(
+          "Circle" -> Data("hearth.examples.typesedge.Circle"),
+          "Dot" -> Data("hearth.examples.typesedge.Dot.type"),
+          "Square" -> Data("hearth.examples.typesedge.Square")
+        )
+        testExhaustiveChildren[typesedge.Shape] <==> leaves
+        testExhaustiveChildren[aliases.SealedAlias] <==> leaves
+        testExhaustiveChildren[typesedge.Round] <==> Data.map(
+          "Circle" -> Data("hearth.examples.typesedge.Circle"),
+          "Dot" -> Data("hearth.examples.typesedge.Dot.type")
+        )
+      }
+
+      test("exhaustiveChildren of a sealed abstract class lists the subtypes declared in its companion") {
+        testExhaustiveChildren[typesedge.SealedBase] <==> Data.map(
+          "First" -> Data("hearth.examples.typesedge.SealedBase.First"),
+          "Second" -> Data("hearth.examples.typesedge.SealedBase.Second.type")
+        )
+      }
+
+      test("exhaustiveChildren is None for a sealed trait without subtypes and for non-sealed types") {
+        testExhaustiveChildren[typesedge.NoChildren] <==> Data("<no exhaustive children>")
+        testExhaustiveChildren[typesedge.Root] <==> Data("<no exhaustive children>")
+        testExhaustiveChildren[Int] <==> Data("<no exhaustive children>")
+      }
+    }
+
+    group("methods: Type.companionObject") {
+      import TypesFixtures.{testCompanionObject, testCompanionObjectValue}
+
+      test("a class, a case class and a trait with a companion give the companion") {
+        testCompanionObject[typesedge.WithCompanion] <==> Data("hearth.examples.typesedge.WithCompanion.type")
+        testCompanionObject[typesedge.FinalCaseClass] <==> Data("hearth.examples.typesedge.FinalCaseClass.type")
+        testCompanionObject[typesedge.TraitWithCompanion] <==> Data(
+          "hearth.examples.typesedge.TraitWithCompanion.type"
+        )
+        testCompanionObjectValue[typesedge.WithCompanion] ==> typesedge.WithCompanion
+        testCompanionObjectValue[typesedge.TraitWithCompanion] ==> typesedge.TraitWithCompanion
+      }
+
+      test("a type alias gives the companion of the aliased type") {
+        testCompanionObject[aliases.CaseClassAlias] <==> Data("hearth.examples.typesedge.FinalCaseClass.type")
+        testCompanionObjectValue[aliases.CaseClassAlias] ==> typesedge.FinalCaseClass
+      }
+
+      test("a class without a companion gives None") {
+        testCompanionObject[typesedge.WithoutCompanion] <==> Data("<none>")
+      }
+    }
+
+    group("methods: <:<, =:= for variance, bottom types and aliases") {
+      import TypesFixtures.testComparisons
+
+      val subtype = Data.map("<:<" -> Data(true), "=:=" -> Data(false))
+      val same = Data.map("<:<" -> Data(true), "=:=" -> Data(true))
+      val unrelated = Data.map("<:<" -> Data(false), "=:=" -> Data(false))
+
+      test("Nothing and Null are subtypes of reference types, only Nothing of value types") {
+        testComparisons[Nothing, String] <==> subtype
+        testComparisons[Nothing, Int] <==> subtype
+        testComparisons[Null, String] <==> subtype
+        testComparisons[Null, Int] <==> unrelated
+        testComparisons[Int, AnyVal] <==> subtype
+        testComparisons[String, AnyRef] <==> subtype
+        testComparisons[Int, Any] <==> subtype
+      }
+
+      test("declared variance of type parameters is respected") {
+        testComparisons[List[Int], List[Any]] <==> subtype
+        testComparisons[List[Any], List[Int]] <==> unrelated
+        testComparisons[Set[Int], Set[Any]] <==> unrelated
+        testComparisons[Any => Int, String => Any] <==> subtype
+        testComparisons[String => Any, Any => Int] <==> unrelated
+      }
+
+      test("type aliases are the same as the aliased types, with their type parameters substituted") {
+        testComparisons[aliases.IntAlias, Int] <==> same
+        testComparisons[aliases.CaseClassAlias, typesedge.FinalCaseClass] <==> same
+        testComparisons[aliases.ListAlias[Int], List[Int]] <==> same
+        testComparisons[aliases.Flipped[Int, String], Either[String, Int]] <==> same
+        testComparisons[aliases.Flipped[Int, String], Either[Int, String]] <==> unrelated
+        testComparisons[aliases.Const[Int], String] <==> same
+        testComparisons[aliases.Identity[Int], Int] <==> same
+      }
+    }
+
+    group("methods: Type.{typeArguments, decompose1, decompose2, hasSameTypeConstructor} on type aliases") {
+      import TypesFixtures.{testTypeArguments, testDecompose1, testDecompose2, testDecomposesTo}
+
+      test("typeArguments of an alias reordering its type parameters are the aliased type's arguments") {
+        testTypeArguments[aliases.Flipped[Int, String]] <==> Data.map(
+          "Type.typeArguments" -> Data.list(Data("java.lang.String"), Data("scala.Int"))
+        )
+      }
+
+      test("an alias reordering its type parameters is decomposed into the aliased type's arguments") {
+        testDecompose2[aliases.Flipped[Int, String]] <==> Data.map(
+          "decomposed" -> Data(true),
+          "arg1" -> Data("java.lang.String"),
+          "arg2" -> Data("scala.Int"),
+          "reappliedToStringInt" -> Data("scala.util.Either[java.lang.String, scala.Int]"),
+          "sameCtorAsMap" -> Data(false),
+          "sameCtorAsEither" -> Data(true)
+        )
+        testDecomposesTo[aliases.Flipped[Int, String], Either[String, Int]] <==> Data.map(
+          "decompose1RebuildsExpected" -> Data("<none>"),
+          "decompose2RebuildsExpected" -> Data(true),
+          "typeConstructorAndArgumentsRebuildExpected" -> Data(true),
+          "hasSameTypeConstructor" -> Data(true)
+        )
+      }
+
+      test("typeArguments of an alias ignoring its type parameter are the aliased type's (none)") {
+        testTypeArguments[aliases.Const[Int]] <==> Data.map("Type.typeArguments" -> Data.list())
+      }
+
+      test("an alias ignoring its type parameter is decomposed as the aliased type") {
+        testDecompose1[aliases.Const[Int]] <==> Data.map("decomposed" -> Data(false))
+      }
+
+      test("typeArguments of an alias to its type parameter are the type argument's arguments") {
+        testTypeArguments[aliases.Identity[Option[Int]]] <==> Data.map(
+          "Type.typeArguments" -> Data.list(Data("scala.Int"))
+        )
+      }
+
+      test("an alias to its type parameter is decomposed as the type argument itself") {
+        testDecompose1[aliases.Identity[Option[Int]]] <==> Data.map(
+          "decomposed" -> Data(true),
+          "arg" -> Data("scala.Int"),
+          "reappliedToString" -> Data("scala.Option[java.lang.String]"),
+          "sameCtorAsList" -> Data(false),
+          "sameCtorAsOption" -> Data(true),
+          "sameCtorAsSelf" -> Data(true)
+        )
+      }
+
+      test("an alias with the same type parameters is decomposed as the aliased type") {
+        testDecompose1[aliases.ListAlias[Int]] <==> Data.map(
+          "decomposed" -> Data(true),
+          "arg" -> Data("scala.Int"),
+          "reappliedToString" -> Data("scala.collection.immutable.List[java.lang.String]"),
+          "sameCtorAsList" -> Data(true),
+          "sameCtorAsOption" -> Data(false),
+          "sameCtorAsSelf" -> Data(true)
+        )
+      }
+    }
+
+    group("methods: Type.classOfType for abstract types") {
+      import TypesFixtures.testClassOfType
+
+      def classOfTypeParameter[T]: Data = testClassOfType[T]
+
+      test("a type parameter has no runtime class") {
+        classOfTypeParameter[Int] <==> Data.map("Type.classOfType" -> Data("not on classpath"))
+      }
+    }
+
+    group("type Type.Cache and Type.Lazy") {
+      import TypesFixtures.testTypeCacheAndLazy
+
+      test("Type.Cache compares keys with =:=, computes getOrPut once, Type.Lazy computes once when first used") {
+        testTypeCacheAndLazy <==> Data.map(
+          "outside splice" -> Data.map(
+            "miss on empty cache" -> Data(true),
+            "get(Int)" -> Data("int"),
+            "get(IntAlias)" -> Data("int"),
+            "get(Long)" -> Data("<miss>"),
+            "get(List[Int])" -> Data("list of int"),
+            "get(ListAlias[Int])" -> Data("list of int"),
+            "get(List[String])" -> Data("<miss>"),
+            "getOrPut first" -> Data("string"),
+            "getOrPut second" -> Data("string"),
+            "getOrPut computations" -> Data(1),
+            "Type.Lazy computations before use" -> Data(0),
+            "Type.Lazy uses" -> Data.list(Data("scala.Long"), Data("scala.Long")),
+            "Type.Lazy computations after 2 uses" -> Data(1)
+          ),
+          // Scala 3 runs each splice with its own Quotes, and the cache must not hand out values created outside it.
+          "get(Int) inside a splice" -> Data(
+            if (LanguageVersion.byHearth.isScala3) "found: <miss>" else "found: int"
+          )
+        )
+      }
+    }
+
+    group("type TypeCodec: decoding") {
+      import TypesFixtures.testTypeCodecDecoding
+
+      test("non-literal types are not decoded, modules are, and Some/None/Left/Right codecs round-trip") {
+        testTypeCodecDecoding <==> Data.map(
+          "IntCodec on Int" -> Data("<not decoded>"),
+          "IntCodec on String literal" -> Data("<not decoded>"),
+          "StringCodec on String" -> Data("<not decoded>"),
+          "BooleanCodec on Boolean" -> Data("<not decoded>"),
+          "OptionCodec on Option[Int]" -> Data("<not decoded>"),
+          "ModuleCodec on a case object" -> Data("TopLevelCaseObject"),
+          "ModuleCodec on a nested case object" -> Data("Second"),
+          "ModuleCodec on a class" -> Data("<not decoded>"),
+          "None.type" -> Data.map("encoded" -> Data("scala.None.type"), "decoded" -> Data("None")),
+          "Some[Int]" -> Data.map("encoded" -> Data("scala.Some[1]"), "decoded" -> Data("Some(1)")),
+          "Left[Int, String]" -> Data.map(
+            "encoded" -> Data("scala.util.Left[1, java.lang.String]"),
+            "decoded" -> Data("Left(1)")
+          ),
+          "Right[Int, String]" -> Data.map(
+            "encoded" -> Data("scala.util.Right[scala.Int, \"a\"]"),
+            "decoded" -> Data("Right(a)")
+          )
+        )
+      }
+    }
+  }
 }

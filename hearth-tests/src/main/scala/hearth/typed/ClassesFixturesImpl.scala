@@ -533,4 +533,188 @@ trait ClassesFixturesImpl { this: MacroCommons =>
         .fold(errors => s"<failed to construct: ${errors.mkString(", ")}>", identity)
     }
   }
+
+  // --- Class views edge cases ---
+
+  def testClassViewKind[A: Type]: Expr[String] = Expr(Class[A] match {
+    case _: SingletonValue[?] => "SingletonValue"
+    case _: NamedTuple[?]     => "NamedTuple"
+    case _: CaseClass[?]      => "CaseClass"
+    case _: Enum[?]           => "Enum"
+    case _: JavaBean[?]       => "JavaBean"
+    case _                    => "Class"
+  })
+
+  def testClassMethodOverloads[A: Type](name: Expr[String]): Expr[Data] = {
+    val methodName = Expr
+      .unapply(name)
+      .getOrElse(Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${name.prettyPrint}"))
+    Expr(Data(Class[A].method(methodName).map(method => renderParameters(method.totalParameters))))
+  }
+
+  def testCaseClassSummary[A: Type]: Expr[Data] = Expr(
+    CaseClass.parse[A].toOption.fold(Data("<no case class>")) { cc =>
+      Data.map(
+        "primaryConstructor" -> renderConstructor(cc.primaryConstructor),
+        "nonPrimaryConstructors" -> Data(cc.nonPrimaryConstructors.map(renderConstructor(_))),
+        "caseFields" -> Data(
+          cc.caseFields.map(field => Data(s"${field.name}: ${field.knownReturning.fold("<unknown>")(_.plainPrint)}"))
+        )
+      )
+    }
+  )
+
+  private def constructValueFor(field: Parameter): MIO[Expr_??] = {
+    import field.tpe.Underlying as FieldType
+    implicit val IntType: Type[Int] = intType
+    implicit val StringType: Type[String] = stringType
+    implicit val BooleanType: Type[Boolean] = booleanType
+    if (FieldType =:= Type[Int]) MIO.pure(Expr(42).as_??)
+    else if (FieldType =:= Type[String]) MIO.pure(Expr("hello").as_??)
+    else if (FieldType =:= Type[Boolean]) MIO.pure(Expr(true).as_??)
+    else MIO.fail(new Exception(s"Unsupported type of ${field.name}: ${field.tpe.plainPrint}"))
+  }
+
+  private def joinStrings(parts: List[Expr[String]])(implicit StringType: Type[String]): Expr[String] =
+    parts match {
+      case Nil          => Expr("<no fields>")
+      case head :: tail =>
+        tail.foldLeft(head)((acc, part) => Expr.quote(Expr.splice(acc) + ", " + Expr.splice(part)))
+    }
+
+  /** Constructs `A` sequentially and in parallel (Int = 42, String = "hello", Boolean = true), and reads the case
+    * fields of the constructed value back, all evaluated at runtime.
+    */
+  def testCaseClassRuntimeRoundTrip[A: Type]: Expr[String] = {
+    implicit val StringType: Type[String] = stringType
+    val makeArgument: Parameter => MIO[Expr_??] = constructValueFor
+    CaseClass.parse[A].toOption.fold(Expr("<no case class>")) { cc =>
+      val sequential = cc.construct(makeArgument).unsafe.runSync._2
+      val parallel = cc.parConstruct(makeArgument).unsafe.runSync._2
+      (sequential, parallel) match {
+        case (Right(Some(seqExpr)), Right(Some(parExpr))) =>
+          val fields = joinStrings(cc.caseFieldValuesAt(seqExpr).toList.map { case (name, fieldExpr) =>
+            import fieldExpr.{Underlying, value}
+            val nameExpr = Expr(name)
+            Expr.quote(Expr.splice(nameExpr) + "=" + Expr.splice(value).toString)
+          })
+          Expr.quote {
+            Expr.splice(seqExpr).toString + " | " + Expr.splice(parExpr).toString + " | " + Expr.splice(fields)
+          }
+        case (Right(None), Right(None)) => Expr("<not constructible>")
+        case (seqResult, parResult)     =>
+          def render(result: Either[hearth.fp.data.NonEmptyVector[Throwable], Option[Expr[A]]]): String =
+            result.fold(_.toList.map(_.getMessage).mkString(", "), _.fold("<none>")(_ => "<some>"))
+          Expr(s"<failed: sequential: ${render(seqResult)}, parallel: ${render(parResult)}>")
+      }
+    }
+  }
+
+  def testCaseClassConstructVisibility[A: Type]: Expr[Data] = {
+    val makeArgument: CaseClass.ConstructField[MIO] = CaseClass.ConstructField[MIO](constructValueFor)
+    def constructAt(visibility: Accessible)(cc: CaseClass[A]): Data =
+      cc.construct(makeArgument, visibility).unsafe.runSync._2 match {
+        case Right(Some(_)) => Data("<constructed>")
+        case Right(None)    => Data("<inaccessible>")
+        case Left(errors)   => Data(s"<failed: ${errors.toList.map(_.getMessage).mkString(", ")}>")
+      }
+    Expr(CaseClass.parse[A].toOption.fold(Data("<no case class>")) { cc =>
+      Data.map(
+        "atCallSite" -> constructAt(AtCallSite)(cc),
+        "everywhere" -> constructAt(Everywhere)(cc),
+        "anywhere" -> constructAt(Anywhere)(cc)
+      )
+    })
+  }
+
+  def testCaseClassConstructErrorAggregation[A: Type]: Expr[Data] = {
+    val failing: Parameter => MIO[Expr_??] = field => MIO.fail(new Exception(s"no value for ${field.name}"))
+    def render(result: Either[hearth.fp.data.NonEmptyVector[Throwable], Option[Expr[A]]]): Data =
+      result.fold(errors => Data(errors.toList.map(e => Data(e.getMessage))), _ => Data("<no errors>"))
+    Expr(CaseClass.parse[A].toOption.fold(Data("<no case class>")) { cc =>
+      Data.map(
+        "construct" -> render(cc.construct(failing).unsafe.runSync._2),
+        "parConstruct" -> render(cc.parConstruct(failing).unsafe.runSync._2)
+      )
+    })
+  }
+
+  def testEnumChildren[A: Type]: Expr[Data] = Expr(
+    Enum.parse[A].toOption.fold(Data("<no enum>")) { enumm =>
+      Data.map(
+        "directChildren" -> Data(enumm.directChildren.toList.map { case (name, child) =>
+          Data(s"$name: ${child.Underlying.plainPrint}")
+        }),
+        "exhaustiveChildren" -> enumm.exhaustiveChildren.fold(Data("<no exhaustive children>"))(children =>
+          Data(children.toList.map { case (name, child) => Data(s"$name: ${child.Underlying.plainPrint}") })
+        )
+      )
+    }
+  )
+
+  /** Every branch prints the child type it was generated for and the matched value, so the runtime result shows which
+    * case caught the value.
+    */
+  def testEnumMatchOnRuntime[A: Type](expr: Expr[A]): Expr[String] =
+    Enum.parse[A].toOption.fold(Expr("<no enum>")) { enumm =>
+      implicit val StringType: Type[String] = stringType
+      val handle: Expr_??<:[A] => MIO[Expr[String]] = matched => {
+        import matched.{Underlying as Subtype, value as matchedExpr}
+        val childName = Expr(Subtype.plainPrint)
+        MIO.pure(Expr.quote(Expr.splice(childName) + ": " + Expr.splice(matchedExpr).toString))
+      }
+      val sequential = enumm.matchOn(expr)(handle).map(_.getOrElse(Expr("<no match>")))
+      val parallel = enumm.parMatchOn(expr)(handle).map(_.getOrElse(Expr("<no match>")))
+      sequential
+        .parMap2(parallel)((seq, par) => Expr.quote(Expr.splice(seq) + " / " + Expr.splice(par)))
+        .unsafe
+        .runSync
+        ._2
+        .fold(errors => Expr(s"<failed: ${errors.toList.map(_.getMessage).mkString(", ")}>"), identity)
+    }
+
+  def testJavaBeanSummary[A: Type]: Expr[Data] = Expr(
+    JavaBean.parse[A].toOption.fold(Data("<no java bean>")) { bean =>
+      Data.map(
+        "defaultConstructor" -> renderConstructor(bean.defaultConstructor),
+        "beanGetters" -> Data(bean.beanGetters.map(_.name).sorted.map(Data(_))),
+        "beanSetters" -> Data(bean.beanSetters.sortBy(_.name).map(m => renderMethod(m)))
+      )
+    }
+  )
+
+  def testJavaBeanConstructWithoutSettersRoundTrip[A: Type]: Expr[String] = {
+    implicit val StringType: Type[String] = stringType
+    JavaBean.parse[A].toOption.fold(Expr("<no java bean>")) { bean =>
+      bean.constructWithoutSetters() match {
+        case Some(constructed) => Expr.quote(Expr.splice(constructed).toString)
+        case None              => Expr("<inaccessible>")
+      }
+    }
+  }
+
+  def testJavaBeanConstructVisibility[A: Type]: Expr[Data] = Expr(
+    JavaBean.parse[A].toOption.fold(Data("<no java bean>")) { bean =>
+      def at(visibility: Accessible): Data =
+        Data(bean.constructWithoutSetters(visibility).fold("<inaccessible>")(_ => "<constructed>"))
+      Data.map("atCallSite" -> at(AtCallSite), "everywhere" -> at(Everywhere), "anywhere" -> at(Anywhere))
+    }
+  )
+
+  def testJavaBeanSetterErrorAggregation[A: Type]: Expr[Data] = {
+    val failing: (String, Parameter) => MIO[Expr_??] = (name, _) => MIO.fail(new Exception(s"no value for $name"))
+    def render(result: Either[hearth.fp.data.NonEmptyVector[Throwable], Option[Expr[A]]]): Data =
+      result.fold(errors => Data(errors.toList.map(_.getMessage).sorted.map(Data(_))), _ => Data("<no errors>"))
+    Expr(JavaBean.parse[A].toOption.fold(Data("<no java bean>")) { bean =>
+      Data.map(
+        "constructWithSetters (number of errors)" -> Data(
+          bean.constructWithSetters(failing).unsafe.runSync._2.fold(_.toList.size, _ => 0)
+        ),
+        "parConstructWithSetters" -> render(bean.parConstructWithSetters(failing).unsafe.runSync._2),
+        "parConstructWithSetters(SetField)" -> render(
+          bean.parConstructWithSetters(JavaBean.SetField[MIO](failing)).unsafe.runSync._2
+        )
+      )
+    })
+  }
 }

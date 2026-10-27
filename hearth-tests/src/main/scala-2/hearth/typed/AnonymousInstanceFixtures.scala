@@ -69,6 +69,16 @@ final private class AnonymousInstanceFixtures(val c: blackbox.Context)
   def testAnonymousInstanceConstructAbstractValImpl: c.Expr[String] = testAnonymousInstanceConstructAbstractVal
 
   def testAnonymousInstanceConstructThisTypeImpl: c.Expr[String] = testAnonymousInstanceConstructThisType
+
+  def testAnonymousInstanceClassifiedMethodsWithMixinsImpl[A: c.WeakTypeTag, M1: c.WeakTypeTag]: c.Expr[Data] =
+    testAnonymousInstanceClassifiedMethodsWithMixins[A](Type.of[M1].as_??)
+
+  def testAnonymousInstanceConstructWithoutConstructorImpl[A: c.WeakTypeTag]: c.Expr[String] =
+    testAnonymousInstanceConstructWithoutConstructor[A]
+
+  def testAnonymousInstanceConstructByNameImpl: c.Expr[String] = testAnonymousInstanceConstructByName
+
+  def testAnonymousInstanceConstructVarImpl: c.Expr[String] = testAnonymousInstanceConstructVar
 }
 
 object AnonymousInstanceFixtures {
@@ -137,4 +147,16 @@ object AnonymousInstanceFixtures {
 
   def testAnonymousInstanceConstructThisType: String =
     macro AnonymousInstanceFixtures.testAnonymousInstanceConstructThisTypeImpl
+
+  def testAnonymousInstanceClassifiedMethodsWithMixins[A, M1]: Data =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceClassifiedMethodsWithMixinsImpl[A, M1]
+
+  def testAnonymousInstanceConstructWithoutConstructor[A]: String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceConstructWithoutConstructorImpl[A]
+
+  def testAnonymousInstanceConstructByName: String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceConstructByNameImpl
+
+  def testAnonymousInstanceConstructVar: String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceConstructVarImpl
 }

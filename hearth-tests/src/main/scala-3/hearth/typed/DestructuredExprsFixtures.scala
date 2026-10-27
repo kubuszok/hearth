@@ -73,4 +73,24 @@ object DestructuredExprsFixtures {
   inline def testMarkerPath[A](inline expr: A): Data = ${ testMarkerPathImpl[A]('expr) }
   private def testMarkerPathImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new DestructuredExprsFixtures(q).testMarkerPath[A](expr)
+
+  inline def testNodeSummaries[A](inline expr: A): Data = ${ testNodeSummariesImpl[A]('expr) }
+  private def testNodeSummariesImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new DestructuredExprsFixtures(q).testNodeSummaries[A](expr)
+
+  inline def testReferenceOrder[A](inline expr: A): Data = ${ testReferenceOrderImpl[A]('expr) }
+  private def testReferenceOrderImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new DestructuredExprsFixtures(q).testReferenceOrder[A](expr)
+
+  inline def testReceiver[A](inline expr: A): Data = ${ testReceiverImpl[A]('expr) }
+  private def testReceiverImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new DestructuredExprsFixtures(q).testReceiver[A](expr)
+
+  inline def testLocalBindings[A](inline expr: A): Data = ${ testLocalBindingsImpl[A]('expr) }
+  private def testLocalBindingsImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new DestructuredExprsFixtures(q).testLocalBindings[A](expr)
+
+  inline def testAppliedMirrorsExpectations[A](inline expr: A): Data = ${ testAppliedMirrorsExpectationsImpl[A]('expr) }
+  private def testAppliedMirrorsExpectationsImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new DestructuredExprsFixtures(q).testAppliedMirrorsExpectations[A](expr)
 }
