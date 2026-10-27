@@ -249,5 +249,129 @@ final class StdExtensionsScala3Spec extends MacroSuite {
         )
       }
     }
+    group("class: IsCollection[A], IArray item type, building and size hint") {
+      import StdExtensionsFixtures.{testBuildAndIterate, testCollectionTypes, testSizeHint}
+
+      test("for IArray") {
+        testCollectionTypes[IArray[Int]] <==> Data.map(
+          "item" -> Data("scala.Int"),
+          "ctorResult" -> Data("scala.IArray$package.IArray[scala.Int]"),
+          "build" -> Data("PlainValue"),
+          "asMap" -> Data("<not a map>"),
+          "IsMap" -> Data("<not a map>")
+        )
+        testBuildAndIterate[IArray[Int]] <==> Data.map(
+          "one" -> Data.list(Data("1")),
+          "two" -> Data.list(Data("1"), Data("2"))
+        )
+        testSizeHint(IArray(1, 2, 3)) <==> Data(3)
+      }
+    }
+
+    group("class: IsValueType[A], opaque type shapes") {
+      import StdExtensionsFixtures.{testIsValueType, testValueTypeInfo}
+
+      def info(inner: String, wrap: String, ctors: String*): Data = Data.map(
+        "inner" -> Data(inner),
+        "wrap" -> Data(wrap),
+        "ctors" -> Data.list(ctors.map(Data(_))*),
+        "provenance" -> Data.map(
+          "provider" -> Data("hearth.std.extensions.IsValueTypeProviderForOpaque"),
+          "isBuiltIn" -> Data(true)
+        )
+      )
+
+      test("for an opaque type with a PlainValue companion constructor") {
+        import hearth.examples.plainctor.PlainCtorOpaque
+        testValueTypeInfo[PlainCtorOpaque] <==> info("java.lang.String", "PlainValue", "PlainValue")
+        testIsValueType(PlainCtorOpaque("value")) <==> Data.map(
+          "unwrapping" -> Data("unwrapped: value"),
+          "wrapping" -> Data("test")
+        )
+      }
+
+      test("for an opaque type with only an Either[Iterable[String], A] companion constructor") {
+        import hearth.examples.eitheriterablestringctor.EitherIterableStringCtorOpaque
+        testValueTypeInfo[EitherIterableStringCtorOpaque] <==> info(
+          "scala.Int",
+          "EitherIterableStringOrValue",
+          "EitherIterableStringOrValue"
+        )
+      }
+
+      test("for a bounded opaque type") {
+        import hearth.examples.opaqueunderlying.Bounded
+        testValueTypeInfo[Bounded] <==> info("scala.Int", "PlainValue", "PlainValue")
+      }
+
+      test("for an opaque type over another opaque type") {
+        import hearth.examples.opaqueunderlying.Outer
+        testValueTypeInfo[Outer] <==> info("scala.Int", "PlainValue", "PlainValue")
+      }
+
+      test("for an applied generic opaque type and its alias") {
+        import hearth.examples.opaqueunderlying.Wrapper
+        import hearth.examples.stdedgeopaque.{GenericOpaque, GenericOpaqueOfString}
+        testValueTypeInfo[GenericOpaque[String]] <==> info("java.lang.String", "PlainValue", "PlainValue")
+        testValueTypeInfo[GenericOpaqueOfString] <==> info("java.lang.String", "PlainValue", "PlainValue")
+      }
+
+      test("for an applied generic opaque type over a generic representation") {
+        import hearth.examples.opaqueunderlying.Wrapper
+        testValueTypeInfo[Wrapper[Int]] <==> info(
+          "scala.collection.immutable.List[scala.Int]",
+          "PlainValue",
+          "PlainValue"
+        )
+      }
+
+      test("for an alias of an opaque type") {
+        import hearth.examples.opaqueunderlying.AliasToOpaque
+        testValueTypeInfo[AliasToOpaque] <==> info("scala.Long", "PlainValue", "EitherStringOrValue", "PlainValue")
+      }
+
+      test("CtorLikes of applied generic opaque types use the applied type arguments") {
+        import StdExtensionsFixtures.testCtorLikes
+        import hearth.examples.opaqueunderlying.Wrapper
+        import hearth.examples.stdedgeopaque.GenericOpaque
+        testCtorLikes[GenericOpaque[String]] <==> Data.map(
+          "count" -> Data("1"),
+          "ctors" -> Data.list(
+            Data.map("type" -> Data("PlainValue"), "input" -> Data("java.lang.String"), "method" -> Data("apply"))
+          )
+        )
+        testCtorLikes[Wrapper[Int]] <==> Data.map(
+          "count" -> Data("1"),
+          "ctors" -> Data.list(
+            Data.map(
+              "type" -> Data("PlainValue"),
+              "input" -> Data("scala.collection.immutable.List[scala.Int]"),
+              "method" -> Data("apply")
+            )
+          )
+        )
+      }
+
+      test("CtorLikes of an alias of an opaque type are those of the opaque type") {
+        import StdExtensionsFixtures.testCtorLikes
+        import hearth.examples.opaqueunderlying.AliasToOpaque
+        testCtorLikes[AliasToOpaque] <==> Data.map(
+          "count" -> Data("2"),
+          "ctors" -> Data.list(
+            Data.map("type" -> Data("PlainValue"), "input" -> Data("scala.Long"), "method" -> Data("apply")),
+            Data.map(
+              "type" -> Data("EitherStringOrValue"),
+              "input" -> Data("java.lang.String"),
+              "method" -> Data("fromString")
+            )
+          )
+        )
+      }
+
+      test("not for an opaque type without a companion constructor") {
+        import hearth.examples.stdedgeopaque.NoCompanionOpaque
+        testValueTypeInfo[NoCompanionOpaque] <==> Data("<no value type>")
+      }
+    }
   }
 }

@@ -134,6 +134,44 @@ final private class MethodsFixtures(val c: blackbox.Context) extends MacroCommon
   ): c.Expr[Data] =
     testFoldAnonymousInstanceMethod[A](instance, methodName)
 
+  def testMethodSignaturesImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
+    testMethodSignatures[A](methodName)
+
+  def testConstructorSignaturesImpl[A: c.WeakTypeTag]: c.Expr[Data] = testConstructorSignatures[A]
+
+  def testMethodFlagsImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
+    testMethodFlags[A](methodName)
+
+  def testConstructorFlagsImpl[A: c.WeakTypeTag]: c.Expr[Data] = testConstructorFlags[A]
+
+  def testMethodAccessorsAndArityImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
+    testMethodAccessorsAndArity[A](methodName)
+
+  def testMethodParametersImpl[A: c.WeakTypeTag](methodName: c.Expr[String]): c.Expr[Data] =
+    testMethodParameters[A](methodName)
+
+  def testConstructorParametersImpl[A: c.WeakTypeTag]: c.Expr[Data] = testConstructorParameters[A]
+
+  def testChainWalkImpl[A: c.WeakTypeTag](instance: c.Expr[A])(methodName: c.Expr[String])(
+      params: c.Expr[Int]*
+  ): c.Expr[Data] = testChainWalk[A](instance)(methodName)(params)
+
+  def testConstructorChainWalkImpl[A: c.WeakTypeTag](params: c.Expr[Int]*): c.Expr[Data] =
+    testConstructorChainWalk[A](params)
+
+  def testBuildWithWrongArgumentTypesImpl[A: c.WeakTypeTag](instance: c.Expr[A])(
+      methodName: c.Expr[String]
+  ): c.Expr[Data] = testBuildWithWrongArgumentTypes[A](instance)(methodName)
+
+  def testFoldFEffectsImpl[A: c.WeakTypeTag](instance: c.Expr[A])(methodName: c.Expr[String])(
+      params: c.Expr[Int]*
+  ): c.Expr[Data] = testFoldFEffects[A](instance)(methodName)(params)
+
+  def testMethodListingsImpl[A: c.WeakTypeTag]: c.Expr[Data] = testMethodListings[A]
+
+  def testHasMethodsNamedImpl[A: c.WeakTypeTag](names: c.Expr[String]*): c.Expr[Data] =
+    testHasMethodsNamed[A](names)
+
   def testGenericMethodChainImpl[A: c.WeakTypeTag, R: c.WeakTypeTag, T: c.WeakTypeTag](instance: c.Expr[A])(
       methodName: c.Expr[String]
   ): c.Expr[Data] = testGenericMethodChain[A, R, T](instance)(methodName)
@@ -269,4 +307,34 @@ object MethodsFixtures {
 
   def testGenericMethodChainApplyingCtor1Of[A, R](instance: A)(methodName: String): Data =
     macro MethodsFixtures.testGenericMethodChainApplyingCtor1OfImpl[A, R]
+
+  def testMethodSignatures[A](methodName: String): Data = macro MethodsFixtures.testMethodSignaturesImpl[A]
+
+  def testConstructorSignatures[A]: Data = macro MethodsFixtures.testConstructorSignaturesImpl[A]
+
+  def testMethodFlags[A](methodName: String): Data = macro MethodsFixtures.testMethodFlagsImpl[A]
+
+  def testConstructorFlags[A]: Data = macro MethodsFixtures.testConstructorFlagsImpl[A]
+
+  def testMethodAccessorsAndArity[A](methodName: String): Data =
+    macro MethodsFixtures.testMethodAccessorsAndArityImpl[A]
+
+  def testMethodParameters[A](methodName: String): Data = macro MethodsFixtures.testMethodParametersImpl[A]
+
+  def testConstructorParameters[A]: Data = macro MethodsFixtures.testConstructorParametersImpl[A]
+
+  def testChainWalk[A](instance: A)(methodName: String)(params: Int*): Data =
+    macro MethodsFixtures.testChainWalkImpl[A]
+
+  def testConstructorChainWalk[A](params: Int*): Data = macro MethodsFixtures.testConstructorChainWalkImpl[A]
+
+  def testBuildWithWrongArgumentTypes[A](instance: A)(methodName: String): Data =
+    macro MethodsFixtures.testBuildWithWrongArgumentTypesImpl[A]
+
+  def testFoldFEffects[A](instance: A)(methodName: String)(params: Int*): Data =
+    macro MethodsFixtures.testFoldFEffectsImpl[A]
+
+  def testMethodListings[A]: Data = macro MethodsFixtures.testMethodListingsImpl[A]
+
+  def testHasMethodsNamed[A](names: String*): Data = macro MethodsFixtures.testHasMethodsNamedImpl[A]
 }

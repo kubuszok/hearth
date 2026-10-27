@@ -3,6 +3,8 @@ package treeprinter
 
 trait RuntimeAwareTypePrinterFixturesImpl { this: MacroCommons =>
 
+  def testPlainPrint[A: Type]: Expr[String] = Expr(Type.plainPrint[A])
+
   def testNoOverride[A: Type]: Expr[String] =
     Type.runtimePlainPrint[A](_ => None)
 

@@ -156,4 +156,19 @@ final class VersionsSpec extends MacroSuite {
       Platform.Native.isNative ==> true
     }
   }
+
+  group("compile-time resolution") {
+
+    test("ScalaVersion.byCompileTime should resolve the version of the compiler that compiled the call site") {
+      val v = ScalaVersion.byCompileTime
+      v.toLanguageVersion ==> LanguageVersion.byHearth
+      if (v.isScala2_13) v.minor ==> 13
+    }
+
+    test("JDKVersion.compiletimeJDKVersion should resolve the JDK that compiled the call site") {
+      val v = JDKVersion.compiletimeJDKVersion
+      v.major ==> 1
+      assert(v.minor >= 8, s"Expected JDK feature version >= 8, got ${v.minor}")
+    }
+  }
 }

@@ -91,5 +91,32 @@ final class RuntimeAwareTypePrinterSpec extends MacroSuite {
       }
     }
 
+    group("other kinds of types") {
+      import hearth.examples.miscedge.*
+      import RuntimeAwareTypePrinterFixtures.*
+
+      test("tuple, function and array arguments can be overridden") {
+        testWithOverride[(String, Int)] <==> "scala.Tuple2[RUNTIME_STRING, RUNTIME_INT]"
+        testWithOverride[String => Int] <==> "scala.Function1[RUNTIME_STRING, RUNTIME_INT]"
+        testWithOverride[Array[String]] <==> "scala.Array[RUNTIME_STRING]"
+      }
+
+      test("arguments of a user-defined generic class can be overridden") {
+        testWithOverride[Box[Either[Int, String]]] <==>
+          "hearth.examples.miscedge.Box[scala.util.Either[RUNTIME_INT, RUNTIME_STRING]]"
+        testShortWithOverride[Box[String]] <==> "Box[RUNTIME_STRING]"
+      }
+
+      test("without overrides a type alias is printed like plainPrint prints it") {
+        testNoOverride[Aliases.StringOption] <==> testPlainPrint[Aliases.StringOption]
+        testNoOverride[Aliases.StringOption] <==> "scala.Option[java.lang.String]"
+        testWithOverride[Aliases.StringOption] <==> "scala.Option[RUNTIME_STRING]"
+      }
+
+      test("non-applied types without matching overrides are printed like plainPrint prints them") {
+        testWithOverride[Outer.Nested] <==> "hearth.examples.miscedge.Outer.Nested"
+        testShortWithOverride[Outer.Nested] <==> "Nested"
+      }
+    }
   }
 }

@@ -290,4 +290,51 @@ final class MethodsScala3Spec extends MacroSuite {
     }
 
   }
+
+  group("methods: using clauses") {
+
+    test("a using clause is a separate parameter list of implicit parameters, filled like any other") {
+      val sig =
+        "hearth.examples.methods.WithUsingClauses: def curriedUsing(a: scala.Int)(b: scala.Int): scala.Int"
+      MethodsFixtures.testMethodSignatures[examples.methods.WithUsingClauses]("curriedUsing") <==> Data.list(Data(sig))
+      MethodsFixtures.testMethodParameters[examples.methods.WithUsingClauses]("curriedUsing") <==> Data.list(
+        Data.list(
+          Data.list(
+            Data.map(
+              "name" -> Data("a"),
+              "param.name" -> Data("a"),
+              "index" -> Data(0),
+              "tpe" -> Data("scala.Int"),
+              "hasDefault" -> Data(false),
+              "defaultValue" -> Data("<none>"),
+              "isByName" -> Data(false),
+              "byNameUnderlying" -> Data("<none>"),
+              "isVararg" -> Data(false),
+              "isImplicit" -> Data(false)
+            )
+          ),
+          Data.list(
+            Data.map(
+              "name" -> Data("b"),
+              "param.name" -> Data("b"),
+              "index" -> Data(1),
+              "tpe" -> Data("scala.Int"),
+              "hasDefault" -> Data(false),
+              "defaultValue" -> Data("<none>"),
+              "isByName" -> Data(false),
+              "byNameUnderlying" -> Data("<none>"),
+              "isVararg" -> Data(false),
+              "isImplicit" -> Data(true)
+            )
+          )
+        )
+      )
+      MethodsFixtures
+        .testChainWalk(new examples.methods.WithUsingClauses)("curriedUsing")(1, 2)
+        .asMap
+        .get(
+          "result"
+        ) <==> Data("3")
+    }
+  }
 }

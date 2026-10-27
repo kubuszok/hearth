@@ -30,4 +30,29 @@ object MioIntegrationsFixtures {
   }
   private def testValDefsCacheParMap2DuplicateBuildErrorImpl(using q: Quotes): Expr[Data] =
     new MioIntegrationsFixtures(q).testValDefsCacheParMap2DuplicateBuildError
+
+  inline def testRunToExprOrFailRendersFailure: Int = ${ testRunToExprOrFailRendersFailureImpl }
+  private def testRunToExprOrFailRendersFailureImpl(using q: Quotes): Expr[Int] = new MioIntegrationsFixtures(
+    q
+  ).testRunToExprOrFailRendersFailure
+
+  inline def testRunToExprOrFailFailsOnErrorLog: Int = ${ testRunToExprOrFailFailsOnErrorLogImpl }
+  private def testRunToExprOrFailFailsOnErrorLogImpl(using q: Quotes): Expr[Int] = new MioIntegrationsFixtures(
+    q
+  ).testRunToExprOrFailFailsOnErrorLog
+
+  inline def testRunToExprOrFailIgnoresErrorLogByDefault: Int = ${ testRunToExprOrFailIgnoresErrorLogByDefaultImpl }
+  private def testRunToExprOrFailIgnoresErrorLogByDefaultImpl(using q: Quotes): Expr[Int] = new MioIntegrationsFixtures(
+    q
+  ).testRunToExprOrFailIgnoresErrorLogByDefault
+
+  inline def testRunToExprOrFailTimeout: Int = ${ testRunToExprOrFailTimeoutImpl }
+  private def testRunToExprOrFailTimeoutImpl(using q: Quotes): Expr[Int] = new MioIntegrationsFixtures(
+    q
+  ).testRunToExprOrFailTimeout
+
+  inline def testRunToExprOrFailNested: Int = ${ testRunToExprOrFailNestedImpl }
+  private def testRunToExprOrFailNestedImpl(using q: Quotes): Expr[Int] = new MioIntegrationsFixtures(
+    q
+  ).testRunToExprOrFailNested
 }

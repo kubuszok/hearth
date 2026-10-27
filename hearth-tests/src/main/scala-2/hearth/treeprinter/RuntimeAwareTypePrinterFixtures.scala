@@ -8,6 +8,7 @@ final private class RuntimeAwareTypePrinterFixtures(val c: blackbox.Context)
     extends MacroCommonsScala2
     with RuntimeAwareTypePrinterFixturesImpl {
 
+  def testPlainPrintImpl[A: c.WeakTypeTag]: c.Expr[String] = testPlainPrint[A]
   def testNoOverrideImpl[A: c.WeakTypeTag]: c.Expr[String] = testNoOverride[A]
 
   def testWithOverrideImpl[A: c.WeakTypeTag]: c.Expr[String] = testWithOverride[A]
@@ -20,6 +21,7 @@ final private class RuntimeAwareTypePrinterFixtures(val c: blackbox.Context)
 
 object RuntimeAwareTypePrinterFixtures {
 
+  def testPlainPrint[A]: String = macro RuntimeAwareTypePrinterFixtures.testPlainPrintImpl[A]
   def testNoOverride[A]: String = macro RuntimeAwareTypePrinterFixtures.testNoOverrideImpl[A]
 
   def testWithOverride[A]: String = macro RuntimeAwareTypePrinterFixtures.testWithOverrideImpl[A]

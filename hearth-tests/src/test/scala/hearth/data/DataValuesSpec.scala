@@ -297,6 +297,12 @@ final class DataValuesSpec extends MacroSuite {
       diff.head.actual ==> Data()
     }
 
+    test("lists differing only by trailing null elements should produce a non-empty diff") {
+      assert(Data.list() != Data.list(Data()))
+      assert(Data.list().diff(Data.list(Data())).nonEmpty, "a missing element was reported as equal to null")
+      assert(Data.list(Data(), Data()).diff(Data.list(Data())).nonEmpty, "an extra null was reported as equal")
+    }
+
     test("nested differences should accumulate a multi-segment path") {
       val actual = Data.map("outer" -> Data.list(Data.map("k" -> Data(2))))
       val expected = Data.map("outer" -> Data.list(Data.map("k" -> Data(1))))

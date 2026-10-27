@@ -256,4 +256,56 @@ final class RulesSpec extends Suite {
       }
     }
   }
+
+  group("Rule") {
+
+    test("toString is the rule name") {
+      MatchingRule("my rule", 1).toString ==> "my rule"
+    }
+
+    test("yielded without reasons yields an empty Vector") {
+      Rule.yielded() ==> Rule.Applicability.Yielded(Vector.empty)
+    }
+  }
+
+  group("Rules evaluation order") {
+
+    test("rules after the matching one are never attempted") {
+      val attempted = scala.collection.mutable.ListBuffer.empty[String]
+      val rules = Rules(
+        YieldingRule("rule1", Vector("reason1")),
+        MatchingRule("rule2", 2),
+        MatchingRule("rule3", 3)
+      )
+      rules { rule =>
+        attempted += rule.name
+        attemptRule(rule)
+      } ==> Right(2)
+      attempted.toList ==> List("rule1", "rule2")
+    }
+
+    test("rules after the matching one are never attempted with an effect") {
+      val attempted = scala.collection.mutable.ListBuffer.empty[String]
+      val rules = Rules(
+        YieldingRule("rule1", Vector("reason1")),
+        MatchingRule("rule2", 2),
+        MatchingRule("rule3", 3)
+      )
+      rules[Option, Int] { rule =>
+        attempted += rule.name
+        Some(attemptRule(rule))
+      } ==> Some(Right(2))
+      attempted.toList ==> List("rule1", "rule2")
+    }
+
+    test("rules after a failed effect are never attempted") {
+      val attempted = scala.collection.mutable.ListBuffer.empty[String]
+      val rules = Rules(YieldingRule("rule1", Vector("reason1")), MatchingRule("rule2", 2))
+      rules[Option, Int] { rule =>
+        attempted += rule.name
+        None
+      } ==> None
+      attempted.toList ==> List("rule1")
+    }
+  }
 }

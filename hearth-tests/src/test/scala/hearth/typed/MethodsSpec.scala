@@ -3078,4 +3078,570 @@ final class MethodsSpec extends MacroSuite {
       )
     }
   }
+
+  group("methods: documented shapes and edge cases") {
+    import examples.methodsedge.*
+    val P = "hearth.examples.methodsedge"
+
+    def flags(overrides: (String, Data)*): Data = Data.map(
+      (List[(String, Data)](
+        "isConstructor" -> Data(false),
+        "isPrivate" -> Data(false),
+        "isProtected" -> Data(false),
+        "privateWithin" -> Data("<none>"),
+        "protectedWithin" -> Data("<none>"),
+        "isAvailable(Everywhere)" -> Data(true),
+        "isAvailable(AtCallSite)" -> Data(true),
+        "isAvailable(Anywhere)" -> Data(true),
+        "isFinal" -> Data(false),
+        "isAbstract" -> Data(false),
+        "isOverride" -> Data(false),
+        "isImplicit" -> Data(false),
+        "isVal" -> Data(false),
+        "isVar" -> Data(false),
+        "isLazy" -> Data(false),
+        "isDef" -> Data(true),
+        "isDeclared" -> Data(true),
+        "isInherited" -> Data(false),
+        "isSynthetic" -> Data(false)
+      ).toMap ++ overrides).toList*
+    )
+
+    def accessors(overrides: (String, Data)*): Data = Data.map(
+      (List[(String, Data)](
+        "arity" -> Data(0),
+        "isNullary" -> Data(true),
+        "isUnary" -> Data(false),
+        "isBinary" -> Data(false),
+        "isNAry(3)" -> Data(false),
+        "isScalaGetter" -> Data(false),
+        "isScalaSetter" -> Data(false),
+        "isScalaAccessor" -> Data(false),
+        "scalaAccessorName" -> Data("<none>"),
+        "isJavaGetter" -> Data(false),
+        "isJavaSetter" -> Data(false),
+        "isJavaAccessor" -> Data(false),
+        "javaAccessorName" -> Data("<none>"),
+        "isAccessor" -> Data(false),
+        "accessorName" -> Data("<none>")
+      ).toMap ++ overrides).toList*
+    )
+    val unary = List("arity" -> Data(1), "isNullary" -> Data(false), "isUnary" -> Data(true))
+
+    def param(name: String, index: Int, tpe: String, overrides: (String, Data)*): Data = Data.map(
+      (List[(String, Data)](
+        "name" -> Data(name),
+        "param.name" -> Data(name),
+        "index" -> Data(index),
+        "tpe" -> Data(tpe),
+        "hasDefault" -> Data(false),
+        "defaultValue" -> Data("<none>"),
+        "isByName" -> Data(false),
+        "byNameUnderlying" -> Data("<none>"),
+        "isVararg" -> Data(false),
+        "isImplicit" -> Data(false)
+      ).toMap ++ overrides).toList*
+    )
+
+    def step(name: String, parameters: String, totalParameters: String, knownReturning: String, toString: String) =
+      Data.map(
+        "step" -> Data(name),
+        "parameters" -> Data(parameters),
+        "totalParameters" -> Data(totalParameters),
+        "knownReturning" -> Data(knownReturning),
+        "toString" -> Data(toString)
+      )
+
+    group("plainPrint/prettyPrint render every documented modifier") {
+      import MethodsFixtures.testMethodSignatures
+
+      test("final, private, protected, private[scope], protected[scope] and implicit") {
+        val M = s"$P.Modifiers"
+        testMethodSignatures[Modifiers]("finalDef") <==> Data.list(Data(s"$M: final def finalDef: scala.Int"))
+        testMethodSignatures[Modifiers]("privateDef") <==> Data.list(Data(s"$M: private def privateDef: scala.Int"))
+        testMethodSignatures[Modifiers]("protectedDef") <==>
+          Data.list(Data(s"$M: protected def protectedDef: scala.Int"))
+        testMethodSignatures[Modifiers]("packagePrivateDef") <==>
+          Data.list(Data(s"$M: private[methodsedge] def packagePrivateDef: scala.Int"))
+        testMethodSignatures[Modifiers]("packageProtectedDef") <==>
+          Data.list(Data(s"$M: protected[methodsedge] def packageProtectedDef: scala.Int"))
+        testMethodSignatures[Modifiers]("implicitDef") <==>
+          Data.list(Data(s"$M: implicit def implicitDef: java.lang.String"))
+        testMethodSignatures[Modifiers]("abstractDef") <==>
+          Data.list(Data(s"$M: def abstractDef(a: scala.Int): scala.Int"))
+      }
+
+      test("override, final override and abstract override") {
+        testMethodSignatures[ModifiersImpl]("abstractDef") <==>
+          Data.list(Data(s"$P.ModifiersImpl: override def abstractDef(a: scala.Int): scala.Int"))
+        testMethodSignatures[ModifiersImpl]("concreteDef") <==>
+          Data.list(Data(s"$P.ModifiersImpl: final override def concreteDef: scala.Int"))
+        testMethodSignatures[StackableOverride]("stack") <==>
+          Data.list(Data(s"$P.StackableOverride: abstract override def stack(a: scala.Int): scala.Int"))
+      }
+
+      test("lower and lower-and-upper type bounds") {
+        testMethodSignatures[Bounds]("lower") <==> Data.list(Data(s"$P.Bounds: def lower[B >: scala.Int](b: B): B"))
+        testMethodSignatures[Bounds]("both") <==>
+          Data.list(Data(s"$P.Bounds: def both[C >: java.lang.String <: java.lang.CharSequence](c: C): C"))
+      }
+
+      test("overloaded methods are all listed, in declaration order") {
+        testMethodSignatures[Overloads]("over") <==> Data.list(
+          Data(s"$P.Overloads: def over(a: scala.Int): scala.Int"),
+          Data(s"$P.Overloads: def over(a: java.lang.String): java.lang.String"),
+          Data(s"$P.Overloads: def over(a: scala.Int, b: scala.Int): scala.Int")
+        )
+      }
+
+      test("symbolic names are rendered and looked up by their source name") {
+        testMethodSignatures[Symbolic]("+") <==> Data.list(Data(s"$P.Symbolic: def +(other: scala.Int): scala.Int"))
+        testMethodSignatures[Symbolic]("unary_-") <==> Data.list(Data(s"$P.Symbolic: def unary_-: scala.Int"))
+      }
+
+      test("defaults on a later parameter list, by-name and implicit parameter lists") {
+        testMethodSignatures[Shapes]("laterDefaults") <==> Data.list(
+          Data(
+            s"$P.Shapes: def laterDefaults(a: scala.Int)(b: scala.Int = <default>, c: scala.Int = <default>): scala.Int"
+          )
+        )
+        testMethodSignatures[Shapes]("byName") <==> Data.list(
+          Data(s"$P.Shapes: def byName(a: => scala.Int): scala.Int")
+        )
+        testMethodSignatures[Shapes]("curried") <==>
+          Data.list(Data(s"$P.Shapes: def curried(a: scala.Int)(b: scala.Int)(c: scala.Int): scala.Int"))
+      }
+
+      test("val, var and lazy val members are rendered with their keyword") {
+        testMethodSignatures[Accessors]("plainVal") <==> Data.list(Data(s"$P.Accessors: val plainVal: scala.Int"))
+        testMethodSignatures[Accessors]("plainVar") <==> Data.list(Data(s"$P.Accessors: var plainVar: scala.Int"))
+        testMethodSignatures[Accessors]("plainLazy") <==>
+          Data.list(Data(s"$P.Accessors: lazy val plainLazy: scala.Int"))
+        testMethodSignatures[Accessors]("plainDef") <==> Data.list(Data(s"$P.Accessors: def plainDef: scala.Int"))
+      }
+
+      test("a method inherited from a generic parent has the parent's type arguments applied") {
+        testMethodSignatures[IntChild]("get") <==> Data.list(Data(s"$P.IntChild: def get(a: scala.Int): scala.Int"))
+        testMethodSignatures[Aliases.GenParentOfString]("get") <==>
+          Data.list(Data(s"$P.GenParent[java.lang.String]: def get(a: java.lang.String): java.lang.String"))
+      }
+
+      test("constructors: secondary constructors, private constructor and defaults of a generic class") {
+        import MethodsFixtures.testConstructorSignatures
+        testConstructorSignatures[MultiCtor] <==> Data.list(
+          Data(s"new $P.MultiCtor()"),
+          Data(s"new $P.MultiCtor(a: scala.Int)"),
+          Data(s"new $P.MultiCtor(a: scala.Int, b: java.lang.String)")
+        )
+        testConstructorSignatures[PrivateCtor] <==> Data.list(Data(s"new $P.PrivateCtor(a: scala.Int)"))
+        testConstructorSignatures[GenDefaults[Int]] <==> Data.list(
+          Data(
+            s"new $P.GenDefaults[scala.Int](a: scala.Int, xs: scala.collection.immutable.List[scala.Int] = <default>)"
+          )
+        )
+      }
+    }
+
+    group("constructors: primaryConstructor, defaultConstructor and constructors") {
+      import MethodsFixtures.{testConstructorFlags, testConstructorsExtraction}
+
+      test("for a class with secondary constructors, defaultConstructor is the nullary one") {
+        testConstructorsExtraction[MultiCtor] <==> Data.map(
+          "primaryConstructor" -> Data("(a: scala.Int, b: java.lang.String)"),
+          "defaultConstructor" -> Data("()"),
+          "constructors" -> Data.list(Data("(a: scala.Int, b: java.lang.String)"), Data("(a: scala.Int)"), Data("()"))
+        )
+      }
+
+      test("for a trait there is no constructor") {
+        testConstructorsExtraction[NoCtorTrait] <==> Data.map(
+          "primaryConstructor" -> Data("<no primary constructor>"),
+          "defaultConstructor" -> Data("<no default constructor>"),
+          "constructors" -> Data.list()
+        )
+      }
+
+      test("a private constructor is listed but not available") {
+        testConstructorFlags[PrivateCtor] <==> Data.list(
+          Data.map(
+            "plainPrint" -> Data(s"new $P.PrivateCtor(a: scala.Int)"),
+            "variant" -> Data("ApplyValues"),
+            "flags" -> flags(
+              "isConstructor" -> Data(true),
+              "isPrivate" -> Data(true),
+              "isAvailable(Everywhere)" -> Data(false),
+              "isAvailable(AtCallSite)" -> Data(false)
+            )
+          )
+        )
+      }
+    }
+
+    group("modifier, kind and visibility predicates") {
+      import MethodsFixtures.testMethodFlags
+
+      test("isFinal, isAbstract and isImplicit") {
+        testMethodFlags[Modifiers]("finalDef") <==> Data.list(flags("isFinal" -> Data(true)))
+        testMethodFlags[Modifiers]("abstractDef") <==> Data.list(flags("isAbstract" -> Data(true)))
+        testMethodFlags[Modifiers]("implicitDef") <==> Data.list(flags("isImplicit" -> Data(true)))
+        testMethodFlags[AbstractMembers]("abstractDef") <==> Data.list(flags("isAbstract" -> Data(true)))
+      }
+
+      test("isOverride for override, final override and abstract override") {
+        testMethodFlags[ModifiersImpl]("abstractDef") <==> Data.list(flags("isOverride" -> Data(true)))
+        testMethodFlags[ModifiersImpl]("concreteDef") <==>
+          Data.list(flags("isOverride" -> Data(true), "isFinal" -> Data(true)))
+        testMethodFlags[StackableOverride]("stack") <==>
+          Data.list(flags("isOverride" -> Data(true), "isAbstract" -> Data(true)))
+      }
+
+      test("isPrivate/isProtected are strict, privateWithin/protectedWithin hold the qualifier") {
+        val notAvailable = List("isAvailable(Everywhere)" -> Data(false), "isAvailable(AtCallSite)" -> Data(false))
+        testMethodFlags[Modifiers]("privateDef") <==> Data.list(
+          flags((List("isPrivate" -> Data(true)) ++ notAvailable)*)
+        )
+        testMethodFlags[Modifiers]("protectedDef") <==>
+          Data.list(flags((List("isProtected" -> Data(true)) ++ notAvailable)*))
+        testMethodFlags[Modifiers]("packagePrivateDef") <==>
+          Data.list(flags((List("privateWithin" -> Data("methodsedge")) ++ notAvailable)*))
+        testMethodFlags[Modifiers]("packageProtectedDef") <==>
+          Data.list(flags((List("protectedWithin" -> Data("methodsedge")) ++ notAvailable)*))
+      }
+
+      test("isDeclared/isInherited for a member inherited from a parent") {
+        testMethodFlags[ModifiersImpl]("finalDef") <==>
+          Data.list(flags("isFinal" -> Data(true), "isDeclared" -> Data(false), "isInherited" -> Data(true)))
+        testMethodFlags[IntChild]("get") <==>
+          Data.list(flags("isDeclared" -> Data(false), "isInherited" -> Data(true)))
+      }
+
+      test("isVal, isVar, isLazy and isDef for each kind of member") {
+        testMethodFlags[Accessors]("plainVal") <==> Data.list(flags("isVal" -> Data(true), "isDef" -> Data(false)))
+        testMethodFlags[Accessors]("plainVar") <==> Data.list(flags("isVar" -> Data(true), "isDef" -> Data(false)))
+        testMethodFlags[Accessors]("plainLazy") <==>
+          Data.list(flags("isVal" -> Data(true), "isLazy" -> Data(true), "isDef" -> Data(false)))
+        testMethodFlags[Accessors]("plainDef") <==> Data.list(flags())
+      }
+
+      test("an abstract val is a val and abstract") {
+        testMethodFlags[AbstractMembers]("abstractVal") <==>
+          Data.list(flags("isVal" -> Data(true), "isAbstract" -> Data(true), "isDef" -> Data(false)))
+      }
+    }
+
+    group("arity and accessor predicates") {
+      import MethodsFixtures.testMethodAccessorsAndArity
+
+      test("JavaBean getters: getX returning non-Unit and isX returning Boolean") {
+        testMethodAccessorsAndArity[ScalaBean]("getFoo") <==> Data.list(
+          accessors(
+            "isJavaGetter" -> Data(true),
+            "isJavaAccessor" -> Data(true),
+            "javaAccessorName" -> Data("foo"),
+            "isAccessor" -> Data(true),
+            "accessorName" -> Data("foo")
+          )
+        )
+        testMethodAccessorsAndArity[ScalaBean]("isBar") <==> Data.list(
+          accessors(
+            "isJavaGetter" -> Data(true),
+            "isJavaAccessor" -> Data(true),
+            "javaAccessorName" -> Data("bar"),
+            "isAccessor" -> Data(true),
+            "accessorName" -> Data("bar")
+          )
+        )
+      }
+
+      test("not JavaBean getters: isX not returning Boolean, getX returning Unit or taking arguments") {
+        testMethodAccessorsAndArity[ScalaBean]("isBaz") <==> Data.list(accessors())
+        testMethodAccessorsAndArity[ScalaBean]("getUnit") <==> Data.list(accessors())
+        testMethodAccessorsAndArity[ScalaBean]("getWithArg") <==> Data.list(accessors(unary*))
+      }
+
+      test("JavaBean setters: unary setX returning Unit; not when returning a value or taking two arguments") {
+        testMethodAccessorsAndArity[ScalaBean]("setFoo") <==> Data.list(
+          accessors(
+            (unary ++ List(
+              "isJavaSetter" -> Data(true),
+              "isJavaAccessor" -> Data(true),
+              "javaAccessorName" -> Data("foo"),
+              "isAccessor" -> Data(true),
+              "accessorName" -> Data("foo")
+            ))*
+          )
+        )
+        testMethodAccessorsAndArity[ScalaBean]("setReturning") <==> Data.list(accessors(unary*))
+        testMethodAccessorsAndArity[ScalaBean]("setTwo") <==> Data.list(
+          accessors("arity" -> Data(2), "isNullary" -> Data(false), "isBinary" -> Data(true))
+        )
+      }
+
+      test("Scala getters and setters of val, var and lazy val; a def is not an accessor") {
+        def getter(name: String) = accessors(
+          "isScalaGetter" -> Data(true),
+          "isScalaAccessor" -> Data(true),
+          "scalaAccessorName" -> Data(name),
+          "isAccessor" -> Data(true),
+          "accessorName" -> Data(name)
+        )
+        testMethodAccessorsAndArity[Accessors]("plainVal") <==> Data.list(getter("plainVal"))
+        testMethodAccessorsAndArity[Accessors]("plainVar") <==> Data.list(getter("plainVar"))
+        testMethodAccessorsAndArity[Accessors]("plainLazy") <==> Data.list(getter("plainLazy"))
+        testMethodAccessorsAndArity[Accessors]("plainVar_=") <==> Data.list(
+          accessors(
+            (unary ++ List(
+              "isScalaSetter" -> Data(true),
+              "isScalaAccessor" -> Data(true),
+              "scalaAccessorName" -> Data("plainVar"),
+              "isAccessor" -> Data(true),
+              "accessorName" -> Data("plainVar")
+            ))*
+          )
+        )
+        testMethodAccessorsAndArity[Accessors]("plainDef") <==> Data.list(accessors())
+      }
+
+      test("arity counts the parameters of every parameter list, including the implicit one") {
+        val threeArgs = accessors("arity" -> Data(3), "isNullary" -> Data(false), "isNAry(3)" -> Data(true))
+        testMethodAccessorsAndArity[Shapes]("threeArgs") <==> Data.list(threeArgs)
+        testMethodAccessorsAndArity[Shapes]("curried") <==> Data.list(threeArgs)
+      }
+    }
+
+    group("parameters") {
+      import MethodsFixtures.{testConstructorParameters, testMethodParameters}
+
+      test("defaults on a later parameter list, by-name and implicit parameters") {
+        testMethodParameters[Shapes]("byName") <==> Data.list(
+          Data.list(
+            Data.list(
+              param("a", 0, "<by-name>", "isByName" -> Data(true), "byNameUnderlying" -> Data("scala.Int"))
+            )
+          )
+        )
+        testMethodParameters[Shapes]("curried") <==> Data.list(
+          Data.list(
+            Data.list(param("a", 0, "scala.Int")),
+            Data.list(param("b", 1, "scala.Int")),
+            Data.list(param("c", 2, "scala.Int", "isImplicit" -> Data(true)))
+          )
+        )
+        testMethodParameters[Shapes]("laterDefaults") <==> Data.list(
+          Data.list(
+            Data.list(param("a", 0, "scala.Int")),
+            Data.list(
+              param(
+                "b",
+                1,
+                "scala.Int",
+                "hasDefault" -> Data(true),
+                "defaultValue" -> Data("returning scala.Int, expecting NeedsInstance -> NeedsValues(a)")
+              ),
+              param(
+                "c",
+                2,
+                "scala.Int",
+                "hasDefault" -> Data(true),
+                "defaultValue" -> Data("returning scala.Int, expecting NeedsInstance -> NeedsValues(a)")
+              )
+            )
+          )
+        )
+      }
+
+      test("defaultValue of a generic class has the class type arguments applied") {
+        testConstructorParameters[GenDefaults[Int]] <==> Data.list(
+          Data.list(
+            param("a", 0, "scala.Int"),
+            param(
+              "xs",
+              1,
+              "scala.collection.immutable.List[scala.Int]",
+              "hasDefault" -> Data(true),
+              "defaultValue" -> Data("returning scala.collection.immutable.List[scala.Int], expecting ")
+            )
+          )
+        )
+        testMethodParameters[GenMethodDefaults[String]]("withDefault") <==> Data.list(
+          Data.list(
+            Data.list(
+              param("x", 0, "scala.Int"),
+              param(
+                "y",
+                1,
+                "java.lang.String",
+                "hasDefault" -> Data(true),
+                "defaultValue" -> Data("returning java.lang.String, expecting NeedsInstance")
+              )
+            )
+          )
+        )
+      }
+    }
+
+    group("builder chain: steps, parameters, totalParameters, knownReturning and toString") {
+      import MethodsFixtures.{testChainWalk, testConstructorChainWalk}
+
+      test("defaults on a later parameter list are filled in when the arguments are skipped") {
+        val sig =
+          s"$P.Shapes: def laterDefaults(a: scala.Int)(b: scala.Int = <default>, c: scala.Int = <default>): scala.Int"
+        testChainWalk(new Shapes)("laterDefaults")(1) <==> Data.map(
+          "steps" -> Data.list(
+            step("OnInstance", "<none>", "(a)(b, c)", "scala.Int", sig),
+            step("ApplyValues", "(a)(b, c)", "(a)(b, c)", "scala.Int", s"$sig (on <instance>)"),
+            step("Result", "<none>", "(a)(b, c)", "scala.Int", s"$sig (on <instance>, applied (a = 1))")
+          ),
+          "result" -> Data("6")
+        )
+      }
+
+      test("by-name and implicit parameters are passed by name like any other argument") {
+        testChainWalk(new Shapes)("byName")(5).asMap.get("result") <==> Data("5")
+        testChainWalk(new Shapes)("curried")(1, 2, 3).asMap.get("result") <==> Data("6")
+      }
+
+      test("a nullary companion method listed on the class is a Result right away") {
+        testChainWalk(new Registry)("count")() <==> Data.map(
+          "steps" -> Data.list(step("Result", "<none>", "<none>", "scala.Int", s"$P.Registry: def count: scala.Int")),
+          "result" -> Data("3")
+        )
+        testChainWalk(new Registry)("make")(21) <==> Data.map(
+          "steps" -> Data.list(
+            step("ApplyValues", "(a)", "(a)", "scala.Int", s"$P.Registry: def make(a: scala.Int): scala.Int"),
+            step(
+              "Result",
+              "<none>",
+              "(a)",
+              "scala.Int",
+              s"$P.Registry: def make(a: scala.Int): scala.Int (applied (a = 21))"
+            )
+          ),
+          "result" -> Data("42")
+        )
+      }
+
+      test("toString shows applied type arguments and the return type resolved after applying them") {
+        val sig = "hearth.examples.methods.Parametric: def parametric2[A](a: A): A"
+        testChainWalk(new examples.methods.Parametric)("parametric2")(7) <==> Data.map(
+          "steps" -> Data.list(
+            step("OnInstance", "<none>", "(a)", "<none>", sig),
+            step("ApplyTypes", "<none>", "(a)", "<none>", s"$sig (on <instance>)"),
+            step(
+              "ApplyValues",
+              "(a)",
+              "(a)",
+              "scala.Int",
+              s"$sig (on <instance>, applied [A = scala.Int], returning scala.Int)"
+            ),
+            step(
+              "Result",
+              "<none>",
+              "(a)",
+              "scala.Int",
+              s"$sig (on <instance>, applied [A = scala.Int](a = 7), returning scala.Int)"
+            )
+          ),
+          "result" -> Data("7")
+        )
+      }
+
+      test("a method inherited from a generic parent is called with the parent's type arguments applied") {
+        testChainWalk(new IntChild)("get")(4).asMap.get("result") <==> Data("4")
+      }
+
+      test("defaults of generic classes are resolved against the type arguments") {
+        testConstructorChainWalk[GenDefaults[Int]](1) <==> Data.map(
+          "steps" -> Data.list(
+            step(
+              "ApplyValues",
+              "(a, xs)",
+              "(a, xs)",
+              s"$P.GenDefaults[scala.Int]",
+              s"new $P.GenDefaults[scala.Int](a: scala.Int, xs: scala.collection.immutable.List[scala.Int] = <default>)"
+            ),
+            step(
+              "Result",
+              "<none>",
+              "(a, xs)",
+              s"$P.GenDefaults[scala.Int]",
+              s"new $P.GenDefaults[scala.Int](a: scala.Int, xs: scala.collection.immutable.List[scala.Int] = <default>) (applied (a = 1))"
+            )
+          ),
+          "result" -> Data("GenDefaults(1, List())")
+        )
+        testChainWalk(new GenMethodDefaults[String]("a"))("withDefault")(1).asMap.get("result") <==> Data("1:a")
+      }
+    }
+
+    group("builder chain errors") {
+
+      test("build() reports arguments of the wrong type") {
+        MethodsFixtures.testBuildWithWrongArgumentTypes(new Shapes)("threeArgs").asString.get.take(5) <==> "LEFT:"
+      }
+    }
+
+    group("foldF") {
+
+      test("foldF works with Either and Try and short-circuits on their failure") {
+        MethodsFixtures.testFoldFEffects(new Shapes)("threeArgs")(1, 2, 3) <==> Data.map(
+          "Either" -> Data("6"),
+          "Try" -> Data("6")
+        )
+        MethodsFixtures.testFoldFEffects(new Shapes)("threeArgs")() <==> Data.map(
+          "Either" -> Data("EFFECT FAILED: not enough Int arguments"),
+          "Try" -> Data("EFFECT FAILED: not enough Int arguments")
+        )
+      }
+    }
+
+    group("path-dependent parameter lists") {
+
+      test("a parameter list depending on an abstract type member of an earlier argument is a separate step") {
+        MethodsFixtures.testMethodExpectations[AbstractPathDep]("unbox").asList.get.head.asMap.get("expectations") <==>
+          Data.list(
+            Data("NeedsInstance"),
+            Data(s"NeedsValues(b: $P.AbstractPathDep#Box)"),
+            Data("NeedsValues(t: b.T)")
+          )
+      }
+    }
+
+    group("listing methods") {
+      import MethodsFixtures.{testHasMethodsNamed, testMethodListings}
+
+      test("methods, unsortedMethods, unsortedMethodsNamed, Method.sort/sortBy and the Method.* companions agree") {
+        testMethodListings[Ordered] <==> Data.map(
+          "declared names in order" -> Data
+            .list(Data("first"), Data("second"), Data("zeta"), Data("alpha"), Data("mid")),
+          "methods contain the same methods as unsortedMethods" -> Data(true),
+          "methods == Method.sort(unsortedMethods)" -> Data(true),
+          "Method.sort(unsorted.filter(p)) == methods.filter(p)" -> Data(true),
+          "Method.sortBy(pairs)(_._2) == Method.sort" -> Data(true),
+          "unsortedMethodsNamed(n) == unsortedMethods.filter(_.name == n)" -> Data(true),
+          "Method.methodsOf == Type.methods" -> Data(true),
+          "Method.unsortedMethodsOf == Type.unsortedMethods" -> Data(true),
+          "Method.constructorsOf == Type.constructors" -> Data(true),
+          "Method.primaryConstructorOf == Type.primaryConstructor" -> Data(true)
+        )
+      }
+
+      test("methods of Any and of a primitive type") {
+        testHasMethodsNamed[Any]("toString", "hashCode", "equals", "==", "!=", "##", "isInstanceOf") <==> Data.map(
+          "toString" -> Data(true),
+          "hashCode" -> Data(true),
+          "equals" -> Data(true),
+          "==" -> Data(true),
+          "!=" -> Data(true),
+          "##" -> Data(true),
+          "isInstanceOf" -> Data(true)
+        )
+        testHasMethodsNamed[Int]("+", "toLong", "toString") <==> Data.map(
+          "+" -> Data(true),
+          "toLong" -> Data(true),
+          "toString" -> Data(true)
+        )
+      }
+    }
+  }
 }

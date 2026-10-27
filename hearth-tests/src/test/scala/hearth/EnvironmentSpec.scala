@@ -299,5 +299,112 @@ final class EnvironmentSpec extends MacroSuite {
         )
       }
     }
+
+    group("methods: Environment.currentPosition.prettyPrintLong, expected behavior") {
+      import EnvironmentFixtures.testPositionPrettyPrintLong
+
+      test("should render the full file path followed by the line and column of the expansion") {
+        testPositionPrettyPrintLong <==> Data.map(
+          "path" -> Data("hearth-tests/src/test/scala/hearth/EnvironmentSpec.scala"),
+          "endsWithLineAndColumn" -> Data(true),
+          "endsWithPrettyPrint" -> Data(true)
+        )
+      }
+    }
+
+    group("methods: Environment.{currentScalaVersion, currentJDKVersion}, expected behavior") {
+      import EnvironmentFixtures.testCompileTimeVersions
+
+      test("should return the Scala and JDK versions used by the compiler expanding the macro") {
+        testCompileTimeVersions <==> Data.map(
+          "scalaLanguageVersion" -> Data(LanguageVersion.byHearth.toString),
+          "scalaMajor" -> Data(if (LanguageVersion.byHearth.isScala3) 3 else 2),
+          "scalaMinorIs13WhenScala2" -> Data(true),
+          "jdkMajor" -> Data(1),
+          "jdkMinorAtLeast8" -> Data(true),
+          "jdkSameAsRuntimeJDKVersion" -> Data(true)
+        )
+      }
+    }
+
+    group("methods: Environment.typedSettings accessors, expected behavior") {
+      import EnvironmentFixtures.testTypedSettingsAccessors
+
+      test("should expose each parsed -Xmacro-settings value through the accessor of its own type") {
+        testTypedSettingsAccessors <==> Data.map(
+          "intAsInt" -> Data(true),
+          "longAsLong" -> Data(true),
+          "floatAsFloat" -> Data(true),
+          "doubleAsDouble" -> Data(true),
+          "booleanAsBoolean" -> Data(true),
+          "explicitStringAsString" -> Data(true),
+          "implicitStringAsString" -> Data(true),
+          "intRendered" -> Data("1024")
+        )
+      }
+    }
+
+    group("methods: Environment.mioBenchmarkFlameGraphDir, expected behavior") {
+      import EnvironmentFixtures.testMioBenchmarkFlameGraphDir
+
+      test("should return the directory passed via -Xmacro-settings:hearth.mioBenchmarkFlameGraphDir") {
+        testMioBenchmarkFlameGraphDir <==> Data(true)
+      }
+    }
+
+    group("methods: Environment.reportError called more than once, expected behavior") {
+
+      test("should only report the first error message") {
+        compileErrors("EnvironmentFixtures.testReportErrorTwice")
+          .check("First error message")
+        compileErrors("EnvironmentFixtures.testReportErrorTwice")
+          .checkNot("Second error message")
+      }
+
+      test("should only report the first error message even if the next one aborts the expansion") {
+        compileErrors("EnvironmentFixtures.testReportErrorThenAbort")
+          .check("Error reported before abort")
+        compileErrors("EnvironmentFixtures.testReportErrorThenAbort")
+          .checkNot("Abort reported after error")
+      }
+    }
+
+    group("methods: Environment.handleMioTerminationException, expected behavior") {
+
+      test("should report the termination as a compilation error by default") {
+        compileErrors("EnvironmentFixtures.testHandleMioTerminationReportsError")
+          .check("Simulated MIO termination")
+      }
+
+      test("should return the value of the thunk when nothing was terminated") {
+        EnvironmentFixtures.testHandleMioTerminationPassesValue ==> 42
+      }
+    }
+
+    group("methods: Environment.withMioTimeout, expected behavior") {
+      import EnvironmentFixtures.testWithMioTimeout
+
+      test("should return Right on success, Left on timeout, reject re-entering and always reset the deadline") {
+        testWithMioTimeout <==> Data.map(
+          "success" -> Data(42),
+          "timedOut" -> Data(true),
+          "deadlineResetAfterTimeout" -> Data(true),
+          "reentry" -> Data("nested call rejected"),
+          "deadlineResetAfterReentry" -> Data(true)
+        )
+      }
+    }
+
+    group("methods: Environment.withMioLoggingDisabled, expected behavior") {
+      import EnvironmentFixtures.testWithMioLoggingDisabled
+
+      test("should record no logs inside the block, also when nested, and restore logging afterwards") {
+        testWithMioLoggingDisabled <==> Data.map(
+          "entriesInNestedDisabledBlock" -> Data(0),
+          "entriesAfterNestedBlockEnded" -> Data(0),
+          "entriesAfterDisabledBlockEnded" -> Data(1)
+        )
+      }
+    }
   }
 }

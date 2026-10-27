@@ -58,5 +58,38 @@ final class DebugSpec extends MacroSuite {
         List(1, 2, 3).withInferredTypeInIDE ==> List(1, 2, 3)
       }
     }
+
+    group("evaluation of the wrapped expression") {
+
+      test("object methods evaluate the expression exactly once") {
+        var evaluated = 0
+        Debug.withFinalCodeInIDE { evaluated += 1; evaluated } ==> 1
+        Debug.withFinalASTInIDE { evaluated += 1; evaluated } ==> 2
+        Debug.withInferredTypeInIDE { evaluated += 1; evaluated } ==> 3
+        evaluated ==> 3
+      }
+
+      test("extension methods evaluate a non-trivial receiver exactly once") {
+        import DebugOps.*
+        var evaluated = 0
+        def next(): Int = { evaluated += 1; evaluated }
+        (next() + 10).withFinalCodeInIDE ==> 11
+        (next() + 10).withFinalASTInIDE ==> 12
+        List(next()).withInferredTypeInIDE ==> List(3)
+        evaluated ==> 3
+      }
+    }
+
+    group("missing implicit") {
+
+      test("withGiven*InIDE fail the compilation when there is no implicit for the type") {
+        compileErrors("hearth.debug.Debug.withGivenCodeInIDE[hearth.examples.miscedge.NoInstanceAvailable]")
+          .check("NoInstanceAvailable")
+        compileErrors("hearth.debug.Debug.withGivenASTInIDE[hearth.examples.miscedge.NoInstanceAvailable]")
+          .check("NoInstanceAvailable")
+        compileErrors("hearth.debug.Debug.withGivenTypeInIDE[hearth.examples.miscedge.NoInstanceAvailable]")
+          .check("NoInstanceAvailable")
+      }
+    }
   }
 }

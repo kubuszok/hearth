@@ -198,4 +198,54 @@ object ClassesFixtures {
   inline def testClassViewParseReasons[A]: Data = ${ testClassViewParseReasonsImpl[A] }
   private def testClassViewParseReasonsImpl[A: Type](using q: Quotes): Expr[Data] =
     new ClassesFixtures(q).testClassViewParseReasons[A]
+
+  inline def testClassViewKind[A]: String = ${ testClassViewKindImpl[A] }
+  private def testClassViewKindImpl[A: Type](using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testClassViewKind[A]
+
+  inline def testCaseClassSummary[A]: Data = ${ testCaseClassSummaryImpl[A] }
+  private def testCaseClassSummaryImpl[A: Type](using q: Quotes): Expr[Data] =
+    new ClassesFixtures(q).testCaseClassSummary[A]
+
+  inline def testCaseClassRuntimeRoundTrip[A]: String = ${ testCaseClassRuntimeRoundTripImpl[A] }
+  private def testCaseClassRuntimeRoundTripImpl[A: Type](using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testCaseClassRuntimeRoundTrip[A]
+
+  inline def testCaseClassConstructVisibility[A]: Data = ${ testCaseClassConstructVisibilityImpl[A] }
+  private def testCaseClassConstructVisibilityImpl[A: Type](using q: Quotes): Expr[Data] =
+    new ClassesFixtures(q).testCaseClassConstructVisibility[A]
+
+  inline def testCaseClassConstructErrorAggregation[A]: Data = ${ testCaseClassConstructErrorAggregationImpl[A] }
+  private def testCaseClassConstructErrorAggregationImpl[A: Type](using q: Quotes): Expr[Data] =
+    new ClassesFixtures(q).testCaseClassConstructErrorAggregation[A]
+
+  inline def testEnumChildren[A]: Data = ${ testEnumChildrenImpl[A] }
+  private def testEnumChildrenImpl[A: Type](using q: Quotes): Expr[Data] =
+    new ClassesFixtures(q).testEnumChildren[A]
+
+  inline def testJavaBeanSummary[A]: Data = ${ testJavaBeanSummaryImpl[A] }
+  private def testJavaBeanSummaryImpl[A: Type](using q: Quotes): Expr[Data] =
+    new ClassesFixtures(q).testJavaBeanSummary[A]
+
+  inline def testJavaBeanConstructWithoutSettersRoundTrip[A]: String = ${
+    testJavaBeanConstructWithoutSettersRoundTripImpl[A]
+  }
+  private def testJavaBeanConstructWithoutSettersRoundTripImpl[A: Type](using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testJavaBeanConstructWithoutSettersRoundTrip[A]
+
+  inline def testJavaBeanConstructVisibility[A]: Data = ${ testJavaBeanConstructVisibilityImpl[A] }
+  private def testJavaBeanConstructVisibilityImpl[A: Type](using q: Quotes): Expr[Data] =
+    new ClassesFixtures(q).testJavaBeanConstructVisibility[A]
+
+  inline def testJavaBeanSetterErrorAggregation[A]: Data = ${ testJavaBeanSetterErrorAggregationImpl[A] }
+  private def testJavaBeanSetterErrorAggregationImpl[A: Type](using q: Quotes): Expr[Data] =
+    new ClassesFixtures(q).testJavaBeanSetterErrorAggregation[A]
+
+  inline def testClassMethodOverloads[A](inline name: String): Data = ${ testClassMethodOverloadsImpl[A]('name) }
+  private def testClassMethodOverloadsImpl[A: Type](name: Expr[String])(using q: Quotes): Expr[Data] =
+    new ClassesFixtures(q).testClassMethodOverloads[A](name)
+
+  inline def testEnumMatchOnRuntime[A](inline expr: A): String = ${ testEnumMatchOnRuntimeImpl[A]('expr) }
+  private def testEnumMatchOnRuntimeImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testEnumMatchOnRuntime[A](expr)
 }

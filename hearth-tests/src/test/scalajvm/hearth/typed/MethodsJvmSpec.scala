@@ -799,4 +799,57 @@ final class MethodsJvmSpec extends MacroSuite {
       }
     }
   }
+
+  group("methods: Java class members") {
+    import examples.classes.ExampleJavaClass
+    val J = "hearth.examples.classes.ExampleJavaClass"
+
+    def accessors(arity: Int, overrides: (String, Data)*): Data = Data.map(
+      (List[(String, Data)](
+        "arity" -> Data(arity),
+        "isNullary" -> Data(arity == 0),
+        "isUnary" -> Data(arity == 1),
+        "isBinary" -> Data(arity == 2),
+        "isNAry(3)" -> Data(arity == 3),
+        "isScalaGetter" -> Data(false),
+        "isScalaSetter" -> Data(false),
+        "isScalaAccessor" -> Data(false),
+        "scalaAccessorName" -> Data("<none>"),
+        "isJavaGetter" -> Data(false),
+        "isJavaSetter" -> Data(false),
+        "isJavaAccessor" -> Data(false),
+        "javaAccessorName" -> Data("<none>"),
+        "isAccessor" -> Data(false),
+        "accessorName" -> Data("<none>")
+      ).toMap ++ overrides).toList*
+    )
+
+    test("JavaBean getters and setters of a Java class are recognized") {
+      import MethodsFixtures.testMethodAccessorsAndArity
+      def accessor(kind: String, name: String) = List(
+        kind -> Data(true),
+        "isJavaAccessor" -> Data(true),
+        "javaAccessorName" -> Data(name),
+        "isAccessor" -> Data(true),
+        "accessorName" -> Data(name)
+      )
+      testMethodAccessorsAndArity[ExampleJavaClass]("getString") <==>
+        Data.list(accessors(0, accessor("isJavaGetter", "string")*))
+      testMethodAccessorsAndArity[ExampleJavaClass]("getBoolean") <==>
+        Data.list(accessors(0, accessor("isJavaGetter", "boolean")*))
+      testMethodAccessorsAndArity[ExampleJavaClass]("setString") <==>
+        Data.list(accessors(1, accessor("isJavaSetter", "string")*))
+    }
+
+    test("Java class constructor and methods are rendered and callable") {
+      MethodsFixtures.testConstructorsExtraction[ExampleJavaClass] <==> Data.map(
+        "primaryConstructor" -> Data("()"),
+        "defaultConstructor" -> Data("()"),
+        "constructors" -> Data.list(Data("()"))
+      )
+      MethodsFixtures.testMethodSignatures[ExampleJavaClass]("getString") <==>
+        Data.list(Data(s"$J: def getString(): java.lang.String"))
+      MethodsFixtures.testChainWalk(new ExampleJavaClass)("getInt")().asMap.get("result") <==> Data("0")
+    }
+  }
 }

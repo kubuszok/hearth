@@ -49,4 +49,50 @@ object EnvironmentFixtures {
   inline def testLoadingExtensionsTwice: Data = ${ testLoadingExtensionsTwiceImpl }
   private def testLoadingExtensionsTwiceImpl(using q: Quotes): Expr[Data] =
     new EnvironmentFixtures(q).testLoadingExtensionsTwice
+
+  inline def testPositionPrettyPrintLong: Data = ${ testPositionPrettyPrintLongImpl }
+  private def testPositionPrettyPrintLongImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(
+    q
+  ).testPositionPrettyPrintLong
+
+  inline def testCompileTimeVersions: Data = ${ testCompileTimeVersionsImpl }
+  private def testCompileTimeVersionsImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(
+    q
+  ).testCompileTimeVersions
+
+  inline def testTypedSettingsAccessors: Data = ${ testTypedSettingsAccessorsImpl }
+  private def testTypedSettingsAccessorsImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(
+    q
+  ).testTypedSettingsAccessors
+
+  inline def testMioBenchmarkFlameGraphDir: Data = ${ testMioBenchmarkFlameGraphDirImpl }
+  private def testMioBenchmarkFlameGraphDirImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(
+    q
+  ).testMioBenchmarkFlameGraphDir
+
+  inline def testReportErrorTwice: Data = ${ testReportErrorTwiceImpl }
+  private def testReportErrorTwiceImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(q).testReportErrorTwice
+
+  inline def testReportErrorThenAbort: Any = ${ testReportErrorThenAbortImpl }
+  private def testReportErrorThenAbortImpl(using q: Quotes): Expr[Any] = new EnvironmentFixtures(
+    q
+  ).testReportErrorThenAbort
+
+  inline def testHandleMioTerminationReportsError: Any = ${ testHandleMioTerminationReportsErrorImpl }
+  private def testHandleMioTerminationReportsErrorImpl(using q: Quotes): Expr[Any] = new EnvironmentFixtures(
+    q
+  ).testHandleMioTerminationReportsError
+
+  inline def testHandleMioTerminationPassesValue: Int = ${ testHandleMioTerminationPassesValueImpl }
+  private def testHandleMioTerminationPassesValueImpl(using q: Quotes): Expr[Int] = new EnvironmentFixtures(
+    q
+  ).testHandleMioTerminationPassesValue
+
+  inline def testWithMioTimeout: Data = ${ testWithMioTimeoutImpl }
+  private def testWithMioTimeoutImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(q).testWithMioTimeout
+
+  inline def testWithMioLoggingDisabled: Data = ${ testWithMioLoggingDisabledImpl }
+  private def testWithMioLoggingDisabledImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(
+    q
+  ).testWithMioLoggingDisabled
 }

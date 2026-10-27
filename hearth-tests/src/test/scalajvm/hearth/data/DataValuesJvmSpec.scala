@@ -61,4 +61,22 @@ final class DataValuesJvmSpec extends MacroSuite {
       Data(1.0).render ==> "1.0"
     }
   }
+
+  group("Data.parseString / parseList (numeric, JVM-only)") {
+
+    test("should parse an integer without a suffix as Int") {
+      Data.parseString("42").map(_.asInt) ==> Right(Some(42))
+      Data.parseString("-7").map(_.asInt) ==> Right(Some(-7))
+      Data.parseString("42").map(_.render) ==> Right("42")
+    }
+
+    test("should parse a number with a fraction as Double and with an f suffix as Float") {
+      Data.parseString("2.5").map(_.asDouble) ==> Right(Some(2.5))
+      Data.parseString("2.5f").map(_.asFloat) ==> Right(Some(2.5f))
+    }
+
+    test("should parse integer -Xmacro-settings values as Int") {
+      Data.parseList(List("a.b=1024")).map(_.get("a").flatMap(_.get("b")).flatMap(_.asInt)) ==> Right(Some(1024))
+    }
+  }
 }

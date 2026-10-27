@@ -299,6 +299,138 @@ trait DestructuredExprsFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** Every node in `collect` (pre-order) order with its type, whether its rebuilt tree conforms to that type, and the
+    * line of its position relative to the line of the root node.
+    */
+  def testNodeSummaries[A: Type](expr: Expr[A]): Expr[Data] = {
+    val parsed = DestructuredExpr.parse(expr)
+    val rootLine = parsed.position.map(_.line)
+    Expr(Data(parsed.collect { case node =>
+      val rebuilt = UntypedExpr.as_??(node.toUntypedExpr)
+      Data.map(
+        "node" -> Data(nodeKind(node)),
+        "plainPrint" -> Data(node.plainPrint),
+        "type" -> Data(node.tpe.plainPrint),
+        "rebuiltConforms" -> Data(rebuilt.Underlying <:< node.tpe.Underlying),
+        "line" -> relativeLine(node.position, rootLine)
+      )
+    }))
+  }
+
+  /** For a lambda: every reference (in the order `findReferences` returns them) to its parameters and to the vals
+    * defined in its body, plus the `references`/`unusedParams` views of the same information.
+    */
+  def testReferenceOrder[A: Type](expr: Expr[A]): Expr[Data] =
+    DestructuredExpr.parse(expr) match {
+      case lam: DestructuredExpr.Lambda =>
+        val locals = lam.body.collect { case vd: DestructuredExpr.ValDefinition => vd.binding }
+        val bindings: List[DestructuredExpr.Binding] = lam.params ++ locals
+        val rootLine = lam.position.map(_.line)
+        Expr(
+          Data.map(
+            "references" -> Data(lam.body.findReferences(bindings).map { ref =>
+              Data.map("name" -> Data(ref.binding.name), "line" -> relativeLine(ref.position, rootLine))
+            }),
+            "paramsReferenced" -> Data(lam.params.map(p => Data(lam.body.references(p)))),
+            "unusedParams" -> Data(lam.unusedParams.map(p => Data(p.name))),
+            "noBindingsGiveNoReferences" -> Data(lam.body.findReferences(Nil).isEmpty)
+          )
+        )
+      case other => Expr(Data.map("error" -> Data(s"Expected a lambda, got ${other.plainPrint}")))
+    }
+
+  /** The `receiver` of the outermost method call (looking through a lambda). */
+  def testReceiver[A: Type](expr: Expr[A]): Expr[Data] = {
+    def outermost(node: DestructuredExpr): Option[DestructuredExpr.MethodCall] = node match {
+      case mc: DestructuredExpr.MethodCall => Some(mc)
+      case lam: DestructuredExpr.Lambda    => outermost(lam.body)
+      case _                               => None
+    }
+    outermost(DestructuredExpr.parse(expr)) match {
+      case Some(mc) =>
+        Expr(
+          Data.map(
+            "method" -> Data(mc.method.name),
+            "receiver" -> mc.receiver.fold(Data("<none>")) { r =>
+              Data.map("node" -> Data(nodeKind(r)), "plainPrint" -> Data(r.plainPrint))
+            }
+          )
+        )
+      case None => Expr(Data.map("error" -> Data("No outermost MethodCall found")))
+    }
+  }
+
+  /** Every distinct `LocalBinding` (by identity) defined or referenced in the expression, with all of its properties.
+    */
+  def testLocalBindings[A: Type](expr: Expr[A]): Expr[Data] = {
+    val parsed = DestructuredExpr.parse(expr)
+    val all = parsed.collect {
+      case vd: DestructuredExpr.ValDefinition   => vd.binding
+      case ref: DestructuredExpr.LocalReference => ref.binding
+    }
+    val distinct = all.foldLeft(List.empty[DestructuredExpr.LocalBinding]) { (acc, b) =>
+      if (acc.exists(_ eq b)) acc else acc :+ b
+    }
+    Expr(Data(distinct.map { b =>
+      Data.map(
+        "name" -> Data(b.name),
+        "type" -> Data(b.tpe.plainPrint),
+        "flags" -> Data(
+          List(
+            "mutable" -> b.isMutable,
+            "lazy" -> b.isLazy,
+            "implicit" -> b.isImplicit,
+            "synthetic" -> b.isSynthetic,
+            "external" -> b.isExternal
+          ).collect { case (flag, true) => Data(flag) }
+        ),
+        "hasPosition" -> Data(b.position.isDefined)
+      )
+    }))
+  }
+
+  /** For every method call in the expression: the kinds of its `applied` steps next to the kinds of its method's
+    * `expectations`, which they should mirror one-to-one.
+    */
+  def testAppliedMirrorsExpectations[A: Type](expr: Expr[A]): Expr[Data] =
+    Expr(Data(DestructuredExpr.parse(expr).collect { case mc: DestructuredExpr.MethodCall =>
+      Data.map(
+        "method" -> Data(mc.method.name),
+        "applied" -> Data(mc.applied.map {
+          case _: DestructuredExpr.MethodCall.AppliedInstance => Data("Instance")
+          case _: DestructuredExpr.MethodCall.AppliedTypes    => Data("Types")
+          case _: DestructuredExpr.MethodCall.AppliedValues   => Data("Values")
+        }),
+        "expectations" -> Data(mc.method.expectations.map {
+          case MethodExpectation.NeedsInstance  => Data("Instance")
+          case _: MethodExpectation.NeedsTypes  => Data("Types")
+          case _: MethodExpectation.NeedsValues => Data("Values")
+        })
+      )
+    }))
+
+  private def relativeLine(position: Option[Position], rootLine: Option[Int]): Data =
+    (position, rootLine) match {
+      case (Some(pos), Some(root)) => Data(pos.line - root)
+      case (Some(_), None)         => Data("<root without position>")
+      case (None, _)               => Data("<none>")
+    }
+
+  private def nodeKind(node: DestructuredExpr): String = node match {
+    case _: DestructuredExpr.MethodCall        => "MethodCall"
+    case _: DestructuredExpr.Lambda            => "Lambda"
+    case _: DestructuredExpr.Lambda.ParamRef   => "ParamRef"
+    case _: DestructuredExpr.Literal           => "Literal"
+    case _: DestructuredExpr.Singleton         => "Singleton"
+    case _: DestructuredExpr.Block             => "Block"
+    case _: DestructuredExpr.Varargs           => "Varargs"
+    case _: DestructuredExpr.ValDefinition     => "ValDefinition"
+    case _: DestructuredExpr.LocalReference    => "LocalReference"
+    case _: DestructuredExpr.Import            => "Import"
+    case _: DestructuredExpr.LocalDefinition   => "LocalDefinition"
+    case _: DestructuredExpr.NonDestructurable => "NonDestructurable"
+  }
+
   private def renderNode(parsed: DestructuredExpr): Data = {
     val nodeType = parsed match {
       case _: DestructuredExpr.MethodCall        => "MethodCall"

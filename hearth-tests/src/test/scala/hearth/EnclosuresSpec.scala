@@ -95,6 +95,47 @@ final class EnclosuresSpec extends MacroSuite {
     def sumAll(a: Int, b: => Int, s: String)(xs: Int*): Int = { val _ = (a, s, xs); sum }
   }
 
+  object ParamNest2 {
+    import EnclosuresFixtures.testEnclosingMethodParameters as params
+
+    def implicitOnly(implicit c: Long): Data = { val _ = c; params }
+  }
+
+  // Values and traits as the innermost enclosures, and a lambda between the method and the expansion.
+  object ValueNest {
+    val valueChain: Data = EnclosuresFixtures.testEnclosingScope
+    lazy val lazyValueChain: Data = EnclosuresFixtures.testEnclosingScope
+    val valueType: String = EnclosuresFixtures.testEnclosingValueType
+    def inLambda: Data = List(1).map(_ => EnclosuresFixtures.testEnclosingScope).head
+  }
+  trait TraitNest {
+    def traitChain: Data = EnclosuresFixtures.testEnclosingScope
+  }
+
+  // Only the closest class gets a `thisRef`, an object always has one.
+  object DetailsNest {
+    final class Outer {
+      final class Inner {
+        def details: Data = EnclosuresFixtures.testEnclosureDetails
+      }
+    }
+    val valueDetails: Data = EnclosuresFixtures.testEnclosureDetails
+  }
+
+  object PositionsNest {
+    final class Inner {
+      def sorted: Data = EnclosuresFixtures.testEnclosurePositionsSorted
+    }
+  }
+
+  // `helper` is declared only on the parent class, so it can be found only among the inherited members.
+  abstract class HelperParent {
+    def helper: Int = 5
+  }
+  final class InheritsHelper extends HelperParent {
+    def callsHelper: Int = EnclosuresFixtures.testCallEnclosingHelper
+  }
+
   private def param(name: String, tpe: String, isImplicit: Boolean = false, isByName: Boolean = false): Data =
     Data.map(
       "name" -> Data(name),
@@ -212,6 +253,114 @@ final class EnclosuresSpec extends MacroSuite {
         test("Scala 2: the discovered refs are usable as expressions in generated code") {
           LocalNest.sumInts ==> 60
         }
+      }
+    }
+
+    group("Environment.enclosingMethodParameters edge cases, expected behavior") {
+
+      test("lists a method with only an implicit clause") {
+        ParamNest2.implicitOnly(1L) <==> Data.list(Data.list(param("c", "scala.Long", isImplicit = true)))
+      }
+    }
+
+    group("Environment.enclosingScope edge cases, expected behavior") {
+
+      test("lists a val as a value enclosure") {
+        ValueNest.valueChain <==> Data.list(
+          Data.map("kind" -> Data("value"), "name" -> Data("valueChain")),
+          Data.map("kind" -> Data("object"), "name" -> Data("ValueNest")),
+          Data.map("kind" -> Data("class"), "name" -> Data("EnclosuresSpec"))
+        )
+      }
+
+      test("lists a lazy val as a value enclosure") {
+        ValueNest.lazyValueChain <==> Data.list(
+          Data.map("kind" -> Data("value"), "name" -> Data("lazyValueChain")),
+          Data.map("kind" -> Data("object"), "name" -> Data("ValueNest")),
+          Data.map("kind" -> Data("class"), "name" -> Data("EnclosuresSpec"))
+        )
+      }
+
+      test("gives a value enclosure the declared type of the value") {
+        ValueNest.valueType <==> "java.lang.String"
+      }
+
+      test("skips a lambda between the expansion and the enclosing method") {
+        ValueNest.inLambda <==> Data.list(
+          Data.map("kind" -> Data("method"), "name" -> Data("inLambda")),
+          Data.map("kind" -> Data("object"), "name" -> Data("ValueNest")),
+          Data.map("kind" -> Data("class"), "name" -> Data("EnclosuresSpec"))
+        )
+      }
+
+      test("lists a trait as a class enclosure") {
+        (new TraitNest {}).traitChain <==> Data.list(
+          Data.map("kind" -> Data("method"), "name" -> Data("traitChain")),
+          Data.map("kind" -> Data("class"), "name" -> Data("TraitNest")),
+          Data.map("kind" -> Data("class"), "name" -> Data("EnclosuresSpec"))
+        )
+      }
+
+      test("gives thisRef only to the closest class, gives no type to a method and positions to all definitions") {
+        val outer = new DetailsNest.Outer
+        (new outer.Inner).details <==> Data.list(
+          Data.map(
+            "kind" -> Data("method"),
+            "name" -> Data("details"),
+            "hasPosition" -> Data(true),
+            "hasTpe" -> Data(false)
+          ),
+          Data.map(
+            "kind" -> Data("class"),
+            "name" -> Data("Inner"),
+            "hasPosition" -> Data(true),
+            "hasThisRef" -> Data(true)
+          ),
+          Data.map(
+            "kind" -> Data("class"),
+            "name" -> Data("Outer"),
+            "hasPosition" -> Data(true),
+            "hasThisRef" -> Data(false)
+          ),
+          Data.map("kind" -> Data("object"), "name" -> Data("DetailsNest"), "hasPosition" -> Data(true)),
+          Data.map(
+            "kind" -> Data("class"),
+            "name" -> Data("EnclosuresSpec"),
+            "hasPosition" -> Data(true),
+            "hasThisRef" -> Data(false)
+          )
+        )
+        DetailsNest.valueDetails <==> Data.list(
+          Data.map(
+            "kind" -> Data("value"),
+            "name" -> Data("valueDetails"),
+            "hasPosition" -> Data(true)
+          ),
+          Data.map("kind" -> Data("object"), "name" -> Data("DetailsNest"), "hasPosition" -> Data(true)),
+          Data.map(
+            "kind" -> Data("class"),
+            "name" -> Data("EnclosuresSpec"),
+            "hasPosition" -> Data(true),
+            "hasThisRef" -> Data(true)
+          )
+        )
+      }
+
+      test("enclosure positions sort from the outermost definition to the expansion point") {
+        (new PositionsNest.Inner).sorted <==> Data.list(
+          Data("EnclosuresSpec"),
+          Data("PositionsNest"),
+          Data("Inner"),
+          Data("sorted"),
+          Data("<expansion>")
+        )
+      }
+    }
+
+    group("Environment.enclosingScope member calling edge cases, expected behavior") {
+
+      test("locates and calls a member inherited by the enclosing class") {
+        (new InheritsHelper).callsHelper ==> 5
       }
     }
   }

@@ -902,9 +902,183 @@ trait TypesFixturesImpl { this: MacroCommons =>
     }
   }
 
+  def testBuiltInPredicates[A: Type]: Expr[Data] = {
+    def listed(types: List[??]): Data = Data(types.exists(_.Underlying =:= Type[A]))
+    Expr(
+      Data.map(
+        "Type.isPrimitive" -> Data(Type[A].isPrimitive),
+        "Type.isArray" -> Data(Type[A].isArray),
+        "Type.isJvmBuiltIn" -> Data(Type[A].isJvmBuiltIn),
+        "Type.isInJavaLangPackage" -> Data(Type[A].isInJavaLangPackage),
+        "Type.isTypeSystemSpecial" -> Data(Type[A].isTypeSystemSpecial),
+        "Type.isTuple" -> Data(Type[A].isTuple),
+        "in Type.primitiveTypes" -> listed(Type.primitiveTypes),
+        "in Type.jvmBuiltInTypes" -> listed(Type.jvmBuiltInTypes),
+        "in Type.typeSystemSpecialTypes" -> listed(Type.typeSystemSpecialTypes)
+      )
+    )
+  }
+
+  /** `Object`/`Any`/`AnyRef`/`Matchable` appear in the hierarchies of every class, at platform-dependent positions, so
+    * they are left out to keep the expectations identical everywhere.
+    */
+  def testHierarchyLists[A: Type]: Expr[Data] = {
+    val universal = Set("java.lang.Object", "scala.Any", "scala.AnyRef", "scala.Matchable")
+    def printed(types: List[??]): Data =
+      Data.list(types.map(_.plainPrint).filterNot(universal).map(Data(_))*)
+    Expr(
+      Data.map(
+        "Type.isTrait" -> Data(Type[A].isTrait),
+        "Type.isAbstract" -> Data(Type[A].isAbstract),
+        "Type.parents" -> printed(Type[A].parents),
+        "Type.baseClasses" -> printed(Type[A].baseClasses)
+      )
+    )
+  }
+
+  def testChildrenList[A: Type]: Expr[Data] = Expr(
+    Data.map(
+      "Type.directChildren keys" -> Type[A].directChildren
+        .fold(Data("<no direct children>"))(children => Data.list(children.keys.toList.map(Data(_))*)),
+      "Type.directChildrenList" -> Type
+        .directChildrenList[A]
+        .fold(Data("<no direct children>")) { children =>
+          Data.list(children.map { case (name, child) => Data.list(Data(name), Data(child.plainPrint)) }*)
+        }
+    )
+  )
+
+  def testExhaustiveChildren[A: Type]: Expr[Data] = Expr(
+    Type[A].exhaustiveChildren.fold(Data("<no exhaustive children>")) { children =>
+      Data(children.toListMap.view.mapValues(child => Data(child.plainPrint)).toMap)
+    }
+  )
+
+  def testCompanionObject[A: Type]: Expr[Data] = Expr(
+    Type[A].companionObject.fold(Data("<none>"))(companion => Data(companion.Underlying.plainPrint))
+  )
+
+  def testCompanionObjectValue[A: Type]: Expr[Any] = {
+    implicit val AnyType: Type[Any] = Type.of[Any]
+    Type[A].companionObject.fold(Expr.quote(null: Any)) { companion =>
+      import companion.Underlying as Companion
+      companion.value.upcast[Any]
+    }
+  }
+
+  def testJavaBeanVisibility[A: Type]: Expr[Data] = Expr(
+    Data.map(
+      "Type.isPlainOldJavaObject" -> Data(Type[A].isPlainOldJavaObject),
+      "Type.isJavaBean" -> Data(Type[A].isJavaBean),
+      "Type.isJavaBean(Everywhere)" -> Data(Type[A].isJavaBean(Everywhere)),
+      "Type.isJavaBean(AtCallSite)" -> Data(Type[A].isJavaBean(AtCallSite))
+    )
+  )
+
+  def testTypeCacheAndLazy: Expr[Data] = {
+    val cache = new Type.Cache[TypesFixturesImpl.Label]
+    val missOnEmptyCache = cache.get(Type.of[Int]).isEmpty
+    cache.put(Type.of[Int], "int")
+    cache.put(Type.of[List[Int]], "list of int")
+    var computations = 0
+    val firstGetOrPut = cache.getOrPut(Type.of[String]) { computations += 1; "string" }
+    val secondGetOrPut = cache.getOrPut(Type.of[String]) { computations += 1; "recomputed" }
+
+    var lazyComputations = 0
+    val lazyLong = Type.Lazy { lazyComputations += 1; Type.of[Long] }
+    val lazyComputationsBeforeUse = lazyComputations
+    val firstUse = lazyLong.value.plainPrint
+    val secondUse = (lazyLong: Type[Long]).plainPrint
+
+    def lookup[B](tpe: Type[B]): Data = Data(cache.get(tpe).getOrElse("<miss>"))
+    val static = Data.map(
+      "miss on empty cache" -> Data(missOnEmptyCache),
+      "get(Int)" -> lookup(Type.of[Int]),
+      "get(IntAlias)" -> lookup(Type.of[examples.typesedge.aliases.IntAlias]),
+      "get(Long)" -> lookup(Type.of[Long]),
+      "get(List[Int])" -> lookup(Type.of[List[Int]]),
+      "get(ListAlias[Int])" -> lookup(Type.of[examples.typesedge.aliases.ListAlias[Int]]),
+      "get(List[String])" -> lookup(Type.of[List[String]]),
+      "getOrPut first" -> Data(firstGetOrPut),
+      "getOrPut second" -> Data(secondGetOrPut),
+      "getOrPut computations" -> Data(computations),
+      "Type.Lazy computations before use" -> Data(lazyComputationsBeforeUse),
+      "Type.Lazy uses" -> Data.list(Data(firstUse), Data(secondUse)),
+      "Type.Lazy computations after 2 uses" -> Data(lazyComputations)
+    )
+
+    val lookupInsideSplice: Expr[String] = Expr.quote {
+      "found: " + Expr.splice(Expr(cache.get(Type.of[Int]).getOrElse("<miss>")))
+    }
+    val staticExpr: Expr[Data] = Expr(static)
+    Expr.quote {
+      Data.map(
+        "outside splice" -> Expr.splice(staticExpr),
+        "get(Int) inside a splice" -> Data(Expr.splice(lookupInsideSplice))
+      )
+    }
+  }
+
+  def testTypeCodecDecoding: Expr[Data] = {
+    implicit val IntType: Type[Int] = intType
+    implicit val StringType: Type[String] = stringType
+    def decoded[B, C](codec: TypeCodec[B], tpe: Type[C]): Data =
+      Data(codec.fromType(tpe).fold("<not decoded>")(_.value.toString))
+    def roundtrip[B: TypeCodec](value: B): Data = {
+      val encoded = Type(value)
+      Data.map(
+        "encoded" -> Data(encoded.plainPrint),
+        "decoded" -> Data(Type.unapply(encoded).fold("<not decoded>")(_.toString))
+      )
+    }
+    Expr(
+      Data.map(
+        "IntCodec on Int" -> decoded(TypeCodec.IntCodec, Type.of[Int]),
+        "IntCodec on String literal" -> decoded(TypeCodec.IntCodec, aStringType),
+        "StringCodec on String" -> decoded(TypeCodec.StringCodec, Type.of[String]),
+        "BooleanCodec on Boolean" -> decoded(TypeCodec.BooleanCodec, Type.of[Boolean]),
+        "OptionCodec on Option[Int]" -> decoded(TypeCodec.OptionCodec[Int], Type.of[Option[Int]]),
+        "ModuleCodec on a case object" -> decoded(
+          TypeCodec.ModuleCodec[examples.typesedge.TopLevelCaseObject.type],
+          Type.of[examples.typesedge.TopLevelCaseObject.type]
+        ),
+        "ModuleCodec on a nested case object" -> decoded(
+          TypeCodec.ModuleCodec[examples.typesedge.SealedBase.Second.type],
+          Type.of[examples.typesedge.SealedBase.Second.type]
+        ),
+        "ModuleCodec on a class" -> decoded(
+          TypeCodec.ModuleCodec[examples.typesedge.TopLevelCaseObject.type],
+          Type.of[examples.typesedge.WithoutCompanion]
+        ),
+        "None.type" -> roundtrip[None.type](None),
+        "Some[Int]" -> roundtrip[Some[Int]](Some(1)),
+        "Left[Int, String]" -> roundtrip[Left[Int, String]](Left(1)),
+        "Right[Int, String]" -> roundtrip[Right[Int, String]](Right("a"))
+      )
+    )
+  }
+
+  def testUnionTypeTests[A: Type, Member: Type]: Expr[Data] = Expr(
+    Data.map(
+      "Type.unionMemberRequiresTypeTest" -> Data(Type.unionMemberRequiresTypeTest[A, Member]),
+      "Type.unionRefusalReason" -> Type
+        .unionRefusalReason[A]
+        .fold(Data("<none>")) { reason =>
+          Data.map(
+            "mentions TypeTest" -> Data(reason.contains("TypeTest")),
+            "mentions member" -> Data(reason.contains(Type[Member].plainPrint))
+          )
+        }
+    )
+  )
+
   private val aStringType = Type.of["a"]
   private val bStringType = Type.of["b"]
   private val intType = Type.of[Int]
   private val stringType = Type.of[String]
   private val hasNameType = Type.of[hearth.examples.kinds.HasName]
+}
+object TypesFixturesImpl {
+
+  type Label[A] = String
 }

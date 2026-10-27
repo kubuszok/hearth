@@ -47,4 +47,54 @@ object StdExtensionsFixtures {
   inline def testLastUnapplyFailure[A]: Data = ${ testLastUnapplyFailureImpl[A] }
   private def testLastUnapplyFailureImpl[A: Type](using q: Quotes): Expr[Data] =
     new StdExtensionsFixtures(q).testLastUnapplyFailure[A]
+
+  inline def testCollectionTypes[A]: Data = ${ testCollectionTypesImpl[A] }
+  private def testCollectionTypesImpl[A: Type](using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testCollectionTypes[A]
+
+  inline def testBuildAndIterate[A]: Data = ${ testBuildAndIterateImpl[A] }
+  private def testBuildAndIterateImpl[A: Type](using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testBuildAndIterate[A]
+
+  inline def testSizeHint[A](inline value: A): Data = ${ testSizeHintImpl[A]('value) }
+  private def testSizeHintImpl[A: Type](value: Expr[A])(using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testSizeHint[A](value)
+
+  inline def testIsOptionOrElse[A](inline value: A, inline default: A): Data =
+    ${ testIsOptionOrElseImpl[A]('value, 'default) }
+  private def testIsOptionOrElseImpl[A: Type](value: Expr[A], default: Expr[A])(using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testIsOptionOrElse[A](value, default)
+
+  inline def testIsEitherOrElse[A](inline value: A, inline default: A): Data =
+    ${ testIsEitherOrElseImpl[A]('value, 'default) }
+  private def testIsEitherOrElseImpl[A: Type](value: Expr[A], default: Expr[A])(using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testIsEitherOrElse[A](value, default)
+
+  inline def testIsEitherTypes[A]: Data = ${ testIsEitherTypesImpl[A] }
+  private def testIsEitherTypesImpl[A: Type](using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testIsEitherTypes[A]
+
+  inline def testIsOptionTypes[A]: Data = ${ testIsOptionTypesImpl[A] }
+  private def testIsOptionTypesImpl[A: Type](using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testIsOptionTypes[A]
+
+  inline def testValueTypeInfo[A]: Data = ${ testValueTypeInfoImpl[A] }
+  private def testValueTypeInfoImpl[A: Type](using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testValueTypeInfo[A]
+
+  inline def testProvenance[A]: Data = ${ testProvenanceImpl[A] }
+  private def testProvenanceImpl[A: Type](using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testProvenance[A]
+
+  inline def testIsMapProvenance[A]: Data = ${ testIsMapProvenanceImpl[A] }
+  private def testIsMapProvenanceImpl[A: Type](using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testIsMapProvenance[A]
+
+  inline def testSkipReasons[A]: Data = ${ testSkipReasonsImpl[A] }
+  private def testSkipReasonsImpl[A: Type](using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testSkipReasons[A]
+
+  inline def testUnapplyFailures[A]: Data = ${ testUnapplyFailuresImpl[A] }
+  private def testUnapplyFailuresImpl[A: Type](using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testUnapplyFailures[A]
 }

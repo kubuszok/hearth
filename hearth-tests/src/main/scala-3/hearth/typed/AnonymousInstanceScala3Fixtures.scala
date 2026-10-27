@@ -32,6 +32,35 @@ final private class AnonymousInstanceScala3Fixtures(q: Quotes) extends MacroComm
         }
       case ClassViewResult.Incompatible(reason) => Expr(s"incompatible: $reason")
     }
+
+  /** Unless the override keeps the trailing clause a `using` clause, it does not match `run` and stays abstract. */
+  def testUsingParam: Expr[String] =
+    AnonymousInstance.parse(using Type.of[examples.classesedge.AITraitWithUsing]) match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? = {
+              val cmdE = ctx.parameters.head
+              val cfgE = ctx.parameters(1)
+              import cmdE.Underlying as Cmd
+              import cfgE.Underlying as Cfg
+              val cmd: Expr[Cmd] = cmdE.value
+              val cfg: Expr[Cfg] = cfgE.value
+              '{ $cmd.toString + $cfg.toString }.as_??(using Type.of[String])
+            }
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            val inst = constructed.asInstanceOf[Expr[examples.classesedge.AITraitWithUsing]]
+            '{
+              given Int = 7
+              $inst.run("go")
+            }
+          case Left(errors) => Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) => Expr(s"incompatible: $reason")
+    }
 }
 
 object AnonymousInstanceScala3Fixtures {
@@ -39,4 +68,8 @@ object AnonymousInstanceScala3Fixtures {
   inline def testContextFunctionReturn: String = ${ testContextFunctionReturnImpl }
   private def testContextFunctionReturnImpl(using q: Quotes): Expr[String] =
     new AnonymousInstanceScala3Fixtures(q).testContextFunctionReturn
+
+  inline def testUsingParam: String = ${ testUsingParamImpl }
+  private def testUsingParamImpl(using q: Quotes): Expr[String] =
+    new AnonymousInstanceScala3Fixtures(q).testUsingParam
 }

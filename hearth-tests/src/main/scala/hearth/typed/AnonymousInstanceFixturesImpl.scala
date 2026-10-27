@@ -677,4 +677,85 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
         }
       }
     }.toMap
+
+  def testAnonymousInstanceClassifiedMethodsWithMixins[A: Type](mixin1: ??): Expr[Data] = Expr {
+    AnonymousInstance.parseWithMixins[A](List(mixin1)) match {
+      case ClassViewResult.Compatible(ai) =>
+        Data(
+          ai.classifiedMethods
+            .filterNot(cm => jvmInheritedMethodNames(cm.method.name))
+            .map(cm => Data(s"${cm.method.name}: ${cm.classification} @ ${cm.declaredIn.plainPrint}"))
+        )
+      case ClassViewResult.Incompatible(reason) => Data(s"incompatible: $reason")
+    }
+  }
+
+  def testAnonymousInstanceConstructWithoutConstructor[A: Type]: Expr[String] = {
+    implicit val IntType: Type[Int] = intTypeAI
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val BooleanType: Type[Boolean] = booleanTypeAI
+
+    AnonymousInstance.parse[A] match {
+      case ClassViewResult.Compatible(ai) =>
+        constructAndSplice(ai, None, Map.empty, buildDefaultOverrides(ai))
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(s"incompatible: $reason")
+    }
+  }
+
+  /** The override returns its by-name argument, so the runtime result shows the argument reached the body. */
+  def testAnonymousInstanceConstructByName: Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val ByNameType: Type[examples.classesedge.AITraitWithByName] =
+      Type.of[examples.classesedge.AITraitWithByName]
+
+    AnonymousInstance.parse[examples.classesedge.AITraitWithByName] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? = ctx.parameters.head
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote {
+              val inst = Expr.splice(constructed)
+              inst.lazily(41).toString
+            }
+          case Left(errors) => Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) => Expr(s"incompatible: $reason")
+    }
+  }
+
+  private val unitTypeAI: Type[Unit] = Type.of[Unit]
+
+  /** The getter returns a constant and the setter does nothing, so reading after writing shows both were overridden. */
+  def testAnonymousInstanceConstructVar: Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val UnitType: Type[Unit] = unitTypeAI
+    implicit val HasVarType: Type[examples.classesedge.AITraitWithVar] =
+      Type.of[examples.classesedge.AITraitWithVar]
+
+    AnonymousInstance.parse[examples.classesedge.AITraitWithVar] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? =
+              if (ctx.parameters.isEmpty) Expr("the-var").as_??
+              else Expr.quote(()).as_??
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote {
+              val inst = Expr.splice(constructed)
+              inst.abstractVar = "ignored"
+              inst.abstractVar
+            }
+          case Left(errors) => Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) => Expr(s"incompatible: $reason")
+    }
+  }
 }

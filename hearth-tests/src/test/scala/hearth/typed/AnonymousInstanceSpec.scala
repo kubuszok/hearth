@@ -483,6 +483,81 @@ final class AnonymousInstanceSpec extends MacroSuite {
           ](1) <==> "success"
         }
       }
+
+      group("edge cases") {
+        import AnonymousInstanceFixtures.{
+          testAnonymousInstanceClassifiedMethodsWithMixins,
+          testAnonymousInstanceConstruct,
+          testAnonymousInstanceConstructNoOverridesWithMixins,
+          testAnonymousInstanceConstructWithoutConstructor,
+          testAnonymousInstanceParse
+        }
+
+        test("rejects class whose constructor is package-private to a package the call site is outside of") {
+          testAnonymousInstanceParse[examples.anonymous_instances.PackagePrivateConstructor] <==> Data.map(
+            "result" -> Data("incompatible"),
+            "reason" -> Data(
+              "No accessible constructor for hearth.examples.anonymous_instances.PackagePrivateConstructor: " +
+                "new hearth.examples.anonymous_instances.PackagePrivateConstructor(x: scala.Int)"
+            )
+          )
+        }
+
+        test("ClassifiedMethod.declaredIn names the parent declaring each method") {
+          testAnonymousInstanceClassifiedMethodsWithMixins[
+            examples.anonymous_instances.MixinA,
+            examples.anonymous_instances.MixinB
+          ] <==> Data.list(
+            Data("fromA: MustOverride @ hearth.examples.anonymous_instances.MixinA"),
+            Data("fromB: MustOverride @ hearth.examples.anonymous_instances.MixinB")
+          )
+          testAnonymousInstanceClassifiedMethodsWithMixins[
+            examples.anonymous_instances.ClassWithMixins,
+            examples.anonymous_instances.MixinB
+          ] <==> Data.list(
+            Data("abstractMethod: MustOverride @ hearth.examples.anonymous_instances.ClassWithMixins"),
+            Data("fromA: MustOverride @ hearth.examples.anonymous_instances.MixinA"),
+            Data("fromB: MustOverride @ hearth.examples.anonymous_instances.MixinB")
+          )
+        }
+
+        test("unresolved diamond conflict names every parent with a conflicting implementation") {
+          testAnonymousInstanceConstructNoOverridesWithMixins[
+            examples.anonymous_instances.DiamondLeft,
+            examples.anonymous_instances.DiamondRight
+          ] <==>
+            "errors: Diamond conflict for method 'method' — conflicting implementations from: " +
+            "hearth.examples.anonymous_instances.DiamondLeft, hearth.examples.anonymous_instances.DiamondRight"
+        }
+
+        test("construct requires a constructor to be selected when there is a class parent") {
+          testAnonymousInstanceConstructWithoutConstructor[examples.anonymous_instances.AbstractClassNoArgs] <==>
+            "errors: Class parent requires a constructor selection but none was provided"
+        }
+
+        test("protected abstract methods must be overridden and can be") {
+          testAnonymousInstanceParse[examples.classesedge.AITraitWithProtected] <==> Data.map(
+            "result" -> Data("compatible"),
+            "classParent" -> Data("<none>"),
+            "traitParents" -> Data("hearth.examples.classesedge.AITraitWithProtected"),
+            "mustOverride" -> Data("protectedMethod, publicMethod"),
+            "mayOverride" -> Data("callProtected"),
+            "cannotOverride" -> Data(""),
+            "diamondConflicts" -> Data("")
+          )
+          testAnonymousInstanceConstruct[examples.classesedge.AITraitWithProtected] <==> "success"
+        }
+
+        // Checked through compileErrors, so that a failing expansion fails only this test instead of the whole test
+        // compilation.
+        test("abstract vars are overridden with a getter and a setter") {
+          compileErrors("hearth.typed.AnonymousInstanceFixtures.testAnonymousInstanceConstructVar") <==> ""
+        }
+
+        test("by-name parameters are passed to the override body") {
+          AnonymousInstanceFixtures.testAnonymousInstanceConstructByName <==> "41"
+        }
+      }
     }
   }
 }

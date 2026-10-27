@@ -149,6 +149,45 @@ final class ClassesJvmSpec extends MacroSuite {
         "sequential: subtype name: hearth.examples.enums.ExampleJavaEnum.VALUE2.type, expr: VALUE2, parallel: subtype name: hearth.examples.enums.ExampleJavaEnum.VALUE2.type, expr: VALUE2"
     }
 
+    group("Java edge cases of class views") {
+      import ClassesFixtures.{
+        testClassViewKind,
+        testJavaBeanConstructWithoutSettersRoundTrip,
+        testJavaBeanSummary,
+        testSingletonRoundTrip
+      }
+
+      test("Class.apply picks the most specific view for Java enums, their values and Java beans") {
+        testClassViewKind[examples.enums.ExampleJavaEnum] <==> "Enum"
+        testClassViewKind[examples.enums.ExampleJavaEnum.VALUE1.type] <==> "SingletonValue"
+        testClassViewKind[examples.classes.ExampleJavaClass] <==> "JavaBean"
+      }
+
+      test("SingletonValue for Java enum values") {
+        testSingletonRoundTrip[examples.enums.ExampleJavaEnum.VALUE1.type] <==> "VALUE1"
+        testSingletonRoundTrip[examples.enums.ExampleJavaEnum.VALUE2.type] <==> "VALUE2"
+      }
+
+      test("JavaBean getters and setters of a Java class") {
+        val setterParameter = if (LanguageVersion.byHearth.isScala2_13) "x$1" else "x$0"
+        testJavaBeanSummary[examples.classes.ExampleJavaClass] <==> Data.map(
+          "defaultConstructor" -> Data("()"),
+          "beanGetters" -> Data.list(Data("getBoolean"), Data("getInt"), Data("getString")),
+          "beanSetters" -> Data.list(
+            Data.map("name" -> Data("setBoolean"), "parameters" -> Data(s"($setterParameter: scala.Boolean)")),
+            Data.map("name" -> Data("setInt"), "parameters" -> Data(s"($setterParameter: scala.Int)")),
+            Data.map("name" -> Data("setString"), "parameters" -> Data(s"($setterParameter: java.lang.String)"))
+          )
+        )
+      }
+
+      test("JavaBean.constructWithoutSetters for a Java class") {
+        testJavaBeanConstructWithoutSettersRoundTrip[
+          examples.classes.ExampleJavaClass
+        ] <==> "ExampleJavaClass(, 0, false)"
+      }
+    }
+
     test("JavaBean round-trip: construct with setters and evaluate at runtime") {
       import ClassesFixtures.testJavaBeanConstructRoundTrip
 

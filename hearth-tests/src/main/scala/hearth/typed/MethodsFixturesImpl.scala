@@ -1230,6 +1230,328 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     }
   }
 
+  private def literalName(methodName: Expr[String]): String = Expr
+    .unapply(methodName)
+    .getOrElse(Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${methodName.prettyPrint}"))
+
+  private def namedMethods[A: Type](methodName: Expr[String]): List[Method] = {
+    val name = literalName(methodName)
+    Type[A].methods.filter(_.name == name)
+  }
+
+  private def variantName(method: Method): String = method match {
+    case _: Method.OnInstance  => "OnInstance"
+    case _: Method.ApplyTypes  => "ApplyTypes"
+    case _: Method.ApplyValues => "ApplyValues"
+    case _: Method.Result[?]   => "Result"
+  }
+
+  private def renderExpectationKinds(method: Method): String = method.expectations
+    .map {
+      case MethodExpectation.NeedsInstance   => "NeedsInstance"
+      case MethodExpectation.NeedsTypes(tps) => tps.map(_.map(_.name).mkString(", ")).mkString("NeedsTypes[", "][", "]")
+      case MethodExpectation.NeedsValues(ps) =>
+        ps.map(_.keys.mkString(", ")).mkString("NeedsValues(", ")(", ")")
+    }
+    .mkString(" -> ")
+
+  private def renderParameterNames(parameters: Parameters): String =
+    if (parameters.isEmpty) "<none>" else parameters.map(_.keys.mkString(", ")).mkString("(", ")(", ")")
+
+  // prettyPrint is only checked for agreeing with plainPrint once its ANSI codes are removed, because exact escape
+  // sequences are not part of the contract.
+  def testMethodSignatures[A: Type](methodName: Expr[String]): Expr[Data] =
+    Expr(Data.list(namedMethods[A](methodName).map(renderSignatureConsistency(_))*))
+
+  def testConstructorSignatures[A: Type]: Expr[Data] =
+    Expr(Data.list(Type[A].constructors.map(renderSignatureConsistency(_)).sortBy(_.toString)*))
+
+  private def renderSignatureConsistency(method: Method): Data = {
+    val plain = method.plainPrint
+    val pretty = method.prettyPrint
+    val stripped = removeAnsiColors(pretty)
+    if (stripped != plain) Data(s"$plain <prettyPrint without ANSI differs: $stripped>")
+    else if (pretty == plain) Data(s"$plain <prettyPrint has no ANSI codes>")
+    else Data(plain)
+  }
+
+  def testMethodFlags[A: Type](methodName: Expr[String]): Expr[Data] =
+    Expr(Data.list(namedMethods[A](methodName).map(renderFlags(_))*))
+
+  def testConstructorFlags[A: Type]: Expr[Data] =
+    Expr(Data.list(Type[A].constructors.sortBy(_.plainPrint).map { ctor =>
+      Data.map(
+        "plainPrint" -> Data(ctor.plainPrint),
+        "variant" -> Data(variantName(ctor)),
+        "flags" -> renderFlags(ctor)
+      )
+    }*))
+
+  private def renderFlags(method: Method): Data = Data.map(
+    "isConstructor" -> Data(method.isConstructor),
+    "isPrivate" -> Data(method.isPrivate),
+    "isProtected" -> Data(method.isProtected),
+    "privateWithin" -> Data(method.privateWithin.getOrElse("<none>")),
+    "protectedWithin" -> Data(method.protectedWithin.getOrElse("<none>")),
+    "isAvailable(Everywhere)" -> Data(method.isAvailable(Everywhere)),
+    "isAvailable(AtCallSite)" -> Data(method.isAvailable(AtCallSite)),
+    "isAvailable(Anywhere)" -> Data(method.isAvailable(Anywhere)),
+    "isFinal" -> Data(method.isFinal),
+    "isAbstract" -> Data(method.isAbstract),
+    "isOverride" -> Data(method.isOverride),
+    "isImplicit" -> Data(method.isImplicit),
+    "isVal" -> Data(method.isVal),
+    "isVar" -> Data(method.isVar),
+    "isLazy" -> Data(method.isLazy),
+    "isDef" -> Data(method.isDef),
+    "isDeclared" -> Data(method.isDeclared),
+    "isInherited" -> Data(method.isInherited),
+    "isSynthetic" -> Data(method.isSynthetic)
+  )
+
+  def testMethodAccessorsAndArity[A: Type](methodName: Expr[String]): Expr[Data] =
+    Expr(Data.list(namedMethods[A](methodName).map { method =>
+      Data.map(
+        "arity" -> Data(method.arity),
+        "isNullary" -> Data(method.isNullary),
+        "isUnary" -> Data(method.isUnary),
+        "isBinary" -> Data(method.isBinary),
+        "isNAry(3)" -> Data(method.isNAry(3)),
+        "isScalaGetter" -> Data(method.isScalaGetter),
+        "isScalaSetter" -> Data(method.isScalaSetter),
+        "isScalaAccessor" -> Data(method.isScalaAccessor),
+        "scalaAccessorName" -> Data(method.scalaAccessorName.getOrElse("<none>")),
+        "isJavaGetter" -> Data(method.isJavaGetter),
+        "isJavaSetter" -> Data(method.isJavaSetter),
+        "isJavaAccessor" -> Data(method.isJavaAccessor),
+        "javaAccessorName" -> Data(method.javaAccessorName.getOrElse("<none>")),
+        "isAccessor" -> Data(method.isAccessor),
+        "accessorName" -> Data(method.accessorName.getOrElse("<none>"))
+      )
+    }*))
+
+  def testMethodParameters[A: Type](methodName: Expr[String]): Expr[Data] =
+    Expr(Data.list(namedMethods[A](methodName).map(m => renderParameterDetails(m.totalParameters))*))
+
+  def testConstructorParameters[A: Type]: Expr[Data] =
+    Expr(Type[A].primaryConstructor match {
+      case Some(ctor) => renderParameterDetails(ctor.totalParameters)
+      case None       => Data("<no primary constructor>")
+    })
+
+  // The by-name parameter's own `tpe` is represented differently on Scala 2 and 3, so only its
+  // `byNameUnderlying` is rendered.
+  private def renderParameterDetails(parameters: Parameters): Data =
+    Data.list(parameters.map { clause =>
+      Data.list(clause.toList.map { case (name, param) =>
+        Data.map(
+          "name" -> Data(name),
+          "param.name" -> Data(param.name),
+          "index" -> Data(param.index),
+          "tpe" -> Data(if (param.isByName) "<by-name>" else param.tpe.plainPrint),
+          "hasDefault" -> Data(param.hasDefault),
+          "defaultValue" -> Data(param.defaultValue match {
+            case Some(default) =>
+              s"returning ${default.knownReturning.map(_.plainPrint).getOrElse("<unknown>")}, " +
+                s"expecting ${renderExpectationKinds(default)}"
+            case None => "<none>"
+          }),
+          "isByName" -> Data(param.isByName),
+          "byNameUnderlying" -> Data(param.byNameUnderlying.map(_.plainPrint).getOrElse("<none>")),
+          "isVararg" -> Data(param.isVararg),
+          "isImplicit" -> Data(param.isImplicit)
+        )
+      }*)
+    }*)
+
+  /** Walks the builder chain by hand, applying `Int` to every type parameter, the provided `Int`s (in order) to every
+    * `Int` parameter, `"s"` to every `String` parameter, and skipping parameters with defaults once the provided `Int`s
+    * run out. Every visited step is rendered, and the built call is evaluated at runtime.
+    */
+  def testChainWalk[A: Type](instance: Expr[A])(methodName: Expr[String])(params: VarArgs[Int]): Expr[Data] =
+    namedMethods[A](methodName) match {
+      case method :: Nil => walkChain(method, Some(instance.as_??), params.toVector)
+      case Nil           => Environment.reportErrorAndAbort(s"Method ${literalName(methodName)} not found")
+      case _             => Environment.reportErrorAndAbort(s"Method ${literalName(methodName)} is ambiguous")
+    }
+
+  def testConstructorChainWalk[A: Type](params: VarArgs[Int]): Expr[Data] =
+    Type[A].primaryConstructor match {
+      case Some(ctor) => walkChain(ctor, None, params.toVector)
+      case None       => Expr(Data("<no primary constructor>"))
+    }
+
+  private def walkChain(method: Method, instance: Option[Expr_??], providedParams: Vector[Expr[Int]]): Expr[Data] = {
+    implicit val IntType: Type[Int] = this.IntType
+    implicit val StringType: Type[String] = this.StringType
+    val instanceString = instance.map(_.plainPrint)
+    def renderToString(m: Method): String = {
+      val raw = removeAnsiColors(m.toString)
+      instanceString.fold(raw)(i => raw.replace(i, "<instance>"))
+    }
+    var paramIdx = 0
+    val steps = scala.collection.mutable.ListBuffer.empty[Data]
+    def record(m: Method): Unit = {
+      steps += Data.map(
+        "step" -> Data(variantName(m)),
+        "parameters" -> Data(renderParameterNames(m.parameters)),
+        "totalParameters" -> Data(renderParameterNames(m.totalParameters)),
+        "knownReturning" -> Data(m.knownReturning.map(_.plainPrint).getOrElse("<none>")),
+        "toString" -> Data(renderToString(m))
+      )
+      ()
+    }
+    @scala.annotation.tailrec
+    def loop(m: Method): Either[String, Expr_??] = m match {
+      case oi: Method.OnInstance =>
+        record(oi)
+        loop(oi.applyUntyped(instance.getOrElse(Environment.reportErrorAndAbort("No instance provided")).asUntyped))
+      case at: Method.ApplyTypes =>
+        record(at)
+        loop(at.apply(at.typeParams.flatten.map(tp => tp -> Type.of[Int].as_??).toMap))
+      case av: Method.ApplyValues =>
+        record(av)
+        loop(av.apply(av.parameters.flatten.flatMap { case (pName, param) =>
+          val tpe = param.byNameUnderlying.getOrElse(param.tpe)
+          import tpe.Underlying
+          if (Underlying <:< Type.of[Int] && paramIdx < providedParams.size) {
+            paramIdx += 1
+            Some(pName -> providedParams(paramIdx - 1).as_??)
+          } else if (param.hasDefault) None
+          else if (Underlying <:< Type.of[String]) Some(pName -> Expr("s").as_??)
+          else Environment.reportErrorAndAbort(s"Unsupported parameter $pName: ${tpe.plainPrint}")
+        }.toMap))
+      case r: Method.Result[?] =>
+        record(r)
+        import r.Returned
+        r.build().map(_.as_??)
+    }
+    // Builder failures that throw instead of returning `Left` are captured, so that the test can show them without
+    // aborting the whole test file's compilation.
+    val result =
+      try loop(method)
+      catch {
+        case e: HearthRequirementError      => Left(s"THROWN: ${removeAnsiColors(e.description).linesIterator.next()}")
+        case scala.util.control.NonFatal(e) =>
+          Left(s"THROWN: ${e.getClass.getName}: ${String.valueOf(e.getMessage).linesIterator.next()}")
+      }
+    val stepsExpr = Expr(Data.list(steps.toList*))
+    result match {
+      case Right(expr) =>
+        val resultExpr = runtimeToString(expr)
+        Expr.quote(Data.map("steps" -> Expr.splice(stepsExpr), "result" -> Expr.splice(resultExpr)))
+      case Left(error) =>
+        val errorExpr = Expr(Data(s"FAILED: $error"))
+        Expr.quote(Data.map("steps" -> Expr.splice(stepsExpr), "result" -> Expr.splice(errorExpr)))
+    }
+  }
+
+  private def runtimeToString(expr: Expr_??): Expr[Data] = {
+    import expr.Underlying as R
+    Expr.quote(Data(Expr.splice(expr.value.asInstanceOf[Expr[R]]).toString))
+  }
+
+  def testBuildWithWrongArgumentTypes[A: Type](instance: Expr[A])(methodName: Expr[String]): Expr[Data] = {
+    implicit val StringType: Type[String] = this.StringType
+    val method = namedMethods[A](methodName) match {
+      case method :: Nil => method
+      case _             => Environment.reportErrorAndAbort(s"Method ${literalName(methodName)} is not unique")
+    }
+    val result =
+      try
+        method.fold(
+          onInstance = _ => instance.as_??,
+          onTypes = _ => Map.empty,
+          onValues = av => av.parameters.flatten.map { case (pName, _) => pName -> Expr("wrong").as_?? }.toMap
+        ) match {
+          case Right(expr) => s"UNEXPECTED SUCCESS: ${expr.plainPrint}"
+          case Left(error) => s"LEFT: ${removeAnsiColors(error)}"
+        }
+      catch {
+        case e: HearthRequirementError      => s"REQUIREMENT FAILED: ${removeAnsiColors(e.description)}"
+        case scala.util.control.NonFatal(e) => s"THROWN: ${e.getClass.getName}"
+      }
+    Expr(Data(result))
+  }
+
+  def testFoldFEffects[A: Type](instance: Expr[A])(methodName: Expr[String])(params: VarArgs[Int]): Expr[Data] = {
+    implicit val IntType: Type[Int] = this.IntType
+    type EitherString[X] = Either[String, X]
+    val method = namedMethods[A](methodName) match {
+      case method :: Nil => method
+      case _             => Environment.reportErrorAndAbort(s"Method ${literalName(methodName)} is not unique")
+    }
+    val provided = params.toVector
+    def arguments(av: Method.ApplyValues): Option[Arguments] = {
+      val pairs = av.parameters.flatten.toList.zipWithIndex.map { case ((pName, param), idx) =>
+        import param.tpe.Underlying
+        if (Underlying <:< Type.of[Int]) provided.lift(idx).map(pName -> _.as_??) else None
+      }
+      if (pairs.forall(_.isDefined)) Some(pairs.flatten.toMap) else None
+    }
+    val viaEither = method.foldF[EitherString](
+      onInstance = _ => Right(instance.as_??),
+      onTypes = _ => Right(Map.empty),
+      onValues = av => arguments(av).toRight("not enough Int arguments")
+    )
+    val viaTry = method.foldF[scala.util.Try](
+      onInstance = _ => scala.util.Success(instance.as_??),
+      onTypes = _ => scala.util.Success(Map.empty),
+      onValues = av =>
+        arguments(av).fold[scala.util.Try[Arguments]](scala.util.Failure(new Exception("not enough Int arguments")))(
+          scala.util.Success(_)
+        )
+    )
+    val eitherExpr: Expr[Data] = viaEither match {
+      case Right(Right(expr)) => runtimeToString(expr)
+      case Right(Left(error)) => Expr(Data(s"BUILD FAILED: $error"))
+      case Left(error)        => Expr(Data(s"EFFECT FAILED: $error"))
+    }
+    val tryExpr: Expr[Data] = viaTry match {
+      case scala.util.Success(Right(expr)) => runtimeToString(expr)
+      case scala.util.Success(Left(error)) => Expr(Data(s"BUILD FAILED: $error"))
+      case scala.util.Failure(error)       => Expr(Data(s"EFFECT FAILED: ${error.getMessage}"))
+    }
+    Expr.quote(Data.map("Either" -> Expr.splice(eitherExpr), "Try" -> Expr.splice(tryExpr)))
+  }
+
+  def testMethodListings[A: Type]: Expr[Data] = {
+    def key(methods: List[Method]): List[String] = methods.map(m => m.plainPrint)
+    val methods = Type[A].methods
+    val unsorted = Type[A].unsortedMethods
+    val names = unsorted.map(_.name).distinct
+    val isDeclaredOrCtorArg: Method => Boolean = m => m.isDeclared || m.isConstructorArgument
+    Expr(
+      Data.map(
+        "declared names in order" -> Data.list(methods.filter(isDeclaredOrCtorArg).map(m => Data(m.name))*),
+        "methods contain the same methods as unsortedMethods" -> Data(key(methods).sorted == key(unsorted).sorted),
+        "methods == Method.sort(unsortedMethods)" -> Data(key(methods) == key(Method.sort(unsorted))),
+        "Method.sort(unsorted.filter(p)) == methods.filter(p)" ->
+          Data(key(Method.sort(unsorted.filter(isDeclaredOrCtorArg))) == key(methods.filter(isDeclaredOrCtorArg))),
+        "Method.sortBy(pairs)(_._2) == Method.sort" ->
+          Data(Method.sortBy(unsorted.map(m => m.name -> m))(_._2).map(_._2.plainPrint) == key(methods)),
+        "unsortedMethodsNamed(n) == unsortedMethods.filter(_.name == n)" -> Data(names.forall { n =>
+          key(Type[A].unsortedMethodsNamed(n)) == key(unsorted.filter(_.name == n)) &&
+          key(Method.unsortedMethodsNamed[A](n)) == key(unsorted.filter(_.name == n))
+        }),
+        "Method.methodsOf == Type.methods" -> Data(key(Method.methodsOf[A]) == key(methods)),
+        "Method.unsortedMethodsOf == Type.unsortedMethods" -> Data(key(Method.unsortedMethodsOf[A]) == key(unsorted)),
+        "Method.constructorsOf == Type.constructors" ->
+          Data(key(Method.constructorsOf[A]) == key(Type[A].constructors)),
+        "Method.primaryConstructorOf == Type.primaryConstructor" ->
+          Data(key(Method.primaryConstructorOf[A].toList) == key(Type[A].primaryConstructor.toList))
+      )
+    )
+  }
+
+  def testHasMethodsNamed[A: Type](names: VarArgs[String]): Expr[Data] = {
+    val literals = names.toIterable.map {
+      case Expr(name) => name
+      case other      => Environment.reportErrorAndAbort(s"Names must be string literals, got ${other.prettyPrint}")
+    }.toList
+    Expr(Data.map(literals.map(n => n -> Data(Type[A].unsortedMethodsNamed(n).nonEmpty))*))
+  }
+
   def testGenericMethodChain[A: Type, R: Type, T: Type](instance: Expr[A])(methodName: Expr[String]): Expr[Data] =
     genericMethodChain[A, R](instance, methodName, Type[T].as_??)
 
