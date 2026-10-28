@@ -11,12 +11,12 @@ import PipeOps._
 val versions = new {
   // Versions we are publishing for.
   val scala213 = "2.13.16"
-  val scala3 = "3.3.8"
+  val scala3 = "3.3.9"
 
   // Regression test versions (always-visible tier rows, not env-var-controlled).
   val scala213NextLts = "2.13.18"
   val scala3NextLts = "3.9.0"
-  val scala3Next = "3.10.0-RC2" // blocked by https://github.com/scala/scala3/issues/26947
+  val scala3Next = "3.10.1-RC1" // blocked by https://github.com/scala/scala3/issues/26947
 
   // Which versions should be cross-compiled for publishing.
   val scalas = List(scala213, scala3)
