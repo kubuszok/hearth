@@ -13,7 +13,7 @@ final class ExprsEdgeCasesScala2Spec extends MacroSuite {
 
       val more = Seq(1, 2)
       val _ = more
-      testVarArgsConversions(more: _*) <==> Data.map(
+      testVarArgsConversions(more*) <==> Data.map(
         "toIterable" -> Data(1),
         "toSeq" -> Data(1),
         "toList" -> Data(1),

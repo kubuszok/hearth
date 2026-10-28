@@ -55,12 +55,12 @@ object DivergingEvidence {
 /** Renders runtime values the same way the macro renders decoded values, so both sides can be compared. */
 object RuntimeShow {
   def show(value: Any): String = value match {
-    case null                => "null"
-    case array: Array[?]     => array.map(show).mkString("Array(", ", ", ")")
+    case null                    => "null"
+    case array: Array[?]         => array.map(show).mkString("Array(", ", ", ")")
     case cls: java.lang.Class[?] => s"Class(${cls.getName})"
     // Rendered the same for every Map implementation, in iteration order, so that a reordering is visible.
     case map: scala.collection.Map[?, ?] =>
       map.map { case (k, v) => s"${show(k)} -> ${show(v)}" }.mkString("Map(", ", ", ")")
-    case other               => other.toString
+    case other => other.toString
   }
 }

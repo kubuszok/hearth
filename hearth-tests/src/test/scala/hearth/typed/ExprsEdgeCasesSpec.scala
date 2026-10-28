@@ -80,7 +80,11 @@ final class ExprsEdgeCasesSpec extends MacroSuite {
       test("method Expr.singletonOf returns the singleton of objects and enum values, and None for other types") {
         checkAll(
           ("[PlainObject.type]", testSingletonOfAtRuntime[PlainObject.type], Data("PlainObject")),
-          ("[examples.expr_codecs.Sentinel.type]", testSingletonOfAtRuntime[examples.expr_codecs.Sentinel.type], Data("Sentinel")),
+          (
+            "[examples.expr_codecs.Sentinel.type]",
+            testSingletonOfAtRuntime[examples.expr_codecs.Sentinel.type],
+            Data("Sentinel")
+          ),
           ("[Shape.Origin.type]", testSingletonOfAtRuntime[Shape.Origin.type], Data("Origin")),
           ("[None.type]", testSingletonOfAtRuntime[None.type], Data("None")),
           ("[Nil.type]", testSingletonOfAtRuntime[Nil.type], Data("List()")),
@@ -114,12 +118,28 @@ final class ExprsEdgeCasesSpec extends MacroSuite {
       test("should evaluate comparison and Boolean operators") {
         checkAll(
           ("PlainObject.answer <= 42", testSemiEvalOutcome(PlainObject.answer <= 42), Data("true (java.lang.Boolean)")),
-          ("PlainObject.answer >= 43", testSemiEvalOutcome(PlainObject.answer >= 43), Data("false (java.lang.Boolean)")),
+          (
+            "PlainObject.answer >= 43",
+            testSemiEvalOutcome(PlainObject.answer >= 43),
+            Data("false (java.lang.Boolean)")
+          ),
           ("PlainObject.answer < 0", testSemiEvalOutcome(PlainObject.answer < 0), Data("false (java.lang.Boolean)")),
           ("PlainObject.answer == 42", testSemiEvalOutcome(PlainObject.answer == 42), Data("true (java.lang.Boolean)")),
-          ("PlainObject.answer != 42", testSemiEvalOutcome(PlainObject.answer != 42), Data("false (java.lang.Boolean)")),
-          ("PlainObject.flag && false", testSemiEvalOutcome(PlainObject.flag && false), Data("false (java.lang.Boolean)")),
-          ("PlainObject.flag || false", testSemiEvalOutcome(PlainObject.flag || false), Data("true (java.lang.Boolean)")),
+          (
+            "PlainObject.answer != 42",
+            testSemiEvalOutcome(PlainObject.answer != 42),
+            Data("false (java.lang.Boolean)")
+          ),
+          (
+            "PlainObject.flag && false",
+            testSemiEvalOutcome(PlainObject.flag && false),
+            Data("false (java.lang.Boolean)")
+          ),
+          (
+            "PlainObject.flag || false",
+            testSemiEvalOutcome(PlainObject.flag || false),
+            Data("true (java.lang.Boolean)")
+          ),
           ("!PlainObject.flag", testSemiEvalOutcome(!PlainObject.flag), Data("false (java.lang.Boolean)"))
         )
       }
@@ -128,7 +148,11 @@ final class ExprsEdgeCasesSpec extends MacroSuite {
         checkAll(
           ("PlainObject.letter + 1", testSemiEvalOutcome(PlainObject.letter + 1), Data("98 (java.lang.Integer)")),
           ("PlainObject.big + 1L", testSemiEvalOutcome(PlainObject.big + 1L), Data("10000000001 (java.lang.Long)")),
-          ("PlainObject.answer + PlainObject.big", testSemiEvalOutcome(PlainObject.answer + PlainObject.big), Data("10000000042 (java.lang.Long)")),
+          (
+            "PlainObject.answer + PlainObject.big",
+            testSemiEvalOutcome(PlainObject.answer + PlainObject.big),
+            Data("10000000042 (java.lang.Long)")
+          ),
           ("PlainObject.ratio * 2", testSemiEvalOutcome(PlainObject.ratio * 2), Data("3.0 (java.lang.Double)")),
           ("PlainObject.ratio / 2", testSemiEvalOutcome(PlainObject.ratio / 2), Data("0.75 (java.lang.Double)")),
           ("PlainObject.answer.toLong", testSemiEvalOutcome(PlainObject.answer.toLong), Data("42 (java.lang.Long)"))
@@ -137,32 +161,64 @@ final class ExprsEdgeCasesSpec extends MacroSuite {
 
       test("should evaluate references to objects on the classpath, including non-case objects and Nil") {
         checkAll(
-          ("PlainObject", testSemiEvalOutcome(PlainObject), Data("PlainObject (hearth.examples.exprsedge.PlainObject$)")),
+          (
+            "PlainObject",
+            testSemiEvalOutcome(PlainObject),
+            Data("PlainObject (hearth.examples.exprsedge.PlainObject$)")
+          ),
           ("PlainObject.answer", testSemiEvalOutcome(PlainObject.answer), Data("42 (java.lang.Integer)")),
           ("Nil", testSemiEvalOutcome(Nil), Data("List() (scala.collection.immutable.Nil$)")),
-          ("Shape.Origin", testSemiEvalOutcome(Shape.Origin), Data("Origin (hearth.examples.expr_codecs.Shape$Origin$)")),
+          (
+            "Shape.Origin",
+            testSemiEvalOutcome(Shape.Origin),
+            Data("Origin (hearth.examples.expr_codecs.Shape$Origin$)")
+          ),
           ("WeekDay.Mon", testSemiEvalOutcome(WeekDay.Mon), Data("Mon (scala.Enumeration$Val)"))
         )
       }
 
       test("should evaluate constructor calls with new, and case class / sealed trait values") {
         checkAll(
-          ("new PlainClass(1, \"a\")", testSemiEvalOutcome(new PlainClass(1, "a")), Data("PlainClass(1, a) (hearth.examples.exprsedge.PlainClass)")),
-          ("ServerConfig(\"host\", 1)", testSemiEvalOutcome(ServerConfig("host", 1)), Data("ServerConfig(host,1) (hearth.examples.expr_codecs.ServerConfig)")),
-          ("Shape.Circle(1.5): Shape", testSemiEvalOutcome(Shape.Circle(1.5): Shape), Data("Circle(1.5) (hearth.examples.expr_codecs.Shape$Circle)")),
+          (
+            "new PlainClass(1, \"a\")",
+            testSemiEvalOutcome(new PlainClass(1, "a")),
+            Data("PlainClass(1, a) (hearth.examples.exprsedge.PlainClass)")
+          ),
+          (
+            "ServerConfig(\"host\", 1)",
+            testSemiEvalOutcome(ServerConfig("host", 1)),
+            Data("ServerConfig(host,1) (hearth.examples.expr_codecs.ServerConfig)")
+          ),
+          (
+            "Shape.Circle(1.5): Shape",
+            testSemiEvalOutcome(Shape.Circle(1.5): Shape),
+            Data("Circle(1.5) (hearth.examples.expr_codecs.Shape$Circle)")
+          ),
           ("Box(1)", testSemiEvalOutcome(Box(1)), Data("Box(1) (hearth.examples.exprsedge.Box)")),
-          ("Arith.Add(Arith.Lit(1), Arith.Lit(2))", testSemiEvalOutcome(Arith.Add(Arith.Lit(1), Arith.Lit(2))), Data("Add(Lit(1),Lit(2)) (hearth.examples.exprsedge.Arith$Add)"))
+          (
+            "Arith.Add(Arith.Lit(1), Arith.Lit(2))",
+            testSemiEvalOutcome(Arith.Add(Arith.Lit(1), Arith.Lit(2))),
+            Data("Add(Lit(1),Lit(2)) (hearth.examples.exprsedge.Arith$Add)")
+          )
         )
       }
 
       test("should evaluate BigInt, BigDecimal and Data values") {
         checkAll(
           ("BigInt(42)", testSemiEvalOutcome(BigInt(42)), Data("42 (scala.math.BigInt)")),
-          ("BigInt(\"123456789012345678901234567890\")", testSemiEvalOutcome(BigInt("123456789012345678901234567890")), Data("123456789012345678901234567890 (scala.math.BigInt)")),
+          (
+            "BigInt(\"123456789012345678901234567890\")",
+            testSemiEvalOutcome(BigInt("123456789012345678901234567890")),
+            Data("123456789012345678901234567890 (scala.math.BigInt)")
+          ),
           ("BigDecimal(\"3.14\")", testSemiEvalOutcome(BigDecimal("3.14")), Data("3.14 (scala.math.BigDecimal)")),
           ("Data(1)", testSemiEvalOutcome(Data(1)), Data("1 (java.lang.Integer)")),
           ("Data(\"text\")", testSemiEvalOutcome(Data("text")), Data("text (java.lang.String)")),
-          ("Data.list(Data(1), Data(true))", testSemiEvalOutcome(Data.list(Data(1), Data(true))), Data("List(1, true) (scala.collection.immutable.$colon$colon)"))
+          (
+            "Data.list(Data(1), Data(true))",
+            testSemiEvalOutcome(Data.list(Data(1), Data(true))),
+            Data("List(1, true) (scala.collection.immutable.$colon$colon)")
+          )
         )
       }
 
@@ -170,11 +226,19 @@ final class ExprsEdgeCasesSpec extends MacroSuite {
         checkAll(
           ("\"hello\".substring(2)", testSemiEvalOutcome("hello".substring(2)), Data("llo (java.lang.String)")),
           ("\"hello\".indexOf(\"l\")", testSemiEvalOutcome("hello".indexOf("l")), Data("2 (java.lang.Integer)")),
-          ("\"hello\".indexOf('l'.toInt)", testSemiEvalOutcome("hello".indexOf('l'.toInt)), Data("2 (java.lang.Integer)")),
+          (
+            "\"hello\".indexOf('l'.toInt)",
+            testSemiEvalOutcome("hello".indexOf('l'.toInt)),
+            Data("2 (java.lang.Integer)")
+          ),
           ("1.max(2)", testSemiEvalOutcome(1.max(2)), Data("2 (java.lang.Integer)")),
           ("\"abc\".reverse", testSemiEvalOutcome("abc".reverse), Data("cba (java.lang.String)")),
           ("\"ab\" * 2", testSemiEvalOutcome("ab" * 2), Data("abab (java.lang.String)")),
-          ("SemiEvalConfig.default.name + \"!\"", testSemiEvalOutcome(SemiEvalConfig.default.name + "!"), Data("default! (java.lang.String)")),
+          (
+            "SemiEvalConfig.default.name + \"!\"",
+            testSemiEvalOutcome(SemiEvalConfig.default.name + "!"),
+            Data("default! (java.lang.String)")
+          ),
           ("PlainObject.letter.toInt", testSemiEvalOutcome(PlainObject.letter.toInt), Data("97 (java.lang.Integer)")),
           ("Some(List(1, 2, 3).size)", testSemiEvalOutcome(Some(List(1, 2, 3).size)), Data("Some(3) (scala.Some)"))
         )
@@ -184,12 +248,36 @@ final class ExprsEdgeCasesSpec extends MacroSuite {
         checkAll(
           ("() => 42", testSemiEvalApply(() => 42), Data("42 (java.lang.Integer)")),
           ("(x: Int) => x + 1, 41", testSemiEvalApply((x: Int) => x + 1, 41), Data("42 (java.lang.Integer)")),
-          ("(a: Int, b: Int) => a * b, 6, 7", testSemiEvalApply((a: Int, b: Int) => a * b, 6, 7), Data("42 (java.lang.Integer)")),
-          ("(a: Int, b: Int, c: Int) => a + b * c, 2, 5, 8", testSemiEvalApply((a: Int, b: Int, c: Int) => a + b * c, 2, 5, 8), Data("42 (java.lang.Integer)")),
-          ("(s: String, n: Int, suffix: String) => (s * n) + suffix, \"ab\", 2, \"!\"", testSemiEvalApply((s: String, n: Int, suffix: String) => (s * n) + suffix, "ab", 2, "!"), Data("abab! (java.lang.String)")),
-          ("(s: String) => s * 2, \"ab\"", testSemiEvalApply((s: String) => s * 2, "ab"), Data("abab (java.lang.String)")),
-          ("(s: String, t: String) => s + t, \"ab\", \"!\"", testSemiEvalApply((s: String, t: String) => s + t, "ab", "!"), Data("ab! (java.lang.String)")),
-          ("SemiEvalConfig.transform: String => String, \"abc\"", testSemiEvalApply(SemiEvalConfig.transform: String => String, "abc"), Data("ABC (java.lang.String)"))
+          (
+            "(a: Int, b: Int) => a * b, 6, 7",
+            testSemiEvalApply((a: Int, b: Int) => a * b, 6, 7),
+            Data("42 (java.lang.Integer)")
+          ),
+          (
+            "(a: Int, b: Int, c: Int) => a + b * c, 2, 5, 8",
+            testSemiEvalApply((a: Int, b: Int, c: Int) => a + b * c, 2, 5, 8),
+            Data("42 (java.lang.Integer)")
+          ),
+          (
+            "(s: String, n: Int, suffix: String) => (s * n) + suffix, \"ab\", 2, \"!\"",
+            testSemiEvalApply((s: String, n: Int, suffix: String) => (s * n) + suffix, "ab", 2, "!"),
+            Data("abab! (java.lang.String)")
+          ),
+          (
+            "(s: String) => s * 2, \"ab\"",
+            testSemiEvalApply((s: String) => s * 2, "ab"),
+            Data("abab (java.lang.String)")
+          ),
+          (
+            "(s: String, t: String) => s + t, \"ab\", \"!\"",
+            testSemiEvalApply((s: String, t: String) => s + t, "ab", "!"),
+            Data("ab! (java.lang.String)")
+          ),
+          (
+            "SemiEvalConfig.transform: String => String, \"abc\"",
+            testSemiEvalApply(SemiEvalConfig.transform: String => String, "abc"),
+            Data("ABC (java.lang.String)")
+          )
         )
       }
 
@@ -199,10 +287,14 @@ final class ExprsEdgeCasesSpec extends MacroSuite {
           ("var", testSemiEvalOutcome { var x = 1; x }, Data("1 (java.lang.Integer)")),
           ("lazy val", testSemiEvalOutcome { lazy val x = 1; x }, Data("1 (java.lang.Integer)")),
           ("def", testSemiEvalOutcome { def x = 1; x }, Data("<failed>")),
-          ("match", testSemiEvalOutcome((PlainObject.answer: Any) match {
-            case i: Int => i
-            case _      => 0
-          }), Data("<failed>"))
+          (
+            "match",
+            testSemiEvalOutcome((PlainObject.answer: Any) match {
+              case i: Int => i
+              case _      => 0
+            }),
+            Data("<failed>")
+          )
         )
         run()
       }
@@ -210,7 +302,11 @@ final class ExprsEdgeCasesSpec extends MacroSuite {
       test("method Expr.semiEval with overrides uses an EvalOverride for the matching type, also for nested values") {
         checkAll(
           ("\"replace\", \"abc\"", testSemiEvalWithOverride("replace", "abc"), Data("OVERRIDDEN (java.lang.String)")),
-          ("\"replace\", SemiEvalConfig(1, \"abc\")", testSemiEvalWithOverride("replace", SemiEvalConfig(1, "abc")), Data("SemiEvalConfig(1,OVERRIDDEN) (hearth.typed.SemiEvalConfig)")),
+          (
+            "\"replace\", SemiEvalConfig(1, \"abc\")",
+            testSemiEvalWithOverride("replace", SemiEvalConfig(1, "abc")),
+            Data("SemiEvalConfig(1,OVERRIDDEN) (hearth.typed.SemiEvalConfig)")
+          ),
           ("\"replace\", 42", testSemiEvalWithOverride("replace", 42), Data("42 (java.lang.Integer)"))
         )
       }
@@ -218,14 +314,22 @@ final class ExprsEdgeCasesSpec extends MacroSuite {
       test("method Expr.semiEval with overrides falls back to the default evaluation for EvalOverride.none") {
         checkAll(
           ("\"none\", \"abc\"", testSemiEvalWithOverride("none", "abc"), Data("abc (java.lang.String)")),
-          ("\"none\", SemiEvalConfig(1, \"abc\")", testSemiEvalWithOverride("none", SemiEvalConfig(1, "abc")), Data("SemiEvalConfig(1,abc) (hearth.typed.SemiEvalConfig)"))
+          (
+            "\"none\", SemiEvalConfig(1, \"abc\")",
+            testSemiEvalWithOverride("none", SemiEvalConfig(1, "abc")),
+            Data("SemiEvalConfig(1,abc) (hearth.typed.SemiEvalConfig)")
+          )
         )
       }
 
       test("method Expr.semiEval with overrides reports the error of a failing EvalOverride") {
         checkAll(
           ("\"fail\", \"abc\"", testSemiEvalWithOverride("fail", "abc"), Data.list(Data("strings are forbidden"))),
-          ("\"fail\", SemiEvalConfig(1, \"abc\")", testSemiEvalWithOverride("fail", SemiEvalConfig(1, "abc")), Data.list(Data("strings are forbidden")))
+          (
+            "\"fail\", SemiEvalConfig(1, \"abc\")",
+            testSemiEvalWithOverride("fail", SemiEvalConfig(1, "abc")),
+            Data.list(Data("strings are forbidden"))
+          )
         )
       }
     }
@@ -444,9 +548,15 @@ final class ExprsEdgeCasesSpec extends MacroSuite {
       def evaluate(kind: String, useIt: Boolean): Data = {
         val counter = new EvalCounter
         val result = kind match {
-          case "val"  => if (useIt) testValDefsEvaluationCount("val", counter.tick(), true) else testValDefsEvaluationCount("val", counter.tick(), false)
-          case "lazy" => if (useIt) testValDefsEvaluationCount("lazy", counter.tick(), true) else testValDefsEvaluationCount("lazy", counter.tick(), false)
-          case _      => if (useIt) testValDefsEvaluationCount("def", counter.tick(), true) else testValDefsEvaluationCount("def", counter.tick(), false)
+          case "val" =>
+            if (useIt) testValDefsEvaluationCount("val", counter.tick(), true)
+            else testValDefsEvaluationCount("val", counter.tick(), false)
+          case "lazy" =>
+            if (useIt) testValDefsEvaluationCount("lazy", counter.tick(), true)
+            else testValDefsEvaluationCount("lazy", counter.tick(), false)
+          case _ =>
+            if (useIt) testValDefsEvaluationCount("def", counter.tick(), true)
+            else testValDefsEvaluationCount("def", counter.tick(), false)
         }
         Data.map("result" -> Data(result), "evaluations" -> Data(counter.count))
       }

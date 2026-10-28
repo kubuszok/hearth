@@ -76,8 +76,12 @@ final class DestructuredExprsEdgeCasesSpec extends MacroSuite {
             "methodName" -> Data("pick"),
             "returnType" -> Data("hearth.examples.destructurededge.Shape"),
             "applied" -> Data.list(
-              Data.map("kind" -> Data("Instance"), "value" -> Data.map("nodeType" -> Data("ParamRef"), "paramName" -> Data("c"))),
-              Data.map("kind" -> Data("Types"), "typeArgs" -> Data.list(Data("hearth.examples.destructurededge.Shape"))),
+              Data.map(
+                "kind" -> Data("Instance"),
+                "value" -> Data.map("nodeType" -> Data("ParamRef"), "paramName" -> Data("c"))
+              ),
+              Data
+                .map("kind" -> Data("Types"), "typeArgs" -> Data.list(Data("hearth.examples.destructurededge.Shape"))),
               Data.map(
                 "kind" -> Data("Values"),
                 "args" -> Data.list(
@@ -97,13 +101,18 @@ final class DestructuredExprsEdgeCasesSpec extends MacroSuite {
       test("type ascriptions are stripped") {
         testParseDetailed((s: Street) => (s.name: CharSequence)) <==> Data.map(
           "nodeType" -> Data("Lambda"),
-          "params" -> Data.list(Data.map("name" -> Data("s"), "type" -> Data("hearth.examples.destructurededge.Street"))),
+          "params" -> Data.list(
+            Data.map("name" -> Data("s"), "type" -> Data("hearth.examples.destructurededge.Street"))
+          ),
           "body" -> Data.map(
             "nodeType" -> Data("MethodCall"),
             "methodName" -> Data("name"),
             "returnType" -> Data("java.lang.String"),
             "applied" -> Data.list(
-              Data.map("kind" -> Data("Instance"), "value" -> Data.map("nodeType" -> Data("ParamRef"), "paramName" -> Data("s")))
+              Data.map(
+                "kind" -> Data("Instance"),
+                "value" -> Data.map("nodeType" -> Data("ParamRef"), "paramName" -> Data("s"))
+              )
             )
           )
         )
@@ -222,15 +231,21 @@ final class DestructuredExprsEdgeCasesSpec extends MacroSuite {
 
       def varargCall(name: String, typeArgs: List[String]): Data = Data.map(
         "nodeType" -> Data("Lambda"),
-        "params" -> Data.list(Data.map("name" -> Data("h"), "type" -> Data("hearth.examples.destructurededge.VarargHolder"))),
+        "params" -> Data.list(
+          Data.map("name" -> Data("h"), "type" -> Data("hearth.examples.destructurededge.VarargHolder"))
+        ),
         "body" -> Data.map(
           "nodeType" -> Data("MethodCall"),
           "methodName" -> Data(name),
           "returnType" -> Data("scala.Int"),
           "applied" -> Data.list(
             (List(
-              Data.map("kind" -> Data("Instance"), "value" -> Data.map("nodeType" -> Data("ParamRef"), "paramName" -> Data("h")))
-            ) ++ (if (typeArgs.isEmpty) Nil else List(Data.map("kind" -> Data("Types"), "typeArgs" -> Data.list(typeArgs.map(Data(_))*)))) :+
+              Data.map(
+                "kind" -> Data("Instance"),
+                "value" -> Data.map("nodeType" -> Data("ParamRef"), "paramName" -> Data("h"))
+              )
+            ) ++ (if (typeArgs.isEmpty) Nil
+                  else List(Data.map("kind" -> Data("Types"), "typeArgs" -> Data.list(typeArgs.map(Data(_))*)))) :+
               Data.map(
                 "kind" -> Data("Values"),
                 "args" -> Data.list(
@@ -254,7 +269,10 @@ final class DestructuredExprsEdgeCasesSpec extends MacroSuite {
       }
 
       test("an inherited generic vararg method groups its elements into one Varargs slot") {
-        testParseDetailed((h: VarargHolder) => h.inheritedOf[Int](1, 2)) <==> varargCall("inheritedOf", List("scala.Int"))
+        testParseDetailed((h: VarargHolder) => h.inheritedOf[Int](1, 2)) <==> varargCall(
+          "inheritedOf",
+          List("scala.Int")
+        )
       }
     }
 
@@ -505,7 +523,11 @@ final class DestructuredExprsEdgeCasesSpec extends MacroSuite {
 
       test("a lambda parameter reference has the widened parameter type, every node has a position") {
         testNodeSummaries((r: Resident) => r.home.street) <==> Data.list(
-          summary("Lambda", "(r: hearth.examples.destructurededge.Resident) => streethomer", "scala.Function1[hearth.examples.destructurededge.Resident, hearth.examples.destructurededge.Street]"),
+          summary(
+            "Lambda",
+            "(r: hearth.examples.destructurededge.Resident) => streethomer",
+            "scala.Function1[hearth.examples.destructurededge.Resident, hearth.examples.destructurededge.Street]"
+          ),
           summary("MethodCall", "streethomer", "hearth.examples.destructurededge.Street"),
           summary("MethodCall", "homer", "hearth.examples.destructurededge.Home"),
           summary("ParamRef", "r", "hearth.examples.destructurededge.Resident")
@@ -671,7 +693,8 @@ final class DestructuredExprsEdgeCasesSpec extends MacroSuite {
         testParseLambda((a: Int, b: String) => b.length + a) <==> Data.map(
           "params" -> Data.list(
             Data.map("name" -> Data("a"), "type" -> Data("scala.Int"), "declaredType" -> Data("scala.Int")),
-            Data.map("name" -> Data("b"), "type" -> Data("java.lang.String"), "declaredType" -> Data("java.lang.String"))
+            Data
+              .map("name" -> Data("b"), "type" -> Data("java.lang.String"), "declaredType" -> Data("java.lang.String"))
           ),
           "body" -> Data.map(
             "nodeType" -> Data("MethodCall"),
@@ -697,9 +720,18 @@ final class DestructuredExprsEdgeCasesSpec extends MacroSuite {
           value
         }
         result <==> Data.list(
-          Data.map("plainPrint" -> Data("import collectionscala.Seq"), "hasPosition" -> Data(true), "rebuiltAsUnit" -> Data(true)),
-          Data.map("plainPrint" -> Data("object LocalObject"), "hasPosition" -> Data(true), "rebuiltAsUnit" -> Data(true)),
-          Data.map("plainPrint" -> Data("trait LocalTrait"), "hasPosition" -> Data(true), "rebuiltAsUnit" -> Data(true)),
+          Data.map(
+            "plainPrint" -> Data("import collectionscala.Seq"),
+            "hasPosition" -> Data(true),
+            "rebuiltAsUnit" -> Data(true)
+          ),
+          Data.map(
+            "plainPrint" -> Data("object LocalObject"),
+            "hasPosition" -> Data(true),
+            "rebuiltAsUnit" -> Data(true)
+          ),
+          Data
+            .map("plainPrint" -> Data("trait LocalTrait"), "hasPosition" -> Data(true), "rebuiltAsUnit" -> Data(true)),
           Data.map("plainPrint" -> Data("val value = 1"), "hasPosition" -> Data(true), "rebuiltAsUnit" -> Data(true))
         )
       }
