@@ -20,17 +20,6 @@ final class IsCollectionProviderForArray extends StandardMacroExtension { loader
 
       private lazy val Array = Type.Ctor1.of[Array]
 
-      private lazy val Int = Type.of[Int]
-      private lazy val Short = Type.of[Short]
-      private lazy val Long = Type.of[Long]
-      private lazy val Float = Type.of[Float]
-      private lazy val Double = Type.of[Double]
-      private lazy val Char = Type.of[Char]
-      private lazy val Boolean = Type.of[Boolean]
-      private lazy val Byte = Type.of[Byte]
-      private lazy val Unit = Type.of[Unit]
-      private lazy val AnyRef = Type.of[AnyRef]
-
       private def isCollection[A, Item: Type](
           A: Type[A],
           toIterableExpr: Expr[A] => Expr[Iterable[Item]],
@@ -82,80 +71,7 @@ final class IsCollectionProviderForArray extends StandardMacroExtension { loader
                 .asInstanceOf[Expr[scala.collection.Factory[Item, A]]]
               val buildExpr: Expr[scala.collection.mutable.Builder[Item, A]] => Expr[A] =
                 builder => Expr.quote(Expr.splice(builder).result())
-              // Conversion from Array[Item] to Iterable[Item] depends on the item type.
-              val toIterable: Expr[A] => Expr[Iterable[Item]] = {
-                def adjust[I](thunk: Expr[Array[I]] => Expr[Iterable[I]]): Expr[A] => Expr[Iterable[Item]] =
-                  thunk.asInstanceOf[Expr[A] => Expr[Iterable[Item]]]
-                if (Item <:< Int) {
-                  adjust[Int] { value =>
-                    Expr.quote {
-                      scala.Predef.wrapIntArray(Expr.splice(value))
-                    }
-                  }
-                } else if (Item <:< Short) {
-                  adjust[Short] { value =>
-                    Expr.quote {
-                      scala.Predef.wrapShortArray(Expr.splice(value))
-                    }
-                  }
-                } else if (Item <:< Long) {
-                  adjust[Long] { value =>
-                    Expr.quote {
-                      scala.Predef.wrapLongArray(Expr.splice(value))
-                    }
-                  }
-                } else if (Item <:< Float) {
-                  adjust[Float] { value =>
-                    Expr.quote {
-                      scala.Predef.wrapFloatArray(Expr.splice(value))
-                    }
-                  }
-                } else if (Item <:< Double) {
-                  adjust[Double] { value =>
-                    Expr.quote {
-                      scala.Predef.wrapDoubleArray(Expr.splice(value))
-                    }
-                  }
-                } else if (Item <:< Char) {
-                  adjust[Char] { value =>
-                    Expr.quote {
-                      scala.Predef.wrapCharArray(Expr.splice(value))
-                    }
-                  }
-                } else if (Item <:< Boolean) {
-                  adjust[Boolean] { value =>
-                    Expr.quote {
-                      scala.Predef.wrapBooleanArray(Expr.splice(value))
-                    }
-                  }
-                } else if (Item <:< Byte) {
-                  adjust[Byte] { value =>
-                    Expr.quote {
-                      scala.Predef.wrapByteArray(Expr.splice(value))
-                    }
-                  }
-                } else if (Item <:< Unit) {
-                  adjust[Unit] { value =>
-                    Expr.quote {
-                      scala.Predef.wrapUnitArray(Expr.splice(value))
-                    }
-                  }
-                } else if (Item <:< AnyRef) {
-                  val anyRefItem = Item.asInstanceOf[Type[AnyRef]].as_??<:[AnyRef]
-                  import anyRefItem.Underlying as AnyRefItem
-                  adjust[AnyRefItem] { value =>
-                    Expr.quote {
-                      scala.Predef.wrapRefArray(Expr.splice(value))
-                    }
-                  }
-                } else {
-                  adjust[Item] { value =>
-                    Expr.quote {
-                      scala.Predef.genericWrapArray(Expr.splice(value))
-                    }
-                  }
-                }
-              }
+              val toIterable = loader.toIterable[A, Item](ctx)(Item)
               ProviderResult.Matched(isCollection(A, toIterable, factoryExpr, buildExpr))
             case None =>
               skippedLazily(s"${tpe.prettyPrint} is Array[${Item.prettyPrint}] but ClassTag not found")
@@ -165,5 +81,85 @@ final class IsCollectionProviderForArray extends StandardMacroExtension { loader
         case _ => skippedLazily(s"${tpe.prettyPrint} is not Array[_]")
       }
     })
+  }
+
+  // Kept out of `extend`: inlined there, its per-element-type quotes made `extend` too large for coverage instrumentation.
+  private def toIterable[A, Item](
+      ctx: MacroCommons & StdExtensions
+  )(item: ctx.Type[Item]): ctx.Expr[A] => ctx.Expr[Iterable[Item]] = {
+    import ctx.*
+    implicit val Item: Type[Item] = item
+
+    def adjust[I](thunk: Expr[Array[I]] => Expr[Iterable[I]]): Expr[A] => Expr[Iterable[Item]] =
+      thunk.asInstanceOf[Expr[A] => Expr[Iterable[Item]]]
+    if (Item <:< Type.of[Int]) {
+      adjust[Int] { value =>
+        Expr.quote {
+          scala.Predef.wrapIntArray(Expr.splice(value))
+        }
+      }
+    } else if (Item <:< Type.of[Short]) {
+      adjust[Short] { value =>
+        Expr.quote {
+          scala.Predef.wrapShortArray(Expr.splice(value))
+        }
+      }
+    } else if (Item <:< Type.of[Long]) {
+      adjust[Long] { value =>
+        Expr.quote {
+          scala.Predef.wrapLongArray(Expr.splice(value))
+        }
+      }
+    } else if (Item <:< Type.of[Float]) {
+      adjust[Float] { value =>
+        Expr.quote {
+          scala.Predef.wrapFloatArray(Expr.splice(value))
+        }
+      }
+    } else if (Item <:< Type.of[Double]) {
+      adjust[Double] { value =>
+        Expr.quote {
+          scala.Predef.wrapDoubleArray(Expr.splice(value))
+        }
+      }
+    } else if (Item <:< Type.of[Char]) {
+      adjust[Char] { value =>
+        Expr.quote {
+          scala.Predef.wrapCharArray(Expr.splice(value))
+        }
+      }
+    } else if (Item <:< Type.of[Boolean]) {
+      adjust[Boolean] { value =>
+        Expr.quote {
+          scala.Predef.wrapBooleanArray(Expr.splice(value))
+        }
+      }
+    } else if (Item <:< Type.of[Byte]) {
+      adjust[Byte] { value =>
+        Expr.quote {
+          scala.Predef.wrapByteArray(Expr.splice(value))
+        }
+      }
+    } else if (Item <:< Type.of[Unit]) {
+      adjust[Unit] { value =>
+        Expr.quote {
+          scala.Predef.wrapUnitArray(Expr.splice(value))
+        }
+      }
+    } else if (Item <:< Type.of[AnyRef]) {
+      val anyRefItem = Item.asInstanceOf[Type[AnyRef]].as_??<:[AnyRef]
+      import anyRefItem.Underlying as AnyRefItem
+      adjust[AnyRefItem] { value =>
+        Expr.quote {
+          scala.Predef.wrapRefArray(Expr.splice(value))
+        }
+      }
+    } else {
+      adjust[Item] { value =>
+        Expr.quote {
+          scala.Predef.genericWrapArray(Expr.splice(value))
+        }
+      }
+    }
   }
 }

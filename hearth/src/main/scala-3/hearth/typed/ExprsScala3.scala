@@ -92,6 +92,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           }
       }
 
+      // Coverage instrumentation runs after quotes are pickled, so each inline `'{ val _ = $expr }` expands into a
+      // sizable tree; repeated per parameter in the high-arity builders, it pushes them over the instrumentable size.
+      def suppressUnused[A: Type](expr: Expr[A])(using scala.quoted.Quotes): Term = '{ val _ = $expr }.asTerm
+
       object implicits {
 
         given ExprCodecIsFromExpr[A: ExprCodec]: FromExpr[A] = ExprCodec[A] match {
@@ -1868,6 +1872,44 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         cache.isBuilt(mkGetterKey(key))
     }
 
+    // Shared by all `ofDefN` arities: inlining this into each of them used to make the high-arity ones too large for
+    // coverage instrumentation.
+    private def mkDefDef[Signature, Returned: Type](
+        name: Symbol,
+        signature: Signature,
+        params: List[(Symbol, Expr_??)]
+    ): MkValDef[Signature, Returned] = new MkValDef[Signature, Returned](
+      signature = signature,
+      mkKey = (key: String) =>
+        new ValDefsCache.Key(key, params.map(_._2.Underlying.asUntyped), Type[Returned].asUntyped),
+      buildValDef = (body: Expr[Returned]) =>
+        DefDef(
+          name,
+          {
+            case List(args) if args.sizeCompare(params) == 0 && args.forall { case _: Term => true; case _ => false } =>
+              val terms = args.collect { case term: Term => term }
+              withQuotes {
+                Some {
+                  Block(
+                    params.zip(terms).flatMap { case ((param, paramExpr), term) =>
+                      import paramExpr.{Underlying as Param, value as paramRef}
+                      List(ValDef(param, Some(term)), suppressUnused[Param](paramRef))
+                    },
+                    body.asTerm.changeOwner(name)
+                  )
+                }
+              }
+            // $COVERAGE-OFF$
+            case args =>
+              val preview =
+                args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
+              val arguments = if params.sizeIs == 1 then "argument" else "arguments"
+              hearthAssertionFailed(s"Expected ${params.size} Term $arguments, got:\n$preview")
+            // $COVERAGE-ON$
+          }
+        )
+    )
+
     override def ofVal[Returned: Type](
         freshName: FreshName
     ): ValDefBuilder[Expr[Returned], Returned, Unit] = {
@@ -1962,33 +2004,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val a1 = freshTerm.valdef[A](freshA, null, Flags.EmptyFlags, name)
       val aExpr = Ref(a1).asExprOf[A]
       new ValDefBuilder[Expr[A] => Expr[Returned], Returned, (Expr[A] => Expr[Returned], Expr[A])](
-        new MkValDef[Expr[A] => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 1 Term argument, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[Expr[A] => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??)),
         (self, aExpr)
       )
     }
@@ -2010,35 +2026,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val b1 = freshTerm.valdef[B](freshB, null, Flags.EmptyFlags, name)
       val bExpr = Ref(b1).asExprOf[B]
       new ValDefBuilder[(Expr[A], Expr[B]) => Expr[Returned], Returned, ((Expr[A], Expr[B]) => Expr[Returned], (Expr[A], Expr[B]))](
-        new MkValDef[(Expr[A], Expr[B]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 2 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??)),
         (self, (aExpr, bExpr))
       )
     }
@@ -2064,37 +2052,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val c1 = freshTerm.valdef[C](freshC, null, Flags.EmptyFlags, name)
       val cExpr = Ref(c1).asExprOf[C]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C]) => Expr[Returned], (Expr[A], Expr[B], Expr[C]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 3 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??)),
         (self, (aExpr, bExpr, cExpr))
       )
     }
@@ -2124,39 +2082,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val d1 = freshTerm.valdef[D](freshD, null, Flags.EmptyFlags, name)
       val dExpr = Ref(d1).asExprOf[D]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 4 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr))
       )
     }
@@ -2190,41 +2116,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val e1 = freshTerm.valdef[E](freshE, null, Flags.EmptyFlags, name)
       val eExpr = Ref(e1).asExprOf[E]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 5 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr))
       )
     }
@@ -2262,43 +2154,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val f1 = freshTerm.valdef[F](freshF, null, Flags.EmptyFlags, name)
       val fExpr = Ref(f1).asExprOf[F]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 6 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr))
       )
     }
@@ -2340,45 +2196,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val g1 = freshTerm.valdef[G](freshG, null, Flags.EmptyFlags, name)
       val gExpr = Ref(g1).asExprOf[G]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 7 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr))
       )
     }
@@ -2424,47 +2242,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val h1 = freshTerm.valdef[H](freshH, null, Flags.EmptyFlags, name)
       val hExpr = Ref(h1).asExprOf[H]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 8 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr))
       )
     }
@@ -2514,49 +2292,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val i1 = freshTerm.valdef[I](freshI, null, Flags.EmptyFlags, name)
       val iExpr = Ref(i1).asExprOf[I]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm,
-                        ValDef(i1, Some(i)),
-                        '{ val _ = $iExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 9 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??, i1 -> iExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr))
       )
     }
@@ -2610,51 +2346,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val j1 = freshTerm.valdef[J](freshJ, null, Flags.EmptyFlags, name)
       val jExpr = Ref(j1).asExprOf[J]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm,
-                        ValDef(i1, Some(i)),
-                        '{ val _ = $iExpr }.asTerm,
-                        ValDef(j1, Some(j)),
-                        '{ val _ = $jExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 10 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??, i1 -> iExpr.as_??, j1 -> jExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr))
       )
     }
@@ -2712,53 +2404,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val k1 = freshTerm.valdef[K](freshK, null, Flags.EmptyFlags, name)
       val kExpr = Ref(k1).asExprOf[K]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm,
-                        ValDef(i1, Some(i)),
-                        '{ val _ = $iExpr }.asTerm,
-                        ValDef(j1, Some(j)),
-                        '{ val _ = $jExpr }.asTerm,
-                        ValDef(k1, Some(k)),
-                        '{ val _ = $kExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 11 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??, i1 -> iExpr.as_??, j1 -> jExpr.as_??, k1 -> kExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr))
       )
     }
@@ -2820,55 +2466,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val l1 = freshTerm.valdef[L](freshL, null, Flags.EmptyFlags, name)
       val lExpr = Ref(l1).asExprOf[L]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm,
-                        ValDef(i1, Some(i)),
-                        '{ val _ = $iExpr }.asTerm,
-                        ValDef(j1, Some(j)),
-                        '{ val _ = $jExpr }.asTerm,
-                        ValDef(k1, Some(k)),
-                        '{ val _ = $kExpr }.asTerm,
-                        ValDef(l1, Some(l)),
-                        '{ val _ = $lExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 12 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??, i1 -> iExpr.as_??, j1 -> jExpr.as_??, k1 -> kExpr.as_??, l1 -> lExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr))
       )
     }
@@ -2934,57 +2532,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val m1 = freshTerm.valdef[M](freshM, null, Flags.EmptyFlags, name)
       val mExpr = Ref(m1).asExprOf[M]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm,
-                        ValDef(i1, Some(i)),
-                        '{ val _ = $iExpr }.asTerm,
-                        ValDef(j1, Some(j)),
-                        '{ val _ = $jExpr }.asTerm,
-                        ValDef(k1, Some(k)),
-                        '{ val _ = $kExpr }.asTerm,
-                        ValDef(l1, Some(l)),
-                        '{ val _ = $lExpr }.asTerm,
-                        ValDef(m1, Some(m)),
-                        '{ val _ = $mExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 13 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??, i1 -> iExpr.as_??, j1 -> jExpr.as_??, k1 -> kExpr.as_??, l1 -> lExpr.as_??, m1 -> mExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr))
       )
     }
@@ -3054,59 +2602,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val n1 = freshTerm.valdef[N](freshN, null, Flags.EmptyFlags, name)
       val nExpr = Ref(n1).asExprOf[N]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm,
-                        ValDef(i1, Some(i)),
-                        '{ val _ = $iExpr }.asTerm,
-                        ValDef(j1, Some(j)),
-                        '{ val _ = $jExpr }.asTerm,
-                        ValDef(k1, Some(k)),
-                        '{ val _ = $kExpr }.asTerm,
-                        ValDef(l1, Some(l)),
-                        '{ val _ = $lExpr }.asTerm,
-                        ValDef(m1, Some(m)),
-                        '{ val _ = $mExpr }.asTerm,
-                        ValDef(n1, Some(n)),
-                        '{ val _ = $nExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 14 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??, i1 -> iExpr.as_??, j1 -> jExpr.as_??, k1 -> kExpr.as_??, l1 -> lExpr.as_??, m1 -> mExpr.as_??, n1 -> nExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr))
       )
     }
@@ -3180,61 +2676,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val o1 = freshTerm.valdef[O](freshO, null, Flags.EmptyFlags, name)
       val oExpr = Ref(o1).asExprOf[O]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm,
-                        ValDef(i1, Some(i)),
-                        '{ val _ = $iExpr }.asTerm,
-                        ValDef(j1, Some(j)),
-                        '{ val _ = $jExpr }.asTerm,
-                        ValDef(k1, Some(k)),
-                        '{ val _ = $kExpr }.asTerm,
-                        ValDef(l1, Some(l)),
-                        '{ val _ = $lExpr }.asTerm,
-                        ValDef(m1, Some(m)),
-                        '{ val _ = $mExpr }.asTerm,
-                        ValDef(n1, Some(n)),
-                        '{ val _ = $nExpr }.asTerm,
-                        ValDef(o1, Some(o)),
-                        '{ val _ = $oExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 15 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??, i1 -> iExpr.as_??, j1 -> jExpr.as_??, k1 -> kExpr.as_??, l1 -> lExpr.as_??, m1 -> mExpr.as_??, n1 -> nExpr.as_??, o1 -> oExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr))
       )
     }
@@ -3312,63 +2754,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val p1 = freshTerm.valdef[P](freshP, null, Flags.EmptyFlags, name)
       val pExpr = Ref(p1).asExprOf[P]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm,
-                        ValDef(i1, Some(i)),
-                        '{ val _ = $iExpr }.asTerm,
-                        ValDef(j1, Some(j)),
-                        '{ val _ = $jExpr }.asTerm,
-                        ValDef(k1, Some(k)),
-                        '{ val _ = $kExpr }.asTerm,
-                        ValDef(l1, Some(l)),
-                        '{ val _ = $lExpr }.asTerm,
-                        ValDef(m1, Some(m)),
-                        '{ val _ = $mExpr }.asTerm,
-                        ValDef(n1, Some(n)),
-                        '{ val _ = $nExpr }.asTerm,
-                        ValDef(o1, Some(o)),
-                        '{ val _ = $oExpr }.asTerm,
-                        ValDef(p1, Some(p)),
-                        '{ val _ = $pExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 16 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??, i1 -> iExpr.as_??, j1 -> jExpr.as_??, k1 -> kExpr.as_??, l1 -> lExpr.as_??, m1 -> mExpr.as_??, n1 -> nExpr.as_??, o1 -> oExpr.as_??, p1 -> pExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr, pExpr))
       )
     }
@@ -3450,65 +2836,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val q1 = freshTerm.valdef[Q](freshQ, null, Flags.EmptyFlags, name)
       val qExpr = Ref(q1).asExprOf[Q]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm,
-                        ValDef(i1, Some(i)),
-                        '{ val _ = $iExpr }.asTerm,
-                        ValDef(j1, Some(j)),
-                        '{ val _ = $jExpr }.asTerm,
-                        ValDef(k1, Some(k)),
-                        '{ val _ = $kExpr }.asTerm,
-                        ValDef(l1, Some(l)),
-                        '{ val _ = $lExpr }.asTerm,
-                        ValDef(m1, Some(m)),
-                        '{ val _ = $mExpr }.asTerm,
-                        ValDef(n1, Some(n)),
-                        '{ val _ = $nExpr }.asTerm,
-                        ValDef(o1, Some(o)),
-                        '{ val _ = $oExpr }.asTerm,
-                        ValDef(p1, Some(p)),
-                        '{ val _ = $pExpr }.asTerm,
-                        ValDef(q1, Some(q)),
-                        '{ val _ = $qExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 17 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??, i1 -> iExpr.as_??, j1 -> jExpr.as_??, k1 -> kExpr.as_??, l1 -> lExpr.as_??, m1 -> mExpr.as_??, n1 -> nExpr.as_??, o1 -> oExpr.as_??, p1 -> pExpr.as_??, q1 -> qExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr, pExpr, qExpr))
       )
     }
@@ -3594,67 +2922,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val r1 = freshTerm.valdef[R](freshR, null, Flags.EmptyFlags, name)
       val rExpr = Ref(r1).asExprOf[R]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm,
-                        ValDef(i1, Some(i)),
-                        '{ val _ = $iExpr }.asTerm,
-                        ValDef(j1, Some(j)),
-                        '{ val _ = $jExpr }.asTerm,
-                        ValDef(k1, Some(k)),
-                        '{ val _ = $kExpr }.asTerm,
-                        ValDef(l1, Some(l)),
-                        '{ val _ = $lExpr }.asTerm,
-                        ValDef(m1, Some(m)),
-                        '{ val _ = $mExpr }.asTerm,
-                        ValDef(n1, Some(n)),
-                        '{ val _ = $nExpr }.asTerm,
-                        ValDef(o1, Some(o)),
-                        '{ val _ = $oExpr }.asTerm,
-                        ValDef(p1, Some(p)),
-                        '{ val _ = $pExpr }.asTerm,
-                        ValDef(q1, Some(q)),
-                        '{ val _ = $qExpr }.asTerm,
-                        ValDef(r1, Some(r)),
-                        '{ val _ = $rExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 18 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??, i1 -> iExpr.as_??, j1 -> jExpr.as_??, k1 -> kExpr.as_??, l1 -> lExpr.as_??, m1 -> mExpr.as_??, n1 -> nExpr.as_??, o1 -> oExpr.as_??, p1 -> pExpr.as_??, q1 -> qExpr.as_??, r1 -> rExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr, pExpr, qExpr, rExpr))
       )
     }
@@ -3744,69 +3012,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val s1 = freshTerm.valdef[S](freshS, null, Flags.EmptyFlags, name)
       val sExpr = Ref(s1).asExprOf[S]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm,
-                        ValDef(i1, Some(i)),
-                        '{ val _ = $iExpr }.asTerm,
-                        ValDef(j1, Some(j)),
-                        '{ val _ = $jExpr }.asTerm,
-                        ValDef(k1, Some(k)),
-                        '{ val _ = $kExpr }.asTerm,
-                        ValDef(l1, Some(l)),
-                        '{ val _ = $lExpr }.asTerm,
-                        ValDef(m1, Some(m)),
-                        '{ val _ = $mExpr }.asTerm,
-                        ValDef(n1, Some(n)),
-                        '{ val _ = $nExpr }.asTerm,
-                        ValDef(o1, Some(o)),
-                        '{ val _ = $oExpr }.asTerm,
-                        ValDef(p1, Some(p)),
-                        '{ val _ = $pExpr }.asTerm,
-                        ValDef(q1, Some(q)),
-                        '{ val _ = $qExpr }.asTerm,
-                        ValDef(r1, Some(r)),
-                        '{ val _ = $rExpr }.asTerm,
-                        ValDef(s1, Some(s)),
-                        '{ val _ = $sExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 19 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??, i1 -> iExpr.as_??, j1 -> jExpr.as_??, k1 -> kExpr.as_??, l1 -> lExpr.as_??, m1 -> mExpr.as_??, n1 -> nExpr.as_??, o1 -> oExpr.as_??, p1 -> pExpr.as_??, q1 -> qExpr.as_??, r1 -> rExpr.as_??, s1 -> sExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr, pExpr, qExpr, rExpr, sExpr))
       )
     }
@@ -3900,71 +3106,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val t1 = freshTerm.valdef[T](freshT, null, Flags.EmptyFlags, name)
       val tExpr = Ref(t1).asExprOf[T]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped, Type[T].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term, t: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm,
-                        ValDef(i1, Some(i)),
-                        '{ val _ = $iExpr }.asTerm,
-                        ValDef(j1, Some(j)),
-                        '{ val _ = $jExpr }.asTerm,
-                        ValDef(k1, Some(k)),
-                        '{ val _ = $kExpr }.asTerm,
-                        ValDef(l1, Some(l)),
-                        '{ val _ = $lExpr }.asTerm,
-                        ValDef(m1, Some(m)),
-                        '{ val _ = $mExpr }.asTerm,
-                        ValDef(n1, Some(n)),
-                        '{ val _ = $nExpr }.asTerm,
-                        ValDef(o1, Some(o)),
-                        '{ val _ = $oExpr }.asTerm,
-                        ValDef(p1, Some(p)),
-                        '{ val _ = $pExpr }.asTerm,
-                        ValDef(q1, Some(q)),
-                        '{ val _ = $qExpr }.asTerm,
-                        ValDef(r1, Some(r)),
-                        '{ val _ = $rExpr }.asTerm,
-                        ValDef(s1, Some(s)),
-                        '{ val _ = $sExpr }.asTerm,
-                        ValDef(t1, Some(t)),
-                        '{ val _ = $tExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 20 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??, i1 -> iExpr.as_??, j1 -> jExpr.as_??, k1 -> kExpr.as_??, l1 -> lExpr.as_??, m1 -> mExpr.as_??, n1 -> nExpr.as_??, o1 -> oExpr.as_??, p1 -> pExpr.as_??, q1 -> qExpr.as_??, r1 -> rExpr.as_??, s1 -> sExpr.as_??, t1 -> tExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr, pExpr, qExpr, rExpr, sExpr, tExpr))
       )
     }
@@ -4062,73 +3204,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val u1 = freshTerm.valdef[U](freshU, null, Flags.EmptyFlags, name)
       val uExpr = Ref(u1).asExprOf[U]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped, Type[T].asUntyped, Type[U].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term, t: Term, u: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm,
-                        ValDef(i1, Some(i)),
-                        '{ val _ = $iExpr }.asTerm,
-                        ValDef(j1, Some(j)),
-                        '{ val _ = $jExpr }.asTerm,
-                        ValDef(k1, Some(k)),
-                        '{ val _ = $kExpr }.asTerm,
-                        ValDef(l1, Some(l)),
-                        '{ val _ = $lExpr }.asTerm,
-                        ValDef(m1, Some(m)),
-                        '{ val _ = $mExpr }.asTerm,
-                        ValDef(n1, Some(n)),
-                        '{ val _ = $nExpr }.asTerm,
-                        ValDef(o1, Some(o)),
-                        '{ val _ = $oExpr }.asTerm,
-                        ValDef(p1, Some(p)),
-                        '{ val _ = $pExpr }.asTerm,
-                        ValDef(q1, Some(q)),
-                        '{ val _ = $qExpr }.asTerm,
-                        ValDef(r1, Some(r)),
-                        '{ val _ = $rExpr }.asTerm,
-                        ValDef(s1, Some(s)),
-                        '{ val _ = $sExpr }.asTerm,
-                        ValDef(t1, Some(t)),
-                        '{ val _ = $tExpr }.asTerm,
-                        ValDef(u1, Some(u)),
-                        '{ val _ = $uExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 21 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??, i1 -> iExpr.as_??, j1 -> jExpr.as_??, k1 -> kExpr.as_??, l1 -> lExpr.as_??, m1 -> mExpr.as_??, n1 -> nExpr.as_??, o1 -> oExpr.as_??, p1 -> pExpr.as_??, q1 -> qExpr.as_??, r1 -> rExpr.as_??, s1 -> sExpr.as_??, t1 -> tExpr.as_??, u1 -> uExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr, pExpr, qExpr, rExpr, sExpr, tExpr, uExpr))
       )
     }
@@ -4230,75 +3306,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val v1 = freshTerm.valdef[V](freshV, null, Flags.EmptyFlags, name)
       val vExpr = Ref(v1).asExprOf[V]
       new ValDefBuilder[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], Returned, ((Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], (Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]))](
-        new MkValDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], Returned](
-          signature = self,
-          mkKey = (key: String) => new ValDefsCache.Key(key, Seq(Type[A].asUntyped, Type[B].asUntyped, Type[C].asUntyped, Type[D].asUntyped, Type[E].asUntyped, Type[F].asUntyped, Type[G].asUntyped, Type[H].asUntyped, Type[I].asUntyped, Type[J].asUntyped, Type[K].asUntyped, Type[L].asUntyped, Type[M].asUntyped, Type[N].asUntyped, Type[O].asUntyped, Type[P].asUntyped, Type[Q].asUntyped, Type[R].asUntyped, Type[S].asUntyped, Type[T].asUntyped, Type[U].asUntyped, Type[V].asUntyped), Type[Returned].asUntyped),
-          buildValDef = (body: Expr[Returned]) =>
-            DefDef(
-              name,
-              {
-                case List(List(a: Term, b: Term, c: Term, d: Term, e: Term, f: Term, g: Term, h: Term, i: Term, j: Term, k: Term, l: Term, m: Term, n: Term, o: Term, p: Term, q: Term, r: Term, s: Term, t: Term, u: Term, v: Term)) => withQuotes {
-                  Some {
-                    Block(
-                      List(
-                        ValDef(a1, Some(a)),
-                        '{ val _ = $aExpr }.asTerm,
-                        ValDef(b1, Some(b)),
-                        '{ val _ = $bExpr }.asTerm,
-                        ValDef(c1, Some(c)),
-                        '{ val _ = $cExpr }.asTerm,
-                        ValDef(d1, Some(d)),
-                        '{ val _ = $dExpr }.asTerm,
-                        ValDef(e1, Some(e)),
-                        '{ val _ = $eExpr }.asTerm,
-                        ValDef(f1, Some(f)),
-                        '{ val _ = $fExpr }.asTerm,
-                        ValDef(g1, Some(g)),
-                        '{ val _ = $gExpr }.asTerm,
-                        ValDef(h1, Some(h)),
-                        '{ val _ = $hExpr }.asTerm,
-                        ValDef(i1, Some(i)),
-                        '{ val _ = $iExpr }.asTerm,
-                        ValDef(j1, Some(j)),
-                        '{ val _ = $jExpr }.asTerm,
-                        ValDef(k1, Some(k)),
-                        '{ val _ = $kExpr }.asTerm,
-                        ValDef(l1, Some(l)),
-                        '{ val _ = $lExpr }.asTerm,
-                        ValDef(m1, Some(m)),
-                        '{ val _ = $mExpr }.asTerm,
-                        ValDef(n1, Some(n)),
-                        '{ val _ = $nExpr }.asTerm,
-                        ValDef(o1, Some(o)),
-                        '{ val _ = $oExpr }.asTerm,
-                        ValDef(p1, Some(p)),
-                        '{ val _ = $pExpr }.asTerm,
-                        ValDef(q1, Some(q)),
-                        '{ val _ = $qExpr }.asTerm,
-                        ValDef(r1, Some(r)),
-                        '{ val _ = $rExpr }.asTerm,
-                        ValDef(s1, Some(s)),
-                        '{ val _ = $sExpr }.asTerm,
-                        ValDef(t1, Some(t)),
-                        '{ val _ = $tExpr }.asTerm,
-                        ValDef(u1, Some(u)),
-                        '{ val _ = $uExpr }.asTerm,
-                        ValDef(v1, Some(v)),
-                        '{ val _ = $vExpr }.asTerm
-                      ),
-                      body.asTerm.changeOwner(name)
-                    )
-                  }
-                }
-                // $COVERAGE-OFF$
-                case args =>
-                  val preview =
-                    args.map(_.map(_.show(using FormattedTreeStructureAnsi).mkString("(", ", ", ")"))).mkString("\n")
-                  hearthAssertionFailed(s"Expected 22 Term arguments, got:\n$preview")
-                // $COVERAGE-ON$
-              }
-            )
-        ),
+        mkDefDef[(Expr[A], Expr[B], Expr[C], Expr[D], Expr[E], Expr[F], Expr[G], Expr[H], Expr[I], Expr[J], Expr[K], Expr[L], Expr[M], Expr[N], Expr[O], Expr[P], Expr[Q], Expr[R], Expr[S], Expr[T], Expr[U], Expr[V]) => Expr[Returned], Returned](name, self, List(a1 -> aExpr.as_??, b1 -> bExpr.as_??, c1 -> cExpr.as_??, d1 -> dExpr.as_??, e1 -> eExpr.as_??, f1 -> fExpr.as_??, g1 -> gExpr.as_??, h1 -> hExpr.as_??, i1 -> iExpr.as_??, j1 -> jExpr.as_??, k1 -> kExpr.as_??, l1 -> lExpr.as_??, m1 -> mExpr.as_??, n1 -> nExpr.as_??, o1 -> oExpr.as_??, p1 -> pExpr.as_??, q1 -> qExpr.as_??, r1 -> rExpr.as_??, s1 -> sExpr.as_??, t1 -> tExpr.as_??, u1 -> uExpr.as_??, v1 -> vExpr.as_??)),
         (self, (aExpr, bExpr, cExpr, dExpr, eExpr, fExpr, gExpr, hExpr, iExpr, jExpr, kExpr, lExpr, mExpr, nExpr, oExpr, pExpr, qExpr, rExpr, sExpr, tExpr, uExpr, vExpr))
       )
     }
@@ -4538,7 +3546,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm
+                suppressUnused(a1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -4564,9 +3572,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm
+                suppressUnused(b1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -4595,11 +3603,11 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm
+                suppressUnused(c1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -4631,13 +3639,13 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm
+                suppressUnused(d1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -4672,15 +3680,15 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm
+                suppressUnused(e1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -4718,17 +3726,17 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm
+                suppressUnused(f1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -4769,19 +3777,19 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm
+                suppressUnused(g1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -4825,21 +3833,21 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm
+                suppressUnused(h1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -4886,23 +3894,23 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm,
+                suppressUnused(h1Expr),
                 ValDef(i1, Some(i.asTerm)),
-                '{ val _ = $i1Expr }.asTerm
+                suppressUnused(i1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -4952,25 +3960,25 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm,
+                suppressUnused(h1Expr),
                 ValDef(i1, Some(i.asTerm)),
-                '{ val _ = $i1Expr }.asTerm,
+                suppressUnused(i1Expr),
                 ValDef(j1, Some(j.asTerm)),
-                '{ val _ = $j1Expr }.asTerm
+                suppressUnused(j1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -5023,27 +4031,27 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm,
+                suppressUnused(h1Expr),
                 ValDef(i1, Some(i.asTerm)),
-                '{ val _ = $i1Expr }.asTerm,
+                suppressUnused(i1Expr),
                 ValDef(j1, Some(j.asTerm)),
-                '{ val _ = $j1Expr }.asTerm,
+                suppressUnused(j1Expr),
                 ValDef(k1, Some(k.asTerm)),
-                '{ val _ = $k1Expr }.asTerm
+                suppressUnused(k1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -5099,29 +4107,29 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm,
+                suppressUnused(h1Expr),
                 ValDef(i1, Some(i.asTerm)),
-                '{ val _ = $i1Expr }.asTerm,
+                suppressUnused(i1Expr),
                 ValDef(j1, Some(j.asTerm)),
-                '{ val _ = $j1Expr }.asTerm,
+                suppressUnused(j1Expr),
                 ValDef(k1, Some(k.asTerm)),
-                '{ val _ = $k1Expr }.asTerm,
+                suppressUnused(k1Expr),
                 ValDef(l1, Some(l.asTerm)),
-                '{ val _ = $l1Expr }.asTerm
+                suppressUnused(l1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -5180,31 +4188,31 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm,
+                suppressUnused(h1Expr),
                 ValDef(i1, Some(i.asTerm)),
-                '{ val _ = $i1Expr }.asTerm,
+                suppressUnused(i1Expr),
                 ValDef(j1, Some(j.asTerm)),
-                '{ val _ = $j1Expr }.asTerm,
+                suppressUnused(j1Expr),
                 ValDef(k1, Some(k.asTerm)),
-                '{ val _ = $k1Expr }.asTerm,
+                suppressUnused(k1Expr),
                 ValDef(l1, Some(l.asTerm)),
-                '{ val _ = $l1Expr }.asTerm,
+                suppressUnused(l1Expr),
                 ValDef(m1, Some(m.asTerm)),
-                '{ val _ = $m1Expr }.asTerm
+                suppressUnused(m1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -5266,33 +4274,33 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm,
+                suppressUnused(h1Expr),
                 ValDef(i1, Some(i.asTerm)),
-                '{ val _ = $i1Expr }.asTerm,
+                suppressUnused(i1Expr),
                 ValDef(j1, Some(j.asTerm)),
-                '{ val _ = $j1Expr }.asTerm,
+                suppressUnused(j1Expr),
                 ValDef(k1, Some(k.asTerm)),
-                '{ val _ = $k1Expr }.asTerm,
+                suppressUnused(k1Expr),
                 ValDef(l1, Some(l.asTerm)),
-                '{ val _ = $l1Expr }.asTerm,
+                suppressUnused(l1Expr),
                 ValDef(m1, Some(m.asTerm)),
-                '{ val _ = $m1Expr }.asTerm,
+                suppressUnused(m1Expr),
                 ValDef(n1, Some(n.asTerm)),
-                '{ val _ = $n1Expr }.asTerm
+                suppressUnused(n1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -5357,35 +4365,35 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm,
+                suppressUnused(h1Expr),
                 ValDef(i1, Some(i.asTerm)),
-                '{ val _ = $i1Expr }.asTerm,
+                suppressUnused(i1Expr),
                 ValDef(j1, Some(j.asTerm)),
-                '{ val _ = $j1Expr }.asTerm,
+                suppressUnused(j1Expr),
                 ValDef(k1, Some(k.asTerm)),
-                '{ val _ = $k1Expr }.asTerm,
+                suppressUnused(k1Expr),
                 ValDef(l1, Some(l.asTerm)),
-                '{ val _ = $l1Expr }.asTerm,
+                suppressUnused(l1Expr),
                 ValDef(m1, Some(m.asTerm)),
-                '{ val _ = $m1Expr }.asTerm,
+                suppressUnused(m1Expr),
                 ValDef(n1, Some(n.asTerm)),
-                '{ val _ = $n1Expr }.asTerm,
+                suppressUnused(n1Expr),
                 ValDef(o1, Some(o.asTerm)),
-                '{ val _ = $o1Expr }.asTerm
+                suppressUnused(o1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -5453,37 +4461,37 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm,
+                suppressUnused(h1Expr),
                 ValDef(i1, Some(i.asTerm)),
-                '{ val _ = $i1Expr }.asTerm,
+                suppressUnused(i1Expr),
                 ValDef(j1, Some(j.asTerm)),
-                '{ val _ = $j1Expr }.asTerm,
+                suppressUnused(j1Expr),
                 ValDef(k1, Some(k.asTerm)),
-                '{ val _ = $k1Expr }.asTerm,
+                suppressUnused(k1Expr),
                 ValDef(l1, Some(l.asTerm)),
-                '{ val _ = $l1Expr }.asTerm,
+                suppressUnused(l1Expr),
                 ValDef(m1, Some(m.asTerm)),
-                '{ val _ = $m1Expr }.asTerm,
+                suppressUnused(m1Expr),
                 ValDef(n1, Some(n.asTerm)),
-                '{ val _ = $n1Expr }.asTerm,
+                suppressUnused(n1Expr),
                 ValDef(o1, Some(o.asTerm)),
-                '{ val _ = $o1Expr }.asTerm,
+                suppressUnused(o1Expr),
                 ValDef(p1, Some(p.asTerm)),
-                '{ val _ = $p1Expr }.asTerm
+                suppressUnused(p1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -5554,39 +4562,39 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm,
+                suppressUnused(h1Expr),
                 ValDef(i1, Some(i.asTerm)),
-                '{ val _ = $i1Expr }.asTerm,
+                suppressUnused(i1Expr),
                 ValDef(j1, Some(j.asTerm)),
-                '{ val _ = $j1Expr }.asTerm,
+                suppressUnused(j1Expr),
                 ValDef(k1, Some(k.asTerm)),
-                '{ val _ = $k1Expr }.asTerm,
+                suppressUnused(k1Expr),
                 ValDef(l1, Some(l.asTerm)),
-                '{ val _ = $l1Expr }.asTerm,
+                suppressUnused(l1Expr),
                 ValDef(m1, Some(m.asTerm)),
-                '{ val _ = $m1Expr }.asTerm,
+                suppressUnused(m1Expr),
                 ValDef(n1, Some(n.asTerm)),
-                '{ val _ = $n1Expr }.asTerm,
+                suppressUnused(n1Expr),
                 ValDef(o1, Some(o.asTerm)),
-                '{ val _ = $o1Expr }.asTerm,
+                suppressUnused(o1Expr),
                 ValDef(p1, Some(p.asTerm)),
-                '{ val _ = $p1Expr }.asTerm,
+                suppressUnused(p1Expr),
                 ValDef(q1, Some(q.asTerm)),
-                '{ val _ = $q1Expr }.asTerm
+                suppressUnused(q1Expr)
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -5643,41 +4651,41 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm,
+                suppressUnused(h1Expr),
                 ValDef(i1, Some(i.asTerm)),
-                '{ val _ = $i1Expr }.asTerm,
+                suppressUnused(i1Expr),
                 ValDef(j1, Some(j.asTerm)),
-                '{ val _ = $j1Expr }.asTerm,
+                suppressUnused(j1Expr),
                 ValDef(k1, Some(k.asTerm)),
-                '{ val _ = $k1Expr }.asTerm,
+                suppressUnused(k1Expr),
                 ValDef(l1, Some(l.asTerm)),
-                '{ val _ = $l1Expr }.asTerm,
+                suppressUnused(l1Expr),
                 ValDef(m1, Some(m.asTerm)),
-                '{ val _ = $m1Expr }.asTerm,
+                suppressUnused(m1Expr),
                 ValDef(n1, Some(n.asTerm)),
-                '{ val _ = $n1Expr }.asTerm,
+                suppressUnused(n1Expr),
                 ValDef(o1, Some(o.asTerm)),
-                '{ val _ = $o1Expr }.asTerm,
+                suppressUnused(o1Expr),
                 ValDef(p1, Some(p.asTerm)),
-                '{ val _ = $p1Expr }.asTerm,
+                suppressUnused(p1Expr),
                 ValDef(q1, Some(q.asTerm)),
-                '{ val _ = $q1Expr }.asTerm,
+                suppressUnused(q1Expr),
                 ValDef(r1, Some(r.asTerm)),
-                '{ val _ = $r1Expr }.asTerm,
+                suppressUnused(r1Expr),
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -5737,43 +4745,43 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm,
+                suppressUnused(h1Expr),
                 ValDef(i1, Some(i.asTerm)),
-                '{ val _ = $i1Expr }.asTerm,
+                suppressUnused(i1Expr),
                 ValDef(j1, Some(j.asTerm)),
-                '{ val _ = $j1Expr }.asTerm,
+                suppressUnused(j1Expr),
                 ValDef(k1, Some(k.asTerm)),
-                '{ val _ = $k1Expr }.asTerm,
+                suppressUnused(k1Expr),
                 ValDef(l1, Some(l.asTerm)),
-                '{ val _ = $l1Expr }.asTerm,
+                suppressUnused(l1Expr),
                 ValDef(m1, Some(m.asTerm)),
-                '{ val _ = $m1Expr }.asTerm,
+                suppressUnused(m1Expr),
                 ValDef(n1, Some(n.asTerm)),
-                '{ val _ = $n1Expr }.asTerm,
+                suppressUnused(n1Expr),
                 ValDef(o1, Some(o.asTerm)),
-                '{ val _ = $o1Expr }.asTerm,
+                suppressUnused(o1Expr),
                 ValDef(p1, Some(p.asTerm)),
-                '{ val _ = $p1Expr }.asTerm,
+                suppressUnused(p1Expr),
                 ValDef(q1, Some(q.asTerm)),
-                '{ val _ = $q1Expr }.asTerm,
+                suppressUnused(q1Expr),
                 ValDef(r1, Some(r.asTerm)),
-                '{ val _ = $r1Expr }.asTerm,
+                suppressUnused(r1Expr),
                 ValDef(s1, Some(s.asTerm)),
-                '{ val _ = $s1Expr }.asTerm,
+                suppressUnused(s1Expr),
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -5835,45 +4843,45 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm,
+                suppressUnused(h1Expr),
                 ValDef(i1, Some(i.asTerm)),
-                '{ val _ = $i1Expr }.asTerm,
+                suppressUnused(i1Expr),
                 ValDef(j1, Some(j.asTerm)),
-                '{ val _ = $j1Expr }.asTerm,
+                suppressUnused(j1Expr),
                 ValDef(k1, Some(k.asTerm)),
-                '{ val _ = $k1Expr }.asTerm,
+                suppressUnused(k1Expr),
                 ValDef(l1, Some(l.asTerm)),
-                '{ val _ = $l1Expr }.asTerm,
+                suppressUnused(l1Expr),
                 ValDef(m1, Some(m.asTerm)),
-                '{ val _ = $m1Expr }.asTerm,
+                suppressUnused(m1Expr),
                 ValDef(n1, Some(n.asTerm)),
-                '{ val _ = $n1Expr }.asTerm,
+                suppressUnused(n1Expr),
                 ValDef(o1, Some(o.asTerm)),
-                '{ val _ = $o1Expr }.asTerm,
+                suppressUnused(o1Expr),
                 ValDef(p1, Some(p.asTerm)),
-                '{ val _ = $p1Expr }.asTerm,
+                suppressUnused(p1Expr),
                 ValDef(q1, Some(q.asTerm)),
-                '{ val _ = $q1Expr }.asTerm,
+                suppressUnused(q1Expr),
                 ValDef(r1, Some(r.asTerm)),
-                '{ val _ = $r1Expr }.asTerm,
+                suppressUnused(r1Expr),
                 ValDef(s1, Some(s.asTerm)),
-                '{ val _ = $s1Expr }.asTerm,
+                suppressUnused(s1Expr),
                 ValDef(t1, Some(t.asTerm)),
-                '{ val _ = $t1Expr }.asTerm,
+                suppressUnused(t1Expr),
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -5937,47 +4945,47 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T], u: Expr[U]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm,
+                suppressUnused(h1Expr),
                 ValDef(i1, Some(i.asTerm)),
-                '{ val _ = $i1Expr }.asTerm,
+                suppressUnused(i1Expr),
                 ValDef(j1, Some(j.asTerm)),
-                '{ val _ = $j1Expr }.asTerm,
+                suppressUnused(j1Expr),
                 ValDef(k1, Some(k.asTerm)),
-                '{ val _ = $k1Expr }.asTerm,
+                suppressUnused(k1Expr),
                 ValDef(l1, Some(l.asTerm)),
-                '{ val _ = $l1Expr }.asTerm,
+                suppressUnused(l1Expr),
                 ValDef(m1, Some(m.asTerm)),
-                '{ val _ = $m1Expr }.asTerm,
+                suppressUnused(m1Expr),
                 ValDef(n1, Some(n.asTerm)),
-                '{ val _ = $n1Expr }.asTerm,
+                suppressUnused(n1Expr),
                 ValDef(o1, Some(o.asTerm)),
-                '{ val _ = $o1Expr }.asTerm,
+                suppressUnused(o1Expr),
                 ValDef(p1, Some(p.asTerm)),
-                '{ val _ = $p1Expr }.asTerm,
+                suppressUnused(p1Expr),
                 ValDef(q1, Some(q.asTerm)),
-                '{ val _ = $q1Expr }.asTerm,
+                suppressUnused(q1Expr),
                 ValDef(r1, Some(r.asTerm)),
-                '{ val _ = $r1Expr }.asTerm,
+                suppressUnused(r1Expr),
                 ValDef(s1, Some(s.asTerm)),
-                '{ val _ = $s1Expr }.asTerm,
+                suppressUnused(s1Expr),
                 ValDef(t1, Some(t.asTerm)),
-                '{ val _ = $t1Expr }.asTerm,
+                suppressUnused(t1Expr),
                 ValDef(u1, Some(u.asTerm)),
-                '{ val _ = $u1Expr }.asTerm,
+                suppressUnused(u1Expr),
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]
@@ -6043,49 +5051,49 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             def mkBody(a: Expr[A], b: Expr[B], c: Expr[C], d: Expr[D], e: Expr[E], f: Expr[F], g: Expr[G], h: Expr[H], i: Expr[I], j: Expr[J], k: Expr[K], l: Expr[L], m: Expr[M], n: Expr[N], o: Expr[O], p: Expr[P], q: Expr[Q], r: Expr[R], s: Expr[S], t: Expr[T], u: Expr[U], v: Expr[V]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
-                '{ val _ = $a1Expr }.asTerm,
+                suppressUnused(a1Expr),
                 ValDef(b1, Some(b.asTerm)),
-                '{ val _ = $b1Expr }.asTerm,
+                suppressUnused(b1Expr),
                 ValDef(c1, Some(c.asTerm)),
-                '{ val _ = $c1Expr }.asTerm,
+                suppressUnused(c1Expr),
                 ValDef(d1, Some(d.asTerm)),
-                '{ val _ = $d1Expr }.asTerm,
+                suppressUnused(d1Expr),
                 ValDef(e1, Some(e.asTerm)),
-                '{ val _ = $e1Expr }.asTerm,
+                suppressUnused(e1Expr),
                 ValDef(f1, Some(f.asTerm)),
-                '{ val _ = $f1Expr }.asTerm,
+                suppressUnused(f1Expr),
                 ValDef(g1, Some(g.asTerm)),
-                '{ val _ = $g1Expr }.asTerm,
+                suppressUnused(g1Expr),
                 ValDef(h1, Some(h.asTerm)),
-                '{ val _ = $h1Expr }.asTerm,
+                suppressUnused(h1Expr),
                 ValDef(i1, Some(i.asTerm)),
-                '{ val _ = $i1Expr }.asTerm,
+                suppressUnused(i1Expr),
                 ValDef(j1, Some(j.asTerm)),
-                '{ val _ = $j1Expr }.asTerm,
+                suppressUnused(j1Expr),
                 ValDef(k1, Some(k.asTerm)),
-                '{ val _ = $k1Expr }.asTerm,
+                suppressUnused(k1Expr),
                 ValDef(l1, Some(l.asTerm)),
-                '{ val _ = $l1Expr }.asTerm,
+                suppressUnused(l1Expr),
                 ValDef(m1, Some(m.asTerm)),
-                '{ val _ = $m1Expr }.asTerm,
+                suppressUnused(m1Expr),
                 ValDef(n1, Some(n.asTerm)),
-                '{ val _ = $n1Expr }.asTerm,
+                suppressUnused(n1Expr),
                 ValDef(o1, Some(o.asTerm)),
-                '{ val _ = $o1Expr }.asTerm,
+                suppressUnused(o1Expr),
                 ValDef(p1, Some(p.asTerm)),
-                '{ val _ = $p1Expr }.asTerm,
+                suppressUnused(p1Expr),
                 ValDef(q1, Some(q.asTerm)),
-                '{ val _ = $q1Expr }.asTerm,
+                suppressUnused(q1Expr),
                 ValDef(r1, Some(r.asTerm)),
-                '{ val _ = $r1Expr }.asTerm,
+                suppressUnused(r1Expr),
                 ValDef(s1, Some(s.asTerm)),
-                '{ val _ = $s1Expr }.asTerm,
+                suppressUnused(s1Expr),
                 ValDef(t1, Some(t.asTerm)),
-                '{ val _ = $t1Expr }.asTerm,
+                suppressUnused(t1Expr),
                 ValDef(u1, Some(u.asTerm)),
-                '{ val _ = $u1Expr }.asTerm,
+                suppressUnused(u1Expr),
                 ValDef(v1, Some(v.asTerm)),
-                '{ val _ = $v1Expr }.asTerm,
+                suppressUnused(v1Expr),
               ),
               body.resetOwner.asTerm
             ).asExprOf[To]

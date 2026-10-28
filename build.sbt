@@ -694,7 +694,7 @@ lazy val hearthTests = projectMatrix
       for3 = Seq(),
       for2_13 = Seq("org.scala-lang.modules" %% "scala-xml" % versions.scalaXml)
     ),
-    coverageExcludedFiles := ".*Fixtures;.*FixturesImpl;.*/hearth/examples/.*",
+    coverageExcludedFiles := ".*Fixtures;.*FixturesImpl;.*FixturesImplGen;.*/hearth/examples/.*",
     evictionErrorLevel := Level.Warn,
     scalacOptions ++= Seq(
       "-Xmacro-settings:hearth.betterPrintersShouldFailOnUnsupportedTree=true",
