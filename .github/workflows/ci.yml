@@ -80,7 +80,7 @@ jobs:
         scala: ['2_13', '3']
         platform: ['jvm', 'js', 'native']
         jvm: ['temurin:1.11.0.28', 'temurin:1.17.0.15', 'temurin:1.24.0.2', 'temurin:1.25.0.0']
-        tier: ['lts', 'next-lts']  # 'next' (3.10-RC1) excluded until macro inference changes are addressed
+        tier: ['lts', 'next-lts', 'next']
         # Tier rows are JVM-only regression tests, not published.
         # Next tier is Scala 3 only (no 2.13 cross-compilation).
         # LTS Scala 3 runs on JDK 11+; tier rows need JDK 17+.

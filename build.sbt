@@ -16,7 +16,7 @@ val versions = new {
   // Regression test versions (always-visible tier rows, not env-var-controlled).
   val scala213NextLts = "2.13.18"
   val scala3NextLts = "3.9.0"
-  val scala3Next = "3.10.1-RC1" // blocked by https://github.com/scala/scala3/issues/26947
+  val scala3Next = "3.10.1-RC1"
 
   // Which versions should be cross-compiled for publishing.
   val scalas = List(scala213, scala3)
