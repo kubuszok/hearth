@@ -52,11 +52,15 @@ object ExprsEdgeCasesFixtures {
   private def testSemiEvalOutcomeImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsEdgeCasesFixtures(q).testSemiEvalOutcome[A](expr)
 
-  inline def testSemiEvalApply[F](inline function: F, inline args: Any*): Data = ${ testSemiEvalApplyImpl[F]('function, 'args) }
+  inline def testSemiEvalApply[F](inline function: F, inline args: Any*): Data = ${
+    testSemiEvalApplyImpl[F]('function, 'args)
+  }
   private def testSemiEvalApplyImpl[F: Type](function: Expr[F], args: Expr[Seq[Any]])(using q: Quotes): Expr[Data] =
     new ExprsEdgeCasesFixtures(q).testSemiEvalApply[F](function, args)
 
-  inline def testSemiEvalWithOverride[A](inline mode: String, inline expr: A): Data = ${ testSemiEvalWithOverrideImpl[A]('mode, 'expr) }
+  inline def testSemiEvalWithOverride[A](inline mode: String, inline expr: A): Data = ${
+    testSemiEvalWithOverrideImpl[A]('mode, 'expr)
+  }
   private def testSemiEvalWithOverrideImpl[A: Type](mode: Expr[String], expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsEdgeCasesFixtures(q).testSemiEvalWithOverride[A](mode, expr)
 
@@ -80,7 +84,9 @@ object ExprsEdgeCasesFixtures {
   private def testExprCodecDerivedAtRuntimeImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsEdgeCasesFixtures(q).testExprCodecDerivedAtRuntime[A](expr)
 
-  inline def testSemiQuoteRoundTripAtRuntime[A](inline expr: A): Data = ${ testSemiQuoteRoundTripAtRuntimeImpl[A]('expr) }
+  inline def testSemiQuoteRoundTripAtRuntime[A](inline expr: A): Data = ${
+    testSemiQuoteRoundTripAtRuntimeImpl[A]('expr)
+  }
   private def testSemiQuoteRoundTripAtRuntimeImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsEdgeCasesFixtures(q).testSemiQuoteRoundTripAtRuntime[A](expr)
 
@@ -96,8 +102,12 @@ object ExprsEdgeCasesFixtures {
   private def testFreshNamesImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
     new ExprsEdgeCasesFixtures(q).testFreshNames[A](expr)
 
-  inline def testMatchCaseEqValueAgainst[A](inline expr: A, inline expected: A): String = ${ testMatchCaseEqValueAgainstImpl[A]('expr, 'expected) }
-  private def testMatchCaseEqValueAgainstImpl[A: Type](expr: Expr[A], expected: Expr[A])(using q: Quotes): Expr[String] =
+  inline def testMatchCaseEqValueAgainst[A](inline expr: A, inline expected: A): String = ${
+    testMatchCaseEqValueAgainstImpl[A]('expr, 'expected)
+  }
+  private def testMatchCaseEqValueAgainstImpl[A: Type](expr: Expr[A], expected: Expr[A])(using
+      q: Quotes
+  ): Expr[String] =
     new ExprsEdgeCasesFixtures(q).testMatchCaseEqValueAgainst[A](expr, expected)
 
   inline def testMatchCaseTypeTestMatch[A, B](inline expr: A): String = ${ testMatchCaseTypeTestMatchImpl[A, B]('expr) }
@@ -108,8 +118,12 @@ object ExprsEdgeCasesFixtures {
   private def testDirectStyleWithoutRunSafeImpl(using q: Quotes): Expr[Data] =
     new ExprsEdgeCasesFixtures(q).testDirectStyleWithoutRunSafe
 
-  inline def testValDefsEvaluationCount(inline kind: String, inline effect: Int, inline useIt: Boolean): Int = ${ testValDefsEvaluationCountImpl('kind, 'effect, 'useIt) }
-  private def testValDefsEvaluationCountImpl(kind: Expr[String], effect: Expr[Int], useIt: Expr[Boolean])(using q: Quotes): Expr[Int] =
+  inline def testValDefsEvaluationCount(inline kind: String, inline effect: Int, inline useIt: Boolean): Int = ${
+    testValDefsEvaluationCountImpl('kind, 'effect, 'useIt)
+  }
+  private def testValDefsEvaluationCountImpl(kind: Expr[String], effect: Expr[Int], useIt: Expr[Boolean])(using
+      q: Quotes
+  ): Expr[Int] =
     new ExprsEdgeCasesFixtures(q).testValDefsEvaluationCount(kind, effect, useIt)
 
   inline def testValDefsSamePrefixDoNotClash: Int = ${ testValDefsSamePrefixDoNotClashImpl }

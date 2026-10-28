@@ -112,7 +112,7 @@ final class MioCombinatorsSpec extends Suite {
 
     test("flatTap and mapTap should run the side effect and keep the original value") {
       var tapped = 0
-      MIO.pure(1).flatTap(a => MIO { tapped += a }).unsafe.runSync._2 ==> Right(1)
+      MIO.pure(1).flatTap(a => MIO(tapped += a)).unsafe.runSync._2 ==> Right(1)
       MIO.pure(2).mapTap(a => tapped += a).unsafe.runSync._2 ==> Right(2)
       tapped ==> 3
     }
@@ -178,8 +178,8 @@ final class MioCombinatorsSpec extends Suite {
     }
 
     test("valueAs* should log a message computed from the value") {
-      val program = MIO.pure(1).log.valueAsInfo(a => s"info $a").log.valueAsWarn(a => s"warn $a").log.valueAsError {
-        a => s"error $a"
+      val program = MIO.pure(1).log.valueAsInfo(a => s"info $a").log.valueAsWarn(a => s"warn $a").log.valueAsError { a =>
+        s"error $a"
       }
       val (state, result) = program.unsafe.runSync
       result ==> Right(1)
@@ -235,7 +235,9 @@ final class MioCombinatorsSpec extends Suite {
     }
 
     test("onlyInfo, onlyWarn and onlyError should render just the entries of a single level") {
-      withoutDurations(logs.render.onlyInfo("root")) <==> "root:\n├ [Info]  info message\n└ only info inside:\n  └ [Info]  nested info"
+      withoutDurations(
+        logs.render.onlyInfo("root")
+      ) <==> "root:\n├ [Info]  info message\n└ only info inside:\n  └ [Info]  nested info"
       logs.render.onlyWarn("root") <==> "root:\n└ [Warn]  warn message"
       logs.render.onlyError("root") <==> "root:\n└ [Error] error message"
     }
@@ -264,7 +266,8 @@ final class MioCombinatorsSpec extends Suite {
       val local = MLocal(0)(_ * 10)(_ + _)
       val branchA = local.get.flatMap(a => local.set(a + 1).as(a))
       val branchB = local.get.flatMap(b => local.set(b + 2).as(b))
-      (local.set(1) >> branchA.parTuple(branchB).map2(local.get)((seen, joined) => (seen, joined))).unsafe.runSync._2 ==>
+      (local
+        .set(1) >> branchA.parTuple(branchB).map2(local.get)((seen, joined) => (seen, joined))).unsafe.runSync._2 ==>
         Right(((10, 10), 11 + 12))
     }
 

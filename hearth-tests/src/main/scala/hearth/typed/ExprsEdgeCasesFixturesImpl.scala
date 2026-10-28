@@ -142,20 +142,21 @@ trait ExprsEdgeCasesFixturesImpl { this: MacroCommons =>
       else
         function.semiEval.flatMap { value =>
           val xs = evaluatedArgs.collect { case Right(arg) => arg }
-          try Right(xs.length match {
-            case 0 => value.asInstanceOf[() => Any]()
-            case 1 => value.asInstanceOf[Any => Any](xs(0))
-            case 2 => value.asInstanceOf[(Any, Any) => Any](xs(0), xs(1))
-            case 3 => value.asInstanceOf[(Any, Any, Any) => Any](xs(0), xs(1), xs(2))
-            case _ =>
-              // Above arity 22 Scala 3 compiles lambdas to `scala.runtime.FunctionXXL`, whose only `apply` takes all
-              // arguments as one array.
-              val applyAll = value.getClass.getMethods
-                .find(m => m.getName == "apply" && m.getParameterTypes.toList == List(classOf[Array[Object]]))
-                .getOrElse(throw new NoSuchMethodException(s"apply(Object[]) on ${value.getClass.getName}"))
-              val argArray: Array[Object] = xs.map(_.asInstanceOf[Object]).toArray
-              applyAll.invoke(value, argArray)
-          })
+          try
+            Right(xs.length match {
+              case 0 => value.asInstanceOf[() => Any]()
+              case 1 => value.asInstanceOf[Any => Any](xs(0))
+              case 2 => value.asInstanceOf[(Any, Any) => Any](xs(0), xs(1))
+              case 3 => value.asInstanceOf[(Any, Any, Any) => Any](xs(0), xs(1), xs(2))
+              case _ =>
+                // Above arity 22 Scala 3 compiles lambdas to `scala.runtime.FunctionXXL`, whose only `apply` takes all
+                // arguments as one array.
+                val applyAll = value.getClass.getMethods
+                  .find(m => m.getName == "apply" && m.getParameterTypes.toList == List(classOf[Array[Object]]))
+                  .getOrElse(throw new NoSuchMethodException(s"apply(Object[]) on ${value.getClass.getName}"))
+                val argArray: Array[Object] = xs.map(_.asInstanceOf[Object]).toArray
+                applyAll.invoke(value, argArray)
+            })
           catch {
             // A lambda body is only evaluated when the function is applied, so its failures surface here.
             case e: Throwable =>
@@ -282,9 +283,8 @@ trait ExprsEdgeCasesFixturesImpl { this: MacroCommons =>
 
   // built-in ExprCodecs
 
-  private def shownAtRuntime(expr: Expr[Any]): Expr[String] = {
+  private def shownAtRuntime(expr: Expr[Any]): Expr[String] =
     Expr.quote(hearth.examples.exprsedge.RuntimeShow.show(Expr.splice(expr)))
-  }
 
   private def codecRoundtrip[A: ExprCodec](value: A): Expr[Data] = {
     val encoded = Expr(value)
