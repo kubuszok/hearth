@@ -110,7 +110,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         // baseClasses of each base (excluding the base itself and self), used to drop transitive ancestors.
         val ancestorsOfBases: Set[Symbol] =
           bases.flatMap(b => typeReprBaseClasses(b.typeRef).filterNot(s => s == b || s == selfSym)).toSet
-        bases.filterNot(ancestorsOfBases.contains).map(tpe.baseType)
+        // The linearization lists the mixins last-declared first (`class C extends A with T1 with T2` gives T2, T1, A),
+        // so reversing it gives the declaration order.
+        bases.filterNot(ancestorsOfBases.contains).reverse.map(tpe.baseType)
       }
 
       /** Makes an annotation tree obtained from `Symbol.annotations` spliceable into macro output.
@@ -376,9 +378,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def parents(instanceTpe: UntypedType): List[UntypedType] =
       instanceTpe.dealias match {
         case AndType(left, right) => List(left, right)
-        case _                    =>
-          if instanceTpe.typeSymbol.isNoSymbol then Nil
-          else typeReprDirectParents(instanceTpe)
+        case dealiased            =>
+          if dealiased.typeSymbol.isNoSymbol then Nil
+          else typeReprDirectParents(dealiased)
       }
 
     override def baseClasses(instanceTpe: UntypedType): List[UntypedType] =
