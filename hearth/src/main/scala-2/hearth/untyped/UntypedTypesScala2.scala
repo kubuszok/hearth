@@ -530,13 +530,11 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       } else if (isSealed(instanceTpe)) {
         forceTypeSymbolInitialization(A)
 
-        def extractRecursively(t: TypeSymbol): Vector[TypeSymbol] =
-          if (t.asClass.isSealed) t.asClass.knownDirectSubclasses.toVector.map(_.asType).flatMap(extractRecursively)
-          else Vector(t)
-
         Some(
           // calling .distinct here as `knownDirectSubclasses` returns duplicates for multiply-inherited types
-          extractRecursively(A.asType).distinct
+          A.asClass.knownDirectSubclasses.toVector
+            .map(_.asType)
+            .distinct
             .sorted(symbolOrdering)
             .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
             .toList
