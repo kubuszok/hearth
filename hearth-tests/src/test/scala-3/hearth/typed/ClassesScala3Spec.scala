@@ -210,9 +210,9 @@ final class ClassesScala3Spec extends MacroSuite {
       import ClassesFixtures.testEnumParseDiagnostic
 
       testEnumParseDiagnostic[examples.unions.ListIntOrListString] <==>
-        "scala.collection.immutable.List[scala.Int] | scala.collection.immutable.List[scala.Predef.String] is sealed/enumeration/union but has no direct children: " +
-        "union member scala.collection.immutable.List[scala.Int] is not runtime-distinguishable; provide an implicit scala.reflect.TypeTest[scala.collection.immutable.List[scala.Int] | scala.collection.immutable.List[scala.Predef.String], scala.collection.immutable.List[scala.Int]], " +
-        "union member scala.collection.immutable.List[java.lang.String] is not runtime-distinguishable; provide an implicit scala.reflect.TypeTest[scala.collection.immutable.List[scala.Int] | scala.collection.immutable.List[scala.Predef.String], scala.collection.immutable.List[java.lang.String]]"
+        "scala.collection.immutable.List[scala.Int] | scala.collection.immutable.List[java.lang.String] is sealed/enumeration/union but has no direct children: " +
+        "union member scala.collection.immutable.List[scala.Int] is not runtime-distinguishable; provide an implicit scala.reflect.TypeTest[scala.collection.immutable.List[scala.Int] | scala.collection.immutable.List[java.lang.String], scala.collection.immutable.List[scala.Int]], " +
+        "union member scala.collection.immutable.List[java.lang.String] is not runtime-distinguishable; provide an implicit scala.reflect.TypeTest[scala.collection.immutable.List[scala.Int] | scala.collection.immutable.List[java.lang.String], scala.collection.immutable.List[java.lang.String]]"
     }
 
     test(

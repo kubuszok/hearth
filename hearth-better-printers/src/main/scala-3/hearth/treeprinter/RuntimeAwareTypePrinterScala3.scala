@@ -42,7 +42,10 @@ trait RuntimeAwareTypePrinterScala3 {
         case AppliedType(tycon, args) => AppliedType(dealiasAll(tycon), args.map(dealiasAll(_)))
         case OrType(left, right)      => OrType(dealiasAll(left), dealiasAll(right))
         case AndType(left, right)     => AndType(dealiasAll(left), dealiasAll(right))
-        case _                        => tpe.dealias
+        // An alias of an applied type dealiases into one whose arguments can be aliases themselves.
+        case _ =>
+          val dealiased = tpe.dealias
+          if dealiased != tpe then dealiasAll(dealiased) else dealiased
       }
 
     private def flattenCompoundType(tpe: TypeRepr): Option[(List[TypeRepr], String)] =
