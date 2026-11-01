@@ -1041,8 +1041,14 @@ trait ShowCodePrettyScala2 {
         case _ =>
           val (wrapWithParens, useHash) = pre match {
             case _: RefinedType => (true, true)
-            case _: TypeRef     => (false, sym.isAbstractType)
-            case _              => (false, false)
+            // A prefix that is a class's type (not a module's or a package's) is a type projection: `Outer#Inner`.
+            case prefix: TypeRef =>
+              val prefixSym = prefix.typeSymbol
+              (
+                false,
+                sym.isAbstractType || (prefixSym.isClass && !prefixSym.isModuleClass && !prefixSym.isPackageClass)
+              )
+            case _ => (false, false)
           }
           if (wrapWithParens) print("(")
           processTypePrinting(pre, isLastInChain = false)
