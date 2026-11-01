@@ -76,22 +76,33 @@ trait ExprCodecDerivation { this: MacroCommons =>
       value: A,
       en: Enum[A],
       overrides: UntypedType => Existential[QuoteOverride]
-  ): Either[String, Expr[A]] =
+  ): Either[String, Expr[A]] = {
     // Dispatch on the value's RUNTIME CLASS, not on `getClass.getSimpleName` matched against the child's key: the
     // simple name is JVM-encoded (`$colon$colon` for `::`, so `List` would never dispatch) and same-simple-name
     // children in different scopes collide. `isInstance` selects the (unique, since children are disjoint) child
     // whose type the value belongs to; nested sealed hierarchies recurse through `semiQuoteInternal`.
-    en.directChildren.iterator
-      .flatMap { case (_, childType) =>
-        import childType.Underlying as C
-        if (Type.classOfType[C].exists(_.isInstance(value)))
-          Iterator.single(semiQuoteInternal[C](value.asInstanceOf[C], overrides).map(_.upcast[A]))
-        else Iterator.empty
+    //
+    // Singleton children (case objects, Scala 3 enum cases, Java enum and `Enumeration` values) are matched by value
+    // first: several of them can share one runtime class (all values of a Java enum or an `Enumeration`, or the
+    // anonymous class Scala 3 uses for every parameterless enum case), so `isInstance` cannot tell them apart.
+    val singletonChild = en.directChildren.iterator.flatMap { case (_, childType) =>
+      import childType.Underlying as C
+      SingletonValue.parse[C].toOption.iterator.collect {
+        case sv if sv.singletonExpr.semiEval.toOption.contains(value) => Right(sv.singletonExpr.upcast[A])
       }
+    }
+    def instanceChild = en.directChildren.iterator.flatMap { case (_, childType) =>
+      import childType.Underlying as C
+      if (SingletonValue.parse[C].toOption.isEmpty && Type.classOfType[C].exists(_.isInstance(value)))
+        Iterator.single(semiQuoteInternal[C](value.asInstanceOf[C], overrides).map(_.upcast[A]))
+      else Iterator.empty
+    }
+    (singletonChild ++ instanceChild)
       .nextOption()
       .getOrElse(
         Left(s"No child of ${Type.prettyPrint[A]} matches runtime class ${value.getClass.getName}")
       )
+  }
 
   // -- ExprCodec.derived --
 
