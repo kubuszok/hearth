@@ -1044,7 +1044,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     }
 
     private def unsortedMethodsOfSingleSymbol(instanceTpe: UntypedType): List[UntypedMethod] = {
-      val symbol = instanceTpe.typeSymbol
+      // An alias's own symbol has no case fields nor primary constructor; those of the aliased class do.
+      val symbol = instanceTpe.dealias.typeSymbol
       // `fieldMembers` only returns the type's OWN fields, so `val` fields inherited from parent CLASSES (e.g. the
       // constructor vals of an abstract parent) are neither methods nor own fields and would vanish entirely. Walk the
       // base classes and pick up their public, non-synthetic fields, deduplicating by name (closest class wins, since
