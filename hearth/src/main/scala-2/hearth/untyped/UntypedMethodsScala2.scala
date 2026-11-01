@@ -605,9 +605,12 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         // (`AnnotatedType`, e.g. `String @Ann` on a case-field getter) from the result on Scala 2.13. The raw
         // `typeSignature` keeps them, so we recover the annotations from ITS result type and re-apply `asSeenFrom` to
         // the underlying.
+        // The compiler marks the result of every default-argument getter `@uncheckedVariance`, which the user never wrote.
         val resultType = untyped.symbol.typeSignature.finalResultType match {
           case AnnotatedType(annots, underlying) =>
-            internal.annotatedType(annots, underlying.asSeenFrom(instanceTpe, untyped.symbol.owner))
+            val userAnnots = annots.filterNot(_.tree.tpe =:= uncheckedVarianceType)
+            val seenFrom = underlying.asSeenFrom(instanceTpe, untyped.symbol.owner)
+            if (userAnnots.isEmpty) seenFrom else internal.annotatedType(userAnnots, seenFrom)
           case _ => sig.finalResultType
         }
         resultType
@@ -782,6 +785,9 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
     // When behavior between Scala 2 and 3 is different, and it makes sense to align them, we have to decide which behavior is
     // "saner" and which one needs adjustment. Below are methods used to adjust behavior on Scala 2 side.
+
+    private[UntypedMethodsScala2] lazy val uncheckedVarianceType: c.Type =
+      c.weakTypeOf[scala.annotation.unchecked.uncheckedVariance]
 
     // Both filter sets below derive from java.lang.Object's members; the walk is done once (lazily - module init
     // runs on every macro expansion) and shared, instead of once per set.
