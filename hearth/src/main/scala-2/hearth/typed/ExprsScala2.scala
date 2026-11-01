@@ -185,13 +185,20 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         // For Java enum value types like ExampleJavaEnum(VALUE1) from directChildren
         else if (UntypedType.isJavaEnumValue(tpe)) {
           import Type.platformSpecific.javaEnumRegexpFormat
-          tpe.toString match {
-            case javaEnumRegexpFormat(_, valueName) =>
-              val enumClassType = sym.asType.toType
-              enumClassType.companion.decls
-                .find(s => s.isJavaEnum && s.name.toString == valueName)
-                .map(vs => c.Expr[A](c.universe.internal.gen.mkAttributedRef(vs.asTerm)))
-            case _ => None
+          tpe.dealias match {
+            // A Java enum value's type is a constant type holding the value's own symbol, and the compiler refers to
+            // the value with a literal of that constant (which, unlike a reference to the static field, `semiEval` reads).
+            case ConstantType(constant @ Constant(_: Symbol)) =>
+              Some(c.Expr[A](c.universe.internal.setType(Literal(constant), tpe)))
+            case _ =>
+              tpe.toString match {
+                case javaEnumRegexpFormat(_, valueName) =>
+                  val enumClassType = sym.asType.toType
+                  enumClassType.companion.decls
+                    .find(s => s.isJavaEnum && s.name.toString == valueName)
+                    .map(vs => c.Expr[A](c.universe.internal.gen.mkAttributedRef(vs.asTerm)))
+                case _ => None
+              }
           }
         } else None
       }
@@ -234,6 +241,16 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           }
         }
         tree match {
+          // A Java enum value is constant-folded into a literal whose value is the compiler's symbol of the enum value
+          // (only flagged `isJavaEnum` when the enum comes from a classfile, not from a Java source of the same module).
+          case Literal(Constant(enumValue: Symbol)) =>
+            UntypedType
+              .toClass(tree.tpe.widen)
+              .flatMap(enumClass =>
+                scala.util.Try(enumClass.getField(enumValue.name.decodedName.toString).get(null)).toOption
+              )
+              .toRight(NonEmptyVector.one(s"Cannot load the Java enum value ${enumValue.fullName}"))
+
           case Literal(Constant(value)) =>
             Right(value)
 

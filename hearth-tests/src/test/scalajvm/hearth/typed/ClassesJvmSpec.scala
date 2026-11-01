@@ -157,15 +157,20 @@ final class ClassesJvmSpec extends MacroSuite {
         testSingletonRoundTrip
       }
 
+      // Scala 2 widens a Java enum value's singleton type written in the source (`ExampleJavaEnum.VALUE1.type`) to the
+      // enum before a macro sees it; only the values' types listed by `directChildren` keep the value.
       test("Class.apply picks the most specific view for Java enums, their values and Java beans") {
         testClassViewKind[examples.enums.ExampleJavaEnum] <==> "Enum"
-        testClassViewKind[examples.enums.ExampleJavaEnum.VALUE1.type] <==> "SingletonValue"
+        testClassViewKind[examples.enums.ExampleJavaEnum.VALUE1.type] <==>
+          (if (LanguageVersion.byHearth.isScala2_13) "Enum" else "SingletonValue")
         testClassViewKind[examples.classes.ExampleJavaClass] <==> "JavaBean"
       }
 
       test("SingletonValue for Java enum values") {
-        testSingletonRoundTrip[examples.enums.ExampleJavaEnum.VALUE1.type] <==> "VALUE1"
-        testSingletonRoundTrip[examples.enums.ExampleJavaEnum.VALUE2.type] <==> "VALUE2"
+        val noSingletonOnScala2 =
+          (value: String) => if (LanguageVersion.byHearth.isScala2_13) "<no singleton>" else value
+        testSingletonRoundTrip[examples.enums.ExampleJavaEnum.VALUE1.type] <==> noSingletonOnScala2("VALUE1")
+        testSingletonRoundTrip[examples.enums.ExampleJavaEnum.VALUE2.type] <==> noSingletonOnScala2("VALUE2")
       }
 
       test("JavaBean getters and setters of a Java class") {
