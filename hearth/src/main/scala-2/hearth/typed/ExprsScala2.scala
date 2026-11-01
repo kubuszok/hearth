@@ -3903,7 +3903,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
   sealed private trait DstrCallStep
   final private case class DstrTypeStep(targs: List[Tree]) extends DstrCallStep
-  final private case class DstrValueStep(args: List[Tree]) extends DstrCallStep
+  // `funTpe` is the type of the applied function, whose parameter types are instantiated even for a generic method.
+  final private case class DstrValueStep(args: List[Tree], funTpe: c.Type) extends DstrCallStep
 
   private def dstrTpeOf(tree: Tree): ?? =
     if (tree.tpe != null && tree.tpe != NoType) UntypedType.as_??(tree.tpe.widen)
@@ -4042,7 +4043,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
   private def dstrFlattenCall(tree: Tree): (Tree, List[DstrCallStep]) = tree match {
     case Apply(inner, args) =>
       val (core, steps) = dstrFlattenCall(inner)
-      (core, steps :+ DstrValueStep(args))
+      (core, steps :+ DstrValueStep(args, inner.tpe))
     case TypeApply(inner, targs) =>
       val (core, steps) = dstrFlattenCall(inner)
       (core, steps :+ DstrTypeStep(targs))
@@ -4062,10 +4063,15 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     steps.foreach {
       case DstrTypeStep(targs) =>
         applied += new DestructuredExpr.MethodCall.AppliedTypes(targs.map(dstrTpeOf))
-      case DstrValueStep(args) =>
+      case DstrValueStep(args, funTpe) =>
         val clause = parameterClauses.lift(valueClauseIdx)
         valueClauseIdx += 1
-        applied += new DestructuredExpr.MethodCall.AppliedValues(dstrValueArgs(args, clause, lambdaParams))
+        val values = clause match {
+          case Some(_) => dstrValueArgs(args, clause, lambdaParams)
+          // A generic method has no typed parameters until its type arguments are applied.
+          case None => dstrValueArgsByFunctionType(args, funTpe, lambdaParams)
+        }
+        applied += new DestructuredExpr.MethodCall.AppliedValues(values)
     }
   }
 
@@ -4092,6 +4098,25 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     case _ =>
       args.map(dstrImpl(_, lambdaParams))
+  }
+
+  private def dstrValueArgsByFunctionType(
+      args: List[Tree],
+      funTpe: c.Type,
+      lambdaParams: Map[Symbol, DestructuredExpr.Binding]
+  ): List[DestructuredExpr] = {
+    val params = if (funTpe == null) Nil else funTpe.paramLists.headOption.getOrElse(Nil)
+    params.lastOption.map(_.typeSignature) match {
+      case Some(TypeRef(_, repeated, List(element)))
+          if repeated == definitions.RepeatedParamClass && !dstrIsSpreadCall(args, params.size) =>
+        val (regular, rest) = args.splitAt(params.size - 1)
+        regular.map(dstrImpl(_, lambdaParams)) :+ new DestructuredExpr.Varargs(
+          UntypedType.as_??(appliedType(typeOf[scala.collection.immutable.Seq[Any]].typeConstructor, element)),
+          rest.map(dstrImpl(_, lambdaParams)),
+          () => q"_root_.scala.collection.immutable.Seq(..$rest)"
+        )
+      case _ => args.map(dstrImpl(_, lambdaParams))
+    }
   }
 
   private def dstrIsSpreadCall(args: List[Tree], clauseSize: Int): Boolean =
