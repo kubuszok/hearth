@@ -3941,11 +3941,37 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
             (tree.symbol.isModule || tree.symbol.isModuleClass) =>
         new DestructuredExpr.Singleton(dstrTpeOf(tree), name.decodedName.toString, () => tree)
 
+      case _ if dstrSingletonPath(tree).isDefined =>
+        new DestructuredExpr.Singleton(dstrTpeOf(tree), dstrSingletonPath(tree).get, () => tree)
+
       case _ =>
         dstrTryMethodCall(tree, lambdaParams).getOrElse {
           new DestructuredExpr.NonDestructurable(dstrTpeOf(tree), tree, showCode(tree))
         }
     }
+
+  // A qualified reference to an object (`Shape.Circle`, `scala.None`) is a `Select`, not an `Ident`, and `Nil` is a
+  // `val` of the `scala` package object whose type is an object. They are named by their path of enclosing objects,
+  // without the packages.
+  private def dstrSingletonPath(tree: Tree): Option[String] = {
+    def isPackageLike(sym: Symbol): Boolean =
+      sym.isPackage || sym.isPackageClass || sym.name.decodedName.toString == "package"
+    def isObject(sym: Symbol): Boolean = (sym.isModule || sym.isModuleClass) && !isPackageLike(sym)
+    def isStableValue(sym: Symbol): Boolean =
+      sym.isTerm && sym.asTerm.isStable && (!sym.isMethod || sym.asMethod.paramLists.isEmpty)
+    val sym = tree.symbol
+    val isSingleton = sym != null && sym != NoSymbol && !isPackageLike(sym) &&
+      (isObject(sym) || (isStableValue(sym) && tree.tpe != null && isObject(tree.tpe.widen.typeSymbol)))
+    def path(sym: Symbol): String = {
+      val owner = sym.owner
+      val name = sym.name.decodedName.toString
+      if (owner != NoSymbol && isObject(owner)) s"${path(owner)}.$name" else name
+    }
+    tree match {
+      case _: Select if isSingleton => Some(path(sym))
+      case _                        => None
+    }
+  }
 
   private def dstrTryConstructor(
       core: Tree,
