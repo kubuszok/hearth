@@ -878,7 +878,7 @@ trait Classes { this: MacroCommons =>
           .createVal(constructorExpr)
           .parTraverse { constructorResult =>
             beanSetters
-              .traverse(applySetters(constructorResult, setField))
+              .parTraverse(applySetters(constructorResult, setField))
               .map(combineSetterResults(constructorResult))
           }
           .map(_.close)
@@ -886,7 +886,7 @@ trait Classes { this: MacroCommons =>
     def parConstructWithSetters[F[_]: DirectStyle: Parallel](
         setField: (String, Parameter) => F[Expr_??]
     ): F[Option[Expr[A]]] =
-      constructWithSetters(JavaBean.SetField.apply[F](setField))
+      parConstructWithSetters(JavaBean.SetField.apply[F](setField))
 
     private def applySetters[F[_]: DirectStyle](constructorResult: Expr[A], setField: JavaBean.SetField[F])(
         setter: Method
