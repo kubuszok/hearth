@@ -174,7 +174,7 @@ final class MethodsJvmSpec extends MacroSuite {
                 "invocation" -> Data("OnInstance"),
                 "hasTypeParameters" -> Data(
                   !LanguageVersion.byHearth.isScala2_13
-                ), // On Scala 3 it _has_ type parameter...
+                ), // On Scala 3 it _has_ type parameter
                 "position" -> Data("None"),
                 "annotations" -> envDependentAnnotations(intrinsicCandidate, "new scala.native()"),
                 "isConstructor" -> Data(false),
@@ -200,17 +200,13 @@ final class MethodsJvmSpec extends MacroSuite {
                 "isScalaGetter" -> Data(false),
                 "isScalaSetter" -> Data(false),
                 "isScalaAccessor" -> Data(false),
-                "isJavaGetter" -> Data(
-                  LanguageVersion.byHearth.isScala2_13
-                ), // ...which we don't support yet, so it's false...
+                "isJavaGetter" -> Data(true),
                 "isJavaSetter" -> Data(false),
-                "isJavaAccessor" -> Data(LanguageVersion.byHearth.isScala2_13), // ...and this is false...
-                "isAccessor" -> Data(LanguageVersion.byHearth.isScala2_13), // ...so this is false too.
+                "isJavaAccessor" -> Data(true),
+                "isAccessor" -> Data(true),
                 "scalaAccessorName" -> Data("<no scala accessor name>"),
-                "javaAccessorName" -> Data(
-                  if (LanguageVersion.byHearth.isScala2_13) "class" else "<no java accessor name>"
-                ),
-                "accessorName" -> Data(if (LanguageVersion.byHearth.isScala2_13) "class" else "<no accessor name>")
+                "javaAccessorName" -> Data("class"),
+                "accessorName" -> Data("class")
               ),
             "hashCode()" -> Data.map(
               "invocation" -> Data("OnInstance"),

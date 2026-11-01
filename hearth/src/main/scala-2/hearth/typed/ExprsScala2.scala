@@ -56,10 +56,14 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           c.internal.reificationSupport.freshTermName(prefix + "$macro$")
 
         def apply[A: Type](freshName: FreshName, expr: Expr[A]): TermName = freshName match {
-          case FreshName.FromPrefix(prefix)         => apply(prefix)
-          case FreshName.FromExpr if (expr != null) => apply(expr.tree.toString)
+          case FreshName.FromPrefix(prefix)                                          => apply(prefix)
+          case FreshName.FromExpr if (expr != null) && identifierFrom(expr).nonEmpty => apply(identifierFrom(expr))
           case _ => apply(UntypedType.fromTyped[A].typeSymbol.name.decodedName.toString.toLowerCase)
         }
+
+        // The printed expression is arbitrary code (`sth.toString()`), not something usable as a name.
+        private def identifierFrom[A](expr: Expr[A]): String =
+          expr.tree.toString.filter(_.isLetterOrDigit).dropWhile(_.isDigit).toLowerCase
       }
 
       object implicits {

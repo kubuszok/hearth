@@ -76,7 +76,7 @@ final class IsCollectionProviderForJavaOptional extends StandardMacroExtension {
                           .asInstanceOf[Expr[A]]
                       )
                     )
-                  else Left(s"Expected at most 1 element for Optional, got $${list.size}")
+                  else Left("Expected at most 1 element for Optional, got " + list.size)
                 },
               None
             )

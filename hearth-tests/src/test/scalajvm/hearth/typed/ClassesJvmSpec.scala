@@ -172,7 +172,7 @@ final class ClassesJvmSpec extends MacroSuite {
         val setterParameter = if (LanguageVersion.byHearth.isScala2_13) "x$1" else "x$0"
         testJavaBeanSummary[examples.classes.ExampleJavaClass] <==> Data.map(
           "defaultConstructor" -> Data("()"),
-          "beanGetters" -> Data.list(Data("getBoolean"), Data("getInt"), Data("getString")),
+          "beanGetters" -> Data.list(Data("getBoolean"), Data("getClass"), Data("getInt"), Data("getString")),
           "beanSetters" -> Data.list(
             Data.map("name" -> Data("setBoolean"), "parameters" -> Data(s"($setterParameter: scala.Boolean)")),
             Data.map("name" -> Data("setInt"), "parameters" -> Data(s"($setterParameter: scala.Int)")),

@@ -354,18 +354,26 @@ final class EnvironmentSpec extends MacroSuite {
 
     group("methods: Environment.reportError called more than once, expected behavior") {
 
-      test("should only report the first error message") {
+      test("should leave it to the compiler, which shows only the first error on Scala 2 and all of them on Scala 3") {
         compileErrors("EnvironmentFixtures.testReportErrorTwice")
           .check("First error message")
-        compileErrors("EnvironmentFixtures.testReportErrorTwice")
-          .checkNot("Second error message")
+        if (LanguageVersion.byHearth.isScala2_13)
+          compileErrors("EnvironmentFixtures.testReportErrorTwice")
+            .checkNot("Second error message")
+        else
+          compileErrors("EnvironmentFixtures.testReportErrorTwice")
+            .check("Second error message")
       }
 
-      test("should only report the first error message even if the next one aborts the expansion") {
+      test("should leave it to the compiler also when the next error aborts the expansion") {
         compileErrors("EnvironmentFixtures.testReportErrorThenAbort")
           .check("Error reported before abort")
-        compileErrors("EnvironmentFixtures.testReportErrorThenAbort")
-          .checkNot("Abort reported after error")
+        if (LanguageVersion.byHearth.isScala2_13)
+          compileErrors("EnvironmentFixtures.testReportErrorThenAbort")
+            .checkNot("Abort reported after error")
+        else
+          compileErrors("EnvironmentFixtures.testReportErrorThenAbort")
+            .check("Abort reported after error")
       }
     }
 

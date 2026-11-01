@@ -60,10 +60,14 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         def apply(prefix: String): String = impl.invoke(quotes.reflect.Symbol, prefix).asInstanceOf[String]
 
         def apply[A: Type](freshName: FreshName, expr: Expr[A]): String = freshName match {
-          case FreshName.FromPrefix(prefix)       => apply(prefix)
-          case FreshName.FromExpr if expr != null => apply(expr.asTerm.show(using Printer.TreeCode))
+          case FreshName.FromPrefix(prefix)                                        => apply(prefix)
+          case FreshName.FromExpr if expr != null && identifierFrom(expr).nonEmpty => apply(identifierFrom(expr))
           case _ => apply(unapplyTypes[A].show(using Printer.TypeReprShortCode).toLowerCase)
         }
+
+        // The printed expression is arbitrary code (`sth.toString()`), not something usable as a name.
+        private def identifierFrom[A](expr: Expr[A]): String =
+          expr.asTerm.show(using Printer.TreeCode).filter(_.isLetterOrDigit).dropWhile(_.isDigit).toLowerCase
 
         def bind[A: Type](freshName: FreshName, flags: Flags): Symbol =
           Symbol.newBind(currentSpliceOwner, apply[A](freshName, null), flags, TypeRepr.of[A])

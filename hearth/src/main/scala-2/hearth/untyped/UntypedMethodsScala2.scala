@@ -323,7 +323,9 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     override def isSynthetic: Boolean = symbol.isSynthetic || UntypedMethod.methodsConsideredSynthetic(symbol)
 
     override def isFinal: Boolean = symbol.isFinal
-    override def isAbstract: Boolean = (symbol: Symbol).isAbstract
+    // `abstract override` members are not `isAbstract`, as they have an implementation (which calls `super`).
+    override def isAbstract: Boolean =
+      (symbol: Symbol).isAbstract || symbol.asInstanceOf[scala.reflect.internal.Symbols#Symbol].isAbstractOverride
     override def isOverride: Boolean = if (symbol.isMethod) symbol.asMethod.overrides.nonEmpty else false
 
     override def isPrivate: Boolean =
@@ -334,7 +336,8 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         Option(symbol.privateWithin).forall(_ == NoSymbol)
     override def privateWithin: Option[String] = {
       val pw = Option(symbol.privateWithin).filterNot(_ == NoSymbol)
-      pw.filter(_ => symbol.isPrivate && !symbol.isProtected).map(_.name.toString)
+      // `private[pkg]` sets only `privateWithin`, without the PRIVATE flag that a plain `private` has.
+      pw.filter(_ => !symbol.isProtected).map(_.name.toString)
     }
     override def protectedWithin: Option[String] = {
       val pw = Option(symbol.privateWithin).filterNot(_ == NoSymbol)
@@ -359,7 +362,8 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
           case TypeRef(_, sym, List(arg))
               if sym == definitions.RepeatedParamClass || sym == definitions.JavaRepeatedParamClass =>
             s"${printType(arg)}*"
-          case TypeRef(_, sym, Nil) if isTP(sym)                                                    => symbolName(sym)
+          case TypeRef(_, sym, List(arg)) if sym == definitions.ByNameParamClass => s"=> ${printType(arg)}"
+          case TypeRef(_, sym, Nil) if isTP(sym)                                 => symbolName(sym)
           case TypeRef(_, sym, Nil) if sym.isType && sym.owner.isClass && !sym.owner.isPackageClass =>
             s"${sym.owner.fullName}#${symbolName(sym)}"
           case TypeRef(_, sym, args) if isTP(sym) || args.exists(containsTypeParam) =>
@@ -424,7 +428,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         val isBottomBound = lower == "scala.Nothing" || lower.contains("@") || lower.startsWith("[")
         val coloredUpper = if (hl.TypeDefColor.isEmpty) upper else hl.highlightTypeDef(upper)
         val coloredLower = if (hl.TypeDefColor.isEmpty) lower else hl.highlightTypeDef(lower)
-        if (!isTopBound && !isBottomBound) s"$coloredName <: $coloredUpper >: $coloredLower"
+        if (!isTopBound && !isBottomBound) s"$coloredName >: $coloredLower <: $coloredUpper"
         else if (!isTopBound) s"$coloredName <: $coloredUpper"
         else if (!isBottomBound) s"$coloredName >: $coloredLower"
         else coloredName
@@ -469,6 +473,13 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       scala.util.Try(symbol.setter).toOption.filterNot(_ == NoSymbol).collectFirst {
         case s if s.isMethod => s.asMethod
       }
+
+    // Each lookup builds a fresh wrapper, so reference equality would make the same member unequal to itself.
+    override def equals(that: Any): Boolean = that match {
+      case that: UntypedMethod => symbol == that.symbol
+      case _                   => false
+    }
+    override def hashCode: Int = symbol.hashCode
   }
 
   object UntypedMethod extends UntypedMethodModule {

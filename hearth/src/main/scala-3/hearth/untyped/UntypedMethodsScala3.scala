@@ -219,8 +219,25 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     }
     override def lowerBound(param: UntypedTypeParameter): UntypedType = param.typeRef.translucentSuperType match {
       case TypeBounds(lo, _) => lo
-      case _                 => TypeRepr.of[Nothing]
+      case _                 => lowerBoundFromOwnerSignature(param).getOrElse(TypeRepr.of[Nothing])
     }
+
+    // A method type parameter's `typeRef` only exposes its upper bound, and `Symbol.info` (which has both bounds) is
+    // @experimental on 3.3, so the lower bound is read from the `PolyType` of the method's signature instead.
+    private def lowerBoundFromOwnerSignature(param: UntypedTypeParameter): Option[TypeRepr] = scala.util
+      .Try {
+        val method = param.owner
+        def find(tpe: TypeRepr): Option[TypeRepr] = tpe match {
+          case pt: PolyType =>
+            val idx = pt.paramNames.indexOf(param.name)
+            if idx >= 0 then Some(pt.paramBounds(idx).low) else find(pt.resType)
+          case mt: MethodType => find(mt.resType)
+          case _              => None
+        }
+        if method.isDefDef then find(method.owner.typeRef.memberType(method)) else None
+      }
+      .toOption
+      .flatten
   }
 
   class UntypedMethod private[UntypedMethodsScala3] (
@@ -429,8 +446,9 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       symbol.flags.is(Flags.Synthetic) || UntypedMethod.methodsConsideredSynthetic(symbol)
 
     override def isFinal: Boolean = symbol.flags.is(Flags.Final)
-    override def isAbstract: Boolean = symbol.flags.is(Flags.Deferred)
-    override def isOverride: Boolean = symbol.flags.is(Flags.Override)
+    // `abstract override` members carry only `AbsOverride`, neither `Deferred` nor `Override`.
+    override def isAbstract: Boolean = symbol.flags.is(Flags.Deferred) || symbol.flags.is(UntypedMethod.absOverrideFlag)
+    override def isOverride: Boolean = symbol.flags.is(Flags.Override) || symbol.flags.is(UntypedMethod.absOverrideFlag)
 
     override def isPrivate: Boolean =
       (symbol.flags.is(Flags.Private) || symbol.flags.is(Flags.PrivateLocal)) &&
@@ -461,6 +479,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         val raw = t match {
           case AppliedType(tycon, List(elem)) if tycon.typeSymbol == defn.RepeatedParamClass =>
             s"${elem.plainPrint}*"
+          case ByNameType(underlying) => s"=> ${underlying.plainPrint}"
           case AnnotatedType(underlying, ann) if ann.tpe.typeSymbol == repeatedAnnotationSymbol =>
             underlying.typeArgs.headOption.map(elem => s"${elem.plainPrint}*").getOrElse(underlying.plainPrint)
           case _ => t.plainPrint
@@ -508,7 +527,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         val isBottomBound = lower == "scala.Nothing" || lower.contains("@") || lower.startsWith("[")
         val coloredUpper = if hl.TypeDefColor.isEmpty then upper else hl.highlightTypeDef(upper)
         val coloredLower = if hl.TypeDefColor.isEmpty then lower else hl.highlightTypeDef(lower)
-        if !isTopBound && !isBottomBound then s"$coloredName <: $coloredUpper >: $coloredLower"
+        if !isTopBound && !isBottomBound then s"$coloredName >: $coloredLower <: $coloredUpper"
         else if !isTopBound then s"$coloredName <: $coloredUpper"
         else if !isBottomBound then s"$coloredName >: $coloredLower"
         else coloredName
@@ -562,6 +581,13 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
     override def signatureSegments(instanceTpe: UntypedType, hl: hearth.treeprinter.SyntaxHighlight): List[String] =
       signatureSegmentsImpl(instanceTpe, hl)
+
+    // Each lookup builds a fresh wrapper, so reference equality would make the same member unequal to itself.
+    override def equals(that: Any): Boolean = that match {
+      case that: UntypedMethod => symbol == that.symbol
+      case _                   => false
+    }
+    override def hashCode: Int = symbol.hashCode
   }
 
   // NamedTuples (Scala 3.7+) are opaque type aliases and have no real constructor symbol, so we synthesize one that
@@ -760,6 +786,10 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
   }
 
   object UntypedMethod extends UntypedMethodModule {
+
+    // Workaround to contain @experimental (`Flags.AbsOverride` on 3.3) from polluting the whole codebase
+    private[UntypedMethodsScala3] lazy val absOverrideFlag: Flags =
+      Flags.getClass.getMethod("AbsOverride").invoke(Flags).asInstanceOf[Flags]
 
     private def parse(
         isDeclared: Boolean,
@@ -1156,7 +1186,8 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       def enclosingOf(symbol: Symbol): Option[UntypedMethod] =
         // not ctor, but we don't want to call it, so it doesn't matter
         if symbol.isNoSymbol then None
-        else if symbol.isDefDef then parseCtorOption(symbol)
+        // A lambda is a `$anonfun` DefDef on Scala 3, while on Scala 2 it is not a method at all.
+        else if symbol.isDefDef && !symbol.isAnonymousFunction then parseCtorOption(symbol)
         else if symbol.isClassDef then parseCtorOption(symbol.primaryConstructor)
         else enclosingOf(symbol.owner)
       enclosingOf(Symbol.spliceOwner)

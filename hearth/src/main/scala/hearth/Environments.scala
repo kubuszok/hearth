@@ -124,6 +124,14 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       */
     final def typedSettings: Either[String, data.Data] = data.Data.parseList(XMacroSettings)
 
+    /** Reports an info message at the macro expansion point.
+      *
+      * Hearth passes every call straight to the compiler's reporter and does not de-duplicate anything. On both Scala 2
+      * and Scala 3 only the first info reported at a position is shown, so the following calls are no-ops: aggregate
+      * the messages and report them once.
+      *
+      * @since 0.1.0
+      */
     def reportInfo(msg: String): Unit
 
     /** Reports an info message at the given [[Position]] instead of the macro expansion point, e.g. to point at the
@@ -133,6 +141,10 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       */
     def reportInfo(msg: String, position: Position): Unit
 
+    /** Reports a warning at the macro expansion point.
+      *
+      * @since 0.1.0
+      */
     def reportWarn(msg: String): Unit
 
     /** Reports a warning at the given [[Position]] instead of the macro expansion point, e.g. to point at the specific
@@ -142,6 +154,14 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       */
     def reportWarn(msg: String, position: Position): Unit
 
+    /** Reports an error at the macro expansion point, without aborting the expansion.
+      *
+      * Hearth passes every call straight to the compiler's reporter, and the compilers differ: Scala 2 shows only the
+      * first error reported at a position (the following calls, including [[reportErrorAndAbort]], are no-ops), while
+      * Scala 3 shows every error. Aggregate the errors and report them once to get the same result on both.
+      *
+      * @since 0.1.0
+      */
     def reportError(msg: String): Unit
 
     /** Reports an error at the given [[Position]] instead of the macro expansion point, e.g. to point at the specific

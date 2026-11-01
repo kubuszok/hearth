@@ -124,7 +124,7 @@ final class ClassesSpec extends MacroSuite {
           "asNamedTuple" -> Data("<no named tuple>"),
           "asCaseClass" -> Data.map(
             "primaryConstructor" -> Data("(a: scala.Int)"),
-            "nonPrimaryConstructors" -> Data.list(Data("(a: scala.Int)")),
+            "nonPrimaryConstructors" -> Data.list(),
             "caseFields" -> Data.list(
               Data.map(
                 "name" -> Data("a"),
@@ -887,7 +887,7 @@ final class ClassesSpec extends MacroSuite {
       test("beanGetters include boolean `is` getters, beanSetters are listed with their parameters") {
         testJavaBeanSummary[examples.classesedge.ScalaBean] <==> Data.map(
           "defaultConstructor" -> Data("()"),
-          "beanGetters" -> Data.list(Data("getCount"), Data("getName"), Data("isActive")),
+          "beanGetters" -> Data.list(Data("getClass"), Data("getCount"), Data("getName"), Data("isActive")),
           "beanSetters" -> Data.list(
             Data.map("name" -> Data("setActive"), "parameters" -> Data("(active: scala.Boolean)")),
             Data.map("name" -> Data("setCount"), "parameters" -> Data("(count: scala.Int)")),

@@ -464,7 +464,7 @@ final class AnonymousInstanceSpec extends MacroSuite {
             examples.anonymous_instances.DiamondLeft,
             examples.anonymous_instances.DiamondRight
           ] <==>
-            "errors: Diamond conflict for method 'method' — conflicting implementations from: hearth.examples.anonymous_instances.DiamondLeft"
+            "errors: Diamond conflict for method 'method' — conflicting implementations from: hearth.examples.anonymous_instances.DiamondLeft, hearth.examples.anonymous_instances.DiamondRight"
         }
       }
 

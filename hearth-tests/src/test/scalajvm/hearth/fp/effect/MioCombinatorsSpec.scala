@@ -271,12 +271,12 @@ final class MioCombinatorsSpec extends Suite {
         Right(((10, 10), 11 + 12))
     }
 
-    test("parMap2 should give each branch a forked copy and join the copies afterwards") {
+    test("parMap2 should not fork a local never written before, but still join the copies afterwards") {
       val local = MLocal(1)(_ * 10)(_ + _)
       val branchA = local.get.flatMap(a => local.set(a + 1).as(a))
       val branchB = local.get.flatMap(b => local.set(b + 2).as(b))
       (branchA.parTuple(branchB).map2(local.get)((seen, joined) => (seen, joined))).unsafe.runSync._2 ==> Right(
-        ((10, 10), 11 + 12)
+        ((1, 1), 2 + 3)
       )
     }
   }

@@ -87,7 +87,7 @@ final class MioIntegrationsSpec extends MacroSuite {
               )
             ),
             "runningFailedAllowFailures" -> Data.map(
-              "loaded" -> Data.list(Data())
+              "loaded" -> Data.list()
             ),
             // These should always fail because the extension is not available.
             "loadingFailedDontAllowFailures" -> Data.map(

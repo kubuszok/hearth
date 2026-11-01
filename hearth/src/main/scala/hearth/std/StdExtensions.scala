@@ -388,7 +388,7 @@ trait StdExtensions { this: MacroCommons =>
       }
 
       (plainCtors ++ noInstanceMethods).collect {
-        case method if method.isUnary && method.knownReturning.exists { rt =>
+        case method if method.isUnary && method.isAvailable(AtCallSite) && method.knownReturning.exists { rt =>
               import rt.Underlying as R
               Type[R] <:< Type[Result]
             } =>

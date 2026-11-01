@@ -66,7 +66,8 @@ object MLocal {
     *   the initial value of the local variable, each indifidual [[MIO.unsafe.runSync]] would start from it
     * @param fork
     *   the function that modifies the local value for each new "fiber" (before running [[MIO.parMap2]] or
-    *   [[MIO.parTuple]])
+    *   [[MIO.parTuple]]); like ZIO's `FiberRef`, it is applied only to a local that was already written - a local never
+    *   written before the fork starts each "fiber" from `initial`
     * @param join
     *   the function that is run after "fibers" are done (after [[MIO.parMap2]] or [[MIO.parTuple]]) to combine values
     *   from 2 different "fibers" back into a single value
