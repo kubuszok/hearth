@@ -371,12 +371,16 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
           val inner: Expr[List[data.Data]] = Expr(l)
           Expr.quote(hearth.data.Data((Expr.splice(inner))))
         },
-        onMap = m => {
-          implicit val st: Type[String] = StringType
-          implicit val dt: Type[hearth.data.Data] = DataType
-          val inner: Expr[Map[String, hearth.data.Data]] = Expr(m)
-          Expr.quote(hearth.data.Data(Expr.splice(inner)))
-        }
+        onMap = m =>
+          // Scala 2 lifts an empty map as an untyped `Map()`, inferred as `Map[Nothing, Nothing]`, which `Map` (invariant in
+          // its key) cannot pass as `Map[String, Data]`.
+          if (m.isEmpty) Expr.quote(hearth.data.Data(Map.empty[String, hearth.data.Data]))
+          else {
+            implicit val st: Type[String] = StringType
+            implicit val dt: Type[hearth.data.Data] = DataType
+            val inner: Expr[Map[String, hearth.data.Data]] = Expr(m)
+            Expr.quote(hearth.data.Data(Expr.splice(inner)))
+          }
       )
       def fromExpr(expr: Expr[data.Data]): Option[data.Data] = expr.semiEval.toOption
     }

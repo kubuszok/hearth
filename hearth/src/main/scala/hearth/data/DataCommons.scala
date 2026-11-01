@@ -30,15 +30,16 @@ private[data] trait DataCommons {
   final def map(values: (String, Data)*): Data = apply(ListMap.from(values))
 
   final def parseString(string: String): Either[String, Data] = string.trim match {
-    case s @ digitRegex(_, _) =>
-      try
-        Right(if (s.endsWith("f")) Data(s.toFloat) else Data(s.toDouble))
-      catch {
-        case e: NumberFormatException => Left(e.getMessage)
-      }
+    // As with Scala literals: bare digits are an `Int` (too large is an error), a suffix or a fraction changes the type.
     case s @ intRegex(n) =>
       try
         Right(if (s.endsWith("L")) Data(n.toLong) else Data(n.toInt))
+      catch {
+        case e: NumberFormatException => Left(e.getMessage)
+      }
+    case s @ digitRegex(_, _) =>
+      try
+        Right(if (s.endsWith("f")) Data(s.toFloat) else Data(s.toDouble))
       catch {
         case e: NumberFormatException => Left(e.getMessage)
       }
@@ -127,8 +128,12 @@ private[data] trait DataCommons {
 
   final protected def diff(expected: Data, actual: Data): Diff = (expected, actual) match {
     case (DataList(expected), DataList(actual)) =>
-      expected.zipAll(actual, Data(), Data()).zipWithIndex.flatMap { case ((expected, actual), index) =>
-        diff(expected = expected, actual = actual).map(_.prependIndex(index))
+      expected.map(Some(_)).zipAll(actual.map(Some(_)), None, None).zipWithIndex.flatMap {
+        case ((Some(expected), Some(actual)), index) =>
+          diff(expected = expected, actual = actual).map(_.prependIndex(index))
+        // Padding with `Data()` would make a missing element indistinguishable from a null one.
+        case ((expected, actual), index) =>
+          DiffEntry(expected = expected.getOrElse(Data()), actual = actual.getOrElse(Data())).prependIndex(index) :: Nil
       }
     case (DataMap(expected), DataMap(actual)) =>
       (expected.keys.toVector ++ actual.keys.toVector).distinct.toList.flatMap { key =>

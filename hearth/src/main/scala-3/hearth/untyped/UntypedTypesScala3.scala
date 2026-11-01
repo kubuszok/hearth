@@ -155,7 +155,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       TypeRepr.typeConstructorOf(clazz)
 
     override def isInJavaLangPackage(instanceTpe: UntypedType): Boolean = {
-      val sym = instanceTpe.typeSymbol
+      val sym = instanceTpe.dealias.typeSymbol
       !sym.isNoSymbol && sym.owner.isPackageDef && sym.owner.fullName == "java.lang"
     }
 
@@ -191,7 +191,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def isTuple(instanceTpe: UntypedType): Boolean = {
       val tupleBase = fromTyped[Tuple]
       val nonEmptyBase = fromTyped[NonEmptyTuple]
-      instanceTpe <:< tupleBase && !(instanceTpe =:= tupleBase) && !(instanceTpe =:= nonEmptyBase)
+      // `Nothing` and `Null` are subtypes of `Tuple` too, but they are not tuples.
+      !(instanceTpe <:< fromTyped[Null]) && instanceTpe <:< tupleBase && !(instanceTpe =:= tupleBase) &&
+      !(instanceTpe =:= nonEmptyBase)
     }
 
     // Named tuple detection (Scala 3.7+ only; returns None on 3.3.x where the module doesn't exist)
@@ -695,11 +697,12 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def companionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] =
       if untyped.isObject then None
       else {
-        val sym = untyped.typeSymbol
+        // An alias has no companion of its own, the aliased class does (opaque types are not dealiased).
+        val sym = untyped.dealias.typeSymbol
         val isOpaque = sym.flags.is(Flags.Opaque)
         // First try the standard companionModule lookup (works for classes)
         Option(sym.companionModule)
-          .filterNot(_.isNoSymbol)
+          .filterNot(module => module.isNoSymbol || isConstructorProxy(module))
           .orElse {
             // For opaque types, companionModule returns NoSymbol because opaque types are type aliases.
             // We need to look for a module with the same name in the owner's declarations.
@@ -715,6 +718,14 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
             // We need to use 2 of them in different places, so we have to pass a tuple.
             (subtypeTypeOf(untyped, module.moduleClass), companionRef(untyped, module, isOpaque))
           }
+      }
+
+    // Scala 3 synthesizes an object with only `apply` "constructor proxies" for every class (so that `Foo()` works
+    // without `new`), and `companionModule` returns it even for a class without a companion. The flag marking it is not
+    // exposed by the Quotes API, so it is recognized by its shape.
+    private def isConstructorProxy(module: Symbol): Boolean =
+      module.flags.is(Flags.Synthetic) && module.moduleClass.declarations.forall { member =>
+        member.name == "apply" && member.flags.is(Flags.Synthetic)
       }
 
     override def pseudoCompanionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] = {
@@ -1056,8 +1067,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         case other                 => other
       }
 
+    // Dealiased like `typeConstructor`, so that both together rebuild the type even for an alias reordering its parameters.
     override def typeArguments(untyped: UntypedType): List[UntypedType] =
-      widenSingletons(untyped).typeArgs
+      widenSingletons(untyped).dealias.typeArgs
 
     override def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType =
       // Apply to the (dealiased) type CONSTRUCTOR rather than the type as-given, so that re-applying an

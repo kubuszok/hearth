@@ -565,8 +565,9 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     override def typeConstructor(untyped: UntypedType): UntypedType =
       widenSingletons(untyped).dealias.typeConstructor
 
+    // Dealiased like `typeConstructor`, so that both together rebuild the type even for an alias reordering its parameters.
     override def typeArguments(untyped: UntypedType): List[UntypedType] =
-      widenSingletons(untyped).typeArgs
+      widenSingletons(untyped).dealias.typeArgs
 
     override def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType =
       appliedType(widenSingletons(untyped).typeConstructor, args)

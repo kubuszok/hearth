@@ -530,10 +530,10 @@ trait UntypedMethods { this: MacroCommons =>
         if (isFinal) sb.append(hl.highlightKeyword("final")).append(" ")
         if (isAbstract && isOverride) sb.append(hl.highlightKeyword("abstract")).append(" ")
         if (isOverride) sb.append(hl.highlightKeyword("override")).append(" ")
-        if (isVal) sb.append(hl.highlightKeyword("val")).append(" ")
-        else if (isVar) sb.append(hl.highlightKeyword("var")).append(" ")
-        else if (isLazy)
+        if (isLazy)
           sb.append(hl.highlightKeyword("lazy")).append(" ").append(hl.highlightKeyword("val")).append(" ")
+        else if (isVal) sb.append(hl.highlightKeyword("val")).append(" ")
+        else if (isVar) sb.append(hl.highlightKeyword("var")).append(" ")
         else sb.append(hl.highlightKeyword("def")).append(" ")
         sb.append(name)
       }

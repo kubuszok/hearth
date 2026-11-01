@@ -765,9 +765,8 @@ trait Classes { this: MacroCommons =>
     private lazy val unapplyCache = new Type.Cache[Result]
     def unapply[A](tpe: Type[A]): Option[Enum[A]] =
       unapplyCache.getOrPut(tpe) {
-        if (tpe.isSealed) tpe.directChildren.map(children => new Enum(tpe, children))
-        else if (tpe.isEnumeration) tpe.directChildren.map(children => new Enum(tpe, children))
-        else if (tpe.isUnionType) tpe.directChildren.map(children => new Enum(tpe, children))
+        if (tpe.isSealed || tpe.isEnumeration || tpe.isUnionType)
+          tpe.directChildren.filter(_.nonEmpty).map(children => new Enum(tpe, children))
         else None
       }
 
@@ -1206,6 +1205,19 @@ trait Classes { this: MacroCommons =>
     lazy val diamondConflicts: List[ClassifiedMethod] =
       classifiedMethods.filter(_.classification == MethodClassification.DiamondConflict)
 
+    // A classified method keeps a single `declaredIn`, so the other parents implementing it are looked up again.
+    private def conflictingImplementationSources(conflict: ClassifiedMethod): List[??] = {
+      val key = AnonymousInstance.methodSignatureKey(conflict.method)
+      val sources = (classParent.map(_._1).toList ++ traitParents).filter { parent =>
+        UntypedMethod.unsortedMethods(parent.asUntyped).exists { untyped =>
+          val method = untyped.asTyped[A]
+          method.name == conflict.method.name && method.isDeclared && !method.isAbstract &&
+          AnonymousInstance.methodSignatureKey(method) == key
+        }
+      }
+      if (sources.isEmpty) List(conflict.declaredIn) else sources
+    }
+
     /** Synthesizes the anonymous instance, validating the supplied overrides and returning the expression or the
       * accumulated errors.
       *
@@ -1251,7 +1263,7 @@ trait Classes { this: MacroCommons =>
 
       val unresolvedDiamonds = diamondConflicts.filterNot(cm => overrides.contains(cm.method.asUntyped))
       unresolvedDiamonds.foreach { cm =>
-        errors += AnonymousInstanceError.DiamondConflict(cm.method.name, List(cm.declaredIn)).message
+        errors += AnonymousInstanceError.DiamondConflict(cm.method.name, conflictingImplementationSources(cm)).message
       }
 
       classParent match {
@@ -1420,7 +1432,8 @@ trait Classes { this: MacroCommons =>
           (name, sig.map(_.mkString(",")).mkString(";"))
         }
         .flatMap { case (_, methodsWithParent) =>
-          val representative = methodsWithParent.head
+          // Every parent lists the members it inherits too, so only the declaring one says where the method comes from.
+          val representative = methodsWithParent.find(_._1.isDeclared).getOrElse(methodsWithParent.head)
           val method = representative._1
           val declaredIn = representative._2
 
@@ -1450,7 +1463,7 @@ trait Classes { this: MacroCommons =>
       * the printed parameter types. Distinguishes overloads (different arity / parameter types) while remaining equal
       * for the same method seen through multiple parents (overrides / diamonds).
       */
-    private def methodSignatureKey(m: Method): List[List[String]] =
+    private[Classes] def methodSignatureKey(m: Method): List[List[String]] =
       m.totalParameters.map(_.toList.map { case (_, param) => param.tpe.plainPrint })
 
     private def hasDistinctDeclaredImpls(impls: List[(Method, ??)]): Boolean = {

@@ -188,6 +188,10 @@ or an implicit which would enable these hints whenever it's imported into the sc
 Unfortunately, on both Scala 2 and Scala 3, only the first such call provides a hint.
 All the following will be no-ops, so we would have to aggregate the individual logs somehow.
 
+Errors are handled differently: Hearth passes every `Environment.reportError` call to the compiler, and Scala 2 shows
+only the first error reported at a position (so a later `reportErrorAndAbort` shows nothing new), while Scala 3 shows
+all of them. Aggregating errors and reporting them once gives the same output on both.
+
 One such approach would be to use a mutable collection to write to. Or passing around
 an immutable collection, and have it updated (the `Writer` monad).
 

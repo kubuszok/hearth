@@ -407,10 +407,15 @@ trait Methods { this: MacroCommons =>
       lazy val getLike = name.startsWith("get") && name.length > 3 && name.charAt(3).isUpper
       lazy val isLike = name.startsWith("is") && name.length > 2 && name.charAt(2).isUpper
       asUntyped.invocation == Invocation.OnInstance && isNullary && (getLike || isLike) &&
-      knownReturning.exists { rt =>
-        import rt.Underlying as R
-        (getLike && !(R <:< Type.of[Unit])) || (isLike && (R <:< Type.of[Boolean]))
-      }
+      (knownReturning match {
+        case Some(rt) =>
+          import rt.Underlying as R
+          (getLike && !(R <:< Type.of[Unit])) || (isLike && (R <:< Type.of[Boolean]))
+        // A generic getter (e.g. `getClass[T >: this.type]()` on Scala 3) has no return type until its type arguments
+        // are applied, so only its signature can tell us what it returns. A generic `is` method is a type test
+        // (`isInstanceOf[T]`), not a boolean property.
+        case None => getLike && asUntyped.paramTypePrints(untypedInstanceType)._2 != "scala.Unit"
+      })
     }
     final lazy val isJavaSetter: Boolean =
       asUntyped.invocation == Invocation.OnInstance && isUnary && name.startsWith("set") && name.length > 3 &&

@@ -126,6 +126,12 @@ trait UntypedTypes { this: MacroCommons =>
     private lazy val primitiveUntypedTypes: List[UntypedType] =
       Type.primitiveTypes.map(tpe => fromTyped(using tpe.Underlying))
     private lazy val unitUntypedType: UntypedType = fromTyped(using Type.of[Unit])
+    private lazy val nothingUntypedType: UntypedType = fromTyped(using Type.of[Nothing])
+    private lazy val nullUntypedType: UntypedType = fromTyped(using Type.of[Null])
+
+    // `Nothing` (and `Null` for reference types) is a subtype of everything, so every `<:<`-based check would accept it.
+    private def isBottomType(instanceTpe: UntypedType): Boolean =
+      instanceTpe =:= nothingUntypedType || instanceTpe =:= nullUntypedType
     private lazy val jvmBuiltInUntypedTypes: List[UntypedType] =
       Type.jvmBuiltInTypes.map(tpe => fromTyped(using tpe.Underlying))
     private lazy val typeSystemSpecialUntypedTypes: List[UntypedType] =
@@ -143,9 +149,10 @@ trait UntypedTypes { this: MacroCommons =>
       * @since 0.1.0
       */
     final def isPrimitive(instanceTpe: UntypedType): Boolean =
-      primitiveUntypedTypes.exists(instanceTpe <:< _) || (instanceTpe <:< unitUntypedType)
+      !isBottomType(instanceTpe) &&
+        (primitiveUntypedTypes.exists(instanceTpe <:< _) || (instanceTpe <:< unitUntypedType))
     final def isArray(instanceTpe: UntypedType): Boolean =
-      ArrayCtor.unapply(toTyped[Any](instanceTpe)).isDefined
+      !isBottomType(instanceTpe) && ArrayCtor.unapply(toTyped[Any](instanceTpe)).isDefined
     def isIArray(instanceTpe: UntypedType): Boolean = false
 
     /** Whether the given type is a JVM built-in type.
@@ -159,8 +166,9 @@ trait UntypedTypes { this: MacroCommons =>
       * @since 0.1.0
       */
     final def isJvmBuiltIn(instanceTpe: UntypedType): Boolean =
-      jvmBuiltInUntypedTypes.exists(instanceTpe <:< _) || isArray(instanceTpe) || isIArray(instanceTpe) ||
-        isInJavaLangPackage(instanceTpe)
+      !isBottomType(instanceTpe) &&
+        (jvmBuiltInUntypedTypes.exists(instanceTpe <:< _) || isArray(instanceTpe) || isIArray(instanceTpe) ||
+          isInJavaLangPackage(instanceTpe))
     final def isTypeSystemSpecial(instanceTpe: UntypedType): Boolean =
       typeSystemSpecialUntypedTypes.exists(instanceTpe =:= _)
 
