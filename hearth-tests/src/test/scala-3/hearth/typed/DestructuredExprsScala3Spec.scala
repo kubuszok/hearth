@@ -65,17 +65,7 @@ final class DestructuredExprsScala3Spec extends MacroSuite {
             "rhs" -> Data.map(
               "node" -> Data("MethodCall"),
               "name" -> Data("nextInt"),
-              "receiver" -> Data.map(
-                "node" -> Data("MethodCall"),
-                "name" -> Data("Random"),
-                "receiver" -> Data.map(
-                  "node" -> Data("MethodCall"),
-                  "name" -> Data("util"),
-                  "receiver" -> Data.map("node" -> Data("Other"), "plainPrint" -> Data("scala")),
-                  "args" -> Data.list()
-                ),
-                "args" -> Data.list()
-              ),
+              "receiver" -> Data.map("node" -> Data("Other"), "plainPrint" -> Data("Random")),
               "args" -> Data.list()
             )
           )
@@ -104,7 +94,7 @@ final class DestructuredExprsScala3Spec extends MacroSuite {
       }
       result <==> Data.list(
         Data.map(
-          "plainPrint" -> Data("import ImplicitsOrderingmathscala.given"),
+          "plainPrint" -> Data("import Ordering.Implicits.given"),
           "hasPosition" -> Data(true),
           "rebuiltAsUnit" -> Data(true)
         ),

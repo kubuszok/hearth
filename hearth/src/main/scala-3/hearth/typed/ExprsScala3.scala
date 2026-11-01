@@ -5427,7 +5427,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         }
 
       case Ident(name) if term.symbol.flags.is(Flags.Module) =>
-        new DestructuredExpr.Singleton(dstrTpeOf(term), name, () => term)
+        new DestructuredExpr.Singleton(dstrTpeOf(term), dstrSingletonPath(term).getOrElse(name), () => term)
+
+      case _ if dstrSingletonPath(term).isDefined =>
+        new DestructuredExpr.Singleton(dstrTpeOf(term), dstrSingletonPath(term).get, () => term)
 
       case _ =>
         dstrTryMethodCall(term, lambdaParams).getOrElse {
@@ -5437,6 +5440,34 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             term.show(using Printer.TreeShortCode)
           )
         }
+    }
+  }
+
+  // A reference to an object nested in another object (`Shape.Circle`), a parameterless enum case (`Color.Red`) and
+  // `Nil` (a `val` of the `scala` package object whose type is an object) are singletons too, not just an `Ident` of a
+  // top-level object. They are named by their path of enclosing objects, without the packages (which, on Scala 3,
+  // are modules as well).
+  private def dstrSingletonPath(termAny: Any): Option[String] = {
+    import quotes.reflect.*
+    val term = termAny.asInstanceOf[Term]
+    def isPackageLike(sym: Symbol): Boolean =
+      sym.isPackageDef || sym.flags.is(Flags.Package) || sym.name == "package" || sym.name.endsWith("$package")
+    def isObject(sym: Symbol): Boolean = sym.flags.is(Flags.Module) && !isPackageLike(sym)
+    def isStableValue(sym: Symbol): Boolean =
+      sym.isTerm && !sym.flags.is(Flags.Mutable) &&
+        (sym.isValDef || (sym.isDefDef && sym.paramSymss.isEmpty && sym.flags.is(Flags.StableRealizable)))
+    val sym = term.symbol
+    val isSingleton = !sym.isNoSymbol && !isPackageLike(sym) && (isObject(sym) ||
+      (sym.isTerm && sym.flags.is(Flags.Enum) && sym.flags.is(Flags.StableRealizable)) ||
+      (isStableValue(sym) && isObject(term.tpe.widen.typeSymbol)))
+    def path(sym: Symbol): String = {
+      val owner = sym.owner
+      val name = sym.name.stripSuffix("$")
+      if !owner.isNoSymbol && isObject(owner) then s"${path(owner)}.$name" else name
+    }
+    term match {
+      case _: Ident | _: Select if isSingleton => Some(path(sym))
+      case _                                   => None
     }
   }
 
