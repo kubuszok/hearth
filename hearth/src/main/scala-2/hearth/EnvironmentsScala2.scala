@@ -146,8 +146,9 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
             thisRef
           )
         )
-      } else if (symbol.isTerm && (symbol.asTerm.isVal || symbol.asTerm.isVar)) {
-        val tpe: UntypedType = symbol.typeSignature
+        // A lazy val is owned by its accessor, a method whose signature is `=> A`.
+      } else if (symbol.isTerm && (symbol.asTerm.isVal || symbol.asTerm.isVar || symbol.asTerm.isLazy)) {
+        val tpe: UntypedType = symbol.typeSignature.finalResultType
         Some(Enclosure.Value(decodedName(symbol), Some(symbol.fullName), positionOf(symbol), UntypedType.as_??(tpe)))
       } else if (symbol.isMethod)
         // Result type kept None for cross-platform parity with Scala 3 (where `Symbol.info` is @experimental).
