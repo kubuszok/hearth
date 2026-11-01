@@ -724,12 +724,30 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         invokeMethod(receiver, bytecodeName, args).left.flatMap { _ =>
           if bytecodeName != name then invokeMethod(receiver, name, args)
           else
-            Left(
+            invokeValueClassExtension(receiver, sym, bytecodeName, args).toRight(
               NonEmptyVector.one(
                 s"Cannot invoke method '$name' on ${receiver.getClass.getName} with ${args.size} args"
               )
             )
         }
+      }
+
+      // A value class (e.g. `StringOps` from `augmentString`, `RichInt` from `intWrapper`) is erased to its underlying
+      // value, so its methods are not on the receiver's class but are `name$extension(underlying, args...)` methods of
+      // its companion module.
+      private def invokeValueClassExtension(receiver: Any, sym: Symbol, name: String, args: List[Any]): Option[Any] = {
+        val owner = sym.owner
+        if !(owner.isClassDef && owner.typeRef <:< TypeRepr.of[AnyVal]) then None
+        else
+          moduleCandidates(owner.fullName).iterator
+            .collectFirst { case ModuleSingleton(module) => module }
+            .flatMap { module =>
+              val extensionName = scala.reflect.NameTransformer.encode(name) + "$extension"
+              val candidates = module.getClass.getMethods.filter(_.getName == extensionName).toList
+              findMatchingMethod(candidates, receiver :: args).toOption.flatMap { case (method, preparedArgs) =>
+                scala.util.Try(method.invoke(module, preparedArgs.iterator.map(_.asInstanceOf[AnyRef]).toSeq*)).toOption
+              }
+            }
       }
 
       private def invokeMethod(receiver: Any, name: String, args: List[Any]): Result = {
@@ -758,7 +776,14 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
       private def evalPrimitiveOp(receiver: Any, name: String, args: List[Any]): Result = {
         val decodedName = scala.reflect.NameTransformer.decode(name)
-        (receiver, decodedName, args) match {
+        // In arithmetic a Char is its Int code (`'a' + 1 == 98`, `'a'.toInt == 97`), but Character is not a Number.
+        def charAsInt(value: Any): Any = value match {
+          case c: java.lang.Character => java.lang.Integer.valueOf(c.charValue.toInt)
+          case other                  => other
+        }
+        val isArithmetic = receiver.isInstanceOf[Number] || receiver.isInstanceOf[java.lang.Character]
+        val (operand, operands) = if isArithmetic then (charAsInt(receiver), args.map(charAsInt)) else (receiver, args)
+        (operand, decodedName, operands) match {
           case (a: Number, _, List(b: Number))                       => evalNumericBinaryOp(a, b, decodedName)
           case (a: Number, "unary_-", Nil)                           => evalUnaryMinus(a)
           case (a: Number, "unary_+", Nil)                           => Right(a)
@@ -766,8 +791,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           case (a: Number, _, Nil) if decodedName.startsWith("to")   => evalNumericConversion(a, decodedName)
           case (a: java.lang.Boolean, _, List(b: java.lang.Boolean)) => evalBooleanOp(a, b, decodedName)
           case (a: java.lang.Boolean, "unary_!", Nil)                => Right(!a)
-          case (a: Comparable[?], _, List(b))                        => evalComparisonOp(a, b, decodedName)
           case (a: String, "+", List(b))                             => Right(a + b)
+          case (a: Comparable[?], _, List(b))                        => evalComparisonOp(a, b, decodedName)
           case _                                                     =>
             Left(
               NonEmptyVector.one(
@@ -877,6 +902,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         case "toFloat"  => Right(a.floatValue: java.lang.Float)
         case "toShort"  => Right(a.shortValue: java.lang.Short)
         case "toByte"   => Right(a.byteValue: java.lang.Byte)
+        case "toChar"   => Right(a.intValue.toChar: java.lang.Character)
         case _          => Left(NonEmptyVector.one(s"Unsupported conversion: $name"))
       }
 
