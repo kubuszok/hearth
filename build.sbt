@@ -317,6 +317,13 @@ val mimaSettings = Seq(
   // Example of an allowed exclusion (a member added to a NESTED trait/object that MiMa would otherwise flag):
   //   exclude[ReversedMissingMethodProblem]("hearth.typed.SomeTrait#SomeNestedTrait.newHelper")
   mimaBinaryIssueFilters ++= Seq(
+    // `DstrValueStep` (one value-argument clause of a call being destructured) gained the type of the applied function.
+    // It is a `private` case class nested in the Scala 2 `ExprsScala2` cake trait, built and matched only inside it, so
+    // no user code can reference it; its bytecode is public only because Scala 2 emits private members that way.
+    exclude[DirectMissingMethodProblem]("hearth.typed.ExprsScala2#DstrValueStep.copy"),
+    exclude[DirectMissingMethodProblem]("hearth.typed.ExprsScala2#DstrValueStep.this"),
+    exclude[MissingTypesProblem]("hearth.typed.ExprsScala2$DstrValueStep$"),
+    exclude[DirectMissingMethodProblem]("hearth.typed.ExprsScala2#DstrValueStep.apply"),
     // NOTE: never filter a signature change of a method that provider extensions call (e.g. `skipped(String)`):
     // extensions are pre-compiled, ServiceLoader-loaded binaries - they are NOT recompiled against the Hearth that
     // loads them, so such a change throws NoSuchMethodError at link time.
