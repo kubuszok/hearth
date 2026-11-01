@@ -140,7 +140,6 @@ final class ClassesSpec extends MacroSuite {
       test("for sealed trait") {
 
         // It seems some methods exist only on Scala 2.13, and some only on Scala 3.
-        val constructors = if (LanguageVersion.byHearth.isScala2_13) Data.list() else Data.list(Data("()"))
 
         // It seems some methods exist only on Scala 2.13, and some only on Scala 3.
         val methods =
@@ -179,7 +178,7 @@ final class ClassesSpec extends MacroSuite {
           "##"
         ) <==> Data.map(
           "commons" -> Data.map(
-            "constructors" -> constructors,
+            "constructors" -> Data.list(),
             "methods" -> methods
           ),
           "asSingleton" -> Data("<no singleton>"),

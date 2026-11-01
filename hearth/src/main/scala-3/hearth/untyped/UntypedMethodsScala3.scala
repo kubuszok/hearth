@@ -960,6 +960,9 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       )
     }
 
+    // A Scala 3 trait has a constructor symbol (for trait parameters), but it cannot be called with `new`.
+    private def isTraitConstructor(ctor: Symbol): Boolean = ctor.owner.flags.is(Flags.Trait)
+
     override def primaryConstructor(instanceTpe: UntypedType): Option[UntypedMethod] =
       namedTupleComponents(instanceTpe) match {
         case Some((names, types)) => Some(new SyntheticNamedTupleConstructor(names, types))
@@ -967,7 +970,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           // Dealias so that an `export`-created alias (`export Inner.Foo`) resolves to the underlying class symbol -
           // otherwise `typeSymbol` is the alias and reports no constructors. Scala 2's `typeSymbol` auto-dealiases.
           Option(instanceTpe.dealias.typeSymbol.primaryConstructor)
-            .filterNot(_.isNoSymbol)
+            .filterNot(ctor => ctor.isNoSymbol || isTraitConstructor(ctor))
             .flatMap(
               UntypedMethod
                 .parseOption(
@@ -989,7 +992,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         case None                                          =>
           instanceTpe.dealias.typeSymbol.declarations // dealias for `export`-created aliases
             .filterNot(_.isNoSymbol)
-            .filter(_.isClassConstructor)
+            .filter(ctor => ctor.isClassConstructor && !isTraitConstructor(ctor))
             .flatMap(
               UntypedMethod
                 .parseOption(
