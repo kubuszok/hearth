@@ -5450,8 +5450,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
   private def dstrSingletonPath(termAny: Any): Option[String] = {
     import quotes.reflect.*
     val term = termAny.asInstanceOf[Term]
-    def isPackageLike(sym: Symbol): Boolean =
-      sym.isPackageDef || sym.flags.is(Flags.Package) || sym.name == "package" || sym.name.endsWith("$package")
+    def isPackageLike(sym: Symbol): Boolean = {
+      val name = sym.name.stripSuffix("$")
+      sym.isPackageDef || sym.flags.is(Flags.Package) || name == "package" || name.endsWith("$package")
+    }
     def isObject(sym: Symbol): Boolean = sym.flags.is(Flags.Module) && !isPackageLike(sym)
     def isStableValue(sym: Symbol): Boolean =
       sym.isTerm && !sym.flags.is(Flags.Mutable) &&
