@@ -60,7 +60,11 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
         case OrType(left, right)  => OrType(dealiasAll(left), dealiasAll(right))
         case AndType(left, right) => AndType(dealiasAll(left), dealiasAll(right))
         case tl: TypeLambda       => etaReduced(tl).fold(tpe)(dealiasAll)
-        case _                    => tpe.dealias
+        // An alias of an applied type (`type StringOption = Option[String]`) dealiases into one whose arguments can be
+        // aliases themselves (`scala.Predef.String`).
+        case _ =>
+          val dealiased = tpe.dealias
+          if dealiased != tpe then dealiasAll(dealiased) else dealiased
       }
 
     // `[A1, ..., An] =>> F[A1, ..., An]` -> `F`, only for a PURE eta-expansion: unbounded parameters, applied in order
