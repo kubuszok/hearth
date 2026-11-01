@@ -226,7 +226,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
       private def throwErrors(errors: NonEmptyVector[String]): Nothing = throw SemiEvalErrors(errors)
 
-      def eval(tree: Tree, overrides: Overrides): Result = evalWithLocals(tree, Map.empty, overrides)
+      // A tree built with quasiquotes (e.g. by an `ExprCodec.toExpr`) is untyped, so it has no symbols to evaluate.
+      def eval(tree: Tree, overrides: Overrides): Result = {
+        val typedTree = if (tree.tpe != null) tree else scala.util.Try(c.typecheck(tree)).getOrElse(tree)
+        evalWithLocals(typedTree, Map.empty, overrides)
+      }
 
       private def evalWithLocals(tree: Tree, locals: Map[Symbol, Any], overrides: Overrides): Result = {
         if (overrides != null) {
