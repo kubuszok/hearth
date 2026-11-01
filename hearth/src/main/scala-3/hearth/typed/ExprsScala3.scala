@@ -1217,10 +1217,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 case first :: Typed(Repeated(restArgs, _), _) :: Nil =>
                   extractArgs(first :: restArgs).flatMap(elems => classTagFromType.map(ct => elems.toArray(using ct)))
                 case first :: rest :: Nil =>
-                  // rest might be wrapped differently - try to extract just the first element
-                  extractArgs(List(first)).flatMap { firstElems =>
-                    // If rest is an empty seq, just use first
-                    classTagFromType.map(ct => firstElems.toArray(using ct))
+                  // The varargs tail is not always a bare `Typed(Repeated(...))` (it can be wrapped, e.g. inlined).
+                  rest.asExprOf[Seq[A]] match {
+                    case Varargs(restExprs) =>
+                      extractArgs(first :: restExprs.map(_.asTerm).toList)
+                        .flatMap(elems => classTagFromType.map(ct => elems.toArray(using ct)))
+                    case _ => None
                   }
                 case _ =>
                   extractArgs(args).flatMap(elems => classTagFromType.map(ct => elems.toArray(using ct)))
@@ -1316,6 +1318,14 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     override def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = {
       given FromExpr[A] = platformSpecific.implicits.ExprCodecIsFromExpr[A]
       given ToExpr[A] = platformSpecific.implicits.ExprCodecIsToExpr[A]
+      // The standard `FromExpr[Seq]` does not read `Seq.empty`, which is how the `ToExpr` below writes an empty Seq.
+      given FromExpr[Seq[A]] = new {
+        private val standard = FromExpr.SeqFromExpr[A]
+        override def unapply(expr: Expr[Seq[A]])(using scala.quoted.Quotes): Option[Seq[A]] = expr match {
+          case '{ Seq.empty[A] } => Some(Seq.empty[A])
+          case _                 => standard.unapply(expr)
+        }
+      }
       // Default implementation of ToExpr[Seq[A]] is not correct, uses VarArgs so for e.g.
       //   Seq(1)
       // we would print expression generating...
