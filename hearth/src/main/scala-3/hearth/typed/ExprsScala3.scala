@@ -631,15 +631,19 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         val ownerName = sym.owner.fullName
         val valueName = sym.name
         val candidates = moduleCandidates(ownerName)
+        // A Java enum value is a static field of the enum class, while a parameterless Scala 3 enum case is a static
+        // field of the companion's module class (`Color$.Green`).
+        def staticField(className: String): Option[Any] =
+          try Option(java.lang.Class.forName(className).getField(valueName).get(null))
+          catch { case _: Throwable => None }
         val result = candidates.iterator
-          .flatMap { className =>
-            try {
-              val clazz = java.lang.Class.forName(className.stripSuffix("$"))
-              Option(clazz.getField(valueName).get(null))
-            } catch { case _: Throwable => None }
-          }
+          .flatMap(className => staticField(className.stripSuffix("$")).orElse(staticField(className)))
           .nextOption()
-        result.toRight(NonEmptyVector.one(s"Cannot resolve enum value: ${sym.fullName}"))
+        result.toRight(
+          NonEmptyVector.one(
+            s"Cannot resolve enum value: ${sym.fullName}"
+          )
+        )
       }
 
       private def moduleCandidates(fullName: String): Array[String] = {
